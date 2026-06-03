@@ -363,17 +363,7 @@ export default function NutritionTracker() {
         + "- Se inválido: {\"ok\":false,\"reason\":\"explicação curta em português\"}\n"
         + "Usa null para campos desconhecidos.";
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:600,
-          messages:[{role:"user",content:prompt}]
-        })
-      });
-      const data = await res.json();
-      const text = data.content?.[0]?.text||"";
+      const text = await callAI(prompt, 600);
       const clean = text.replace(/```json|```/g,"").trim();
       const vals = JSON.parse(clean);
       if(!vals.ok){
@@ -425,17 +415,7 @@ export default function NutritionTracker() {
       + "Responde APENAS com JSON sem markdown:\n"
       + "{\"name\":\"nome curto para o prato\",\"protein\":X,\"kcal\":X,\"carbs\":X,\"fat\":X,\"fiber\":X,\"salt\":X,\"confidence\":\"alta|media|baixa\",\"note\":\"observação curta sobre a estimativa em português\"}";
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:400,
-          messages:[{role:"user",content:prompt}]
-        })
-      });
-      const data = await res.json();
-      const text = data.content?.[0]?.text||"";
+      const text = await callAI(prompt, 400);
       const clean = text.replace(/```json|```/g,"").trim();
       const vals = JSON.parse(clean);
       setDescribeResult(vals);
@@ -564,9 +544,8 @@ export default function NutritionTracker() {
         + "- Tendências preocupantes ou positivas\n"
         + "- Áreas de melhoria com sugestões específicas\n\n"
         + "Estrutura com secções claras: Padrões Positivos, Padrões a Melhorar, Tendências Identificadas, Recomendações.";
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,messages:[{role:"user",content:prompt}]})});
-      const data=await res.json();
-      setPatternsText(data.content?.[0]?.text||"");
+      const _pText=await callAI(prompt,1200);
+      setPatternsText(_pText);
     } catch(_){notify("Não foi possível analisar. Tenta novamente.");}
     setPatternsLoading(false);
   }
@@ -603,9 +582,7 @@ export default function NutritionTracker() {
       + "Responde APENAS com JSON sem markdown:\n"
       + "[{\"name\":\"nome\",\"items\":[{\"food\":\"nome exacto da despensa\",\"qty\":X,\"unit\":\"g\"}],\"protein\":X,\"kcal\":X}]";
     try {
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,messages:[{role:"user",content:prompt}]})});
-      const data=await res.json();
-      const text=data.content?.[0]?.text||"";
+      const text=await callAI(prompt,800);
       const clean=text.replace(/```json|```/g,"").trim();
       setSuggestions(JSON.parse(clean));
     } catch(_){notify("Não foi possível gerar sugestões.");}
@@ -774,17 +751,7 @@ export default function NutritionTracker() {
           + "📊 AVALIAÇÃO DA SEMANA (nota geral e contexto)\n\n"
           + "Sê honesto, específico e prático. Foca em padrões da semana, não só num dia.";
       }
-      const res = await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:1000,
-          messages:[{role:"user",content:prompt}]
-        })
-      });
-      const data = await res.json();
-      const text = data.content?.[0]?.text||"";
+      const text = await callAI(prompt, 1000);
       setFeedbackText(text);
     } catch(_){ notify("Não foi possível gerar o feedback. Tenta novamente."); }
     setFeedbackLoading(false);
@@ -952,6 +919,25 @@ export default function NutritionTracker() {
   }
 
   // Export/Import
+  // ── Gemini AI helper ─────────────────────────────────────────
+  async function callAI(prompt, maxTokens) {
+    const key = localStorage.getItem('gemini_key') || '';
+    if (!key) throw new Error('Chave API Gemini não configurada. Abre as Configurações (⚙).');
+    const proxy = localStorage.getItem('cors_proxy') || '';
+    const url = proxy + 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + key;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        contents: [{parts: [{text: prompt}]}],
+        generationConfig: {maxOutputTokens: maxTokens || 800, temperature: 0.3}
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Erro na API Gemini');
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+
   async function importFullBackup(e) {
     const file = e.target.files[0]; if (!file) return;
     e.target.value = "";
