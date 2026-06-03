@@ -3,30 +3,483 @@ import React from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 
 const TODAY = new Date().toISOString().split("T")[0];
-const MEALS = ["Café da manhã","Pré-treino","Pós-treino","Almoço","Café da tarde","Jantar","Ceia","Outro"];
-const MACRO_FIELDS = [
-  { key:"protein100", label:"Proteína",           unit:"g",    color:"#c8a96e", required:true  },
-  { key:"kcal100",    label:"Calorias",            unit:"kcal", color:"#8ec8c8", required:true  },
-  { key:"carbs100",   label:"Carboidratos",        unit:"g",    color:"#a96ec8", required:false },
-  { key:"sugars100",  label:"dos quais açúcares",  unit:"g",    color:"#a96ec8", required:false, sub:true },
-  { key:"fat100",     label:"Gorduras",            unit:"g",    color:"#c86e8e", required:false },
-  { key:"satfat100",  label:"das quais saturadas", unit:"g",    color:"#c86e8e", required:false, sub:true },
-  { key:"fiber100",   label:"Fibra",               unit:"g",    color:"#3a9a7a", required:false },
-  { key:"salt100",    label:"Sal",                 unit:"g",    color:"var(--muted2)",    required:false },
+
+// ── Translations ──────────────────────────────────────────────────────────────
+const STRINGS = {
+  pt: {
+    // App
+    appTitle:"Diário Nutricional", langBtn:"🇺🇸 English",
+    // Header
+    dayOf:"Dia de", trainDay:"TREINO", restDay:"DESCANSO",
+    syncDone:"↻ sync", syncing:"↻ sync...", lightMode:"☀️", darkMode:"🌙",
+    settings:"Configurações",
+    // Tabs
+    tabDiary:"Diário", tabAdd:"+", tabPantry:"Despensa", tabWeek:"Semana", tabMetrics:"Métricas",
+    // Nutrients
+    protein:"Proteína", calories:"Calorias", carbs:"Carboidratos",
+    sugars:"dos quais açúcares", fat:"Gorduras", satfat:"das quais saturadas",
+    fiber:"Fibra", salt:"Sal", water:"Água",
+    // Micro
+    vitB12:"Vitamina B12", niacin:"Niacina", phosphorus:"Fósforo",
+    vitD:"Vitamina D", calcium:"Cálcio", iron:"Ferro",
+    potassium:"Potássio", magnesium:"Magnésio", zinc:"Zinco", vitC:"Vitamina C",
+    // Meals
+    meals:["Café da manhã","Pré-treino","Pós-treino","Almoço","Café da tarde","Jantar","Ceia","Outro"],
+    // Stats
+    missing:"Faltam", exceeded:"Excedido",
+    bmi:"IMC",
+    // Goals
+    proteinGoal:"proteína", kcalGoal:"kcal",
+    // Diary
+    noRecords:"Sem registos para este dia.",
+    noFood:t('noFood'),
+    todayNote:t('todayNote'),
+    histNote:t('todayNote'),
+    addToMeal:"Adicionar à refeição",
+    selectFood:"Selecionar alimento",
+    qty:"Quantidade",
+    unit:t('unit'),
+    addFood:"Adicionar",
+    addManual:"Entrada manual",
+    describeMealBtn:"Descrever refeição",
+    describePlaceholder:"Ex: frango grelhado com arroz e salada",
+    estimateBtn:"✦ Estimar",
+    estimating:"⟳ A estimar...",
+    addEstimate:"Adicionar à refeição",
+    staged:"Refeição em preparação",
+    addAll:"Adicionar tudo",
+    clearStaged:"Limpar",
+    suggestBtn:"✦ Sugerir o que comer",
+    suggesting:"⟳ A sugerir...",
+    analyseDayBtn:"✦ Analisar alimentação do dia",
+    analysing:"⟳ A analisar...",
+    saveNote:"💾 Guardar nas notas",
+    prevDay:"‹", nextDay:"›",
+    // Water
+    waterGoalLabel:"Meta de água",
+    waterToday:"hoje",
+    waterAdd:"Adicionar",
+    waterGoalEdit:"Meta:",
+    waterGoalSave:"✓",
+    // Supplements
+    suppTitle:"Suplementos",
+    suppName:"Nome",
+    suppDose:"Dose padrão",
+    suppUnit:t('unit'),
+    suppNotes:"Notas (opcional)",
+    suppAdd:"Adicionar suplemento",
+    suppRegister:t('suppRegister'),
+    // Add tab modes
+    modeOneByOne:"Um por um", modeBatch:"Montar refeição", modeDescribe:"Descrever prato",
+    repeatRecent:"↻ Repetir refeição recente", noRecentMeals:"Sem refeições recentes.",
+    selectAndAdd:"Seleciona alimentos e vai adicionando.",
+    foodLabel:"Alimento", searchFood:"🔍 Pesquisar alimento...",
+    logToDiary:"Registar no diário",
+    describeDish:"Descreve o prato", descPlaceholder:"Ex: frango grelhado com arroz e salada",
+    confidence:"Confiança", noteLabel:"Nota",
+    // Pantry detail
+    defaultDose:"dose padrão:", pantryTitleCount:"Guardados",
+    editItem:"editar", pantryTitleLabel:"Guardados",
+    // Supplement
+    suppSave:"Guardar suplemento", suppDoseLabel:"Dose padrão",
+    suppNameLabel:"Nome", suppUnitLabel:t('unit'), suppNotesLabel:"Notas (opcional)",
+    suppLogToday:"Registar hoje",
+    suppLoggedToday:"Suplementos registados hoje",
+    // Backup
+    backupFull:"Backup Completo",
+    copyJsonAs:"Copia este JSON e guarda como",
+    copyJson:"Copia este JSON:",
+    copyManual:t('copyManual'),
+    // Diary
+    noFoodToday:"Nenhum alimento registado hoje.",
+    microLabel:"MICRONUTRIENTES",
+    notesPlaceholder:"Observações, contexto do dia, como te sentiste...",
+    notesTitle:"Notas do dia",
+    // History banner
+    proteinUnit:t('proteinUnit'), kcalUnit:"kcal",
+    // Week charts
+    proteinChart:"Proteína (g) — 7 dias",
+    kcalChart:"Calorias — 7 dias",
+    chooseFmt:"Escolhe o formato",
+    noRecentData:"Sem refeições recentes.",
+    noWeekData:t('noWeekData'),
+    // Metrics
+    currentMetrics:"Métricas actuais",
+    weightEvolution:"Evolução do peso",
+    heightLabel:"Altura (cm)", heightPh:"ex: 175",
+    logMeasurements:t('logMeasurements'),
+    customGoals:"Metas personalizadas",
+    editGoals:"Editar metas",
+    currentGoal:"Meta actual:",
+    mealAverages:"Médias por refeição (últimos 30 dias)",
+    patternsTitle:"Padrões — últimos 30 dias",
+    historyLabel:t('historyLabel'),
+    avgProtein:"Média proteína", avgCalories:"Média calorias",
+    daysProtGoal:"Dias meta prot.",
+    goalKcalTrain:"Kcal treino", goalKcalRest:"Kcal descanso",
+    goalProtTrain:"Prot. treino", goalProtRest:"Prot. descanso",
+    bmiUnderweight:"Abaixo do peso", bmiNormal:"Peso normal",
+    bmiOverweight:"Sobrepeso", bmiObese:"Obesidade",
+    totalLabel:"Total:",
+    loading:"A carregar...",
+    selectCopyManual:t('selectCopyManual'),
+    templates2:"Templates rápidos",
+    // AI
+    aiAnalyse:"✦ Analisar alimentação do dia",
+    aiAnalyseWeek:"✦ Analisar alimentação da semana",
+    aiPatterns:"✦ Analisar padrões alimentares (30 dias)",
+    analysingPatterns:"⟳ A analisar 30 dias...",
+    savedNote:"💾 Guardar nas notas",
+    // Add tab
+    addTabTitle:"Adicionar alimento",
+    foodName:"Nome do alimento",
+    foodNamePh:"ex: Banana, Frango grelhado...",
+    unitLabel:t('unit'),
+    autofillBtn:"✦ Preencher automaticamente",
+    autofilling:"⟳ A preencher...",
+    macros:"Macronutrientes",
+    micros:"Micronutrientes",
+    hideMicro:"▲ Ocultar micronutrientes",
+    showMicro:"▼ Micronutrientes (opcional)",
+    savePantry:"Guardar na despensa",
+    meal:"Refeição",
+    // Pantry
+    pantryTitle:"Guardados",
+    pantrySearch:"🔍 Pesquisar na despensa...",
+    pantryEmpty:"A despensa está vazia.",
+    noResults:"Nenhum resultado.",
+    pantryEdit:"Editar",
+    pantryDelete:"Apagar",
+    pantrySave:"Guardar",
+    pantryCancel:"Cancelar",
+    pantryImport:"↑ Importar",
+    pantryExport:"↓ Exportar",
+    templates:t('templates'),
+    templateName:"Nome do template...",
+    saveTemplate:"Guardar template",
+    applyTemplate:"Aplicar",
+    deleteTemplate:"×",
+    suppPantryTitle:"Despensa de suplementos",
+    suppEmpty:"Nenhum suplemento adicionado.",
+    // Export/Import
+    exportImportTitle:"Exportar / Importar",
+    exportDay:"↓ Exportar dia",
+    exportWeek:"↓ Exportar semana",
+    importMeals:"↑ Importar refeições",
+    importDay:"↑ Importar dia",
+    backupTitle:"Backup / Restaurar dados",
+    backupDesc:"Exporta ou importa TODOS os dados: despensa, registos diários, peso, água, suplementos.",
+    exportBackup:"↓ Exportar backup",
+    exportingBackup:t('exportingBackup'),
+    importBackup:"↑ Importar backup",
+    backupCopyJson:"Copia este JSON e guarda como",
+    copyBtn:"Copiar",
+    close:"Fechar",
+    // Week
+    weekNoData:t('weekNoData'),
+    weekTitle:"Últimos 7 dias",
+    exportWeekBtn:"↓ Exportar semana",
+    // Metrics
+    metricsTitle:"Métricas",
+    weight:t('weight'),
+    weightUnit:"kg",
+    weightPh:"ex: 73.5",
+    addWeight:"Registar peso",
+    weightHistory:"Histórico de peso",
+    noWeightData:"Nenhum registo de peso.",
+    deleteWeight:"×",
+    goals:"Metas",
+    goalProtein:"Proteína (g)",
+    goalKcal:"Calorias (kcal)",
+    goalCarbs:"Carboidratos (g)",
+    goalFat:"Gorduras (g)",
+    goalFiber:"Fibra (g)",
+    goalSalt:"Sal (g)",
+    goalWater:"Água (ml)",
+    saveGoals:"Guardar metas",
+    resetGoals:"Repor padrão",
+    training:"Treino",
+    rest:"Descanso",
+    // Notifications
+    notifFilled:"Campos preenchidos. Verifica e ajusta se necessário.",
+    notifSaved:"Guardado.",
+    notifDeleted:"Apagado.",
+    notifImported:"importado(s).",
+    notifCopied:"JSON copiado!",
+    notifBackupDone:"Backup gerado! Copia o JSON abaixo.",
+    notifRestored:"registos importados. Recarrega a página para ver tudo.",
+    notifEmpty:"Ficheiro vazio ou inválido.",
+    notifNoFood:"Nenhum alimento encontrado.",
+    notifWeightSaved:"Peso registado.",
+    notifGoalsSaved:"Metas guardadas.",
+    notifNotesSaved:"Notas guardadas.",
+    // Date
+    today:"Hoje",
+    yesterday:"Ontem",
+    weekDays:["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"],
+    months:["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"],
+    // Format strings
+    exportFormat:"Formato",
+    formatJson:"dados completos",
+    formatCsv:"para Excel",
+    formatHtml:"relatório web",
+    formatTxt:"texto simples",
+    // Misc
+    syncing2:"A sincronizar...",
+    confirmImport:"Importar %d registos? Os dados existentes com as mesmas chaves serão substituídos.",
+    confirmDelete:"Apagar?",
+    noDataPatterns:"Sem dados suficientes para analisar.",
+  },
+  en: {
+    // App
+    appTitle:"Nutrition Diary", langBtn:"🇧🇷 Português",
+    // Header
+    dayOf:"Day type", trainDay:"TRAINING", restDay:"REST",
+    syncDone:"↻ sync", syncing:"↻ syncing...", lightMode:"☀️", darkMode:"🌙",
+    settings:"Settings",
+    // Tabs
+    tabDiary:"Diary", tabAdd:"+", tabPantry:"Pantry", tabWeek:"Week", tabMetrics:"Metrics",
+    // Nutrients
+    protein:"Protein", calories:"Calories", carbs:"Carbohydrates",
+    sugars:"of which sugars", fat:"Fats", satfat:"of which saturated",
+    fiber:"Fiber", salt:"Sodium", water:"Water",
+    // Micro
+    vitB12:"Vitamin B12", niacin:"Niacin", phosphorus:"Phosphorus",
+    vitD:"Vitamin D", calcium:"Calcium", iron:"Iron",
+    potassium:"Potassium", magnesium:"Magnesium", zinc:"Zinc", vitC:"Vitamin C",
+    // Meals
+    meals:["Breakfast","Pre-workout","Post-workout","Lunch","Afternoon snack","Dinner","Supper","Other"],
+    // Stats
+    missing:"Missing", exceeded:"Exceeded",
+    bmi:"BMI",
+    // Goals
+    proteinGoal:"protein", kcalGoal:"kcal",
+    // Diary
+    noRecords:"No records for this day.",
+    noFood:"No foods logged.",
+    todayNote:"Notes for today...",
+    histNote:"Notes for this day...",
+    addToMeal:"Add to meal",
+    selectFood:"Select food",
+    qty:"Amount",
+    unit:"Unit",
+    addFood:"Add",
+    addManual:"Manual entry",
+    describeMealBtn:"Describe meal",
+    describePlaceholder:"e.g. grilled chicken with rice and salad",
+    estimateBtn:"✦ Estimate",
+    estimating:"⟳ Estimating...",
+    addEstimate:"Add to meal",
+    staged:"Meal in progress",
+    addAll:"Add all",
+    clearStaged:"Clear",
+    suggestBtn:"✦ Suggest what to eat",
+    suggesting:"⟳ Suggesting...",
+    analyseDayBtn:"✦ Analyse today's nutrition",
+    analysing:"⟳ Analysing...",
+    saveNote:"💾 Save to notes",
+    prevDay:"‹", nextDay:"›",
+    // Water
+    waterGoalLabel:"Water goal",
+    waterToday:"today",
+    waterAdd:"Add",
+    waterGoalEdit:"Goal:",
+    waterGoalSave:"✓",
+    // Supplements
+    suppTitle:"Supplements",
+    suppName:"Name",
+    suppDose:"Default dose",
+    suppUnit:"Unit",
+    suppNotes:"Notes (optional)",
+    suppAdd:"Add supplement",
+    suppRegister:"💊 Log supplement",
+    // Add tab modes
+    modeOneByOne:"One by one", modeBatch:"Build a meal", modeDescribe:"Describe dish",
+    repeatRecent:"↻ Repeat recent meal", noRecentMeals:"No recent meals.",
+    selectAndAdd:"Select foods and add them one by one.",
+    foodLabel:"Food", searchFood:"🔍 Search food...",
+    logToDiary:"Log to diary",
+    describeDish:"Describe the dish", descPlaceholder:"e.g. grilled chicken with rice and salad",
+    confidence:"Confidence", noteLabel:"Note",
+    // Pantry detail
+    defaultDose:"default dose:", pantryTitleCount:"Saved items",
+    editItem:"edit", pantryTitleLabel:"Saved items",
+    // Supplement
+    suppSave:"Save supplement", suppDoseLabel:"Default dose",
+    suppNameLabel:"Name", suppUnitLabel:"Unit", suppNotesLabel:"Notes (optional)",
+    suppLogToday:"Log today",
+    suppLoggedToday:"Supplements logged today",
+    // Backup
+    backupFull:"Full Backup",
+    copyJsonAs:"Copy this JSON and save as",
+    copyJson:"Copy this JSON:",
+    copyManual:"Select the text above and copy manually.",
+    // Diary
+    noFoodToday:"No foods logged today.",
+    microLabel:"MICRONUTRIENTS",
+    notesPlaceholder:"Notes, context, how you felt today...",
+    notesTitle:"Day notes",
+    // History banner
+    proteinUnit:"g protein", kcalUnit:"kcal",
+    // Week charts
+    proteinChart:"Protein (g) — 7 days",
+    kcalChart:"Calories — 7 days",
+    chooseFmt:"Choose format",
+    noRecentData:"No recent meals.",
+    noWeekData:"Not enough data for this week.",
+    // Metrics
+    currentMetrics:"Current metrics",
+    weightEvolution:"Weight evolution",
+    heightLabel:"Height (cm)", heightPh:"e.g. 175",
+    logMeasurements:"Log today's measurements",
+    customGoals:"Custom goals",
+    editGoals:"Edit goals",
+    currentGoal:"Current goal:",
+    mealAverages:"Meal averages (last 30 days)",
+    patternsTitle:"Patterns — last 30 days",
+    historyLabel:"History",
+    avgProtein:"Avg protein", avgCalories:"Avg calories",
+    daysProtGoal:"Days protein goal met",
+    goalKcalTrain:"Kcal training", goalKcalRest:"Kcal rest",
+    goalProtTrain:"Prot. training", goalProtRest:"Prot. rest",
+    bmiUnderweight:"Underweight", bmiNormal:"Normal weight",
+    bmiOverweight:"Overweight", bmiObese:"Obese",
+    totalLabel:"Total:",
+    loading:"Loading...",
+    selectCopyManual:"Select the text and copy manually.",
+    templates2:"Quick templates",
+    // AI
+    aiAnalyse:"✦ Analyse today's nutrition",
+    aiAnalyseWeek:"✦ Analyse this week's nutrition",
+    aiPatterns:"✦ Analyse eating patterns (30 days)",
+    analysingPatterns:"⟳ Analysing 30 days...",
+    savedNote:"💾 Save to notes",
+    // Add tab
+    addTabTitle:"Add food",
+    foodName:"Food name",
+    foodNamePh:"e.g. Banana, Grilled chicken...",
+    unitLabel:"Unit",
+    autofillBtn:"✦ Auto-fill",
+    autofilling:"⟳ Filling...",
+    macros:"Macronutrients",
+    micros:"Micronutrients",
+    hideMicro:"▲ Hide micronutrients",
+    showMicro:"▼ Micronutrients (optional)",
+    savePantry:"Save to pantry",
+    meal:"Meal",
+    // Pantry
+    pantryTitle:"Saved items",
+    pantrySearch:"🔍 Search pantry...",
+    pantryEmpty:"Your pantry is empty.",
+    noResults:"No results.",
+    pantryEdit:"Edit",
+    pantryDelete:"Delete",
+    pantrySave:"Save",
+    pantryCancel:"Cancel",
+    pantryImport:"↑ Import",
+    pantryExport:"↓ Export",
+    templates:"Meal templates",
+    templateName:"Template name...",
+    saveTemplate:"Save template",
+    applyTemplate:"Apply",
+    deleteTemplate:"×",
+    suppPantryTitle:"Supplement pantry",
+    suppEmpty:"No supplements added.",
+    // Export/Import
+    exportImportTitle:"Export / Import",
+    exportDay:"↓ Export day",
+    exportWeek:"↓ Export week",
+    importMeals:"↑ Import meals",
+    importDay:"↑ Import day",
+    backupTitle:"Backup / Restore data",
+    backupDesc:"Export or import ALL data: pantry, daily logs, weight, water, supplements.",
+    exportBackup:"↓ Export backup",
+    exportingBackup:"⟳ Exporting...",
+    importBackup:"↑ Import backup",
+    backupCopyJson:"Copy this JSON and save as",
+    copyBtn:"Copy",
+    close:"Close",
+    // Week
+    weekNoData:"Not enough data yet.",
+    weekTitle:"Last 7 days",
+    exportWeekBtn:"↓ Export week",
+    // Metrics
+    metricsTitle:"Metrics",
+    weight:"Weight",
+    weightUnit:"kg",
+    weightPh:"e.g. 73.5",
+    addWeight:"Log weight",
+    weightHistory:"Weight history",
+    noWeightData:"No weight records.",
+    deleteWeight:"×",
+    goals:"Goals",
+    goalProtein:"Protein (g)",
+    goalKcal:"Calories (kcal)",
+    goalCarbs:"Carbs (g)",
+    goalFat:"Fat (g)",
+    goalFiber:"Fiber (g)",
+    goalSalt:"Sodium (g)",
+    goalWater:"Water (ml)",
+    saveGoals:"Save goals",
+    resetGoals:"Reset to default",
+    training:"Training",
+    rest:"Rest",
+    // Notifications
+    notifFilled:"Fields filled. Review and adjust if needed.",
+    notifSaved:"Saved.",
+    notifDeleted:"Deleted.",
+    notifImported:"imported.",
+    notifCopied:"JSON copied!",
+    notifBackupDone:"Backup ready! Copy the JSON below.",
+    notifRestored:"records imported. Reload the page to see everything.",
+    notifEmpty:"Empty or invalid file.",
+    notifNoFood:"No foods found.",
+    notifWeightSaved:"Weight logged.",
+    notifGoalsSaved:"Goals saved.",
+    notifNotesSaved:"Notes saved.",
+    // Date
+    today:"Today",
+    yesterday:"Yesterday",
+    weekDays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+    months:["January","February","March","April","May","June","July","August","September","October","November","December"],
+    // Format strings
+    exportFormat:"Format",
+    formatJson:"full data",
+    formatCsv:"for Excel",
+    formatHtml:"web report",
+    formatTxt:"plain text",
+    // Misc
+    syncing2:"Syncing...",
+    confirmImport:"Import %d records? Existing data with the same keys will be replaced.",
+    confirmDelete:"Delete?",
+    noDataPatterns:"Not enough data to analyse.",
+  }
+};
+
+// MEALS is now in STRINGS[lang].meals — resolved inside component
+const MACRO_FIELDS_BASE = [
+  { key:"protein100", labelKey:"protein",  unit:"g",    color:"#c8a96e", required:true  },
+  { key:"kcal100",    labelKey:"calories", unit:"kcal", color:"#8ec8c8", required:true  },
+  { key:"carbs100",   labelKey:"carbs",    unit:"g",    color:"#a96ec8", required:false },
+  { key:"sugars100",  labelKey:"sugars",   unit:"g",    color:"#a96ec8", required:false, sub:true },
+  { key:"fat100",     labelKey:"fat",      unit:"g",    color:"#c86e8e", required:false },
+  { key:"satfat100",  labelKey:"satfat",   unit:"g",    color:"#c86e8e", required:false, sub:true },
+  { key:"fiber100",   labelKey:"fiber",    unit:"g",    color:"#3a9a7a", required:false },
+  { key:"salt100",    labelKey:"salt",     unit:"g",    color:"var(--muted2)", required:false },
 ];
-const MICRO_FIELDS = [
-  { key:"b12_100",       label:"Vitamina B12", unit:"µg" },
-  { key:"niacin100",     label:"Niacina",      unit:"mg" },
-  { key:"phosphorus100", label:"Fósforo",      unit:"mg" },
-  { key:"vitd100",       label:"Vitamina D",   unit:"µg" },
-  { key:"calcium100",    label:"Cálcio",       unit:"mg" },
-  { key:"iron100",       label:"Ferro",        unit:"mg" },
-  { key:"potassium100",  label:"Potássio",     unit:"mg" },
-  { key:"magnesium100",  label:"Magnésio",     unit:"mg" },
-  { key:"zinc100",       label:"Zinco",        unit:"mg" },
-  { key:"vitc100",       label:"Vitamina C",   unit:"mg" },
+const MICRO_FIELDS_BASE = [
+  { key:"b12_100",       labelKey:"vitB12",      unit:"µg" },
+  { key:"niacin100",     labelKey:"niacin",      unit:"mg" },
+  { key:"phosphorus100", labelKey:"phosphorus",  unit:"mg" },
+  { key:"vitd100",       labelKey:"vitD",        unit:"µg" },
+  { key:"calcium100",    labelKey:"calcium",     unit:"mg" },
+  { key:"iron100",       labelKey:"iron",        unit:"mg" },
+  { key:"potassium100",  labelKey:"potassium",   unit:"mg" },
+  { key:"magnesium100",  labelKey:"magnesium",   unit:"mg" },
+  { key:"zinc100",       labelKey:"zinc",        unit:"mg" },
+  { key:"vitc100",       labelKey:"vitC",        unit:"mg" },
 ];
-const ALL_FIELDS = [...MACRO_FIELDS, ...MICRO_FIELDS];
+const ALL_FIELDS_KEYS = [...MACRO_FIELDS_BASE, ...MICRO_FIELDS_BASE]; // keys only, no labels
 
 function computeGoals(weight, train) {
   if (!weight) return train
@@ -40,7 +493,7 @@ function getWeightForDate(history, date) {
   return [...history].filter(e=>e.date<=date).sort((a,b)=>b.date.localeCompare(a.date))[0]||null;
 }
 function emptyFood() {
-  const f={name:"",unit:"g"}; ALL_FIELDS.forEach(ff=>{f[ff.key]="";}); return f;
+  const f={name:"",unit:"g"}; ALL_FIELDS_KEYS.forEach(ff=>{f[ff.key]="";}); return f;
 }
 function downloadFile(content, filename, mime) {
   try {
@@ -63,13 +516,15 @@ function quickQtys(unit) {
   return [50,100,150,200,250,300];
 }
 function divisor(unit) { return unit==="un" ? 1 : 100; }
-function portionLabel(unit) { return unit==="un" ? "por 1 unidade" : `por 100${unit}`; }
-function dateLabel(date) {
-  if(date===TODAY) return "Hoje";
+function portionLabel(unit) { return unit==="un" ? lang==='en'?'per unit':'por 1 unidade' : `por 100${unit}`; }
+function dateLabel(date, lang) {
+  const s = STRINGS[lang||'pt'];
+  if(date===TODAY) return s.today;
   const d=new Date(date+"T12:00:00");
   const yesterday=new Date(); yesterday.setDate(yesterday.getDate()-1);
-  if(d.toDateString()===yesterday.toDateString()) return "Ontem";
-  return d.toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"});
+  if(d.toDateString()===yesterday.toDateString()) return s.yesterday;
+  const locale = (lang==='en') ? 'en-US' : 'pt-BR';
+  return d.toLocaleDateString(locale,{weekday:"short",day:"numeric",month:"short"});
 }
 function addDays(date,n) {
   const d=new Date(date+"T12:00:00"); d.setDate(d.getDate()+n);
@@ -107,7 +562,14 @@ function Bar({value,max,color,label,unit,sub}) {
 }
 
 
-export default function NutritionTracker() {
+export default function NutritionTracker({onOpenSettings}) {
+  const [lang, setLang] = useState(() => localStorage.getItem('appLang') || 'pt');
+  const t = (key) => { const s = STRINGS[lang]; return (s && s[key] !== undefined) ? s[key] : (STRINGS.pt[key] !== undefined ? STRINGS.pt[key] : key); };
+  function toggleLang() { const nl = lang === 'pt' ? 'en' : 'pt'; localStorage.setItem('appLang', nl); setLang(nl); }
+  const MEALS = t('meals');
+  const MACRO_FIELDS = MACRO_FIELDS_BASE.map(f => ({...f, label: t(f.labelKey)}));
+  const MICRO_FIELDS = MICRO_FIELDS_BASE.map(f => ({...f, label: t(f.labelKey)}));
+  const ALL_FIELDS = [...MACRO_FIELDS, ...MICRO_FIELDS]; // labeled version for render
   const [darkMode,setDarkMode]       = useState(true);
   const [pantry,setPantry]           = useState([]);
   const [log,setLog]                 = useState({});
@@ -344,8 +806,8 @@ export default function NutritionTracker() {
     setAutoFillLoading(true);
     const unit = form.unit;
     const foodName = form.name.trim();
-    const prompt = unit==="un"
-      ? "O utilizador quer registar \"" + foodName + "\" com unidade \"un\".\n\n"
+    const _basePrompt = unit==="un"
+      ? "Verifica se existe o alimento \"" + foodName + "\" e se faz sentido medir em unidades individuais.\n\n"
         + "IMPORTANTE: Como a unidade é \"un\", deves:\n"
         + "1. Verificar se faz sentido medir este alimento por unidade individual (1 ovo, 1 banana, 1 morango, etc.)\n"
         + "2. Se sim, fornecer os valores nutricionais por 100g E o peso médio em gramas de 1 unidade típica.\n"
@@ -353,16 +815,17 @@ export default function NutritionTracker() {
         + "3. Se não fizer sentido (ex: leite, azeite, farinha), recusa e explica.\n\n"
         + "Responde APENAS com JSON sem markdown:\n"
         + "- Se válido: {\"ok\":true,\"per100\":{\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X},\"unitWeightG\":X}\n"
-        + "- Se inválido: {\"ok\":false,\"reason\":\"explicação curta em português\"}"
+        + "- Se inválido: {\"ok\":false,\"reason\":\"brief explanation\"}"
       : "O utilizador quer registar \"" + foodName + "\" com unidade \"" + unit + "\".\n\n"
         + "Verifica se a unidade \"" + unit + "\" faz sentido para este alimento.\n"
         + "Se sim, fornece valores por 100" + unit + " baseados em tabelas nutricionais de referência (USDA, INSA, tabelas europeias).\n"
         + "Se não (ex: atum em ml, leite em un), recusa e explica.\n\n"
         + "Responde APENAS com JSON sem markdown:\n"
         + "- Se válido: {\"ok\":true,\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X}\n"
-        + "- Se inválido: {\"ok\":false,\"reason\":\"explicação curta em português\"}\n"
+        + "- Se inválido: {\"ok\":false,\"reason\":\"brief explanation\"}\n"
         + "Usa null para campos desconhecidos.";
-    try {
+    const prompt = aiLang() + _basePrompt;
+        try {
       const text = await callAI(prompt, 600);
       const clean = text.replace(/```json|```/g,"").trim();
       const vals = JSON.parse(clean);
@@ -397,17 +860,17 @@ export default function NutritionTracker() {
           fiber100:   vals.fiber100!=null?String(vals.fiber100):f.fiber100,
           salt100:    vals.salt100!=null?String(vals.salt100):f.salt100,
         }));
-        notify("Campos preenchidos. Verifica e ajusta se necessário.");
+        notify(t('notifFilled'));
       }
     } catch(_){ notify("Não foi possível obter os valores. Tenta novamente."); }
     setAutoFillLoading(false);
   }
 
   async function estimateMealDescription() {
-    if(!mealDescription.trim()){notify("Descreve o prato primeiro.");return;}
+    if(!mealDescription.trim()){notify(lang==='en'?'Describe the dish first.':'Descreve o prato primeiro.');return;}
     setDescribeLoading(true);
     setDescribeResult(null);
-    const prompt = "O utilizador comeu o seguinte prato e quer estimar os valores nutricionais:\n\n"
+    const prompt = aiLang()+"O utilizador comeu o seguinte prato e quer estimar os valores nutricionais:\n\n"
       + "\"" + mealDescription.trim() + "\"\n\n"
       + "Com base na descrição e nas quantidades indicadas (ou em porções típicas se não foram especificadas), "
       + "estima os valores nutricionais totais do prato completo.\n\n"
@@ -524,7 +987,7 @@ export default function NutritionTracker() {
           acc[meal].count++; acc[meal].protein+=entries.filter(e=>dayLog[meal]?.find(m=>m.id===e.id)).reduce((s,e)=>s+(e.protein??0),0);
         });
       }
-      if(!dayData.length){notify("Sem dados suficientes para analisar.");setPatternsLoading(false);return;}
+      if(!dayData.length){notify(t('noDataPatterns'));setPatternsLoading(false);return;}
       const avgProt=Math.round(dayData.reduce((s,d)=>s+d.protein,0)/dayData.length);
       const avgKcal=Math.round(dayData.reduce((s,d)=>s+d.kcal,0)/dayData.length);
       const daysMetProt=dayData.filter(d=>d.metProtein).length;
@@ -627,7 +1090,7 @@ export default function NutritionTracker() {
       if(format==="json") {
         content = JSON.stringify({date,isTraining,goals,meals:dayLog,totals,note},null,2);
       } else if(format==="csv") {
-        const rows = [["Refeição","Alimento","Quantidade","Unidade","Proteína(g)","Calorias(kcal)","Carbs(g)","Gordura(g)","Fibra(g)","Sal(g)"]];
+        const rows = [[t('meal'),t('foodLabel'),t('qty'),t('unit'),t('protein')+"(g)",t('calories')+"(kcal)",t('carbs')+"(g)",t('fat')+"(g)",t('fiber')+"(g)",t('salt')+"(g)"]];
         MEALS.forEach(meal=>{(dayLog[meal]||[]).forEach(e=>{rows.push([meal,'"'+e.name+'"',e.qty,e.unit,rnd(e.protein),rnd(e.kcal),rnd(e.carbs),rnd(e.fat),rnd(e.fiber),rnd(e.salt)]);});});
         rows.push([],[]);
         rows.push(["TOTAIS","","","",totals.protein,totals.kcal,totals.carbs,totals.fat,totals.fiber,totals.salt]);
@@ -642,13 +1105,13 @@ export default function NutritionTracker() {
         }).join("");
         content = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Nutrição "+date+"</title>"
           + "<style>body{font-family:sans-serif;padding:24px;max-width:800px;margin:auto}h1,h3{color:#333}table{width:100%}td,th{padding:6px 10px;text-align:left;border:1px solid #ddd}.box{background:#f5f5f5;padding:12px;border-radius:6px;margin-top:16px}</style></head><body>"
-          + "<h1>Relatório Nutricional — "+date+"</h1><p><b>Tipo:</b> "+(isTraining?"Treino":"Descanso")+"</p>"
+          + "<h1>Relatório Nutricional — "+date+"</h1><p><b>Tipo:</b> "+(isTraining?t('training'):t('rest'))+"</p>"
           + mealRows
           + "<div class='box'><h3>Totais</h3><p>Proteína: <b>"+totals.protein+"g</b> (meta: "+goals.protein+"g) &nbsp;|&nbsp; Calorias: <b>"+totals.kcal+"</b> (meta: "+goals.kcal+") &nbsp;|&nbsp; Carbs: "+totals.carbs+"g &nbsp;|&nbsp; Gordura: "+totals.fat+"g &nbsp;|&nbsp; Fibra: "+totals.fiber+"g &nbsp;|&nbsp; Sal: "+totals.salt+"g</p></div>"
           + (note?"<div class='box'><h3>Notas</h3><p>"+note.replace(/\n/g,"<br>")+"</p></div>":"")
           + "</body></html>";
       } else {
-        let txt = "RELATÓRIO NUTRICIONAL — " + date + "\nTipo: " + (isTraining?"Treino":"Descanso") + "\n\n";
+        let txt = "RELATÓRIO NUTRICIONAL — " + date + "\nTipo: " + (isTraining?t('training'):t('rest')) + "\n\n";
         MEALS.forEach(meal=>{
           const items = dayLog[meal]||[];
           if(!items.length) return;
@@ -680,15 +1143,15 @@ export default function NutritionTracker() {
       if(format==="json") {
         content = JSON.stringify(days,null,2);
       } else if(format==="csv") {
-        const rows = [["Data","Tipo","Proteína(g)","Meta Prot","Calorias","Meta Kcal","Carbs(g)","Gordura(g)","Fibra(g)","Sal(g)"]];
-        days.forEach(d=>rows.push([d.date,d.isTraining?"Treino":"Descanso",d.totals.protein,d.goals.protein,d.totals.kcal,d.goals.kcal,d.totals.carbs,d.totals.fat,d.totals.fiber,d.totals.salt]));
+        const rows = [["Data","Tipo","Proteína(g)","Meta Prot",t('calories'),"Meta Kcal",t('carbs')+"(g)","Gordura(g)","Fibra(g)","Sal(g)"]];
+        days.forEach(d=>rows.push([d.date,d.isTraining?t('training'):t('rest'),d.totals.protein,d.goals.protein,d.totals.kcal,d.goals.kcal,d.totals.carbs,d.totals.fat,d.totals.fiber,d.totals.salt]));
         content = rows.map(r=>r.join(",")).join("\n");
       } else if(format==="html") {
-        const rows = days.map(d=>"<tr><td>"+d.date+"</td><td>"+(d.isTraining?"Treino":"Descanso")+"</td><td>"+d.totals.protein+"g / "+d.goals.protein+"g</td><td>"+d.totals.kcal+" / "+d.goals.kcal+"</td><td>"+d.totals.carbs+"g</td><td>"+d.totals.fat+"g</td><td>"+d.totals.fiber+"g</td></tr>").join("");
+        const rows = days.map(d=>"<tr><td>"+d.date+"</td><td>"+(d.isTraining?t('training'):t('rest'))+"</td><td>"+d.totals.protein+"g / "+d.goals.protein+"g</td><td>"+d.totals.kcal+" / "+d.goals.kcal+"</td><td>"+d.totals.carbs+"g</td><td>"+d.totals.fat+"g</td><td>"+d.totals.fiber+"g</td></tr>").join("");
         content = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Semana Nutricional</title><style>body{font-family:sans-serif;padding:24px;max-width:900px;margin:auto}table{width:100%;border-collapse:collapse}td,th{padding:8px 12px;border:1px solid #ddd}th{background:#f0f0f0}tr:nth-child(even){background:#fafafa}</style></head><body><h1>Relatório Semanal — "+TODAY+"</h1><table><tr><th>Data</th><th>Tipo</th><th>Proteína</th><th>Calorias</th><th>Carbs</th><th>Gordura</th><th>Fibra</th></tr>"+rows+"</table></body></html>";
       } else {
         let txt = "RELATÓRIO SEMANAL — " + TODAY + "\n\n";
-        days.forEach(d=>{ txt += d.date+" ("+(d.isTraining?"Treino":"Descanso")+")\n  Proteína: "+d.totals.protein+"g / "+d.goals.protein+"g | Calorias: "+d.totals.kcal+" / "+d.goals.kcal+"\n\n"; });
+        days.forEach(d=>{ txt += d.date+" ("+(d.isTraining?t('training'):t('rest'))+")\n  Proteína: "+d.totals.protein+"g / "+d.goals.protein+"g | Calorias: "+d.totals.kcal+" / "+d.goals.kcal+"\n\n"; });
         content = txt;
       }
     }
@@ -731,7 +1194,7 @@ export default function NutritionTracker() {
           + "Sê honesto, específico e prático. Evita ser demasiado genérico.";
       } else {
         const days = weekData.filter(d=>d.hasData);
-        if(!days.length){notify("Sem dados suficientes para a semana.");setFeedbackLoading(false);return;}
+        if(!days.length){notify(t('noWeekData'));setFeedbackLoading(false);return;}
         const avg = {
           protein: Math.round(days.reduce((s,d)=>s+d.protein,0)/days.length),
           kcal: Math.round(days.reduce((s,d)=>s+d.kcal,0)/days.length),
@@ -813,7 +1276,7 @@ export default function NutritionTracker() {
     setEditingId(food.id);setEditForm(f);
   }
   function saveEdit(){
-    const u={...editForm};ALL_FIELDS.forEach(f=>{u[f.key]=editForm[f.key]===""?null:parseFloat(editForm[f.key]);});
+    const u={...editForm};ALL_FIELDS_KEYS.forEach(f=>{u[f.key]=editForm[f.key]===""?null:parseFloat(editForm[f.key]);});
     u.name=editForm.name.trim();
     setPantry(p=>p.map(food=>food.id===editingId?u:food));
     setEditingId(null);setEditForm(null);notify("Alimento atualizado.");
@@ -822,7 +1285,7 @@ export default function NutritionTracker() {
   function buildEntry(food,qty){
     const e={id:Date.now().toString()+Math.random(),foodId:food.id,name:food.name,qty,unit:food.unit};
     const div=divisor(food.unit);
-    ALL_FIELDS.forEach(f=>{e[f.key.replace("100","")]=food[f.key]!=null?(food[f.key]*qty)/div:null;});
+    ALL_FIELDS_KEYS.forEach(f=>{e[f.key.replace("100","")]=food[f.key]!=null?(food[f.key]*qty)/div:null;});
     return e;
   }
 
@@ -937,6 +1400,7 @@ export default function NutritionTracker() {
     if (!res.ok) throw new Error(data.error?.message || 'Erro na API Gemini');
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
+  function aiLang() { return lang === 'en' ? '\nRespond in English (American English).\n' : '\nResponde em português do Brasil.\n'; }
 
   async function importFullBackup(e) {
     const file = e.target.files[0]; if (!file) return;
@@ -982,7 +1446,7 @@ export default function NutritionTracker() {
       }
       const json = JSON.stringify({exportedAt: new Date().toISOString(), version: 2, data: result}, null, 2);
       setBackupJson(json);
-      notify("Backup gerado! Copia o JSON abaixo.");
+      notify(t('notifBackupDone'));
     } catch(e) {
       notify("Erro ao exportar: " + e.message);
     }
@@ -990,7 +1454,7 @@ export default function NutritionTracker() {
   }
 
   function exportCSV(){
-    const headers=["name","unit",...ALL_FIELDS.map(f=>f.key)];
+    const headers=["name","unit",...ALL_FIELDS_KEYS.map(f=>f.key)];
     const rows=pantry.map(food=>headers.map(h=>{const v=food[h];if(v==null||v==="")return "";if(typeof v==="string"&&v.includes(","))return`"${v}"`;return v;}).join(","));
     const csv=[headers.join(","),...rows].join("\n");
     navigator.clipboard.writeText(csv).then(()=>notify("CSV da despensa copiado para a área de transferência!")).catch(()=>{setBackupJson(csv);notify("Copia o texto que apareceu em baixo.");});
@@ -1008,7 +1472,7 @@ export default function NutritionTracker() {
           headers.forEach((h,i)=>{const v=vals[i];if(h==="name"||h==="unit")food[h]=v||"";else food[h]=v===""||v==null?null:parseFloat(v);});
           return food;
         }).filter(f=>f.name);
-        if(!imported.length){notify("Nenhum alimento encontrado.");return;}
+        if(!imported.length){notify(t('notifNoFood'));return;}
         setPantry(p=>{const ex=new Set(p.map(f=>f.name.toLowerCase()));const news=imported.filter(f=>!ex.has(f.name.toLowerCase()));notify(`${news.length} importado(s).`);return[...p,...news];});
       }catch(_){notify("Erro ao ler ficheiro.");}
     };
@@ -1108,7 +1572,7 @@ export default function NutritionTracker() {
     <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",flexDirection:"column",
       alignItems:"center",justifyContent:"center",gap:12,color:"var(--muted)",fontFamily:"system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"}}>
       <div style={{fontSize:22}}>⟳</div>
-      <div style={{fontSize:13,letterSpacing:2}}>A sincronizar...</div>
+      <div style={{fontSize:13,letterSpacing:2}}>{t('loading')}</div>
     </div>
   );
 
@@ -1117,32 +1581,40 @@ export default function NutritionTracker() {
 
       {/* Header */}
       <div style={{background:"var(--surface)",borderBottom:"1px solid var(--border)",padding:"14px 20px 12px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
             <div style={{fontSize:10,letterSpacing:3,color:"var(--muted)",textTransform:"uppercase",marginBottom:2}}>Diário Nutricional</div>
             <div style={{fontSize:15,color:"var(--text3)",fontStyle:"italic"}}>{dateStr}</div>
           </div>
-          <button onClick={()=>setDarkMode(d=>!d)} title={darkMode?"Modo claro":"Modo escuro"} style={{background:"none",border:"1px solid var(--border2)",color:"var(--muted)",borderRadius:4,padding:"5px 8px",fontSize:12,cursor:"pointer"}}>{darkMode?"☀":"🌙"}</button>
-          <button onClick={loadAll} style={{background:"none",border:"1px solid var(--border2)",color:syncing?"#3a6a3a":"#555",borderRadius:4,padding:"5px 10px",fontSize:10,cursor:"pointer",letterSpacing:1}}>
-            {syncing?"↻ sync...":"↻ atualizar"}
-          </button>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <button onClick={loadAll} style={{display:"flex",alignItems:"center",background:"none",border:"1px solid var(--border2)",color:syncing?"var(--btn-ok-text)":"var(--muted)",borderRadius:6,padding:"6px 10px",fontSize:13,cursor:"pointer"}}>
+              <span style={{display:"inline-block",animation:syncing?"spin 1s linear infinite":"none"}}>↻</span>
+            </button>
+            <button onClick={toggleLang} style={{background:"none",border:"1px solid var(--border2)",color:"var(--muted)",borderRadius:6,padding:"5px 8px",fontSize:11,cursor:"pointer",whiteSpace:"nowrap",letterSpacing:0.3}}>
+              {t('langBtn')}
+            </button>
+            <button onClick={()=>setDarkMode(d=>!d)} style={{background:"none",border:"1px solid var(--border2)",color:"var(--muted)",borderRadius:6,padding:"6px 9px",fontSize:13,cursor:"pointer",lineHeight:1}}>
+              {darkMode?"☀️":"🌙"}
+            </button>
+            {onOpenSettings&&<button onClick={onOpenSettings} style={{background:"none",border:"1px solid var(--border2)",color:"var(--muted)",borderRadius:6,padding:"6px 9px",fontSize:14,cursor:"pointer",lineHeight:1}}>⚙</button>}
+          </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:10,marginTop:10}}>
-          <span style={{fontSize:11,color:"var(--muted)"}}>Dia de</span>
+          <span style={{fontSize:11,color:"var(--muted)"}}>{t('dayOf')}</span>
           <button onClick={()=>setTrainingByDate(t=>({...t,[viewDate]:!isTraining}))} style={{
             background:isTraining?(darkMode?"#1e2e1e":"#c8eec8"):(darkMode?"#1e1e2e":"#c8c8ee"),
             border:`1px solid ${isTraining?(darkMode?"#3a6a3a":"#5a9a5a"):(darkMode?"#3a3a6a":"#5a5a9a")}`,
             color:isTraining?(darkMode?"#7ec87e":"#1a4a1a"):(darkMode?"#7e7ec8":"#28288a"),
             borderRadius:20,padding:"4px 14px",fontSize:11,fontWeight:"600",cursor:"pointer",letterSpacing:1
-          }}>{isTraining?"TREINO":"DESCANSO"}</button>
-          {currentWeight&&<span style={{fontSize:11,color:"var(--muted)",marginLeft:"auto"}}>{currentWeight}kg{bmi?` · IMC ${bmi}`:""}</span>}
+          }}>{isTraining?t('trainDay'):t('restDay')}</button>
+          {currentWeight&&<span style={{fontSize:11,color:"var(--muted)",marginLeft:"auto"}}>{currentWeight}kg{bmi?` · ${t('bmi')} ${bmi}`:""}</span>}
         </div>
       </div>
 
       {/* Rings — show for all dates */}
       <>
           <div style={{display:"flex",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
-            {[{label:"Proteína",val:tot.protein,goal:goals.protein,color:"#c8a96e",unit:"g"},{label:"Calorias",val:tot.kcal,goal:goals.kcal,color:"#8ec8c8",unit:"kcal"}].map(({label,val,goal,color,unit})=>(
+            {[{label:t('protein'),val:tot.protein,goal:goals.protein,color:"#c8a96e",unit:"g"},{label:t('calories'),val:tot.kcal,goal:goals.kcal,color:"#8ec8c8",unit:"kcal"}].map(({label,val,goal,color,unit})=>(
               <div key={label} style={{flex:1,padding:"14px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:5,borderRight:"1px solid var(--border)"}}>
                 <div style={{position:"relative",width:76,height:76}}>
                   <Ring value={val} max={goal} color={color}/>
@@ -1170,7 +1642,7 @@ export default function NutritionTracker() {
                 width:"100%",background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",color:suggestLoading?"#555":"var(--btn-ok-text)",
                 padding:"7px",borderRadius:6,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",cursor:suggestLoading?"default":"pointer",fontFamily:"inherit"
               }}>
-                {suggestLoading?"⟳ A calcular...":"✦ Sugerir o que comer"}
+                {suggestLoading?"⟳ A calcular...":t('suggestBtn')}
               </button>
               {suggestions&&(
                 <div style={{marginTop:10}}>
@@ -1196,12 +1668,12 @@ export default function NutritionTracker() {
 
           {/* Macro bars */}
           <div style={{background:"var(--surface)",borderBottom:"1px solid var(--border)",padding:"12px 20px"}}>
-            <Bar value={Math.round(tot.carbs*10)/10}  max={goals.carbs}  color="#a96ec8" label="Carboidratos"        unit="g"/>
-            {tot.sugars>0&&<Bar value={Math.round(tot.sugars*10)/10} max={0} color="#a96ec8" label="dos quais açúcares" unit="g" sub/>}
-            <Bar value={Math.round(tot.fat*10)/10}    max={goals.fat}    color="#c86e8e" label="Gorduras"             unit="g"/>
-            {tot.satfat>0&&<Bar value={Math.round(tot.satfat*10)/10} max={20} color="#c86e8e" label="das quais saturadas" unit="g" sub/>}
-            <Bar value={Math.round(tot.fiber*10)/10}  max={goals.fiber}  color="#6ec8a9" label="Fibra"                unit="g"/>
-            <Bar value={Math.round(tot.salt*100)/100} max={goals.salt}   color="#888"    label="Sal"                  unit="g"/>
+            <Bar value={Math.round(tot.carbs*10)/10}  max={goals.carbs}  color="#a96ec8" label={t('carbs')}        unit="g"/>
+            {tot.sugars>0&&<Bar value={Math.round(tot.sugars*10)/10} max={0} color="#a96ec8" label={t('sugars')} unit="g" sub/>}
+            <Bar value={Math.round(tot.fat*10)/10}    max={goals.fat}    color="#c86e8e" label={t('fat')}             unit="g"/>
+            {tot.satfat>0&&<Bar value={Math.round(tot.satfat*10)/10} max={20} color="#c86e8e" label={t('satfat')} unit="g" sub/>}
+            <Bar value={Math.round(tot.fiber*10)/10}  max={goals.fiber}  color="#6ec8a9" label={t('fiber')}                unit="g"/>
+            <Bar value={Math.round(tot.salt*100)/100} max={goals.salt}   color="#888"    label={t('salt')}                  unit="g"/>
           </div>
 
           {hasMicros&&(
@@ -1222,11 +1694,11 @@ export default function NutritionTracker() {
           )}
         </>
 
-      {notification&&<div style={{margin:"8px 16px 0",background:notification.startsWith("⚠")?"var(--notif-err-bg)":"var(--notif-ok-bg)",border:`1px solid ${notification.startsWith("⚠")?"var(--notif-err-border)":"var(--notif-ok-border)"}`,color:notification.startsWith("⚠")?"var(--notif-err-text)":"var(--notif-ok-text)",padding:"7px 14px",borderRadius:6,fontSize:12,textAlign:"center"}}>{notification}</div>}
+      {notification&&(()=>{const isErr=notification.startsWith("⚠")||notification.startsWith("Erro");return <div style={{margin:"8px 16px 0",background:isErr?"var(--notif-err-bg)":"var(--notif-ok-bg)",border:`1px solid ${isErr?"var(--notif-err-border)":"var(--notif-ok-border)"}`,color:isErr?"var(--notif-err-text)":"var(--notif-ok-text)",padding:"7px 14px",borderRadius:6,fontSize:12,textAlign:"center"}}>{notification}</div>})()}
 
       {/* Tabs */}
       <div style={{display:"flex",borderBottom:"1px solid var(--border)",marginTop:10}}>
-        {[["diario","Diário"],["adicionar","+"],["despensa","Despensa"],["semana","Semana"],["metricas","Métricas"]].map(([t,label])=>(
+        {[["diario",t('tabDiary')],["adicionar","+"],["despensa",t('tabPantry')],["semana",t('tabWeek')],["metricas",t('tabMetrics')]].map(([t,label])=>(
           <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:"10px 0",background:tab===t?"var(--tab-active)":"transparent",border:"none",borderBottom:tab===t?"2px solid #c8a96e":"2px solid transparent",color:tab===t?"#c8a96e":"#444",fontSize:9,letterSpacing:1,textTransform:"uppercase",cursor:"pointer"}}>{label}</button>
         ))}
       </div>
@@ -1240,7 +1712,7 @@ export default function NutritionTracker() {
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,background:"var(--surface)",borderRadius:8,padding:"8px 12px"}}>
               <button onClick={()=>changeViewDate(addDays(viewDate,-1))} style={{background:"none",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:18,padding:"0 8px"}}>‹</button>
               <div style={{textAlign:"center"}}>
-                <div style={{fontSize:13,color:isToday?"#c8a96e":"#c9bfb0"}}>{dateLabel(viewDate)}</div>
+                <div style={{fontSize:13,color:isToday?"#c8a96e":"#c9bfb0"}}>{dateLabel(viewDate, lang)}</div>
                 {!isToday&&<div style={{fontSize:10,color:"var(--muted)"}}>{viewDate}</div>}
               </div>
               <button onClick={()=>{if(viewDate<TODAY)changeViewDate(addDays(viewDate,1));}} style={{background:"none",border:"none",color:viewDate>=TODAY?"#2a2a2a":"#666",cursor:viewDate>=TODAY?"default":"pointer",fontSize:18,padding:"0 8px"}}>›</button>
@@ -1254,7 +1726,7 @@ export default function NutritionTracker() {
               if(!entries.length) return <div style={{textAlign:"center",color:"var(--faint)",fontSize:12,fontStyle:"italic",marginBottom:12}}>Sem registos para este dia.</div>;
               return (
                 <div style={{background:"var(--surface)",borderRadius:6,padding:"10px 14px",marginBottom:14,display:"flex",gap:20,fontSize:12}}>
-                  <span style={{color:"#c8a96e"}}>{Math.round(p)}g proteína</span>
+                  <span style={{color:"#c8a96e"}}>{Math.round(p)}{t('proteinUnit')}</span>
                   <span style={{color:"#8ec8c8"}}>{Math.round(k)} kcal</span>
                 </div>
               );
@@ -1278,7 +1750,7 @@ export default function NutritionTracker() {
                 {editWaterGoal&&(
                   <div style={{display:"flex",gap:6,marginBottom:8}}>
                     <input type="number" value={waterGoalInput} onChange={e=>setWaterGoalInput(e.target.value)}
-                      placeholder={"Meta actual: "+goals.water+"ml"} style={{...inp,flex:1,marginTop:0,padding:"6px 10px",fontSize:12}}/>
+                      placeholder={t('currentGoal')+' '+goals.water+'ml'} style={{...inp,flex:1,marginTop:0,padding:"6px 10px",fontSize:12}}/>
                     <button onClick={()=>{const v=parseFloat(waterGoalInput);if(!isNaN(v)&&v>0){setWaterGoal(v);setWaterGoalInput("");setEditWaterGoal(false);}}} style={{background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",color:"var(--btn-ok-text)",borderRadius:6,padding:"6px 12px",fontSize:11,cursor:"pointer"}}>ok</button>
                   </div>
                 )}
@@ -1289,7 +1761,7 @@ export default function NutritionTracker() {
                 </div>
                 <div style={{display:"flex",gap:6}}>
                   <input type="number" value={waterInput} onChange={e=>setWaterInput(e.target.value)}
-                    placeholder="outro valor em ml" style={{...inp,flex:1,marginTop:0,padding:"6px 10px",fontSize:12}}/>
+                    placeholder={lang==='en'?'other value in ml':'outro valor em ml'} style={{...inp,flex:1,marginTop:0,padding:"6px 10px",fontSize:12}}/>
                   <button onClick={()=>addWater()} style={{background:"var(--btn-teal)",border:"1px solid var(--btn-teal-border)",color:darkMode?"#3ab88a":"#1a8a6a",borderRadius:6,padding:"6px 12px",fontSize:11,cursor:"pointer"}}>+</button>
                 </div>
                 {waterIntake.length>0&&(
@@ -1366,7 +1838,7 @@ export default function NutritionTracker() {
                       </div>
                       {detailFood===e.id&&(
                         <div style={{background:"var(--row)",borderRadius:4,padding:"8px 12px",marginBottom:3,display:"flex",flexWrap:"wrap",gap:"5px 16px"}}>
-                          {[{l:"Carbs",v:e.carbs,u:"g",c:"#a96ec8"},{l:"Açúcares",v:e.sugars,u:"g",c:"#a96ec8"},{l:"Gordura",v:e.fat,u:"g",c:"#c86e8e"},{l:"Sat.",v:e.satfat,u:"g",c:"#c86e8e"},{l:"Fibra",v:e.fiber,u:"g",c:"#6ec8a9"},{l:"Sal",v:e.salt,u:"g",c:"#888"},{l:"B12",v:e.b12,u:"µg",c:"#c8c8a9"},{l:"Niacina",v:e.niacin,u:"mg",c:"#c8c8a9"},{l:"Fósforo",v:e.phosphorus,u:"mg",c:"#c8c8a9"},{l:"Cálcio",v:e.calcium,u:"mg",c:"#c8c8a9"},{l:"Ferro",v:e.iron,u:"mg",c:"#c8c8a9"},{l:"Potássio",v:e.potassium,u:"mg",c:"#c8c8a9"},{l:"Magnésio",v:e.magnesium,u:"mg",c:"#c8c8a9"},{l:"Zinco",v:e.zinc,u:"mg",c:"#c8c8a9"},{l:"Vit C",v:e.vitc,u:"mg",c:"#c8c8a9"},{l:"Vit D",v:e.vitd,u:"µg",c:"#c8c8a9"}].filter(x=>x.v!=null&&x.v!==0).map(x=>(
+                          {[{l:"Carbs",v:e.carbs,u:"g",c:"#a96ec8"},{l:"Açúcares",v:e.sugars,u:"g",c:"#a96ec8"},{l:"Gordura",v:e.fat,u:"g",c:"#c86e8e"},{l:"Sat.",v:e.satfat,u:"g",c:"#c86e8e"},{l:t('fiber'),v:e.fiber,u:"g",c:"#6ec8a9"},{l:t('salt'),v:e.salt,u:"g",c:"#888"},{l:"B12",v:e.b12,u:"µg",c:"#c8c8a9"},{l:"Niacina",v:e.niacin,u:"mg",c:"#c8c8a9"},{l:"Fósforo",v:e.phosphorus,u:"mg",c:"#c8c8a9"},{l:"Cálcio",v:e.calcium,u:"mg",c:"#c8c8a9"},{l:"Ferro",v:e.iron,u:"mg",c:"#c8c8a9"},{l:"Potássio",v:e.potassium,u:"mg",c:"#c8c8a9"},{l:"Magnésio",v:e.magnesium,u:"mg",c:"#c8c8a9"},{l:"Zinco",v:e.zinc,u:"mg",c:"#c8c8a9"},{l:"Vit C",v:e.vitc,u:"mg",c:"#c8c8a9"},{l:"Vit D",v:e.vitd,u:"µg",c:"#c8c8a9"}].filter(x=>x.v!=null&&x.v!==0).map(x=>(
                             <div key={x.l} style={{fontSize:11}}><span style={{color:"var(--muted)"}}>{x.l} </span><span style={{color:x.c}}>{x.v%1===0?x.v:x.v.toFixed(2)}{x.u}</span></div>
                           ))}
                         </div>
@@ -1383,7 +1855,7 @@ export default function NutritionTracker() {
               <label style={lbl}>Notas do dia</label>
               <textarea value={isToday?todayNote:historyNote}
                 onChange={e=>isToday?setTodayNote(e.target.value):setHistoryNote(e.target.value)}
-                placeholder="Observações, contexto do dia, como te sentiste..."
+                placeholder={t('notesPlaceholder')}
                 style={{...inp,height:72,resize:"vertical",marginTop:4}}/>
             </div>
 
@@ -1411,7 +1883,7 @@ export default function NutritionTracker() {
                 width:"100%",background:"var(--btn-info)",border:"1px solid var(--btn-info-border)",color:(feedbackLoading&&feedbackPeriod==="day")?"#555":"#c8a0e8",
                 padding:"10px",borderRadius:6,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit"
               }}>
-                {feedbackLoading&&feedbackPeriod==="day"?"⟳ A analisar...":"✦ Analisar alimentação do dia"}
+                {feedbackLoading&&feedbackPeriod==="day"?t('analysing'):t('analyseDayBtn')}
               </button>
             </div>
 
@@ -1437,7 +1909,7 @@ export default function NutritionTracker() {
               <div style={{fontSize:11,color:"var(--muted)",marginBottom:10}}>Exporta ou importa TODOS os dados: dispensa, registos diários, peso, água, suplementos.</div>
               <div style={{display:"flex",gap:6,marginBottom:8}}>
                 <button onClick={exportFullBackup} disabled={backupLoading} style={{flex:1,background:"#1a2a1a",border:"1px solid #3a5a3a",color:"#7ec87e",borderRadius:6,padding:"10px",fontSize:11,letterSpacing:1,textTransform:"uppercase",cursor:"pointer"}}>
-                  {backupLoading?"⟳ A exportar...":"↓ Exportar backup"}
+                  {backupLoading?t('exportingBackup'):t('exportBackup')}
                 </button>
                 <label style={{flex:1,background:"#1a1a2a",border:"1px solid #3a3a5a",color:"#8e8ec8",borderRadius:6,padding:"10px",fontSize:11,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center"}}>
                   ↑ Importar backup
@@ -1446,13 +1918,13 @@ export default function NutritionTracker() {
               </div>
               {backupJson&&(
                 <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:6,padding:"10px"}}>
-                  <div style={{fontSize:10,color:"var(--muted)",marginBottom:6}}>Copia este JSON e guarda como <code>backup.json</code>:</div>
+                  <div style={{fontSize:10,color:"var(--muted)",marginBottom:6}}>{t('copyJsonAs')} <code>backup.json</code>:</div>
                   <textarea readOnly value={backupJson} style={{width:"100%",height:120,fontFamily:"monospace",fontSize:10,background:"#0a0a0a",border:"1px solid var(--border2)",color:"var(--muted2)",borderRadius:4,padding:8,boxSizing:"border-box",resize:"vertical",marginBottom:6}}/>
                   <div style={{display:"flex",gap:6}}>
                     <button onClick={()=>{
                       navigator.clipboard.writeText(backupJson)
-                        .then(()=>notify("JSON copiado!"))
-                        .catch(()=>notify("Seleciona o texto acima e copia manualmente."));
+                        .then(()=>notify(t('notifCopied')))
+                        .catch(()=>notify(t('copyManual')));
                     }} style={{flex:1,background:"#1a2a2a",border:"1px solid #3a5a5a",color:"#7ec8c8",borderRadius:6,padding:"8px",fontSize:11,cursor:"pointer",letterSpacing:1,textTransform:"uppercase"}}>
                       Copiar
                     </button>
@@ -1492,7 +1964,7 @@ export default function NutritionTracker() {
                 padding:"8px 12px",borderRadius:6,fontSize:11,letterSpacing:1.5,
                 textTransform:"uppercase",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between"
               }}>
-                <span>↻ Repetir refeição recente</span><span>{showRecentMeals?"▲":"▼"}</span>
+                <span>{t('repeatRecent')}</span><span>{showRecentMeals?"▲":"▼"}</span>
               </button>
               {showRecentMeals&&(
                 <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderTop:"none",borderRadius:"0 0 6px 6px",maxHeight:280,overflowY:"auto"}}>
@@ -1512,7 +1984,7 @@ export default function NutritionTracker() {
                           onMouseEnter={e=>e.currentTarget.style.background="var(--btn-inactive)"}
                           onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                             <div>
-                              <div style={{fontSize:12,color:"var(--text3)"}}>{r.date===TODAY?"Hoje":r.date}</div>
+                              <div style={{fontSize:12,color:"var(--text3)"}}>{r.date===TODAY?t('today'):r.date}</div>
                               <div style={{fontSize:10,color:"var(--muted)",marginTop:2}}>{r.entries.length} item{r.entries.length!==1?"s":""}: {r.entries.map(e=>e.name).join(", ").slice(0,50)}{r.entries.map(e=>e.name).join(", ").length>50?"...":""}</div>
                             </div>
                             <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
@@ -1530,7 +2002,7 @@ export default function NutritionTracker() {
 
             {/* Mode toggle */}
             <div style={{display:"flex",gap:6,marginBottom:14}}>
-              {[["single","Um por um"],["batch","Montar refeição"],["describe","Descrever prato"]].map(([m,l])=>{
+              {[["single",t('modeOneByOne')],["batch",t('modeBatch')],["describe",t('modeDescribe')]].map(([m,l])=>{
                 const active = m==="describe" ? describeMode : !describeMode&&(m==="batch"?batchMode:!batchMode);
                 return <button key={m} onClick={()=>{
                   if(m==="describe"){setDescribeMode(true);}
@@ -1549,18 +2021,18 @@ export default function NutritionTracker() {
                   </select>
                 </div>
                 <div style={{marginBottom:8}}>
-                  <label style={lbl}>Descreve o prato</label>
+                  <label style={lbl}>{t('describeDish')}</label>
                   <textarea value={mealDescription} onChange={e=>setMealDescription(e.target.value)}
                     placeholder={"Ex: Frango grelhado com arroz branco e feijão, porção normal de refeitório. Tinha salada de alface com tomate e um fio de azeite. Sobremesa: uma laranja."}
                     style={{...inp,height:100,resize:"vertical",marginTop:4,fontSize:13}}/>
                   <div style={{fontSize:10,color:"var(--dim)",marginTop:4}}>
-                    Descreve o que comeste e, se souberes, as quantidades aproximadas. Caso contrário, indica apenas o contexto (refeitório, restaurante, caseiro, etc.).
+                    {lang==='en'?'Describe what you ate and approximate amounts if you know. Otherwise just describe the context (restaurant, homemade, cafeteria, etc.).':'Descreve o que comeste e, se souberes, as quantidades aproximadas. Caso contrário, indica apenas o contexto (refeitório, restaurante, caseiro, etc.).'}
                   </div>
                 </div>
                 <button onClick={estimateMealDescription} disabled={describeLoading} style={{
                   ...btn, background:"var(--btn-info)", border:"1px solid var(--btn-info-border)", color:describeLoading?"var(--muted)":"var(--btn-info-text)"
                 }}>
-                  {describeLoading?"⟳ A estimar...":"✦ Estimar valores nutricionais"}
+                  {describeLoading?t('estimating'):"✦ Estimar valores nutricionais"}
                 </button>
 
                 {describeResult&&(
@@ -1573,12 +2045,12 @@ export default function NutritionTracker() {
                     </div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:"6px 20px",marginBottom:10}}>
                       {[
-                        {l:"Proteína",v:describeResult.protein,u:"g",c:"#c8a96e"},
-                        {l:"Calorias",v:describeResult.kcal,u:"kcal",c:"#8ec8c8"},
+                        {l:t('protein'),v:describeResult.protein,u:"g",c:"#c8a96e"},
+                        {l:t('calories'),v:describeResult.kcal,u:"kcal",c:"#8ec8c8"},
                         {l:"Carbs",v:describeResult.carbs,u:"g",c:"#a96ec8"},
                         {l:"Gordura",v:describeResult.fat,u:"g",c:"#c86e8e"},
-                        {l:"Fibra",v:describeResult.fiber,u:"g",c:"#6ec8a9"},
-                        {l:"Sal",v:describeResult.salt,u:"g",c:"#888"},
+                        {l:t('fiber'),v:describeResult.fiber,u:"g",c:"#6ec8a9"},
+                        {l:t('salt'),v:describeResult.salt,u:"g",c:"#888"},
                       ].filter(x=>x.v!=null).map(x=>(
                         <div key={x.l} style={{fontSize:12}}>
                           <span style={{color:"var(--muted)"}}>{x.l} </span>
@@ -1610,7 +2082,7 @@ export default function NutritionTracker() {
             <div style={{marginBottom:8}}>
               <label style={lbl}>Alimento</label>
               <input value={addEntry.foodSearch||""} onChange={e=>setAddEntry(a=>({...a,foodSearch:e.target.value,foodId:""}))}
-                placeholder="🔍 Pesquisar alimento..." style={inp}/>
+                placeholder={t('searchFood')} style={inp}/>
               {addEntry.foodSearch&&(()=>{
                 const results=sortedAllPantry.filter(f=>f.name.toLowerCase().includes(addEntry.foodSearch.toLowerCase()));
                 if(!results.length) return <div style={{fontSize:12,color:"var(--dim)",padding:"8px 12px",background:"var(--input)",borderRadius:"0 0 6px 6px",marginTop:-3}}>Nenhum resultado.</div>;
@@ -1709,7 +2181,7 @@ export default function NutritionTracker() {
                     {/* Save as template */}
                     <div style={{display:"flex",gap:6,marginTop:8}}>
                       <input value={templateName} onChange={e=>setTemplateName(e.target.value)}
-                        placeholder="Nome do template..." style={{...inp,flex:1,marginTop:0,padding:"8px 10px",fontSize:12}}/>
+                        placeholder={t('templateName')} style={{...inp,flex:1,marginTop:0,padding:"8px 10px",fontSize:12}}/>
                       <button onClick={saveTemplate} style={{background:"var(--btn-info)",border:"1px solid var(--border-info)",color:"#8ec8c8",borderRadius:6,padding:"0 12px",fontSize:11,cursor:"pointer",whiteSpace:"nowrap"}}>Guardar template</button>
                     </div>
                   </>
@@ -1725,16 +2197,16 @@ export default function NutritionTracker() {
                 <div style={{fontSize:10,letterSpacing:1.5,color:"#7ec87e",textTransform:"uppercase",marginBottom:6}}>Backup Completo</div>
                 <div style={{fontSize:11,color:"var(--muted)",marginBottom:8}}>Exporta todos os dados para migrar para o site do GitHub.</div>
                 <button onClick={exportFullBackup} disabled={backupLoading} style={{...sBtn("var(--btn-ok)","var(--btn-ok-border)","#7ec87e"),marginBottom:0}}>
-                  {backupLoading?"A exportar...":"↓ Gerar Backup Completo"}
+                  {backupLoading?t('exportingBackup'):lang==='en'?'↓ Generate Full Backup':'↓ Gerar Backup Completo'}
                 </button>
                 {backupJson&&(
                   <div style={{marginTop:8}}>
-                    <div style={{fontSize:10,color:"var(--muted)",marginBottom:4}}>Copia este JSON:</div>
+                    <div style={{fontSize:10,color:"var(--muted)",marginBottom:4}}>{t('copyJson')}</div>
                     <textarea readOnly value={backupJson} style={{...inp,height:100,fontSize:10,fontFamily:"monospace",resize:"vertical",marginTop:0,color:"var(--muted2)"}}/>
                     <button onClick={()=>{
                       navigator.clipboard.writeText(backupJson)
-                        .then(()=>notify("JSON copiado!"))
-                        .catch(()=>notify("Seleciona o texto e copia manualmente."));
+                        .then(()=>notify(t('notifCopied')))
+                        .catch(()=>notify(t('selectCopyManual')));
                     }} style={{...sBtn("var(--btn-teal)","var(--btn-teal-border)","#7ec8c8"),marginTop:4,width:"100%"}}>
                       Copiar JSON
                     </button>
@@ -1774,7 +2246,7 @@ export default function NutritionTracker() {
                     navigator.clipboard.writeText(exportResult.content).then(()=>{
                       setExportResult(r=>({...r,copied:true}));
                       setTimeout(()=>setExportResult(r=>r?({...r,copied:false}):r),3000);
-                    }).catch(()=>notify("Seleciona o texto e copia manualmente."));
+                    }).catch(()=>notify(t('selectCopyManual')));
                   }} style={{...btn,marginTop:8,background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",color:"var(--btn-ok-text)",fontSize:10,letterSpacing:2}}>
                     {exportResult.copied?"✓ Copiado!":"📋 Copiar para área de transferência"}
                   </button>
@@ -1791,8 +2263,8 @@ export default function NutritionTracker() {
         {tab==="despensa"&&(
           <div>
             <div style={{display:"flex",gap:8,marginBottom:8}}>
-              <div style={{flex:1}}><label style={lbl}>Nome do alimento</label><input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="ex: Banana, Frango grelhado..." style={inp}/></div>
-              <div style={{width:90}}><label style={lbl}>Unidade</label><select value={form.unit} onChange={e=>setForm(f=>({...f,unit:e.target.value}))} style={inp}><option value="g">g</option><option value="ml">ml</option><option value="un">un</option></select></div>
+              <div style={{flex:1}}><label style={lbl}>{t('foodName')}</label><input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder={t('foodNamePh')} style={inp}/></div>
+              <div style={{width:90}}><label style={lbl}>{t('unit')}</label><select value={form.unit} onChange={e=>setForm(f=>({...f,unit:e.target.value}))} style={inp}><option value="g">g</option><option value="ml">ml</option><option value="un">un</option></select></div>
             </div>
             <button onClick={autoFillNutrition} disabled={autoFillLoading} style={{
               width:"100%",background:"var(--btn-info)",border:"1px solid var(--btn-info-border)",
@@ -1800,9 +2272,9 @@ export default function NutritionTracker() {
               fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:autoFillLoading?"default":"pointer",
               fontFamily:"inherit",marginBottom:10
             }}>
-              {autoFillLoading?"⟳ A pesquisar...":"✦ Preencher automaticamente"}
+              {autoFillLoading?lang==='en'?'⟳ Searching...':'⟳ A pesquisar...':t('autofillBtn')}
             </button>
-            <div style={{fontSize:10,letterSpacing:2,color:"var(--muted)",textTransform:"uppercase",marginBottom:8,marginTop:12}}>Macronutrientes ({portionLabel(form.unit)})</div>
+            <div style={{fontSize:10,letterSpacing:2,color:"var(--muted)",textTransform:"uppercase",marginBottom:8,marginTop:12}}>{t('macros')+' ('+portionLabel(form.unit, lang)+')'} </div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:6}}>
               {MACRO_FIELDS.filter(f=>!f.sub).map(f=>(
                 <div key={f.key} style={{flex:"1 1 calc(50% - 4px)",minWidth:120}}>
@@ -1820,7 +2292,7 @@ export default function NutritionTracker() {
               ))}
             </div>
             <button onClick={()=>setShowMicroForm(m=>!m)} style={{background:"none",border:"1px solid var(--border2)",color:"var(--muted)",width:"100%",padding:"7px",borderRadius:6,fontSize:10,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",marginBottom:8}}>
-              {showMicroForm?"▲ Ocultar micronutrientes":"▼ Micronutrientes (opcional)"}
+              {showMicroForm?t('hideMicro'):t('showMicro')}
             </button>
             {showMicroForm&&(
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
@@ -1836,7 +2308,7 @@ export default function NutritionTracker() {
 
             <div style={{marginTop:24}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <div style={{fontSize:10,letterSpacing:3,color:"var(--dim)",textTransform:"uppercase"}}>Guardados ({pantry.length})</div>
+                <div style={{fontSize:10,letterSpacing:3,color:"var(--dim)",textTransform:"uppercase"}}>{t('pantryTitle')} ({pantry.length})</div>
                 <div style={{display:"flex",gap:6}}>
                   <label style={sBtnLbl("var(--btn-info)","var(--btn-info-border)","#7e7ec8")}>↑ Importar<input type="file" accept=".csv" onChange={importCSV} style={{display:"none"}}/></label>
                   {pantry.length>0&&<button onClick={exportCSV} style={sBtn("var(--btn-teal)","var(--btn-teal-border)","#7ec8c8")}>↓ Exportar</button>}
@@ -1844,17 +2316,17 @@ export default function NutritionTracker() {
               </div>
               {/* Search */}
               <input value={pantrySearch} onChange={e=>setPantrySearch(e.target.value)}
-                placeholder="🔍 Pesquisar na despensa..." style={{...inp,marginBottom:10}}/>
-              {filteredPantry.length===0&&<div style={{color:"var(--faint)",fontSize:12,fontStyle:"italic",textAlign:"center",marginTop:12}}>{pantrySearch?"Nenhum resultado.":"Despensa vazia."}</div>}
+                placeholder={t('pantrySearch')} style={{...inp,marginBottom:10}}/>
+              {filteredPantry.length===0&&<div style={{color:"var(--faint)",fontSize:12,fontStyle:"italic",textAlign:"center",marginTop:12}}>{pantrySearch?t('noResults'):"Despensa vazia."}</div>}
               {sortedPantry.map(f=>(
                 <div key={f.id} style={{borderBottom:"1px solid var(--border3)"}}>
                   {editingId===f.id?(
                     <div style={{padding:"12px 0"}}>
                       <div style={{display:"flex",gap:8,marginBottom:6}}>
                         <div style={{flex:1}}><label style={lbl}>Nome</label><input value={editForm.name} onChange={e=>setEditForm(ef=>({...ef,name:e.target.value}))} style={inp}/></div>
-                        <div style={{width:90}}><label style={lbl}>Unidade</label><select value={editForm.unit} onChange={e=>setEditForm(ef=>({...ef,unit:e.target.value}))} style={inp}><option value="g">g</option><option value="ml">ml</option><option value="un">un</option></select></div>
+                        <div style={{width:90}}><label style={lbl}>{t('unit')}</label><select value={editForm.unit} onChange={e=>setEditForm(ef=>({...ef,unit:e.target.value}))} style={inp}><option value="g">g</option><option value="ml">ml</option><option value="un">un</option></select></div>
                       </div>
-                      <div style={{fontSize:10,letterSpacing:2,color:"var(--muted)",textTransform:"uppercase",marginBottom:6}}>Macronutrientes ({portionLabel(editForm.unit)})</div>
+                      <div style={{fontSize:10,letterSpacing:2,color:"var(--muted)",textTransform:"uppercase",marginBottom:6}}>{t('macros')+' ('+portionLabel(editForm.unit, lang)+')'} </div>
                       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:6}}>
                         {MACRO_FIELDS.filter(ff=>!ff.sub).map(ff=>(
                           <div key={ff.key} style={{flex:"1 1 calc(50% - 4px)",minWidth:110}}><label style={{...lbl,color:ff.required?"#888":"#555"}}>{ff.label}</label><input type="number" value={editForm[ff.key]} onChange={e=>setEditForm(ef=>({...ef,[ff.key]:e.target.value}))} style={inp}/></div>
@@ -1880,7 +2352,7 @@ export default function NutritionTracker() {
                         </div>
                       </div>
                       <div style={{display:"flex",gap:5,flexShrink:0,marginLeft:8}}>
-                        <button onClick={()=>startEdit(f)} style={{background:"none",border:"1px solid var(--border2)",color:"var(--muted)",borderRadius:4,padding:"3px 8px",fontSize:11,cursor:"pointer"}}>editar</button>
+                        <button onClick={()=>startEdit(f)} style={{background:"none",border:"1px solid var(--border2)",color:"var(--muted)",borderRadius:4,padding:"3px 8px",fontSize:11,cursor:"pointer"}}>{t('editItem')}</button>
                         <button onClick={()=>removeFood(f.id)} style={{background:"none",border:"1px solid var(--border3)",color:"var(--dim)",borderRadius:4,padding:"3px 8px",fontSize:11,cursor:"pointer"}}>×</button>
                       </div>
                     </div>
@@ -1899,7 +2371,7 @@ export default function NutritionTracker() {
                   <div style={{display:"flex",gap:8,marginBottom:6}}>
                     <div style={{flex:2}}><label style={lbl}>Nome</label><input value={suppForm.name} onChange={e=>setSuppForm(f=>({...f,name:e.target.value}))} placeholder="ex: Creatina" style={inp}/></div>
                     <div style={{flex:1}}><label style={lbl}>Dose padrão</label><input type="number" value={suppForm.dose} onChange={e=>setSuppForm(f=>({...f,dose:e.target.value}))} placeholder="5" style={inp}/></div>
-                    <div style={{width:80}}><label style={lbl}>Unidade</label>
+                    <div style={{width:80}}><label style={lbl}>{t('unit')}</label>
                       <select value={suppForm.unit} onChange={e=>setSuppForm(f=>({...f,unit:e.target.value}))} style={inp}>
                         <option value="g">g</option><option value="mg">mg</option><option value="µg">µg</option><option value="ml">ml</option><option value="un">un</option><option value="cáps">cáps</option>
                       </select>
@@ -1914,7 +2386,7 @@ export default function NutritionTracker() {
                 <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid var(--border3)"}}>
                   <div>
                     <div style={{fontSize:13,color:"var(--text2)"}}>{s.name}</div>
-                    <div style={{fontSize:10,color:"var(--muted)",marginTop:2}}>dose padrão: {s.dose}{s.unit}{s.notes?" · "+s.notes:""}</div>
+                    <div style={{fontSize:10,color:"var(--muted)",marginTop:2}}>{t('defaultDose')} {s.dose}{s.unit}{s.notes?" · "+s.notes:""}</div>
                   </div>
                   <button onClick={()=>removeSuppPantry(s.id)} style={{background:"none",border:"1px solid var(--border3)",color:"var(--dim)",borderRadius:4,padding:"3px 8px",fontSize:11,cursor:"pointer"}}>×</button>
                 </div>
@@ -1932,9 +2404,9 @@ export default function NutritionTracker() {
                 {/* Summary stats */}
                 <div style={{display:"flex",gap:0,background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,marginBottom:16,overflow:"hidden"}}>
                   {[
-                    {l:"Média proteína",v:`${avgProtein}g`,c:"#c8a96e"},
-                    {l:"Média calorias",v:String(avgKcal),c:"#8ec8c8"},
-                    {l:"Dias meta prot.",v:`${daysMetProtein}/${daysWithData.length}`,c:"var(--btn-ok-text)"},
+                    {l:t('avgProtein'),v:`${avgProtein}g`,c:"#c8a96e"},
+                    {l:t('avgCalories'),v:String(avgKcal),c:"#8ec8c8"},
+                    {l:t('daysProtGoal'),v:`${daysMetProtein}/${daysWithData.length}`,c:"var(--btn-ok-text)"},
                   ].map((x,i)=>(
                     <div key={x.l} style={{flex:1,padding:"12px 8px",textAlign:"center",borderRight:i<2?"1px solid var(--border)":"none"}}>
                       <div style={{fontSize:18,color:x.c}}>{x.v}</div>
@@ -1968,7 +2440,7 @@ export default function NutritionTracker() {
                     <LineChart data={weekData}>
                       <XAxis dataKey="label" tick={{fontSize:10,fill:CT.tick}} axisLine={false} tickLine={false}/>
                       <YAxis tick={{fontSize:10,fill:CT.tick}} axisLine={false} tickLine={false} domain={[0,"auto"]} width={30}/>
-                      <Tooltip contentStyle={{background:CT.bg,border:"1px solid "+CT.border,borderRadius:4,fontSize:11,color:CT.label}} labelStyle={{color:CT.label}} itemStyle={{color:"#c8a96e"}} formatter={(v)=>[`${v}g`,"Proteína"]}/>
+                      <Tooltip contentStyle={{background:CT.bg,border:"1px solid "+CT.border,borderRadius:4,fontSize:11,color:CT.label}} labelStyle={{color:CT.label}} itemStyle={{color:"#c8a96e"}} formatter={(v)=>[`${v}g`,t('protein')]}/>
                       {weekData[0]&&<ReferenceLine y={weekData[0].proteinGoal} stroke="#c8a96e" strokeDasharray="3 3" strokeOpacity={0.3}/>}
                       <Line type="monotone" dataKey="protein" stroke="#c8a96e" strokeWidth={2} dot={{fill:"#c8a96e",r:3}} activeDot={{r:5}} connectNulls={false}/>
                     </LineChart>
@@ -1982,7 +2454,7 @@ export default function NutritionTracker() {
                     <LineChart data={weekData}>
                       <XAxis dataKey="label" tick={{fontSize:10,fill:CT.tick}} axisLine={false} tickLine={false}/>
                       <YAxis tick={{fontSize:10,fill:CT.tick}} axisLine={false} tickLine={false} domain={[0,"auto"]} width={35}/>
-                      <Tooltip contentStyle={{background:CT.bg,border:"1px solid "+CT.border,borderRadius:4,fontSize:11,color:CT.label}} labelStyle={{color:CT.label}} itemStyle={{color:"#8ec8c8"}} formatter={(v)=>[`${v} kcal`,"Calorias"]}/>
+                      <Tooltip contentStyle={{background:CT.bg,border:"1px solid "+CT.border,borderRadius:4,fontSize:11,color:CT.label}} labelStyle={{color:CT.label}} itemStyle={{color:"#8ec8c8"}} formatter={(v)=>[`${v} kcal`,t('calories')]}/>
                       {weekData[0]&&<ReferenceLine y={weekData[0].kcalGoal} stroke="#8ec8c8" strokeDasharray="3 3" strokeOpacity={0.3}/>}
                       <Line type="monotone" dataKey="kcal" stroke="#8ec8c8" strokeWidth={2} dot={{fill:"#8ec8c8",r:3}} activeDot={{r:5}} connectNulls={false}/>
                     </LineChart>
@@ -2054,7 +2526,7 @@ export default function NutritionTracker() {
                       navigator.clipboard.writeText(exportResult.content).then(()=>{
                         setExportResult(r=>({...r,copied:true}));
                         setTimeout(()=>setExportResult(r=>r?({...r,copied:false}):r),3000);
-                      }).catch(()=>notify("Seleciona o texto e copia manualmente."));
+                      }).catch(()=>notify(t('selectCopyManual')));
                     }} style={{...btn,marginTop:8,background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",color:"var(--btn-ok-text)",fontSize:10,letterSpacing:2}}>
                       {exportResult.copied?"✓ Copiado!":"📋 Copiar para área de transferência"}
                     </button>
@@ -2069,7 +2541,7 @@ export default function NutritionTracker() {
                 width:"100%",background:"var(--btn-info)",border:"1px solid var(--btn-info-border)",color:patternsLoading?"#555":"#c8a0e8",
                 padding:"10px",borderRadius:6,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:patternsLoading?"default":"pointer",fontFamily:"inherit"
               }}>
-                {patternsLoading?"⟳ A analisar 30 dias...":"✦ Analisar padrões alimentares (30 dias)"}
+                {patternsLoading?t('analysingPatterns'):t('aiPatterns')}
               </button>
               {patternsText&&(
                 <div style={{marginTop:12,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:8,padding:"14px"}}>
@@ -2095,7 +2567,7 @@ export default function NutritionTracker() {
                   width:"100%",background:"var(--btn-info)",border:"1px solid var(--btn-info-border)",color:(feedbackLoading&&feedbackPeriod==="week")?"#555":"#c8a0e8",
                   padding:"10px",borderRadius:6,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit"
                 }}>
-                  {feedbackLoading&&feedbackPeriod==="week"?"⟳ A analisar...":"✦ Analisar alimentação da semana"}
+                  {feedbackLoading&&feedbackPeriod==="week"?t('analysing'):t('aiAnalyseWeek')}
                 </button>
                 {feedbackText&&feedbackPeriod==="week"&&(
                   <div style={{marginTop:12,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:8,padding:"14px"}}>
@@ -2124,7 +2596,7 @@ export default function NutritionTracker() {
               <div style={{fontSize:10,letterSpacing:2,color:"var(--muted)",textTransform:"uppercase",marginBottom:10}}>Registar medidas de hoje</div>
               <div style={{display:"flex",gap:8,marginBottom:8}}>
                 <div style={{flex:1}}><label style={lbl}>Peso (kg)</label><input type="number" value={weightForm.weight} onChange={e=>setWeightForm(f=>({...f,weight:e.target.value}))} placeholder={currentWeight?String(currentWeight):"ex: 73.7"} style={inp}/></div>
-                <div style={{flex:1}}><label style={lbl}>Altura (cm)</label><input type="number" value={weightForm.height} onChange={e=>setWeightForm(f=>({...f,height:e.target.value}))} placeholder={currentHeight?String(currentHeight):"ex: 175"} style={inp}/></div>
+                <div style={{flex:1}}><label style={lbl}>Altura (cm)</label><input type="number" value={weightForm.height} onChange={e=>setWeightForm(f=>({...f,height:e.target.value}))} placeholder={currentHeight?String(currentHeight):t('heightPh')} style={inp}/></div>
               </div>
               <button onClick={saveWeight} style={btn}>Registar hoje</button>
             </div>
@@ -2133,17 +2605,17 @@ export default function NutritionTracker() {
                 <div style={{fontSize:10,letterSpacing:2,color:"var(--muted)",textTransform:"uppercase",marginBottom:12}}>Métricas actuais</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:"12px 24px"}}>
                   {[
-                    {l:"Peso",v:`${currentWeight} kg`,c:"#c8a96e"},{l:"Altura",v:currentHeight?`${currentHeight} cm`:"—",c:"#8ec8c8"},
+                    {l:t('weight'),v:`${currentWeight} kg`,c:"#c8a96e"},{l:t('heightLabel'),v:currentHeight?`${currentHeight} cm`:"—",c:"#8ec8c8"},
                     {l:"IMC",v:bmi||"—",c:bmiNum<18.5?"#c86e8e":bmiNum<25?"#6ec8a9":bmiNum<30?"#c8a96e":"#c86e8e"},
-                    {l:"Prot. treino",v:`${computeGoals(currentWeight,true).protein}g`,c:"#c8a96e"},
-                    {l:"Prot. descanso",v:`${computeGoals(currentWeight,false).protein}g`,c:"#a9c8a9"},
-                    {l:"Kcal treino",v:String(computeGoals(currentWeight,true).kcal),c:"#8ec8c8"},
-                    {l:"Kcal descanso",v:String(computeGoals(currentWeight,false).kcal),c:"#8ec8a9"},
+                    {l:t('goalProtTrain'),v:`${computeGoals(currentWeight,true).protein}g`,c:"#c8a96e"},
+                    {l:t('goalProtRest'),v:`${computeGoals(currentWeight,false).protein}g`,c:"#a9c8a9"},
+                    {l:t('goalKcalTrain'),v:String(computeGoals(currentWeight,true).kcal),c:"#8ec8c8"},
+                    {l:t('goalKcalRest'),v:String(computeGoals(currentWeight,false).kcal),c:"#8ec8a9"},
                   ].map(x=>(
                     <div key={x.l}><div style={{fontSize:10,color:"var(--muted)",letterSpacing:1}}>{x.l.toUpperCase()}</div><div style={{fontSize:16,color:x.c,marginTop:2}}>{x.v}</div></div>
                   ))}
                 </div>
-                {bmi&&<div style={{marginTop:10,fontSize:12,color:"var(--muted)"}}>IMC {bmi} — <span style={{color:bmiNum<18.5?"#c86e8e":bmiNum<25?"#6ec8a9":bmiNum<30?"#c8a96e":"#c86e8e"}}>{bmiNum<18.5?"Abaixo do peso":bmiNum<25?"Peso normal":bmiNum<30?"Sobrepeso":"Obesidade"}</span></div>}
+                {bmi&&<div style={{marginTop:10,fontSize:12,color:"var(--muted)"}}>IMC {bmi} — <span style={{color:bmiNum<18.5?"#c86e8e":bmiNum<25?"#6ec8a9":bmiNum<30?"#c8a96e":"#c86e8e"}}>{bmiNum<18.5?t('bmiUnderweight'):bmiNum<25?t('bmiNormal'):bmiNum<30?t('bmiOverweight'):t('bmiObese')}</span></div>}
               </div>
             )}
             {weightChartData.length>1&&(
@@ -2186,7 +2658,7 @@ export default function NutritionTracker() {
                           {bE&&<span style={{color:"var(--muted)"}}>IMC {bE}</span>}
                           <span style={{color:"var(--muted)"}}>prot {computeGoals(e.weight,true).protein}g</span>
                           <div style={{display:"flex",gap:5}}>
-                            <button onClick={()=>startEditWeight(e)} style={{background:"none",border:"1px solid var(--border2)",color:"var(--muted)",borderRadius:4,padding:"2px 7px",fontSize:10,cursor:"pointer"}}>editar</button>
+                            <button onClick={()=>startEditWeight(e)} style={{background:"none",border:"1px solid var(--border2)",color:"var(--muted)",borderRadius:4,padding:"2px 7px",fontSize:10,cursor:"pointer"}}>{t('editItem')}</button>
                             <button onClick={()=>setWeightHistory(h=>h.filter(x=>x.id!==e.id))} style={{background:"none",border:"none",color:"var(--faint)",cursor:"pointer",fontSize:14}}>×</button>
                           </div>
                         </div>
@@ -2203,7 +2675,7 @@ export default function NutritionTracker() {
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <div style={{fontSize:10,letterSpacing:2,color:"var(--muted)",textTransform:"uppercase"}}>Metas personalizadas</div>
                 <button onClick={editingGoals?saveGoals:startEditGoals} style={sBtn("var(--btn-ok)","var(--btn-ok-border)","#7ec87e")}>
-                  {editingGoals?"✓ Guardar":"Editar metas"}
+                  {editingGoals?"✓ Guardar":t('editGoals')}
                 </button>
               </div>
               <div style={{fontSize:10,color:"var(--dim)",marginBottom:12}}>
@@ -2212,10 +2684,10 @@ export default function NutritionTracker() {
               {editingGoals?(
                 <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
                   {[
-                    {k:"protein",l:"Proteína",u:"g"},{k:"kcal",l:"Calorias",u:"kcal"},
-                    {k:"carbs",l:"Carboidratos",u:"g"},{k:"fat",l:"Gorduras",u:"g"},
-                    {k:"fiber",l:"Fibra",u:"g"},{k:"salt",l:"Sal",u:"g"},
-                    {k:"water",l:"Água",u:"ml"},
+                    {k:"protein",l:t('protein'),u:"g"},{k:"kcal",l:t('calories'),u:"kcal"},
+                    {k:"carbs",l:t('carbs'),u:"g"},{k:"fat",l:t('fat'),u:"g"},
+                    {k:"fiber",l:t('fiber'),u:"g"},{k:"salt",l:t('salt'),u:"g"},
+                    {k:"water",l:t('water'),u:"ml"},
                   ].map(({k,l,u})=>(
                     <div key={k} style={{flex:"1 1 calc(50% - 4px)",minWidth:120}}>
                       <label style={lbl}>{l} ({u})</label>
@@ -2227,10 +2699,10 @@ export default function NutritionTracker() {
               ):(
                 <div style={{display:"flex",flexWrap:"wrap",gap:"8px 20px"}}>
                   {[
-                    {k:"protein",l:"Proteína",u:"g",c:"#c8a96e"},{k:"kcal",l:"Calorias",u:"kcal",c:"#8ec8c8"},
+                    {k:"protein",l:t('protein'),u:"g",c:"#c8a96e"},{k:"kcal",l:t('calories'),u:"kcal",c:"#8ec8c8"},
                     {k:"carbs",l:"Carbs",u:"g",c:"#a96ec8"},{k:"fat",l:"Gordura",u:"g",c:"#c86e8e"},
-                    {k:"fiber",l:"Fibra",u:"g",c:"#6ec8a9"},{k:"salt",l:"Sal",u:"g",c:"#888"},
-                    {k:"water",l:"Água",u:"ml",c:"#6ec8a9"},
+                    {k:"fiber",l:t('fiber'),u:"g",c:"#6ec8a9"},{k:"salt",l:t('salt'),u:"g",c:"#888"},
+                    {k:"water",l:t('water'),u:"ml",c:"#6ec8a9"},
                   ].map(({k,l,u,c})=>(
                     <div key={k}>
                       <div style={{fontSize:10,color:"var(--muted)",letterSpacing:1}}>{l.toUpperCase()}</div>
