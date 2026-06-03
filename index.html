@@ -349,37 +349,48 @@ const TOKEN_BASE = "https://securetoken.googleapis.com/v1/token";
 
 // ── Auth state ───────────────────────────────────────────────
 let _idToken      = null;
+let _uid          = localStorage.getItem("fb_uid") || null;
 let _refreshToken = localStorage.getItem("fb_refresh") || null;
 let _tokenExpiry  = 0;
 
+function _saveSession(d) {
+  _idToken      = d.idToken || d.id_token;
+  _refreshToken = d.refreshToken || d.refresh_token;
+  _uid          = d.localId || d.user_id || _uid;
+  _tokenExpiry  = Date.now() + (+( d.expiresIn || d.expires_in) - 60) * 1000;
+  localStorage.setItem("fb_refresh", _refreshToken);
+  if (_uid) localStorage.setItem("fb_uid", _uid);
+}
+
 async function fbSignIn(email, password) {
   const r = await fetch(AUTH_BASE + ":signInWithPassword?key=" + FB_KEY, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
+    method: "POST", headers: {"Content-Type": "application/json"},
     body: JSON.stringify({email, password, returnSecureToken: true})
   });
   const d = await r.json();
   if (!r.ok) throw new Error(d.error?.message || "Login falhou");
-  _idToken      = d.idToken;
-  _refreshToken = d.refreshToken;
-  _tokenExpiry  = Date.now() + (+d.expiresIn - 60) * 1000;
-  localStorage.setItem("fb_refresh", _refreshToken);
-  return d;
+  _saveSession(d); return d;
+}
+
+async function fbSignUp(email, password) {
+  const r = await fetch(AUTH_BASE + ":signUp?key=" + FB_KEY, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({email, password, returnSecureToken: true})
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error?.message || "Registo falhou");
+  _saveSession(d); return d;
 }
 
 async function fbRefreshToken() {
   if (!_refreshToken) throw new Error("Sem sessão");
   const r = await fetch(TOKEN_BASE + "?key=" + FB_KEY, {
-    method: "POST",
-    headers: {"Content-Type": "application/x-www-form-urlencoded"},
+    method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"},
     body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(_refreshToken)
   });
   const d = await r.json();
-  if (!r.ok) { _refreshToken = null; localStorage.removeItem("fb_refresh"); throw new Error("Sessão expirada"); }
-  _idToken      = d.id_token;
-  _refreshToken = d.refresh_token;
-  _tokenExpiry  = Date.now() + (+d.expires_in - 60) * 1000;
-  localStorage.setItem("fb_refresh", _refreshToken);
+  if (!r.ok) { _refreshToken = null; localStorage.removeItem("fb_refresh"); localStorage.removeItem("fb_uid"); throw new Error("Sessão expirada"); }
+  _saveSession(d);
 }
 
 async function fbToken() {
@@ -389,22 +400,29 @@ async function fbToken() {
 }
 
 function fbSignOut() {
-  _idToken = _refreshToken = null;
+  _idToken = _refreshToken = _uid = null;
   _tokenExpiry = 0;
   localStorage.removeItem("fb_refresh");
+  localStorage.removeItem("fb_uid");
 }
 
 function fbIsLoggedIn() { return !!_refreshToken; }
 
-// ── Firestore helpers (authenticated) ────────────────────────
-async function fbHeaders(extra) {
+// ── Key namespacing (each user gets their own data) ───────────
+// All keys are prefixed with the user's UID internally.
+// The app uses plain keys like "pantry_v2" and never sees the prefix.
+function _uk(k) { return _uid ? _uid + "_" + k : k; }
+function _stripUid(k) { return (_uid && k.startsWith(_uid + "_")) ? k.slice(_uid.length + 1) : k; }
+
+// ── Firestore helpers (authenticated + namespaced) ────────────
+async function fbHeaders() {
   const token = await fbToken();
-  return {"Content-Type": "application/json", "Authorization": "Bearer " + token, ...extra};
+  return {"Content-Type": "application/json", "Authorization": "Bearer " + token};
 }
 
 async function fbGet(k) {
   try {
-    const r = await fetch(FB_BASE + "/" + encodeURIComponent(k), {headers: await fbHeaders()});
+    const r = await fetch(FB_BASE + "/" + encodeURIComponent(_uk(k)), {headers: await fbHeaders()});
     if (!r.ok) return null;
     const d = await r.json();
     const v = d?.fields?.value?.stringValue;
@@ -414,9 +432,8 @@ async function fbGet(k) {
 
 async function fbSet(k, v) {
   try {
-    await fetch(FB_BASE + "/" + encodeURIComponent(k), {
-      method: "PATCH",
-      headers: await fbHeaders(),
+    await fetch(FB_BASE + "/" + encodeURIComponent(_uk(k)), {
+      method: "PATCH", headers: await fbHeaders(),
       body: JSON.stringify({fields:{value:{stringValue: typeof v === "string" ? v : JSON.stringify(v)}}})
     });
   } catch(e) {}
@@ -424,7 +441,7 @@ async function fbSet(k, v) {
 
 async function fbDel(k) {
   try {
-    await fetch(FB_BASE + "/" + encodeURIComponent(k), {method: "DELETE", headers: await fbHeaders()});
+    await fetch(FB_BASE + "/" + encodeURIComponent(_uk(k)), {method: "DELETE", headers: await fbHeaders()});
   } catch(e) {}
 }
 
@@ -433,7 +450,12 @@ async function fbList(p) {
     const r = await fetch(FB_BASE + "?pageSize=300", {headers: await fbHeaders()});
     if (!r.ok) return {keys:[]};
     const d = await r.json();
-    const keys = (d.documents||[]).map(doc => doc.name.split("/").pop());
+    // Only return keys belonging to this user, stripped of UID prefix
+    const prefix = _uid ? _uid + "_" : "";
+    const keys = (d.documents||[])
+      .map(doc => doc.name.split("/").pop())
+      .filter(k => !_uid || k.startsWith(prefix))
+      .map(k => _stripUid(k));
     return {keys: p ? keys.filter(k => k.indexOf(p) === 0) : keys};
   } catch(e) { return {keys:[]}; }
 }
@@ -5994,46 +6016,68 @@ function SettingsPanel({onClose}){
   );
 }
 
-// ── Login Screen ─────────────────────────────────────────────
+// ── Login / Register Screen ───────────────────────────────────
 function LoginScreen({onLogin}) {
-  const [email, setEmail]       = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [error, setError]       = React.useState('');
-  const [loading, setLoading]   = React.useState(false);
+  const [mode, setMode]           = React.useState('login'); // 'login' | 'register'
+  const [email, setEmail]         = React.useState('');
+  const [password, setPassword]   = React.useState('');
+  const [password2, setPassword2] = React.useState('');
+  const [error, setError]         = React.useState('');
+  const [loading, setLoading]     = React.useState(false);
+
+  function friendlyError(msg) {
+    if (msg.includes('EMAIL_NOT_FOUND') || msg.includes('INVALID_LOGIN_CREDENTIALS') || msg.includes('INVALID_EMAIL'))
+      return 'Email ou senha incorrectos.';
+    if (msg.includes('WRONG_PASSWORD'))     return 'Senha incorrecta.';
+    if (msg.includes('TOO_MANY_ATTEMPTS'))  return 'Demasiadas tentativas. Tenta mais tarde.';
+    if (msg.includes('EMAIL_EXISTS'))       return 'Este email já tem uma conta. Faz login.';
+    if (msg.includes('WEAK_PASSWORD'))      return 'A senha deve ter pelo menos 6 caracteres.';
+    if (msg.includes('INVALID_EMAIL'))      return 'Email inválido.';
+    return 'Erro: ' + msg;
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError(''); setLoading(true);
+    setError('');
+    if (mode === 'register' && password !== password2) { setError('As senhas não coincidem.'); return; }
+    if (mode === 'register' && password.length < 6)   { setError('A senha deve ter pelo menos 6 caracteres.'); return; }
+    setLoading(true);
     try {
-      await fbSignIn(email, password);
+      if (mode === 'login') await fbSignIn(email, password);
+      else                  await fbSignUp(email, password);
       onLogin();
-    } catch(err) {
-      const msg = err.message;
-      if (msg.includes('EMAIL_NOT_FOUND') || msg.includes('INVALID_EMAIL') || msg.includes('INVALID_LOGIN_CREDENTIALS'))
-        setError('Email ou senha incorrectos.');
-      else if (msg.includes('WRONG_PASSWORD'))
-        setError('Senha incorrecta.');
-      else if (msg.includes('TOO_MANY_ATTEMPTS'))
-        setError('Demasiadas tentativas. Tenta mais tarde.');
-      else
-        setError('Erro: ' + msg);
-    }
+    } catch(err) { setError(friendlyError(err.message)); }
     setLoading(false);
   }
+
+  function switchMode(m) { setMode(m); setError(''); setPassword(''); setPassword2(''); }
 
   const inp = {width:'100%',background:'#1a1a1a',border:'1px solid #333',color:'#c9bfb0',
     padding:'12px 14px',borderRadius:8,fontSize:15,fontFamily:'inherit',
     boxSizing:'border-box',outline:'none',marginBottom:12};
+
+  const tabStyle = (active) => ({
+    flex:1, padding:'10px', background:'none', border:'none',
+    borderBottom: active ? '2px solid #7ec87e' : '2px solid #2a2a2a',
+    color: active ? '#7ec87e' : '#555', fontSize:11, letterSpacing:2,
+    textTransform:'uppercase', cursor:'pointer', fontFamily:'inherit',
+    transition:'all 0.2s'
+  });
 
   return React.createElement('div', {style:{
     position:'fixed',inset:0,background:'#111',display:'flex',alignItems:'center',
     justifyContent:'center',padding:24,zIndex:99999
   }},
     React.createElement('div', {style:{width:'100%',maxWidth:360}},
-      React.createElement('div', {style:{textAlign:'center',marginBottom:36}},
-        React.createElement('div', {style:{fontSize:11,letterSpacing:4,color:'#555',textTransform:'uppercase',marginBottom:8}},
+      React.createElement('div', {style:{textAlign:'center',marginBottom:32}},
+        React.createElement('div', {style:{fontSize:11,letterSpacing:4,color:'#555',textTransform:'uppercase',marginBottom:6}},
           'Diário Nutricional'),
-        React.createElement('div', {style:{fontSize:22,color:'#c9bfb0',fontWeight:300}}, 'Entrar')
+        React.createElement('div', {style:{fontSize:22,color:'#c9bfb0',fontWeight:300}},
+          mode === 'login' ? 'Entrar' : 'Criar conta')
+      ),
+      React.createElement('div', {style:{display:'flex',marginBottom:28,borderBottom:'2px solid #2a2a2a'}},
+        React.createElement('button', {onClick:()=>switchMode('login'),  style:tabStyle(mode==='login')},  'Entrar'),
+        React.createElement('button', {onClick:()=>switchMode('register'),style:tabStyle(mode==='register')},'Criar conta')
       ),
       React.createElement('form', {onSubmit:handleSubmit},
         React.createElement('input', {
@@ -6042,8 +6086,15 @@ function LoginScreen({onLogin}) {
         }),
         React.createElement('input', {
           type:'password', value:password, onChange:e=>setPassword(e.target.value),
-          placeholder:'Senha', required:true, style:{...inp,marginBottom: error?8:20},
-          autoComplete:'current-password'
+          placeholder:'Senha', required:true,
+          style:{...inp, marginBottom: mode==='register'?12:error?8:20},
+          autoComplete: mode==='login'?'current-password':'new-password'
+        }),
+        mode === 'register' && React.createElement('input', {
+          type:'password', value:password2, onChange:e=>setPassword2(e.target.value),
+          placeholder:'Confirmar senha', required:true,
+          style:{...inp, marginBottom: error?8:20},
+          autoComplete:'new-password'
         }),
         error && React.createElement('div', {style:{
           color:'#c87e7e',fontSize:12,marginBottom:16,padding:'8px 12px',
@@ -6051,14 +6102,22 @@ function LoginScreen({onLogin}) {
         }}, error),
         React.createElement('button', {
           type:'submit', disabled:loading, style:{
-            width:'100%',background: loading?'#1a2a1a':'#1a3a1a',
-            border:'1px solid #3a6a3a',color: loading?'#555':'#7ec87e',
+            width:'100%',
+            background: loading?'#111': mode==='login'?'#1a3a1a':'#1a1a3a',
+            border:'1px solid ' + (mode==='login'?'#3a6a3a':'#3a3a6a'),
+            color: loading?'#555': mode==='login'?'#7ec87e':'#7e7ec8',
             padding:'13px',borderRadius:8,fontSize:12,letterSpacing:2,
-            textTransform:'uppercase',cursor: loading?'default':'pointer',
+            textTransform:'uppercase',cursor:loading?'default':'pointer',
             fontFamily:'inherit',transition:'all 0.2s'
           }
-        }, loading ? '⟳ A entrar...' : 'Entrar')
-      )
+        }, loading
+          ? '⟳ A processar...'
+          : mode==='login' ? 'Entrar' : 'Criar conta'
+        )
+      ),
+      mode === 'register' && React.createElement('div', {style:{
+        marginTop:16,fontSize:11,color:'#444',textAlign:'center',lineHeight:1.6
+      }}, 'Cada conta tem os seus próprios dados separados.')
     )
   );
 }
