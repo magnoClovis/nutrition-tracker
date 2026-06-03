@@ -1037,22 +1037,7 @@ function NutritionTracker({
     const foodName = form.name.trim();
     const prompt = unit === "un" ? "O utilizador quer registar \"" + foodName + "\" com unidade \"un\".\n\n" + "IMPORTANTE: Como a unidade é \"un\", deves:\n" + "1. Verificar se faz sentido medir este alimento por unidade individual (1 ovo, 1 banana, 1 morango, etc.)\n" + "2. Se sim, fornecer os valores nutricionais por 100g E o peso médio em gramas de 1 unidade típica.\n" + "   Os valores finais por unidade serão calculados como: valor_100g x peso_unidade / 100\n" + "3. Se não fizer sentido (ex: leite, azeite, farinha), recusa e explica.\n\n" + "Responde APENAS com JSON sem markdown:\n" + "- Se válido: {\"ok\":true,\"per100\":{\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X},\"unitWeightG\":X}\n" + "- Se inválido: {\"ok\":false,\"reason\":\"explicação curta em português\"}" : "O utilizador quer registar \"" + foodName + "\" com unidade \"" + unit + "\".\n\n" + "Verifica se a unidade \"" + unit + "\" faz sentido para este alimento.\n" + "Se sim, fornece valores por 100" + unit + " baseados em tabelas nutricionais de referência (USDA, INSA, tabelas europeias).\n" + "Se não (ex: atum em ml, leite em un), recusa e explica.\n\n" + "Responde APENAS com JSON sem markdown:\n" + "- Se válido: {\"ok\":true,\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X}\n" + "- Se inválido: {\"ok\":false,\"reason\":\"explicação curta em português\"}\n" + "Usa null para campos desconhecidos.";
     try {
-      const res = await fetch((localStorage.getItem('cors_proxy') || '') + "https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 600,
-          messages: [{
-            role: "user",
-            content: prompt
-          }]
-        })
-      });
-      const data = await res.json();
-      const text = data.content?.[0]?.text || "";
+      const text = await callAI(prompt, 600);
       const clean = text.replace(/```json|```/g, "").trim();
       const vals = JSON.parse(clean);
       if (!vals.ok) {
@@ -1102,22 +1087,7 @@ function NutritionTracker({
     setDescribeResult(null);
     const prompt = "O utilizador comeu o seguinte prato e quer estimar os valores nutricionais:\n\n" + "\"" + mealDescription.trim() + "\"\n\n" + "Com base na descrição e nas quantidades indicadas (ou em porções típicas se não foram especificadas), " + "estima os valores nutricionais totais do prato completo.\n\n" + "Considera porções realistas de refeitório/restaurante quando não há quantidade exacta.\n\n" + "Responde APENAS com JSON sem markdown:\n" + "{\"name\":\"nome curto para o prato\",\"protein\":X,\"kcal\":X,\"carbs\":X,\"fat\":X,\"fiber\":X,\"salt\":X,\"confidence\":\"alta|media|baixa\",\"note\":\"observação curta sobre a estimativa em português\"}";
     try {
-      const res = await fetch((localStorage.getItem('cors_proxy') || '') + "https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 400,
-          messages: [{
-            role: "user",
-            content: prompt
-          }]
-        })
-      });
-      const data = await res.json();
-      const text = data.content?.[0]?.text || "";
+      const text = await callAI(prompt, 400);
       const clean = text.replace(/```json|```/g, "").trim();
       const vals = JSON.parse(clean);
       setDescribeResult(vals);
@@ -1295,22 +1265,8 @@ function NutritionTracker({
       const trainDays = dayData.filter(d => d.isTraining);
       const restDays = dayData.filter(d => !d.isTraining);
       const prompt = "Analisa os padrões alimentares dos últimos 30 dias e fornece insights detalhados em português.\n\n" + "DADOS (" + dayData.length + " dias registados de 30):\n" + "Média diária: " + avgProt + "g proteína, " + avgKcal + " kcal\n" + "Dias que atingiu meta de proteína: " + daysMetProt + "/" + dayData.length + "\n" + (trainDays.length ? "Dias de treino (" + trainDays.length + "): média " + Math.round(trainDays.reduce((s, d) => s + d.protein, 0) / trainDays.length) + "g prot, " + Math.round(trainDays.reduce((s, d) => s + d.kcal, 0) / trainDays.length) + " kcal\n" : "") + (restDays.length ? "Dias de descanso (" + restDays.length + "): média " + Math.round(restDays.reduce((s, d) => s + d.protein, 0) / restDays.length) + "g prot, " + Math.round(restDays.reduce((s, d) => s + d.kcal, 0) / restDays.length) + " kcal\n" : "") + "Variação de proteína: mín " + Math.min(...dayData.map(d => d.protein)) + "g, máx " + Math.max(...dayData.map(d => d.protein)) + "g\n\n" + (currentWeight ? "Peso actual: " + currentWeight + "kg\n\n" : "") + "Identifica padrões concretos como:\n" + "- Diferença entre dias de treino e descanso\n" + "- Consistência vs inconsistência ao longo do tempo\n" + "- Tendências preocupantes ou positivas\n" + "- Áreas de melhoria com sugestões específicas\n\n" + "Estrutura com secções claras: Padrões Positivos, Padrões a Melhorar, Tendências Identificadas, Recomendações.";
-      const res = await fetch((localStorage.getItem('cors_proxy') || '') + "https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1200,
-          messages: [{
-            role: "user",
-            content: prompt
-          }]
-        })
-      });
-      const data = await res.json();
-      setPatternsText(data.content?.[0]?.text || "");
+      const _pText = await callAI(prompt, 1200);
+      setPatternsText(_pText);
     } catch (_) {
       notify("Não foi possível analisar. Tenta novamente.");
     }
@@ -1344,22 +1300,7 @@ function NutritionTracker({
     }).join(", ");
     const prompt = "O utilizador precisa de fechar as metas nutricionais do dia. Sugere 3 combinações práticas de alimentos da despensa dele.\n\n" + "O QUE AINDA FALTA HOJE:\n" + (remainProt > 0 ? "Proteína: " + remainProt + "g\n" : "") + (remainKcal > 0 ? "Calorias: " + remainKcal + " kcal\n" : "") + (remainCarbs > 0 ? "Carbs: " + remainCarbs + "g\n" : "") + "\nDESPENSA DISPONÍVEL:\n" + pantryList + "\n\n" + "Para cada sugestão indica:\n" + "- Nome da combinação\n" + "- Alimentos com quantidades específicas (em gramas/ml/unidades)\n" + "- Totais de proteína e calorias estimados\n\n" + "Responde APENAS com JSON sem markdown:\n" + "[{\"name\":\"nome\",\"items\":[{\"food\":\"nome exacto da despensa\",\"qty\":X,\"unit\":\"g\"}],\"protein\":X,\"kcal\":X}]";
     try {
-      const res = await fetch((localStorage.getItem('cors_proxy') || '') + "https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 800,
-          messages: [{
-            role: "user",
-            content: prompt
-          }]
-        })
-      });
-      const data = await res.json();
-      const text = data.content?.[0]?.text || "";
+      const text = await callAI(prompt, 800);
       const clean = text.replace(/```json|```/g, "").trim();
       setSuggestions(JSON.parse(clean));
     } catch (_) {
@@ -1531,22 +1472,7 @@ function NutritionTracker({
         const daysMetProt = days.filter(d => d.metProtein).length;
         prompt = "Analisa a alimentação desta semana e dá um feedback detalhado em português.\n\n" + "RESUMO DA SEMANA (" + days.length + " dias registados):\n" + daySummary + "\n\n" + "MÉDIAS:\nProteína: " + avg.protein + "g/dia | Calorias: " + avg.kcal + " kcal/dia\n" + "Dias que atingiu a meta de proteína: " + daysMetProt + "/" + days.length + "\n\n" + (currentWeight ? "Peso actual: " + currentWeight + "kg\n\n" : "") + "Estrutura o feedback com estas secções:\n" + "✅ PONTOS POSITIVOS (consistência, dias bons, tendências positivas)\n" + "⚠️ O QUE MELHORAR (padrões negativos, dias fracos, desequilíbrios recorrentes)\n" + "💡 SUGESTÕES CONCRETAS (como ajustar os próximos dias)\n" + "📊 AVALIAÇÃO DA SEMANA (nota geral e contexto)\n\n" + "Sê honesto, específico e prático. Foca em padrões da semana, não só num dia.";
       }
-      const res = await fetch((localStorage.getItem('cors_proxy') || '') + "https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [{
-            role: "user",
-            content: prompt
-          }]
-        })
-      });
-      const data = await res.json();
-      const text = data.content?.[0]?.text || "";
+      const text = await callAI(prompt, 1000);
       setFeedbackText(text);
     } catch (_) {
       notify("Não foi possível gerar o feedback. Tenta novamente.");
@@ -1858,6 +1784,33 @@ function NutritionTracker({
   }
 
   // Export/Import
+  // ── Gemini AI helper ─────────────────────────────────────────
+  async function callAI(prompt, maxTokens) {
+    const key = localStorage.getItem('gemini_key') || '';
+    if (!key) throw new Error('Chave API Gemini não configurada. Abre as Configurações (⚙).');
+    const proxy = localStorage.getItem('cors_proxy') || '';
+    const url = proxy + 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + key;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          maxOutputTokens: maxTokens || 800,
+          temperature: 0.3
+        }
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Erro na API Gemini');
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
   async function importFullBackup(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -2205,7 +2158,7 @@ function NutritionTracker({
     style: {
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "flex-start"
+      alignItems: "center"
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2221,31 +2174,65 @@ function NutritionTracker({
       color: "var(--text3)",
       fontStyle: "italic"
     }
-  }, dateStr)), /*#__PURE__*/React.createElement("button", {
+  }, dateStr)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: loadAll,
+    title: "Atualizar dados",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      background: "none",
+      border: "1px solid var(--border2)",
+      color: syncing ? "var(--btn-ok-text)" : "var(--muted)",
+      borderRadius: 6,
+      padding: "6px 10px",
+      fontSize: 11,
+      cursor: "pointer",
+      letterSpacing: 0.5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      display: "inline-block",
+      animation: syncing ? "spin 1s linear infinite" : "none"
+    }
+  }, "\u21BB"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "none"
+    }
+  }, syncing ? "sync..." : "sync")), /*#__PURE__*/React.createElement("button", {
     onClick: () => setDarkMode(d => !d),
     title: darkMode ? "Modo claro" : "Modo escuro",
     style: {
       background: "none",
       border: "1px solid var(--border2)",
       color: "var(--muted)",
-      borderRadius: 4,
-      padding: "5px 8px",
-      fontSize: 12,
-      cursor: "pointer"
+      borderRadius: 6,
+      padding: "6px 9px",
+      fontSize: 13,
+      cursor: "pointer",
+      lineHeight: 1
     }
-  }, darkMode ? "☀" : "🌙"), /*#__PURE__*/React.createElement("button", {
-    onClick: loadAll,
+  }, darkMode ? "☀️" : "🌙"), onOpenSettings && /*#__PURE__*/React.createElement("button", {
+    onClick: onOpenSettings,
+    title: "Configura\xE7\xF5es",
     style: {
       background: "none",
       border: "1px solid var(--border2)",
-      color: syncing ? "#3a6a3a" : "#555",
-      borderRadius: 4,
-      padding: "5px 10px",
-      fontSize: 10,
+      color: "var(--muted)",
+      borderRadius: 6,
+      padding: "6px 9px",
+      fontSize: 14,
       cursor: "pointer",
-      letterSpacing: 1
+      lineHeight: 1
     }
-  }, syncing ? "↻ sync..." : "↻ atualizar")), /*#__PURE__*/React.createElement("div", {
+  }, "\u2699"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -2538,18 +2525,21 @@ function NutritionTracker({
         color: "var(--muted2)"
       }
     }, val % 1 === 0 ? val : val.toFixed(2), " ", f.unit));
-  })))), notification && /*#__PURE__*/React.createElement("div", {
-    style: {
-      margin: "8px 16px 0",
-      background: notification.startsWith("⚠") ? "var(--notif-err-bg)" : "var(--notif-ok-bg)",
-      border: `1px solid ${notification.startsWith("⚠") ? "var(--notif-err-border)" : "var(--notif-ok-border)"}`,
-      color: notification.startsWith("⚠") ? "var(--notif-err-text)" : "var(--notif-ok-text)",
-      padding: "7px 14px",
-      borderRadius: 6,
-      fontSize: 12,
-      textAlign: "center"
-    }
-  }, notification), /*#__PURE__*/React.createElement("div", {
+  })))), notification && (() => {
+    const isErr = notification.startsWith("⚠") || notification.startsWith("Erro");
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        margin: "8px 16px 0",
+        background: isErr ? "var(--notif-err-bg)" : "var(--notif-ok-bg)",
+        border: `1px solid ${isErr ? "var(--notif-err-border)" : "var(--notif-ok-border)"}`,
+        color: isErr ? "var(--notif-err-text)" : "var(--notif-ok-text)",
+        padding: "7px 14px",
+        borderRadius: 6,
+        fontSize: 12,
+        textAlign: "center"
+      }
+    }, notification);
+  })(), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       borderBottom: "1px solid var(--border)",
@@ -5991,31 +5981,6 @@ function sBtnLbl(bg, border, color) {
   };
 }
 
-function SettingsPanel({onClose}){
-  const [key,setKey]=React.useState(()=>localStorage.getItem('anthropic_key')||'');
-  const [proxy,setProxy]=React.useState(()=>localStorage.getItem('cors_proxy')||'');
-  function save(){localStorage.setItem('anthropic_key',key);localStorage.setItem('cors_proxy',proxy);onClose();}
-  return React.createElement('div',{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:9999,display:"flex",alignItems:"flex-end"}},
-    React.createElement('div',{style:{background:"#1a1a1a",borderTop:"1px solid #333",width:"100%",padding:"24px 20px",maxHeight:"80vh",overflowY:"auto"}},
-      React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}},
-        React.createElement('span',{style:{fontSize:12,letterSpacing:2,color:"#888",textTransform:"uppercase"}},"Configurações de IA"),
-        React.createElement('button',{onClick:onClose,style:{background:"none",border:"none",color:"#555",fontSize:22,cursor:"pointer"}},"×")
-      ),
-      React.createElement('div',{style:{marginBottom:14}},
-        React.createElement('label',{style:{fontSize:10,letterSpacing:1.5,color:"#666",textTransform:"uppercase",display:"block",marginBottom:6}},"Chave API Anthropic"),
-        React.createElement('input',{type:"password",value:key,onChange:e=>setKey(e.target.value),placeholder:"sk-ant-...",style:{width:"100%",background:"#111",border:"1px solid #333",color:"#c9bfb0",padding:"10px 12px",borderRadius:6,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}}),
-        React.createElement('div',{style:{fontSize:10,color:"#444",marginTop:5}},"Obtém em console.anthropic.com · guardada só neste dispositivo")
-      ),
-      React.createElement('div',{style:{marginBottom:20}},
-        React.createElement('label',{style:{fontSize:10,letterSpacing:1.5,color:"#666",textTransform:"uppercase",display:"block",marginBottom:6}},"Proxy CORS (opcional)"),
-        React.createElement('input',{type:"text",value:proxy,onChange:e=>setProxy(e.target.value),placeholder:"https://corsproxy.io/?",style:{width:"100%",background:"#111",border:"1px solid #333",color:"#c9bfb0",padding:"10px 12px",borderRadius:6,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}}),
-        React.createElement('div',{style:{fontSize:10,color:"#444",marginTop:5}},"Necessário para funções de IA fora do Claude.ai")
-      ),
-      React.createElement('button',{onClick:save,style:{width:"100%",background:"#1a2a1a",border:"1px solid #3a5a3a",color:"#7ec87e",padding:"12px",borderRadius:6,fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit"}},"Guardar")
-    )
-  );
-}
-
 // ── Login / Register Screen ───────────────────────────────────
 function LoginScreen({onLogin}) {
   const [mode, setMode]           = React.useState('login'); // 'login' | 'register'
@@ -6124,10 +6089,11 @@ function LoginScreen({onLogin}) {
 
 // ── Settings Panel ────────────────────────────────────────────
 function SettingsPanel({onClose, onLogout}) {
-  const [key,setKey]=React.useState(()=>localStorage.getItem('anthropic_key')||'');
+  const [geminiKey,setGeminiKey]=React.useState(()=>localStorage.getItem('gemini_key')||'');
   const [proxy,setProxy]=React.useState(()=>localStorage.getItem('cors_proxy')||'');
-  function save(){localStorage.setItem('anthropic_key',key);localStorage.setItem('cors_proxy',proxy);onClose();}
+  function save(){localStorage.setItem('gemini_key',geminiKey);localStorage.setItem('cors_proxy',proxy);onClose();}
   function logout(){fbSignOut();onLogout();}
+  const inp={width:"100%",background:"#111",border:"1px solid #333",color:"#c9bfb0",padding:"10px 12px",borderRadius:6,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none"};
   return React.createElement('div',{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:9999,display:"flex",alignItems:"flex-end"}},
     React.createElement('div',{style:{background:"#1a1a1a",borderTop:"1px solid #333",width:"100%",padding:"24px 20px",maxHeight:"80vh",overflowY:"auto"}},
       React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}},
@@ -6135,14 +6101,14 @@ function SettingsPanel({onClose, onLogout}) {
         React.createElement('button',{onClick:onClose,style:{background:"none",border:"none",color:"#555",fontSize:22,cursor:"pointer"}},"×")
       ),
       React.createElement('div',{style:{marginBottom:14}},
-        React.createElement('label',{style:{fontSize:10,letterSpacing:1.5,color:"#666",textTransform:"uppercase",display:"block",marginBottom:6}},"Chave API Anthropic"),
-        React.createElement('input',{type:"password",value:key,onChange:e=>setKey(e.target.value),placeholder:"sk-ant-...",style:{width:"100%",background:"#111",border:"1px solid #333",color:"#c9bfb0",padding:"10px 12px",borderRadius:6,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}}),
-        React.createElement('div',{style:{fontSize:10,color:"#444",marginTop:5}},"Obtém em console.anthropic.com · guardada só neste dispositivo")
+        React.createElement('label',{style:{fontSize:10,letterSpacing:1.5,color:"#666",textTransform:"uppercase",display:"block",marginBottom:6}},"Chave API Gemini"),
+        React.createElement('input',{type:"text",value:geminiKey,onChange:e=>setGeminiKey(e.target.value),placeholder:"AIzaSy... ou AQ.Ab8...",style:{...inp,fontFamily:"monospace",fontSize:11}}),
+        React.createElement('div',{style:{fontSize:10,color:"#444",marginTop:5}},"Obtém gratuitamente em aistudio.google.com → Get API key · guardada só neste dispositivo")
       ),
       React.createElement('div',{style:{marginBottom:20}},
         React.createElement('label',{style:{fontSize:10,letterSpacing:1.5,color:"#666",textTransform:"uppercase",display:"block",marginBottom:6}},"Proxy CORS (opcional)"),
-        React.createElement('input',{type:"text",value:proxy,onChange:e=>setProxy(e.target.value),placeholder:"https://corsproxy.io/?",style:{width:"100%",background:"#111",border:"1px solid #333",color:"#c9bfb0",padding:"10px 12px",borderRadius:6,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}}),
-        React.createElement('div',{style:{fontSize:10,color:"#444",marginTop:5}},"Necessário para funções de IA fora do Claude.ai")
+        React.createElement('input',{type:"text",value:proxy,onChange:e=>setProxy(e.target.value),placeholder:"https://corsproxy.io/?",style:inp}),
+        React.createElement('div',{style:{fontSize:10,color:"#444",marginTop:5}},"Necessário se as funções de IA não funcionarem directamente")
       ),
       React.createElement('button',{onClick:save,style:{width:"100%",background:"#1a2a1a",border:"1px solid #3a5a3a",color:"#7ec87e",padding:"12px",borderRadius:6,fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",marginBottom:10}},"Guardar"),
       React.createElement('button',{onClick:logout,style:{width:"100%",background:"none",border:"1px solid #3a1a1a",color:"#884444",padding:"10px",borderRadius:6,fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit"}},"Sair da conta")
@@ -6165,7 +6131,7 @@ function App() {
   }, []);
 
   React.useEffect(() => {
-    if (authed && !localStorage.getItem('anthropic_key')) setShowSettings(true);
+    if (authed && !localStorage.getItem('gemini_key')) setShowSettings(true);
   }, [authed]);
 
   if (checking) return null; // still validating saved session
