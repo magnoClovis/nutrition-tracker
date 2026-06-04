@@ -29,7 +29,12 @@
   </div>
   <div id="root"></div>
   <script>
-  window.onerror=function(msg,src,line,col){
+  window.addEventListener('unhandledrejection',function(e){
+  var el=document.getElementById('loading');
+  var msg=e.reason&&e.reason.message?e.reason.message:String(e.reason);
+  if(el&&el.style.display!=='none')el.innerHTML='<div style="color:#c87e7e;padding:24px;text-align:center">⚠ '+msg.slice(0,200)+'</div>';
+});
+window.onerror=function(msg,src,line,col){
     var el=document.getElementById('loading');
     if(el)el.innerHTML='<div style="color:#c87e7e;padding:24px;text-align:center;max-width:400px;line-height:1.6"><div style="font-size:18px;margin-bottom:12px">⚠ Erro</div><div style="font-size:12px;word-break:break-word;opacity:0.8">'+String(msg).slice(0,300)+'</div><div style="font-size:10px;margin-top:8px;opacity:0.4">'+line+':'+col+'</div></div>';
     return false;
@@ -557,7 +562,7 @@ const STRINGS = {
     suppUnit: "Unidade",
     suppNotes: "Notas (opcional)",
     suppAdd: "Adicionar suplemento",
-    suppRegister: "suppRegister",
+    suppRegister: "💊 Registar suplemento",
     // Add tab modes
     modeOneByOne: "Um por um",
     modeBatch: "Montar refeição",
@@ -589,33 +594,33 @@ const STRINGS = {
     backupFull: "Backup Completo",
     copyJsonAs: "Copia este JSON e guarda como",
     copyJson: "Copia este JSON:",
-    copyManual: "copyManual",
+    copyManual: "Seleciona o texto acima e copia manualmente.",
     // Diary
     noFoodToday: "Nenhum alimento registado hoje.",
     microLabel: "MICRONUTRIENTES",
     notesPlaceholder: "Observações, contexto do dia, como te sentiste...",
     notesTitle: "Notas do dia",
     // History banner
-    proteinUnit: "proteinUnit",
+    proteinUnit: "g proteína",
     kcalUnit: "kcal",
     // Week charts
-    proteinChart: "Proteína (g) — 7 dias",
-    kcalChart: "Calorias — 7 dias",
+    proteinChart: "proteinChart",
+    kcalChart: "kcalChart",
     chooseFmt: "Escolhe o formato",
-    noRecentData: "Sem refeições recentes.",
+    noRecentData: "noRecentMeals",
     noWeekData: "noWeekData",
     // Metrics
     currentMetrics: "Métricas actuais",
     weightEvolution: "Evolução do peso",
     heightLabel: "Altura (cm)",
     heightPh: "ex: 175",
-    logMeasurements: "logMeasurements",
+    logMeasurements: "Registar medidas de hoje",
     customGoals: "Metas personalizadas",
     editGoals: "Editar metas",
     currentGoal: "Meta actual:",
     mealAverages: "Médias por refeição (últimos 30 dias)",
     patternsTitle: "Padrões — últimos 30 dias",
-    historyLabel: "historyLabel",
+    historyLabel: "Histórico",
     avgProtein: "Média proteína",
     avgCalories: "Média calorias",
     daysProtGoal: "Dias meta prot.",
@@ -629,7 +634,7 @@ const STRINGS = {
     bmiObese: "Obesidade",
     totalLabel: "Total:",
     loading: "A carregar...",
-    selectCopyManual: "selectCopyManual",
+    selectCopyManual: "Seleciona o texto e copia manualmente.",
     templates2: "Templates rápidos",
     // AI
     aiAnalyse: "✦ Analisar alimentação do dia",
@@ -639,17 +644,17 @@ const STRINGS = {
     savedNote: "💾 Guardar nas notas",
     // Add tab
     addTabTitle: "Adicionar alimento",
-    foodName: "Nome do alimento",
+    foodName: "foodName",
     foodNamePh: "ex: Banana, Frango grelhado...",
     unitLabel: "Unidade",
     autofillBtn: "✦ Preencher automaticamente",
     autofilling: "⟳ A preencher...",
-    macros: "Macronutrientes",
+    macros: "macros",
     micros: "Micronutrientes",
     hideMicro: "▲ Ocultar micronutrientes",
     showMicro: "▼ Micronutrientes (opcional)",
     savePantry: "Guardar na despensa",
-    meal: "Refeição",
+    meal: "meal",
     // Pantry
     pantryTitle: "Guardados",
     pantrySearch: "🔍 Pesquisar na despensa...",
@@ -669,23 +674,23 @@ const STRINGS = {
     suppPantryTitle: "Despensa de suplementos",
     suppEmpty: "Nenhum suplemento adicionado.",
     // Export/Import
-    exportImportTitle: "Exportar / Importar",
+    exportImportTitle: "exportImportTitle",
     exportDay: "↓ Exportar dia",
     exportWeek: "↓ Exportar semana",
     importMeals: "↑ Importar refeições",
     importDay: "↑ Importar dia",
-    backupTitle: "Backup / Restaurar dados",
+    backupTitle: "backupTitle",
     backupDesc: "Exporta ou importa TODOS os dados: despensa, registos diários, peso, água, suplementos.",
     exportBackup: "↓ Exportar backup",
     exportingBackup: "exportingBackup",
     importBackup: "↑ Importar backup",
-    backupCopyJson: "Copia este JSON e guarda como",
+    backupCopyJson: "copyJsonAs",
     copyBtn: "Copiar",
     close: "Fechar",
     // Week
     weekNoData: "weekNoData",
     weekTitle: "Últimos 7 dias",
-    exportWeekBtn: "↓ Exportar semana",
+    exportWeekBtn: "exportWeek",
     // Metrics
     metricsTitle: "Métricas",
     weight: "weight",
@@ -708,18 +713,18 @@ const STRINGS = {
     training: "Treino",
     rest: "Descanso",
     // Notifications
-    notifFilled: "Campos preenchidos. Verifica e ajusta se necessário.",
-    notifSaved: "Guardado.",
-    notifDeleted: "Apagado.",
+    notifFilled: "notifFilled",
+    notifSaved: "notifSaved",
+    notifDeleted: "notifDeleted",
     notifImported: "importado(s).",
     notifCopied: "JSON copiado!",
     notifBackupDone: "Backup gerado! Copia o JSON abaixo.",
     notifRestored: "registos importados. Recarrega a página para ver tudo.",
     notifEmpty: "Ficheiro vazio ou inválido.",
     notifNoFood: "Nenhum alimento encontrado.",
-    notifWeightSaved: "Peso registado.",
-    notifGoalsSaved: "Metas guardadas.",
-    notifNotesSaved: "Notas guardadas.",
+    notifWeightSaved: "notifWeightSaved",
+    notifGoalsSaved: "notifGoalsSaved",
+    notifNotesSaved: "notifNotesSaved",
     // Date
     today: "Hoje",
     yesterday: "Ontem",
@@ -785,7 +790,7 @@ const STRINGS = {
     bmi: "BMI",
     // Goals
     proteinGoal: "protein",
-    kcalGoal: "kcal",
+    kcalGoal: "kcalUnit",
     // Diary
     noRecords: "No records for this day.",
     noFood: "No foods logged.",
@@ -865,7 +870,7 @@ const STRINGS = {
     notesTitle: "Day notes",
     // History banner
     proteinUnit: "g protein",
-    kcalUnit: "kcal",
+    kcalUnit: "kcalUnit",
     // Week charts
     proteinChart: "Protein (g) — 7 days",
     kcalChart: "Calories — 7 days",
@@ -1008,6 +1013,8 @@ const STRINGS = {
 };
 
 // MEALS is now in STRINGS[lang].meals — resolved inside component
+// MEAL_KEYS: fixed storage keys (always Portuguese, data was saved with these)
+const MEAL_KEYS = ["Café da manhã", "Pré-treino", "Pós-treino", "Almoço", "Café da tarde", "Jantar", "Ceia", "Outro"];
 const MACRO_FIELDS_BASE = [{
   key: "protein100",
   labelKey: "protein",
@@ -1179,8 +1186,8 @@ function quickQtys(unit) {
 function divisor(unit) {
   return unit === "un" ? 1 : 100;
 }
-function portionLabel(unit) {
-  return unit === "un" ? lang === 'en' ? 'per unit' : 'por 1 unidade' : `por 100${unit}`;
+function portionLabel(unit, lang) {
+  return unit === "un" ? (lang === 'en' ? 'per unit' : 'por 1 unidade') : (lang === 'en' ? 'per 100'+unit : 'por 100'+unit);
 }
 function dateLabel(date, lang) {
   const s = STRINGS[lang || 'pt'];
@@ -1292,9 +1299,12 @@ function Bar({
   })));
 }
 function NutritionTracker({
-  onOpenSettings
+  onOpenSettings,
+  externalLang,
+  externalDarkMode
 }) {
-  const [lang, setLang] = useState(() => localStorage.getItem('appLang') || 'pt');
+  const [lang, setLang] = useState(() => externalLang || localStorage.getItem('appLang') || 'pt');
+  const [menuOpen, setMenuOpen] = useState(false);
   const t = key => {
     const s = STRINGS[lang];
     return s && s[key] !== undefined ? s[key] : STRINGS.pt[key] !== undefined ? STRINGS.pt[key] : key;
@@ -1304,7 +1314,34 @@ function NutritionTracker({
     localStorage.setItem('appLang', nl);
     setLang(nl);
   }
-  const MEALS = t('meals');
+  // Sync external lang changes
+  useEffect(() => {
+    if (externalLang && externalLang !== lang) setLang(externalLang);
+  }, [externalLang]);
+  // MEALS always uses PT names as storage keys (data compatibility)
+  const MEALS = STRINGS.pt.meals;
+  const mealLabel = m => {
+    const i = STRINGS.pt.meals.indexOf(m);
+    return i >= 0 ? t('meals')[i] : m;
+  };
+  // Normalize log keys: map EN/any lang meal names back to PT storage keys
+  function normalizeMealKeys(rawLog) {
+    if (!rawLog) return {};
+    const enMeals = STRINGS.en.meals;
+    const ptMeals = STRINGS.pt.meals;
+    const normalized = {};
+    for (const [key, entries] of Object.entries(rawLog)) {
+      const enIdx = enMeals.indexOf(key);
+      const ptKey = enIdx >= 0 ? ptMeals[enIdx] : key;
+      normalized[ptKey] = (normalized[ptKey] || []).concat(entries || []);
+    }
+    return normalized;
+  }
+  // Maps storage key -> display name
+  const mealDisplay = key => {
+    const i = MEAL_KEYS.indexOf(key);
+    return i >= 0 ? MEALS[i] : key;
+  };
   const MACRO_FIELDS = MACRO_FIELDS_BASE.map(f => ({
     ...f,
     label: t(f.labelKey)
@@ -1314,7 +1351,11 @@ function NutritionTracker({
     label: t(f.labelKey)
   }));
   const ALL_FIELDS = [...MACRO_FIELDS, ...MICRO_FIELDS]; // labeled version for render
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => externalDarkMode !== undefined ? externalDarkMode : true);
+  // Sync external darkMode changes
+  useEffect(() => {
+    if (externalDarkMode !== undefined) setDarkMode(externalDarkMode);
+  }, [externalDarkMode]);
   const [pantry, setPantry] = useState([]);
   const [log, setLog] = useState({});
   const [tab, setTab] = useState("diario");
@@ -1412,7 +1453,7 @@ function NutritionTracker({
     try {
       const [p, l, t, w, mt, n, wg, wi, sp, sl, cg] = await Promise.all([storage.get("pantry_v2").catch(() => null), storage.get("log_v2_" + TODAY).catch(() => null), storage.get("trainingByDate").catch(() => null), storage.get("weightHistory").catch(() => null), storage.get("mealTemplates").catch(() => null), storage.get("notes_" + TODAY).catch(() => null), storage.get("waterGoal").catch(() => null), storage.get("waterIntake_" + TODAY).catch(() => null), storage.get("suppPantry").catch(() => null), storage.get("suppLog_" + TODAY).catch(() => null), storage.get("customGoals").catch(() => null)]);
       if (p) setPantry(JSON.parse(p.value));
-      if (l) setLog(JSON.parse(l.value));
+      if (l) setLog(normalizeMealKeys(JSON.parse(l.value)));
       if (t) setTrainingByDate(JSON.parse(t.value));
       if (w) setWeightHistory(JSON.parse(w.value));
       if (mt) setMealTemplates(JSON.parse(mt.value));
@@ -1495,7 +1536,7 @@ function NutritionTracker({
       let dayLog = date === TODAY ? log : {};
       if (date !== TODAY) {
         const l = await storage.get("log_v2_" + date).catch(() => null);
-        if (l) dayLog = JSON.parse(l.value);
+        if (l) dayLog = normalizeMealKeys(JSON.parse(l.value));
       }
       const entries = Object.values(dayLog).flat();
       const we = getWeightForDate(weightHistory, date);
@@ -1829,7 +1870,7 @@ function NutritionTracker({
       const daysMetProt = dayData.filter(d => d.metProtein).length;
       const trainDays = dayData.filter(d => d.isTraining);
       const restDays = dayData.filter(d => !d.isTraining);
-      const prompt = "Analisa os padrões alimentares dos últimos 30 dias e fornece insights detalhados em português.\n\n" + "DADOS (" + dayData.length + " dias registados de 30):\n" + "Média diária: " + avgProt + "g proteína, " + avgKcal + " kcal\n" + "Dias que atingiu meta de proteína: " + daysMetProt + "/" + dayData.length + "\n" + (trainDays.length ? "Dias de treino (" + trainDays.length + "): média " + Math.round(trainDays.reduce((s, d) => s + d.protein, 0) / trainDays.length) + "g prot, " + Math.round(trainDays.reduce((s, d) => s + d.kcal, 0) / trainDays.length) + " kcal\n" : "") + (restDays.length ? "Dias de descanso (" + restDays.length + "): média " + Math.round(restDays.reduce((s, d) => s + d.protein, 0) / restDays.length) + "g prot, " + Math.round(restDays.reduce((s, d) => s + d.kcal, 0) / restDays.length) + " kcal\n" : "") + "Variação de proteína: mín " + Math.min(...dayData.map(d => d.protein)) + "g, máx " + Math.max(...dayData.map(d => d.protein)) + "g\n\n" + (currentWeight ? "Peso actual: " + currentWeight + "kg\n\n" : "") + "Identifica padrões concretos como:\n" + "- Diferença entre dias de treino e descanso\n" + "- Consistência vs inconsistência ao longo do tempo\n" + "- Tendências preocupantes ou positivas\n" + "- Áreas de melhoria com sugestões específicas\n\n" + "Estrutura com secções claras: Padrões Positivos, Padrões a Melhorar, Tendências Identificadas, Recomendações.";
+      const prompt = "Analisa os padrões alimentares dos últimos 30 dias e fornece insights detalhados em português.\n\n" + "DADOS (" + dayData.length + " dias registados de 30):\n" + "Média diária: " + avgProt + "g proteína, " + avgKcal + " kcal\n" + "Dias que atingiu meta de proteína: " + daysMetProt + "/" + dayData.length + "\n" + (trainDays.length ? lang === 'en' ? 'Training days (' : 'Dias de treino (' + trainDays.length + "): média " + Math.round(trainDays.reduce((s, d) => s + d.protein, 0) / trainDays.length) + lang === 'en' ? 'g prot, ' : 'g prot, ' + Math.round(trainDays.reduce((s, d) => s + d.kcal, 0) / trainDays.length) + " kcal\n" : "") + (restDays.length ? lang === 'en' ? 'Rest days (' : 'Dias de descanso (' + restDays.length + "): média " + Math.round(restDays.reduce((s, d) => s + d.protein, 0) / restDays.length) + lang === 'en' ? 'g prot, ' : 'g prot, ' + Math.round(restDays.reduce((s, d) => s + d.kcal, 0) / restDays.length) + " kcal\n" : "") + lang === 'en' ? 'Protein range: min ' : 'Variação de proteína: mín ' + Math.min(...dayData.map(d => d.protein)) + lang === 'en' ? 'g, max ' : 'g, máx ' + Math.max(...dayData.map(d => d.protein)) + "g\n\n" + (currentWeight ? "Peso actual: " + currentWeight + "kg\n\n" : "") + "Identifica padrões concretos como:\n" + "- Diferença entre dias de treino e descanso\n" + "- Consistência vs inconsistência ao longo do tempo\n" + "- Tendências preocupantes ou positivas\n" + "- Áreas de melhoria com sugestões específicas\n\n" + "Estrutura com secções claras: Padrões Positivos, Padrões a Melhorar, Tendências Identificadas, Recomendações.";
       const _pText = await callAI(prompt, 1200);
       setPatternsText(_pText);
     } catch (_) {
@@ -1863,7 +1904,7 @@ function NutritionTracker({
       const div = f.unit === "un" ? 1 : 100;
       return f.name + " (" + f.protein100 + "g prot/" + (f.unit === "un" ? "un" : "100" + f.unit) + ", " + f.kcal100 + " kcal/" + (f.unit === "un" ? "un" : "100" + f.unit) + ")";
     }).join(", ");
-    const prompt = "O utilizador precisa de fechar as metas nutricionais do dia. Sugere 3 combinações práticas de alimentos da despensa dele.\n\n" + "O QUE AINDA FALTA HOJE:\n" + (remainProt > 0 ? "Proteína: " + remainProt + "g\n" : "") + (remainKcal > 0 ? "Calorias: " + remainKcal + " kcal\n" : "") + (remainCarbs > 0 ? "Carbs: " + remainCarbs + "g\n" : "") + "\nDESPENSA DISPONÍVEL:\n" + pantryList + "\n\n" + "Para cada sugestão indica:\n" + "- Nome da combinação\n" + "- Alimentos com quantidades específicas (em gramas/ml/unidades)\n" + "- Totais de proteína e calorias estimados\n\n" + "Responde APENAS com JSON sem markdown:\n" + "[{\"name\":\"nome\",\"items\":[{\"food\":\"nome exacto da despensa\",\"qty\":X,\"unit\":\"g\"}],\"protein\":X,\"kcal\":X}]";
+    const prompt = "O utilizador precisa de fechar as metas nutricionais do dia. Sugere 3 combinações práticas de alimentos da despensa dele.\n\n" + "O QUE AINDA FALTA HOJE:\n" + (remainProt > 0 ? lang === 'en' ? 'Protein: ' : 'Proteína: ' + remainProt + "g\n" : "") + (remainKcal > 0 ? lang === 'en' ? 'Calories: ' : 'Calorias: ' + remainKcal + " kcal\n" : "") + (remainCarbs > 0 ? lang === 'en' ? 'Carbs: ' : 'Carbs: ' + remainCarbs + "g\n" : "") + "\nDESPENSA DISPONÍVEL:\n" + pantryList + "\n\n" + "Para cada sugestão indica:\n" + "- Nome da combinação\n" + "- Alimentos com quantidades específicas (em gramas/ml/unidades)\n" + "- Totais de proteína e calorias estimados\n\n" + "Responde APENAS com JSON sem markdown:\n" + "[{\"name\":\"nome\",\"items\":[{\"food\":\"nome exacto da despensa\",\"qty\":X,\"unit\":\"g\"}],\"protein\":X,\"kcal\":X}]";
     try {
       const text = await callAI(prompt, 800);
       const clean = text.replace(/```json|```/g, "").trim();
@@ -1923,35 +1964,35 @@ function NutritionTracker({
         }, null, 2);
       } else if (format === "csv") {
         const rows = [[t('meal'), t('foodLabel'), t('qty'), t('unit'), t('protein') + "(g)", t('calories') + "(kcal)", t('carbs') + "(g)", t('fat') + "(g)", t('fiber') + "(g)", t('salt') + "(g)"]];
-        MEALS.forEach(meal => {
+        MEAL_KEYS.forEach(meal => {
           (dayLog[meal] || []).forEach(e => {
-            rows.push([meal, '"' + e.name + '"', e.qty, e.unit, rnd(e.protein), rnd(e.kcal), rnd(e.carbs), rnd(e.fat), rnd(e.fiber), rnd(e.salt)]);
+            rows.push([mealDisplay(meal), '"' + e.name + '"', e.qty, e.unit, rnd(e.protein), rnd(e.kcal), rnd(e.carbs), rnd(e.fat), rnd(e.fiber), rnd(e.salt)]);
           });
         });
         rows.push([], []);
-        rows.push(["TOTAIS", "", "", "", totals.protein, totals.kcal, totals.carbs, totals.fat, totals.fiber, totals.salt]);
-        rows.push(["META", "", "", "", goals.protein, goals.kcal, goals.carbs, goals.fat, goals.fiber, goals.salt]);
+        rows.push([lang === 'en' ? 'TOTALS' : 'TOTAIS', "", "", "", totals.protein, totals.kcal, totals.carbs, totals.fat, totals.fiber, totals.salt]);
+        rows.push([lang === 'en' ? 'GOAL' : 'META', "", "", "", goals.protein, goals.kcal, goals.carbs, goals.fat, goals.fiber, goals.salt]);
         content = rows.map(r => r.join(",")).join("\n");
       } else if (format === "html") {
-        const mealRows = MEALS.map(meal => {
+        const mealRows = MEAL_KEYS.map(meal => {
           const items = dayLog[meal] || [];
           if (!items.length) return "";
           const itemRows = items.map(e => "<tr><td>" + e.name + "</td><td>" + e.qty + e.unit + "</td><td>" + rnd(e.protein) + "g</td><td>" + rnd(e.kcal) + "</td><td>" + rnd(e.carbs) + "g</td><td>" + rnd(e.fat) + "g</td></tr>").join("");
-          return "<h3>" + meal + "</h3><table border='1' cellpadding='6' style='border-collapse:collapse;width:100%;margin-bottom:16px'><tr><th>Alimento</th><th>Qtd</th><th>Proteína</th><th>Kcal</th><th>Carbs</th><th>Gordura</th></tr>" + itemRows + "</table>";
+          return "<h3>" + mealDisplay(meal) + "</h3><table border='1' cellpadding='6' style='border-collapse:collapse;width:100%;margin-bottom:16px'><tr><th>Alimento</th><th>Qtd</th><th>Proteína</th><th>Kcal</th><th>Carbs</th><th>Gordura</th></tr>" + itemRows + "</table>";
         }).join("");
         content = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Nutrição " + date + "</title>" + "<style>body{font-family:sans-serif;padding:24px;max-width:800px;margin:auto}h1,h3{color:#333}table{width:100%}td,th{padding:6px 10px;text-align:left;border:1px solid #ddd}.box{background:#f5f5f5;padding:12px;border-radius:6px;margin-top:16px}</style></head><body>" + "<h1>Relatório Nutricional — " + date + "</h1><p><b>Tipo:</b> " + (isTraining ? t('training') : t('rest')) + "</p>" + mealRows + "<div class='box'><h3>Totais</h3><p>Proteína: <b>" + totals.protein + "g</b> (meta: " + goals.protein + "g) &nbsp;|&nbsp; Calorias: <b>" + totals.kcal + "</b> (meta: " + goals.kcal + ") &nbsp;|&nbsp; Carbs: " + totals.carbs + "g &nbsp;|&nbsp; Gordura: " + totals.fat + "g &nbsp;|&nbsp; Fibra: " + totals.fiber + "g &nbsp;|&nbsp; Sal: " + totals.salt + "g</p></div>" + (note ? "<div class='box'><h3>Notas</h3><p>" + note.replace(/\n/g, "<br>") + "</p></div>" : "") + "</body></html>";
       } else {
         let txt = "RELATÓRIO NUTRICIONAL — " + date + "\nTipo: " + (isTraining ? t('training') : t('rest')) + "\n\n";
-        MEALS.forEach(meal => {
+        MEAL_KEYS.forEach(meal => {
           const items = dayLog[meal] || [];
           if (!items.length) return;
-          txt += meal.toUpperCase() + "\n";
+          txt += mealDisplay(meal).toUpperCase() + "\n";
           items.forEach(e => {
-            txt += "  " + e.name + " " + e.qty + e.unit + " — " + rnd(e.protein) + "g prot, " + rnd(e.kcal) + " kcal\n";
+            txt += "  " + e.name + " " + e.qty + e.unit + " — " + rnd(e.protein) + lang === 'en' ? 'g prot, ' : 'g prot, ' + rnd(e.kcal) + " kcal\n";
           });
           txt += "\n";
         });
-        txt += "TOTAIS\nProteína: " + totals.protein + "g / " + goals.protein + "g\nCalorias: " + totals.kcal + " / " + goals.kcal + "\nCarbs: " + totals.carbs + "g | Gordura: " + totals.fat + "g | Fibra: " + totals.fiber + "g | Sal: " + totals.salt + "g";
+        txt += lang === 'en' ? 'TOTALS\nProtein: ' : 'TOTAIS\nProteína: ' + totals.protein + "g / " + goals.protein + "g\nCalorias: " + totals.kcal + " / " + goals.kcal + "\nCarbs: " + totals.carbs + "g | Gordura: " + totals.fat + "g | Fibra: " + totals.fiber + "g | Sal: " + totals.salt + "g";
         if (note) txt += "\n\nNOTAS\n" + note;
         content = txt;
       }
@@ -1965,7 +2006,7 @@ function NutritionTracker({
         let dayLog = date === TODAY ? log : {};
         if (date !== TODAY) {
           const l = await storage.get("log_v2_" + date).catch(() => null);
-          if (l) dayLog = JSON.parse(l.value);
+          if (l) dayLog = normalizeMealKeys(JSON.parse(l.value));
         }
         const totals = buildDayTotals(dayLog);
         const wEntry = getWeightForDate(weightHistory, date);
@@ -2021,7 +2062,7 @@ function NutritionTracker({
         const f = entries.reduce((s, e) => s + (e.fat ?? 0), 0);
         const fi = entries.reduce((s, e) => s + (e.fiber ?? 0), 0);
         const sa = entries.reduce((s, e) => s + (e.salt ?? 0), 0);
-        prompt = "Analisa a alimentação deste dia e dá um feedback detalhado em português.\n\n" + "DATA: " + viewDate + " (" + (isTraining ? "dia de treino" : "dia de descanso") + ")\n\n" + "METAS DO DIA:\n" + "Proteína: " + goals.protein + "g | Calorias: " + goals.kcal + " kcal | Carbs: " + goals.carbs + "g | Gordura: " + goals.fat + "g | Fibra: " + goals.fiber + "g\n\n" + "O QUE COMEU:\n" + (mealSummary || "Nenhum alimento registado") + "\n\n" + "TOTAIS DO DIA:\n" + "Proteína: " + Math.round(p) + "g | Calorias: " + Math.round(k) + " kcal | Carbs: " + Math.round(c) + "g | Gordura: " + Math.round(f) + "g | Fibra: " + Math.round(fi) + "g | Sal: " + Math.round(sa * 10) / 10 + "g\n\n" + (currentWeight ? "Peso actual: " + currentWeight + "kg\n\n" : "") + "Estrutura o feedback com estas secções:\n" + "✅ PONTOS POSITIVOS (o que correu bem)\n" + "⚠️ O QUE MELHORAR (excessos, défices, desequilíbrios)\n" + "💡 SUGESTÕES CONCRETAS (substituições ou adições específicas)\n" + "📊 RESUMO GERAL (avaliação curta do dia)\n\n" + "Sê honesto, específico e prático. Evita ser demasiado genérico.";
+        prompt = "Analisa a alimentação deste dia e dá um feedback detalhado em português.\n\n" + "DATA: " + viewDate + " (" + (isTraining ? "dia de treino" : "dia de descanso") + ")\n\n" + "METAS DO DIA:\n" + lang === 'en' ? 'Protein: ' : 'Proteína: ' + goals.protein + "g | Calorias: " + goals.kcal + " kcal | Carbs: " + goals.carbs + "g | Gordura: " + goals.fat + "g | Fibra: " + goals.fiber + "g\n\n" + "O QUE COMEU:\n" + (mealSummary || "Nenhum alimento registado") + "\n\n" + "TOTAIS DO DIA:\n" + lang === 'en' ? 'Protein: ' : 'Proteína: ' + Math.round(p) + "g | Calorias: " + Math.round(k) + " kcal | Carbs: " + Math.round(c) + "g | Gordura: " + Math.round(f) + "g | Fibra: " + Math.round(fi) + "g | Sal: " + Math.round(sa * 10) / 10 + "g\n\n" + (currentWeight ? "Peso actual: " + currentWeight + "kg\n\n" : "") + "Estrutura o feedback com estas secções:\n" + "✅ PONTOS POSITIVOS (o que correu bem)\n" + "⚠️ O QUE MELHORAR (excessos, défices, desequilíbrios)\n" + "💡 SUGESTÕES CONCRETAS (substituições ou adições específicas)\n" + "📊 RESUMO GERAL (avaliação curta do dia)\n\n" + "Sê honesto, específico e prático. Evita ser demasiado genérico.";
       } else {
         const days = weekData.filter(d => d.hasData);
         if (!days.length) {
@@ -2098,7 +2139,7 @@ function NutritionTracker({
     });
     setPantry(p => [...p, food]);
     setForm(emptyFood());
-    notify("Alimento guardado.");
+    notify(lang === 'en' ? 'Food saved.' : 'Alimento guardado.');
   }
   function removeFood(id) {
     setPantry(p => p.filter(f => f.id !== id));
@@ -2574,7 +2615,7 @@ function NutritionTracker({
   }
   const tot = {
     protein: total("protein"),
-    kcal: total("kcal"),
+    kcal: total(t('kcalUnit')),
     carbs: total("carbs"),
     fat: total("fat"),
     fiber: total("fiber"),
@@ -2744,6 +2785,7 @@ function NutritionTracker({
     }
   }, dateStr)), /*#__PURE__*/React.createElement("div", {
     style: {
+      position: "relative",
       display: "flex",
       alignItems: "center",
       gap: 6
@@ -2757,7 +2799,7 @@ function NutritionTracker({
       border: "1px solid var(--border2)",
       color: syncing ? "var(--btn-ok-text)" : "var(--muted)",
       borderRadius: 6,
-      padding: "6px 10px",
+      padding: "6px 9px",
       fontSize: 13,
       cursor: "pointer"
     }
@@ -2767,43 +2809,122 @@ function NutritionTracker({
       animation: syncing ? "spin 1s linear infinite" : "none"
     }
   }, "\u21BB")), /*#__PURE__*/React.createElement("button", {
-    onClick: toggleLang,
+    onClick: () => setMenuOpen(m => !m),
     style: {
-      background: "none",
+      background: menuOpen ? "var(--input)" : "none",
       border: "1px solid var(--border2)",
       color: "var(--muted)",
       borderRadius: 6,
-      padding: "5px 8px",
-      fontSize: 11,
-      cursor: "pointer",
-      whiteSpace: "nowrap",
-      letterSpacing: 0.3
-    }
-  }, t('langBtn')), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setDarkMode(d => !d),
-    style: {
-      background: "none",
-      border: "1px solid var(--border2)",
-      color: "var(--muted)",
-      borderRadius: 6,
-      padding: "6px 9px",
-      fontSize: 13,
-      cursor: "pointer",
-      lineHeight: 1
-    }
-  }, darkMode ? "☀️" : "🌙"), onOpenSettings && /*#__PURE__*/React.createElement("button", {
-    onClick: onOpenSettings,
-    style: {
-      background: "none",
-      border: "1px solid var(--border2)",
-      color: "var(--muted)",
-      borderRadius: 6,
-      padding: "6px 9px",
+      padding: "6px 10px",
       fontSize: 14,
       cursor: "pointer",
       lineHeight: 1
     }
-  }, "\u2699"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u2699"), menuOpen && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    onClick: () => setMenuOpen(false),
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 99
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "calc(100% + 8px)",
+      right: 0,
+      zIndex: 100,
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 10,
+      padding: "6px",
+      minWidth: 200,
+      boxShadow: "0 8px 24px rgba(0,0,0,0.5)"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      toggleLang();
+      setMenuOpen(false);
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      width: "100%",
+      background: "none",
+      border: "none",
+      color: "var(--text2)",
+      padding: "10px 12px",
+      borderRadius: 6,
+      fontSize: 12,
+      cursor: "pointer",
+      textAlign: "left",
+      fontFamily: "inherit"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, lang === 'pt' ? '🇺🇸' : '🇧🇷'), /*#__PURE__*/React.createElement("span", null, t('langBtn'))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: "1px",
+      background: "var(--border3)",
+      margin: "2px 6px"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setDarkMode(d => !d);
+      setMenuOpen(false);
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      width: "100%",
+      background: "none",
+      border: "none",
+      color: "var(--text2)",
+      padding: "10px 12px",
+      borderRadius: 6,
+      fontSize: 12,
+      cursor: "pointer",
+      textAlign: "left",
+      fontFamily: "inherit"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, darkMode ? "☀️" : "🌙"), /*#__PURE__*/React.createElement("span", null, darkMode ? lang === "en" ? "Light mode" : "Modo claro" : lang === "en" ? "Dark mode" : "Modo escuro")), onOpenSettings && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: "1px",
+      background: "var(--border3)",
+      margin: "2px 6px"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      onOpenSettings();
+      setMenuOpen(false);
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      width: "100%",
+      background: "none",
+      border: "none",
+      color: "var(--text2)",
+      padding: "10px 12px",
+      borderRadius: 6,
+      fontSize: 12,
+      cursor: "pointer",
+      textAlign: "left",
+      fontFamily: "inherit"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 16
+    }
+  }, "\uD83D\uDD11"), /*#__PURE__*/React.createElement("span", null, lang === "en" ? "API Key & Settings" : "Chave API & Configurações"))))))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -2854,7 +2975,7 @@ function NutritionTracker({
     val: tot.kcal,
     goal: goals.kcal,
     color: "#8ec8c8",
-    unit: "kcal"
+    unit: t('kcalUnit')
   }].map(({
     label,
     val,
@@ -2918,7 +3039,7 @@ function NutritionTracker({
       fontSize: 10,
       color: "var(--faint)"
     }
-  }, "meta ", goal, unit))))), isToday && (remainProtein > 0 || remainKcal > 0) && /*#__PURE__*/React.createElement("div", {
+  }, lang==='en'?'goal ':'meta ', goal, unit))))), isToday && (remainProtein > 0 || remainKcal > 0) && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface3)",
       borderBottom: "1px solid var(--border3)",
@@ -3006,7 +3127,7 @@ function NutritionTracker({
       letterSpacing: 1,
       width: "100%"
     }
-  }, "+ Adicionar esta refei\xE7\xE3o"))))), /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? '+ Add this meal' : '+ Adicionar esta refeição'))))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)",
@@ -3256,7 +3377,7 @@ function NutritionTracker({
       fontSize: 9,
       color: "var(--faint)"
     }
-  }, "(", viewWeight ? `${isTraining ? 40 : 35}ml/kg` : "padrão", ")"), /*#__PURE__*/React.createElement("button", {
+  }, "(", viewWeight ? `${isTraining ? 40 : 35}ml/kg` : lang === 'en' ? 'default' : 'padrão', ")"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setEditWaterGoal(e => !e),
     style: {
       background: "none",
@@ -3413,7 +3534,7 @@ function NutritionTracker({
       color: "var(--muted2)",
       textTransform: "uppercase"
     }
-  }, "\uD83D\uDC8A Suplementos")), suppLog.map(e => /*#__PURE__*/React.createElement("div", {
+  }, `💊 ${t('suppTitle')}`)), suppLog.map(e => /*#__PURE__*/React.createElement("div", {
     key: e.id,
     style: {
       display: "flex",
@@ -3606,12 +3727,12 @@ function NutritionTracker({
       u: "g",
       c: "#a96ec8"
     }, {
-      l: "Açúcares",
+      l: lang === 'en' ? 'Sugars' : 'Açúcares',
       v: e.sugars,
       u: "g",
       c: "#a96ec8"
     }, {
-      l: "Gordura",
+      l: lang === 'en' ? 'Fat' : 'Gordura',
       v: e.fat,
       u: "g",
       c: "#c86e8e"
@@ -3636,37 +3757,37 @@ function NutritionTracker({
       u: "µg",
       c: "#c8c8a9"
     }, {
-      l: "Niacina",
+      l: lang === 'en' ? 'Niacin' : 'Niacina',
       v: e.niacin,
       u: "mg",
       c: "#c8c8a9"
     }, {
-      l: "Fósforo",
+      l: lang === 'en' ? 'Phosphorus' : 'Fósforo',
       v: e.phosphorus,
       u: "mg",
       c: "#c8c8a9"
     }, {
-      l: "Cálcio",
+      l: lang === 'en' ? 'Calcium' : 'Cálcio',
       v: e.calcium,
       u: "mg",
       c: "#c8c8a9"
     }, {
-      l: "Ferro",
+      l: lang === 'en' ? 'Iron' : 'Ferro',
       v: e.iron,
       u: "mg",
       c: "#c8c8a9"
     }, {
-      l: "Potássio",
+      l: lang === 'en' ? 'Potassium' : 'Potássio',
       v: e.potassium,
       u: "mg",
       c: "#c8c8a9"
     }, {
-      l: "Magnésio",
+      l: lang === 'en' ? 'Magnesium' : 'Magnésio',
       v: e.magnesium,
       u: "mg",
       c: "#c8c8a9"
     }, {
-      l: "Zinco",
+      l: lang === 'en' ? 'Zinc' : 'Zinco',
       v: e.zinc,
       u: "mg",
       c: "#c8c8a9"
@@ -3708,7 +3829,7 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("label", {
     style: lbl
-  }, "Notas do dia"), /*#__PURE__*/React.createElement("textarea", {
+  }, t('notesTitle')), /*#__PURE__*/React.createElement("textarea", {
     value: isToday ? todayNote : historyNote,
     onChange: e => isToday ? setTodayNote(e.target.value) : setHistoryNote(e.target.value),
     placeholder: t('notesPlaceholder'),
@@ -3854,7 +3975,7 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 10
     }
-  }, "Backup / Restaurar dados"), /*#__PURE__*/React.createElement("div", {
+  }, t('backupTitle')), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--muted)",
@@ -4068,7 +4189,7 @@ function NutritionTracker({
         borderBottom: "1px solid var(--border3)",
         background: "var(--surface3)"
       }
-    }, meal), byMeal.map((r, i) => /*#__PURE__*/React.createElement("div", {
+    }, mealDisplay(meal)), byMeal.map((r, i) => /*#__PURE__*/React.createElement("div", {
       key: i,
       onClick: () => loadRecentMealToStaged(r),
       style: {
@@ -4152,7 +4273,7 @@ function NutritionTracker({
   }, MEALS.map(m => /*#__PURE__*/React.createElement("option", {
     key: m,
     value: m
-  }, m)))), /*#__PURE__*/React.createElement("div", {
+  }, mealLabel(m))))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 8
     }
@@ -4175,7 +4296,7 @@ function NutritionTracker({
       color: "var(--dim)",
       marginTop: 4
     }
-  }, lang === 'en' ? 'Describe what you ate and approximate amounts if you know. Otherwise just describe the context (restaurant, homemade, cafeteria, etc.).' : 'Descreve o que comeste e, se souberes, as quantidades aproximadas. Caso contrário, indica apenas o contexto (refeitório, restaurante, caseiro, etc.).')), /*#__PURE__*/React.createElement("button", {
+  }, lang === 'en' ? 'Describe what you ate and approximate amounts. Otherwise describe the context (restaurant, homemade, cafeteria, etc.).' : 'Descreve o que comeste e, se souberes, as quantidades aproximadas. Caso contrário, indica apenas o contexto (refeitório, restaurante, caseiro, etc.).')), /*#__PURE__*/React.createElement("button", {
     onClick: estimateMealDescription,
     disabled: describeLoading,
     style: {
@@ -4184,7 +4305,7 @@ function NutritionTracker({
       border: "1px solid var(--btn-info-border)",
       color: describeLoading ? "var(--muted)" : "var(--btn-info-text)"
     }
-  }, describeLoading ? t('estimating') : "✦ Estimar valores nutricionais"), describeResult && /*#__PURE__*/React.createElement("div", {
+  }, describeLoading ? t('estimating') : lang === 'en' ? '✦ Estimate nutritional values' : '✦ Estimar valores nutricionais'), describeResult && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14,
       background: "var(--surface)",
@@ -4207,7 +4328,7 @@ function NutritionTracker({
   }, describeResult.name), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 10,
-      color: describeResult.confidence === "alta" ? "#6ec8a9" : describeResult.confidence === "media" ? "#c8a96e" : "#c86e8e",
+      color: describeResult.confidence === lang === 'en' ? 'high' : 'alta' ? "#6ec8a9" : describeResult.confidence === lang === 'en' ? 'medium' : 'media' ? "#c8a96e" : "#c86e8e",
       letterSpacing: 1
     }
   }, "confian\xE7a ", describeResult.confidence)), /*#__PURE__*/React.createElement("div", {
@@ -4225,7 +4346,7 @@ function NutritionTracker({
   }, {
     l: t('calories'),
     v: describeResult.kcal,
-    u: "kcal",
+    u: t('kcalUnit'),
     c: "#8ec8c8"
   }, {
     l: "Carbs",
@@ -4233,7 +4354,7 @@ function NutritionTracker({
     u: "g",
     c: "#a96ec8"
   }, {
-    l: "Gordura",
+    l: lang === 'en' ? 'Fat' : 'Gordura',
     v: describeResult.fat,
     u: "g",
     c: "#c86e8e"
@@ -4274,7 +4395,7 @@ function NutritionTracker({
   }, describeResult.note), /*#__PURE__*/React.createElement("button", {
     onClick: addDescribedToLog,
     style: btn
-  }, "+ Adicionar ao di\xE1rio (", describeMeal, ")"))), !describeMode && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, "+", lang === 'en' ? ' Add to diary' : ' Adicionar ao diário', " (", mealLabel(describeMeal), ")"))), !describeMode && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 8
     }
@@ -4293,7 +4414,7 @@ function NutritionTracker({
   }, MEALS.map(m => /*#__PURE__*/React.createElement("option", {
     key: m,
     value: m
-  }, m)))), /*#__PURE__*/React.createElement("div", {
+  }, mealLabel(m))))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 8
     }
@@ -4351,7 +4472,7 @@ function NutritionTracker({
         color: "var(--muted)",
         marginLeft: 8
       }
-    }, f.protein100, f.unit === "un" ? "g/un" : "g", " prot \xB7 ", f.kcal100, f.unit === "un" ? "kcal/un" : "kcal", "/100", f.unit === "un" ? "un" : f.unit))));
+    }, f.protein100, f.unit === "un" ? "g/un" : "g", " prot \xB7 ", f.kcal100, f.unit === "un" ? "kcal/un" : t('kcalUnit'), "/100", f.unit === "un" ? "un" : f.unit))));
   })(), !addEntry.foodSearch && /*#__PURE__*/React.createElement("select", {
     value: addEntry.foodId,
     onChange: e => setAddEntry(a => ({
@@ -4364,7 +4485,7 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("option", {
     value: ""
-  }, "\u2014 ou seleciona da lista \u2014"), sortedAllPantry.map(f => /*#__PURE__*/React.createElement("option", {
+  }, lang === 'en' ? '— or select from list —' : '— ou seleciona da lista —'), sortedAllPantry.map(f => /*#__PURE__*/React.createElement("option", {
     key: f.id,
     value: f.id
   }, f.name)))), selectedFood && /*#__PURE__*/React.createElement("div", {
@@ -4373,14 +4494,14 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("label", {
     style: lbl
-  }, "Quantidade em ", selectedFood.unit), /*#__PURE__*/React.createElement("input", {
+  }, t('qty') + ' (' + selectedFood.unit + ')'), /*#__PURE__*/React.createElement("input", {
     type: "number",
     value: addEntry.qty,
     onChange: e => setAddEntry(a => ({
       ...a,
       qty: e.target.value
     })),
-    placeholder: `ex: 250 ${selectedFood.unit}`,
+    placeholder: '250 ' + selectedFood.unit,
     style: inp
   }), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -4448,7 +4569,7 @@ function NutritionTracker({
       border: "1px solid var(--btn-info-border)",
       color: "var(--btn-info-text)"
     }
-  }, "+ Adicionar \xE0 refei\xE7\xE3o"), batchMode && /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? '+ Add to meal' : '+ Adicionar à refeição'), batchMode && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14
     }
@@ -4640,7 +4761,7 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 10
     }
-  }, "Exportar / Importar"), /*#__PURE__*/React.createElement("div", {
+  }, t('exportImportTitle')), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface)",
       border: "1px solid #2a3a2a",
@@ -4656,7 +4777,7 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 6
     }
-  }, "Backup Completo"), /*#__PURE__*/React.createElement("div", {
+  }, lang==='en'?'Full Backup':'Backup Completo'), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--muted)",
@@ -4753,7 +4874,7 @@ function NutritionTracker({
       gridTemplateColumns: "1fr 1fr",
       gap: 6
     }
-  }, [["json", "JSON", "dados completos"], ["csv", "CSV", "para Excel"], ["html", "HTML", "relatório web"], ["txt", "TXT", "texto simples"]].map(([fmt, label, desc]) => /*#__PURE__*/React.createElement("button", {
+  }, [["json", "JSON", lang === 'en' ? 'full data' : 'dados completos'], ["csv", "CSV", lang === 'en' ? 'for Excel' : 'para Excel'], ["html", "HTML", lang === 'en' ? 'web report' : 'relatório web'], ["txt", "TXT", "texto simples"]].map(([fmt, label, desc]) => /*#__PURE__*/React.createElement("button", {
     key: fmt,
     onClick: () => runExport(showExportPanel, fmt),
     style: {
@@ -5013,7 +5134,7 @@ function NutritionTracker({
   })))), /*#__PURE__*/React.createElement("button", {
     onClick: addFood,
     style: btn
-  }, "Guardar na despensa"), /*#__PURE__*/React.createElement("div", {
+  }, t('savePantry')), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 24
     }
@@ -5064,7 +5185,7 @@ function NutritionTracker({
       textAlign: "center",
       marginTop: 12
     }
-  }, pantrySearch ? t('noResults') : "Despensa vazia."), sortedPantry.map(f => /*#__PURE__*/React.createElement("div", {
+  }, pantrySearch ? t('noResults') : t('pantryEmpty')), sortedPantry.map(f => /*#__PURE__*/React.createElement("div", {
     key: f.id,
     style: {
       borderBottom: "1px solid var(--border3)"
@@ -5085,7 +5206,7 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("label", {
     style: lbl
-  }, "Nome"), /*#__PURE__*/React.createElement("input", {
+  }, t('suppNameLabel')), /*#__PURE__*/React.createElement("input", {
     value: editForm.name,
     onChange: e => setEditForm(ef => ({
       ...ef,
@@ -5221,12 +5342,12 @@ function NutritionTracker({
       fontSize: 10,
       color: "var(--muted)"
     }
-  }, ff.label.replace("dos quais ", "").replace("das quais ", ""), " ", f[ff.key], ff.unit)), /*#__PURE__*/React.createElement("span", {
+  }, (ff.label || ff.key).replace('', "").replace('', "").replace("of which ", ""), " ", f[ff.key], ff.unit)), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 10,
       color: "var(--dim)"
     }
-  }, "por 100", f.unit))), /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? `per 100${f.unit}` : `por 100${f.unit}`))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 5,
@@ -5275,7 +5396,7 @@ function NutritionTracker({
       color: "var(--muted)",
       textTransform: "uppercase"
     }
-  }, "\uD83D\uDC8A Suplementos (", suppPantry.length, ")"), /*#__PURE__*/React.createElement("button", {
+  }, `💊 ${t('suppPantryTitle')} (${suppPantry.length})`), /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowSuppForm(s => !s),
     style: sBtn("var(--btn-info)", "var(--btn-info-border)", "#9090c8")
   }, showSuppForm ? "▲ fechar" : "+ adicionar")), showSuppForm && /*#__PURE__*/React.createElement("div", {
@@ -5298,13 +5419,13 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("label", {
     style: lbl
-  }, "Nome"), /*#__PURE__*/React.createElement("input", {
+  }, t('suppNameLabel')), /*#__PURE__*/React.createElement("input", {
     value: suppForm.name,
     onChange: e => setSuppForm(f => ({
       ...f,
       name: e.target.value
     })),
-    placeholder: "ex: Creatina",
+    placeholder: lang === 'en' ? 'e.g. Creatine' : 'ex: Creatina',
     style: inp
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5312,7 +5433,7 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("label", {
     style: lbl
-  }, "Dose padr\xE3o"), /*#__PURE__*/React.createElement("input", {
+  }, t('suppDoseLabel')), /*#__PURE__*/React.createElement("input", {
     type: "number",
     value: suppForm.dose,
     onChange: e => setSuppForm(f => ({
@@ -5363,7 +5484,7 @@ function NutritionTracker({
   })), /*#__PURE__*/React.createElement("button", {
     onClick: addSuppToPantry,
     style: btn
-  }, "Guardar suplemento")), suppPantry.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, t('suppSave'))), suppPantry.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       color: "var(--faint)",
       fontSize: 12,
@@ -5410,7 +5531,7 @@ function NutritionTracker({
       marginTop: 40,
       fontStyle: "italic"
     }
-  }, "A carregar...") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }, t('loading')) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 0,
@@ -5653,7 +5774,7 @@ function NutritionTracker({
       marginTop: 10,
       fontStyle: "italic"
     }
-  }, "Clica num dia para ver o detalhe"), Object.keys(mealAverages).length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? 'Click a day to see details' : 'Clica num dia para ver o detalhe'), Object.keys(mealAverages).length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 20
     }
@@ -5770,7 +5891,7 @@ function NutritionTracker({
       gridTemplateColumns: "1fr 1fr",
       gap: 6
     }
-  }, [["json", "JSON", "dados completos"], ["csv", "CSV", "para Excel"], ["html", "HTML", "relatório"], ["txt", "TXT", "texto simples"]].map(([fmt, label, desc]) => /*#__PURE__*/React.createElement("button", {
+  }, [["json", "JSON", lang === 'en' ? 'full data' : 'dados completos'], ["csv", "CSV", lang === 'en' ? 'for Excel' : 'para Excel'], ["html", "HTML", "relatório"], ["txt", "TXT", "texto simples"]].map(([fmt, label, desc]) => /*#__PURE__*/React.createElement("button", {
     key: fmt,
     onClick: () => runExport("week", fmt),
     style: {
@@ -6000,7 +6121,7 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 10
     }
-  }, "Registar medidas de hoje"), /*#__PURE__*/React.createElement("div", {
+  }, t('logMeasurements')), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -6019,7 +6140,7 @@ function NutritionTracker({
       ...f,
       weight: e.target.value
     })),
-    placeholder: currentWeight ? String(currentWeight) : "ex: 73.7",
+    placeholder: currentWeight ? String(currentWeight) : t('weightPh'),
     style: inp
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6039,7 +6160,7 @@ function NutritionTracker({
   }))), /*#__PURE__*/React.createElement("button", {
     onClick: saveWeight,
     style: btn
-  }, "Registar hoje")), currentWeight && /*#__PURE__*/React.createElement("div", {
+  }, t('suppLogToday'))), currentWeight && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -6109,7 +6230,7 @@ function NutritionTracker({
       fontSize: 12,
       color: "var(--muted)"
     }
-  }, "IMC ", bmi, " \u2014 ", /*#__PURE__*/React.createElement("span", {
+  }, t('bmi')+' ', bmi, " \u2014 ", /*#__PURE__*/React.createElement("span", {
     style: {
       color: bmiNum < 18.5 ? "#c86e8e" : bmiNum < 25 ? "#6ec8a9" : bmiNum < 30 ? "#c8a96e" : "#c86e8e"
     }
@@ -6294,7 +6415,7 @@ function NutritionTracker({
       style: {
         color: "var(--muted)"
       }
-    }, "IMC ", bE), /*#__PURE__*/React.createElement("span", {
+    }, t('bmi')+' ', bE), /*#__PURE__*/React.createElement("span", {
       style: {
         color: "var(--muted)"
       }
@@ -6352,7 +6473,7 @@ function NutritionTracker({
       color: "var(--muted)",
       textTransform: "uppercase"
     }
-  }, "Metas personalizadas"), /*#__PURE__*/React.createElement("button", {
+  }, t('customGoals')), /*#__PURE__*/React.createElement("button", {
     onClick: editingGoals ? saveGoals : startEditGoals,
     style: sBtn("var(--btn-ok)", "var(--btn-ok-border)", "#7ec87e")
   }, editingGoals ? "✓ Guardar" : t('editGoals'))), /*#__PURE__*/React.createElement("div", {
@@ -6372,9 +6493,9 @@ function NutritionTracker({
     l: t('protein'),
     u: "g"
   }, {
-    k: "kcal",
+    k: t('kcalUnit'),
     l: t('calories'),
-    u: "kcal"
+    u: t('kcalUnit')
   }, {
     k: "carbs",
     l: t('carbs'),
@@ -6428,9 +6549,9 @@ function NutritionTracker({
     u: "g",
     c: "#c8a96e"
   }, {
-    k: "kcal",
+    k: t('kcalUnit'),
     l: t('calories'),
-    u: "kcal",
+    u: t('kcalUnit'),
     c: "#8ec8c8"
   }, {
     k: "carbs",
@@ -6439,7 +6560,7 @@ function NutritionTracker({
     c: "#a96ec8"
   }, {
     k: "fat",
-    l: "Gordura",
+    l: lang === 'en' ? 'Fat' : 'Gordura',
     u: "g",
     c: "#c86e8e"
   }, {
@@ -6686,63 +6807,140 @@ function LoginScreen({onLogin}) {
   );
 }
 
-// ── Settings Panel ────────────────────────────────────────────
-function SettingsPanel({onClose, onLogout}) {
-  const [geminiKey,setGeminiKey]=React.useState(()=>localStorage.getItem('gemini_key')||'');
-  const [proxy,setProxy]=React.useState(()=>localStorage.getItem('cors_proxy')||'');
-  function save(){localStorage.setItem('gemini_key',geminiKey);localStorage.setItem('cors_proxy',proxy);onClose();}
-  function logout(){fbSignOut();onLogout();}
-  const inp={width:"100%",background:"#111",border:"1px solid #333",color:"#c9bfb0",padding:"10px 12px",borderRadius:6,fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none"};
-  return React.createElement('div',{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:9999,display:"flex",alignItems:"flex-end"}},
-    React.createElement('div',{style:{background:"#1a1a1a",borderTop:"1px solid #333",width:"100%",padding:"24px 20px",maxHeight:"80vh",overflowY:"auto"}},
-      React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}},
-        React.createElement('span',{style:{fontSize:12,letterSpacing:2,color:"#888",textTransform:"uppercase"}},"Configurações"),
-        React.createElement('button',{onClick:onClose,style:{background:"none",border:"none",color:"#555",fontSize:22,cursor:"pointer"}},"×")
+// ── Settings Panel (compact slide-up menu) ───────────────────
+function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDark}) {
+  const [showKey, setShowKey] = React.useState(false);
+  const [geminiKey, setGeminiKey] = React.useState(()=>localStorage.getItem('gemini_key')||'');
+  const [proxy, setProxy] = React.useState(()=>localStorage.getItem('cors_proxy')||'');
+  const isPt = (lang||'pt') === 'pt';
+  function saveKey() { localStorage.setItem('gemini_key',geminiKey); localStorage.setItem('cors_proxy',proxy); setShowKey(false); }
+  function doLogout() { fbSignOut(); onLogout(); onClose(); }
+  const S = isPt
+    ? {title:'Configurações',langSwitch:'🇺🇸 Switch to English',themeLight:'☀️  Modo claro',themeDark:'🌙  Modo escuro',
+       apiKey:'🔑  Chave API Gemini',logout:'⏻  Sair da conta',save:'Guardar',
+       keyLabel:'Chave API Gemini',keyHint:'Obtém em aistudio.google.com → Get API key',
+       proxyLabel:'Proxy CORS (opcional)',proxyHint:'Necessário se a IA não funcionar'}
+    : {title:'Settings',langSwitch:'🇧🇷 Mudar para Português',themeLight:'☀️  Light mode',themeDark:'🌙  Dark mode',
+       apiKey:'🔑  Gemini API Key',logout:'⏻  Sign out',save:'Save',
+       keyLabel:'Gemini API Key',keyHint:'Get it at aistudio.google.com → Get API key',
+       proxyLabel:'CORS Proxy (optional)',proxyHint:'Required if AI features fail'};
+
+  const rowBtn = (label, onClick, danger) => React.createElement('button', {onClick, style:{
+    display:'block',width:'100%',background:'none',border:'none',
+    borderTop:'1px solid #1e1e1e',color:danger?'#c87070':'#b0aaa3',
+    padding:'15px 20px',fontSize:14,cursor:'pointer',fontFamily:'inherit',textAlign:'left'
+  }}, label);
+  const inp = {width:'100%',background:'#0f0f0f',border:'1px solid #2a2a2a',color:'#c9bfb0',
+    padding:'11px 12px',borderRadius:8,fontSize:13,boxSizing:'border-box',outline:'none',fontFamily:'inherit'};
+
+  if (showKey) return React.createElement('div', {style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.94)',zIndex:10002,display:'flex',alignItems:'center',justifyContent:'center',padding:20}},
+    React.createElement('div', {style:{background:'#161616',borderRadius:14,width:'100%',maxWidth:400,padding:24,border:'1px solid #2a2a2a'}},
+      React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}},
+        React.createElement('span',{style:{fontSize:11,letterSpacing:2,color:'#555',textTransform:'uppercase'}}, S.keyLabel),
+        React.createElement('button',{onClick:()=>setShowKey(false),style:{background:'none',border:'none',color:'#444',fontSize:22,cursor:'pointer',lineHeight:1}},'×')
       ),
-      React.createElement('div',{style:{marginBottom:14}},
-        React.createElement('label',{style:{fontSize:10,letterSpacing:1.5,color:"#666",textTransform:"uppercase",display:"block",marginBottom:6}},"Chave API Gemini"),
-        React.createElement('input',{type:"text",value:geminiKey,onChange:e=>setGeminiKey(e.target.value),placeholder:"AIzaSy... ou AQ.Ab8...",style:{...inp,fontFamily:"monospace",fontSize:11}}),
-        React.createElement('div',{style:{fontSize:10,color:"#444",marginTop:5}},"Obtém gratuitamente em aistudio.google.com → Get API key · guardada só neste dispositivo")
+      React.createElement('input',{type:'text',value:geminiKey,onChange:e=>setGeminiKey(e.target.value),
+        placeholder:'AQ.Ab8... or AIzaSy...',style:{...inp,fontFamily:'monospace',fontSize:11,marginBottom:4}}),
+      React.createElement('div',{style:{fontSize:10,color:'#444',marginBottom:14}},S.keyHint),
+      React.createElement('input',{type:'text',value:proxy,onChange:e=>setProxy(e.target.value),
+        placeholder:'https://corsproxy.io/?',style:{...inp,marginBottom:4}}),
+      React.createElement('div',{style:{fontSize:10,color:'#444',marginBottom:20}},S.proxyLabel+': '+S.proxyHint),
+      React.createElement('button',{onClick:saveKey,style:{width:'100%',background:'#1a2a1a',border:'1px solid #3a5a3a',
+        color:'#7ec87e',padding:'12px',borderRadius:8,fontSize:11,letterSpacing:2,
+        textTransform:'uppercase',cursor:'pointer',fontFamily:'inherit'}}, S.save)
+    )
+  );
+
+  return React.createElement('div', {onClick:onClose, style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,display:'flex',alignItems:'flex-end'}},
+    React.createElement('div', {onClick:e=>e.stopPropagation(), style:{background:'#161616',borderRadius:'18px 18px 0 0',width:'100%',paddingBottom:'env(safe-area-inset-bottom,20px)',overflow:'hidden',boxShadow:'0 -4px 40px rgba(0,0,0,0.6)'}},
+      React.createElement('div',{style:{textAlign:'center',padding:'14px 0 4px',cursor:'pointer'},onClick:onClose},
+        React.createElement('div',{style:{width:32,height:4,background:'#2e2e2e',borderRadius:2,margin:'0 auto'}})
       ),
-      React.createElement('div',{style:{marginBottom:20}},
-        React.createElement('label',{style:{fontSize:10,letterSpacing:1.5,color:"#666",textTransform:"uppercase",display:"block",marginBottom:6}},"Proxy CORS (opcional)"),
-        React.createElement('input',{type:"text",value:proxy,onChange:e=>setProxy(e.target.value),placeholder:"https://corsproxy.io/?",style:inp}),
-        React.createElement('div',{style:{fontSize:10,color:"#444",marginTop:5}},"Necessário se as funções de IA não funcionarem directamente")
-      ),
-      React.createElement('button',{onClick:save,style:{width:"100%",background:"#1a2a1a",border:"1px solid #3a5a3a",color:"#7ec87e",padding:"12px",borderRadius:6,fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",marginBottom:10}},"Guardar"),
-      React.createElement('button',{onClick:logout,style:{width:"100%",background:"none",border:"1px solid #3a1a1a",color:"#884444",padding:"10px",borderRadius:6,fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit"}},"Sair da conta")
+      React.createElement('div',{style:{paddingBottom:8}},
+        rowBtn(S.langSwitch, ()=>{toggleLang(); onClose();}),
+        rowBtn(darkMode?S.themeLight:S.themeDark, ()=>{toggleDark(); onClose();}),
+        rowBtn(S.apiKey, ()=>setShowKey(true)),
+        rowBtn(S.logout, doLogout, true)
+      )
     )
   );
 }
 
+
+// ── Error Boundary ───────────────────────────────────────────
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = {error: null}; }
+  static getDerivedStateFromError(e) { return {error: e}; }
+  componentDidCatch(e, info) { console.error('App crash:', e, info); }
+  render() {
+    if (this.state.error) {
+      return React.createElement('div', {style:{
+        position:'fixed',top:0,left:0,right:0,bottom:0,background:'#0f0f0f',
+        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+        gap:12,padding:20,textAlign:'center'
+      }},
+        React.createElement('div', {style:{color:'#c87e7e',fontSize:13,letterSpacing:2}}, '⚠ ERRO'),
+        React.createElement('div', {style:{color:'#c87e7e',fontSize:11,maxWidth:360}},
+          (this.state.error.message||String(this.state.error)).toUpperCase()
+        ),
+        React.createElement('button', {
+          onClick:()=>this.setState({error:null}),
+          style:{marginTop:20,background:'none',border:'1px solid #333',color:'#555',
+            borderRadius:6,padding:'8px 16px',fontSize:11,cursor:'pointer'}
+        }, 'RETRY / TENTAR')
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ── Root App ──────────────────────────────────────────────────
 function App() {
-  const [authed,  setAuthed]       = React.useState(fbIsLoggedIn());
-  const [checking, setChecking]    = React.useState(fbIsLoggedIn()); // try silent refresh
-  const [showSettings, setShowSettings] = React.useState(false);
+  const [authed,  setAuthed]    = React.useState(fbIsLoggedIn());
+  const [checking,setChecking]  = React.useState(fbIsLoggedIn());
+  const [showSettings,setShowSettings] = React.useState(false);
+  const [lang, setLang]         = React.useState(()=>localStorage.getItem('appLang')||'pt');
+  const [darkMode, setDarkMode] = React.useState(true);
+
+  function toggleLang() { const nl=lang==='pt'?'en':'pt'; localStorage.setItem('appLang',nl); setLang(nl); }
+  function toggleDark() { setDarkMode(d=>!d); }
 
   React.useEffect(() => {
     if (!fbIsLoggedIn()) { setChecking(false); return; }
-    // Try to get a fresh token silently on first load
+    const timeout = setTimeout(() => { fbSignOut(); setAuthed(false); setChecking(false); }, 8000);
     fbRefreshToken()
-      .then(() => setChecking(false))
-      .catch(() => { fbSignOut(); setAuthed(false); setChecking(false); });
+      .then(() => { clearTimeout(timeout); setChecking(false); })
+      .catch(() => { clearTimeout(timeout); fbSignOut(); setAuthed(false); setChecking(false); });
   }, []);
 
   React.useEffect(() => {
     if (authed && !localStorage.getItem('gemini_key')) setShowSettings(true);
   }, [authed]);
 
-  if (checking) return null; // still validating saved session
-
+  // Show loading indicator while checking auth
+  if (checking) return React.createElement('div', {style:{
+    position:'fixed',top:0,left:0,right:0,bottom:0,background:'#0f0f0f',display:'flex',
+    flexDirection:'column',alignItems:'center',justifyContent:'center',
+    gap:16,color:'#aaa',fontSize:12,letterSpacing:3,textTransform:'uppercase'
+  }},
+    React.createElement('div', {style:{fontSize:30,color:'#7ec87e',display:'inline-block',animation:'spin 1.2s linear infinite'}}, '↻'),
+    React.createElement('div', null, lang==='en'?'Signing in...':'A entrar...')
+  );
   if (!authed) return React.createElement(LoginScreen, {onLogin: () => setAuthed(true)});
 
-  return React.createElement(React.Fragment, null,
-    React.createElement(NutritionTracker, {onOpenSettings: () => setShowSettings(true)}),
-    showSettings ? React.createElement(SettingsPanel, {
-      onClose:  () => setShowSettings(false),
-      onLogout: () => { setAuthed(false); setShowSettings(false); }
-    }) : null
+  return React.createElement(ErrorBoundary, null,
+    React.createElement(React.Fragment, null,
+      React.createElement(NutritionTracker, {
+        onOpenSettings: () => setShowSettings(true),
+        externalLang: lang,
+        externalDarkMode: darkMode,
+      }),
+      showSettings ? React.createElement(SettingsPanel, {
+        onClose:  () => setShowSettings(false),
+        onLogout: () => { setAuthed(false); setShowSettings(false); },
+        lang, darkMode, toggleLang, toggleDark
+      }) : null
+    )
   );
 }
 
