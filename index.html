@@ -713,18 +713,18 @@ const STRINGS = {
     training: "Treino",
     rest: "Descanso",
     // Notifications
-    notifFilled: "notifFilled",
-    notifSaved: "notifSaved",
-    notifDeleted: "notifDeleted",
+    notifFilled: "Campos preenchidos automaticamente. Confere os valores!",
+    notifSaved: "Salvo.",
+    notifDeleted: "Removido.",
     notifImported: "importado(s).",
     notifCopied: "JSON copiado!",
     notifBackupDone: "Backup gerado! Copia o JSON abaixo.",
-    notifRestored: "registos importados. Recarrega a página para ver tudo.",
-    notifEmpty: "Ficheiro vazio ou inválido.",
+    notifRestored: "registros importados. Recarregue a página para ver tudo.",
+    notifEmpty: "Arquivo vazio ou inválido.",
     notifNoFood: "Nenhum alimento encontrado.",
-    notifWeightSaved: "notifWeightSaved",
-    notifGoalsSaved: "notifGoalsSaved",
-    notifNotesSaved: "notifNotesSaved",
+    notifWeightSaved: "Peso salvo.",
+    notifGoalsSaved: "Metas salvas.",
+    notifNotesSaved: "Nota salva.",
     // Date
     today: "Hoje",
     yesterday: "Ontem",
@@ -1641,7 +1641,7 @@ function NutritionTracker({
     setAutoFillLoading(true);
     const unit = form.unit;
     const foodName = form.name.trim();
-    const _basePrompt = unit === "un" ? "Verifica se existe o alimento \"" + foodName + "\" e se faz sentido medir em unidades individuais.\n\n" + "IMPORTANTE: Como a unidade é \"un\", deves:\n" + "1. Verificar se faz sentido medir este alimento por unidade individual (1 ovo, 1 banana, 1 morango, etc.)\n" + "2. Se sim, fornecer os valores nutricionais por 100g E o peso médio em gramas de 1 unidade típica.\n" + "   Os valores finais por unidade serão calculados como: valor_100g x peso_unidade / 100\n" + "3. Se não fizer sentido (ex: leite, azeite, farinha), recusa e explica.\n\n" + "Responde APENAS com JSON sem markdown:\n" + "- Se válido: {\"ok\":true,\"per100\":{\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X},\"unitWeightG\":X}\n" + "- Se inválido: {\"ok\":false,\"reason\":\"brief explanation\"}" : "O utilizador quer registar \"" + foodName + "\" com unidade \"" + unit + "\".\n\n" + "Verifica se a unidade \"" + unit + "\" faz sentido para este alimento.\n" + "Se sim, fornece valores por 100" + unit + " baseados em tabelas nutricionais de referência (USDA, INSA, tabelas europeias).\n" + "Se não (ex: atum em ml, leite em un), recusa e explica.\n\n" + "Responde APENAS com JSON sem markdown:\n" + "- Se válido: {\"ok\":true,\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X}\n" + "- Se inválido: {\"ok\":false,\"reason\":\"brief explanation\"}\n" + "Usa null para campos desconhecidos.";
+    const _basePrompt = unit === "un" ? "Verifica se existe o alimento \"" + foodName + "\" e se faz sentido medir em unidades individuais.\n\n" + "IMPORTANTE: Como a unidade é \"un\", deves:\n" + "1. Verificar se faz sentido medir este alimento por unidade individual (1 ovo, 1 banana, 1 morango, etc.)\n" + "2. Se sim, fornecer os valores nutricionais por 100g E o peso médio em gramas de 1 unidade típica.\n" + "   Os valores finais por unidade serão calculados como: valor_100g x peso_unidade / 100\n" + "3. Se não fizer sentido (ex: leite, azeite, farinha), recusa e explica.\n\n" + "Responde APENAS com JSON sem markdown:\n" + "- Se válido: {\"ok\":true,\"per100\":{\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X},\"unitWeightG\":X}\n" + "- Se inválido: {\"ok\":false,\"reason\":\"brief explanation\"}" : "O usuário quer registar \"" + foodName + "\" com unidade \"" + unit + "\".\n\n" + "Verifica se a unidade \"" + unit + "\" faz sentido para este alimento.\n" + "Se sim, fornece valores por 100" + unit + " baseados em tabelas nutricionais de referência (TACO, USDA, INSA, tabelas nutricionais brasileiras (TACO), americanas (USDA) e europeias).\n" + "Se não (ex: atum em ml, leite em un), recusa e explica.\n\n" + "Responde APENAS com JSON sem markdown:\n" + "- Se válido: {\"ok\":true,\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X}\n" + "- Se inválido: {\"ok\":false,\"reason\":\"brief explanation\"}\n" + "Usa null para campos desconhecidos.";
     const prompt = aiLang() + _basePrompt;
     try {
       const text = await callAI(prompt, 600);
@@ -1681,7 +1681,7 @@ function NutritionTracker({
         notify(t('notifFilled'));
       }
     } catch (_) {
-      notify("Não foi possível obter os valores. Tenta novamente.");
+      notify("⚠ " + (_.message || "Não foi possível obter os valores."), 8000);
     }
     setAutoFillLoading(false);
   }
@@ -1692,14 +1692,14 @@ function NutritionTracker({
     }
     setDescribeLoading(true);
     setDescribeResult(null);
-    const prompt = aiLang() + "O utilizador comeu o seguinte prato e quer estimar os valores nutricionais:\n\n" + "\"" + mealDescription.trim() + "\"\n\n" + "Com base na descrição e nas quantidades indicadas (ou em porções típicas se não foram especificadas), " + "estima os valores nutricionais totais do prato completo.\n\n" + "Considera porções realistas de refeitório/restaurante quando não há quantidade exacta.\n\n" + "Responde APENAS com JSON sem markdown:\n" + "{\"name\":\"nome curto para o prato\",\"protein\":X,\"kcal\":X,\"carbs\":X,\"fat\":X,\"fiber\":X,\"salt\":X,\"confidence\":\"alta|media|baixa\",\"note\":\"observação curta sobre a estimativa em português\"}";
+    const prompt = aiLang() + "Analisa o seguinte prato e calcula os valores nutricionais totais com base em tabelas nutricionais oficiais (TACO, USDA, INSA):\n\n" + "\"" + mealDescription.trim() + "\"\n\n" + "Instruções:\n" + "1. Identifica os ingredientes e as quantidades indicadas. Se não houver quantidade, usa porções realistas e típicas.\n" + "2. Consulta valores de tabelas nutricionais de referência (TACO para alimentos brasileiros, USDA para os demais).\n" + "3. Soma os valores de todos os ingredientes para obter o total do prato.\n" + "4. Responde APENAS com JSON sem markdown, sem texto extra:\n" + "{\"name\":\"nome curto do prato\",\"protein\":X,\"kcal\":X,\"carbs\":X,\"fat\":X,\"fiber\":X,\"salt\":X,\"confidence\":\"alta|media|baixa\",\"note\":\"explicação breve dos valores calculados\"}";
     try {
       const text = await callAI(prompt, 400);
       const clean = text.replace(/```json|```/g, "").trim();
       const vals = JSON.parse(clean);
       setDescribeResult(vals);
     } catch (_) {
-      notify("Não foi possível estimar. Tenta novamente.");
+      notify("⚠ " + (_.message || "Não foi possível estimar."), 8000);
     }
     setDescribeLoading(false);
   }
@@ -1875,7 +1875,7 @@ function NutritionTracker({
       const _pText = await callAI(prompt, 1200);
       setPatternsText(_pText);
     } catch (_) {
-      notify("Não foi possível analisar. Tenta novamente.");
+      notify("⚠ " + (_.message || "Não foi possível analisar."), 8000);
     }
     setPatternsLoading(false);
   }
@@ -1905,13 +1905,13 @@ function NutritionTracker({
       const div = f.unit === "un" ? 1 : 100;
       return f.name + " (" + f.protein100 + "g prot/" + (f.unit === "un" ? "un" : "100" + f.unit) + ", " + f.kcal100 + " kcal/" + (f.unit === "un" ? "un" : "100" + f.unit) + ")";
     }).join(", ");
-    const prompt = "O utilizador precisa de fechar as metas nutricionais do dia. Sugere 3 combinações práticas de alimentos da despensa dele.\n\n" + "O QUE AINDA FALTA HOJE:\n" + (remainProt > 0 ? lang === 'en' ? 'Protein: ' : 'Proteína: ' + remainProt + "g\n" : "") + (remainKcal > 0 ? lang === 'en' ? 'Calories: ' : 'Calorias: ' + remainKcal + " kcal\n" : "") + (remainCarbs > 0 ? lang === 'en' ? 'Carbs: ' : 'Carbs: ' + remainCarbs + "g\n" : "") + "\nDESPENSA DISPONÍVEL:\n" + pantryList + "\n\n" + "Para cada sugestão indica:\n" + "- Nome da combinação\n" + "- Alimentos com quantidades específicas (em gramas/ml/unidades)\n" + "- Totais de proteína e calorias estimados\n\n" + "Responde APENAS com JSON sem markdown:\n" + "[{\"name\":\"nome\",\"items\":[{\"food\":\"nome exacto da despensa\",\"qty\":X,\"unit\":\"g\"}],\"protein\":X,\"kcal\":X}]";
+    const prompt = "O usuário precisa de fechar as metas nutricionais do dia. Sugere 3 combinações práticas de alimentos da despensa dele.\n\n" + "O QUE AINDA FALTA HOJE:\n" + (remainProt > 0 ? lang === 'en' ? 'Protein: ' : 'Proteína: ' + remainProt + "g\n" : "") + (remainKcal > 0 ? lang === 'en' ? 'Calories: ' : 'Calorias: ' + remainKcal + " kcal\n" : "") + (remainCarbs > 0 ? lang === 'en' ? 'Carbs: ' : 'Carbs: ' + remainCarbs + "g\n" : "") + "\nDESPENSA DISPONÍVEL:\n" + pantryList + "\n\n" + "Para cada sugestão indica:\n" + "- Nome da combinação\n" + "- Alimentos com quantidades específicas (em gramas/ml/unidades)\n" + "- Totais de proteína e calorias estimados\n\n" + "Responde APENAS com JSON sem markdown:\n" + "[{\"name\":\"nome\",\"items\":[{\"food\":\"nome exacto da despensa\",\"qty\":X,\"unit\":\"g\"}],\"protein\":X,\"kcal\":X}]";
     try {
       const text = await callAI(prompt, 800);
       const clean = text.replace(/```json|```/g, "").trim();
       setSuggestions(JSON.parse(clean));
     } catch (_) {
-      notify("Não foi possível gerar sugestões.");
+      notify("⚠ " + (_.message || "Não foi possível gerar sugestões."), 8000);
     }
     setSuggestLoading(false);
   }
@@ -2055,15 +2055,50 @@ function NutritionTracker({
         const mealSummary = MEALS.map(meal => {
           const items = activeLog[meal] || [];
           if (!items.length) return null;
-          return meal + ": " + items.map(e => e.name + " " + e.qty + e.unit).join(", ");
+          const label = mealLabel(meal);
+          return label + ":\n" + items.map(e => "  - " + e.name + " (" + e.qty + e.unit + ") — prot: " + Math.round(e.protein??0) + "g, " + Math.round(e.kcal??0) + "kcal, carbs: " + Math.round(e.carbs??0) + "g, gord: " + Math.round(e.fat??0) + "g").join("\n");
         }).filter(Boolean).join("\n");
-        const p = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
-        const k = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
-        const c = entries.reduce((s, e) => s + (e.carbs ?? 0), 0);
-        const f = entries.reduce((s, e) => s + (e.fat ?? 0), 0);
-        const fi = entries.reduce((s, e) => s + (e.fiber ?? 0), 0);
-        const sa = entries.reduce((s, e) => s + (e.salt ?? 0), 0);
-        prompt = "Analisa a alimentação deste dia e dá um feedback detalhado em português.\n\n" + "DATA: " + viewDate + " (" + (isTraining ? "dia de treino" : "dia de descanso") + ")\n\n" + "METAS DO DIA:\n" + lang === 'en' ? 'Protein: ' : 'Proteína: ' + goals.protein + "g | Calorias: " + goals.kcal + " kcal | Carbs: " + goals.carbs + "g | Gordura: " + goals.fat + "g | Fibra: " + goals.fiber + "g\n\n" + "O QUE COMEU:\n" + (mealSummary || "Nenhum alimento registado") + "\n\n" + "TOTAIS DO DIA:\n" + lang === 'en' ? 'Protein: ' : 'Proteína: ' + Math.round(p) + "g | Calorias: " + Math.round(k) + " kcal | Carbs: " + Math.round(c) + "g | Gordura: " + Math.round(f) + "g | Fibra: " + Math.round(fi) + "g | Sal: " + Math.round(sa * 10) / 10 + "g\n\n" + (currentWeight ? "Peso actual: " + currentWeight + "kg\n\n" : "") + "Estrutura o feedback com estas secções:\n" + "✅ PONTOS POSITIVOS (o que correu bem)\n" + "⚠️ O QUE MELHORAR (excessos, défices, desequilíbrios)\n" + "💡 SUGESTÕES CONCRETAS (substituições ou adições específicas)\n" + "📊 RESUMO GERAL (avaliação curta do dia)\n\n" + "Sê honesto, específico e prático. Evita ser demasiado genérico.";
+        const p  = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
+        const k  = entries.reduce((s, e) => s + (e.kcal    ?? 0), 0);
+        const c  = entries.reduce((s, e) => s + (e.carbs   ?? 0), 0);
+        const f  = entries.reduce((s, e) => s + (e.fat     ?? 0), 0);
+        const fi = entries.reduce((s, e) => s + (e.fiber   ?? 0), 0);
+        const sa = entries.reduce((s, e) => s + (e.salt    ?? 0), 0);
+        const currentBMI = (currentWeight && currentHeight) ? (currentWeight / ((currentHeight/100)**2)).toFixed(1) : null;
+        const perfProt = goals.protein > 0 ? Math.round(p / goals.protein * 100) : null;
+        const perfKcal = goals.kcal    > 0 ? Math.round(k / goals.kcal    * 100) : null;
+        const lines = [
+          "Você é um nutricionista analisando o diário alimentar do dia de um usuário. Seja específico, direto e use os dados exatos abaixo — não fale em termos genéricos.",
+          "",
+          "=== PERFIL DO USUÁRIO ===",
+          currentWeight ? "Peso: " + currentWeight + "kg" : "",
+          currentHeight ? "Altura: " + currentHeight + "cm" : "",
+          currentBMI    ? "IMC: " + currentBMI : "",
+          "",
+          "=== CONTEXTO DO DIA ===",
+          "Data: " + viewDate + " | " + (isTraining ? "DIA DE TREINO" : "DIA DE DESCANSO"),
+          "",
+          "=== METAS DO DIA ===",
+          "Proteína: " + (goals.protein||"?") + "g | Calorias: " + (goals.kcal||"?") + "kcal | Carbs: " + (goals.carbs||"?") + "g | Gordura: " + (goals.fat||"?") + "g | Fibra: " + (goals.fiber||"?") + "g",
+          "",
+          "=== O QUE COMEU ===",
+          mealSummary || "Nenhum alimento registrado",
+          "",
+          "=== TOTAIS REAIS DO DIA ===",
+          "Proteína: " + Math.round(p) + "g (" + (perfProt !== null ? perfProt + "% da meta" : "sem meta") + ")",
+          "Calorias: " + Math.round(k) + "kcal (" + (perfKcal !== null ? perfKcal + "% da meta" : "sem meta") + ")",
+          "Carbs: " + Math.round(c) + "g | Gordura: " + Math.round(f) + "g | Fibra: " + Math.round(fi) + "g | Sal: " + (Math.round(sa*10)/10) + "g",
+          "",
+          "=== INSTRUÇÕES ===",
+          "Estruture o feedback assim:",
+          "✅ PONTOS POSITIVOS — cite alimentos ou refeições específicas que foram boas escolhas",
+          "⚠️ O QUE MELHORAR — aponte défices ou excessos com os números reais (ex: ficou Xg abaixo da meta de proteína)",
+          "💡 SUGESTÕES CONCRETAS — dê 2-3 substituições ou adições práticas para o próximo dia",
+          "📊 RESUMO GERAL — avaliação do dia em 2-3 frases, mencionando se as metas foram cumpridas",
+          "",
+          "Responda em português do Brasil. Seja direto e use os dados acima — não generalize."
+        ].filter(l => l !== null && l !== undefined).join("\n");
+        prompt = lines;
       } else {
         const days = weekData.filter(d => d.hasData);
         if (!days.length) {
@@ -2073,16 +2108,44 @@ function NutritionTracker({
         }
         const avg = {
           protein: Math.round(days.reduce((s, d) => s + d.protein, 0) / days.length),
-          kcal: Math.round(days.reduce((s, d) => s + d.kcal, 0) / days.length)
+          kcal:    Math.round(days.reduce((s, d) => s + d.kcal,    0) / days.length)
         };
-        const daySummary = days.map(d => d.date + " — prot: " + d.protein + "g, kcal: " + d.kcal + " (meta: " + d.proteinGoal + "g/" + d.kcalGoal + "kcal) " + (d.metProtein ? "✓" : "✗")).join("\n");
+        const daySummary = days.map(d =>
+          d.date + " — proteína: " + d.protein + "g/" + d.proteinGoal + "g (" + (d.metProtein ? "✓ meta" : "✗ abaixo") + "), " +
+          "calorias: " + d.kcal + "/" + d.kcalGoal + "kcal"
+        ).join("\n");
         const daysMetProt = days.filter(d => d.metProtein).length;
-        prompt = "Analisa a alimentação desta semana e dá um feedback detalhado em português.\n\n" + "RESUMO DA SEMANA (" + days.length + " dias registados):\n" + daySummary + "\n\n" + "MÉDIAS:\nProteína: " + avg.protein + "g/dia | Calorias: " + avg.kcal + " kcal/dia\n" + "Dias que atingiu a meta de proteína: " + daysMetProt + "/" + days.length + "\n\n" + (currentWeight ? "Peso actual: " + currentWeight + "kg\n\n" : "") + "Estrutura o feedback com estas secções:\n" + "✅ PONTOS POSITIVOS (consistência, dias bons, tendências positivas)\n" + "⚠️ O QUE MELHORAR (padrões negativos, dias fracos, desequilíbrios recorrentes)\n" + "💡 SUGESTÕES CONCRETAS (como ajustar os próximos dias)\n" + "📊 AVALIAÇÃO DA SEMANA (nota geral e contexto)\n\n" + "Sê honesto, específico e prático. Foca em padrões da semana, não só num dia.";
+        const currentBMI2 = (currentWeight && currentHeight) ? (currentWeight / ((currentHeight/100)**2)).toFixed(1) : null;
+        const weekLines = [
+          "Você é um nutricionista analisando o diário alimentar semanal de um usuário. Use os dados abaixo e seja específico.",
+          "",
+          "=== PERFIL DO USUÁRIO ===",
+          currentWeight ? "Peso: " + currentWeight + "kg" : "",
+          currentHeight ? "Altura: " + currentHeight + "cm" : "",
+          currentBMI2   ? "IMC: " + currentBMI2 : "",
+          "",
+          "=== RESUMO DA SEMANA (" + days.length + " dias registrados) ===",
+          daySummary,
+          "",
+          "=== MÉDIAS ===",
+          "Proteína: " + avg.protein + "g/dia | Calorias: " + avg.kcal + "kcal/dia",
+          "Dias que atingiu a meta de proteína: " + daysMetProt + "/" + days.length,
+          "",
+          "=== INSTRUÇÕES ===",
+          "Estruture o feedback assim:",
+          "✅ PONTOS POSITIVOS — dias ou padrões que foram bons, cite as datas",
+          "⚠️ O QUE MELHORAR — dias ou padrões fracos com os números reais",
+          "💡 SUGESTÕES CONCRETAS — 2-3 ajustes práticos para a próxima semana",
+          "📊 AVALIAÇÃO DA SEMANA — nota geral e o que mais precisa de atenção",
+          "",
+          "Responda em português do Brasil. Use os dados acima — não generalize."
+        ].filter(l => l !== null && l !== undefined).join("\n");
+        prompt = weekLines;
       }
       const text = await callAI(prompt, 1000);
       setFeedbackText(text);
     } catch (_) {
-      notify("Não foi possível gerar o feedback. Tenta novamente.");
+      notify("⚠ " + (_.message || "Não foi possível gerar o feedback."), 8000);
     }
     setFeedbackLoading(false);
   }
@@ -2185,6 +2248,7 @@ function NutritionTracker({
     ALL_FIELDS_KEYS.forEach(f => {
       e[f.key.replace("100", "")] = food[f.key] != null ? food[f.key] * qty / div : null;
     });
+    e.time = new Date().toTimeString().slice(0,5);
     return e;
   }
 
@@ -2394,30 +2458,24 @@ function NutritionTracker({
   // Export/Import
   // ── Gemini AI helper ─────────────────────────────────────────
   async function callAI(prompt, maxTokens) {
-    const key = localStorage.getItem('gemini_key') || '';
-    if (!key) throw new Error('Chave API Gemini não configurada. Abre as Configurações (⚙).');
-    const proxy = localStorage.getItem('cors_proxy') || '';
-    const url = proxy + 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + key;
-    const res = await fetch(url, {
+    const key = localStorage.getItem('groq_key') || '';
+    if (!key) throw new Error('Chave API Groq não configurada. Abre as Configurações (⚙).');
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + key
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          maxOutputTokens: maxTokens || 800,
-          temperature: 0.3
-        }
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: maxTokens || 800,
+        temperature: 0
       })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Erro na API Gemini');
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!res.ok) throw new Error(data.error?.message || 'Erro na API Groq');
+    return data.choices?.[0]?.message?.content || '';
   }
   function aiLang() {
     return lang === 'en' ? '\nRespond in English (American English).\n' : '\nResponde em português do Brasil.\n';
@@ -3687,7 +3745,7 @@ function NutritionTracker({
         color: "#8ec8c8"
       }
     }, Math.round(e.kcal ?? 0), "kcal"), e.time ? /*#__PURE__*/React.createElement("span", {
-      style: {fontSize:10, color:"var(--faint)", marginLeft:2}
+      style: {fontSize:10, color:"#7a9e7a", marginLeft:4, fontVariantNumeric:"tabular-nums"}
     }, e.time) : null, /*#__PURE__*/React.createElement("button", {
       onClick: () => setDetailFood(detailFood === e.id ? null : e.id),
       style: {
@@ -6821,19 +6879,19 @@ function LoginScreen({onLogin}) {
 // ── Settings Panel (compact slide-up menu) ───────────────────
 function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDark}) {
   const [showKey, setShowKey] = React.useState(false);
-  const [geminiKey, setGeminiKey] = React.useState(()=>localStorage.getItem('gemini_key')||'');
+  const [groqKey, setGroqKey] = React.useState(()=>localStorage.getItem('groq_key')||'');
   const [proxy, setProxy] = React.useState(()=>localStorage.getItem('cors_proxy')||'');
   const isPt = (lang||'pt') === 'pt';
-  function saveKey() { localStorage.setItem('gemini_key',geminiKey); localStorage.setItem('cors_proxy',proxy); setShowKey(false); }
+  function saveKey() { localStorage.setItem('groq_key',groqKey); setShowKey(false); }
   function doLogout() { fbSignOut(); onLogout(); onClose(); }
   const S = isPt
     ? {title:'Configurações',langSwitch:'🇺🇸 Switch to English',themeLight:'☀️  Modo claro',themeDark:'🌙  Modo escuro',
-       apiKey:'🔑  Chave API Gemini',logout:'⏻  Sair da conta',save:'Guardar',
-       keyLabel:'Chave API Gemini',keyHint:'Obtém em aistudio.google.com → Get API key',
+       apiKey:'🔑  Chave API Groq',logout:'⏻  Sair da conta',save:'Guardar',
+       keyLabel:'Chave API Groq',keyHint:'Obtém em aistudio.google.com → Get API key',
        proxyLabel:'Proxy CORS (opcional)',proxyHint:'Necessário se a IA não funcionar'}
     : {title:'Settings',langSwitch:'🇧🇷 Mudar para Português',themeLight:'☀️  Light mode',themeDark:'🌙  Dark mode',
-       apiKey:'🔑  Gemini API Key',logout:'⏻  Sign out',save:'Save',
-       keyLabel:'Gemini API Key',keyHint:'Get it at aistudio.google.com → Get API key',
+       apiKey:'🔑  Groq API Key',logout:'⏻  Sign out',save:'Save',
+       keyLabel:'Groq API Key',keyHint:'Get it at aistudio.google.com → Get API key',
        proxyLabel:'CORS Proxy (optional)',proxyHint:'Required if AI features fail'};
 
   const rowBtn = (label, onClick, danger) => React.createElement('button', {onClick, style:{
@@ -6850,8 +6908,8 @@ function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDar
         React.createElement('span',{style:{fontSize:11,letterSpacing:2,color:'#555',textTransform:'uppercase'}}, S.keyLabel),
         React.createElement('button',{onClick:()=>setShowKey(false),style:{background:'none',border:'none',color:'#444',fontSize:22,cursor:'pointer',lineHeight:1}},'×')
       ),
-      React.createElement('input',{type:'text',value:geminiKey,onChange:e=>setGeminiKey(e.target.value),
-        placeholder:'AQ.Ab8... or AIzaSy...',style:{...inp,fontFamily:'monospace',fontSize:11,marginBottom:4}}),
+      React.createElement('input',{type:'text',value:groqKey,onChange:e=>setGroqKey(e.target.value),
+        placeholder:'gsk_...',style:{...inp,fontFamily:'monospace',fontSize:11,marginBottom:4}}),
       React.createElement('div',{style:{fontSize:10,color:'#444',marginBottom:14}},S.keyHint),
       React.createElement('input',{type:'text',value:proxy,onChange:e=>setProxy(e.target.value),
         placeholder:'https://corsproxy.io/?',style:{...inp,marginBottom:4}}),
@@ -6925,7 +6983,7 @@ function App() {
   }, []);
 
   React.useEffect(() => {
-    if (authed && !localStorage.getItem('gemini_key')) setShowSettings(true);
+    if (authed && !localStorage.getItem('groq_key')) setShowSettings(true);
   }, [authed]);
 
   // Show loading indicator while checking auth
