@@ -35,6 +35,10 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes pulse{0%,100%{opacity:0.5}50%{opacity:1}}
   
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
     [data-tutorial-active] {
       outline: 2px solid #7ec87e !important;
       outline-offset: 3px;
@@ -385,7 +389,7 @@ let _uid          = localStorage.getItem("fb_uid") || null;
 let _refreshToken = localStorage.getItem("fb_refresh") || null;
 let _tokenExpiry  = 0;
 
-function _saveSession(d) {
+window._saveSession = function _saveSession(d) {
   _idToken      = d.idToken || d.id_token;
   _refreshToken = d.refreshToken || d.refresh_token;
   _uid          = d.localId || d.user_id || _uid;
@@ -401,7 +405,9 @@ async function fbSignIn(email, password) {
   });
   const d = await r.json();
   if (!r.ok) throw new Error(d.error?.message || "Login falhou");
-  _saveSession(d); return d;
+  _saveSession(d);
+  localStorage.setItem('fb_email', email);
+  return d;
 }
 
 async function fbSignUp(email, password) {
@@ -412,6 +418,32 @@ async function fbSignUp(email, password) {
   const d = await r.json();
   if (!r.ok) throw new Error(d.error?.message || "Registo falhou");
   _saveSession(d); return d;
+}
+
+async function fbUpdateProfile(displayName) {
+  const token = await fbToken();
+  await fetch(AUTH_BASE + ":update?key=" + FB_KEY, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({idToken: token, displayName, returnSecureToken: false})
+  });
+}
+
+async function fbSendVerificationEmail() {
+  const token = await fbToken();
+  await fetch(AUTH_BASE + ":sendOobCode?key=" + FB_KEY, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({requestType: "VERIFY_EMAIL", idToken: token})
+  });
+}
+
+async function fbCheckEmailVerified() {
+  const token = await fbToken();
+  const r = await fetch(AUTH_BASE + ":lookup?key=" + FB_KEY, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({idToken: token})
+  });
+  const d = await r.json();
+  return d?.users?.[0]?.emailVerified === true;
 }
 
 async function fbRefreshToken() {
@@ -619,7 +651,7 @@ const STRINGS = {
     suppLoggedToday: "Suplementos registados hoje",
     // Backup
     backupFull: "Backup Completo",
-    copyJsonAs: "Copia este JSON e guarda como",
+    copyJsonAs: "Copie este JSON e salve como",
     copyJson: "Copia este JSON:",
     copyManual: "Seleciona o texto acima e copia manualmente.",
     // Diary
@@ -637,14 +669,14 @@ const STRINGS = {
     noRecentData: "noRecentMeals",
     noWeekData: "noWeekData",
     // Metrics
-    currentMetrics: "Métricas actuais",
+    currentMetrics: "Métricas atuais",
     weightEvolution: "Evolução do peso",
     heightLabel: "Altura (cm)",
     heightPh: "ex: 175",
     logMeasurements: "Registar medidas de hoje",
     customGoals: "Metas personalizadas",
     editGoals: "Editar metas",
-    currentGoal: "Meta actual:",
+    currentGoal: "Meta atual:",
     mealAverages: "Médias por refeição (últimos 30 dias)",
     patternsTitle: "Padrões — últimos 30 dias",
     historyLabel: "Histórico",
@@ -1329,6 +1361,7 @@ function NutritionTracker({
   onOpenSettings,
   onLogout,
   onStartTutorial,
+  onOpenPrivacy,
   externalLang,
   externalDarkMode
 }) {
@@ -1696,7 +1729,7 @@ function NutritionTracker({
     setAutoFillLoading(true);
     const unit = form.unit;
     const foodName = form.name.trim();
-    const _basePrompt = unit === "un" ? "Verifica se existe o alimento \"" + foodName + "\" e se faz sentido medir em unidades individuais.\n\n" + "IMPORTANTE: Como a unidade é \"un\", deves:\n" + "1. Verificar se faz sentido medir este alimento por unidade individual (1 ovo, 1 banana, 1 morango, etc.)\n" + "2. Se sim, fornecer os valores nutricionais por 100g E o peso médio em gramas de 1 unidade típica.\n" + "   Os valores finais por unidade serão calculados como: valor_100g x peso_unidade / 100\n" + "3. Se não fizer sentido (ex: leite, azeite, farinha), recusa e explica.\n\n" + "Responde APENAS com JSON sem markdown:\n" + "- Se válido: {\"ok\":true,\"per100\":{\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X},\"unitWeightG\":X}\n" + "- Se inválido: {\"ok\":false,\"reason\":\"brief explanation\"}" : "O usuário quer registar \"" + foodName + "\" com unidade \"" + unit + "\".\n\n" + "Verifica se a unidade \"" + unit + "\" faz sentido para este alimento.\n" + "Se sim, fornece valores por 100" + unit + " baseados em tabelas nutricionais de referência (TACO, USDA, INSA, tabelas nutricionais brasileiras (TACO), americanas (USDA) e europeias).\n" + "Se não (ex: atum em ml, leite em un), recusa e explica.\n\n" + "Responde APENAS com JSON sem markdown:\n" + "- Se válido: {\"ok\":true,\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X}\n" + "- Se inválido: {\"ok\":false,\"reason\":\"brief explanation\"}\n" + "Usa null para campos desconhecidos.";
+    const _basePrompt = unit === "un" ? "Verifica se existe o alimento \"" + foodName + "\" e se faz sentido medir em unidades individuais.\n\n" + "IMPORTANTE: Como a unidade é \"un\", deves:\n" + "1. Verificar se faz sentido medir este alimento por unidade individual (1 ovo, 1 banana, 1 morango, etc.)\n" + "2. Se sim, fornecer os valores nutricionais por 100g E o peso médio em gramas de 1 unidade típica.\n" + "   Os valores finais por unidade serão calculados como: valor_100g x peso_unidade / 100\n" + "3. Se não fizer sentido (ex: leite, azeite, farinha), recusa e explica.\n\n" + "Responde APENAS com JSON sem markdown:\n" + "- Se válido: {\"ok\":true,\"per100\":{\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X},\"unitWeightG\":X}\n" + "- Se inválido: {\"ok\":false,\"reason\":\"brief explanation\"}" : "O usuário quer registrar \"" + foodName + "\" com unidade \"" + unit + "\".\n\n" + "Verifica se a unidade \"" + unit + "\" faz sentido para este alimento.\n" + "Se sim, fornece valores por 100" + unit + " baseados em tabelas nutricionais de referência (TACO, USDA, INSA, tabelas nutricionais brasileiras (TACO), americanas (USDA) e europeias).\n" + "Se não (ex: atum em ml, leite em un), recusa e explica.\n\n" + "Responde APENAS com JSON sem markdown:\n" + "- Se válido: {\"ok\":true,\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X}\n" + "- Se inválido: {\"ok\":false,\"reason\":\"brief explanation\"}\n" + "Usa null para campos desconhecidos.";
     const prompt = aiLang() + _basePrompt;
     try {
       const text = await callAI(prompt, 600);
@@ -1869,7 +1902,7 @@ function NutritionTracker({
     });
     setCustomGoals(cg);
     setEditingGoals(false);
-    notify("Metas actualizadas.");
+    notify("Metas atualizadas.");
   }
   async function generateFoodPatterns() {
     setPatternsLoading(true);
@@ -2613,7 +2646,7 @@ function NutritionTracker({
       })
     });
     setEditEntryId(null);
-    notify("Quantidade actualizada.");
+    notify("Quantidade atualizada.");
   }
   function addToLog() {
     if (!addEntry.foodId || !addEntry.qty) return;
@@ -2747,12 +2780,13 @@ function NutritionTracker({
 
   // Weight
   function saveWeight() {
-    if (!weightForm.weight) return;
+    if (!weightForm.weight && !weightForm.height) return;
+    const existing = getWeightForDate(weightHistory, weightForm.date || TODAY);
     const entry = {
-      id: Date.now().toString(),
+      id: existing?.id || Date.now().toString(),
       date: weightForm.date || TODAY,
-      weight: parseFloat(weightForm.weight),
-      height: weightForm.height ? parseFloat(weightForm.height) : currentHeight || null
+      weight: weightForm.weight ? parseFloat(weightForm.weight) : (existing?.weight || currentWeight || null),
+      height: weightForm.height ? parseFloat(weightForm.height) : (existing?.height || currentHeight || null)
     };
     setWeightHistory(h => [...h.filter(e => e.date !== TODAY), entry].sort((a, b) => a.date.localeCompare(b.date)));
     setWeightForm({
@@ -2760,7 +2794,7 @@ function NutritionTracker({
       height: "",
       date: TODAY
     });
-    notify("Peso actualizado.");
+    notify("Peso atualizado.");
   }
   function startEditWeight(e) {
     setEditingWeightId(e.id);
@@ -2779,7 +2813,7 @@ function NutritionTracker({
       date: editWeightForm.date
     } : e).sort((a, b) => a.date.localeCompare(b.date)));
     setEditingWeightId(null);
-    notify("Registo actualizado.");
+    notify("Registro atualizado.");
   }
 
   // Export/Import
@@ -2984,7 +3018,7 @@ function NutritionTracker({
           notify("Formato inválido.");
           return;
         }
-        if (window.confirm("Substituir o registo actual pelo ficheiro importado?")) {
+        if (window.confirm("Substituir o registro atual pelo arquivo importado?")) {
           setActiveLog(data.log);
           notify("Registo importado.");
         }
@@ -3293,6 +3327,19 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83D\uDD11"),
     /*#__PURE__*/React.createElement("span", null, lang === "en" ? "API Key" : "Chave API Groq")
+  ), /*#__PURE__*/React.createElement("div", {
+    style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
+  }), onOpenPrivacy && /*#__PURE__*/React.createElement("button", {
+    onClick: () => { onOpenPrivacy(); setMenuOpen(false); },
+    style: {
+      display: "flex", alignItems: "center", gap: 10,
+      width: "100%", background: "none", border: "none",
+      color: "var(--text2)", padding: "10px 12px",
+      borderRadius: 6, fontSize: 12, cursor: "pointer",
+      textAlign: "left", fontFamily: "inherit"
+    }
+  }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83D\uDD12"),
+    /*#__PURE__*/React.createElement("span", null, lang === "en" ? "Privacy & security" : "Privacidade e seguran\xe7a")
   ), /*#__PURE__*/React.createElement("div", {
     style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
   }), onStartTutorial && /*#__PURE__*/React.createElement("button", {
@@ -7344,6 +7391,327 @@ function sBtnLbl(bg, border, color) {
 
 // ── Login / Register Screen ───────────────────────────────────
 
+
+
+// ── Email Verification Screen ─────────────────────────────────
+function VerifyEmailScreen({ email, name, lang, onVerified, onBack }) {
+  const isPt = (lang || localStorage.getItem('appLang') || 'pt') !== 'en';
+  const [status, setStatus] = React.useState(''); // '', 'resent', 'error'
+  const [checking, setChecking] = React.useState(false);
+  const isNew = !!name; // name only passed on new registrations
+
+  // Poll every 5s to check if email was verified
+  React.useEffect(() => {
+    let active = true;
+    const interval = setInterval(async () => {
+      try {
+        const verified = await fbCheckEmailVerified();
+        if (verified && active) {
+          clearInterval(interval);
+          onVerified(isNew);
+        }
+      } catch(e) {}
+    }, 5000);
+    return () => { active = false; clearInterval(interval); };
+  }, []);
+
+  async function resend() {
+    setStatus('');
+    try {
+      await fbSendVerificationEmail();
+      setStatus('resent');
+    } catch(e) {
+      setStatus('error');
+    }
+  }
+
+  const inp = {
+    width:'100%', background:'var(--input,#1e1e1e)',
+    border:'1px solid var(--border2,#333)', color:'var(--text1,#fff)',
+    padding:'11px 14px', borderRadius:10, fontSize:14,
+    fontFamily:'inherit', boxSizing:'border-box'
+  };
+
+  return React.createElement('div', {
+    style: {
+      minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
+      background:'var(--bg,#111)', padding:20
+    }
+  },
+    React.createElement('div', {
+      style: {
+        background:'var(--card,#1a1a1a)', borderRadius:20, padding:'36px 28px',
+        width:'100%', maxWidth:420, textAlign:'center',
+        boxShadow:'0 8px 40px rgba(0,0,0,0.5)',
+        border:'1px solid var(--border2,#333)'
+      }
+    },
+      // Icon
+      React.createElement('div', {style:{fontSize:52, marginBottom:16}}, '\uD83D\uDCE7'),
+
+      // Title
+      React.createElement('h2', {
+        style:{margin:'0 0 8px', fontSize:20, color:'var(--text1,#fff)', fontWeight:700}
+      }, isPt
+        ? (name ? 'Ol\xe1, ' + name + '! Verifique seu email \uD83D\uDC4B' : 'Verifique seu email')
+        : (name ? 'Hi, ' + name + '! Verify your email \uD83D\uDC4B' : 'Verify your email')
+      ),
+
+      // Subtitle
+      React.createElement('p', {
+        style:{margin:'0 0 24px', fontSize:13, color:'var(--text2,#aaa)', lineHeight:1.6}
+      }, isPt
+        ? 'Env\xe1mos um link de verifica\xe7\xe3o para '
+        : 'We sent a verification link to '
+      ,
+        React.createElement('strong', {style:{color:'var(--accent,#7ec87e)'}}, email),
+        isPt
+          ? '. Clique no link para ativar sua conta. Se n\xe3o encontrar o email, verifique a pasta de spam ou lixo eletr\xf4nico. Esta p\xe1gina atualiza automaticamente.'
+          : '. Click the link to activate your account. If you don\'t see it, check your spam or junk folder. This page updates automatically.'
+      ),
+
+      // Spinner / waiting indicator
+      React.createElement('div', {
+        style:{
+          display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+          marginBottom:24, color:'var(--text2,#aaa)', fontSize:12
+        }
+      },
+        React.createElement('div', {
+          style:{
+            width:14, height:14, borderRadius:'50%',
+            border:'2px solid var(--accent,#7ec87e)',
+            borderTopColor:'transparent',
+            animation:'spin 1s linear infinite'
+          }
+        }),
+        isPt ? 'Aguardando verifica\xe7\xe3o...' : 'Waiting for verification...'
+      ),
+
+      // Status message
+      status === 'resent' && React.createElement('p', {
+        style:{color:'var(--accent,#7ec87e)', fontSize:12, marginBottom:12}
+      }, isPt ? '\u2713 Email reenviado!' : '\u2713 Email resent!'),
+      status === 'error' && React.createElement('p', {
+        style:{color:'#c87e7e', fontSize:12, marginBottom:12}
+      }, isPt ? 'Erro ao reenviar. Tente novamente.' : 'Error resending. Please try again.'),
+
+      // Resend button
+      React.createElement('button', {
+        onClick: resend,
+        style:{
+          width:'100%', padding:'12px', borderRadius:10, marginBottom:12,
+          background:'var(--accent,#7ec87e)', border:'none',
+          color:'#111', fontSize:13, fontWeight:700,
+          cursor:'pointer', fontFamily:'inherit', letterSpacing:0.5
+        }
+      }, isPt ? 'Reenviar email de verifica\xe7\xe3o' : 'Resend verification email'),
+
+      // Back button
+      React.createElement('button', {
+        onClick: onBack,
+        style:{
+          width:'100%', padding:'11px', borderRadius:10,
+          background:'none', border:'1px solid var(--border2,#333)',
+          color:'var(--text2,#aaa)', fontSize:13,
+          cursor:'pointer', fontFamily:'inherit'
+        }
+      }, isPt ? '\u2190 Voltar para o login' : '\u2190 Back to login')
+    )
+  );
+}
+
+// ── Privacy & Security Panel ──────────────────────────────────
+function PrivacyPanel({ lang, onClose, onLogout }) {
+  const isPt = lang === 'pt';
+  const [section, setSection] = React.useState('main'); // main | changePassword | deleteAccount
+  const [status, setStatus]   = React.useState('');
+  const [err, setErr]         = React.useState('');
+
+  // Change password
+  const [curPwd,  setCurPwd]  = React.useState('');
+  const [newPwd,  setNewPwd]  = React.useState('');
+  const [newPwd2, setNewPwd2] = React.useState('');
+
+  // Delete account
+  const [delPwd,  setDelPwd]  = React.useState('');
+  const [delConf, setDelConf] = React.useState('');
+
+  const overlay = {
+    position:'fixed', inset:0, zIndex:99998,
+    background:'rgba(0,0,0,0.75)', backdropFilter:'blur(3px)',
+    display:'flex', alignItems:'center', justifyContent:'center', padding:16
+  };
+  const box = {
+    background:'var(--card)', borderRadius:16, padding:'24px',
+    width:'100%', maxWidth:420,
+    boxShadow:'0 8px 40px rgba(0,0,0,0.6)',
+    border:'1px solid var(--border2)',
+    maxHeight:'85vh', overflowY:'auto'
+  };
+  const inp = {
+    width:'100%', background:'var(--input)', border:'1px solid var(--border2)',
+    color:'var(--text2)', padding:'10px 12px', borderRadius:8,
+    fontSize:13, fontFamily:'inherit', boxSizing:'border-box', marginBottom:10
+  };
+  const btn = (col) => ({
+    width:'100%', padding:'11px', borderRadius:8,
+    background:col||'var(--accent)', border:'none',
+    color: col ? '#fff' : '#111', fontSize:13,
+    cursor:'pointer', fontFamily:'inherit', fontWeight:600,
+    marginBottom:8
+  });
+
+  async function changePassword() {
+    setErr(''); setStatus('');
+    if (!curPwd || !newPwd || !newPwd2) { setErr(isPt?'Preenche todos os campos.':'Fill all fields.'); return; }
+    if (newPwd !== newPwd2) { setErr(isPt?'As senhas não coincidem.':'Passwords do not match.'); return; }
+    if (newPwd.length < 6) { setErr(isPt?'A senha deve ter pelo menos 6 caracteres.':'Password must be at least 6 characters.'); return; }
+    try {
+      // Re-authenticate via REST to get fresh token
+      const email = localStorage.getItem('fb_email') || '';
+      await fbSignIn(email, curPwd); // throws if wrong password
+      // Update password via REST
+      const token = await fbToken();
+      const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:update?key=' + FB_KEY, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({idToken: token, password: newPwd, returnSecureToken: true})
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error?.message || 'error');
+      // Save new session tokens
+      if (d.idToken) window._saveSession && window._saveSession(d);
+      setStatus(isPt?'Senha alterada com sucesso!':'Password changed successfully!');
+      setCurPwd(''); setNewPwd(''); setNewPwd2('');
+      setTimeout(()=>setSection('main'),1500);
+    } catch(e) {
+      setErr(isPt?'Senha atual incorreta ou erro ao alterar.':'Current password incorrect or error changing password.');
+    }
+  }
+
+  async function deleteAccount() {
+    setErr(''); setStatus('');
+    if (!delPwd) { setErr(isPt?'Digite sua senha para confirmar.':'Enter your password to confirm.'); return; }
+    if (delConf !== (isPt?'APAGAR':'DELETE')) { setErr(isPt?'Digite APAGAR para confirmar.':'Type DELETE to confirm.'); return; }
+    try {
+      const email = localStorage.getItem('fb_email') || '';
+      await fbSignIn(email, delPwd); // throws if wrong password
+      // Delete all user data from Firebase
+      const keys = ['pantry_v2','suppPantry','waterGoal','customGoals','mealTemplates',
+                    'weightHistory','trainingByDate','userName','notes_' + new Date().toISOString().split('T')[0]];
+      await Promise.all(keys.map(k => fbDel(k).catch(()=>{})));
+      // Delete account via REST
+      const token = await fbToken();
+      await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_KEY, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({idToken: token})
+      });
+      fbSignOut();
+      onLogout();
+    } catch(e) {
+      setErr(isPt?'Senha incorreta ou erro ao apagar conta.':'Incorrect password or error deleting account.');
+    }
+  }
+
+  const header = (title) => React.createElement('div', {
+    style:{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}
+  },
+    React.createElement('h2', {style:{margin:0, fontSize:16, color:'var(--text1)'}}, title),
+    React.createElement('button', {
+      onClick: section==='main' ? onClose : ()=>{ setSection('main'); setErr(''); setStatus(''); },
+      style:{background:'none', border:'none', color:'var(--text2)', fontSize:20, cursor:'pointer'}
+    }, section==='main' ? '\u00D7' : '\u2190')
+  );
+
+  if (section === 'changePassword') return React.createElement('div', {style:overlay},
+    React.createElement('div', {style:box},
+      header(isPt?'Alterar senha':'Change password'),
+      err && React.createElement('p', {style:{color:'#c87e7e', fontSize:12, marginBottom:10}}, err),
+      status && React.createElement('p', {style:{color:'#7ec87e', fontSize:12, marginBottom:10}}, status),
+      React.createElement('input', {type:'password', value:curPwd, onChange:e=>setCurPwd(e.target.value),
+        placeholder:isPt?'Senha atual':'Current password', style:inp}),
+      React.createElement('input', {type:'password', value:newPwd, onChange:e=>setNewPwd(e.target.value),
+        placeholder:isPt?'Nova senha':'New password', style:inp}),
+      React.createElement('input', {type:'password', value:newPwd2, onChange:e=>setNewPwd2(e.target.value),
+        placeholder:isPt?'Confirmar nova senha':'Confirm new password', style:{...inp,marginBottom:16}}),
+      React.createElement('button', {onClick:changePassword, style:btn()},
+        isPt?'Guardar nova senha':'Save new password')
+    )
+  );
+
+  if (section === 'deleteAccount') return React.createElement('div', {style:overlay},
+    React.createElement('div', {style:box},
+      header(isPt?'Apagar conta':'Delete account'),
+      React.createElement('p', {style:{color:'#c87e7e', fontSize:13, marginBottom:12, lineHeight:1.5}},
+        isPt
+          ? 'Esta ação é irreversível. Todos os seus dados serão permanentemente excluídos.'
+          : 'This action is irreversible. All your data will be permanently deleted.'),
+      err && React.createElement('p', {style:{color:'#c87e7e', fontSize:12, marginBottom:10}}, err),
+      React.createElement('input', {type:'password', value:delPwd, onChange:e=>setDelPwd(e.target.value),
+        placeholder:isPt?'Sua senha':'Your password', style:inp}),
+      React.createElement('input', {type:'text', value:delConf, onChange:e=>setDelConf(e.target.value),
+        placeholder:isPt?'Digite APAGAR para confirmar':'Type DELETE to confirm',
+        style:{...inp, marginBottom:16}}),
+      React.createElement('button', {onClick:deleteAccount,
+        style:{...btn('#8b1a1a'), border:'1px solid #c87e7e'}},
+        isPt?'\uD83D\uDDD1 Apagar conta permanentemente':'\uD83D\uDDD1 Delete account permanently')
+    )
+  );
+
+  // Main panel
+  return React.createElement('div', {style:overlay},
+    React.createElement('div', {style:box},
+      header(isPt?'\uD83D\uDD12 Privacidade e seguran\xe7a':'\uD83D\uDD12 Privacy & security'),
+
+      React.createElement('p', {style:{color:'var(--text2)', fontSize:12, marginBottom:16, lineHeight:1.5}},
+        isPt
+          ? 'Aqui voc\xea pode gerenciar as configura\xe7\xf5es de seguran\xe7a e privacidade da sua conta.'
+          : 'Here you can manage your account security and privacy settings.'),
+
+      // Change password
+      React.createElement('button', {
+        onClick:()=>setSection('changePassword'),
+        style:{
+          width:'100%', padding:'13px 16px', borderRadius:10, marginBottom:10,
+          background:'var(--bg)', border:'1px solid var(--border2)',
+          color:'var(--text1)', fontSize:13, cursor:'pointer',
+          fontFamily:'inherit', display:'flex', alignItems:'center', gap:12, textAlign:'left'
+        }
+      },
+        React.createElement('span', {style:{fontSize:20}}, '\uD83D\uDD11'),
+        React.createElement('div', null,
+          React.createElement('div', {style:{fontWeight:600, marginBottom:2}},
+            isPt?'Alterar senha':'Change password'),
+          React.createElement('div', {style:{fontSize:11, color:'var(--text2)'}},
+            isPt?'Atualize a senha da sua conta':'Update your account password')
+        )
+      ),
+
+      // Divider
+      React.createElement('div', {style:{height:1, background:'var(--border2)', margin:'8px 0 16px'}}),
+
+      // Delete account
+      React.createElement('button', {
+        onClick:()=>setSection('deleteAccount'),
+        style:{
+          width:'100%', padding:'13px 16px', borderRadius:10,
+          background:'rgba(139,26,26,0.15)', border:'1px solid rgba(200,126,126,0.3)',
+          color:'#c87e7e', fontSize:13, cursor:'pointer',
+          fontFamily:'inherit', display:'flex', alignItems:'center', gap:12, textAlign:'left'
+        }
+      },
+        React.createElement('span', {style:{fontSize:20}}, '\uD83D\uDDD1'),
+        React.createElement('div', null,
+          React.createElement('div', {style:{fontWeight:600, marginBottom:2}},
+            isPt?'Apagar conta':'Delete account'),
+          React.createElement('div', {style:{fontSize:11}},
+            isPt?'Remove permanentemente todos os seus dados':'Permanently removes all your data')
+        )
+      )
+    )
+  );
+}
+
 // ── Tutorial Overlay ──────────────────────────────────────────
 function TutorialOverlay({ lang, onDone }) {
   const isPt = lang === 'pt';
@@ -7352,55 +7720,55 @@ function TutorialOverlay({ lang, onDone }) {
   const steps = isPt ? [
     {
       title: 'Bem-vindo ao Diário Nutricional! 👋',
-      text: 'Este é o teu diário pessoal de nutrição. Vamos fazer um tour rápido para te mostrar as principais funcionalidades.',
+      text: 'Este é o seu diário pessoal de nutrição. Vamos fazer um tour rápido para mostrar as principais funcionalidades.',
       icon: '🥗',
       position: 'center'
     },
     {
       title: 'Aba Diário',
-      text: 'Aqui vês o teu consumo do dia: proteínas, calorias e outros nutrientes. O botão "Sugerir o que comer" usa um algoritmo genético para sugerir refeições com base nos teus alimentos disponíveis.',
+      text: 'Aqui você vê o consumo do dia: proteínas, calorias e outros nutrientes. O botão "Sugerir o que comer" usa um algoritmo genético para sugerir refeições com base nos alimentos disponíveis.',
       icon: '📋',
       position: 'bottom',
       highlight: 'tab-diario'
     },
     {
       title: 'Aba + (Adicionar)',
-      text: 'Clica aqui para registar o que comeste. Podes pesquisar alimentos, usar templates de refeições ou importar da despensa.',
+      text: 'Clica aqui para registrar o que comeste. Podes pesquisar alimentos, usar templates de refeições ou importar da despensa.',
       icon: '➕',
       position: 'bottom',
       highlight: 'tab-adicionar'
     },
     {
       title: 'Despensa',
-      text: 'Guarda aqui os alimentos que tens disponíveis em casa. O algoritmo de sugestões usa estes alimentos para criar refeições equilibradas.',
+      text: 'Guarde aqui os alimentos que você tem disponíveis em casa. O algoritmo de sugestões usa esses alimentos para criar refeições equilibradas.',
       icon: '🏪',
       position: 'bottom',
       highlight: 'tab-despensa'
     },
     {
       title: 'Aba Semana',
-      text: 'Vê o teu histórico semanal de nutrição, compara dias e exporta os teus dados.',
+      text: 'Veja o histórico semanal de nutrição, compare dias e exporte os dados.',
       icon: '📅',
       position: 'bottom',
       highlight: 'tab-semana'
     },
     {
       title: 'Métricas',
-      text: 'Regista o teu peso, altura e define as tuas metas nutricionais personalizadas. O IMC é calculado automaticamente.',
+      text: 'Registre seu peso, altura e defina suas metas nutricionais personalizadas. O IMC é calculado automaticamente.',
       icon: '📊',
       position: 'bottom',
       highlight: 'tab-metricas'
     },
     {
       title: 'Configurações ⚙',
-      text: 'No menu de configurações podes mudar o idioma, o tema, configurar a chave API Groq para análises com IA, e refazer este tutorial quando quiseres.',
+      text: 'No menu de configurações você pode mudar o idioma, o tema, configurar a chave API Groq para análises com IA, e refazer este tutorial quando quiser.',
       icon: '⚙️',
       position: 'top-right',
       highlight: 'menu-settings'
     },
     {
       title: 'Tudo pronto! 🎉',
-      text: 'Já conheces o essencial. Começa por adicionar os teus alimentos na Despensa, define as tuas metas nas Métricas, e depois usa o diário para acompanhar a tua nutrição diária.',
+      text: 'Você já conhece o essencial. Comece adicionando seus alimentos na Despensa, defina suas metas nas Métricas, e depois use o diário para acompanhar sua nutrição diária.',
       icon: '🚀',
       position: 'center'
     }
@@ -7580,7 +7948,7 @@ function TutorialOverlay({ lang, onDone }) {
   );
 }
 
-function LoginScreen({onLogin}) {
+function LoginScreen({onLogin, onPendingVerification}) {
   const [mode, setMode]           = React.useState('login');
   const [email, setEmail]         = React.useState('');
   const [password, setPassword]   = React.useState('');
@@ -7590,6 +7958,7 @@ function LoginScreen({onLogin}) {
   const [loginLang, setLoginLang] = React.useState(() => localStorage.getItem('appLang') || 'pt');
   const [regWeight, setRegWeight] = React.useState('');
   const [regHeight, setRegHeight] = React.useState('');
+  const [regName,   setRegName]   = React.useState('');
   function toggleLoginLang() { const nl = loginLang==='pt'?'en':'pt'; localStorage.setItem('appLang',nl); setLoginLang(nl); }
   const S = loginLang==='pt'
     ? {title:'Diário Nutricional', login:'Entrar', register:'Criar conta',
@@ -7636,19 +8005,28 @@ function LoginScreen({onLogin}) {
     try {
       if (mode === 'login') {
         await fbSignIn(email, password);
+        // Check if email is verified
+        const verified = await fbCheckEmailVerified().catch(()=>true);
+        if (!verified) { onPendingVerification(email); return; }
         onLogin(false);
       } else {
+        if (!regName.trim()) { setError(loginLang==='pt'?'O nome é obrigatório.':'Name is required.'); setLoading(false); return; }
         await fbSignUp(email, password);
-        // Save initial weight/height if provided
+        localStorage.setItem('fb_email', email);
+        // Set displayName so it appears in Firebase email templates
+        await fbUpdateProfile(regName.trim()).catch(()=>{});
+        // Save initial data
         const today = new Date().toISOString().split('T')[0];
-        if (regWeight) {
-          const wh = [{date:today, weight:parseFloat(regWeight)}];
-          await fbSet('weightHistory', JSON.stringify(wh)).catch(()=>{});
+        if (regWeight || regHeight) {
+          const entry = { id: Date.now().toString(), date: today,
+            weight: regWeight ? parseFloat(regWeight) : null,
+            height: regHeight ? parseFloat(regHeight) : null };
+          await fbSet('weightHistory', JSON.stringify([entry])).catch(()=>{});
         }
-        if (regHeight) {
-          await fbSet('userHeight', regHeight).catch(()=>{});
-        }
-        onLogin(true); // true = new user, show tutorial
+        await fbSet('userName', regName.trim()).catch(()=>{});
+        // Send verification email
+        await fbSendVerificationEmail().catch(()=>{});
+        onPendingVerification(email, regName.trim());
       }
     } catch(err) { setError(friendlyError(err.message)); }
     setLoading(false);
@@ -7705,6 +8083,12 @@ function LoginScreen({onLogin}) {
           style:{...inp, marginBottom:12},
           autoComplete:'new-password'
         }),
+        mode === 'register' && React.createElement('input', {
+          type:'text', value:regName, onChange:e=>setRegName(e.target.value),
+          placeholder: loginLang==='pt' ? 'Seu nome *' : 'Your name *',
+          style:{...inp, marginBottom:12},
+          autoComplete:'name'
+        }),
         mode === 'register' && React.createElement('div', {style:{display:'flex',gap:8,marginBottom: error?8:20}},
           React.createElement('input', {
             type:'number', value:regWeight, onChange:e=>setRegWeight(e.target.value),
@@ -7735,9 +8119,7 @@ function LoginScreen({onLogin}) {
           }
         }, loading ? S.processing : mode==='login' ? S.loginBtn : S.registerBtn)
       ),
-      mode === 'register' && React.createElement('div', {style:{
-        marginTop:16,fontSize:11,color:'#444',textAlign:'center',lineHeight:1.6
-      }}, S.ownData)
+
     )
   );
 }
@@ -7835,6 +8217,10 @@ function App() {
   const [checking,setChecking]  = React.useState(fbIsLoggedIn());
   const [showSettings,setShowSettings] = React.useState(false);
   const [showTutorial,setShowTutorial] = React.useState(false);
+  const [showPrivacy, setShowPrivacy]  = React.useState(false);
+  const [pendingEmail, setPendingEmail] = React.useState('');
+  const [pendingName,  setPendingName]  = React.useState('');
+  const [appLang, setAppLang] = React.useState(() => localStorage.getItem('appLang') || 'pt');
   const [lang, setLang]         = React.useState(()=>localStorage.getItem('appLang')||'pt');
   const [darkMode, setDarkMode] = React.useState(true);
 
@@ -7860,16 +8246,38 @@ function App() {
     React.createElement('div', {style:{fontSize:30,color:'#7ec87e',display:'inline-block',animation:'spin 1.2s linear infinite'}}, '↻'),
     React.createElement('div', null, lang==='en'?'Signing in...':'A entrar...')
   );
-  if (!authed) return React.createElement(LoginScreen, {onLogin: (isNew) => {
-    setAuthed(true);
-    if (isNew) setShowTutorial(true);
-    else {
-      // Check if existing user has seen tutorial
-      storage.get('tutorialSeen').then(r => {
-        if (!r || !r.value) setShowTutorial(true);
-      }).catch(()=>{});
+  if (pendingEmail) return React.createElement(VerifyEmailScreen, {
+    email: pendingEmail,
+    name: pendingName,
+    lang: appLang,
+    onVerified: (isNew) => {
+      setPendingEmail(null); setPendingName('');
+      setAuthed(true);
+      if (isNew) setShowTutorial(true);
+      else {
+        storage.get('tutorialSeen').then(r => {
+          if (!r || !r.value) setShowTutorial(true);
+        }).catch(()=>{});
+      }
+    },
+    onBack: () => { setPendingEmail(null); setPendingName(''); fbSignOut(); }
+  });
+  if (!authed) return React.createElement(LoginScreen, {
+    onLogin: (isNew) => {
+      setAuthed(true);
+      if (isNew) setShowTutorial(true);
+      else {
+        storage.get('tutorialSeen').then(r => {
+          if (!r || !r.value) setShowTutorial(true);
+        }).catch(()=>{});
+      }
+    },
+    onPendingVerification: (email, name) => {
+      setPendingEmail(email);
+      setPendingName(name || '');
+      setAppLang(localStorage.getItem('appLang') || 'pt');
     }
-  }});
+  });
 
   return React.createElement(ErrorBoundary, null,
     React.createElement(React.Fragment, null,
@@ -7877,9 +8285,15 @@ function App() {
         onOpenSettings: () => setShowSettings(true),
         onLogout: () => { setAuthed(false); },
         onStartTutorial: () => setShowTutorial(true),
+        onOpenPrivacy: () => setShowPrivacy(true),
         externalLang: lang,
         externalDarkMode: darkMode,
       }),
+      showPrivacy ? React.createElement(PrivacyPanel, {
+        lang,
+        onClose: () => setShowPrivacy(false),
+        onLogout: () => { setAuthed(false); setShowPrivacy(false); }
+      }) : null,
       showTutorial ? React.createElement(TutorialOverlay, {
         lang,
         onDone: () => {
