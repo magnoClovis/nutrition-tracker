@@ -1098,7 +1098,8 @@ const MACRO_FIELDS_BASE = [{
   unit: "g",
   color: "#a96ec8",
   required: false,
-  sub: true
+  sub: true,
+  group: "carbs"
 }, {
   key: "fat100",
   labelKey: "fat",
@@ -1111,7 +1112,8 @@ const MACRO_FIELDS_BASE = [{
   unit: "g",
   color: "#c86e8e",
   required: false,
-  sub: true
+  sub: true,
+  group: "fat"
 }, {
   key: "fiber100",
   labelKey: "fiber",
@@ -1206,7 +1208,8 @@ function getWeightForDate(history, date) {
 function emptyFood() {
   const f = {
     name: "",
-    unit: "g"
+    unit: "g",
+    portionSize: "100"
   };
   ALL_FIELDS_KEYS.forEach(ff => {
     f[ff.key] = "";
@@ -1408,6 +1411,15 @@ function NutritionTracker({
     ...f,
     label: t(f.labelKey)
   }));
+  // Pre-computed ordered list: each parent immediately followed by its sub-fields
+  const MACRO_FIELDS_ORDERED = (function() {
+    const result = [];
+    MACRO_FIELDS.filter(f => !f.sub).forEach(f => {
+      result.push(f);
+      MACRO_FIELDS.filter(s => s.sub && s.group === f.labelKey).forEach(s => result.push(s));
+    });
+    return result;
+  })();
   const MICRO_FIELDS = MICRO_FIELDS_BASE.map(f => ({
     ...f,
     label: t(f.labelKey)
@@ -2553,17 +2565,20 @@ function NutritionTracker({
   // Pantry
   function addFood() {
     if (!form.name || !form.protein100 || !form.kcal100) return;
+    const portion = parseFloat(form.portionSize) || 100;
+    const scale = portion !== 100 ? (v) => v !== "" && v != null ? Math.round(parseFloat(v) / portion * 100 * 10) / 10 : "" : (v) => v;
     const food = {
       id: Date.now().toString(),
       name: form.name.trim(),
       unit: form.unit
     };
     ALL_FIELDS.forEach(f => {
-      food[f.key] = form[f.key] === "" ? null : parseFloat(form[f.key]);
+      const raw = scale(form[f.key]);
+      food[f.key] = raw === "" || raw == null ? null : parseFloat(raw);
     });
     setPantry(p => [...p, food]);
     setForm(emptyFood());
-    notify(lang === 'en' ? 'Food saved.' : 'Alimento guardado.');
+    notify(lang === 'en' ? 'Food saved.' : 'Alimento salvo.');
   }
   function removeFood(id) {
     setPantry(p => p.filter(f => f.id !== id));
@@ -5430,60 +5445,35 @@ function NutritionTracker({
       marginBottom: 8,
       marginTop: 12
     }
-  }, t('macros') + ' (' + portionLabel(form.unit, lang) + ')', " "), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      flexWrap: "wrap",
-      marginBottom: 6
-    }
-  }, MACRO_FIELDS.filter(f => !f.sub).map(f => /*#__PURE__*/React.createElement("div", {
+  }, t('macros') + ' (' + portionLabel(form.unit, lang) + ')' + ((form.unit === 'g' || form.unit === 'ml') && parseFloat(form.portionSize||'100') !== 100 ? ' \u2192 base 100' + form.unit : ''), " "),
+  /* Porção base — só para g e ml */
+  (form.unit === 'g' || form.unit === 'ml') && /*#__PURE__*/React.createElement("div", {
+    style: { marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10,
+      background: 'var(--bg)', borderRadius: 8, padding: '8px 12px', border: '1px solid var(--border2)' }
+  },
+    /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, color: 'var(--text2)', flex: 1 } },
+      lang === 'en' ? 'Values for a portion of:' : 'Valores para uma porção de:'
+    ),
+    /*#__PURE__*/React.createElement("input", {
+      type: 'number', min: 1, max: 2000,
+      value: form.portionSize,
+      onChange: e => setForm(ff => ({ ...ff, portionSize: e.target.value })),
+      style: { ...inp, width: 70, marginBottom: 0, textAlign: 'center' }
+    }),
+    /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, color: 'var(--text2)' } }, form.unit)
+  ),
+  /*#__PURE__*/React.createElement("div", {
+    style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }
+  }, MACRO_FIELDS_ORDERED.map(f => /*#__PURE__*/React.createElement("div", {
     key: f.key,
-    style: {
-      flex: "1 1 calc(50% - 4px)",
-      minWidth: 120
-    }
+    style: { flex: "1 1 calc(50% - 4px)", minWidth: 120 }
   }, /*#__PURE__*/React.createElement("label", {
-    style: {
-      ...lbl,
-      color: f.required ? "#888" : "#555"
-    }
-  }, f.label, f.required ? " *" : ""), /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    value: form[f.key],
-    onChange: e => setForm(ff => ({
-      ...ff,
-      [f.key]: e.target.value
-    })),
-    placeholder: f.unit,
-    style: inp
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      flexWrap: "wrap",
-      marginBottom: 6
-    }
-  }, MACRO_FIELDS.filter(f => f.sub).map(f => /*#__PURE__*/React.createElement("div", {
-    key: f.key,
-    style: {
-      flex: "1 1 calc(50% - 4px)",
-      minWidth: 120
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: {
-      ...lbl,
-      color: "var(--dim)"
-    }
-  }, f.label), /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    value: form[f.key],
-    onChange: e => setForm(ff => ({
-      ...ff,
-      [f.key]: e.target.value
-    })),
-    placeholder: f.unit,
-    style: inp
+    style: Object.assign({}, lbl, { color: f.sub ? "var(--dim)" : f.required ? "#888" : "#555" },
+      f.sub ? { paddingLeft: 8, borderLeft: "2px solid var(--border2)", display: "block" } : {})
+  }, f.sub ? "\u21B3 " + f.label : f.label, f.required ? " *" : ""), /*#__PURE__*/React.createElement("input", {
+    type: "number", value: form[f.key],
+    onChange: e => setForm(ff => ({ ...ff, [f.key]: e.target.value })),
+    placeholder: f.unit, style: inp
   })))), /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowMicroForm(m => !m),
     style: {
@@ -5742,7 +5732,7 @@ function NutritionTracker({
       fontSize: 10,
       color: "var(--dim)"
     }
-  }, lang === 'en' ? `per 100${f.unit}` : `por 100${f.unit}`))), /*#__PURE__*/React.createElement("div", {
+  }, portionLabel(f.unit, lang)))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 5,
