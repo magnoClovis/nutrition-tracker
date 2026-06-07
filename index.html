@@ -14,6 +14,20 @@
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;background:#111;color:#e8e0d5;font-family:system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
     #root{min-height:100vh}
+    :root {
+      --bg:#111; --surface:#161616; --surface3:#141414; --input:#1e1e1e;
+      --track:#1c1c1c; --row:#181818; --border:#222; --border2:#2a2a2a;
+      --border3:#1e1e1e; --text:#e8e0d5; --text2:#d5cfc8; --text3:#c9bfb0;
+      --muted:#8a8a8a; --muted2:#7a7a7a; --dim:#444; --faint:#333;
+      --btn-ok:#1e2e1e; --btn-ok-border:#3a5a3a; --btn-ok-text:#7ec87e;
+      --btn-info:#1a1e2a; --btn-info-border:#2a2a4a;
+      --btn-info-text:#8a9ec8; --btn-warn:#2a1a1a; --btn-warn-border:#4a2a2a;
+      --btn-warn-text:#c87e7e; --btn-teal:#1a2a2a; --btn-teal-border:#2a4a4a;
+      --btn-teal-text:#7ec8c8; --btn-inactive:#191919;
+      --btn-inactive-border:#252525; --btn-inactive-text:#666;
+      --tab-active:#191919; --tab-text-active:#c9bfb0;
+    }
+    body { background: var(--bg); color: var(--text); }
     #loading{position:fixed;inset:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#555;font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000}
     select option{background:#1a1a1a;color:#d5cfc8}
     ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#111}::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
@@ -1393,7 +1407,27 @@ function NutritionTracker({
   const [patternsText, setPatternsText] = useState("");
   const [patternsSaved, setPatternsSaved] = useState(false);
   const [suggestLoading, setSuggestLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState(null); // {content, filename, copied}
+  const [suggestions, setSuggestions] = useState(null);
+  const [showGA, setShowGA]           = useState(false);
+  const [gaUseAll, setGAUseAll]       = useState(true);
+  const [gaSelIds, setGASelIds]       = useState({});
+  const [gaLimits, setGALimits]       = useState({});
+  const [gaGlobalMax, setGAGlobalMax] = useState(5);
+  const [gaTolerance, setGATolerance] = useState(15);
+  const [gaRunning, setGARunning]     = useState(false);
+  const [gaProgress, setGAProgress]   = useState(0);
+  const [gaResults, setGAResults]     = useState([]);
+  const [gaTargetMeal, setGATargetMeal] = useState(''); // {content, filename, copied}
+  const [gaUseProtTol, setGAUseProtTol] = useState(false);
+  const [gaProtTolerance, setGAProtTolerance] = useState(20);
+  const [gaUseKcalMin, setGAUseKcalMin] = useState(false);
+  const [gaUseKcalMax, setGAUseKcalMax] = useState(false);
+  const [gaUseProtMin, setGAUseProtMin] = useState(false);
+  const [gaUseProtMax, setGAUseProtMax] = useState(false);
+  const [gaKcalMin, setGAKcalMin]       = useState(200);
+  const [gaKcalMax, setGAKcalMax]       = useState(800);
+  const [gaProtMin, setGAProtMin]       = useState(20);
+  const [gaProtMax, setGAProtMax]       = useState(60);
   const [loaded, setLoaded] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [autoFillLoading, setAutoFillLoading] = useState(false);
@@ -1451,6 +1485,11 @@ function NutritionTracker({
   const saveTimeout = useRef({});
   async function loadAll() {
     setSyncing(true);
+    // Timeout fallback: if Firebase hangs for 12s, show app anyway
+    const _loadTimeout = setTimeout(() => {
+      setSyncing(false);
+      setLoaded(true);
+    }, 12000);
     try {
       const [p, l, t, w, mt, n, wg, wi, sp, sl, cg] = await Promise.all([storage.get("pantry_v2").catch(() => null), storage.get("log_v2_" + TODAY).catch(() => null), storage.get("trainingByDate").catch(() => null), storage.get("weightHistory").catch(() => null), storage.get("mealTemplates").catch(() => null), storage.get("notes_" + TODAY).catch(() => null), storage.get("waterGoal").catch(() => null), storage.get("waterIntake_" + TODAY).catch(() => null), storage.get("suppPantry").catch(() => null), storage.get("suppLog_" + TODAY).catch(() => null), storage.get("customGoals").catch(() => null)]);
       if (p) setPantry(JSON.parse(p.value));
@@ -1465,6 +1504,7 @@ function NutritionTracker({
       if (sl) setSuppLog(JSON.parse(sl.value));
       if (cg) setCustomGoals(JSON.parse(cg.value));
     } catch (_) {}
+    clearTimeout(_loadTimeout);
     setSyncing(false);
     setLoaded(true);
   }
@@ -2149,7 +2189,279 @@ function NutritionTracker({
     }
     setFeedbackLoading(false);
   }
-  function saveFeedbackAsNote() {
+  // ── Genetic Algorithm Meal Suggester ────────────────────────
+  async function runGA() {
+    setGARunning(true);
+    setGAProgress(0);
+    setGAResults([]);
+
+    // Build food list
+    const foods = pantry.filter(f =>
+      gaUseAll ? true : gaSelIds[f.id]
+    ).filter(f => (f.protein100 ?? 0) > 0 || (f.kcal100 ?? 0) > 0);
+
+    if (foods.length === 0) {
+      notify("Adiciona alimentos à despensa primeiro.");
+      setGARunning(false); return;
+    }
+
+    // Remaining nutritional budget for the day
+    const entries = Object.values(activeLog).flat();
+    const eatenProt = entries.reduce((s,e)=>s+(e.protein??0),0);
+    const eatenKcal = entries.reduce((s,e)=>s+(e.kcal??0),0);
+    const targetProt = Math.max(10, (goals.protein||150) - eatenProt);
+    const targetKcal = Math.max(50, (goals.kcal||2000) - eatenKcal);
+    const kcalBudget = targetKcal * (1 + gaTolerance/100);
+
+    // Per-food gene bounds
+    // gene unit: for "un" foods = 1 item; for g/ml = 100g/ml
+    const geneMax = i => gaLimits[foods[i]?.id]?.max ?? gaGlobalMax;
+    const geneMin = i => gaLimits[foods[i]?.id]?.min ?? 0;
+    const randGene = i => geneMin(i) + Math.floor(Math.random() * (geneMax(i) - geneMin(i) + 1));
+
+    // Totals from gene array
+    const totals = genes => {
+      let p=0,k=0,c=0,f=0;
+      genes.forEach((g,i)=>{
+        // protein100/kcal100 is per 100g for g/ml, per unit for un
+        // gene=1 means 100g (g/ml) or 1 unit (un) → multiply by gene → total
+        p += (foods[i].protein100??0)*g;
+        k += (foods[i].kcal100??0)*g;
+        c += (foods[i].carbs100??0)*g;
+        f += (foods[i].fat100??0)*g;
+      });
+      return {protein:p, kcal:k, carbs:c, fat:f};
+    };
+
+    // ── Fitness functions ───────────────────────────────────────
+    // Helper: penalty for being outside [lo, hi] interval
+    // Inside → 0; outside → grows proportionally
+    const intervalPen = (val, lo, hi, hardness) => {
+      if (val < lo) return hardness * (lo - val) / Math.max(lo, 1);
+      if (val > hi) return hardness * (val - hi) / Math.max(hi, 1);
+      return 0;
+    };
+
+    // Determine effective kcal interval
+    // Tolerance slider now ranges -40% to +40%, allowing deficit targets
+    const kcalLo = gaUseKcalMin ? gaKcalMin : 0;
+    const kcalHi = gaUseKcalMax ? gaKcalMax : kcalBudget;
+
+    // Protein budget from tolerance (if enabled)
+    const protBudget = gaUseProtTol
+      ? targetProt * (1 + gaProtTolerance/100)
+      : Infinity;
+    const protLo = gaUseProtMin ? gaProtMin : 0;
+    const protHi = gaUseProtMax ? gaProtMax : Infinity;
+
+    // Decide which fitness variant to use
+    const hasAbsLimits = gaUseKcalMin || gaUseKcalMax || gaUseProtMin || gaUseProtMax;
+
+    const fitness = genes => {
+      const t = totals(genes);
+      if (genes.every(g=>g===0)) return 999;
+
+      if (hasAbsLimits) {
+        // ── Fitness B: interval-based ──────────────────────────
+        // Penalize being outside user-defined [min, max] ranges
+        // Inside the interval → small reward for being centered
+        const kPen = intervalPen(t.kcal,
+          gaUseKcalMin ? kcalLo : Math.max(0, kcalHi*0.2),
+          gaUseKcalMax ? kcalHi : kcalBudget,
+          8);
+        const pPen = intervalPen(t.protein,
+          gaUseProtMin ? protLo : (gaUseProtTol ? 0 : targetProt*0.5),
+          gaUseProtMax ? protHi : (gaUseProtTol ? protBudget : targetProt*1.5),
+          8);
+        // Soft centering bonus (pulls solution toward middle of interval)
+        const kMid = ((gaUseKcalMin?kcalLo:kcalHi*0.2) + (gaUseKcalMax?kcalHi:kcalBudget)) / 2;
+        const pMid = ((gaUseProtMin?protLo:targetProt*0.5) + (gaUseProtMax?protHi:targetProt*1.5)) / 2;
+        const kCenter = 0.1 * Math.abs(t.kcal - kMid) / Math.max(kMid, 1);
+        const pCenter = 0.1 * Math.abs(t.protein - pMid) / Math.max(pMid, 1);
+        return kPen + pPen + kCenter + pCenter;
+
+      } else {
+        // ── Fitness A: target-based (original, refined) ────────
+        const protDev = gaUseProtTol
+          ? (t.protein > protBudget
+              ? 10*(t.protein-protBudget)/Math.max(protBudget,1)
+              : Math.abs(t.protein-targetProt)/Math.max(targetProt,1))
+          : Math.abs(t.protein - targetProt) / Math.max(targetProt,1);
+        const kcalPen = t.kcal > kcalBudget
+          ? 10*(t.kcal-kcalBudget)/Math.max(kcalBudget,1)
+          : 0.3*(1 - t.kcal/Math.max(kcalBudget,1));
+        return protDev + kcalPen;
+      }
+    };
+
+    // ── GA params — adaptive to N (number of foods) ──────────────
+    const N = foods.length;
+
+    // Population: grows gently with N, capped for browser performance
+    const POP = Math.min(200, Math.max(80, N * 7));
+
+    // Stagnation threshold: how many generations without bestFit improvement
+    // before triggering a restart. More genes = more patience.
+    const STAG_LIMIT = Math.max(150, N * 20);
+
+    // Max generations per restart — generous since stagnation is the real brake
+    const GENS_PER_RESTART = Math.max(600, N * 60);
+
+    // Number of full restarts before giving up
+    const MAX_RESTARTS = N <= 10 ? 3 : N <= 20 ? 4 : 5;
+
+    // Fitness target: relaxes slightly as N grows (harder to nail exactly)
+    const STOP_FIT = Math.min(0.18, 0.06 + N * 0.004);
+
+    const MUT_RATE = 0.15;
+    const N_SOLS = 5;
+
+    const solutions=[], solKeys=new Set();
+    let bestFit=Infinity, bestInd=null;
+
+    const solKey = g => g.join(',');
+
+    const select = p => {
+      p.sort((a,b)=>a.fit-b.fit);
+      return p.slice(0, Math.floor(p.length/2));
+    };
+
+    const cross = (a,b) => {
+      const pt = Math.floor(Math.random()*a.genes.length);
+      const g = [...a.genes.slice(0,pt), ...b.genes.slice(pt)];
+      return {genes:g, fit:fitness(g)};
+    };
+
+    const mutate = ind => {
+      const g = [...ind.genes];
+      if (Math.random()>0.5) {
+        const sw = Math.max(1, Math.floor(g.length*0.1));
+        for(let k=0;k<sw;k++){
+          const a=Math.floor(Math.random()*g.length);
+          const b=Math.floor(Math.random()*g.length);
+          [g[a],g[b]]=[g[b],g[a]];
+        }
+      } else {
+        const ch = Math.floor(Math.random()*Math.ceil(g.length/2))+1;
+        for(let k=0;k<ch;k++){
+          const j=Math.floor(Math.random()*g.length);
+          const x=randGene(j);
+          g[j]=Math.max(geneMin(j), Math.min(geneMax(j), Math.abs(g[j]-x)));
+        }
+      }
+      return {genes:g, fit:fitness(g)};
+    };
+
+    // ── Multi-restart loop with stagnation detection ──────────────
+    let totalGens = 0;
+    const totalGensEstimate = MAX_RESTARTS * GENS_PER_RESTART;
+
+    for(let restart=0; restart<MAX_RESTARTS; restart++){
+      // Fresh population, but seed with best known individual if we have one
+      let pop = Array.from({length:POP}, (_,pi) => {
+        if(pi===0 && bestInd) return bestInd;
+        const g = foods.map((_,i)=>randGene(i));
+        return {genes:g, fit:fitness(g)};
+      });
+
+      let stagCount = 0;
+      let restartBestFit = bestFit;
+
+      for(let gen=0; gen<GENS_PER_RESTART; gen++){
+        totalGens++;
+
+        if(totalGens % 20 === 0){
+          setGAProgress(Math.min(99, Math.round(totalGens/totalGensEstimate*100)));
+          await new Promise(r=>setTimeout(r,0));
+        }
+
+        const parents = select([...pop]);
+        const genBest = parents[0].fit;
+
+        if(genBest < bestFit){
+          bestFit = genBest;
+          bestInd = parents[0];
+        }
+
+        // Stagnation detection
+        if(genBest < restartBestFit - 0.001){
+          restartBestFit = genBest;
+          stagCount = 0;
+        } else {
+          stagCount++;
+        }
+
+        // Collect valid solutions
+        for(const ind of parents){
+          if(ind.fit < STOP_FIT){
+            const k=solKey(ind.genes);
+            if(!solKeys.has(k) && ind.genes.some(g=>g>0)){
+              solKeys.add(k);
+              const t=totals(ind.genes);
+              solutions.push({
+                genes:ind.genes, fit:ind.fit,
+                protein:Math.round(t.protein), kcal:Math.round(t.kcal),
+                carbs:Math.round(t.carbs), fat:Math.round(t.fat),
+                items: foods.map((f,i)=>({food:f, gene:ind.genes[i]})).filter(x=>x.gene>0)
+              });
+              solutions.sort((a,b)=>a.fit-b.fit);
+              setGAResults([...solutions].slice(0,N_SOLS));
+            }
+          }
+        }
+
+        // Early exit: enough good solutions found
+        if(solutions.length>=N_SOLS && bestFit<STOP_FIT) break;
+
+        // Stagnation → end this restart early
+        if(stagCount >= STAG_LIMIT) break;
+
+        // Crossover + mutation
+        const sons = parents.map(()=>{
+          const xi=Math.floor(Math.random()*parents.length);
+          let yi; do{yi=Math.floor(Math.random()*parents.length);}while(yi===xi&&parents.length>1);
+          const son=cross(parents[xi],parents[yi]);
+          return Math.random()<MUT_RATE ? mutate(son) : son;
+        });
+        pop=[...parents,...sons];
+      }
+
+      // Stop all restarts if we have enough solutions
+      if(solutions.length>=N_SOLS && bestFit<STOP_FIT) break;
+    }
+
+    // Fallback: show best attempt if no solution met STOP_FIT
+    if(solutions.length===0 && bestInd){
+      const t=totals(bestInd.genes);
+      solutions.push({
+        genes:bestInd.genes, fit:bestInd.fit,
+        protein:Math.round(t.protein), kcal:Math.round(t.kcal),
+        carbs:Math.round(t.carbs), fat:Math.round(t.fat),
+        items:foods.map((f,i)=>({food:f,gene:bestInd.genes[i]})).filter(x=>x.gene>0)
+      });
+      setGAResults(solutions);
+    }
+
+    setGAProgress(100);
+    setGARunning(false);
+  }
+
+  function addGAResultToDiary(result) {
+    const meal = gaTargetMeal || MEALS[1]; // default almoço
+    result.items.forEach(({food, gene}) => {
+      // Convert gene back to real qty
+      const qty = food.unit === 'un' ? gene : gene * 100;
+      const entry = buildEntry(food, qty);
+      setActiveLog(prev => ({
+        ...prev,
+        [meal]: [...(prev[meal]||[]), entry]
+      }));
+    });
+    notify("Refeição adicionada ao diário (" + mealLabel(meal) + ")!");
+    setShowGA(false);
+  }
+
+  function  saveFeedbackAsNote() {
     if (!feedbackText) return;
     const separator = "\n\n---\n📋 FEEDBACK " + (feedbackPeriod === "day" ? "DO DIA" : "DA SEMANA") + " (" + new Date().toLocaleDateString("pt-BR") + "):\n";
     if (feedbackPeriod === "day") {
@@ -2712,7 +3024,7 @@ function NutritionTracker({
     "--bg": "#111",
     "--surface": "#161616",
     "--surface3": "#141414",
-    "--input": "var(--btn-inactive)",
+    "--input": "#1e1e1e",
     "--track": "#1c1c1c",
     "--row": "#181818",
     "--border": "#222",
@@ -2728,19 +3040,19 @@ function NutritionTracker({
     "--faint": "#333",
     "--btn-ok": "#1e2e1e",
     "--btn-info": "#1a1e2a",
-    "--tab-active": "var(--btn-inactive)",
-    "--btn-inactive": "var(--btn-inactive)",
+    "--tab-active": "#191919",
+    "--btn-inactive": "#191919",
     "--btn-inactive-border": "#252525",
     "--btn-warn": "#2a1a1a",
     "--btn-teal": "#1a2a2a",
     "--btn-ok-border": "#3a5a3a",
-    "--btn-ok-text": "var(--btn-ok-text)",
+    "--btn-ok-text": "#7ec87e",
     "--btn-info-border": "#3a3a6a",
-    "--btn-info-text": "var(--btn-info-text)",
+    "--btn-info-text": "#8a9ec8",
     "--btn-warn-border": "#5a3a3a",
-    "--btn-warn-text": "var(--btn-warn-text)",
+    "--btn-warn-text": "#c87e7e",
     "--btn-teal-border": "#3a6a6a",
-    "--btn-teal-text": "var(--btn-teal-text)",
+    "--btn-teal-text": "#7ec8c8",
     "--toggle-train-bg": "#1e2e1e",
     "--toggle-train-border": "#3a6a3a",
     "--toggle-train-text": "var(--btn-ok-text)",
@@ -2789,13 +3101,13 @@ function NutritionTracker({
   if (!loaded) return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: "100vh",
-      background: "var(--bg)",
+      background: "#111",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
       gap: 12,
-      color: "var(--muted)",
+      color: "#888",
       fontFamily: "system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -2808,11 +3120,11 @@ function NutritionTracker({
       letterSpacing: 2
     }
   }, t('loading')));
-  return /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: "100vh",
-      background: "var(--bg)",
-      color: "var(--text)",
+      background: "#111",
+      color: "#ffffff",
       fontFamily: "system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",
       paddingBottom: 60,
       ...THEME
@@ -4023,7 +4335,9 @@ function NutritionTracker({
       fontSize: 10,
       letterSpacing: 2
     }
-  }, "\uD83D\uDCBE Guardar nas notas")), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCBE Guardar nas notas")),
+  
+  /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 24,
       borderTop: "1px solid var(--border3)",
@@ -5032,7 +5346,19 @@ function NutritionTracker({
     style: {
       color: "var(--muted)"
     }
-  }, exportResult.filename))))), tab === "despensa" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, exportResult.filename))))), /*#__PURE__*/React.createElement("button", {
+    onClick: function(){ setGAResults([]); setGAProgress(0); setShowGA(true); setGATargetMeal(MEALS[1]||MEALS[0]); },
+    style: {
+      width:"100%", marginTop:20,
+      background:"linear-gradient(135deg,#1a2a1a,#1e2e20)",
+      border:"1px solid #2d4a2d",
+      color:"#7ec87e", padding:"13px",
+      borderRadius:8, fontSize:12,
+      letterSpacing:1.5, textTransform:"uppercase", cursor:"pointer",
+      display:"flex", alignItems:"center", justifyContent:"center", gap:8
+    }
+  }, "\uD83E\uDDEC ", lang==='en' ? "Suggest meals" : "Sugerir refei\xe7\xf5es")),
+  tab === "despensa" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -6686,7 +7012,321 @@ function NutritionTracker({
       fontSize: 10,
       letterSpacing: 1
     }
-  }, "Repor metas autom\xE1ticas")))));
+  }, "Repor metas autom\xE1ticas")))), showGA && React.createElement("div", {
+  style: {
+    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+    background: "#000000ee", zIndex: 99999,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    padding: 16, backdropFilter: "blur(4px)"
+  },
+  onClick: function(e){ if(e.target===e.currentTarget) setShowGA(false); }
+},
+  React.createElement("div", {
+    style: {
+      background: "var(--card)", borderRadius: 14, padding: 24,
+      width: "100%", maxWidth: 480, maxHeight: "85vh",
+      overflowY: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.5)",
+      border: "1px solid var(--border2)"
+    }
+  },
+    /* Header */
+    React.createElement("div", { style: { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 } },
+      React.createElement("h2", { style: { margin:0, color:"var(--text1)", fontSize:16 } }, (lang==='en' ? "Meal Suggestions" : "Sugest\xe3o de refei\xe7\xf5es")),
+      React.createElement("button", {
+        onClick: function(){ setShowGA(false); },
+        style: { background:"none", border:"none", color:"var(--text2)", fontSize:20, cursor:"pointer" }
+      }, "\u2715")
+    ),
+
+    /* Usar todos ou selecionar */
+    React.createElement("div", { style: { marginBottom:12 } },
+      React.createElement("label", { style: { color:"var(--text2)", fontSize:13, display:"flex", alignItems:"center", gap:8, cursor:"pointer" } },
+        React.createElement("input", {
+          type:"checkbox", checked:gaUseAll,
+          onChange: function(e){ setGAUseAll(e.target.checked); }
+        }),
+        lang==='en' ? "Use all pantry foods" : "Usar todos os alimentos da despensa"
+      )
+    ),
+
+    /* Lista de alimentos (quando gaUseAll=false) */
+    !gaUseAll && React.createElement("div", {
+      style: { background:"var(--bg)", borderRadius:8, padding:10, marginBottom:12, maxHeight:160, overflowY:"auto" }
+    },
+      React.createElement("p", { style: { color:"var(--text2)", fontSize:11, margin:"0 0 8px" } },
+        lang==='en' ? "Select foods to include:" : "Selecione os alimentos a incluir:"
+      ),
+      pantry.map(function(f){
+        return React.createElement("label", {
+          key:f.id,
+          style: { display:"flex", alignItems:"center", gap:8, padding:"3px 0", cursor:"pointer", color:"var(--text1)", fontSize:13 }
+        },
+          React.createElement("input", {
+            type:"checkbox",
+            checked: !!gaSelIds[f.id],
+            onChange: function(e){
+              setGASelIds(function(prev){ return Object.assign({}, prev, {[f.id]: e.target.checked}); });
+            }
+          }),
+          f.name,
+          React.createElement("span", { style: { color:"var(--text2)", fontSize:11 } },
+            " (" + (f.kcal100||0) + "kcal, " + (f.protein100||0) + "g prot)"
+          )
+        );
+      })
+    ),
+
+    /* Limites por unidade */
+    React.createElement("div", { style: { marginBottom:12 } },
+      React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"block", marginBottom:4 } },
+        lang==='en' ? "Global max units per food:" : "M\xe1x. unidades por alimento (global):"
+      ),
+      React.createElement("input", {
+        type:"number", min:1, max:20, value:gaGlobalMax,
+        onChange: function(e){ setGAGlobalMax(parseInt(e.target.value)||5); },
+        style: Object.assign({}, inp, { width:80 })
+      })
+    ),
+
+    /* Ajuste calórico (tolerância, pode ser negativo para déficit) */
+    React.createElement("div", { style: { marginBottom:12 } },
+      React.createElement("div", { style: { display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:4 } },
+        React.createElement("label", { style: { color:"var(--text2)", fontSize:12 } },
+          lang==='en' ? "Calorie adjustment:" : "Ajuste cal\xf3rico:"
+        ),
+        React.createElement("span", { style: {
+          fontSize:12, fontWeight:600,
+          color: gaTolerance > 0 ? "#c8b47e" : gaTolerance < 0 ? "#7ec8c8" : "var(--text2)"
+        } },
+          (gaTolerance > 0 ? "+" : "") + gaTolerance + "% " +
+          (function(){
+            var base = (goals.kcal||2000) - Object.values(activeLog).flat().reduce(function(s,e){return s+(e.kcal||0);},0);
+            var abs = Math.round(Math.abs(base * gaTolerance / 100));
+            var adj = Math.round(base * (1 + gaTolerance/100));
+            if(gaTolerance === 0) return "(" + Math.round(base) + "kcal)";
+            return (gaTolerance > 0 ? "(m\xe1x. " : "(m\xe1x. ") + adj + "kcal, " + (gaTolerance > 0 ? "+" : "\u2212") + abs + "kcal)";
+          })()
+        )
+      ),
+      React.createElement("input", {
+        type:"range", min:-40, max:40, value:gaTolerance,
+        onChange: function(e){ setGATolerance(parseInt(e.target.value)); },
+        style: { width:"100%" }
+      }),
+      React.createElement("div", { style: { display:"flex", justifyContent:"space-between", fontSize:10, color:"var(--muted)", marginTop:2 } },
+        React.createElement("span", null, lang==='en'?"\u2212 deficit":"\u2212 d\xe9ficit"),
+        React.createElement("span", null, "0%"),
+        React.createElement("span", null, lang==='en'?"+ surplus":"+ super\xe1vit")
+      )
+    ),
+
+    /* Tolerância proteica (opcional) */
+    React.createElement("div", { style: { marginBottom:12 } },
+      React.createElement("label", { style: { color:"var(--text2)", fontSize:13, display:"flex", alignItems:"center", gap:8, cursor:"pointer" } },
+        React.createElement("input", {
+          type:"checkbox", checked:gaUseProtTol,
+          onChange: function(e){ setGAUseProtTol(e.target.checked); }
+        }),
+        lang==='en' ? "Set protein tolerance" : "Definir toler\xe2ncia prote\xeaca"
+      ),
+      gaUseProtTol && React.createElement("div", { style: { marginTop:8 } },
+        React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"block", marginBottom:4 } },
+          (lang==='en' ? "Protein tolerance: " : "Toler\xe2ncia prote\xeaca: ") + gaProtTolerance + "%"
+        ),
+        React.createElement("input", {
+          type:"range", min:5, max:50, value:gaProtTolerance,
+          onChange: function(e){ setGAProtTolerance(parseInt(e.target.value)); },
+          style: { width:"100%" }
+        })
+      )
+    ),
+
+    /* Limites absolutos de kcal */
+    React.createElement("div", { style: { marginBottom:12, borderTop:"1px solid var(--border2)", paddingTop:10 } },
+      React.createElement("div", { style: { fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:8 } },
+        lang==='en' ? "Absolute limits (optional)" : "Limites absolutos (opcional)"
+      ),
+      React.createElement("div", { style: { display:"flex", gap:8, flexWrap:"wrap" } },
+        /* Kcal min */
+        React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"flex", alignItems:"center", gap:6, cursor:"pointer", flex:"1 1 120px" } },
+          React.createElement("input", { type:"checkbox", checked:gaUseKcalMin, onChange:function(e){setGAUseKcalMin(e.target.checked);} }),
+          lang==='en' ? "Min kcal:" : "M\xedn. kcal:",
+          gaUseKcalMin && React.createElement("input", {
+            type:"number", min:0, max:5000, value:gaKcalMin,
+            onChange:function(e){setGAKcalMin(parseInt(e.target.value)||0);},
+            style:Object.assign({},inp,{width:70, padding:"3px 6px"})
+          })
+        ),
+        /* Kcal max */
+        React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"flex", alignItems:"center", gap:6, cursor:"pointer", flex:"1 1 120px" } },
+          React.createElement("input", { type:"checkbox", checked:gaUseKcalMax, onChange:function(e){setGAUseKcalMax(e.target.checked);} }),
+          lang==='en' ? "Max kcal:" : "M\xe1x. kcal:",
+          gaUseKcalMax && React.createElement("input", {
+            type:"number", min:0, max:5000, value:gaKcalMax,
+            onChange:function(e){setGAKcalMax(parseInt(e.target.value)||0);},
+            style:Object.assign({},inp,{width:70, padding:"3px 6px"})
+          })
+        ),
+        /* Prot min */
+        React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"flex", alignItems:"center", gap:6, cursor:"pointer", flex:"1 1 120px" } },
+          React.createElement("input", { type:"checkbox", checked:gaUseProtMin, onChange:function(e){setGAUseProtMin(e.target.checked);} }),
+          lang==='en' ? "Min prot (g):" : "M\xedn. prot (g):",
+          gaUseProtMin && React.createElement("input", {
+            type:"number", min:0, max:500, value:gaProtMin,
+            onChange:function(e){setGAProtMin(parseInt(e.target.value)||0);},
+            style:Object.assign({},inp,{width:60, padding:"3px 6px"})
+          })
+        ),
+        /* Prot max */
+        React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"flex", alignItems:"center", gap:6, cursor:"pointer", flex:"1 1 120px" } },
+          React.createElement("input", { type:"checkbox", checked:gaUseProtMax, onChange:function(e){setGAUseProtMax(e.target.checked);} }),
+          lang==='en' ? "Max prot (g):" : "M\xe1x. prot (g):",
+          gaUseProtMax && React.createElement("input", {
+            type:"number", min:0, max:500, value:gaProtMax,
+            onChange:function(e){setGAProtMax(parseInt(e.target.value)||0);},
+            style:Object.assign({},inp,{width:60, padding:"3px 6px"})
+          })
+        )
+      )
+    ),
+
+    /* Refeição alvo */
+    React.createElement("div", { style: { marginBottom:16 } },
+      React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"block", marginBottom:4 } },
+        lang==='en' ? "Target meal:" : "Refeição alvo:"
+      ),
+      React.createElement("select", {
+        value: gaTargetMeal || MEALS[1],
+        onChange: function(e){ setGATargetMeal(e.target.value); },
+        style: Object.assign({}, inp)
+      },
+        MEALS.map(function(m){ return React.createElement("option", { key:m, value:m }, m); })
+      )
+    ),
+
+    /* Botão Executar */
+    React.createElement("button", {
+      onClick: runGA,
+      disabled: gaRunning,
+      style: Object.assign({}, btn, {
+        width:"100%", marginBottom:12,
+        background: gaRunning ? "var(--btn-inactive)" : "var(--accent)",
+        border: "1px solid var(--accent)", color:"#fff", fontSize:14
+      })
+    }, gaRunning
+      ? (lang==='en' ? "Running... " : "Executando... ") + gaProgress + "%"
+      : (lang==='en' ? "\uD83E\uDDEC Find meals" : "\uD83E\uDDEC Buscar sugest\xf5es")
+    ),
+
+    /* Barra de progresso */
+    gaRunning && React.createElement("div", {
+      style: { background:"var(--bg)", borderRadius:4, height:6, marginBottom:12, overflow:"hidden" }
+    },
+      React.createElement("div", {
+        style: { background:"var(--accent)", height:"100%", width:gaProgress+"%", transition:"width 0.3s" }
+      })
+    ),
+
+    /* Resultados */
+    gaResults.length > 0 && React.createElement("div", null,
+      React.createElement("p", { style: { color:"var(--text2)", fontSize:12, marginBottom:8 } },
+        lang==='en' ? "Suggestions found:" : "Sugest\xf5es encontradas:"
+      ),
+      gaResults.map(function(r, ri){
+        return React.createElement("div", {
+          key:ri,
+          style: {
+            background:"var(--bg)", borderRadius:10, padding:12,
+            marginBottom:10, border:"1px solid var(--border2)"
+          }
+        },
+          React.createElement("div", { style: { display:"flex", justifyContent:"space-between", marginBottom:6 } },
+            React.createElement("span", { style: { color:"var(--text1)", fontSize:13, fontWeight:600 } },
+              (lang==='en' ? "Option " : "Op\xe7\xe3o ") + (ri+1)
+            ),
+            React.createElement("span", { style: {
+              fontSize: 10,
+              background: r.fit < 0.08 ? "rgba(80,200,120,0.15)" : "rgba(200,160,80,0.15)",
+              color: r.fit < 0.08 ? "#7ec87e" : "#c8b47e",
+              padding: "2px 7px", borderRadius: 10
+            } }, r.fit < 0.08 ? (lang==='en'?"Optimal":"\xd3timo") : (lang==='en'?"Best found":"Melhor achado"))
+            ),
+            React.createElement("div", { style: { marginBottom:8 } },
+            (function(){
+              var entries = Object.values(activeLog).flat();
+              var todayKcal = entries.reduce(function(s,e){ return s+(e.kcal||0); },0);
+              var todayProt = entries.reduce(function(s,e){ return s+(e.protein||0); },0);
+              var todayCarb = entries.reduce(function(s,e){ return s+(e.carbs||0); },0);
+              var todayFat  = entries.reduce(function(s,e){ return s+(e.fat||0); },0);
+              var macros = [
+                { label: "Kcal", val: r.kcal, today: todayKcal, goal: goals.kcal||2000, unit:"kcal" },
+                { label: "Prot", val: r.protein, today: todayProt, goal: goals.protein||150, unit:"g" },
+                { label: "Carb", val: r.carbs, today: todayCarb, goal: goals.carbs||250, unit:"g" },
+                { label: "Fat",  val: r.fat,  today: todayFat,  goal: goals.fat||70,   unit:"g" }
+              ];
+              return React.createElement("div", null,
+                /* Esta refeição */
+                React.createElement("div", { style: { display:"flex", gap:6, flexWrap:"wrap", marginBottom:6 } },
+                  macros.map(function(m){
+                    var pct = Math.round(m.val/Math.max(m.goal,1)*100);
+                    var col = pct > 110 ? "#c87e7e" : pct > 75 ? "#7ec87e" : "#c8b47e";
+                    return React.createElement("span", { key:m.label, style: {
+                      background:"var(--bg)", borderRadius:6, padding:"3px 8px",
+                      fontSize:11, color:col, border:"1px solid var(--border2)"
+                    } }, m.label + ": " + m.val + m.unit + " (" + pct + "% da meta)");
+                  })
+                ),
+                /* Totais projetados */
+                React.createElement("div", { style: {
+                  background:"rgba(255,255,255,0.04)", borderRadius:8,
+                  padding:"8px 10px", marginTop:4,
+                  borderLeft:"3px solid var(--accent)"
+                } },
+                  React.createElement("div", { style: { fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:5 } },
+                    lang==='en' ? "Total after this meal:" : "Total com esta refei\xe7\xe3o:"
+                  ),
+                  React.createElement("div", { style: { display:"flex", gap:8, flexWrap:"wrap" } },
+                    macros.map(function(m){
+                      var proj = Math.round(m.today + m.val);
+                      var diff = proj - m.goal;
+                      var over = diff > 0;
+                      var col = over ? "#c87e7e" : Math.abs(diff) < m.goal*0.1 ? "#7ec87e" : "var(--text2)";
+                      var diffStr = over
+                        ? ("+" + diff + m.unit + " " + (lang==='en'?"over":"acima"))
+                        : (Math.abs(diff) + m.unit + " " + (lang==='en'?"to go":"restam"));
+                      return React.createElement("span", { key:m.label, style: { fontSize:11, color:col } },
+                        React.createElement("b", null, m.label + ": " + proj + m.unit),
+                        " (", diffStr, ")"
+                      );
+                    })
+                  )
+                )
+              );
+            })()
+          ),
+          r.items.map(function(item, ii){
+            var qty = item.food.unit === 'un' ? item.gene : item.gene * 100;
+            return React.createElement("div", { key:ii, style: { color:"var(--text2)", fontSize:12, padding:"2px 0" } },
+              "\u2022 " + item.food.name + ": " + qty + (item.food.unit==='un' ? ' un' : 'g')
+            );
+          }),
+          React.createElement("button", {
+            onClick: function(){ addGAResultToDiary(r); },
+            style: Object.assign({}, btn, {
+              width:"100%", marginTop:8, fontSize:12,
+              background:"var(--accent)", border:"1px solid var(--accent)", color:"#fff"
+            })
+          }, lang==='en' ? "\u2795 Add to diary" : "\u2795 Adicionar ao di\xe1rio")
+        );
+      })
+    ),
+
+    /* Sem resultados após rodar */
+    !gaRunning && gaResults.length === 0 && gaProgress === 100 && React.createElement("p", {
+      style: { color:"var(--text2)", fontSize:12, textAlign:"center" }
+    }, lang==='en' ? "No combinations found. Try adjusting tolerance or max units." : "Nenhuma combina\xe7\xe3o encontrada. Tente aumentar a toler\xe2ncia ou o m\xe1x. de unidades.")
+  )
+));
 }
 const inp = {
   width: "100%",
@@ -6982,9 +7622,7 @@ function App() {
       .catch(() => { clearTimeout(timeout); fbSignOut(); setAuthed(false); setChecking(false); });
   }, []);
 
-  React.useEffect(() => {
-    if (authed && !localStorage.getItem('groq_key')) setShowSettings(true);
-  }, [authed]);
+  // Removed: was auto-opening settings on every login
 
   // Show loading indicator while checking auth
   if (checking) return React.createElement('div', {style:{
@@ -7015,7 +7653,9 @@ function App() {
 
 const _root = ReactDOM.createRoot(document.getElementById('root'));
 _root.render(React.createElement(App));
-document.getElementById('loading').style.display = 'none';
+var _ldg = document.getElementById('loading');
+if (_ldg) _ldg.style.display = 'none';
+
 
   </script>
 </body>
