@@ -34,7 +34,20 @@
     input[type=date]{color-scheme:dark}
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes pulse{0%,100%{opacity:0.5}50%{opacity:1}}
-  </style>
+  
+    [data-tutorial-active] {
+      outline: 2px solid #7ec87e !important;
+      outline-offset: 3px;
+      border-radius: 6px;
+      animation: tutorialPulse 1.2s ease-in-out infinite;
+      position: relative;
+      z-index: 100002;
+    }
+    @keyframes tutorialPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(126,200,126,0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(126,200,126,0); }
+    }
+</style>
 </head>
 <body>
   <div id="loading">
@@ -804,7 +817,7 @@ const STRINGS = {
     bmi: "BMI",
     // Goals
     proteinGoal: "protein",
-    kcalGoal: "kcalUnit",
+    kcalGoal: "kcal",
     // Diary
     noRecords: "No records for this day.",
     noFood: "No foods logged.",
@@ -884,7 +897,7 @@ const STRINGS = {
     notesTitle: "Day notes",
     // History banner
     proteinUnit: "g protein",
-    kcalUnit: "kcalUnit",
+    kcalUnit: "kcal",
     // Week charts
     proteinChart: "Protein (g) — 7 days",
     kcalChart: "Calories — 7 days",
@@ -1315,6 +1328,7 @@ function Bar({
 function NutritionTracker({
   onOpenSettings,
   onLogout,
+  onStartTutorial,
   externalLang,
   externalDarkMode
 }) {
@@ -3192,7 +3206,7 @@ function NutritionTracker({
       cursor: "pointer",
       lineHeight: 1
     }
-  }, "\u2699"), menuOpen && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  , "data-tutorial": "menu-settings"}, "\u2699"), menuOpen && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     onClick: () => setMenuOpen(false),
     style: {
       position: "fixed",
@@ -3279,6 +3293,19 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83D\uDD11"),
     /*#__PURE__*/React.createElement("span", null, lang === "en" ? "API Key" : "Chave API Groq")
+  ), /*#__PURE__*/React.createElement("div", {
+    style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
+  }), onStartTutorial && /*#__PURE__*/React.createElement("button", {
+    onClick: () => { onStartTutorial(); setMenuOpen(false); },
+    style: {
+      display: "flex", alignItems: "center", gap: 10,
+      width: "100%", background: "none", border: "none",
+      color: "var(--text2)", padding: "10px 12px",
+      borderRadius: 6, fontSize: 12, cursor: "pointer",
+      textAlign: "left", fontFamily: "inherit"
+    }
+  }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83C\uDF93"),
+    /*#__PURE__*/React.createElement("span", null, lang === "en" ? "Redo tutorial" : "Refazer tutorial")
   ), /*#__PURE__*/React.createElement("div", {
     style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
   }), onLogout && /*#__PURE__*/React.createElement("button", {
@@ -3554,6 +3581,7 @@ function NutritionTracker({
       marginTop: 10
     }
   }, [["diario", t('tabDiary')], ["adicionar", "+"], ["despensa", t('tabPantry')], ["semana", t('tabWeek')], ["metricas", t('tabMetrics')]].map(([t, label]) => /*#__PURE__*/React.createElement("button", {
+    "data-tutorial": "tab-" + t,
     key: t,
     onClick: () => setTab(t),
     style: {
@@ -7315,6 +7343,243 @@ function sBtnLbl(bg, border, color) {
 }
 
 // ── Login / Register Screen ───────────────────────────────────
+
+// ── Tutorial Overlay ──────────────────────────────────────────
+function TutorialOverlay({ lang, onDone }) {
+  const isPt = lang === 'pt';
+  const [step, setStep] = React.useState(0);
+
+  const steps = isPt ? [
+    {
+      title: 'Bem-vindo ao Diário Nutricional! 👋',
+      text: 'Este é o teu diário pessoal de nutrição. Vamos fazer um tour rápido para te mostrar as principais funcionalidades.',
+      icon: '🥗',
+      position: 'center'
+    },
+    {
+      title: 'Aba Diário',
+      text: 'Aqui vês o teu consumo do dia: proteínas, calorias e outros nutrientes. O botão "Sugerir o que comer" usa um algoritmo genético para sugerir refeições com base nos teus alimentos disponíveis.',
+      icon: '📋',
+      position: 'bottom',
+      highlight: 'tab-diario'
+    },
+    {
+      title: 'Aba + (Adicionar)',
+      text: 'Clica aqui para registar o que comeste. Podes pesquisar alimentos, usar templates de refeições ou importar da despensa.',
+      icon: '➕',
+      position: 'bottom',
+      highlight: 'tab-adicionar'
+    },
+    {
+      title: 'Despensa',
+      text: 'Guarda aqui os alimentos que tens disponíveis em casa. O algoritmo de sugestões usa estes alimentos para criar refeições equilibradas.',
+      icon: '🏪',
+      position: 'bottom',
+      highlight: 'tab-despensa'
+    },
+    {
+      title: 'Aba Semana',
+      text: 'Vê o teu histórico semanal de nutrição, compara dias e exporta os teus dados.',
+      icon: '📅',
+      position: 'bottom',
+      highlight: 'tab-semana'
+    },
+    {
+      title: 'Métricas',
+      text: 'Regista o teu peso, altura e define as tuas metas nutricionais personalizadas. O IMC é calculado automaticamente.',
+      icon: '📊',
+      position: 'bottom',
+      highlight: 'tab-metricas'
+    },
+    {
+      title: 'Configurações ⚙',
+      text: 'No menu de configurações podes mudar o idioma, o tema, configurar a chave API Groq para análises com IA, e refazer este tutorial quando quiseres.',
+      icon: '⚙️',
+      position: 'top-right',
+      highlight: 'menu-settings'
+    },
+    {
+      title: 'Tudo pronto! 🎉',
+      text: 'Já conheces o essencial. Começa por adicionar os teus alimentos na Despensa, define as tuas metas nas Métricas, e depois usa o diário para acompanhar a tua nutrição diária.',
+      icon: '🚀',
+      position: 'center'
+    }
+  ] : [
+    {
+      title: 'Welcome to Nutrition Diary! 👋',
+      text: "This is your personal nutrition diary. Let's take a quick tour of the main features.",
+      icon: '🥗',
+      position: 'center'
+    },
+    {
+      title: 'Diary Tab',
+      text: 'Here you see your daily intake: protein, calories and other nutrients. The "Suggest what to eat" button uses a genetic algorithm to suggest meals based on your available foods.',
+      icon: '📋',
+      position: 'bottom',
+      highlight: 'tab-diario'
+    },
+    {
+      title: '+ Tab (Add food)',
+      text: "Click here to log what you've eaten. You can search for foods, use meal templates or import from your pantry.",
+      icon: '➕',
+      position: 'bottom',
+      highlight: 'tab-adicionar'
+    },
+    {
+      title: 'Pantry',
+      text: 'Store your available foods here. The suggestion algorithm uses these foods to create balanced meals.',
+      icon: '🏪',
+      position: 'bottom',
+      highlight: 'tab-despensa'
+    },
+    {
+      title: 'Week Tab',
+      text: 'View your weekly nutrition history, compare days and export your data.',
+      icon: '📅',
+      position: 'bottom',
+      highlight: 'tab-semana'
+    },
+    {
+      title: 'Metrics',
+      text: 'Log your weight, height and set your personalized nutrition goals. BMI is calculated automatically.',
+      icon: '📊',
+      position: 'bottom',
+      highlight: 'tab-metricas'
+    },
+    {
+      title: 'Settings ⚙',
+      text: 'In the settings menu you can change language, theme, configure the Groq API key for AI analysis, and redo this tutorial anytime.',
+      icon: '⚙️',
+      position: 'top-right',
+      highlight: 'menu-settings'
+    },
+    {
+      title: "All set! 🎉",
+      text: 'You know the essentials. Start by adding your foods to the Pantry, set your goals in Metrics, then use the diary to track your daily nutrition.',
+      icon: '🚀',
+      position: 'center'
+    }
+  ];
+
+  const current = steps[step];
+  const isLast = step === steps.length - 1;
+  const isFirst = step === 0;
+
+  // Highlight element by data-tutorial attribute
+  React.useEffect(() => {
+    if (current.highlight) {
+      const el = document.querySelector('[data-tutorial="' + current.highlight + '"]');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        el.setAttribute('data-tutorial-active', 'true');
+      }
+    }
+    return () => {
+      document.querySelectorAll('[data-tutorial-active]').forEach(el => {
+        el.removeAttribute('data-tutorial-active');
+      });
+    };
+  }, [step]);
+
+  const boxStyle = {
+    position: 'fixed',
+    zIndex: 100001,
+    background: 'var(--card, #1a1a1a)',
+    border: '1px solid var(--accent, #7ec87e)',
+    borderRadius: 16,
+    padding: '24px 24px 20px',
+    maxWidth: 340,
+    width: 'calc(100% - 48px)',
+    boxShadow: '0 12px 48px rgba(0,0,0,0.7)',
+  };
+
+  // Position logic
+  const pos = current.position || 'center';
+  const posStyle = pos === 'center'
+    ? { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }
+    : pos === 'bottom'
+    ? { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }
+    : pos === 'top-right'
+    ? { top: 70, right: 16, left: 'auto', transform: 'none' }
+    : { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' };
+
+  return React.createElement(React.Fragment, null,
+    // Backdrop — intercepts all clicks so tabs/buttons can't be triggered
+    React.createElement('div', {
+      style: {
+        position: 'fixed', inset: 0, zIndex: 100000,
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(2px)'
+      },
+      onClick: e => e.stopPropagation(),
+      onMouseDown: e => e.stopPropagation(),
+      onPointerDown: e => e.stopPropagation()
+    }),
+    // Tooltip box
+    React.createElement('div', { style: { ...boxStyle, ...posStyle } },
+      // Step indicator
+      React.createElement('div', { style: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 } },
+        React.createElement('div', { style: { display:'flex', gap:5 } },
+          steps.map((_, i) => React.createElement('div', {
+            key: i,
+            style: {
+              width: i === step ? 18 : 6, height: 6,
+              borderRadius: 3,
+              background: i === step ? 'var(--accent, #7ec87e)' : 'var(--border2, #333)',
+              transition: 'all 0.3s'
+            }
+          }))
+        ),
+        React.createElement('button', {
+          onClick: onDone,
+          style: {
+            background: 'none', border: 'none', color: 'var(--muted, #666)',
+            fontSize: 11, letterSpacing: 1, textTransform: 'uppercase',
+            cursor: 'pointer', fontFamily: 'inherit', padding: '2px 6px'
+          }
+        }, isPt ? 'Pular' : 'Skip')
+      ),
+      // Icon + title
+      React.createElement('div', { style: { display:'flex', alignItems:'center', gap:10, marginBottom:10 } },
+        React.createElement('span', { style: { fontSize: 28 } }, current.icon),
+        React.createElement('h3', { style: {
+          margin: 0, fontSize: 14, color: 'var(--text1, #fff)',
+          fontWeight: 600, lineHeight: 1.3
+        }}, current.title)
+      ),
+      // Text
+      React.createElement('p', { style: {
+        margin: '0 0 20px', fontSize: 13, color: 'var(--text2, #aaa)',
+        lineHeight: 1.6
+      }}, current.text),
+      // Buttons
+      React.createElement('div', { style: { display:'flex', gap:8 } },
+        !isFirst && React.createElement('button', {
+          onClick: () => setStep(s => s - 1),
+          style: {
+            flex: 1, padding: '10px', borderRadius: 8,
+            background: 'none', border: '1px solid var(--border2, #333)',
+            color: 'var(--text2, #aaa)', fontSize: 12, cursor: 'pointer',
+            fontFamily: 'inherit', letterSpacing: 1
+          }
+        }, isPt ? '← Anterior' : '← Back'),
+        React.createElement('button', {
+          onClick: isLast ? onDone : () => setStep(s => s + 1),
+          style: {
+            flex: isFirst ? 2 : 1, padding: '10px', borderRadius: 8,
+            background: 'var(--accent, #7ec87e)',
+            border: '1px solid var(--accent, #7ec87e)',
+            color: '#111', fontSize: 12, cursor: 'pointer',
+            fontFamily: 'inherit', fontWeight: 600, letterSpacing: 1
+          }
+        }, isLast
+          ? (isPt ? 'Começar! 🚀' : 'Start! 🚀')
+          : (isPt ? 'Próximo →' : 'Next →'))
+      )
+    )
+  );
+}
+
 function LoginScreen({onLogin}) {
   const [mode, setMode]           = React.useState('login');
   const [email, setEmail]         = React.useState('');
@@ -7323,6 +7588,8 @@ function LoginScreen({onLogin}) {
   const [error, setError]         = React.useState('');
   const [loading, setLoading]     = React.useState(false);
   const [loginLang, setLoginLang] = React.useState(() => localStorage.getItem('appLang') || 'pt');
+  const [regWeight, setRegWeight] = React.useState('');
+  const [regHeight, setRegHeight] = React.useState('');
   function toggleLoginLang() { const nl = loginLang==='pt'?'en':'pt'; localStorage.setItem('appLang',nl); setLoginLang(nl); }
   const S = loginLang==='pt'
     ? {title:'Diário Nutricional', login:'Entrar', register:'Criar conta',
@@ -7367,9 +7634,22 @@ function LoginScreen({onLogin}) {
     if (mode === 'register' && password.length < 6)   { setError(S.errShort); return; }
     setLoading(true);
     try {
-      if (mode === 'login') await fbSignIn(email, password);
-      else                  await fbSignUp(email, password);
-      onLogin();
+      if (mode === 'login') {
+        await fbSignIn(email, password);
+        onLogin(false);
+      } else {
+        await fbSignUp(email, password);
+        // Save initial weight/height if provided
+        const today = new Date().toISOString().split('T')[0];
+        if (regWeight) {
+          const wh = [{date:today, weight:parseFloat(regWeight)}];
+          await fbSet('weightHistory', JSON.stringify(wh)).catch(()=>{});
+        }
+        if (regHeight) {
+          await fbSet('userHeight', regHeight).catch(()=>{});
+        }
+        onLogin(true); // true = new user, show tutorial
+      }
     } catch(err) { setError(friendlyError(err.message)); }
     setLoading(false);
   }
@@ -7422,9 +7702,23 @@ function LoginScreen({onLogin}) {
         mode === 'register' && React.createElement('input', {
           type:'password', value:password2, onChange:e=>setPassword2(e.target.value),
           placeholder:S.confirm, required:true,
-          style:{...inp, marginBottom: error?8:20},
+          style:{...inp, marginBottom:12},
           autoComplete:'new-password'
         }),
+        mode === 'register' && React.createElement('div', {style:{display:'flex',gap:8,marginBottom: error?8:20}},
+          React.createElement('input', {
+            type:'number', value:regWeight, onChange:e=>setRegWeight(e.target.value),
+            placeholder: loginLang==='pt' ? 'Peso (kg)' : 'Weight (kg)',
+            min:30, max:300, step:0.1,
+            style:{...inp, marginBottom:0, flex:1}
+          }),
+          React.createElement('input', {
+            type:'number', value:regHeight, onChange:e=>setRegHeight(e.target.value),
+            placeholder: loginLang==='pt' ? 'Altura (cm)' : 'Height (cm)',
+            min:100, max:250,
+            style:{...inp, marginBottom:0, flex:1}
+          })
+        ),
         error && React.createElement('div', {style:{
           color:'#c87e7e',fontSize:12,marginBottom:16,padding:'8px 12px',
           background:'rgba(200,80,80,0.1)',borderRadius:6,border:'1px solid rgba(200,80,80,0.2)'
@@ -7540,6 +7834,7 @@ function App() {
   const [authed,  setAuthed]    = React.useState(fbIsLoggedIn());
   const [checking,setChecking]  = React.useState(fbIsLoggedIn());
   const [showSettings,setShowSettings] = React.useState(false);
+  const [showTutorial,setShowTutorial] = React.useState(false);
   const [lang, setLang]         = React.useState(()=>localStorage.getItem('appLang')||'pt');
   const [darkMode, setDarkMode] = React.useState(true);
 
@@ -7565,16 +7860,33 @@ function App() {
     React.createElement('div', {style:{fontSize:30,color:'#7ec87e',display:'inline-block',animation:'spin 1.2s linear infinite'}}, '↻'),
     React.createElement('div', null, lang==='en'?'Signing in...':'A entrar...')
   );
-  if (!authed) return React.createElement(LoginScreen, {onLogin: () => setAuthed(true)});
+  if (!authed) return React.createElement(LoginScreen, {onLogin: (isNew) => {
+    setAuthed(true);
+    if (isNew) setShowTutorial(true);
+    else {
+      // Check if existing user has seen tutorial
+      storage.get('tutorialSeen').then(r => {
+        if (!r || !r.value) setShowTutorial(true);
+      }).catch(()=>{});
+    }
+  }});
 
   return React.createElement(ErrorBoundary, null,
     React.createElement(React.Fragment, null,
       React.createElement(NutritionTracker, {
         onOpenSettings: () => setShowSettings(true),
         onLogout: () => { setAuthed(false); },
+        onStartTutorial: () => setShowTutorial(true),
         externalLang: lang,
         externalDarkMode: darkMode,
       }),
+      showTutorial ? React.createElement(TutorialOverlay, {
+        lang,
+        onDone: () => {
+          storage.set('tutorialSeen', 'true').catch(()=>{});
+          setShowTutorial(false);
+        }
+      }) : null,
       showSettings ? React.createElement(SettingsPanel, {
         onClose:  () => setShowSettings(false),
         onLogout: () => { setAuthed(false); setShowSettings(false); },
