@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icone.png"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%;background:#111;color:#e8e0d5;font-family:system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
+    html,body{height:100%;background:#f2f1ed;color:#252220;font-family:system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
     #root{min-height:100vh}
     :root {
       --bg:#111; --surface:#161616; --surface3:#141414; --input:#1e1e1e;
@@ -28,9 +28,9 @@
       --tab-active:#191919; --tab-text-active:#c9bfb0;
     }
     body { background: var(--bg); color: var(--text); }
-    #loading{position:fixed;inset:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#555;font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000}
-    select option{background:#1a1a1a;color:#d5cfc8}
-    ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#111}::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+    #loading{position:fixed;inset:0;background:var(--bg,#f2f1ed);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#888;font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000}
+    select option{background:var(--input,#f5f3ef);color:var(--text,#252220)}
+    ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg,#f2f1ed)}::-webkit-scrollbar-thumb{background:var(--border2,#b8b4ac);border-radius:2px}
     input[type=date]{color-scheme:dark}
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes pulse{0%,100%{opacity:0.5}50%{opacity:1}}
@@ -738,7 +738,7 @@ const STRINGS = {
     exportWeek: "↓ Exportar semana",
     importMeals: "↑ Importar refeições",
     importDay: "↑ Importar dia",
-    backupTitle: "backupTitle",
+    backupTitle: "Backup",
     backupDesc: "Exporta ou importa TODOS os dados: despensa, registos diários, peso, água, suplementos.",
     exportBackup: "↓ Exportar backup",
     exportingBackup: "exportingBackup",
@@ -1425,7 +1425,7 @@ function NutritionTracker({
     label: t(f.labelKey)
   }));
   const ALL_FIELDS = [...MACRO_FIELDS, ...MICRO_FIELDS]; // labeled version for render
-  const [darkMode, setDarkMode] = useState(() => externalDarkMode !== undefined ? externalDarkMode : true);
+  const [darkMode, setDarkMode] = useState(() => externalDarkMode !== undefined ? externalDarkMode : false);
   // Sync external darkMode changes
   useEffect(() => {
     if (externalDarkMode !== undefined) setDarkMode(externalDarkMode);
@@ -3137,6 +3137,7 @@ function NutritionTracker({
     "--bg": "#f2f1ed",
     "--surface": "#ffffff",
     "--surface3": "#f0eeea",
+    "--card": "#ffffff",
     "--input": "#f5f3ef",
     "--track": "#dedad4",
     "--row": "#f8f7f3",
@@ -3145,16 +3146,45 @@ function NutritionTracker({
     "--border3": "#d8d4cc",
     "--border-info": "#c8c8e0",
     "--text": "#252220",
+    "--text1": "#252220",
     "--text2": "#2e2b28",
     "--text3": "#3a3733",
     "--muted": "#6a6662",
     "--muted2": "#7a7672",
     "--dim": "#8a8680",
     "--faint": "#aaa8a0",
+    "--accent": "#4a9a4a",
     "--btn-ok": "#e8f4e8",
+    "--btn-ok-border": "#a8cfa8",
+    "--btn-ok-text": "#2a6a2a",
     "--btn-info": "#e8eaf4",
+    "--btn-info-border": "#a8aed0",
+    "--btn-info-text": "#3a4a8a",
     "--btn-warn": "#f4e8e8",
-    "--btn-teal": "#e8f4f4"
+    "--btn-warn-border": "#d0a8a8",
+    "--btn-warn-text": "#8a2a2a",
+    "--btn-teal": "#e8f4f4",
+    "--btn-teal-border": "#a8cece",
+    "--btn-teal-text": "#2a6a6a",
+    "--btn-inactive": "#ede9e3",
+    "--btn-inactive-border": "#ccc8c0",
+    "--tab-active": "#ffffff",
+    "--toggle-train-bg": "#e8f4e8",
+    "--toggle-train-border": "#a8cfa8",
+    "--toggle-train-text": "#2a6a2a",
+    "--toggle-rest-bg": "#e8eaf4",
+    "--toggle-rest-border": "#a8aed0",
+    "--toggle-rest-text": "#3a4a8a",
+    "--notif-ok-bg": "#e8f4e8",
+    "--notif-ok-border": "#a8cfa8",
+    "--notif-ok-text": "#2a6a2a",
+    "--notif-err-bg": "#f4e8e8",
+    "--notif-err-border": "#d0a8a8",
+    "--notif-err-text": "#8a2a2a",
+    "--chart-bg": "#ede9e3",
+    "--chart-tick": "#888",
+    "--chart-border": "#ccc8c0",
+    "--chart-label": "#666"
   };
   const CT = {
     bg: darkMode ? "#1a1a1a" : "#ffffff",
@@ -3165,7 +3195,7 @@ function NutritionTracker({
   if (!loaded) return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: "100vh",
-      background: "#111",
+      background: "var(--bg)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
@@ -3186,7 +3216,7 @@ function NutritionTracker({
   }, t('loading')));
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#111",
+      background: "var(--bg)",
       color: "#ffffff",
       fontFamily: "system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",
       paddingBottom: 60,
@@ -3393,23 +3423,44 @@ function NutritionTracker({
       fontSize: 11,
       color: "var(--muted)"
     }
-  }, t('dayOf')), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setTrainingByDate(t => ({
-      ...t,
-      [viewDate]: !isTraining
-    })),
+  }, t('dayOf')),
+  /*#__PURE__*/React.createElement("button", {
+    onClick: () => setTrainingByDate(prev => ({ ...prev, [viewDate]: !isTraining })),
     style: {
-      background: isTraining ? darkMode ? "#1e2e1e" : "#c8eec8" : darkMode ? "#1e1e2e" : "#c8c8ee",
-      border: `1px solid ${isTraining ? darkMode ? "#3a6a3a" : "#5a9a5a" : darkMode ? "#3a3a6a" : "#5a5a9a"}`,
-      color: isTraining ? darkMode ? "#7ec87e" : "#1a4a1a" : darkMode ? "#7e7ec8" : "#28288a",
-      borderRadius: 20,
-      padding: "4px 14px",
-      fontSize: 11,
-      fontWeight: "600",
-      cursor: "pointer",
-      letterSpacing: 1
+      display: "flex", alignItems: "center", gap: 6,
+      background: "none", border: "none", cursor: "pointer",
+      padding: 0, fontFamily: "inherit"
     }
-  }, isTraining ? t('trainDay') : t('restDay')), currentWeight && /*#__PURE__*/React.createElement("span", {
+  },
+    /* Track — One UI style */
+    /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 52, height: 28, borderRadius: 14,
+        background: isTraining ? "var(--toggle-train-border)" : "var(--toggle-rest-border)",
+        position: "relative", transition: "background 0.2s", flexShrink: 0,
+        boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.08)"
+      }
+    },
+      /* Thumb — One UI: grande, quase enche o track */
+      /*#__PURE__*/React.createElement("div", {
+        style: {
+          position: "absolute", top: 3,
+          left: isTraining ? 27 : 3,
+          width: 22, height: 22, borderRadius: 11,
+          background: "#ffffff",
+          transition: "left 0.2s cubic-bezier(0.4,0,0.2,1)",
+          boxShadow: "none"
+        }
+      })
+    ),
+    /* Label */
+    /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11, fontWeight: 600, letterSpacing: 1,
+        color: isTraining ? "var(--toggle-train-text)" : "var(--toggle-rest-text)"
+      }
+    }, isTraining ? t('trainDay') : t('restDay'))
+  ), currentWeight && /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
       color: "var(--muted)",
@@ -4402,9 +4453,9 @@ function NutritionTracker({
     disabled: backupLoading,
     style: {
       flex: 1,
-      background: "#1a2a1a",
-      border: "1px solid #3a5a3a",
-      color: "#7ec87e",
+      background: "var(--btn-ok)",
+      border: "1px solid var(--btn-ok-border)",
+      color: "var(--btn-ok-text)",
       borderRadius: 6,
       padding: "10px",
       fontSize: 11,
@@ -4415,9 +4466,9 @@ function NutritionTracker({
   }, backupLoading ? t('exportingBackup') : t('exportBackup')), /*#__PURE__*/React.createElement("label", {
     style: {
       flex: 1,
-      background: "#1a1a2a",
-      border: "1px solid #3a3a5a",
-      color: "#8e8ec8",
+      background: "var(--btn-info)",
+      border: "1px solid var(--btn-info-border)",
+      color: "var(--btn-info-text)",
       borderRadius: 6,
       padding: "10px",
       fontSize: 11,
@@ -7430,7 +7481,7 @@ function VerifyEmailScreen({ email, name, lang, onVerified, onBack }) {
   },
     React.createElement('div', {
       style: {
-        background:'var(--card,#1a1a1a)', borderRadius:20, padding:'36px 28px',
+        background:'var(--surface,#fff)', borderRadius:20, padding:'36px 28px',
         width:'100%', maxWidth:420, textAlign:'center',
         boxShadow:'0 8px 40px rgba(0,0,0,0.5)',
         border:'1px solid var(--border2,#333)'
@@ -7533,7 +7584,7 @@ function PrivacyPanel({ lang, onClose, onLogout }) {
     display:'flex', alignItems:'center', justifyContent:'center', padding:16
   };
   const box = {
-    background:'var(--card)', borderRadius:16, padding:'24px',
+    background:'var(--surface)', borderRadius:16, padding:'24px',
     width:'100%', maxWidth:420,
     boxShadow:'0 8px 40px rgba(0,0,0,0.6)',
     border:'1px solid var(--border2)',
@@ -7949,6 +8000,17 @@ function LoginScreen({onLogin, onPendingVerification}) {
   const [regWeight, setRegWeight] = React.useState('');
   const [regHeight, setRegHeight] = React.useState('');
   const [regName,   setRegName]   = React.useState('');
+  const [loginDark, setLoginDark] = React.useState(() => {
+    const saved = localStorage.getItem('appDarkMode');
+    return saved !== null ? saved === 'true' : false;
+  });
+  function toggleLoginDark() {
+    setLoginDark(d => {
+      const next = !d;
+      localStorage.setItem('appDarkMode', String(next));
+      return next;
+    });
+  }
   function toggleLoginLang() { const nl = loginLang==='pt'?'en':'pt'; localStorage.setItem('appLang',nl); setLoginLang(nl); }
   const S = loginLang==='pt'
     ? {title:'Diário Nutricional', login:'Entrar', register:'Criar conta',
@@ -8024,35 +8086,55 @@ function LoginScreen({onLogin, onPendingVerification}) {
 
   function switchMode(m) { setMode(m); setError(''); setPassword(''); setPassword2(''); }
 
-  const inp = {width:'100%',background:'#1a1a1a',border:'1px solid #333',color:'#c9bfb0',
+  const inp = {width:'100%',background:'var(--input)',border:'1px solid var(--border2)',color:'var(--text)',
     padding:'12px 14px',borderRadius:8,fontSize:15,fontFamily:'inherit',
     boxSizing:'border-box',outline:'none',marginBottom:12};
 
   const tabStyle = (active) => ({
     flex:1, padding:'10px', background:'none', border:'none',
-    borderBottom: active ? '2px solid #7ec87e' : '2px solid #2a2a2a',
-    color: active ? '#7ec87e' : '#555', fontSize:11, letterSpacing:2,
+    borderBottom: active ? '2px solid var(--btn-ok-text,#4a9a4a)' : '2px solid var(--border2)',
+    color: active ? 'var(--btn-ok-text,#4a9a4a)' : 'var(--muted)', fontSize:11, letterSpacing:2,
     textTransform:'uppercase', cursor:'pointer', fontFamily:'inherit',
     transition:'all 0.2s'
   });
 
-  return React.createElement('div', {style:{
-    position:'fixed',inset:0,background:'#111',display:'flex',alignItems:'center',
-    justifyContent:'center',padding:24,zIndex:99999
-  }},
+  const loginTheme = loginDark ? {
+    '--bg':'#111','--surface':'#161616','--input':'#1e1e1e','--border2':'#2a2a2a',
+    '--text':'#e8e0d5','--text3':'#c9bfb0','--muted':'#8a8a8a',
+    '--btn-ok':'#1e2e1e','--btn-ok-border':'#3a5a3a','--btn-ok-text':'#7ec87e',
+    '--btn-info':'#1a1e2a','--btn-info-border':'#3a3a6a','--btn-info-text':'#8a9ec8',
+    '--btn-inactive':'#191919','--btn-warn-text':'#c87e7e'
+  } : {
+    '--bg':'#f2f1ed','--surface':'#ffffff','--input':'#f5f3ef','--border2':'#b8b4ac',
+    '--text':'#252220','--text3':'#3a3733','--muted':'#6a6662',
+    '--btn-ok':'#e8f4e8','--btn-ok-border':'#a8cfa8','--btn-ok-text':'#2a6a2a',
+    '--btn-info':'#e8eaf4','--btn-info-border':'#a8aed0','--btn-info-text':'#3a4a8a',
+    '--btn-inactive':'#ede9e3','--btn-warn-text':'#8a2a2a'
+  };
+
+  const loginVars = Object.assign(
+    {position:'fixed',inset:0,background:loginDark?'#111':'#f2f1ed',display:'flex',
+     alignItems:'center',justifyContent:'center',padding:24,zIndex:99999},
+    loginTheme
+  );
+  return React.createElement('div', {style: loginVars},
     React.createElement('div', {style:{width:'100%',maxWidth:360}},
-      React.createElement('div', {style:{display:'flex',justifyContent:'flex-end',marginBottom:16}},
+      React.createElement('div', {style:{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:16}},
+        React.createElement('button', {onClick:toggleLoginDark, style:{
+          background:'none',border:'1px solid var(--border2)',color:'var(--muted)',borderRadius:6,
+          padding:'5px 10px',fontSize:13,cursor:'pointer',fontFamily:'inherit'
+        }}, loginDark ? '☀️' : '🌙'),
         React.createElement('button', {onClick:toggleLoginLang, style:{
-          background:'none',border:'1px solid #333',color:'#555',borderRadius:6,
+          background:'none',border:'1px solid var(--border2)',color:'var(--muted)',borderRadius:6,
           padding:'5px 10px',fontSize:11,cursor:'pointer',fontFamily:'inherit'
         }}, S.langToggle)
       ),
       React.createElement('div', {style:{textAlign:'center',marginBottom:32}},
-        React.createElement('div', {style:{fontSize:11,letterSpacing:4,color:'#555',textTransform:'uppercase',marginBottom:6}}, S.title),
-        React.createElement('div', {style:{fontSize:22,color:'#c9bfb0',fontWeight:300}},
+        React.createElement('div', {style:{fontSize:11,letterSpacing:4,color:'var(--muted)',textTransform:'uppercase',marginBottom:6}}, S.title),
+        React.createElement('div', {style:{fontSize:22,color:'var(--text3)',fontWeight:300}},
           mode === 'login' ? S.login : S.register)
       ),
-      React.createElement('div', {style:{display:'flex',marginBottom:28,borderBottom:'2px solid #2a2a2a'}},
+      React.createElement('div', {style:{display:'flex',marginBottom:28,borderBottom:'2px solid var(--border2)'}},
         React.createElement('button', {onClick:()=>switchMode('login'),  style:tabStyle(mode==='login')},  S.tabLogin),
         React.createElement('button', {onClick:()=>switchMode('register'),style:tabStyle(mode==='register')}, S.tabRegister)
       ),
@@ -8100,9 +8182,9 @@ function LoginScreen({onLogin, onPendingVerification}) {
         React.createElement('button', {
           type:'submit', disabled:loading, style:{
             width:'100%',
-            background: loading?'#111': mode==='login'?'#1a3a1a':'#1a1a3a',
-            border:'1px solid ' + (mode==='login'?'#3a6a3a':'#3a3a6a'),
-            color: loading?'#555': mode==='login'?'#7ec87e':'#7e7ec8',
+            background: loading?'var(--btn-inactive)': mode==='login'?'var(--btn-ok)':'var(--btn-info)',
+            border:'1px solid ' + (mode==='login'?'var(--btn-ok-border)':'var(--btn-info-border)'),
+            color: loading?'var(--muted)': mode==='login'?'var(--btn-ok-text)':'var(--btn-info-text)',
             padding:'13px',borderRadius:8,fontSize:12,letterSpacing:2,
             textTransform:'uppercase',cursor:loading?'default':'pointer',
             fontFamily:'inherit',transition:'all 0.2s'
@@ -8134,14 +8216,14 @@ function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDar
 
   const rowBtn = (label, onClick, danger) => React.createElement('button', {onClick, style:{
     display:'block',width:'100%',background:'none',border:'none',
-    borderTop:'1px solid #1e1e1e',color:danger?'#c87070':'#b0aaa3',
+    borderTop:'1px solid var(--border2)',color:danger?'var(--btn-warn-text)':'var(--text2)',
     padding:'15px 20px',fontSize:14,cursor:'pointer',fontFamily:'inherit',textAlign:'left'
   }}, label);
-  const inp = {width:'100%',background:'#0f0f0f',border:'1px solid #2a2a2a',color:'#c9bfb0',
+  const inp = {width:'100%',background:'var(--surface)',border:'1px solid var(--border2)',color:'var(--text)',
     padding:'11px 12px',borderRadius:8,fontSize:13,boxSizing:'border-box',outline:'none',fontFamily:'inherit'};
 
   if (showKey) return React.createElement('div', {style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.94)',zIndex:10002,display:'flex',alignItems:'center',justifyContent:'center',padding:20}},
-    React.createElement('div', {style:{background:'#161616',borderRadius:14,width:'100%',maxWidth:400,padding:24,border:'1px solid #2a2a2a'}},
+    React.createElement('div', {style:{background:'var(--surface,#fff)',borderRadius:14,width:'100%',maxWidth:400,padding:24,border:'1px solid var(--border2)'}},
       React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}},
         React.createElement('span',{style:{fontSize:11,letterSpacing:2,color:'#555',textTransform:'uppercase'}}, S.keyLabel),
         React.createElement('button',{onClick:()=>setShowKey(false),style:{background:'none',border:'none',color:'#444',fontSize:22,cursor:'pointer',lineHeight:1}},'×')
@@ -8159,7 +8241,7 @@ function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDar
   );
 
   return React.createElement('div', {onClick:onClose, style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,display:'flex',alignItems:'flex-end'}},
-    React.createElement('div', {onClick:e=>e.stopPropagation(), style:{background:'#161616',borderRadius:'18px 18px 0 0',width:'100%',paddingBottom:'env(safe-area-inset-bottom,20px)',overflow:'hidden',boxShadow:'0 -4px 40px rgba(0,0,0,0.6)'}},
+    React.createElement('div', {onClick:e=>e.stopPropagation(), style:{background:'var(--surface,#fff)',borderRadius:'18px 18px 0 0',width:'100%',paddingBottom:'env(safe-area-inset-bottom,20px)',overflow:'hidden',boxShadow:'0 -4px 40px rgba(0,0,0,0.6)'}},
       React.createElement('div',{style:{textAlign:'center',padding:'14px 0 4px',cursor:'pointer'},onClick:onClose},
         React.createElement('div',{style:{width:32,height:4,background:'#2e2e2e',borderRadius:2,margin:'0 auto'}})
       ),
@@ -8182,7 +8264,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.error) {
       return React.createElement('div', {style:{
-        position:'fixed',top:0,left:0,right:0,bottom:0,background:'#0f0f0f',
+        position:'fixed',top:0,left:0,right:0,bottom:0,background:'var(--surface)',
         display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
         gap:12,padding:20,textAlign:'center'
       }},
@@ -8212,10 +8294,13 @@ function App() {
   const [pendingName,  setPendingName]  = React.useState('');
   const [appLang, setAppLang] = React.useState(() => localStorage.getItem('appLang') || 'pt');
   const [lang, setLang]         = React.useState(()=>localStorage.getItem('appLang')||'pt');
-  const [darkMode, setDarkMode] = React.useState(true);
+  const [darkMode, setDarkMode] = React.useState(() => {
+    const saved = localStorage.getItem('appDarkMode');
+    return saved !== null ? saved === 'true' : false; // padrão: modo claro
+  });
 
   function toggleLang() { const nl=lang==='pt'?'en':'pt'; localStorage.setItem('appLang',nl); setLang(nl); }
-  function toggleDark() { setDarkMode(d=>!d); }
+  function toggleDark() { setDarkMode(d => { const next = !d; localStorage.setItem('appDarkMode', String(next)); return next; }); }
 
   React.useEffect(() => {
     if (!fbIsLoggedIn()) { setChecking(false); return; }
@@ -8229,7 +8314,7 @@ function App() {
 
   // Show loading indicator while checking auth
   if (checking) return React.createElement('div', {style:{
-    position:'fixed',top:0,left:0,right:0,bottom:0,background:'#0f0f0f',display:'flex',
+    position:'fixed',top:0,left:0,right:0,bottom:0,background:'var(--surface)',display:'flex',
     flexDirection:'column',alignItems:'center',justifyContent:'center',
     gap:16,color:'#aaa',fontSize:12,letterSpacing:3,textTransform:'uppercase'
   }},
