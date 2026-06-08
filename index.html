@@ -28,7 +28,8 @@
       --tab-active:#191919; --tab-text-active:#c9bfb0;
     }
     body { background: var(--bg); color: var(--text); }
-    #loading{position:fixed;inset:0;background:var(--bg,#f2f1ed);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#888;font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000}
+    #loading{position:fixed;inset:0;background:#f2f1ed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#888;font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000}
+    .dark-loading #loading{background:#111;color:#555;}
     select option{background:var(--input,#f5f3ef);color:var(--text,#252220)}
     ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg,#f2f1ed)}::-webkit-scrollbar-thumb{background:var(--border2,#b8b4ac);border-radius:2px}
     input[type=date]{color-scheme:dark}
@@ -60,6 +61,12 @@
   </div>
   <div id="root"></div>
   <script>
+  // Apply dark mode to loading screen immediately from localStorage
+  (function(){
+    if(localStorage.getItem('appDarkMode')==='true'){
+      document.documentElement.classList.add('dark-loading');
+    }
+  })();
   window.addEventListener('unhandledrejection',function(e){
   var el=document.getElementById('loading');
   var msg=e.reason&&e.reason.message?e.reason.message:String(e.reason);
@@ -733,7 +740,7 @@ const STRINGS = {
     suppPantryTitle: "Despensa de suplementos",
     suppEmpty: "Nenhum suplemento adicionado.",
     // Export/Import
-    exportImportTitle: "exportImportTitle",
+    exportImportTitle: "Exportar / Importar",
     exportDay: "↓ Exportar dia",
     exportWeek: "↓ Exportar semana",
     importMeals: "↑ Importar refeições",
@@ -1336,7 +1343,7 @@ function Bar({
     }
   }, sub ? "↳ " : "", label), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: over ? "#ff4d4d" : color
     }
   }, value % 1 === 0 ? value : value.toFixed(1), unit, /*#__PURE__*/React.createElement("span", {
@@ -1365,6 +1372,7 @@ function NutritionTracker({
   onLogout,
   onStartTutorial,
   onOpenPrivacy,
+  onOpenBackup,
   externalLang,
   externalDarkMode
 }) {
@@ -1436,6 +1444,8 @@ function NutritionTracker({
   const [trainingByDate, setTrainingByDate] = useState({});
   const [form, setForm] = useState(emptyFood());
   const [showMicroForm, setShowMicroForm] = useState(false);
+  const [notesOpen,    setNotesOpen]    = useState(false);
+  const [backupOpen,   setBackupOpen]   = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [addEntry, setAddEntry] = useState({
@@ -1587,6 +1597,10 @@ function NutritionTracker({
   useEffect(() => {
     if (loaded) scheduleSave("weightHistory", weightHistory);
   }, [weightHistory, loaded]);
+  // Update function refs on every render (data refs set later, after activeLog is declared)
+  window._exportFullBackup = exportFullBackup;
+  window._importFullBackup = importFullBackup;
+  window._exportAndDownload = exportAndDownload;
   useEffect(() => {
     if (loaded) scheduleSave("mealTemplates", mealTemplates);
   }, [mealTemplates, loaded]);
@@ -2553,6 +2567,12 @@ function NutritionTracker({
   const bmi = bmiNum ? bmiNum.toFixed(1) : null;
   const isToday = viewDate === TODAY;
   const activeLog = isToday ? log : historyLog;
+  // Update data refs now that all derived state is available
+  window._exportData = {
+    activeLog, log, TODAY, isTraining, goals, trainingByDate,
+    buildDayTotals, normalizeMealKeys, downloadFile, lang, notify,
+    weightHistory
+  };
   function setActiveLog(newLog) {
     if (isToday) {
       setLog(newLog);
@@ -2888,6 +2908,70 @@ function NutritionTracker({
     };
     reader.readAsText(file);
   }
+  // Export specific data types and download as .json
+  async function exportAndDownload(type) {
+    const isPt = lang !== 'en';
+    const today = TODAY;
+    try {
+      let data = {};
+      let filename = '';
+
+      if (type === 'all') {
+        // Full backup
+        const listed = await storage.list();
+        const allKeys = listed?.keys || [];
+        const staticKeys = ['pantry_v2','suppPantry','waterGoal','customGoals','mealTemplates','weightHistory','trainingByDate'];
+        const toFetch = [...new Set([...staticKeys, ...allKeys])];
+        for (let i = 0; i < toFetch.length; i += 20) {
+          await Promise.all(toFetch.slice(i,i+20).map(async k => {
+            try { const r = await storage.get(k); if (r?.value) data[k] = r.value; } catch(_){}
+          }));
+        }
+        filename = 'backup_completo_' + today + '.json';
+        downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),version:2,data},null,2), filename, 'application/json');
+
+      } else if (type === 'pantry') {
+        const r = await storage.get('pantry_v2');
+        data = {pantry_v2: r?.value || '[]'};
+        filename = 'despensa_' + today + '.json';
+        downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:'pantry',data},null,2), filename, 'application/json');
+
+      } else if (type === 'today') {
+        const entries = Object.values(activeLog).flat();
+        data = {date:today, isTraining, goals, meals:activeLog, totals:buildDayTotals(activeLog)};
+        filename = 'diario_' + today + '.json';
+        downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:'day',data},null,2), filename, 'application/json');
+
+      } else if (type === 'week' || type === 'month') {
+        const days_n = type === 'week' ? 7 : 30;
+        const days = [];
+        for (let i = days_n-1; i >= 0; i--) {
+          const d = new Date(); d.setDate(d.getDate()-i);
+          const date = d.toISOString().split('T')[0];
+          let dayLog = date === TODAY ? log : {};
+          if (date !== TODAY) {
+            const l = await storage.get('log_v2_'+date).catch(()=>null);
+            if (l) dayLog = normalizeMealKeys(JSON.parse(l.value));
+          }
+          days.push({date, isTraining:trainingByDate[date]??true, totals:buildDayTotals(dayLog), meals:dayLog});
+        }
+        filename = (type==='week'?'semana':'mes') + '_' + today + '.json';
+        downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type,days},null,2), filename, 'application/json');
+
+      } else if (type === 'weight') {
+        const whr = await storage.get('weightHistory').catch(()=>null);
+        const whData = whr?.value ? JSON.parse(whr.value) : weightHistory;
+        data = {weightHistory: whData};
+        filename = 'peso_' + today + '.json';
+        downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:'weight',data},null,2), filename, 'application/json');
+      }
+
+      notify(isPt ? '✓ Arquivo baixado!' : '✓ File downloaded!');
+    } catch(e) {
+      notify(isPt ? 'Erro ao exportar: '+e.message : 'Export error: '+e.message);
+    }
+  }
+
   async function exportFullBackup() {
     setBackupLoading(true);
     setBackupJson(null);
@@ -3210,8 +3294,8 @@ function NutritionTracker({
     }
   }, "\u27F3"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13,
-      letterSpacing: 2
+      fontSize: 14,
+      letterSpacing: 1
     }
   }, t('loading')));
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -3236,8 +3320,8 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 3,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 2
@@ -3265,7 +3349,7 @@ function NutritionTracker({
       color: syncing ? "var(--btn-ok-text)" : "var(--muted)",
       borderRadius: 6,
       padding: "6px 9px",
-      fontSize: 13,
+      fontSize: 14,
       cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement("span", {
@@ -3320,7 +3404,7 @@ function NutritionTracker({
       color: "var(--text2)",
       padding: "10px 12px",
       borderRadius: 6,
-      fontSize: 12,
+      fontSize: 14,
       cursor: "pointer",
       textAlign: "left",
       fontFamily: "inherit"
@@ -3350,7 +3434,7 @@ function NutritionTracker({
       color: "var(--text2)",
       padding: "10px 12px",
       borderRadius: 6,
-      fontSize: 12,
+      fontSize: 14,
       cursor: "pointer",
       textAlign: "left",
       fontFamily: "inherit"
@@ -3367,11 +3451,24 @@ function NutritionTracker({
       display: "flex", alignItems: "center", gap: 10,
       width: "100%", background: "none", border: "none",
       color: "var(--text2)", padding: "10px 12px",
-      borderRadius: 6, fontSize: 12, cursor: "pointer",
+      borderRadius: 6, fontSize: 14, cursor: "pointer",
       textAlign: "left", fontFamily: "inherit"
     }
   }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83D\uDD11"),
     /*#__PURE__*/React.createElement("span", null, lang === "en" ? "API Key" : "Chave API Groq")
+  ), /*#__PURE__*/React.createElement("div", {
+    style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
+  }), onOpenBackup && /*#__PURE__*/React.createElement("button", {
+    onClick: () => { onOpenBackup(); setMenuOpen(false); },
+    style: {
+      display: "flex", alignItems: "center", gap: 10,
+      width: "100%", background: "none", border: "none",
+      color: "var(--text2)", padding: "10px 12px",
+      borderRadius: 6, fontSize: 14, cursor: "pointer",
+      textAlign: "left", fontFamily: "inherit"
+    }
+  }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83D\uDCBE"),
+    /*#__PURE__*/React.createElement("span", null, lang === "en" ? "Backup & restore" : "Backup e restaurar")
   ), /*#__PURE__*/React.createElement("div", {
     style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
   }), onOpenPrivacy && /*#__PURE__*/React.createElement("button", {
@@ -3380,7 +3477,7 @@ function NutritionTracker({
       display: "flex", alignItems: "center", gap: 10,
       width: "100%", background: "none", border: "none",
       color: "var(--text2)", padding: "10px 12px",
-      borderRadius: 6, fontSize: 12, cursor: "pointer",
+      borderRadius: 6, fontSize: 14, cursor: "pointer",
       textAlign: "left", fontFamily: "inherit"
     }
   }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83D\uDD12"),
@@ -3393,7 +3490,7 @@ function NutritionTracker({
       display: "flex", alignItems: "center", gap: 10,
       width: "100%", background: "none", border: "none",
       color: "var(--text2)", padding: "10px 12px",
-      borderRadius: 6, fontSize: 12, cursor: "pointer",
+      borderRadius: 6, fontSize: 14, cursor: "pointer",
       textAlign: "left", fontFamily: "inherit"
     }
   }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83C\uDF93"),
@@ -3406,7 +3503,7 @@ function NutritionTracker({
       display: "flex", alignItems: "center", gap: 10,
       width: "100%", background: "none", border: "none",
       color: "#c87e7e", padding: "10px 12px",
-      borderRadius: 6, fontSize: 12, cursor: "pointer",
+      borderRadius: 6, fontSize: 14, cursor: "pointer",
       textAlign: "left", fontFamily: "inherit"
     }
   }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\u23FB"),
@@ -3420,7 +3517,7 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: "var(--muted)"
     }
   }, t('dayOf')),
@@ -3456,13 +3553,13 @@ function NutritionTracker({
     /* Label */
     /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 11, fontWeight: 600, letterSpacing: 1,
+        fontSize: 14, fontWeight: 600, letterSpacing: 1,
         color: isTraining ? "var(--toggle-train-text)" : "var(--toggle-rest-text)"
       }
     }, isTraining ? t('trainDay') : t('restDay'))
   ), currentWeight && /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: "var(--muted)",
       marginLeft: "auto"
     }
@@ -3523,12 +3620,12 @@ function NutritionTracker({
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14,
-      fontWeight: "bold",
+      fontWeight: 600,
       color: val > goal ? "#ff4d4d" : color
     }
   }, Math.round(val)), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 9,
+      fontSize: 14,
       color: "var(--dim)"
     }
   }, unit))), /*#__PURE__*/React.createElement("div", {
@@ -3537,14 +3634,14 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--muted)",
       letterSpacing: 1,
       textTransform: "uppercase"
     }
   }, label), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--faint)"
     }
   }, lang==='en'?'goal ':'meta ', goal, unit))))), isToday && (remainProtein > 0 || remainKcal > 0) && /*#__PURE__*/React.createElement("div", {
@@ -3557,7 +3654,7 @@ function NutritionTracker({
     style: {
       display: "flex",
       gap: 20,
-      fontSize: 11,
+      fontSize: 14,
       marginBottom: 6
     }
   }, remainProtein > 0 && /*#__PURE__*/React.createElement("span", {
@@ -3577,8 +3674,8 @@ function NutritionTracker({
       color: "var(--btn-ok-text)",
       padding: "7px",
       borderRadius: 6,
-      fontSize: 10,
-      letterSpacing: 1.5,
+      fontSize: 14,
+      letterSpacing: 1,
       textTransform: "uppercase",
       cursor: "pointer",
       fontFamily: "inherit"
@@ -3640,8 +3737,8 @@ function NutritionTracker({
       border: "none",
       color: "var(--muted)",
       padding: "8px 20px",
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       textTransform: "uppercase",
       cursor: "pointer",
       textAlign: "left",
@@ -3683,7 +3780,7 @@ function NutritionTracker({
         color: isErr ? "var(--notif-err-text)" : "var(--notif-ok-text)",
         padding: "7px 14px",
         borderRadius: 6,
-        fontSize: 12,
+        fontSize: 14,
         textAlign: "center"
       }
     }, notification);
@@ -3704,7 +3801,7 @@ function NutritionTracker({
       border: "none",
       borderBottom: tab === t ? "2px solid #c8a96e" : "2px solid transparent",
       color: tab === t ? "#c8a96e" : "#444",
-      fontSize: 9,
+      fontSize: 14,
       letterSpacing: 1,
       textTransform: "uppercase",
       cursor: "pointer"
@@ -3739,12 +3836,12 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13,
+      fontSize: 14,
       color: isToday ? "#c8a96e" : "#c9bfb0"
     }
   }, dateLabel(viewDate, lang)), !isToday && /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--muted)"
     }
   }, viewDate)), /*#__PURE__*/React.createElement("button", {
@@ -3767,7 +3864,7 @@ function NutritionTracker({
       style: {
         textAlign: "center",
         color: "var(--faint)",
-        fontSize: 12,
+        fontSize: 14,
         fontStyle: "italic",
         marginBottom: 12
       }
@@ -3808,8 +3905,8 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: darkMode ? "#3ab88a" : "#1a8a6a",
       textTransform: "uppercase"
     }
@@ -3821,17 +3918,17 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 12,
+      fontSize: 14,
       color: totalWater >= goals.water ? "#6ec8a9" : "#8ec8c8"
     }
   }, totalWater, "ml"), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--dim)"
     }
   }, "/ ", goals.water, "ml"), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 9,
+      fontSize: 14,
       color: "var(--faint)"
     }
   }, "(", viewWeight ? `${isTraining ? 40 : 35}ml/kg` : lang === 'en' ? 'default' : 'padrão', ")"), /*#__PURE__*/React.createElement("button", {
@@ -3891,7 +3988,7 @@ function NutritionTracker({
       color: "var(--btn-ok-text)",
       borderRadius: 6,
       padding: "6px 12px",
-      fontSize: 11,
+      fontSize: 14,
       cursor: "pointer"
     }
   }, "ok")), /*#__PURE__*/React.createElement("div", {
@@ -3910,7 +4007,7 @@ function NutritionTracker({
       color: darkMode ? "#3ab88a" : "#1a8a6a",
       borderRadius: 4,
       padding: "4px 10px",
-      fontSize: 11,
+      fontSize: 14,
       cursor: "pointer"
     }
   }, ml, "ml"))), /*#__PURE__*/React.createElement("div", {
@@ -3938,7 +4035,7 @@ function NutritionTracker({
       color: darkMode ? "#3ab88a" : "#1a8a6a",
       borderRadius: 6,
       padding: "6px 12px",
-      fontSize: 11,
+      fontSize: 14,
       cursor: "pointer"
     }
   }, "+")), waterIntake.length > 0 && /*#__PURE__*/React.createElement("div", {
@@ -3955,7 +4052,7 @@ function NutritionTracker({
       border: "1px solid var(--btn-teal-border)",
       borderRadius: 4,
       padding: "3px 8px",
-      fontSize: 10,
+      fontSize: 14,
       color: darkMode ? "#3ab88a" : "#1a8a6a",
       display: "flex",
       gap: 5,
@@ -3968,7 +4065,7 @@ function NutritionTracker({
       border: "none",
       color: "#3a6a6a",
       cursor: "pointer",
-      fontSize: 12,
+      fontSize: 14,
       padding: 0
     }
   }, "\xD7"))))), suppLog.length > 0 && /*#__PURE__*/React.createElement("div", {
@@ -3986,8 +4083,8 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted2)",
       textTransform: "uppercase"
     }
@@ -4007,13 +4104,13 @@ function NutritionTracker({
     }
   }, e.name), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: "var(--dim)",
       marginLeft: 8
     }
   }, e.dose, e.unit), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--faint)",
       marginLeft: 8
     }
@@ -4047,14 +4144,14 @@ function NutritionTracker({
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 11,
-        letterSpacing: 2,
+        fontSize: 14,
+        letterSpacing: 1,
         color: "var(--muted2)",
         textTransform: "uppercase"
       }
     }, meal), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 11,
+        fontSize: 14,
         color: "var(--dim)"
       }
     }, Math.round(mp), "g \xB7 ", Math.round(mk), " kcal")), entries.map(e => /*#__PURE__*/React.createElement("div", {
@@ -4091,7 +4188,7 @@ function NutritionTracker({
       autoFocus: true
     }), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 11,
+        fontSize: 14,
         color: "var(--muted)"
       }
     }, e.unit), /*#__PURE__*/React.createElement("button", {
@@ -4102,7 +4199,7 @@ function NutritionTracker({
         color: "var(--btn-ok-text)",
         borderRadius: 4,
         padding: "3px 8px",
-        fontSize: 11,
+        fontSize: 14,
         cursor: "pointer"
       }
     }, "\u2713"), /*#__PURE__*/React.createElement("button", {
@@ -4121,7 +4218,7 @@ function NutritionTracker({
       }
     }, e.name), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 11,
+        fontSize: 14,
         color: "var(--dim)",
         marginLeft: 8
       }
@@ -4133,16 +4230,16 @@ function NutritionTracker({
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12,
+        fontSize: 14,
         color: "#c8a96e"
       }
     }, Math.round(e.protein ?? 0), "g"), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12,
+        fontSize: 14,
         color: "#8ec8c8"
       }
     }, Math.round(e.kcal ?? 0), "kcal"), e.time ? /*#__PURE__*/React.createElement("span", {
-      style: {fontSize:10, color:"#7a9e7a", marginLeft:4, fontVariantNumeric:"tabular-nums"}
+      style: {fontSize:12, color:"#7a9e7a", marginLeft:4, fontVariantNumeric:"tabular-nums"}
     }, e.time) : null, /*#__PURE__*/React.createElement("button", {
       onClick: () => setDetailFood(detailFood === e.id ? null : e.id),
       style: {
@@ -4276,29 +4373,68 @@ function NutritionTracker({
     }, x.v % 1 === 0 ? x.v : x.v.toFixed(2), x.u)))))));
   }), allEntries.length === 0 && isToday && /*#__PURE__*/React.createElement("div", {
     style: {
-      textAlign: "center",
-      color: "var(--faint)",
-      fontSize: 13,
-      marginTop: 30,
-      fontStyle: "italic"
+      textAlign: "center", padding: "32px 16px 16px",
     }
-  }, "Nenhum alimento registado hoje."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 20
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, t('notesTitle')), /*#__PURE__*/React.createElement("textarea", {
-    value: isToday ? todayNote : historyNote,
-    onChange: e => isToday ? setTodayNote(e.target.value) : setHistoryNote(e.target.value),
-    placeholder: t('notesPlaceholder'),
-    style: {
-      ...inp,
-      height: 72,
-      resize: "vertical",
-      marginTop: 4
-    }
-  })), suppPantry.length > 0 && isToday && /*#__PURE__*/React.createElement("div", {
+  },
+    /*#__PURE__*/React.createElement("div", { style: { fontSize: 40, marginBottom: 12 } }, "\uD83C\uDF7D\uFE0F"),
+    /*#__PURE__*/React.createElement("p", { style: {
+      color: "var(--text2)", fontSize: 15, fontWeight: 500, margin: "0 0 6px"
+    } }, lang === 'en' ? "Nothing logged yet today" : "Nenhum alimento registrado hoje"),
+    /*#__PURE__*/React.createElement("p", { style: {
+      color: "var(--muted)", fontSize: 14, margin: "0 0 20px", lineHeight: 1.5
+    } }, lang === 'en'
+      ? "Tap + to add what you've eaten"
+      : "Toque em + para registrar o que você comeu"),
+    pantry.length === 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: "var(--btn-ok)", border: "1px solid var(--btn-ok-border)",
+        borderRadius: 12, padding: "14px 16px", marginBottom: 12, textAlign: "left"
+      }
+    },
+      /*#__PURE__*/React.createElement("p", { style: {
+        color: "var(--btn-ok-text)", fontSize: 14, margin: "0 0 10px", fontWeight: 500
+      } }, "\uD83D\uDCA1 " + (lang === 'en' ? "Tip: Start by adding foods to your Pantry" : "Dica: Comece adicionando alimentos à sua Despensa")),
+      /*#__PURE__*/React.createElement("button", {
+        onClick: () => setTab("despensa"),
+        style: {
+          background: "var(--btn-ok-text)", border: "none", color: "#fff",
+          borderRadius: 8, padding: "8px 16px", fontSize: 14,
+          cursor: "pointer", fontFamily: "inherit", fontWeight: 500
+        }
+      }, lang === 'en' ? "Go to Pantry \u2192" : "Ir para Despensa \u2192")
+    ),
+    /*#__PURE__*/React.createElement("button", {
+      onClick: () => setTab("adicionar"),
+      style: {
+        background: "var(--accent, #4a9a4a)", border: "none", color: "#fff",
+        borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 600,
+        cursor: "pointer", fontFamily: "inherit"
+      }
+    }, lang === 'en' ? "+ Add food" : "+ Adicionar alimento")
+  ), /*#__PURE__*/React.createElement("div", {
+    style: { marginTop: 20 }
+  },
+    /*#__PURE__*/React.createElement("button", {
+      onClick: () => setNotesOpen(o => !o),
+      style: {
+        width: "100%", background: "none", border: "none",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "6px 0", cursor: "pointer", fontFamily: "inherit"
+      }
+    },
+      /*#__PURE__*/React.createElement("span", { style: lbl }, t('notesTitle')),
+      /*#__PURE__*/React.createElement("span", {
+        style: { color: "var(--muted)", fontSize: 14, transition: "transform 0.2s",
+          display: "inline-block", transform: notesOpen ? "rotate(180deg)" : "rotate(0deg)" }
+      }, "▾")
+    ),
+    notesOpen && /*#__PURE__*/React.createElement("textarea", {
+      value: isToday ? todayNote : historyNote,
+      onChange: e => isToday ? setTodayNote(e.target.value) : setHistoryNote(e.target.value),
+      placeholder: t('notesPlaceholder'),
+      style: { ...inp, height: 72, resize: "vertical", marginTop: 4 }
+    })
+  ), suppPantry.length > 0 && isToday && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12
     }
@@ -4309,8 +4445,8 @@ function NutritionTracker({
       background: "var(--btn-info)",
       border: "1px solid var(--border-info)",
       color: "var(--btn-info-text)",
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       marginTop: 0
     }
   }, "\uD83D\uDC8A Registar suplemento"), showSuppAdd && /*#__PURE__*/React.createElement("div", {
@@ -4352,7 +4488,7 @@ function NutritionTracker({
       color: "var(--btn-ok-text)",
       borderRadius: 6,
       padding: "0 12px",
-      fontSize: 11,
+      fontSize: 14,
       cursor: "pointer"
     }
   }, "\u2713"))), /*#__PURE__*/React.createElement("div", {
@@ -4369,8 +4505,8 @@ function NutritionTracker({
       color: feedbackLoading && feedbackPeriod === "day" ? "#555" : "#c8a0e8",
       padding: "10px",
       borderRadius: 6,
-      fontSize: 11,
-      letterSpacing: 1.5,
+      fontSize: 14,
+      letterSpacing: 1,
       textTransform: "uppercase",
       cursor: "pointer",
       fontFamily: "inherit"
@@ -4385,15 +4521,15 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 10
     }
   }, "Feedback \u2014 ", viewDate), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12,
+      fontSize: 14,
       color: "var(--text3)",
       lineHeight: 1.7,
       whiteSpace: "pre-wrap"
@@ -4401,7 +4537,7 @@ function NutritionTracker({
   }, feedbackText), feedbackSaved ? /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10,
-      fontSize: 11,
+      fontSize: 14,
       color: "#3a6a3a",
       textAlign: "center",
       padding: "8px",
@@ -4417,12 +4553,12 @@ function NutritionTracker({
       background: "var(--btn-info)",
       border: "1px solid var(--btn-info-border)",
       color: "#7e9ec8",
-      fontSize: 10,
-      letterSpacing: 2
+      fontSize: 14,
+      letterSpacing: 1
     }
   }, "\uD83D\uDCBE Guardar nas notas")),
   
-  /*#__PURE__*/React.createElement("div", {
+  backupOpen && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 24,
       borderTop: "1px solid var(--border3)",
@@ -4430,15 +4566,15 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--dim)",
       textTransform: "uppercase",
       marginBottom: 10
     }
   }, t('backupTitle')), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: "var(--muted)",
       marginBottom: 10
     }
@@ -4458,7 +4594,7 @@ function NutritionTracker({
       color: "var(--btn-ok-text)",
       borderRadius: 6,
       padding: "10px",
-      fontSize: 11,
+      fontSize: 14,
       letterSpacing: 1,
       textTransform: "uppercase",
       cursor: "pointer"
@@ -4471,7 +4607,7 @@ function NutritionTracker({
       color: "var(--btn-info-text)",
       borderRadius: 6,
       padding: "10px",
-      fontSize: 11,
+      fontSize: 14,
       letterSpacing: 1,
       textTransform: "uppercase",
       cursor: "pointer",
@@ -4496,7 +4632,7 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--muted)",
       marginBottom: 6
     }
@@ -4507,7 +4643,7 @@ function NutritionTracker({
       width: "100%",
       height: 120,
       fontFamily: "monospace",
-      fontSize: 10,
+      fontSize: 14,
       background: "#0a0a0a",
       border: "1px solid var(--border2)",
       color: "var(--muted2)",
@@ -4533,7 +4669,7 @@ function NutritionTracker({
       color: "#7ec8c8",
       borderRadius: 6,
       padding: "8px",
-      fontSize: 11,
+      fontSize: 14,
       cursor: "pointer",
       letterSpacing: 1,
       textTransform: "uppercase"
@@ -4546,7 +4682,7 @@ function NutritionTracker({
       color: "var(--muted)",
       borderRadius: 6,
       padding: "8px 12px",
-      fontSize: 11,
+      fontSize: 14,
       cursor: "pointer"
     }
   }, "\xD7"))))), tab === "adicionar" && /*#__PURE__*/React.createElement("div", null, mealTemplates.length > 0 && /*#__PURE__*/React.createElement("div", {
@@ -4555,8 +4691,8 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 8
@@ -4584,7 +4720,7 @@ function NutritionTracker({
       border: "none",
       color: "#8ec8c8",
       padding: "5px 12px 5px 14px",
-      fontSize: 11,
+      fontSize: 14,
       cursor: "pointer"
     }
   }, t.name), /*#__PURE__*/React.createElement("button", {
@@ -4594,7 +4730,7 @@ function NutritionTracker({
       border: "none",
       color: "var(--faint)",
       padding: "5px 10px 5px 0",
-      fontSize: 13,
+      fontSize: 14,
       cursor: "pointer"
     }
   }, "\xD7"))))), /*#__PURE__*/React.createElement("div", {
@@ -4610,8 +4746,8 @@ function NutritionTracker({
       color: "var(--muted)",
       padding: "8px 12px",
       borderRadius: 6,
-      fontSize: 11,
-      letterSpacing: 1.5,
+      fontSize: 14,
+      letterSpacing: 1,
       textTransform: "uppercase",
       cursor: "pointer",
       textAlign: "left",
@@ -4631,7 +4767,7 @@ function NutritionTracker({
     style: {
       padding: "12px",
       color: "var(--dim)",
-      fontSize: 12,
+      fontSize: 14,
       fontStyle: "italic",
       textAlign: "center"
     }
@@ -4643,8 +4779,8 @@ function NutritionTracker({
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         padding: "6px 12px",
-        fontSize: 9,
-        letterSpacing: 2,
+        fontSize: 14,
+        letterSpacing: 1,
         color: "var(--muted)",
         textTransform: "uppercase",
         borderBottom: "1px solid var(--border3)",
@@ -4665,12 +4801,12 @@ function NutritionTracker({
       onMouseLeave: e => e.currentTarget.style.background = "transparent"
     }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 12,
+        fontSize: 14,
         color: "var(--text3)"
       }
     }, r.date === TODAY ? t('today') : r.date), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 10,
+        fontSize: 14,
         color: "var(--muted)",
         marginTop: 2
       }
@@ -4682,12 +4818,12 @@ function NutritionTracker({
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 12,
+        fontSize: 14,
         color: "#c8a96e"
       }
     }, r.protein, "g"), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 11,
+        fontSize: 14,
         color: "#8ec8c8"
       }
     }, r.kcal, " kcal")))));
@@ -4716,7 +4852,7 @@ function NutritionTracker({
         border: "1px solid " + (active ? "var(--btn-ok-border)" : "var(--btn-inactive-border)"),
         color: active ? "var(--btn-ok-text)" : "var(--muted)",
         borderRadius: 6,
-        fontSize: 10,
+        fontSize: 14,
         cursor: "pointer",
         letterSpacing: 0.5
       }
@@ -4753,7 +4889,7 @@ function NutritionTracker({
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--dim)",
       marginTop: 4
     }
@@ -4783,12 +4919,12 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 13,
+      fontSize: 14,
       color: "var(--text3)"
     }
   }, describeResult.name), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: describeResult.confidence === lang === 'en' ? 'high' : 'alta' ? "#6ec8a9" : describeResult.confidence === lang === 'en' ? 'medium' : 'media' ? "#c8a96e" : "#c86e8e",
       letterSpacing: 1
     }
@@ -4841,11 +4977,11 @@ function NutritionTracker({
   }, x.l, " "), /*#__PURE__*/React.createElement("span", {
     style: {
       color: x.c,
-      fontWeight: "bold"
+      fontWeight: 600
     }
   }, x.v, x.u)))), describeResult.note && /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: "var(--muted)",
       fontStyle: "italic",
       marginBottom: 10,
@@ -4894,7 +5030,7 @@ function NutritionTracker({
     const results = sortedAllPantry.filter(f => f.name.toLowerCase().includes(addEntry.foodSearch.toLowerCase()));
     if (!results.length) return /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 12,
+        fontSize: 14,
         color: "var(--dim)",
         padding: "8px 12px",
         background: "var(--input)",
@@ -4923,13 +5059,13 @@ function NutritionTracker({
         padding: "9px 12px",
         cursor: "pointer",
         borderBottom: "1px solid var(--border3)",
-        fontSize: 13,
+        fontSize: 14,
         color: addEntry.foodId === f.id ? "#c8a96e" : "#d5cfc8",
         background: addEntry.foodId === f.id ? "#1e2a1e" : "transparent"
       }
     }, f.name, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 10,
+        fontSize: 14,
         color: "var(--muted)",
         marginLeft: 8
       }
@@ -4983,7 +5119,7 @@ function NutritionTracker({
       color: addEntry.qty === String(q) ? "#7ec87e" : "#555",
       borderRadius: 4,
       padding: "3px 10px",
-      fontSize: 11,
+      fontSize: 14,
       cursor: "pointer"
     }
   }, q, selectedFood.unit)))), selectedFood && addEntry.qty && (() => {
@@ -5037,15 +5173,15 @@ function NutritionTracker({
   }, staged.items.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       color: "var(--faint)",
-      fontSize: 12,
+      fontSize: 14,
       fontStyle: "italic",
       textAlign: "center",
       marginTop: 8
     }
   }, "Seleciona alimentos e vai adicionando.") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 8
@@ -5064,7 +5200,7 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 13,
+      fontSize: 14,
       color: "var(--text2)",
       flex: 1
     }
@@ -5088,7 +5224,7 @@ function NutritionTracker({
     autoFocus: true
   }), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: "var(--muted)"
     }
   }, item.unit), /*#__PURE__*/React.createElement("button", {
@@ -5099,7 +5235,7 @@ function NutritionTracker({
       color: "var(--btn-ok-text)",
       borderRadius: 4,
       padding: "2px 7px",
-      fontSize: 11,
+      fontSize: 14,
       cursor: "pointer"
     }
   }, "\u2713"), /*#__PURE__*/React.createElement("button", {
@@ -5117,19 +5253,19 @@ function NutritionTracker({
       setEditStagedQty(String(item.qty));
     },
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: "var(--muted)",
       cursor: "pointer",
       borderBottom: "1px dashed #333"
     }
   }, item.qty, item.unit), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: "#c8a96e"
     }
   }, Math.round(item.protein ?? 0), "g"), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: "#8ec8c8"
     }
   }, Math.round(item.kcal ?? 0), "kcal"), /*#__PURE__*/React.createElement("button", {
@@ -5196,7 +5332,7 @@ function NutritionTracker({
       color: "#8ec8c8",
       borderRadius: 6,
       padding: "0 12px",
-      fontSize: 11,
+      fontSize: 14,
       cursor: "pointer",
       whiteSpace: "nowrap"
     }
@@ -5204,7 +5340,7 @@ function NutritionTracker({
     style: {
       marginTop: 16,
       color: "var(--faint)",
-      fontSize: 12,
+      fontSize: 14,
       textAlign: "center",
       fontStyle: "italic"
     }
@@ -5212,12 +5348,13 @@ function NutritionTracker({
     style: {
       marginTop: 28,
       borderTop: "1px solid var(--border3)",
-      paddingTop: 14
+      paddingTop: 14,
+      display: "none"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--dim)",
       textTransform: "uppercase",
       marginBottom: 10
@@ -5232,15 +5369,15 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 1.5,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "#7ec87e",
       textTransform: "uppercase",
       marginBottom: 6
     }
   }, lang==='en'?'Full Backup':'Backup Completo'), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: "var(--muted)",
       marginBottom: 8
     }
@@ -5257,7 +5394,7 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--muted)",
       marginBottom: 4
     }
@@ -5267,7 +5404,7 @@ function NutritionTracker({
     style: {
       ...inp,
       height: 100,
-      fontSize: 10,
+      fontSize: 14,
       fontFamily: "monospace",
       resize: "vertical",
       marginTop: 0,
@@ -5323,7 +5460,7 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--muted)",
       letterSpacing: 1,
       textTransform: "uppercase",
@@ -5348,13 +5485,13 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12,
+      fontSize: 14,
       color: "var(--text3)",
-      fontWeight: "bold"
+      fontWeight: 600
     }
   }, label), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--muted)",
       marginTop: 2
     }
@@ -5374,7 +5511,7 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: "var(--btn-ok-text)"
     }
   }, "\u2713 ", exportResult.filename), /*#__PURE__*/React.createElement("button", {
@@ -5392,7 +5529,7 @@ function NutritionTracker({
     style: {
       ...inp,
       height: 120,
-      fontSize: 11,
+      fontSize: 14,
       fontFamily: "monospace",
       resize: "vertical",
       marginTop: 0,
@@ -5417,12 +5554,12 @@ function NutritionTracker({
       background: "var(--btn-ok)",
       border: "1px solid var(--btn-ok-border)",
       color: "var(--btn-ok-text)",
-      fontSize: 10,
-      letterSpacing: 2
+      fontSize: 14,
+      letterSpacing: 1
     }
   }, exportResult.copied ? "✓ Copiado!" : "📋 Copiar para área de transferência"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--dim)",
       marginTop: 6,
       textAlign: "center"
@@ -5480,8 +5617,8 @@ function NutritionTracker({
       color: autoFillLoading ? "var(--muted)" : "var(--btn-info-text)",
       padding: "9px",
       borderRadius: 6,
-      fontSize: 11,
-      letterSpacing: 1.5,
+      fontSize: 14,
+      letterSpacing: 1,
       textTransform: "uppercase",
       cursor: autoFillLoading ? "default" : "pointer",
       fontFamily: "inherit",
@@ -5489,8 +5626,8 @@ function NutritionTracker({
     }
   }, autoFillLoading ? lang === 'en' ? '⟳ Searching...' : '⟳ A pesquisar...' : t('autofillBtn')), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 8,
@@ -5502,7 +5639,7 @@ function NutritionTracker({
     style: { marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10,
       background: 'var(--bg)', borderRadius: 8, padding: '8px 12px', border: '1px solid var(--border2)' }
   },
-    /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, color: 'var(--text2)', flex: 1 } },
+    /*#__PURE__*/React.createElement("span", { style: { fontSize: 14, color: 'var(--text2)', flex: 1 } },
       lang === 'en' ? 'Values for a portion of:' : 'Valores para uma porção de:'
     ),
     /*#__PURE__*/React.createElement("input", {
@@ -5511,7 +5648,7 @@ function NutritionTracker({
       onChange: e => setForm(ff => ({ ...ff, portionSize: e.target.value })),
       style: { ...inp, width: 70, marginBottom: 0, textAlign: 'center' }
     }),
-    /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, color: 'var(--text2)' } }, form.unit)
+    /*#__PURE__*/React.createElement("span", { style: { fontSize: 14, color: 'var(--text2)' } }, form.unit)
   ),
   /*#__PURE__*/React.createElement("div", {
     style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }
@@ -5534,8 +5671,8 @@ function NutritionTracker({
       width: "100%",
       padding: "7px",
       borderRadius: 6,
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       textTransform: "uppercase",
       cursor: "pointer",
       marginBottom: 8
@@ -5583,8 +5720,8 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 3,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--dim)",
       textTransform: "uppercase"
     }
@@ -5616,7 +5753,7 @@ function NutritionTracker({
   }), filteredPantry.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       color: "var(--faint)",
-      fontSize: 12,
+      fontSize: 14,
       fontStyle: "italic",
       textAlign: "center",
       marginTop: 12
@@ -5670,8 +5807,8 @@ function NutritionTracker({
     value: "un"
   }, "un")))), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 6
@@ -5745,7 +5882,7 @@ function NutritionTracker({
       color: "var(--muted)",
       padding: "10px",
       borderRadius: 6,
-      fontSize: 11,
+      fontSize: 14,
       textTransform: "uppercase",
       cursor: "pointer"
     }
@@ -5775,12 +5912,12 @@ function NutritionTracker({
   }, ALL_FIELDS.filter(ff => f[ff.key] != null).map(ff => /*#__PURE__*/React.createElement("span", {
     key: ff.key,
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--muted)"
     }
   }, (ff.label || ff.key).replace('', "").replace('', "").replace("of which ", ""), " ", f[ff.key], ff.unit)), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--dim)"
     }
   }, portionLabel(f.unit, lang)))), /*#__PURE__*/React.createElement("div", {
@@ -5798,7 +5935,7 @@ function NutritionTracker({
       color: "var(--muted)",
       borderRadius: 4,
       padding: "3px 8px",
-      fontSize: 11,
+      fontSize: 14,
       cursor: "pointer"
     }
   }, t('editItem')), /*#__PURE__*/React.createElement("button", {
@@ -5809,7 +5946,7 @@ function NutritionTracker({
       color: "var(--dim)",
       borderRadius: 4,
       padding: "3px 8px",
-      fontSize: 11,
+      fontSize: 14,
       cursor: "pointer"
     }
   }, "\xD7")))))), /*#__PURE__*/React.createElement("div", {
@@ -5827,8 +5964,8 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 3,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase"
     }
@@ -5923,7 +6060,7 @@ function NutritionTracker({
   }, t('suppSave'))), suppPantry.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       color: "var(--faint)",
-      fontSize: 12,
+      fontSize: 14,
       fontStyle: "italic",
       textAlign: "center",
       padding: "10px 0"
@@ -5939,12 +6076,12 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13,
+      fontSize: 14,
       color: "var(--text2)"
     }
   }, s.name), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--muted)",
       marginTop: 2
     }
@@ -5956,14 +6093,14 @@ function NutritionTracker({
       color: "var(--dim)",
       borderRadius: 4,
       padding: "3px 8px",
-      fontSize: 11,
+      fontSize: 14,
       cursor: "pointer"
     }
   }, "\xD7"))))), tab === "semana" && /*#__PURE__*/React.createElement("div", null, weekData.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       color: "var(--faint)",
-      fontSize: 13,
+      fontSize: 14,
       marginTop: 40,
       fontStyle: "italic"
     }
@@ -6004,7 +6141,7 @@ function NutritionTracker({
     }
   }, x.v), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 9,
+      fontSize: 14,
       color: "var(--muted)",
       letterSpacing: 1,
       marginTop: 3,
@@ -6036,20 +6173,20 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--muted)",
       textTransform: "uppercase"
     }
   }, d.label), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 13,
+      fontSize: 14,
       color: d.hasData ? d.metProtein ? "var(--btn-ok-text)" : "#c8a96e" : "var(--dim)",
       marginTop: 6,
-      fontWeight: "bold"
+      fontWeight: 600
     }
   }, d.hasData ? `${d.protein}g` : "—"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: d.hasData ? "#8ec8c8" : "var(--dim)",
       marginTop: 2
     }
@@ -6071,8 +6208,8 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 10
@@ -6085,14 +6222,14 @@ function NutritionTracker({
   }, /*#__PURE__*/React.createElement(XAxis, {
     dataKey: "label",
     tick: {
-      fontSize: 10,
+      fontSize: 14,
       fill: CT.tick
     },
     axisLine: false,
     tickLine: false
   }), /*#__PURE__*/React.createElement(YAxis, {
     tick: {
-      fontSize: 10,
+      fontSize: 14,
       fill: CT.tick
     },
     axisLine: false,
@@ -6104,7 +6241,7 @@ function NutritionTracker({
       background: CT.bg,
       border: "1px solid " + CT.border,
       borderRadius: 4,
-      fontSize: 11,
+      fontSize: 14,
       color: CT.label
     },
     labelStyle: {
@@ -6141,8 +6278,8 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 10
@@ -6155,14 +6292,14 @@ function NutritionTracker({
   }, /*#__PURE__*/React.createElement(XAxis, {
     dataKey: "label",
     tick: {
-      fontSize: 10,
+      fontSize: 14,
       fill: CT.tick
     },
     axisLine: false,
     tickLine: false
   }), /*#__PURE__*/React.createElement(YAxis, {
     tick: {
-      fontSize: 10,
+      fontSize: 14,
       fill: CT.tick
     },
     axisLine: false,
@@ -6174,7 +6311,7 @@ function NutritionTracker({
       background: CT.bg,
       border: "1px solid " + CT.border,
       borderRadius: 4,
-      fontSize: 11,
+      fontSize: 14,
       color: CT.label
     },
     labelStyle: {
@@ -6204,7 +6341,7 @@ function NutritionTracker({
     connectNulls: false
   })))), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--faint)",
       textAlign: "center",
       marginTop: 10,
@@ -6216,8 +6353,8 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 10
@@ -6243,12 +6380,12 @@ function NutritionTracker({
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12,
+        fontSize: 14,
         color: "var(--text3)"
       }
     }, meal), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 10,
+        fontSize: 14,
         color: "var(--muted)"
       }
     }, d.count, " dia", d.count !== 1 ? "s" : "", " registado", d.count !== 1 ? "s" : "")), /*#__PURE__*/React.createElement("div", {
@@ -6303,7 +6440,8 @@ function NutritionTracker({
       background: "var(--btn-info)",
       border: "1px solid var(--btn-info-border)",
       color: "var(--btn-info-text)",
-      marginTop: 0
+      marginTop: 0,
+      display: "none"
     }
   }, "\u2193 Exportar semana"), showExportPanel === "week" && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6315,7 +6453,7 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--muted)",
       letterSpacing: 1,
       textTransform: "uppercase",
@@ -6340,13 +6478,13 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12,
+      fontSize: 14,
       color: "var(--text3)",
-      fontWeight: "bold"
+      fontWeight: 600
     }
   }, label), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--muted)",
       marginTop: 2
     }
@@ -6367,7 +6505,7 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11,
+      fontSize: 14,
       color: "var(--btn-ok-text)"
     }
   }, "\u2713 ", exportResult.filename), /*#__PURE__*/React.createElement("button", {
@@ -6385,7 +6523,7 @@ function NutritionTracker({
     style: {
       ...inp,
       height: 100,
-      fontSize: 11,
+      fontSize: 14,
       fontFamily: "monospace",
       resize: "vertical",
       marginTop: 0,
@@ -6410,8 +6548,8 @@ function NutritionTracker({
       background: "var(--btn-ok)",
       border: "1px solid var(--btn-ok-border)",
       color: "var(--btn-ok-text)",
-      fontSize: 10,
-      letterSpacing: 2
+      fontSize: 14,
+      letterSpacing: 1
     }
   }, exportResult.copied ? "✓ Copiado!" : "📋 Copiar para área de transferência"))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6429,8 +6567,8 @@ function NutritionTracker({
       color: patternsLoading ? "#555" : "#c8a0e8",
       padding: "10px",
       borderRadius: 6,
-      fontSize: 11,
-      letterSpacing: 1.5,
+      fontSize: 14,
+      letterSpacing: 1,
       textTransform: "uppercase",
       cursor: patternsLoading ? "default" : "pointer",
       fontFamily: "inherit"
@@ -6445,15 +6583,15 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 10
     }
   }, "Padr\xF5es \u2014 \xFAltimos 30 dias"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12,
+      fontSize: 14,
       color: "var(--text3)",
       lineHeight: 1.7,
       whiteSpace: "pre-wrap"
@@ -6461,7 +6599,7 @@ function NutritionTracker({
   }, patternsText), patternsSaved ? /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10,
-      fontSize: 11,
+      fontSize: 14,
       color: "#3a6a3a",
       textAlign: "center",
       padding: "8px",
@@ -6477,8 +6615,8 @@ function NutritionTracker({
       background: "var(--btn-info)",
       border: "1px solid var(--btn-info-border)",
       color: "#7e9ec8",
-      fontSize: 10,
-      letterSpacing: 2
+      fontSize: 14,
+      letterSpacing: 1
     }
   }, "\uD83D\uDCBE Guardar nas notas"))), weekData.some(d => d.hasData) && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6494,8 +6632,8 @@ function NutritionTracker({
       color: feedbackLoading && feedbackPeriod === "week" ? "#555" : "#c8a0e8",
       padding: "10px",
       borderRadius: 6,
-      fontSize: 11,
-      letterSpacing: 1.5,
+      fontSize: 14,
+      letterSpacing: 1,
       textTransform: "uppercase",
       cursor: "pointer",
       fontFamily: "inherit"
@@ -6510,15 +6648,15 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 10
     }
   }, "Feedback semanal"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 12,
+      fontSize: 14,
       color: "var(--text3)",
       lineHeight: 1.7,
       whiteSpace: "pre-wrap"
@@ -6526,7 +6664,7 @@ function NutritionTracker({
   }, feedbackText), feedbackSaved ? /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10,
-      fontSize: 11,
+      fontSize: 14,
       color: "#3a6a3a",
       textAlign: "center",
       padding: "8px",
@@ -6542,8 +6680,8 @@ function NutritionTracker({
       background: "var(--btn-info)",
       border: "1px solid var(--btn-info-border)",
       color: "#7e9ec8",
-      fontSize: 10,
-      letterSpacing: 2
+      fontSize: 14,
+      letterSpacing: 1
     }
   }, "\uD83D\uDCBE Guardar nas notas de hoje")))), tab === "metricas" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6551,8 +6689,8 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 10
@@ -6612,8 +6750,8 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 12
@@ -6656,7 +6794,7 @@ function NutritionTracker({
     key: x.l
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--muted)",
       letterSpacing: 1
     }
@@ -6669,7 +6807,7 @@ function NutritionTracker({
   }, x.v)))), bmi && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10,
-      fontSize: 12,
+      fontSize: 14,
       color: "var(--muted)"
     }
   }, t('bmi')+' ', bmi, " \u2014 ", /*#__PURE__*/React.createElement("span", {
@@ -6686,8 +6824,8 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase",
       marginBottom: 12
@@ -6700,14 +6838,14 @@ function NutritionTracker({
   }, /*#__PURE__*/React.createElement(XAxis, {
     dataKey: "date",
     tick: {
-      fontSize: 10,
+      fontSize: 14,
       fill: CT.tick
     },
     axisLine: false,
     tickLine: false
   }), /*#__PURE__*/React.createElement(YAxis, {
     tick: {
-      fontSize: 10,
+      fontSize: 14,
       fill: CT.tick
     },
     axisLine: false,
@@ -6719,7 +6857,7 @@ function NutritionTracker({
       background: CT.bg,
       border: "1px solid " + CT.border,
       borderRadius: 4,
-      fontSize: 11,
+      fontSize: 14,
       color: CT.label
     },
     labelStyle: {
@@ -6742,8 +6880,8 @@ function NutritionTracker({
     }
   })))), weightHistory.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--dim)",
       textTransform: "uppercase",
       marginBottom: 8
@@ -6834,7 +6972,7 @@ function NutritionTracker({
         color: "var(--muted)",
         padding: "8px",
         borderRadius: 6,
-        fontSize: 11,
+        fontSize: 14,
         textTransform: "uppercase",
         cursor: "pointer"
       }
@@ -6875,7 +7013,7 @@ function NutritionTracker({
         color: "var(--muted)",
         borderRadius: 4,
         padding: "2px 7px",
-        fontSize: 10,
+        fontSize: 14,
         cursor: "pointer"
       }
     }, t('editItem')), /*#__PURE__*/React.createElement("button", {
@@ -6891,7 +7029,7 @@ function NutritionTracker({
   })), weightHistory.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       color: "var(--faint)",
-      fontSize: 12,
+      fontSize: 14,
       fontStyle: "italic",
       textAlign: "center",
       marginTop: 20
@@ -6911,8 +7049,8 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      letterSpacing: 2,
+      fontSize: 14,
+      letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase"
     }
@@ -6921,7 +7059,7 @@ function NutritionTracker({
     style: sBtn("var(--btn-ok)", "var(--btn-ok-border)", "#7ec87e")
   }, editingGoals ? "✓ Guardar" : t('editGoals'))), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--dim)",
       marginBottom: 12
     }
@@ -7030,7 +7168,7 @@ function NutritionTracker({
     key: k
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
+      fontSize: 14,
       color: "var(--muted)",
       letterSpacing: 1
     }
@@ -7042,7 +7180,7 @@ function NutritionTracker({
     }
   }, goals[k] || baseGoals[k] || "—", u, customGoals[k] && /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 9,
+      fontSize: 14,
       color: "var(--muted)",
       marginLeft: 4
     }
@@ -7057,7 +7195,7 @@ function NutritionTracker({
       background: "var(--btn-warn)",
       border: "1px solid var(--btn-warn-border)",
       color: "var(--btn-warn-text)",
-      fontSize: 10,
+      fontSize: 14,
       letterSpacing: 1
     }
   }, "Repor metas autom\xE1ticas")))), showGA && React.createElement("div", {
@@ -7161,7 +7299,7 @@ function NutritionTracker({
         onChange: function(e){ setGATolerance(parseInt(e.target.value)); },
         style: { width:"100%" }
       }),
-      React.createElement("div", { style: { display:"flex", justifyContent:"space-between", fontSize:10, color:"var(--muted)", marginTop:2 } },
+      React.createElement("div", { style: { display:"flex", justifyContent:"space-between", fontSize:12, color:"var(--muted)", marginTop:2 } },
         React.createElement("span", null, lang==='en'?"\u2212 deficit":"\u2212 d\xe9ficit"),
         React.createElement("span", null, "0%"),
         React.createElement("span", null, lang==='en'?"+ surplus":"+ super\xe1vit")
@@ -7191,7 +7329,7 @@ function NutritionTracker({
 
     /* Limites absolutos de kcal */
     React.createElement("div", { style: { marginBottom:12, borderTop:"1px solid var(--border2)", paddingTop:10 } },
-      React.createElement("div", { style: { fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:8 } },
+      React.createElement("div", { style: { fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:8 } },
         lang==='en' ? "Absolute limits (optional)" : "Limites absolutos (opcional)"
       ),
       React.createElement("div", { style: { display:"flex", gap:8, flexWrap:"wrap" } },
@@ -7293,7 +7431,7 @@ function NutritionTracker({
               (lang==='en' ? "Option " : "Op\xe7\xe3o ") + (ri+1)
             ),
             React.createElement("span", { style: {
-              fontSize: 10,
+              fontSize: 14,
               background: r.fit < 0.08 ? "rgba(80,200,120,0.15)" : "rgba(200,160,80,0.15)",
               color: r.fit < 0.08 ? "#7ec87e" : "#c8b47e",
               padding: "2px 7px", borderRadius: 10
@@ -7330,7 +7468,7 @@ function NutritionTracker({
                   padding:"8px 10px", marginTop:4,
                   borderLeft:"3px solid var(--accent)"
                 } },
-                  React.createElement("div", { style: { fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:5 } },
+                  React.createElement("div", { style: { fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:5 } },
                     lang==='en' ? "Total after this meal:" : "Total com esta refei\xe7\xe3o:"
                   ),
                   React.createElement("div", { style: { display:"flex", gap:8, flexWrap:"wrap" } },
@@ -7390,8 +7528,8 @@ const inp = {
   marginTop: 3
 };
 const lbl = {
-  fontSize: 10,
-  letterSpacing: 1.5,
+  fontSize: 14,
+  letterSpacing: 1,
   color: "var(--muted)",
   textTransform: "uppercase",
   display: "block"
@@ -7403,8 +7541,8 @@ const btn = {
   color: "var(--btn-ok-text)",
   padding: "11px",
   borderRadius: 6,
-  fontSize: 11,
-  letterSpacing: 2,
+  fontSize: 14,
+  letterSpacing: 1,
   textTransform: "uppercase",
   cursor: "pointer",
   fontFamily: "inherit",
@@ -7417,7 +7555,7 @@ function sBtn(bg, border, color) {
     color,
     borderRadius: 4,
     padding: "6px 10px",
-    fontSize: 10,
+    fontSize: 14,
     letterSpacing: 1,
     textTransform: "uppercase",
     cursor: "pointer"
@@ -7492,7 +7630,7 @@ function VerifyEmailScreen({ email, name, lang, onVerified, onBack }) {
 
       // Title
       React.createElement('h2', {
-        style:{margin:'0 0 8px', fontSize:20, color:'var(--text1,#fff)', fontWeight:700}
+        style:{margin:'0 0 8px', fontSize:20, color:'var(--text1,#fff)', fontWeight: 600}
       }, isPt
         ? (name ? 'Ol\xe1, ' + name + '! Verifique seu email \uD83D\uDC4B' : 'Verifique seu email')
         : (name ? 'Hi, ' + name + '! Verify your email \uD83D\uDC4B' : 'Verify your email')
@@ -7543,7 +7681,7 @@ function VerifyEmailScreen({ email, name, lang, onVerified, onBack }) {
         style:{
           width:'100%', padding:'12px', borderRadius:10, marginBottom:12,
           background:'var(--accent,#7ec87e)', border:'none',
-          color:'#111', fontSize:13, fontWeight:700,
+          color:'#111', fontSize:13, fontWeight: 600,
           cursor:'pointer', fontFamily:'inherit', letterSpacing:0.5
         }
       }, isPt ? 'Reenviar email de verifica\xe7\xe3o' : 'Resend verification email'),
@@ -7753,6 +7891,236 @@ function PrivacyPanel({ lang, onClose, onLogout }) {
   );
 }
 
+
+// ── Backup Screen ─────────────────────────────────────────────
+function BackupModal({ lang, darkMode, onClose }) {
+  const isPt = lang === 'pt';
+  const [loading, setLoading] = React.useState(null);
+  const [importDone, setImportDone] = React.useState('');
+  const [downloaded, setDownloaded] = React.useState(null);
+
+  const exportOptions = isPt ? [
+    { key:'today',  icon:'📅', title:'Diário — hoje',        desc:'Refeições e totais do dia atual' },
+    { key:'week',   icon:'📆', title:'Últimos 7 dias',        desc:'Histórico da semana com refeições e macros' },
+    { key:'month',  icon:'🗓️', title:'Último mês (30 dias)',  desc:'Histórico do mês com totais diários' },
+    { key:'pantry', icon:'🏪', title:'Despensa',              desc:'Todos os alimentos cadastrados' },
+    { key:'weight', icon:'⚖️', title:'Histórico de peso',     desc:'Peso e altura registrados' },
+    { key:'all',    icon:'💾', title:'Backup completo',       desc:'Tudo: diário, despensa, peso, metas, água', highlight:true },
+  ] : [
+    { key:'today',  icon:'📅', title:'Diary — today',         desc:'Meals and totals for today' },
+    { key:'week',   icon:'📆', title:'Last 7 days',           desc:'Weekly history with meals and macros' },
+    { key:'month',  icon:'🗓️', title:'Last 30 days',          desc:'Monthly history with daily totals' },
+    { key:'pantry', icon:'🏪', title:'Pantry',                desc:'All registered foods' },
+    { key:'weight', icon:'⚖️', title:'Weight history',        desc:'Logged weight and height data' },
+    { key:'all',    icon:'💾', title:'Full backup',           desc:'Everything: diary, pantry, weight, goals, water', highlight:true },
+  ];
+
+  async function doExport(key) {
+    setLoading(key);
+    try {
+      const d = window._exportData || {};
+      const {activeLog, log, TODAY, isTraining, goals, trainingByDate,
+             buildDayTotals, normalizeMealKeys, downloadFile, lang, notify,
+             weightHistory} = d;
+      const today = TODAY || new Date().toISOString().split('T')[0];
+      const isPt2 = (lang || 'pt') !== 'en';
+
+      if (key === 'all') {
+        if (window._exportFullBackup) await window._exportFullBackup();
+
+      } else if (key === 'today') {
+        if (!activeLog || !buildDayTotals) throw new Error('App not ready');
+        const ae = Object.values(activeLog||{}).flat();
+        const totDay = {
+          protein: Math.round(ae.reduce((s,e)=>s+(e.protein??0),0)*10)/10,
+          kcal:    Math.round(ae.reduce((s,e)=>s+(e.kcal??0),0)*10)/10,
+          carbs:   Math.round(ae.reduce((s,e)=>s+(e.carbs??0),0)*10)/10,
+          fat:     Math.round(ae.reduce((s,e)=>s+(e.fat??0),0)*10)/10,
+          fiber:   Math.round(ae.reduce((s,e)=>s+(e.fiber??0),0)*10)/10,
+          salt:    Math.round(ae.reduce((s,e)=>s+(e.salt??0),0)*10)/10
+        };
+        const data = {date:today, isTraining, goals, meals:activeLog, totals:totDay};
+        downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:'day',data},null,2),
+          'diario_'+today+'.json', 'application/json');
+        if (notify) notify(isPt2 ? '✓ Arquivo baixado!' : '✓ File downloaded!');
+
+      } else if (key === 'week' || key === 'month') {
+        if (!buildDayTotals || !normalizeMealKeys || !downloadFile) throw new Error('App not ready');
+        const n = key === 'week' ? 7 : 30;
+        const days = [];
+        for (let i = n-1; i >= 0; i--) {
+          const dt = new Date(); dt.setDate(dt.getDate()-i);
+          const date = dt.toISOString().split('T')[0];
+          let dayLog = date === today ? (log||{}) : {};
+          if (date !== today) {
+            const l = await storage.get('log_v2_'+date).catch(()=>null);
+            if (l) dayLog = normalizeMealKeys(JSON.parse(l.value));
+          }
+          const dtEntries = Object.values(dayLog).flat();
+          const tot = {
+            protein: Math.round(dtEntries.reduce((s,e)=>s+(e.protein??0),0)*10)/10,
+            kcal:    Math.round(dtEntries.reduce((s,e)=>s+(e.kcal??0),0)*10)/10,
+            carbs:   Math.round(dtEntries.reduce((s,e)=>s+(e.carbs??0),0)*10)/10,
+            fat:     Math.round(dtEntries.reduce((s,e)=>s+(e.fat??0),0)*10)/10,
+            fiber:   Math.round(dtEntries.reduce((s,e)=>s+(e.fiber??0),0)*10)/10,
+            salt:    Math.round(dtEntries.reduce((s,e)=>s+(e.salt??0),0)*10)/10
+          };
+          days.push({date, isTraining:trainingByDate?.[date]??true, totals:tot, meals:dayLog});
+        }
+        const fname = (key==='week'?'semana':'mes')+'_'+today+'.json';
+        downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:key,days},null,2), fname, 'application/json');
+        if (notify) notify(isPt2 ? '✓ Arquivo baixado!' : '✓ File downloaded!');
+
+      } else if (key === 'pantry') {
+        const r = await storage.get('pantry_v2');
+        const data = {pantry_v2: r?.value || '[]'};
+        downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:'pantry',data},null,2),
+          'despensa_'+today+'.json', 'application/json');
+        if (notify) notify(isPt2 ? '✓ Arquivo baixado!' : '✓ File downloaded!');
+
+      } else if (key === 'weight') {
+        const whr = await storage.get('weightHistory').catch(()=>null);
+        const whData = whr?.value ? JSON.parse(whr.value) : (weightHistory||[]);
+        downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:'weight',data:{weightHistory:whData}},null,2),
+          'peso_'+today+'.json', 'application/json');
+        if (notify) notify(isPt2 ? '✓ Arquivo baixado!' : '✓ File downloaded!');
+      }
+      setDownloaded(key);
+    } catch(e) {
+      console.error('Export error:', e);
+      alert((isPt ? 'Erro ao exportar: ' : 'Export error: ') + e.message);
+    }
+    setLoading(null);
+  }
+
+  function doImport(e) {
+    if (window._importFullBackup) {
+      window._importFullBackup(e);
+      setImportDone(isPt ? '✓ Importação iniciada! Recarregue a página.' : '✓ Import started! Reload the page.');
+    }
+  }
+
+  // Read theme from localStorage (same as App and LoginScreen)
+  const bDark = darkMode !== undefined ? darkMode : localStorage.getItem('appDarkMode') === 'true';
+  const bTheme = bDark ? {
+    '--bg':'#111','--surface':'#161616','--border2':'#2a2a2a',
+    '--text':'#e8e0d5','--text1':'#e8e0d5','--muted':'#8a8a8a',
+    '--btn-ok':'#1e2e1e','--btn-ok-border':'#3a5a3a','--btn-ok-text':'#7ec87e',
+    '--btn-info':'#1a1e2a','--btn-info-border':'#3a3a6a','--btn-info-text':'#8a9ec8',
+    '--dim':'#555'
+  } : {
+    '--bg':'#f2f1ed','--surface':'#ffffff','--border2':'#b8b4ac',
+    '--text':'#252220','--text1':'#252220','--muted':'#6a6662',
+    '--btn-ok':'#e8f4e8','--btn-ok-border':'#a8cfa8','--btn-ok-text':'#2a6a2a',
+    '--btn-info':'#e8eaf4','--btn-info-border':'#a8aed0','--btn-info-text':'#3a4a8a',
+    '--dim':'#8a8680'
+  };
+
+  return React.createElement('div', {style: Object.assign({
+    position:'fixed', inset:0, zIndex:99998,
+    background: bDark?'#111':'#f2f1ed', overflowY:'auto',
+    display:'flex', flexDirection:'column'
+  }, bTheme)},
+    // Header
+    React.createElement('div', {style:{
+      display:'flex', alignItems:'center', gap:12,
+      padding:'16px 20px', borderBottom:'1px solid var(--border2)',
+      background:'var(--surface)', position:'sticky', top:0, zIndex:1
+    }},
+      React.createElement('button', {onClick:onClose, style:{
+        background:'none', border:'none', color:'var(--text2)',
+        fontSize:22, cursor:'pointer', padding:'0 4px', lineHeight:1
+      }}, '\u2190'),
+      React.createElement('div', null,
+        React.createElement('h2', {style:{margin:0, fontSize:17, color:'var(--text)', fontWeight:600}},
+          isPt ? 'Backup e restaurar' : 'Backup & restore'),
+        React.createElement('p', {style:{margin:0, fontSize:12, color:'var(--muted)'}},
+          isPt ? 'Escolha o que exportar ou importe um arquivo' : 'Choose what to export or import a file')
+      )
+    ),
+
+    // Export section
+    React.createElement('div', {style:{padding:'20px 16px 8px'}},
+      React.createElement('p', {style:{
+        fontSize:12, fontWeight:600, letterSpacing:1, textTransform:'uppercase',
+        color:'var(--muted)', margin:'0 0 12px'
+      }}, isPt ? 'Exportar' : 'Export'),
+      React.createElement('div', {style:{display:'flex', flexDirection:'column', gap:8}},
+        exportOptions.map(opt =>
+          React.createElement('button', {
+            key: opt.key,
+            onClick: () => doExport(opt.key),
+            disabled: loading === opt.key,
+            style:{
+              display:'flex', alignItems:'center', gap:14,
+              padding:'14px 16px', borderRadius:12, cursor:'pointer',
+              fontFamily:'inherit', textAlign:'left',
+              background: opt.highlight ? 'var(--btn-ok)' : 'var(--surface)',
+              border: '1px solid ' + (opt.highlight ? 'var(--btn-ok-border)' : 'var(--border2)'),
+              opacity: loading && loading !== opt.key ? 0.5 : 1,
+              transition: 'opacity 0.2s'
+            }
+          },
+            React.createElement('span', {style:{fontSize:24, flexShrink:0}}, opt.icon),
+            React.createElement('div', {style:{flex:1}},
+              React.createElement('div', {style:{
+                fontSize:14, fontWeight:500,
+                color: opt.highlight ? 'var(--btn-ok-text)' : 'var(--text)'
+              }}, opt.title),
+              React.createElement('div', {style:{fontSize:12, color:'var(--muted)', marginTop:2}}, opt.desc)
+            ),
+            loading === opt.key
+              ? React.createElement('div', {style:{
+                  width:16, height:16, borderRadius:'50%',
+                  border:'2px solid var(--btn-ok-text)',
+                  borderTopColor:'transparent',
+                  animation:'spin 0.8s linear infinite', flexShrink:0
+                }})
+              : React.createElement('span', {style:{color:'var(--muted)', fontSize:16, flexShrink:0}}, '\u2193')
+          )
+        )
+      )
+    ),
+
+    // Divider
+    React.createElement('div', {style:{height:1, background:'var(--border2)', margin:'8px 16px'}}),
+
+    // Import section
+    React.createElement('div', {style:{padding:'8px 16px 32px'}},
+      React.createElement('p', {style:{
+        fontSize:12, fontWeight:600, letterSpacing:1, textTransform:'uppercase',
+        color:'var(--muted)', margin:'0 0 12px'
+      }}, isPt ? 'Importar' : 'Import'),
+      importDone
+        ? React.createElement('div', {style:{
+            padding:'14px 16px', borderRadius:12,
+            background:'var(--btn-ok)', border:'1px solid var(--btn-ok-border)',
+            color:'var(--btn-ok-text)', fontSize:14
+          }}, importDone)
+        : React.createElement('label', {style:{
+            display:'flex', alignItems:'center', gap:14,
+            padding:'14px 16px', borderRadius:12, cursor:'pointer',
+            background:'var(--surface)', border:'1px dashed var(--border2)'
+          }},
+            React.createElement('span', {style:{fontSize:24}}, '\uD83D\uDCC2'),
+            React.createElement('div', {style:{flex:1}},
+              React.createElement('div', {style:{fontSize:14, fontWeight:500, color:'var(--text)'}},
+                isPt ? 'Selecionar arquivo .json' : 'Select .json file'),
+              React.createElement('div', {style:{fontSize:12, color:'var(--muted)', marginTop:2}},
+                isPt ? 'Restaura dados de um backup anterior' : 'Restore data from a previous backup')
+            ),
+            React.createElement('span', {style:{color:'var(--muted)', fontSize:16}}, '\u2191'),
+            React.createElement('input', {type:'file', accept:'.json', onChange:doImport, style:{display:'none'}})
+          ),
+      React.createElement('p', {style:{
+        fontSize:12, color:'var(--muted)', marginTop:10, lineHeight:1.5
+      }}, isPt
+        ? '⚠️ A importação substitui os dados existentes com as mesmas chaves.'
+        : '⚠️ Import replaces existing data with matching keys.')
+    )
+  );
+}
+
 // ── Tutorial Overlay ──────────────────────────────────────────
 function TutorialOverlay({ lang, onDone }) {
   const isPt = lang === 'pt';
@@ -7760,112 +8128,92 @@ function TutorialOverlay({ lang, onDone }) {
 
   const steps = isPt ? [
     {
-      title: 'Bem-vindo ao Diário Nutricional! 👋',
-      text: 'Este é o seu diário pessoal de nutrição. Vamos fazer um tour rápido para mostrar as principais funcionalidades.',
+      title: 'Bem-vindo! 👋',
+      text: 'Este app te ajuda a acompanhar sua nutrição diária. Vamos te guiar pelos 4 passos para começar — leva menos de 2 minutos.',
       icon: '🥗',
       position: 'center'
     },
     {
-      title: 'Aba Diário',
-      text: 'Aqui você vê o consumo do dia: proteínas, calorias e outros nutrientes. O botão "Sugerir o que comer" usa um algoritmo genético para sugerir refeições com base nos alimentos disponíveis.',
-      icon: '📋',
-      position: 'bottom',
-      highlight: 'tab-diario'
-    },
-    {
-      title: 'Aba + (Adicionar)',
-      text: 'Clica aqui para registrar o que comeste. Podes pesquisar alimentos, usar templates de refeições ou importar da despensa.',
-      icon: '➕',
-      position: 'bottom',
-      highlight: 'tab-adicionar'
-    },
-    {
-      title: 'Despensa',
-      text: 'Guarde aqui os alimentos que você tem disponíveis em casa. O algoritmo de sugestões usa esses alimentos para criar refeições equilibradas.',
-      icon: '🏪',
-      position: 'bottom',
-      highlight: 'tab-despensa'
-    },
-    {
-      title: 'Aba Semana',
-      text: 'Veja o histórico semanal de nutrição, compare dias e exporte os dados.',
-      icon: '📅',
-      position: 'bottom',
-      highlight: 'tab-semana'
-    },
-    {
-      title: 'Métricas',
-      text: 'Registre seu peso, altura e defina suas metas nutricionais personalizadas. O IMC é calculado automaticamente.',
+      title: '1. Defina suas metas 🎯',
+      text: 'Vá em Métricas e informe seu peso e altura. O app calcula automaticamente suas metas de proteína e calorias.',
       icon: '📊',
-      position: 'bottom',
-      highlight: 'tab-metricas'
+      position: 'center',
+      highlight: 'tab-metricas',
+      tip: '→ Toque em Métricas e depois em Editar metas'
     },
     {
-      title: 'Configurações ⚙',
-      text: 'No menu de configurações você pode mudar o idioma, o tema, configurar a chave API Groq para análises com IA, e refazer este tutorial quando quiser.',
-      icon: '⚙️',
-      position: 'top-right',
-      highlight: 'menu-settings'
+      title: '2. Monte sua despensa 🏪',
+      text: 'Adicione os alimentos que você tem em casa. Eles serão usados para registros rápidos e sugestões de refeições.',
+      icon: '🏪',
+      position: 'center',
+      highlight: 'tab-despensa',
+      tip: '→ Toque em Despensa e adicione seus alimentos'
     },
     {
-      title: 'Tudo pronto! 🎉',
-      text: 'Você já conhece o essencial. Comece adicionando seus alimentos na Despensa, defina suas metas nas Métricas, e depois use o diário para acompanhar sua nutrição diária.',
-      icon: '🚀',
+      title: '3. Registre suas refeições ➕',
+      text: 'Use a aba + para registrar o que você come ao longo do dia. Busque alimentos ou escolha direto da sua despensa.',
+      icon: '➕',
+      position: 'center',
+      highlight: 'tab-adicionar',
+      tip: '→ Toque em + para adicionar sua primeira refeição'
+    },
+    {
+      title: '4. Acompanhe no Diário 📋',
+      text: 'O Diário mostra seu consumo do dia em tempo real. Quando bater aquela dúvida do que comer, use o botão "Sugerir o que comer".',
+      icon: '📋',
+      position: 'center',
+      highlight: 'tab-diario',
+      tip: '→ Aqui você acompanha proteínas, calorias e macros'
+    },
+    {
+      title: 'Tudo certo! 🚀',
+      text: 'Comece por Métricas → Despensa → registre sua primeira refeição. Qualquer dúvida, refaça o tutorial pelo menu ⚙.',
+      icon: '✅',
       position: 'center'
     }
   ] : [
     {
-      title: 'Welcome to Nutrition Diary! 👋',
-      text: "This is your personal nutrition diary. Let's take a quick tour of the main features.",
+      title: 'Welcome! 👋',
+      text: "This app helps you track your daily nutrition. We'll guide you through 4 steps to get started — takes less than 2 minutes.",
       icon: '🥗',
       position: 'center'
     },
     {
-      title: 'Diary Tab',
-      text: 'Here you see your daily intake: protein, calories and other nutrients. The "Suggest what to eat" button uses a genetic algorithm to suggest meals based on your available foods.',
-      icon: '📋',
-      position: 'bottom',
-      highlight: 'tab-diario'
-    },
-    {
-      title: '+ Tab (Add food)',
-      text: "Click here to log what you've eaten. You can search for foods, use meal templates or import from your pantry.",
-      icon: '➕',
-      position: 'bottom',
-      highlight: 'tab-adicionar'
-    },
-    {
-      title: 'Pantry',
-      text: 'Store your available foods here. The suggestion algorithm uses these foods to create balanced meals.',
-      icon: '🏪',
-      position: 'bottom',
-      highlight: 'tab-despensa'
-    },
-    {
-      title: 'Week Tab',
-      text: 'View your weekly nutrition history, compare days and export your data.',
-      icon: '📅',
-      position: 'bottom',
-      highlight: 'tab-semana'
-    },
-    {
-      title: 'Metrics',
-      text: 'Log your weight, height and set your personalized nutrition goals. BMI is calculated automatically.',
+      title: '1. Set your goals 🎯',
+      text: 'Go to Metrics and enter your weight and height. The app automatically calculates your protein and calorie targets.',
       icon: '📊',
-      position: 'bottom',
-      highlight: 'tab-metricas'
+      position: 'center',
+      highlight: 'tab-metricas',
+      tip: '→ Tap Metrics then Edit goals'
     },
     {
-      title: 'Settings ⚙',
-      text: 'In the settings menu you can change language, theme, configure the Groq API key for AI analysis, and redo this tutorial anytime.',
-      icon: '⚙️',
-      position: 'top-right',
-      highlight: 'menu-settings'
+      title: '2. Build your pantry 🏪',
+      text: 'Add the foods you have at home. They will be used for quick logging and meal suggestions.',
+      icon: '🏪',
+      position: 'center',
+      highlight: 'tab-despensa',
+      tip: '→ Tap Pantry and add your foods'
     },
     {
-      title: "All set! 🎉",
-      text: 'You know the essentials. Start by adding your foods to the Pantry, set your goals in Metrics, then use the diary to track your daily nutrition.',
-      icon: '🚀',
+      title: '3. Log your meals ➕',
+      text: 'Use the + tab to log what you eat throughout the day. Search for foods or choose from your pantry.',
+      icon: '➕',
+      position: 'center',
+      highlight: 'tab-adicionar',
+      tip: '→ Tap + to add your first meal'
+    },
+    {
+      title: '4. Track in your Diary 📋',
+      text: 'The Diary shows your daily intake in real time. When you are unsure what to eat, use the "Suggest what to eat" button.',
+      icon: '📋',
+      position: 'center',
+      highlight: 'tab-diario',
+      tip: '→ Here you track protein, calories and macros'
+    },
+    {
+      title: 'All set! 🚀',
+      text: 'Start with Metrics → Pantry → log your first meal. If you need a refresher, redo the tutorial from the ⚙ menu.',
+      icon: '✅',
       position: 'center'
     }
   ];
@@ -7943,7 +8291,7 @@ function TutorialOverlay({ lang, onDone }) {
           onClick: onDone,
           style: {
             background: 'none', border: 'none', color: 'var(--muted, #666)',
-            fontSize: 11, letterSpacing: 1, textTransform: 'uppercase',
+            fontSize: 14, letterSpacing: 1, textTransform: 'uppercase',
             cursor: 'pointer', fontFamily: 'inherit', padding: '2px 6px'
           }
         }, isPt ? 'Pular' : 'Skip')
@@ -7958,9 +8306,16 @@ function TutorialOverlay({ lang, onDone }) {
       ),
       // Text
       React.createElement('p', { style: {
-        margin: '0 0 20px', fontSize: 13, color: 'var(--text2, #aaa)',
+        margin: '0 0 12px', fontSize: 14, color: 'var(--text2, #aaa)',
         lineHeight: 1.6
       }}, current.text),
+      current.tip && React.createElement('div', { style: {
+        margin: '0 0 16px', fontSize: 13,
+        background: 'rgba(126,200,126,0.12)',
+        border: '1px solid rgba(126,200,126,0.3)',
+        borderRadius: 8, padding: '8px 12px',
+        color: 'var(--accent, #4a9a4a)', fontWeight: 500, lineHeight: 1.4
+      }}, current.tip),
       // Buttons
       React.createElement('div', { style: { display:'flex', gap:8 } },
         !isFirst && React.createElement('button', {
@@ -7968,7 +8323,7 @@ function TutorialOverlay({ lang, onDone }) {
           style: {
             flex: 1, padding: '10px', borderRadius: 8,
             background: 'none', border: '1px solid var(--border2, #333)',
-            color: 'var(--text2, #aaa)', fontSize: 12, cursor: 'pointer',
+            color: 'var(--text2, #aaa)', fontSize: 14, cursor: 'pointer',
             fontFamily: 'inherit', letterSpacing: 1
           }
         }, isPt ? '← Anterior' : '← Back'),
@@ -7978,7 +8333,7 @@ function TutorialOverlay({ lang, onDone }) {
             flex: isFirst ? 2 : 1, padding: '10px', borderRadius: 8,
             background: 'var(--accent, #7ec87e)',
             border: '1px solid var(--accent, #7ec87e)',
-            color: '#111', fontSize: 12, cursor: 'pointer',
+            color: '#111', fontSize: 14, cursor: 'pointer',
             fontFamily: 'inherit', fontWeight: 600, letterSpacing: 1
           }
         }, isLast
@@ -8093,7 +8448,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
   const tabStyle = (active) => ({
     flex:1, padding:'10px', background:'none', border:'none',
     borderBottom: active ? '2px solid var(--btn-ok-text,#4a9a4a)' : '2px solid var(--border2)',
-    color: active ? 'var(--btn-ok-text,#4a9a4a)' : 'var(--muted)', fontSize:11, letterSpacing:2,
+    color: active ? 'var(--btn-ok-text,#4a9a4a)' : 'var(--muted)', fontSize:11, letterSpacing:1,
     textTransform:'uppercase', cursor:'pointer', fontFamily:'inherit',
     transition:'all 0.2s'
   });
@@ -8130,9 +8485,14 @@ function LoginScreen({onLogin, onPendingVerification}) {
         }}, S.langToggle)
       ),
       React.createElement('div', {style:{textAlign:'center',marginBottom:32}},
-        React.createElement('div', {style:{fontSize:11,letterSpacing:4,color:'var(--muted)',textTransform:'uppercase',marginBottom:6}}, S.title),
-        React.createElement('div', {style:{fontSize:22,color:'var(--text3)',fontWeight:300}},
-          mode === 'login' ? S.login : S.register)
+        React.createElement('div', {style:{fontSize:11,letterSpacing:1,color:'var(--muted)',textTransform:'uppercase',marginBottom:6}}, S.title),
+        React.createElement('div', {style:{fontSize:22,color:'var(--text3)',fontWeight: 400,marginBottom:8}},
+          mode === 'login' ? S.login : S.register),
+        mode === 'login' && React.createElement('p', {style:{
+          fontSize:13, color:'var(--muted)', margin:0, lineHeight:1.5
+        }}, loginLang==='pt'
+          ? 'Acompanhe sua nutrição diária e alcance seus objetivos'
+          : 'Track your daily nutrition and reach your goals')
       ),
       React.createElement('div', {style:{display:'flex',marginBottom:28,borderBottom:'2px solid var(--border2)'}},
         React.createElement('button', {onClick:()=>switchMode('login'),  style:tabStyle(mode==='login')},  S.tabLogin),
@@ -8185,7 +8545,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
             background: loading?'var(--btn-inactive)': mode==='login'?'var(--btn-ok)':'var(--btn-info)',
             border:'1px solid ' + (mode==='login'?'var(--btn-ok-border)':'var(--btn-info-border)'),
             color: loading?'var(--muted)': mode==='login'?'var(--btn-ok-text)':'var(--btn-info-text)',
-            padding:'13px',borderRadius:8,fontSize:12,letterSpacing:2,
+            padding:'13px',borderRadius:8,fontSize:12,letterSpacing:1,
             textTransform:'uppercase',cursor:loading?'default':'pointer',
             fontFamily:'inherit',transition:'all 0.2s'
           }
@@ -8225,17 +8585,17 @@ function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDar
   if (showKey) return React.createElement('div', {style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.94)',zIndex:10002,display:'flex',alignItems:'center',justifyContent:'center',padding:20}},
     React.createElement('div', {style:{background:'var(--surface,#fff)',borderRadius:14,width:'100%',maxWidth:400,padding:24,border:'1px solid var(--border2)'}},
       React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}},
-        React.createElement('span',{style:{fontSize:11,letterSpacing:2,color:'#555',textTransform:'uppercase'}}, S.keyLabel),
+        React.createElement('span',{style:{fontSize:11,letterSpacing:1,color:'#555',textTransform:'uppercase'}}, S.keyLabel),
         React.createElement('button',{onClick:()=>setShowKey(false),style:{background:'none',border:'none',color:'#444',fontSize:22,cursor:'pointer',lineHeight:1}},'×')
       ),
       React.createElement('input',{type:'text',value:groqKey,onChange:e=>setGroqKey(e.target.value),
         placeholder:'gsk_...',style:{...inp,fontFamily:'monospace',fontSize:11,marginBottom:4}}),
-      React.createElement('div',{style:{fontSize:10,color:'#444',marginBottom:14}},S.keyHint),
+      React.createElement('div',{style:{fontSize:12,color:'#444',marginBottom:14}},S.keyHint),
       React.createElement('input',{type:'text',value:proxy,onChange:e=>setProxy(e.target.value),
         placeholder:'https://corsproxy.io/?',style:{...inp,marginBottom:4}}),
-      React.createElement('div',{style:{fontSize:10,color:'#444',marginBottom:20}},S.proxyLabel+': '+S.proxyHint),
+      React.createElement('div',{style:{fontSize:12,color:'#444',marginBottom:20}},S.proxyLabel+': '+S.proxyHint),
       React.createElement('button',{onClick:saveKey,style:{width:'100%',background:'#1a2a1a',border:'1px solid #3a5a3a',
-        color:'#7ec87e',padding:'12px',borderRadius:8,fontSize:11,letterSpacing:2,
+        color:'#7ec87e',padding:'12px',borderRadius:8,fontSize:11,letterSpacing:1,
         textTransform:'uppercase',cursor:'pointer',fontFamily:'inherit'}}, S.save)
     )
   );
@@ -8290,6 +8650,7 @@ function App() {
   const [showSettings,setShowSettings] = React.useState(false);
   const [showTutorial,setShowTutorial] = React.useState(false);
   const [showPrivacy, setShowPrivacy]  = React.useState(false);
+  const [showBackup,  setShowBackup]   = React.useState(false);
   const [pendingEmail, setPendingEmail] = React.useState('');
   const [pendingName,  setPendingName]  = React.useState('');
   const [appLang, setAppLang] = React.useState(() => localStorage.getItem('appLang') || 'pt');
@@ -8316,7 +8677,7 @@ function App() {
   if (checking) return React.createElement('div', {style:{
     position:'fixed',top:0,left:0,right:0,bottom:0,background:'var(--surface)',display:'flex',
     flexDirection:'column',alignItems:'center',justifyContent:'center',
-    gap:16,color:'#aaa',fontSize:12,letterSpacing:3,textTransform:'uppercase'
+    gap:16,color:'#aaa',fontSize:12,letterSpacing:1,textTransform:'uppercase'
   }},
     React.createElement('div', {style:{fontSize:30,color:'#7ec87e',display:'inline-block',animation:'spin 1.2s linear infinite'}}, '↻'),
     React.createElement('div', null, lang==='en'?'Signing in...':'A entrar...')
@@ -8361,6 +8722,7 @@ function App() {
         onLogout: () => { setAuthed(false); },
         onStartTutorial: () => setShowTutorial(true),
         onOpenPrivacy: () => setShowPrivacy(true),
+        onOpenBackup: () => setShowBackup(true),
         externalLang: lang,
         externalDarkMode: darkMode,
       }),
@@ -8368,6 +8730,11 @@ function App() {
         lang,
         onClose: () => setShowPrivacy(false),
         onLogout: () => { setAuthed(false); setShowPrivacy(false); }
+      }) : null,
+      showBackup ? React.createElement(BackupModal, {
+        lang,
+        darkMode,
+        onClose: () => setShowBackup(false)
       }) : null,
       showTutorial ? React.createElement(TutorialOverlay, {
         lang,
