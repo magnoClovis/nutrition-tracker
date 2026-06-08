@@ -1460,6 +1460,7 @@ function NutritionTracker({
   });
   const [mealTemplates, setMealTemplates] = useState([]);
   const [templateName, setTemplateName] = useState("");
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [describeMode, setDescribeMode] = useState(false);
   const [mealDescription, setMealDescription] = useState("");
   const [describeMeal, setDescribeMeal] = useState("Almoço");
@@ -1635,6 +1636,10 @@ function NutritionTracker({
       setHistoryNote(n ? n.value || "" : "");
     }
   }
+  useEffect(() => {
+    // Scroll to top when changing tabs
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [tab]);
   useEffect(() => {
     if (tab === "semana" && loaded) {
       loadWeekData();
@@ -2694,7 +2699,9 @@ function NutritionTracker({
     });
     setAddEntry(e => ({
       ...e,
-      qty: ""
+      qty: "",
+      foodSearch: "",
+      foodId: ""
     }));
     notify(`${food.name} adicionado.`);
   }
@@ -2709,6 +2716,7 @@ function NutritionTracker({
     setAddEntry(e => ({
       ...e,
       foodId: "",
+      foodSearch: "",
       qty: ""
     }));
   }
@@ -4697,43 +4705,38 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 8
     }
-  }, "Templates r\xE1pidos"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 6
-    }
-  }, mealTemplates.map(t => /*#__PURE__*/React.createElement("div", {
-    key: t.id,
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 0,
-      background: "var(--btn-info)",
-      border: "1px solid var(--border-info)",
-      borderRadius: 20
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => loadTemplate(t),
-    style: {
-      background: "none",
-      border: "none",
-      color: "#8ec8c8",
-      padding: "5px 12px 5px 14px",
-      fontSize: 14,
-      cursor: "pointer"
-    }
-  }, t.name), /*#__PURE__*/React.createElement("button", {
-    onClick: () => deleteTemplate(t.id),
-    style: {
-      background: "none",
-      border: "none",
-      color: "var(--faint)",
-      padding: "5px 10px 5px 0",
-      fontSize: 14,
-      cursor: "pointer"
-    }
-  }, "\xD7"))))), /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "Saved meals" : "Refeições salvas"),
+  /*#__PURE__*/React.createElement("div", {style:{display:"flex",flexDirection:"column",gap:6}},
+    mealTemplates.map(tmpl => /*#__PURE__*/React.createElement("div", {
+      key: tmpl.id,
+      style:{
+        background:"var(--surface)", border:"1px solid var(--border2)",
+        borderRadius:10, padding:"10px 12px",
+        display:"flex", alignItems:"center", gap:8
+      }
+    },
+      /*#__PURE__*/React.createElement("div", {style:{flex:1, minWidth:0}},
+        /*#__PURE__*/React.createElement("div", {style:{fontSize:14,fontWeight:500,color:"var(--text)",marginBottom:2}}, tmpl.name),
+        /*#__PURE__*/React.createElement("div", {style:{fontSize:12,color:"var(--muted)"}},
+          tmpl.items.length + (lang==='en'?' item(s)':' item(s)') + " · " +
+          Math.round(tmpl.items.reduce((s,i)=>s+(i.protein||0),0)) + "g prot · " +
+          Math.round(tmpl.items.reduce((s,i)=>s+(i.kcal||0),0)) + " kcal"
+        )
+      ),
+      /*#__PURE__*/React.createElement("button", {
+        onClick: () => loadTemplate(tmpl),
+        style:{
+          background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",
+          color:"var(--btn-ok-text)",borderRadius:8,padding:"6px 12px",
+          fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:500,whiteSpace:"nowrap"
+        }
+      }, lang==='en'?'Use':'Usar'),
+      /*#__PURE__*/React.createElement("button", {
+        onClick: () => deleteTemplate(tmpl.id),
+        style:{background:"none",border:"none",color:"var(--muted)",fontSize:18,cursor:"pointer",padding:"0 2px",lineHeight:1}
+      }, "\xD7")
+    ))
+  ))), tab === "adicionar" && /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 14
     }
@@ -4827,7 +4830,7 @@ function NutritionTracker({
         color: "#8ec8c8"
       }
     }, r.kcal, " kcal")))));
-  }))), /*#__PURE__*/React.createElement("div", {
+  }))), tab === "adicionar" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
@@ -5027,7 +5030,8 @@ function NutritionTracker({
     placeholder: t('searchFood'),
     style: inp
   }), addEntry.foodSearch && (() => {
-    const results = sortedAllPantry.filter(f => f.name.toLowerCase().includes(addEntry.foodSearch.toLowerCase()));
+    const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    const results = sortedAllPantry.filter(f => norm(f.name).includes(norm(addEntry.foodSearch)));
     if (!results.length) return /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 14,
@@ -5060,16 +5064,17 @@ function NutritionTracker({
         cursor: "pointer",
         borderBottom: "1px solid var(--border3)",
         fontSize: 14,
-        color: addEntry.foodId === f.id ? "#c8a96e" : "#d5cfc8",
-        background: addEntry.foodId === f.id ? "#1e2a1e" : "transparent"
+        color: addEntry.foodId === f.id ? "var(--btn-ok-text)" : "var(--text)",
+        background: addEntry.foodId === f.id ? "var(--btn-ok)" : "transparent"
       }
-    }, f.name, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 14,
-        color: "var(--muted)",
-        marginLeft: 8
-      }
-    }, f.protein100, f.unit === "un" ? "g/un" : "g", " prot \xB7 ", f.kcal100, f.unit === "un" ? "kcal/un" : t('kcalUnit'), "/100", f.unit === "un" ? "un" : f.unit))));
+    },
+    /*#__PURE__*/React.createElement("span", {style:{fontSize:14,fontWeight:500,color:"var(--text)"}}, f.name),
+    /*#__PURE__*/React.createElement("span", {style:{fontSize:12,color:"#c8a96e",marginLeft:8}},
+      f.protein100, f.unit==="un" ? "g" : "g", " prot"
+    ),
+    /*#__PURE__*/React.createElement("span", {style:{fontSize:12,color:"#8ec8c8",marginLeft:6}},
+      f.kcal100, f.unit==="un" ? " kcal/un" : " kcal/100"+f.unit
+    ))));
   })(), !addEntry.foodSearch && /*#__PURE__*/React.createElement("select", {
     value: addEntry.foodId,
     onChange: e => setAddEntry(a => ({
@@ -5307,36 +5312,19 @@ function NutritionTracker({
       ...btn,
       marginTop: 8
     }
-  }, "\u2713 Registar refei\xE7\xE3o (", staged.items.length, " item", staged.items.length !== 1 ? "s" : "", ")"), /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "\u2713 Log meal (" : "\u2713 Registrar refeição (", staged.items.length, " item", staged.items.length !== 1 ? "s" : "", ")"),
+  /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowSaveTemplateModal(true),
+    disabled: !staged.items.length,
     style: {
-      display: "flex",
-      gap: 6,
-      marginTop: 8
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: templateName,
-    onChange: e => setTemplateName(e.target.value),
-    placeholder: t('templateName'),
-    style: {
-      ...inp,
-      flex: 1,
-      marginTop: 0,
-      padding: "8px 10px",
-      fontSize: 12
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: saveTemplate,
-    style: {
+      ...btn,
+      marginTop: 6,
       background: "var(--btn-info)",
-      border: "1px solid var(--border-info)",
-      color: "#8ec8c8",
-      borderRadius: 6,
-      padding: "0 12px",
-      fontSize: 14,
-      cursor: "pointer",
-      whiteSpace: "nowrap"
+      border: "1px solid var(--btn-info-border)",
+      color: "var(--btn-info-text)",
+      opacity: staged.items.length ? 1 : 0.4
     }
-  }, "Guardar template")))), pantry.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "\uD83D\uDCBE Save as meal template" : "\uD83D\uDCBE Salvar como refeição")), pantry.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16,
       color: "var(--faint)",
@@ -5568,7 +5556,7 @@ function NutritionTracker({
     style: {
       color: "var(--muted)"
     }
-  }, exportResult.filename))))), tab === "despensa" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, exportResult.filename))))))), tab === "despensa" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -7198,7 +7186,50 @@ function NutritionTracker({
       fontSize: 14,
       letterSpacing: 1
     }
-  }, "Repor metas autom\xE1ticas")))), showGA && React.createElement("div", {
+  }, "Repor metas autom\xE1ticas")))), showSaveTemplateModal && /*#__PURE__*/React.createElement("div", {
+  style:{position:"fixed",inset:0,zIndex:99997,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(3px)",
+    display:"flex",alignItems:"center",justifyContent:"center",padding:16},
+  onClick: e => { if(e.target===e.currentTarget) setShowSaveTemplateModal(false); }
+},
+  /*#__PURE__*/React.createElement("div", {
+    style:{background:"var(--surface)",borderRadius:14,padding:"24px",
+      width:"100%",maxWidth:380,border:"1px solid var(--border2)",
+      boxShadow:"0 8px 32px rgba(0,0,0,0.4)"}
+  },
+    /*#__PURE__*/React.createElement("h3", {
+      style:{margin:"0 0 6px",fontSize:16,color:"var(--text)",fontWeight:600}
+    }, lang==='en'?"Save meal template":"Salvar refeição"),
+    /*#__PURE__*/React.createElement("p", {
+      style:{margin:"0 0 16px",fontSize:13,color:"var(--muted)"}
+    }, staged.items.map(i=>i.name).join(", ")),
+    /*#__PURE__*/React.createElement("input", {
+      type:"text", value:templateName,
+      onChange: e => setTemplateName(e.target.value),
+      onKeyDown: e => { if(e.key==='Enter'){ saveTemplate(); setShowSaveTemplateModal(false); }},
+      placeholder: lang==='en'?"Name (e.g. Pre-workout shake)":"Nome (ex: Shake pré-treino)",
+      autoFocus: true,
+      style:{...inp,marginBottom:14}
+    }),
+    /*#__PURE__*/React.createElement("div",{style:{display:"flex",gap:8}},
+      /*#__PURE__*/React.createElement("button",{
+        onClick:()=>setShowSaveTemplateModal(false),
+        style:{flex:1,padding:"10px",borderRadius:8,background:"none",
+          border:"1px solid var(--border2)",color:"var(--text2)",
+          cursor:"pointer",fontFamily:"inherit",fontSize:13}
+      }, lang==='en'?"Cancel":"Cancelar"),
+      /*#__PURE__*/React.createElement("button",{
+        onClick:()=>{ saveTemplate(); setShowSaveTemplateModal(false); },
+        disabled: !templateName.trim(),
+        style:{flex:2,padding:"10px",borderRadius:8,
+          background:templateName.trim()?"var(--btn-ok)":"var(--btn-inactive)",
+          border:"none",color:templateName.trim()?"var(--btn-ok-text)":"var(--muted)",
+          cursor:templateName.trim()?"pointer":"default",fontFamily:"inherit",
+          fontSize:13,fontWeight:600}
+      }, lang==='en'?"Save":"Salvar")
+    )
+  )
+),
+showGA && React.createElement("div", {
   style: {
     position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
     background: "#000000ee", zIndex: 99999,
@@ -7512,7 +7543,7 @@ function NutritionTracker({
       style: { color:"var(--text2)", fontSize:12, textAlign:"center" }
     }, lang==='en' ? "No combinations found. Try adjusting tolerance or max units." : "Nenhuma combina\xe7\xe3o encontrada. Tente aumentar a toler\xe2ncia ou o m\xe1x. de unidades.")
   )
-)));
+));
 }
 const inp = {
   width: "100%",
