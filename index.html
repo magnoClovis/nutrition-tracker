@@ -8125,220 +8125,148 @@ function BackupModal({ lang, darkMode, onClose }) {
 function TutorialOverlay({ lang, onDone }) {
   const isPt = lang === 'pt';
   const [step, setStep] = React.useState(0);
+  const [rect, setRect] = React.useState(null);
 
   const steps = isPt ? [
-    {
-      title: 'Bem-vindo! 👋',
-      text: 'Este app te ajuda a acompanhar sua nutrição diária. Vamos te guiar pelos 4 passos para começar — leva menos de 2 minutos.',
-      icon: '🥗',
-      position: 'center'
-    },
-    {
-      title: '1. Defina suas metas 🎯',
-      text: 'Vá em Métricas e informe seu peso e altura. O app calcula automaticamente suas metas de proteína e calorias.',
-      icon: '📊',
-      position: 'center',
-      highlight: 'tab-metricas',
-      tip: '→ Toque em Métricas e depois em Editar metas'
-    },
-    {
-      title: '2. Monte sua despensa 🏪',
-      text: 'Adicione os alimentos que você tem em casa. Eles serão usados para registros rápidos e sugestões de refeições.',
-      icon: '🏪',
-      position: 'center',
-      highlight: 'tab-despensa',
-      tip: '→ Toque em Despensa e adicione seus alimentos'
-    },
-    {
-      title: '3. Registre suas refeições ➕',
-      text: 'Use a aba + para registrar o que você come ao longo do dia. Busque alimentos ou escolha direto da sua despensa.',
-      icon: '➕',
-      position: 'center',
-      highlight: 'tab-adicionar',
-      tip: '→ Toque em + para adicionar sua primeira refeição'
-    },
-    {
-      title: '4. Acompanhe no Diário 📋',
-      text: 'O Diário mostra seu consumo do dia em tempo real. Quando bater aquela dúvida do que comer, use o botão "Sugerir o que comer".',
-      icon: '📋',
-      position: 'center',
-      highlight: 'tab-diario',
-      tip: '→ Aqui você acompanha proteínas, calorias e macros'
-    },
-    {
-      title: 'Tudo certo! 🚀',
-      text: 'Comece por Métricas → Despensa → registre sua primeira refeição. Qualquer dúvida, refaça o tutorial pelo menu ⚙.',
-      icon: '✅',
-      position: 'center'
-    }
+    { title: 'Bem-vindo! 👋',      text: 'Vamos te mostrar os 4 passos para começar.', highlight: null },
+    { title: '1. Métricas 🎯',     text: 'Defina seu peso, altura e metas. O app calcula tudo automaticamente.', highlight: 'tab-metricas' },
+    { title: '2. Despensa 🏪',     text: 'Cadastre os alimentos que você tem em casa.', highlight: 'tab-despensa' },
+    { title: '3. Adicionar ➕',    text: 'Registre suas refeições ao longo do dia.', highlight: 'tab-adicionar' },
+    { title: '4. Diário 📋',       text: 'Acompanhe seu progresso diário aqui.', highlight: 'tab-diario' },
+    { title: 'Tudo certo! 🚀',     text: 'Comece por Métricas → Despensa → registre sua primeira refeição.', highlight: null }
   ] : [
-    {
-      title: 'Welcome! 👋',
-      text: "This app helps you track your daily nutrition. We'll guide you through 4 steps to get started — takes less than 2 minutes.",
-      icon: '🥗',
-      position: 'center'
-    },
-    {
-      title: '1. Set your goals 🎯',
-      text: 'Go to Metrics and enter your weight and height. The app automatically calculates your protein and calorie targets.',
-      icon: '📊',
-      position: 'center',
-      highlight: 'tab-metricas',
-      tip: '→ Tap Metrics then Edit goals'
-    },
-    {
-      title: '2. Build your pantry 🏪',
-      text: 'Add the foods you have at home. They will be used for quick logging and meal suggestions.',
-      icon: '🏪',
-      position: 'center',
-      highlight: 'tab-despensa',
-      tip: '→ Tap Pantry and add your foods'
-    },
-    {
-      title: '3. Log your meals ➕',
-      text: 'Use the + tab to log what you eat throughout the day. Search for foods or choose from your pantry.',
-      icon: '➕',
-      position: 'center',
-      highlight: 'tab-adicionar',
-      tip: '→ Tap + to add your first meal'
-    },
-    {
-      title: '4. Track in your Diary 📋',
-      text: 'The Diary shows your daily intake in real time. When you are unsure what to eat, use the "Suggest what to eat" button.',
-      icon: '📋',
-      position: 'center',
-      highlight: 'tab-diario',
-      tip: '→ Here you track protein, calories and macros'
-    },
-    {
-      title: 'All set! 🚀',
-      text: 'Start with Metrics → Pantry → log your first meal. If you need a refresher, redo the tutorial from the ⚙ menu.',
-      icon: '✅',
-      position: 'center'
-    }
+    { title: 'Welcome! 👋',        text: "Let's show you the 4 steps to get started.", highlight: null },
+    { title: '1. Metrics 🎯',      text: 'Set your weight, height and goals. The app calculates everything.', highlight: 'tab-metricas' },
+    { title: '2. Pantry 🏪',       text: 'Add the foods you have at home.', highlight: 'tab-despensa' },
+    { title: '3. Add ➕',          text: 'Log your meals throughout the day.', highlight: 'tab-adicionar' },
+    { title: '4. Diary 📋',        text: 'Track your daily progress here.', highlight: 'tab-diario' },
+    { title: 'All set! 🚀',        text: 'Start with Metrics → Pantry → log your first meal.', highlight: null }
   ];
 
   const current = steps[step];
   const isLast = step === steps.length - 1;
   const isFirst = step === 0;
+  const PAD = 10;
 
-  // Highlight element by data-tutorial attribute
+  // Measure element and lock scroll
   React.useEffect(() => {
-    if (current.highlight) {
-      const el = document.querySelector('[data-tutorial="' + current.highlight + '"]');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        el.setAttribute('data-tutorial-active', 'true');
-      }
-    }
-    return () => {
-      document.querySelectorAll('[data-tutorial-active]').forEach(el => {
-        el.removeAttribute('data-tutorial-active');
-      });
-    };
+    // Lock scroll
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Remeasure on step change
+  React.useEffect(() => {
+    const key = current.highlight;
+    if (!key) { setRect(null); return; }
+    const el = document.querySelector('[data-tutorial="' + key + '"]');
+    if (!el) { setRect(null); return; }
+    // Scroll element into view first, then measure
+    el.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    const r = el.getBoundingClientRect();
+    setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
   }, [step]);
 
-  const boxStyle = {
-    position: 'fixed',
-    zIndex: 100001,
-    background: 'var(--card, #1a1a1a)',
-    border: '1px solid var(--accent, #7ec87e)',
-    borderRadius: 16,
-    padding: '24px 24px 20px',
-    maxWidth: 340,
-    width: 'calc(100% - 48px)',
-    boxShadow: '0 12px 48px rgba(0,0,0,0.7)',
-  };
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 400;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+  const R = 8;
 
-  // Position logic
-  const pos = current.position || 'center';
-  const posStyle = pos === 'center'
-    ? { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }
-    : pos === 'bottom'
-    ? { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }
-    : pos === 'top-right'
-    ? { top: 70, right: 16, left: 'auto', transform: 'none' }
-    : { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' };
+  // SVG cutout path
+  const cutout = rect
+    ? 'M0,0 H' + vw + ' V' + vh + ' H0 Z ' +
+      'M' + (rect.left - PAD + R) + ',' + (rect.top - PAD) + ' ' +
+      'H' + (rect.left + rect.width + PAD - R) + ' ' +
+      'Q' + (rect.left + rect.width + PAD) + ',' + (rect.top - PAD) + ' ' + (rect.left + rect.width + PAD) + ',' + (rect.top - PAD + R) + ' ' +
+      'V' + (rect.top + rect.height + PAD - R) + ' ' +
+      'Q' + (rect.left + rect.width + PAD) + ',' + (rect.top + rect.height + PAD) + ' ' + (rect.left + rect.width + PAD - R) + ',' + (rect.top + rect.height + PAD) + ' ' +
+      'H' + (rect.left - PAD + R) + ' ' +
+      'Q' + (rect.left - PAD) + ',' + (rect.top + rect.height + PAD) + ' ' + (rect.left - PAD) + ',' + (rect.top + rect.height + PAD - R) + ' ' +
+      'V' + (rect.top - PAD + R) + ' ' +
+      'Q' + (rect.left - PAD) + ',' + (rect.top - PAD) + ' ' + (rect.left - PAD + R) + ',' + (rect.top - PAD) + ' Z'
+    : 'M0,0 H' + vw + ' V' + vh + ' H0 Z';
+
+  // Tooltip positioning: place above or below, never overlapping the highlight
+  const TOOLTIP_W = Math.min(320, vw - 32);
+  const TOOLTIP_H = 160;
+  const GAP = 20; // gap between highlight and tooltip
+
+  let tooltipTop, tooltipLeft;
+  if (!rect) {
+    tooltipTop = vh / 2 - TOOLTIP_H / 2;
+    tooltipLeft = vw / 2 - TOOLTIP_W / 2;
+  } else {
+    const spaceBelow = vh - (rect.top + rect.height + PAD);
+    const spaceAbove = rect.top - PAD;
+    if (spaceAbove >= TOOLTIP_H + GAP) {
+      // Above the element
+      tooltipTop = rect.top - PAD - GAP - TOOLTIP_H;
+    } else if (spaceBelow >= TOOLTIP_H + GAP) {
+      // Below
+      tooltipTop = rect.top + rect.height + PAD + GAP;
+    } else {
+      // Center vertically, left side
+      tooltipTop = vh / 2 - TOOLTIP_H / 2;
+    }
+    tooltipLeft = Math.max(16, Math.min(rect.left + rect.width / 2 - TOOLTIP_W / 2, vw - TOOLTIP_W - 16));
+  }
 
   return React.createElement(React.Fragment, null,
-    // Backdrop — intercepts all clicks so tabs/buttons can't be triggered
+    // SVG overlay with cutout
+    React.createElement('svg', {
+      style: { position:'fixed', inset:0, zIndex:100000, pointerEvents:'none', overflow:'visible' },
+      width: vw, height: vh, viewBox: '0 0 ' + vw + ' ' + vh
+    },
+      React.createElement('path', { d: cutout, fill:'rgba(0,0,0,0.75)', fillRule:'evenodd' }),
+      rect && React.createElement('rect', {
+        x: rect.left - PAD, y: rect.top - PAD,
+        width: rect.width + PAD*2, height: rect.height + PAD*2,
+        rx: R, ry: R, fill:'none', stroke:'#7ec87e', strokeWidth:2
+      })
+    ),
+    // Click/scroll blocker
     React.createElement('div', {
-      style: {
-        position: 'fixed', inset: 0, zIndex: 100000,
-        background: 'rgba(0,0,0,0.65)',
-        backdropFilter: 'blur(2px)'
-      },
+      style:{ position:'fixed', inset:0, zIndex:100001 },
       onClick: e => e.stopPropagation(),
       onMouseDown: e => e.stopPropagation(),
-      onPointerDown: e => e.stopPropagation()
+      onTouchMove: e => e.preventDefault(),
+      onWheel: e => e.preventDefault()
     }),
-    // Tooltip box
-    React.createElement('div', { style: { ...boxStyle, ...posStyle } },
-      // Step indicator
-      React.createElement('div', { style: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 } },
-        React.createElement('div', { style: { display:'flex', gap:5 } },
-          steps.map((_, i) => React.createElement('div', {
-            key: i,
-            style: {
-              width: i === step ? 18 : 6, height: 6,
-              borderRadius: 3,
-              background: i === step ? 'var(--accent, #7ec87e)' : 'var(--border2, #333)',
-              transition: 'all 0.3s'
-            }
-          }))
-        ),
+    // Tooltip
+    React.createElement('div', {
+      style:{
+        position:'fixed', zIndex:100002,
+        top: tooltipTop, left: tooltipLeft,
+        width: TOOLTIP_W,
+        background:'var(--surface,#1a1a1a)',
+        borderRadius:14, padding:'18px 18px 14px',
+        boxShadow:'0 8px 32px rgba(0,0,0,0.3)',
+        border:'1px solid var(--border2,#333)'
+      }
+    },
+      // Progress dots
+      React.createElement('div', {style:{display:'flex',gap:4,marginBottom:12}},
+        steps.map((_, i) => React.createElement('div', {key:i, style:{
+          width: i===step?16:5, height:5, borderRadius:3,
+          background: i===step?'#7ec87e':'var(--border2,#444)',
+          transition:'all 0.25s'
+        }}))
+      ),
+      React.createElement('div', {style:{fontSize:15,fontWeight:600,color:'var(--text,#fff)',marginBottom:6}}, current.title),
+      React.createElement('div', {style:{fontSize:13,color:'var(--muted,#888)',lineHeight:1.5,marginBottom:16}}, current.text),
+      React.createElement('div', {style:{display:'flex',gap:8,alignItems:'center'}},
         React.createElement('button', {
           onClick: onDone,
-          style: {
-            background: 'none', border: 'none', color: 'var(--muted, #666)',
-            fontSize: 14, letterSpacing: 1, textTransform: 'uppercase',
-            cursor: 'pointer', fontFamily: 'inherit', padding: '2px 6px'
-          }
-        }, isPt ? 'Pular' : 'Skip')
-      ),
-      // Icon + title
-      React.createElement('div', { style: { display:'flex', alignItems:'center', gap:10, marginBottom:10 } },
-        React.createElement('span', { style: { fontSize: 28 } }, current.icon),
-        React.createElement('h3', { style: {
-          margin: 0, fontSize: 14, color: 'var(--text1, #fff)',
-          fontWeight: 600, lineHeight: 1.3
-        }}, current.title)
-      ),
-      // Text
-      React.createElement('p', { style: {
-        margin: '0 0 12px', fontSize: 14, color: 'var(--text2, #aaa)',
-        lineHeight: 1.6
-      }}, current.text),
-      current.tip && React.createElement('div', { style: {
-        margin: '0 0 16px', fontSize: 13,
-        background: 'rgba(126,200,126,0.12)',
-        border: '1px solid rgba(126,200,126,0.3)',
-        borderRadius: 8, padding: '8px 12px',
-        color: 'var(--accent, #4a9a4a)', fontWeight: 500, lineHeight: 1.4
-      }}, current.tip),
-      // Buttons
-      React.createElement('div', { style: { display:'flex', gap:8 } },
+          style:{fontSize:12,color:'var(--muted,#888)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',padding:'6px 0',marginRight:'auto'}
+        }, isPt?'Pular':'Skip'),
         !isFirst && React.createElement('button', {
-          onClick: () => setStep(s => s - 1),
-          style: {
-            flex: 1, padding: '10px', borderRadius: 8,
-            background: 'none', border: '1px solid var(--border2, #333)',
-            color: 'var(--text2, #aaa)', fontSize: 14, cursor: 'pointer',
-            fontFamily: 'inherit', letterSpacing: 1
-          }
-        }, isPt ? '← Anterior' : '← Back'),
+          onClick: () => setStep(s=>s-1),
+          style:{fontSize:13,padding:'8px 14px',borderRadius:8,background:'none',border:'1px solid var(--border2,#444)',color:'var(--text2,#aaa)',cursor:'pointer',fontFamily:'inherit'}
+        }, '←'),
         React.createElement('button', {
-          onClick: isLast ? onDone : () => setStep(s => s + 1),
-          style: {
-            flex: isFirst ? 2 : 1, padding: '10px', borderRadius: 8,
-            background: 'var(--accent, #7ec87e)',
-            border: '1px solid var(--accent, #7ec87e)',
-            color: '#111', fontSize: 14, cursor: 'pointer',
-            fontFamily: 'inherit', fontWeight: 600, letterSpacing: 1
-          }
-        }, isLast
-          ? (isPt ? 'Começar! 🚀' : 'Start! 🚀')
-          : (isPt ? 'Próximo →' : 'Next →'))
+          onClick: isLast ? onDone : ()=>setStep(s=>s+1),
+          style:{fontSize:13,padding:'8px 18px',borderRadius:8,background:'#7ec87e',border:'none',color:'#111',fontWeight:600,cursor:'pointer',fontFamily:'inherit'}
+        }, isLast?(isPt?'Começar!':'Start!'):(isPt?'Próximo →':'Next →'))
       )
     )
   );
