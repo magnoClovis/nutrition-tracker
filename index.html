@@ -1551,9 +1551,25 @@ function NutritionTracker({
   const [editingGoals, setEditingGoals] = useState(false);
   const [goalDraft, setGoalDraft] = useState({});
   const [pantrySearch, setPantrySearch] = useState("");
+  const [pantryItemsOpen, setPantryItemsOpen] = useState(false);
+  const [mealTemplatesOpen, setMealTemplatesOpen] = useState(false);
+  const [addTemplatesOpen, setAddTemplatesOpen] = useState(false);
+  const [addTemplateSearch, setAddTemplateSearch] = useState("");
+  const [suppPantryOpen, setSuppPantryOpen] = useState(false);
   const [editEntryId, setEditEntryId] = useState(null);
   const [editEntryQty, setEditEntryQty] = useState("");
   const saveTimeout = useRef({});
+  useEffect(() => {
+    if (tab === "despensa") {
+      setPantryItemsOpen(false);
+      setMealTemplatesOpen(false);
+      setSuppPantryOpen(false);
+    }
+    if (tab === "adicionar") {
+      setAddTemplatesOpen(false);
+      setAddTemplateSearch("");
+    }
+  }, [tab]);
   async function loadAll() {
     setSyncing(true);
     // Timeout fallback: if Firebase hangs for 12s, show app anyway
@@ -2777,6 +2793,22 @@ function NutritionTracker({
     setBatchMode(true);
     notify(`"${t.name}" carregado.`);
   }
+  function appendTemplateToStaged(t) {
+    const items = t.items.map(item => {
+      const food = pantry.find(f => f.id === item.foodId);
+      return food ? buildEntry(food, item.qty) : null;
+    }).filter(Boolean);
+    if (!items.length) {
+      notify("Nenhum ingrediente da refeição salva foi encontrado na despensa.");
+      return;
+    }
+    setStaged(s => ({
+      meal: s.items.length ? s.meal : t.meal,
+      items: [...s.items, ...items]
+    }));
+    setBatchMode(true);
+    notify(`"${t.name}" adicionada à preparação.`);
+  }
   function loadRecentMealToStaged(recentMeal) {
     const items = recentMeal.entries.map(e => ({
       ...e,
@@ -3311,7 +3343,9 @@ function NutritionTracker({
       background: "var(--bg)",
       color: "#ffffff",
       fontFamily: "system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",
+      minHeight: "100vh",
       paddingBottom: 60,
+      overflowX: "hidden",
       ...THEME
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -3816,7 +3850,11 @@ function NutritionTracker({
     }
   }, label))), /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "16px"
+      padding: "18px 20px 28px",
+      boxSizing: "border-box",
+      width: "100%",
+      maxWidth: 1160,
+      margin: "0 auto"
     }
   }, tab === "diario" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -4695,48 +4733,122 @@ function NutritionTracker({
     }
   }, "\xD7"))))), tab === "adicionar" && /*#__PURE__*/React.createElement("div", null, mealTemplates.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 16
+      marginBottom: 16,
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 8,
+      padding: "12px 14px"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAddTemplatesOpen(v => !v),
+    style: {
+      width: "100%",
+      background: "none",
+      border: "none",
+      padding: 0,
+      textAlign: "left",
+      cursor: "pointer",
+      fontFamily: "inherit"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14,
       letterSpacing: 1,
       color: "var(--muted)",
-      textTransform: "uppercase",
+      textTransform: "uppercase"
+    }
+  }, addTemplatesOpen ? "\u25BE " : "\u25B8 ", lang === 'en' ? "Saved meals" : "Refei\xE7\xF5es salvas", " (", mealTemplates.length, ")")), addTemplatesOpen && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: addTemplateSearch,
+    onChange: e => setAddTemplateSearch(e.target.value),
+    placeholder: lang === 'en' ? "Search saved meal..." : "Pesquisar refei\xE7\xE3o salva...",
+    style: {
+      ...inp,
+      marginTop: 0
+    }
+  }), mealTemplates.filter(tmpl => tmpl.name.toLowerCase().includes(addTemplateSearch.trim().toLowerCase())).length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--faint)",
+      fontSize: 14,
+      fontStyle: "italic",
+      textAlign: "center",
+      padding: "10px 0"
+    }
+  }, lang === 'en' ? "No saved meals found." : "Nenhuma refei\xE7\xE3o salva encontrada.") : mealTemplates.filter(tmpl => tmpl.name.toLowerCase().includes(addTemplateSearch.trim().toLowerCase())).map(tmpl => /*#__PURE__*/React.createElement("div", {
+    key: tmpl.id,
+    style: {
+      borderTop: "1px solid var(--border3)",
+      paddingTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
       marginBottom: 8
     }
-  }, lang === 'en' ? "Saved meals" : "Refeições salvas"),
-  /*#__PURE__*/React.createElement("div", {style:{display:"flex",flexDirection:"column",gap:6}},
-    mealTemplates.map(tmpl => /*#__PURE__*/React.createElement("div", {
-      key: tmpl.id,
-      style:{
-        background:"var(--surface)", border:"1px solid var(--border2)",
-        borderRadius:10, padding:"10px 12px",
-        display:"flex", alignItems:"center", gap:8
-      }
-    },
-      /*#__PURE__*/React.createElement("div", {style:{flex:1, minWidth:0}},
-        /*#__PURE__*/React.createElement("div", {style:{fontSize:14,fontWeight:500,color:"var(--text)",marginBottom:2}}, tmpl.name),
-        /*#__PURE__*/React.createElement("div", {style:{fontSize:12,color:"var(--muted)"}},
-          tmpl.items.length + (lang==='en'?' item(s)':' item(s)') + " · " +
-          Math.round(tmpl.items.reduce((s,i)=>s+(i.protein||0),0)) + "g prot · " +
-          Math.round(tmpl.items.reduce((s,i)=>s+(i.kcal||0),0)) + " kcal"
-        )
-      ),
-      /*#__PURE__*/React.createElement("button", {
-        onClick: () => loadTemplate(tmpl),
-        style:{
-          background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",
-          color:"var(--btn-ok-text)",borderRadius:8,padding:"6px 12px",
-          fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:500,whiteSpace:"nowrap"
-        }
-      }, lang==='en'?'Use':'Usar'),
-      /*#__PURE__*/React.createElement("button", {
-        onClick: () => deleteTemplate(tmpl.id),
-        style:{background:"none",border:"none",color:"var(--muted)",fontSize:18,cursor:"pointer",padding:"0 2px",lineHeight:1}
-      }, "\xD7")
-    ))
-  ))), tab === "adicionar" && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "var(--text2)",
+      marginBottom: 2
+    }
+  }, tmpl.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted)"
+    }
+  }, tmpl.items.length, " item", tmpl.items.length !== 1 ? "s" : "")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => appendTemplateToStaged(tmpl),
+    style: sBtn("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)")
+  }, lang === 'en' ? "Add" : "Adicionar"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => loadTemplate(tmpl),
+    style: sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)")
+  }, lang === 'en' ? "Edit" : "Editar")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5,
+      paddingLeft: 8,
+      borderLeft: "2px solid var(--border3)"
+    }
+  }, tmpl.items.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--faint)",
+      fontStyle: "italic"
+    }
+  }, lang === 'en' ? "No ingredients saved." : "Sem ingredientes salvos.") : tmpl.items.map((item, idx) => /*#__PURE__*/React.createElement("div", {
+    key: item.foodId || item.name || idx,
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      gap: 12,
+      fontSize: 13,
+      color: "var(--muted)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--text2)",
+      minWidth: 0
+    }
+  }, item.name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flexShrink: 0,
+      color: "var(--muted2)"
+    }
+  }, item.qty, item.unit))))))))), tab === "adicionar" && /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 14
     }
@@ -5556,7 +5668,13 @@ function NutritionTracker({
     style: {
       color: "var(--muted)"
     }
-  }, exportResult.filename))))))), tab === "despensa" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, exportResult.filename))))))), tab === "despensa" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 0 26px",
+      boxSizing: "border-box",
+      width: "100%"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -5697,24 +5815,39 @@ function NutritionTracker({
     style: btn
   }, t('savePantry')), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 24
+      marginTop: 24,
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 8,
+      padding: "12px 14px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 10
+      gap: 10,
+      marginBottom: pantryItemsOpen ? 10 : 0
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPantryItemsOpen(v => !v),
+    style: {
+      flex: 1,
+      background: "none",
+      border: "none",
+      padding: 0,
+      textAlign: "left",
+      cursor: "pointer",
+      fontFamily: "inherit"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14,
       letterSpacing: 1,
       color: "var(--dim)",
       textTransform: "uppercase"
     }
-  }, t('pantryTitle'), " (", pantry.length, ")"), /*#__PURE__*/React.createElement("div", {
-    style: {
+  }, pantryItemsOpen ? "▾ " : "▸ ", t('pantryTitle'), " (", pantry.length, ")")), /*#__PURE__*/React.createElement("div", {    style: {
       display: "flex",
       gap: 6
     }
@@ -5730,7 +5863,7 @@ function NutritionTracker({
   })), pantry.length > 0 && /*#__PURE__*/React.createElement("button", {
     onClick: exportCSV,
     style: sBtn("var(--btn-teal)", "var(--btn-teal-border)", "#7ec8c8")
-  }, "\u2193 Exportar"))), /*#__PURE__*/React.createElement("input", {
+  }, "\u2193 Exportar"))), pantryItemsOpen && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
     value: pantrySearch,
     onChange: e => setPantrySearch(e.target.value),
     placeholder: t('pantrySearch'),
@@ -5937,11 +6070,131 @@ function NutritionTracker({
       fontSize: 14,
       cursor: "pointer"
     }
-  }, "\xD7")))))), /*#__PURE__*/React.createElement("div", {
+  }, "\xD7"))))))), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 28,
-      borderTop: "1px solid var(--border3)",
-      paddingTop: 16
+      marginTop: 12,
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 8,
+      padding: "12px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMealTemplatesOpen(v => !v),
+    style: {
+      width: "100%",
+      background: "none",
+      border: "none",
+      padding: 0,
+      textAlign: "left",
+      cursor: "pointer",
+      fontFamily: "inherit"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      letterSpacing: 1,
+      color: "var(--dim)",
+      textTransform: "uppercase"
+    }
+  }, mealTemplatesOpen ? "▾ " : "▸ ", lang === 'en' ? "Saved meals" : "Refei\xE7\xF5es salvas", " (", mealTemplates.length, ")")), mealTemplatesOpen && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, mealTemplates.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--faint)",
+      fontSize: 14,
+      fontStyle: "italic",
+      textAlign: "center",
+      padding: "10px 0"
+    }
+  }, lang === 'en' ? "No saved meals." : "Nenhuma refei\xE7\xE3o salva.") : mealTemplates.map(tmpl => /*#__PURE__*/React.createElement("div", {
+    key: tmpl.id,
+    style: {
+      borderBottom: "1px solid var(--border3)",
+      padding: "10px 0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "var(--text2)",
+      marginBottom: 2
+    }
+  }, tmpl.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted)"
+    }
+  }, tmpl.items.length, " item", tmpl.items.length !== 1 ? "s" : "")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => { loadTemplate(tmpl); setTab("adicionar"); },
+    style: sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)")
+  }, lang === 'en' ? "Edit" : "editar"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => deleteTemplate(tmpl.id),
+    title: lang === 'en' ? "Delete" : "Apagar",
+    style: {
+      background: "none",
+      border: "1px solid var(--border3)",
+      color: "var(--dim)",
+      borderRadius: 4,
+      padding: "3px 8px",
+      fontSize: 14,
+      cursor: "pointer"
+    }
+  }, "\uD83D\uDDD1\uFE0F")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5,
+      paddingLeft: 8,
+      borderLeft: "2px solid var(--border3)"
+    }
+  }, tmpl.items.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--faint)",
+      fontStyle: "italic"
+    }
+  }, lang === 'en' ? "No ingredients saved." : "Sem ingredientes salvos.") : tmpl.items.map((item, idx) => /*#__PURE__*/React.createElement("div", {
+    key: item.foodId || item.name || idx,
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      gap: 12,
+      fontSize: 13,
+      color: "var(--muted)"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--text2)",
+      minWidth: 0
+    }
+  }, item.name), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flexShrink: 0,
+      color: "var(--muted2)"
+    }
+  }, item.qty, item.unit)))))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 8,
+      padding: "12px 14px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5950,17 +6203,28 @@ function NutritionTracker({
       alignItems: "center",
       marginBottom: 10
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSuppPantryOpen(v => !v),
+    style: {
+      flex: 1,
+      background: "none",
+      border: "none",
+      padding: 0,
+      textAlign: "left",
+      cursor: "pointer",
+      fontFamily: "inherit"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14,
       letterSpacing: 1,
       color: "var(--muted)",
       textTransform: "uppercase"
     }
-  }, `💊 ${t('suppPantryTitle')} (${suppPantry.length})`), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowSuppForm(s => !s),
+  }, suppPantryOpen ? "\u25BE " : "\u25B8 ", `\uD83D\uDC8A ${t('suppPantryTitle')} (${suppPantry.length})`)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => { setSuppPantryOpen(true); setShowSuppForm(s => !s); },
     style: sBtn("var(--btn-info)", "var(--btn-info-border)", "#9090c8")
-  }, showSuppForm ? "▲ fechar" : "+ adicionar")), showSuppForm && /*#__PURE__*/React.createElement("div", {
+  }, showSuppForm ? "\u25B2 fechar" : "+ adicionar")), suppPantryOpen && showSuppForm && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -6045,7 +6309,7 @@ function NutritionTracker({
   })), /*#__PURE__*/React.createElement("button", {
     onClick: addSuppToPantry,
     style: btn
-  }, t('suppSave'))), suppPantry.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, t('suppSave'))), suppPantryOpen && suppPantry.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       color: "var(--faint)",
       fontSize: 14,
@@ -6053,7 +6317,7 @@ function NutritionTracker({
       textAlign: "center",
       padding: "10px 0"
     }
-  }, "Nenhum suplemento adicionado."), suppPantry.map(s => /*#__PURE__*/React.createElement("div", {
+  }, "Nenhum suplemento adicionado."), suppPantryOpen && suppPantry.map(s => /*#__PURE__*/React.createElement("div", {
     key: s.id,
     style: {
       display: "flex",
@@ -8303,6 +8567,80 @@ function TutorialOverlay({ lang, onDone }) {
   );
 }
 
+function isValidBirthDate(value) {
+  if (!value) return false;
+  const d = new Date(value + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return false;
+  const today = new Date();
+  const min = new Date('1900-01-01T00:00:00');
+  return d <= today && d >= min;
+}
+
+function isValidGender(value) {
+  return value === 'male' || value === 'female';
+}
+
+async function getRequiredProfileData() {
+  const [birthDate, gender] = await Promise.all([
+    storage.get('birthDate').catch(()=>null),
+    storage.get('gender').catch(()=>null)
+  ]);
+  return {
+    birthDate: birthDate && birthDate.value ? birthDate.value : '',
+    gender: gender && gender.value ? gender.value : ''
+  };
+}
+
+function hasRequiredProfileData(profile) {
+  return !!profile && isValidBirthDate(profile.birthDate) && isValidGender(profile.gender);
+}
+
+function RequiredProfileModal({lang, onComplete}) {
+  const isPt = (lang || 'pt') === 'pt';
+  const [birthDate, setBirthDate] = React.useState('');
+  const [gender, setGender] = React.useState('');
+  const [error, setError] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+  const S = isPt
+    ? {title:'Completar perfil', text:'Para continuar, informa estes dados obrigat�rios.', birth:'Data de nascimento *', gender:'G�nero *', choose:'Selecionar', male:'Masculino', female:'Feminino', save:'Guardar e continuar', saving:'A guardar...', err:'Preenche uma data de nascimento v�lida e o g�nero.'}
+    : {title:'Complete profile', text:'To continue, please add these required details.', birth:'Date of birth *', gender:'Gender *', choose:'Select', male:'Male', female:'Female', save:'Save and continue', saving:'Saving...', err:'Enter a valid date of birth and gender.'};
+  const inp = {width:'100%',background:'var(--input)',border:'1px solid var(--border2)',color:'var(--text)',padding:'12px 14px',borderRadius:8,fontSize:15,fontFamily:'inherit',boxSizing:'border-box',outline:'none',marginTop:6,marginBottom:14};
+  async function saveProfile(e) {
+    e.preventDefault();
+    setError('');
+    if (!isValidBirthDate(birthDate) || !isValidGender(gender)) { setError(S.err); return; }
+    setSaving(true);
+    await Promise.all([
+      storage.set('birthDate', birthDate).catch(()=>{}),
+      storage.set('gender', gender).catch(()=>{})
+    ]);
+    const savedProfile = await getRequiredProfileData().catch(()=>null);
+    if (!hasRequiredProfileData(savedProfile)) {
+      setSaving(false);
+      setError(S.err);
+      return;
+    }
+    setSaving(false);
+    onComplete(savedProfile);
+  }
+  return React.createElement('div', {style:{position:'fixed',inset:0,zIndex:100000,background:'rgba(0,0,0,0.86)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}},
+    React.createElement('form', {onSubmit:saveProfile, style:{width:'100%',maxWidth:380,background:'var(--surface,#161616)',border:'1px solid var(--border2,#2a2a2a)',borderRadius:14,padding:24,boxShadow:'0 20px 80px rgba(0,0,0,0.45)'}},
+      React.createElement('div', {style:{fontSize:20,color:'var(--text3,#c9bfb0)',marginBottom:8}}, S.title),
+      React.createElement('div', {style:{fontSize:13,color:'var(--muted,#888)',lineHeight:1.5,marginBottom:20}}, S.text),
+      React.createElement('label', {style:{fontSize:10,letterSpacing:1.5,color:'var(--muted)',textTransform:'uppercase'}}, S.birth),
+      React.createElement('input', {type:'date', value:birthDate, onChange:e=>setBirthDate(e.target.value), required:true, max:new Date().toISOString().split('T')[0], min:'1900-01-01', style:inp}),
+      React.createElement('label', {style:{fontSize:10,letterSpacing:1.5,color:'var(--muted)',textTransform:'uppercase'}}, S.gender),
+      React.createElement('select', {value:gender, onChange:e=>setGender(e.target.value), required:true, style:inp},
+        React.createElement('option', {value:''}, S.choose),
+        React.createElement('option', {value:'male'}, S.male),
+        React.createElement('option', {value:'female'}, S.female)
+      ),
+      error && React.createElement('div', {style:{color:'#c87e7e',fontSize:12,marginBottom:14,padding:'8px 12px',background:'rgba(200,80,80,0.1)',borderRadius:6,border:'1px solid rgba(200,80,80,0.2)'}}, error),
+      React.createElement('button', {type:'submit', disabled:saving, style:{width:'100%',background:saving?'var(--btn-inactive)':'var(--btn-ok)',border:'1px solid var(--btn-ok-border)',color:saving?'var(--muted)':'var(--btn-ok-text)',padding:'13px',borderRadius:8,fontSize:12,letterSpacing:1,textTransform:'uppercase',cursor:saving?'default':'pointer',fontFamily:'inherit'}}, saving ? S.saving : S.save)
+    )
+  );
+}
+
 function LoginScreen({onLogin, onPendingVerification}) {
   const [mode, setMode]           = React.useState('login');
   const [email, setEmail]         = React.useState('');
@@ -8314,6 +8652,8 @@ function LoginScreen({onLogin, onPendingVerification}) {
   const [regWeight, setRegWeight] = React.useState('');
   const [regHeight, setRegHeight] = React.useState('');
   const [regName,   setRegName]   = React.useState('');
+  const [regBirthDate, setRegBirthDate] = React.useState('');
+  const [regGender, setRegGender] = React.useState('');
   const [loginDark, setLoginDark] = React.useState(() => {
     const saved = localStorage.getItem('appDarkMode');
     return saved !== null ? saved === 'true' : false;
@@ -8376,7 +8716,9 @@ function LoginScreen({onLogin, onPendingVerification}) {
         if (!verified) { onPendingVerification(email); return; }
         onLogin(false);
       } else {
-        if (!regName.trim()) { setError(loginLang==='pt'?'O nome é obrigatório.':'Name is required.'); setLoading(false); return; }
+        if (!regName.trim()) { setError(loginLang==='pt'?'O nome � obrigat�rio.':'Name is required.'); setLoading(false); return; }
+        if (!isValidBirthDate(regBirthDate)) { setError(loginLang==='pt'?'A data de nascimento � obrigat�ria e deve ser v�lida.':'Date of birth is required and must be valid.'); setLoading(false); return; }
+        if (!isValidGender(regGender)) { setError(loginLang==='pt'?'O g�nero � obrigat�rio.':'Gender is required.'); setLoading(false); return; }
         await fbSignUp(email, password);
         localStorage.setItem('fb_email', email);
         // Set displayName so it appears in Firebase email templates
@@ -8390,6 +8732,8 @@ function LoginScreen({onLogin, onPendingVerification}) {
           await fbSet('weightHistory', JSON.stringify([entry])).catch(()=>{});
         }
         await fbSet('userName', regName.trim()).catch(()=>{});
+        await fbSet('birthDate', regBirthDate).catch(()=>{});
+        await fbSet('gender', regGender).catch(()=>{});
         // Send verification email
         await fbSendVerificationEmail().catch(()=>{});
         onPendingVerification(email, regName.trim());
@@ -8480,6 +8824,21 @@ function LoginScreen({onLogin, onPendingVerification}) {
           style:{...inp, marginBottom:12},
           autoComplete:'name'
         }),
+        mode === 'register' && React.createElement('input', {
+          type:'date', value:regBirthDate, onChange:e=>setRegBirthDate(e.target.value),
+          required:true, max:new Date().toISOString().split('T')[0], min:'1900-01-01',
+          title: loginLang==='pt' ? 'Data de nascimento *' : 'Date of birth *',
+          style:{...inp, marginBottom:12},
+          autoComplete:'bday'
+        }),
+        mode === 'register' && React.createElement('select', {
+          value:regGender, onChange:e=>setRegGender(e.target.value), required:true,
+          style:{...inp, marginBottom:12}
+        },
+          React.createElement('option', {value:''}, loginLang==='pt' ? 'G�nero *' : 'Gender *'),
+          React.createElement('option', {value:'male'}, loginLang==='pt' ? 'Masculino' : 'Male'),
+          React.createElement('option', {value:'female'}, loginLang==='pt' ? 'Feminino' : 'Female')
+        ),
         mode === 'register' && React.createElement('div', {style:{display:'flex',gap:8,marginBottom: error?8:20}},
           React.createElement('input', {
             type:'number', value:regWeight, onChange:e=>setRegWeight(e.target.value),
@@ -8612,6 +8971,8 @@ function App() {
   const [showBackup,  setShowBackup]   = React.useState(false);
   const [pendingEmail, setPendingEmail] = React.useState('');
   const [pendingName,  setPendingName]  = React.useState('');
+  const [requiredProfile, setRequiredProfile] = React.useState(null);
+  const [profileChecking, setProfileChecking] = React.useState(fbIsLoggedIn());
   const [appLang, setAppLang] = React.useState(() => localStorage.getItem('appLang') || 'pt');
   const [lang, setLang]         = React.useState(()=>localStorage.getItem('appLang')||'pt');
   const [darkMode, setDarkMode] = React.useState(() => {
@@ -8621,19 +8982,35 @@ function App() {
 
   function toggleLang() { const nl=lang==='pt'?'en':'pt'; localStorage.setItem('appLang',nl); setLang(nl); }
   function toggleDark() { setDarkMode(d => { const next = !d; localStorage.setItem('appDarkMode', String(next)); return next; }); }
+  async function checkRequiredProfile() {
+    setProfileChecking(true);
+    const profile = await getRequiredProfileData().catch(()=>({birthDate:'', gender:''}));
+    setRequiredProfile(hasRequiredProfileData(profile) ? null : profile);
+    setProfileChecking(false);
+  }
+  function afterAuthenticated(isNew) {
+    setAuthed(true);
+    checkRequiredProfile();
+    if (isNew) setShowTutorial(true);
+    else {
+      storage.get('tutorialSeen').then(r => {
+        if (!r || !r.value) setShowTutorial(true);
+      }).catch(()=>{});
+    }
+  }
 
   React.useEffect(() => {
     if (!fbIsLoggedIn()) { setChecking(false); return; }
     const timeout = setTimeout(() => { fbSignOut(); setAuthed(false); setChecking(false); }, 8000);
     fbRefreshToken()
-      .then(() => { clearTimeout(timeout); setChecking(false); })
-      .catch(() => { clearTimeout(timeout); fbSignOut(); setAuthed(false); setChecking(false); });
+      .then(() => { clearTimeout(timeout); setChecking(false); checkRequiredProfile(); })
+      .catch(() => { clearTimeout(timeout); fbSignOut(); setAuthed(false); setChecking(false); setProfileChecking(false); });
   }, []);
 
   // Removed: was auto-opening settings on every login
 
   // Show loading indicator while checking auth
-  if (checking) return React.createElement('div', {style:{
+  if (checking || profileChecking) return React.createElement('div', {style:{
     position:'fixed',top:0,left:0,right:0,bottom:0,background:'var(--surface)',display:'flex',
     flexDirection:'column',alignItems:'center',justifyContent:'center',
     gap:16,color:'#aaa',fontSize:12,letterSpacing:1,textTransform:'uppercase'
@@ -8647,25 +9024,13 @@ function App() {
     lang: appLang,
     onVerified: (isNew) => {
       setPendingEmail(null); setPendingName('');
-      setAuthed(true);
-      if (isNew) setShowTutorial(true);
-      else {
-        storage.get('tutorialSeen').then(r => {
-          if (!r || !r.value) setShowTutorial(true);
-        }).catch(()=>{});
-      }
+      afterAuthenticated(isNew);
     },
     onBack: () => { setPendingEmail(null); setPendingName(''); fbSignOut(); }
   });
   if (!authed) return React.createElement(LoginScreen, {
     onLogin: (isNew) => {
-      setAuthed(true);
-      if (isNew) setShowTutorial(true);
-      else {
-        storage.get('tutorialSeen').then(r => {
-          if (!r || !r.value) setShowTutorial(true);
-        }).catch(()=>{});
-      }
+      afterAuthenticated(isNew);
     },
     onPendingVerification: (email, name) => {
       setPendingEmail(email);
@@ -8676,6 +9041,10 @@ function App() {
 
   return React.createElement(ErrorBoundary, null,
     React.createElement(React.Fragment, null,
+      requiredProfile ? React.createElement(RequiredProfileModal, {
+        lang,
+        onComplete: () => setRequiredProfile(null)
+      }) : null,
       React.createElement(NutritionTracker, {
         onOpenSettings: () => setShowSettings(true),
         onLogout: () => { setAuthed(false); },
@@ -8720,3 +9089,4 @@ if (_ldg) _ldg.style.display = 'none';
   </script>
 </body>
 </html>
+
