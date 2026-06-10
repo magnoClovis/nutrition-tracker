@@ -2775,6 +2775,17 @@ function NutritionTracker({
     setGARunning(false);
   }
 
+  async function runGASafely() {
+    try {
+      await runGA();
+    } catch (err) {
+      setGARunning(false);
+      setGAProgress(0);
+      setGAResults([]);
+      notify((lang === 'en' ? "Could not generate meal suggestions: " : "Não foi possível gerar sugestões de refeição: ") + (err?.message || err), 8000);
+    }
+  }
+
   function addGAResultToDiary(result) {
     const meal = gaTargetMeal || MEALS[1]; // default almoço
     result.items.forEach(({food, gene}) => {
@@ -3968,26 +3979,27 @@ function NutritionTracker({
     style: {
       color: "#c8a96e"
     }
-  }, "Faltam ", /*#__PURE__*/React.createElement("b", null, remainProtein, "g"), " prote\xEDna"), remainKcal > 0 && /*#__PURE__*/React.createElement("span", {
+  }, lang === 'en' ? "Missing " : "Faltam ", /*#__PURE__*/React.createElement("b", null, remainProtein, "g"), lang === 'en' ? " protein" : " prote\xEDna"), remainKcal > 0 && /*#__PURE__*/React.createElement("span", {
     style: {
       color: "#8ec8c8"
     }
-  }, "Faltam ", /*#__PURE__*/React.createElement("b", null, remainKcal), " kcal")), /*#__PURE__*/React.createElement("button", {
-    onClick: function(){ setGAResults([]); setGAProgress(0); setShowGA(true); setGATargetMeal(MEALS[1]||MEALS[0]); },
+  }, lang === 'en' ? "Missing " : "Faltam ", /*#__PURE__*/React.createElement("b", null, remainKcal), " kcal")), /*#__PURE__*/React.createElement("button", {
+    onClick: function(){ setGAResults([]); setGAProgress(0); setGATargetMeal(MEALS[1]||MEALS[0]); setShowGA(true); setTimeout(runGASafely, 0); },
+    disabled: gaRunning || suggestLoading,
     style: {
       width: "100%",
-      background: "var(--btn-ok)",
+      background: gaRunning || suggestLoading ? "var(--btn-inactive)" : "var(--btn-ok)",
       border: "1px solid var(--btn-ok-border)",
-      color: "var(--btn-ok-text)",
+      color: gaRunning || suggestLoading ? "var(--muted)" : "var(--btn-ok-text)",
       padding: "7px",
       borderRadius: 6,
       fontSize: 14,
       letterSpacing: 1,
       textTransform: "uppercase",
-      cursor: "pointer",
+      cursor: gaRunning || suggestLoading ? "default" : "pointer",
       fontFamily: "inherit"
     }
-  }, t('suggestBtn'))), /*#__PURE__*/React.createElement("div", {
+  }, gaRunning || suggestLoading ? t('suggesting') : t('suggestBtn'))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)",
@@ -4052,7 +4064,7 @@ function NutritionTracker({
       display: "flex",
       justifyContent: "space-between"
     }
-  }, /*#__PURE__*/React.createElement("span", null, "Micronutrientes"), /*#__PURE__*/React.createElement("span", null, expandMicros ? "▲" : "▼")), expandMicros && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", null, t('microLabel')), /*#__PURE__*/React.createElement("span", null, expandMicros ? "▲" : "▼")), expandMicros && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "0 20px 12px"
     }
@@ -4221,7 +4233,7 @@ function NutritionTracker({
       color: darkMode ? "#3ab88a" : "#1a8a6a",
       textTransform: "uppercase"
     }
-  }, "\uD83D\uDCA7 \xC1gua"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCA7 ", t('water')), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -7201,7 +7213,7 @@ function NutritionTracker({
       fontSize: 14,
       letterSpacing: 1
     }
-  }, lang === 'en' ? "\uD83D\uDCBE Save to today's notes" : "\uD83D\uDCBE Salvar nas notas de hoje")))), tab === "metricas" && /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "\uD83D\uDCBE Save to today's notes" : "\uD83D\uDCBE Salvar nas notas de hoje"))))), tab === "metricas" && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "2px 16px 30px",
       boxSizing: "border-box",
@@ -7733,7 +7745,7 @@ function NutritionTracker({
     l: t('protein'),
     u: "g"
   }, {
-    k: t('kcalUnit'),
+    k: "kcal",
     l: t('calories'),
     u: t('kcalUnit')
   }, {
@@ -7789,7 +7801,7 @@ function NutritionTracker({
     u: "g",
     c: "#c8a96e"
   }, {
-    k: t('kcalUnit'),
+    k: "kcal",
     l: t('calories'),
     u: t('kcalUnit'),
     c: "#8ec8c8"
@@ -7857,7 +7869,7 @@ function NutritionTracker({
       fontSize: 14,
       letterSpacing: 1
     }
-  }, "Repor metas autom\xE1ticas")))), showSaveTemplateModal && /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "Reset automatic targets" : "Repor metas autom\xE1ticas"))), showSaveTemplateModal && /*#__PURE__*/React.createElement("div", {
   style:{position:"fixed",inset:0,zIndex:99997,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(3px)",
     display:"flex",alignItems:"center",justifyContent:"center",padding:16},
   onClick: e => { if(e.target===e.currentTarget) setShowSaveTemplateModal(false); }
@@ -8088,13 +8100,13 @@ showGA && React.createElement("div", {
         onChange: function(e){ setGATargetMeal(e.target.value); },
         style: Object.assign({}, inp)
       },
-        MEALS.map(function(m){ return React.createElement("option", { key:m, value:m }, m); })
+        MEALS.map(function(m){ return React.createElement("option", { key:m, value:m }, mealLabel(m)); })
       )
     ),
 
     /* Botão Executar */
     React.createElement("button", {
-      onClick: runGA,
+      onClick: runGASafely,
       disabled: gaRunning,
       style: Object.assign({}, btn, {
         width:"100%", marginBottom:12,
@@ -9291,7 +9303,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
           value:regGender, onChange:e=>setRegGender(e.target.value), required:true,
           style:{...inp, marginBottom:12}
         },
-          React.createElement('option', {value:''}, loginLang==='pt' ? 'Gï¿½nero *' : 'Gender *'),
+          React.createElement('option', {value:''}, loginLang==='pt' ? 'Gênero *' : 'Gender *'),
           React.createElement('option', {value:'male'}, loginLang==='pt' ? 'Masculino' : 'Male'),
           React.createElement('option', {value:'female'}, loginLang==='pt' ? 'Feminino' : 'Female')
         ),
@@ -9472,7 +9484,7 @@ function App() {
     gap:16,color:darkMode?'#8a8a8a':'#6a6662',fontSize:12,letterSpacing:1,textTransform:'uppercase'
   }},
     React.createElement('div', {style:{width:30,height:30,borderRadius:'50%',border:'3px solid ' + (darkMode?'#2a3a2a':'#d8d4cc'),borderTopColor:darkMode?'#7ec87e':'#2a6a2a',animation:'spin 1.2s linear infinite'}}),
-    React.createElement('div', null, lang==='en'?'Signing in...':'A entrar...')
+    React.createElement('div', null, lang==='en'?'Signing in...':'Entrando...')
   );
   if (pendingEmail) return React.createElement(VerifyEmailScreen, {
     email: pendingEmail,
