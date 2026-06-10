@@ -226,7 +226,7 @@ const STRINGS = {
     formatTxt:"texto simples",
     // Misc
     syncing2:"A sincronizar...",
-    confirmImport:"Importar %d registos? Os dados existentes com as mesmas chaves serão substituídos.",
+    confirmImport:"Importar %d registos? Os dados existentes com as mesmas chaves ser�o substitu�dos.",
     confirmDelete:"Apagar?",
     noDataPatterns:"Sem dados suficientes para analisar.",
   },
@@ -548,7 +548,7 @@ function Bar({value,max,color,label,unit,sub}) {
   return (
     <div style={{marginBottom:sub?4:8}}>
       <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-        <span style={{fontSize:sub?10:11,color:sub?"#555":"#777",paddingLeft:sub?10:0}}>{sub?"↳ ":""}{label}</span>
+        <span style={{fontSize:sub?10:11,color:sub?"#555":"#777",paddingLeft:sub?10:0}}>{sub?"? ":""}{label}</span>
         <span style={{fontSize:11,color:over?"#ff4d4d":color}}>
           {value%1===0?value:value.toFixed(1)}{unit}
           <span style={{color:"var(--dim)",fontSize:10}}> / {max}{unit}</span>
@@ -997,8 +997,8 @@ export default function NutritionTracker({onOpenSettings}) {
         + "DADOS (" + dayData.length + " dias registados de 30):\n"
         + "Média diária: " + avgProt + "g proteína, " + avgKcal + " kcal\n"
         + "Dias que atingiu meta de proteína: " + daysMetProt + "/" + dayData.length + "\n"
-        + (trainDays.length?"Dias de treino ("+trainDays.length+"): média "+Math.round(trainDays.reduce((s,d)=>s+d.protein,0)/trainDays.length)+"g prot, "+Math.round(trainDays.reduce((s,d)=>s+d.kcal,0)/trainDays.length)+" kcal\n":"")
-        + (restDays.length?"Dias de descanso ("+restDays.length+"): média "+Math.round(restDays.reduce((s,d)=>s+d.protein,0)/restDays.length)+"g prot, "+Math.round(restDays.reduce((s,d)=>s+d.kcal,0)/restDays.length)+" kcal\n":"")
+        + (trainDays.length?"Dias de treino ("+trainDays.length+"): m�dia "+Math.round(trainDays.reduce((s,d)=>s+d.protein,0)/trainDays.length)+"g prot, "+Math.round(trainDays.reduce((s,d)=>s+d.kcal,0)/trainDays.length)+" kcal\n":"")
+        + (restDays.length?"Dias de descanso ("+restDays.length+"): m�dia "+Math.round(restDays.reduce((s,d)=>s+d.protein,0)/restDays.length)+"g prot, "+Math.round(restDays.reduce((s,d)=>s+d.kcal,0)/restDays.length)+" kcal\n":"")
         + "Variação de proteína: mín "+Math.min(...dayData.map(d=>d.protein))+"g, máx "+Math.max(...dayData.map(d=>d.protein))+"g\n\n"
         + (currentWeight?"Peso actual: "+currentWeight+"kg\n\n":"")
         + "Identifica padrões concretos como:\n"
@@ -1034,7 +1034,7 @@ export default function NutritionTracker({onOpenSettings}) {
     }).join(", ");
     const prompt = "O utilizador precisa de fechar as metas nutricionais do dia. Sugere 3 combinações práticas de alimentos da despensa dele.\n\n"
       + "O QUE AINDA FALTA HOJE:\n"
-      + (remainProt>0?"Proteína: "+remainProt+"g\n":"")
+      + (remainProt>0?"Prote�na: "+remainProt+"g\n":"")
       + (remainKcal>0?"Calorias: "+remainKcal+" kcal\n":"")
       + (remainCarbs>0?"Carbs: "+remainCarbs+"g\n":"")
       + "\nDESPENSA DISPONÍVEL:\n"+pantryList+"\n\n"
@@ -1105,13 +1105,13 @@ export default function NutritionTracker({onOpenSettings}) {
         }).join("");
         content = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Nutrição "+date+"</title>"
           + "<style>body{font-family:sans-serif;padding:24px;max-width:800px;margin:auto}h1,h3{color:#333}table{width:100%}td,th{padding:6px 10px;text-align:left;border:1px solid #ddd}.box{background:#f5f5f5;padding:12px;border-radius:6px;margin-top:16px}</style></head><body>"
-          + "<h1>Relatório Nutricional — "+date+"</h1><p><b>Tipo:</b> "+(isTraining?t('training'):t('rest'))+"</p>"
+          + "<h1>Relat�rio Nutricional � "+date+"</h1><p><b>Tipo:</b> "+(isTraining?t('training'):t('rest'))+"</p>"
           + mealRows
           + "<div class='box'><h3>Totais</h3><p>Proteína: <b>"+totals.protein+"g</b> (meta: "+goals.protein+"g) &nbsp;|&nbsp; Calorias: <b>"+totals.kcal+"</b> (meta: "+goals.kcal+") &nbsp;|&nbsp; Carbs: "+totals.carbs+"g &nbsp;|&nbsp; Gordura: "+totals.fat+"g &nbsp;|&nbsp; Fibra: "+totals.fiber+"g &nbsp;|&nbsp; Sal: "+totals.salt+"g</p></div>"
           + (note?"<div class='box'><h3>Notas</h3><p>"+note.replace(/\n/g,"<br>")+"</p></div>":"")
           + "</body></html>";
       } else {
-        let txt = "RELATÓRIO NUTRICIONAL — " + date + "\nTipo: " + (isTraining?t('training'):t('rest')) + "\n\n";
+        let txt = "RELAT�RIO NUTRICIONAL � " + date + "\nTipo: " + (isTraining?t('training'):t('rest')) + "\n\n";
         MEALS.forEach(meal=>{
           const items = dayLog[meal]||[];
           if(!items.length) return;
@@ -1151,7 +1151,7 @@ export default function NutritionTracker({onOpenSettings}) {
         content = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Semana Nutricional</title><style>body{font-family:sans-serif;padding:24px;max-width:900px;margin:auto}table{width:100%;border-collapse:collapse}td,th{padding:8px 12px;border:1px solid #ddd}th{background:#f0f0f0}tr:nth-child(even){background:#fafafa}</style></head><body><h1>Relatório Semanal — "+TODAY+"</h1><table><tr><th>Data</th><th>Tipo</th><th>Proteína</th><th>Calorias</th><th>Carbs</th><th>Gordura</th><th>Fibra</th></tr>"+rows+"</table></body></html>";
       } else {
         let txt = "RELATÓRIO SEMANAL — " + TODAY + "\n\n";
-        days.forEach(d=>{ txt += d.date+" ("+(d.isTraining?t('training'):t('rest'))+")\n  Proteína: "+d.totals.protein+"g / "+d.goals.protein+"g | Calorias: "+d.totals.kcal+" / "+d.goals.kcal+"\n\n"; });
+        days.forEach(d=>{ txt += d.date+" ("+(d.isTraining?t('training'):t('rest'))+")\n  Prote�na: "+d.totals.protein+"g / "+d.goals.protein+"g | Calorias: "+d.totals.kcal+" / "+d.goals.kcal+"\n\n"; });
         content = txt;
       }
     }
@@ -1199,7 +1199,7 @@ export default function NutritionTracker({onOpenSettings}) {
           protein: Math.round(days.reduce((s,d)=>s+d.protein,0)/days.length),
           kcal: Math.round(days.reduce((s,d)=>s+d.kcal,0)/days.length),
         };
-        const daySummary = days.map(d=>d.date+" — prot: "+d.protein+"g, kcal: "+d.kcal+" (meta: "+d.proteinGoal+"g/"+d.kcalGoal+"kcal) "+(d.metProtein?"✓":"✗")).join("\n");
+        const daySummary = days.map(d=>d.date+" � prot: "+d.protein+"g, kcal: "+d.kcal+" (meta: "+d.proteinGoal+"g/"+d.kcalGoal+"kcal) "+(d.metProtein?"?":"?")).join("\n");
         const daysMetProt = days.filter(d=>d.metProtein).length;
         prompt = "Analisa a alimentação desta semana e dá um feedback detalhado em português.\n\n"
           + "RESUMO DA SEMANA (" + days.length + " dias registados):\n"
@@ -1211,7 +1211,7 @@ export default function NutritionTracker({onOpenSettings}) {
           + "✅ PONTOS POSITIVOS (consistência, dias bons, tendências positivas)\n"
           + "⚠️ O QUE MELHORAR (padrões negativos, dias fracos, desequilíbrios recorrentes)\n"
           + "💡 SUGESTÕES CONCRETAS (como ajustar os próximos dias)\n"
-          + "📊 AVALIAÇÃO DA SEMANA (nota geral e contexto)\n\n"
+          + "? AVALIA��O DA SEMANA (nota geral e contexto)\n\n"
           + "Sê honesto, específico e prático. Foca em padrões da semana, não só num dia.";
       }
       const text = await callAI(prompt, 1000);
@@ -1222,7 +1222,7 @@ export default function NutritionTracker({onOpenSettings}) {
 
   function saveFeedbackAsNote() {
     if(!feedbackText) return;
-    const separator = "\n\n---\n📋 FEEDBACK " + (feedbackPeriod==="day"?"DO DIA":"DA SEMANA") + " (" + new Date().toLocaleDateString("pt-BR") + "):\n";
+    const separator = "\n\n---\n? FEEDBACK " + (feedbackPeriod==="day"?"DO DIA":"DA SEMANA") + " (" + new Date().toLocaleDateString("pt-BR") + "):\n";
     if(feedbackPeriod==="day") {
       if(isToday) setTodayNote(n=>(n?n+separator:separator.trim()+"\n")+feedbackText);
       else setHistoryNote(n=>(n?n+separator:separator.trim()+"\n")+feedbackText);
@@ -1400,7 +1400,7 @@ export default function NutritionTracker({onOpenSettings}) {
     if (!res.ok) throw new Error(data.error?.message || 'Erro na API Gemini');
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
-  function aiLang() { return lang === 'en' ? '\nRespond in English (American English).\n' : '\nResponde em português do Brasil.\n'; }
+  function aiLang() { return lang === 'en' ? '\nRespond in English (American English).\n' : '\nResponde em portugu�s do Brasil.\n'; }
 
   async function importFullBackup(e) {
     const file = e.target.files[0]; if (!file) return;
@@ -1412,7 +1412,7 @@ export default function NutritionTracker({onOpenSettings}) {
         const data = parsed.data || parsed;
         const keys = Object.keys(data);
         if (!keys.length) { notify("Ficheiro vazio ou inválido."); return; }
-        if (!window.confirm(`Importar ${keys.length} registos? Os dados existentes com as mesmas chaves serão substituídos.`)) return;
+        if (!window.confirm(`Importar ${keys.length} registos? Os dados existentes com as mesmas chaves ser�o substitu�dos.`)) return;
         notify("A importar...");
         let count = 0;
         for (let i = 0; i < keys.length; i += 10) {
@@ -1588,13 +1588,13 @@ export default function NutritionTracker({onOpenSettings}) {
           </div>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <button onClick={loadAll} style={{display:"flex",alignItems:"center",background:"none",border:"1px solid var(--border2)",color:syncing?"var(--btn-ok-text)":"var(--muted)",borderRadius:6,padding:"6px 10px",fontSize:13,cursor:"pointer"}}>
-              <span style={{display:"inline-block",animation:syncing?"spin 1s linear infinite":"none"}}>↻</span>
+              <span style={{display:"inline-block",animation:syncing?"spin 1s linear infinite":"none"}}>?</span>
             </button>
             <button onClick={toggleLang} style={{background:"none",border:"1px solid var(--border2)",color:"var(--muted)",borderRadius:6,padding:"5px 8px",fontSize:11,cursor:"pointer",whiteSpace:"nowrap",letterSpacing:0.3}}>
               {t('langBtn')}
             </button>
             <button onClick={()=>setDarkMode(d=>!d)} style={{background:"none",border:"1px solid var(--border2)",color:"var(--muted)",borderRadius:6,padding:"6px 9px",fontSize:13,cursor:"pointer",lineHeight:1}}>
-              {darkMode?"☀️":"🌙"}
+              {darkMode?"??":"?"}
             </button>
             {onOpenSettings&&<button onClick={onOpenSettings} style={{background:"none",border:"1px solid var(--border2)",color:"var(--muted)",borderRadius:6,padding:"6px 9px",fontSize:14,cursor:"pointer",lineHeight:1}}>⚙</button>}
           </div>
@@ -1607,7 +1607,7 @@ export default function NutritionTracker({onOpenSettings}) {
             color:isTraining?(darkMode?"#7ec87e":"#1a4a1a"):(darkMode?"#7e7ec8":"#28288a"),
             borderRadius:20,padding:"4px 14px",fontSize:11,fontWeight:"600",cursor:"pointer",letterSpacing:1
           }}>{isTraining?t('trainDay'):t('restDay')}</button>
-          {currentWeight&&<span style={{fontSize:11,color:"var(--muted)",marginLeft:"auto"}}>{currentWeight}kg{bmi?` · ${t('bmi')} ${bmi}`:""}</span>}
+          {currentWeight&&<span style={{fontSize:11,color:"var(--muted)",marginLeft:"auto"}}>{currentWeight}kg{bmi?` � ${t('bmi')} ${bmi}`:""}</span>}
         </div>
       </div>
 
@@ -1642,7 +1642,7 @@ export default function NutritionTracker({onOpenSettings}) {
                 width:"100%",background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",color:suggestLoading?"#555":"var(--btn-ok-text)",
                 padding:"7px",borderRadius:6,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",cursor:suggestLoading?"default":"pointer",fontFamily:"inherit"
               }}>
-                {suggestLoading?"⟳ A calcular...":t('suggestBtn')}
+                {suggestLoading?"? A calcular...":t('suggestBtn')}
               </button>
               {suggestions&&(
                 <div style={{marginTop:10}}>
@@ -1679,7 +1679,7 @@ export default function NutritionTracker({onOpenSettings}) {
           {hasMicros&&(
             <div style={{background:"var(--surface3)",borderBottom:"1px solid var(--border3)"}}>
               <button onClick={()=>setExpandMicros(e=>!e)} style={{width:"100%",background:"none",border:"none",color:"var(--muted)",padding:"8px 20px",fontSize:10,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between"}}>
-                <span>Micronutrientes</span><span>{expandMicros?"▲":"▼"}</span>
+                <span>Micronutrientes</span><span>{expandMicros?"?":"?"}</span>
               </button>
               {expandMicros&&(
                 <div style={{padding:"0 20px 12px"}}>
@@ -1694,7 +1694,7 @@ export default function NutritionTracker({onOpenSettings}) {
           )}
         </>
 
-      {notification&&(()=>{const isErr=notification.startsWith("⚠")||notification.startsWith("Erro");return <div style={{margin:"8px 16px 0",background:isErr?"var(--notif-err-bg)":"var(--notif-ok-bg)",border:`1px solid ${isErr?"var(--notif-err-border)":"var(--notif-ok-border)"}`,color:isErr?"var(--notif-err-text)":"var(--notif-ok-text)",padding:"7px 14px",borderRadius:6,fontSize:12,textAlign:"center"}}>{notification}</div>})()}
+      {notification&&(()=>{const isErr=notification.startsWith("?")||notification.startsWith("Erro");return <div style={{margin:"8px 16px 0",background:isErr?"var(--notif-err-bg)":"var(--notif-ok-bg)",border:`1px solid ${isErr?"var(--notif-err-border)":"var(--notif-ok-border)"}`,color:isErr?"var(--notif-err-text)":"var(--notif-ok-text)",padding:"7px 14px",borderRadius:6,fontSize:12,textAlign:"center"}}>{notification}</div>})()}
 
       {/* Tabs */}
       <div style={{display:"flex",borderBottom:"1px solid var(--border)",marginTop:10}}>
@@ -1715,7 +1715,7 @@ export default function NutritionTracker({onOpenSettings}) {
                 <div style={{fontSize:13,color:isToday?"#c8a96e":"#c9bfb0"}}>{dateLabel(viewDate, lang)}</div>
                 {!isToday&&<div style={{fontSize:10,color:"var(--muted)"}}>{viewDate}</div>}
               </div>
-              <button onClick={()=>{if(viewDate<TODAY)changeViewDate(addDays(viewDate,1));}} style={{background:"none",border:"none",color:viewDate>=TODAY?"#2a2a2a":"#666",cursor:viewDate>=TODAY?"default":"pointer",fontSize:18,padding:"0 8px"}}>›</button>
+              <button onClick={()=>{if(viewDate<TODAY)changeViewDate(addDays(viewDate,1));}} style={{background:"none",border:"none",color:viewDate>=TODAY?"#2a2a2a":"#666",cursor:viewDate>=TODAY?"default":"pointer",fontSize:18,padding:"0 8px"}}>�</button>
             </div>
 
             {/* History stats banner */}
@@ -1736,11 +1736,11 @@ export default function NutritionTracker({onOpenSettings}) {
             {isToday&&(
               <div style={{background:"var(--surface)",border:"1px solid var(--btn-teal-border)",borderRadius:8,padding:"12px 14px",marginBottom:14}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <span style={{fontSize:10,letterSpacing:2,color:darkMode?"#3ab88a":"#1a8a6a",textTransform:"uppercase"}}>💧 Água</span>
+                  <span style={{fontSize:10,letterSpacing:2,color:darkMode?"#3ab88a":"#1a8a6a",textTransform:"uppercase"}}>? �gua</span>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <span style={{fontSize:12,color:totalWater>=goals.water?"#6ec8a9":"#8ec8c8"}}>{totalWater}ml</span>
                     <span style={{fontSize:10,color:"var(--dim)"}}>/ {goals.water}ml</span>
-                    <span style={{fontSize:9,color:"var(--faint)"}}>({viewWeight?`${isTraining?40:35}ml/kg`:"padrão"})</span>
+                    <span style={{fontSize:9,color:"var(--faint)"}}>({viewWeight?`${isTraining?40:35}ml/kg`:"padr�o"})</span>
                     <button onClick={()=>setEditWaterGoal(e=>!e)} style={{background:"none",border:"none",color:"var(--dim)",cursor:"pointer",fontSize:11}}>⚙</button>
                   </div>
                 </div>
@@ -1830,7 +1830,7 @@ export default function NutritionTracker({onOpenSettings}) {
                           <div style={{display:"flex",alignItems:"center",gap:8}}>
                             <span style={{fontSize:12,color:"#c8a96e"}}>{Math.round(e.protein??0)}g</span>
                             <span style={{fontSize:12,color:"#8ec8c8"}}>{Math.round(e.kcal??0)}kcal</span>
-                            <button onClick={()=>setDetailFood(detailFood===e.id?null:e.id)} style={{background:"none",border:"none",color:"var(--dim)",cursor:"pointer",fontSize:13}}>···</button>
+                            <button onClick={()=>setDetailFood(detailFood===e.id?null:e.id)} style={{background:"none",border:"none",color:"var(--dim)",cursor:"pointer",fontSize:13}}>���</button>
                             <button onClick={()=>startEditEntry(e)} style={{background:"none",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:14}}>✏</button>
                             <button onClick={()=>removeEntry(meal,e.id)} style={{background:"none",border:"none",color:"var(--dim)",cursor:"pointer",fontSize:16}}>×</button>
                           </div>
@@ -1964,7 +1964,7 @@ export default function NutritionTracker({onOpenSettings}) {
                 padding:"8px 12px",borderRadius:6,fontSize:11,letterSpacing:1.5,
                 textTransform:"uppercase",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between"
               }}>
-                <span>{t('repeatRecent')}</span><span>{showRecentMeals?"▲":"▼"}</span>
+                <span>{t('repeatRecent')}</span><span>{showRecentMeals?"?":"?"}</span>
               </button>
               {showRecentMeals&&(
                 <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderTop:"none",borderRadius:"0 0 6px 6px",maxHeight:280,overflowY:"auto"}}>
@@ -2026,13 +2026,13 @@ export default function NutritionTracker({onOpenSettings}) {
                     placeholder={"Ex: Frango grelhado com arroz branco e feijão, porção normal de refeitório. Tinha salada de alface com tomate e um fio de azeite. Sobremesa: uma laranja."}
                     style={{...inp,height:100,resize:"vertical",marginTop:4,fontSize:13}}/>
                   <div style={{fontSize:10,color:"var(--dim)",marginTop:4}}>
-                    {lang==='en'?'Describe what you ate and approximate amounts if you know. Otherwise just describe the context (restaurant, homemade, cafeteria, etc.).':'Descreve o que comeste e, se souberes, as quantidades aproximadas. Caso contrário, indica apenas o contexto (refeitório, restaurante, caseiro, etc.).'}
+                    {lang==='en'?'Describe what you ate and approximate amounts if you know. Otherwise just describe the context (restaurant, homemade, cafeteria, etc.).':'Descreve o que comeste e, se souberes, as quantidades aproximadas. Caso contr�rio, indica apenas o contexto (refeit�rio, restaurante, caseiro, etc.).'}
                   </div>
                 </div>
                 <button onClick={estimateMealDescription} disabled={describeLoading} style={{
                   ...btn, background:"var(--btn-info)", border:"1px solid var(--btn-info-border)", color:describeLoading?"var(--muted)":"var(--btn-info-text)"
                 }}>
-                  {describeLoading?t('estimating'):"✦ Estimar valores nutricionais"}
+                  {describeLoading?t('estimating'):"? Estimar valores nutricionais"}
                 </button>
 
                 {describeResult&&(
@@ -2094,7 +2094,7 @@ export default function NutritionTracker({onOpenSettings}) {
                           color:addEntry.foodId===f.id?"#c8a96e":"#d5cfc8",
                           background:addEntry.foodId===f.id?"#1e2a1e":"transparent"}}>
                         {f.name}
-                        <span style={{fontSize:10,color:"var(--muted)",marginLeft:8}}>{f.protein100}{f.unit==="un"?"g/un":"g"} prot · {f.kcal100}{f.unit==="un"?"kcal/un":"kcal"}/100{f.unit==="un"?"un":f.unit}</span>
+                        <span style={{fontSize:10,color:"var(--muted)",marginLeft:8}}>{f.protein100}{f.unit==="un"?"g/un":"g"} prot � {f.kcal100}{f.unit==="un"?"kcal/un":"kcal"}/100{f.unit==="un"?"un":f.unit}</span>
                       </div>
                     ))}
                   </div>
@@ -2176,7 +2176,7 @@ export default function NutritionTracker({onOpenSettings}) {
                       <span style={{color:"#8ec8c8"}}>{Math.round(stagedTot.kcal)} kcal</span>
                       {stagedTot.carbs>0&&<span style={{color:"#a96ec8"}}>{Math.round(stagedTot.carbs)}g carbs</span>}
                     </div>
-                    <button onClick={commitStaged} style={{...btn,marginTop:8}}>✓ Registar refeição ({staged.items.length} item{staged.items.length!==1?"s":""})</button>
+                    <button onClick={commitStaged} style={{...btn,marginTop:8}}>? Registar refei��o ({staged.items.length} item{staged.items.length!==1?"s":""})</button>
 
                     {/* Save as template */}
                     <div style={{display:"flex",gap:6,marginTop:8}}>
@@ -2197,7 +2197,7 @@ export default function NutritionTracker({onOpenSettings}) {
                 <div style={{fontSize:10,letterSpacing:1.5,color:"#7ec87e",textTransform:"uppercase",marginBottom:6}}>Backup Completo</div>
                 <div style={{fontSize:11,color:"var(--muted)",marginBottom:8}}>Exporta todos os dados para migrar para o site do GitHub.</div>
                 <button onClick={exportFullBackup} disabled={backupLoading} style={{...sBtn("var(--btn-ok)","var(--btn-ok-border)","#7ec87e"),marginBottom:0}}>
-                  {backupLoading?t('exportingBackup'):lang==='en'?'↓ Generate Full Backup':'↓ Gerar Backup Completo'}
+                  {backupLoading?t('exportingBackup'):lang==='en'?'? Generate Full Backup':'? Gerar Backup Completo'}
                 </button>
                 {backupJson&&(
                   <div style={{marginTop:8}}>
@@ -2214,15 +2214,15 @@ export default function NutritionTracker({onOpenSettings}) {
                 )}
               </div>
               <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
-                <button onClick={()=>setShowExportPanel(showExportPanel==="day"?null:"day")} style={sBtn("var(--btn-ok)","var(--btn-ok-border)","#7ec87e")}>↓ Exportar dia</button>
-                <button onClick={()=>setShowExportPanel(showExportPanel==="week"?null:"week")} style={sBtn("var(--btn-info)","var(--btn-info-border)","#7e7ec8")}>↓ Exportar semana</button>
+                <button onClick={()=>setShowExportPanel(showExportPanel==="day"?null:"day")} style={sBtn("var(--btn-ok)","var(--btn-ok-border)","#7ec87e")}>? Exportar dia</button>
+                <button onClick={()=>setShowExportPanel(showExportPanel==="week"?null:"week")} style={sBtn("var(--btn-info)","var(--btn-info-border)","#7e7ec8")}>? Exportar semana</button>
                 <label style={sBtnLbl("var(--btn-teal)","var(--btn-teal-border)","var(--btn-teal-text)")}>↑ Importar refeições<input type="file" accept=".json" onChange={importMeals} style={{display:"none"}}/></label>
                 <label style={sBtnLbl("var(--btn-warn)","var(--btn-warn-border)","#c87e7e")}>↑ Importar dia<input type="file" accept=".json" onChange={importDayLog} style={{display:"none"}}/></label>
               </div>
               {showExportPanel&&(
                 <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:6,padding:"12px",marginBottom:8}}>
                   <div style={{fontSize:10,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>
-                    Formato — {showExportPanel==="day"?"dia "+viewDate:"últimos 7 dias"}
+                    Formato � {showExportPanel==="day"?"dia "+viewDate:"�ltimos 7 dias"}
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
                     {[["json","JSON","dados completos"],["csv","CSV","para Excel"],["html","HTML","relatório web"],["txt","TXT","texto simples"]].map(([fmt,label,desc])=>(
@@ -2248,7 +2248,7 @@ export default function NutritionTracker({onOpenSettings}) {
                       setTimeout(()=>setExportResult(r=>r?({...r,copied:false}):r),3000);
                     }).catch(()=>notify(t('selectCopyManual')));
                   }} style={{...btn,marginTop:8,background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",color:"var(--btn-ok-text)",fontSize:10,letterSpacing:2}}>
-                    {exportResult.copied?"✓ Copiado!":"📋 Copiar para área de transferência"}
+                    {exportResult.copied?"? Copiado!":"? Copiar para �rea de transfer�ncia"}
                   </button>
                   <div style={{fontSize:10,color:"var(--dim)",marginTop:6,textAlign:"center"}}>
                     Cola num editor de texto e guarda como <b style={{color:"var(--muted)"}}>{exportResult.filename}</b>
@@ -2272,7 +2272,7 @@ export default function NutritionTracker({onOpenSettings}) {
               fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:autoFillLoading?"default":"pointer",
               fontFamily:"inherit",marginBottom:10
             }}>
-              {autoFillLoading?lang==='en'?'⟳ Searching...':'⟳ A pesquisar...':t('autofillBtn')}
+              {autoFillLoading?lang==='en'?'? Searching...':'? A pesquisar...':t('autofillBtn')}
             </button>
             <div style={{fontSize:10,letterSpacing:2,color:"var(--muted)",textTransform:"uppercase",marginBottom:8,marginTop:12}}>{t('macros')+' ('+portionLabel(form.unit, lang)+')'} </div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:6}}>
@@ -2364,7 +2364,7 @@ export default function NutritionTracker({onOpenSettings}) {
             <div style={{marginTop:28,borderTop:"1px solid var(--border3)",paddingTop:16}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                 <div style={{fontSize:10,letterSpacing:3,color:"var(--muted)",textTransform:"uppercase"}}>💊 Suplementos ({suppPantry.length})</div>
-                <button onClick={()=>setShowSuppForm(s=>!s)} style={sBtn("var(--btn-info)","var(--btn-info-border)","#9090c8")}>{showSuppForm?"▲ fechar":"+ adicionar"}</button>
+                <button onClick={()=>setShowSuppForm(s=>!s)} style={sBtn("var(--btn-info)","var(--btn-info-border)","#9090c8")}>{showSuppForm?"? fechar":"+ adicionar"}</button>
               </div>
               {showSuppForm&&(
                 <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:6,padding:"12px",marginBottom:10}}>
@@ -2386,7 +2386,7 @@ export default function NutritionTracker({onOpenSettings}) {
                 <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid var(--border3)"}}>
                   <div>
                     <div style={{fontSize:13,color:"var(--text2)"}}>{s.name}</div>
-                    <div style={{fontSize:10,color:"var(--muted)",marginTop:2}}>{t('defaultDose')} {s.dose}{s.unit}{s.notes?" · "+s.notes:""}</div>
+                    <div style={{fontSize:10,color:"var(--muted)",marginTop:2}}>{t('defaultDose')} {s.dose}{s.unit}{s.notes?" � "+s.notes:""}</div>
                   </div>
                   <button onClick={()=>removeSuppPantry(s.id)} style={{background:"none",border:"1px solid var(--border3)",color:"var(--dim)",borderRadius:4,padding:"3px 8px",fontSize:11,cursor:"pointer"}}>×</button>
                 </div>
@@ -2425,7 +2425,7 @@ export default function NutritionTracker({onOpenSettings}) {
                     }}>
                       <div style={{fontSize:10,color:"var(--muted)",textTransform:"uppercase"}}>{d.label}</div>
                       <div style={{fontSize:13,color:d.hasData?(d.metProtein?"var(--btn-ok-text)":"#c8a96e"):"var(--dim)",marginTop:6,fontWeight:"bold"}}>
-                        {d.hasData?`${d.protein}g`:"—"}
+                        {d.hasData?`${d.protein}g`:"�"}
                       </div>
                       <div style={{fontSize:11,color:d.hasData?"#8ec8c8":"var(--dim)",marginTop:2}}>{d.hasData?d.kcal:""}</div>
                       {d.hasData&&<div style={{width:6,height:6,borderRadius:"50%",background:d.metProtein?"var(--btn-ok-text)":"var(--muted)",margin:"6px auto 0"}}/>}
@@ -2528,7 +2528,7 @@ export default function NutritionTracker({onOpenSettings}) {
                         setTimeout(()=>setExportResult(r=>r?({...r,copied:false}):r),3000);
                       }).catch(()=>notify(t('selectCopyManual')));
                     }} style={{...btn,marginTop:8,background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",color:"var(--btn-ok-text)",fontSize:10,letterSpacing:2}}>
-                      {exportResult.copied?"✓ Copiado!":"📋 Copiar para área de transferência"}
+                      {exportResult.copied?"? Copiado!":"? Copiar para �rea de transfer�ncia"}
                     </button>
                   </div>
                 )}
@@ -2605,8 +2605,8 @@ export default function NutritionTracker({onOpenSettings}) {
                 <div style={{fontSize:10,letterSpacing:2,color:"var(--muted)",textTransform:"uppercase",marginBottom:12}}>Métricas actuais</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:"12px 24px"}}>
                   {[
-                    {l:t('weight'),v:`${currentWeight} kg`,c:"#c8a96e"},{l:t('heightLabel'),v:currentHeight?`${currentHeight} cm`:"—",c:"#8ec8c8"},
-                    {l:"IMC",v:bmi||"—",c:bmiNum<18.5?"#c86e8e":bmiNum<25?"#6ec8a9":bmiNum<30?"#c8a96e":"#c86e8e"},
+                    {l:t('weight'),v:`${currentWeight} kg`,c:"#c8a96e"},{l:t('heightLabel'),v:currentHeight?`${currentHeight} cm`:"�",c:"#8ec8c8"},
+                    {l:"IMC",v:bmi||"�",c:bmiNum<18.5?"#c86e8e":bmiNum<25?"#6ec8a9":bmiNum<30?"#c8a96e":"#c86e8e"},
                     {l:t('goalProtTrain'),v:`${computeGoals(currentWeight,true).protein}g`,c:"#c8a96e"},
                     {l:t('goalProtRest'),v:`${computeGoals(currentWeight,false).protein}g`,c:"#a9c8a9"},
                     {l:t('goalKcalTrain'),v:String(computeGoals(currentWeight,true).kcal),c:"#8ec8c8"},
@@ -2615,7 +2615,7 @@ export default function NutritionTracker({onOpenSettings}) {
                     <div key={x.l}><div style={{fontSize:10,color:"var(--muted)",letterSpacing:1}}>{x.l.toUpperCase()}</div><div style={{fontSize:16,color:x.c,marginTop:2}}>{x.v}</div></div>
                   ))}
                 </div>
-                {bmi&&<div style={{marginTop:10,fontSize:12,color:"var(--muted)"}}>IMC {bmi} — <span style={{color:bmiNum<18.5?"#c86e8e":bmiNum<25?"#6ec8a9":bmiNum<30?"#c8a96e":"#c86e8e"}}>{bmiNum<18.5?t('bmiUnderweight'):bmiNum<25?t('bmiNormal'):bmiNum<30?t('bmiOverweight'):t('bmiObese')}</span></div>}
+                {bmi&&<div style={{marginTop:10,fontSize:12,color:"var(--muted)"}}>IMC {bmi} � <span style={{color:bmiNum<18.5?"#c86e8e":bmiNum<25?"#6ec8a9":bmiNum<30?"#c8a96e":"#c86e8e"}}>{bmiNum<18.5?t('bmiUnderweight'):bmiNum<25?t('bmiNormal'):bmiNum<30?t('bmiOverweight'):t('bmiObese')}</span></div>}
               </div>
             )}
             {weightChartData.length>1&&(
@@ -2675,7 +2675,7 @@ export default function NutritionTracker({onOpenSettings}) {
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <div style={{fontSize:10,letterSpacing:2,color:"var(--muted)",textTransform:"uppercase"}}>Metas personalizadas</div>
                 <button onClick={editingGoals?saveGoals:startEditGoals} style={sBtn("var(--btn-ok)","var(--btn-ok-border)","#7ec87e")}>
-                  {editingGoals?"✓ Guardar":t('editGoals')}
+                  {editingGoals?"? Guardar":t('editGoals')}
                 </button>
               </div>
               <div style={{fontSize:10,color:"var(--dim)",marginBottom:12}}>
