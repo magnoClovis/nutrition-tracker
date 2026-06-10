@@ -1205,6 +1205,13 @@ function getGoalAdjustment(prefs) {
   const daily = Math.round(kg * 7700 / (weeks * 7));
   return type === "loss" ? -daily : daily;
 }
+function defaultProteinMultiplier(goalType) {
+  return goalType === "loss" ? 2.0 : goalType === "gain" ? 2.2 : 1.6;
+}
+function getProteinMultiplier(prefs) {
+  const manual = prefs && prefs.proteinMultiplier !== "" && prefs.proteinMultiplier != null ? Number(prefs.proteinMultiplier) : null;
+  return Number.isFinite(manual) && manual > 0 ? manual : defaultProteinMultiplier(prefs?.goalType);
+}
 function computeGoals(weight, train, profile = {}) {
   const height = Number(profile.height);
   const age = calculateAge(profile.birthDate);
@@ -1214,11 +1221,18 @@ function computeGoals(weight, train, profile = {}) {
   if (weight && height && age && (gender === "male" || gender === "female")) {
     const bmr = 10 * weight + 6.25 * height - 5 * age + (gender === "male" ? 5 : -161);
     const fa = train ? (ACTIVITY_LEVELS[activityLevel]?.factor || 1.55) : (activityLevel === "sedentary" ? 1.0 : 1.35);
-    const kcal = Math.max(1200, Math.round(bmr * fa + getGoalAdjustment(prefs)));
-    const proteinFactor = prefs.goalType === "loss" ? 2.0 : prefs.goalType === "gain" ? 2.2 : 1.6;
+    const baseCalories = Math.round(bmr * fa);
+    const adjustment = getGoalAdjustment(prefs);
+    const kcal = Math.max(1200, Math.round(baseCalories + adjustment));
+    const proteinFactor = getProteinMultiplier(prefs);
     return {
       protein: Math.round(weight * proteinFactor),
       kcal,
+      bmr: Math.round(bmr),
+      fa,
+      baseCalories,
+      adjustment,
+      proteinMultiplier: proteinFactor,
       carbs: Math.round(weight * (train ? 4.0 : 3.0)),
       fat: Math.round(weight * 0.9),
       fiber: 30,
@@ -1559,7 +1573,8 @@ function NutritionTracker({
     goalType: "",
     goalKg: "",
     goalWeeks: "",
-    manualAdjustment: ""
+    manualAdjustment: "",
+    proteinMultiplier: ""
   });
   const [weightForm, setWeightForm] = useState({
     weight: "",
@@ -1633,7 +1648,7 @@ function NutritionTracker({
       setLoaded(true);
     }, 12000);
     try {
-      const [p, l, t, w, mt, n, wg, wi, sp, sl, cg, bd, gd, al, gt, gkg, gw, ma] = await Promise.all([storage.get("pantry_v2").catch(() => null), storage.get("log_v2_" + TODAY).catch(() => null), storage.get("trainingByDate").catch(() => null), storage.get("weightHistory").catch(() => null), storage.get("mealTemplates").catch(() => null), storage.get("notes_" + TODAY).catch(() => null), storage.get("waterGoal").catch(() => null), storage.get("waterIntake_" + TODAY).catch(() => null), storage.get("suppPantry").catch(() => null), storage.get("suppLog_" + TODAY).catch(() => null), storage.get("customGoals").catch(() => null), storage.get("birthDate").catch(() => null), storage.get("gender").catch(() => null), storage.get("activityLevel").catch(() => null), storage.get("goalType").catch(() => null), storage.get("goalKg").catch(() => null), storage.get("goalWeeks").catch(() => null), storage.get("manualCalorieAdjustment").catch(() => null)]);
+      const [p, l, t, w, mt, n, wg, wi, sp, sl, cg, bd, gd, al, gt, gkg, gw, ma, pm] = await Promise.all([storage.get("pantry_v2").catch(() => null), storage.get("log_v2_" + TODAY).catch(() => null), storage.get("trainingByDate").catch(() => null), storage.get("weightHistory").catch(() => null), storage.get("mealTemplates").catch(() => null), storage.get("notes_" + TODAY).catch(() => null), storage.get("waterGoal").catch(() => null), storage.get("waterIntake_" + TODAY).catch(() => null), storage.get("suppPantry").catch(() => null), storage.get("suppLog_" + TODAY).catch(() => null), storage.get("customGoals").catch(() => null), storage.get("birthDate").catch(() => null), storage.get("gender").catch(() => null), storage.get("activityLevel").catch(() => null), storage.get("goalType").catch(() => null), storage.get("goalKg").catch(() => null), storage.get("goalWeeks").catch(() => null), storage.get("manualCalorieAdjustment").catch(() => null), storage.get("proteinMultiplier").catch(() => null)]);
       if (p) setPantry(JSON.parse(p.value));
       if (l) setLog(normalizeMealKeys(JSON.parse(l.value)));
       if (t) setTrainingByDate(JSON.parse(t.value));
@@ -1654,7 +1669,8 @@ function NutritionTracker({
         goalType: gt && gt.value ? gt.value : "",
         goalKg: gkg && gkg.value ? gkg.value : "",
         goalWeeks: gw && gw.value ? gw.value : "",
-        manualAdjustment: ma && ma.value ? ma.value : ""
+        manualAdjustment: ma && ma.value ? ma.value : "",
+        proteinMultiplier: pm && pm.value ? pm.value : ""
       });
     } catch (_) {}
     clearTimeout(_loadTimeout);
@@ -1746,6 +1762,10 @@ function NutritionTracker({
       const g = computeGoals(we?.weight || currentWeight, dayIsTraining, {height: we?.height || currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs});
       const protein = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
       const kcal = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
+      const carbs = entries.reduce((s, e) => s + (e.carbs ?? 0), 0);
+      const fat = entries.reduce((s, e) => s + (e.fat ?? 0), 0);
+      const fiber = entries.reduce((s, e) => s + (e.fiber ?? 0), 0);
+      const salt = entries.reduce((s, e) => s + (e.salt ?? 0), 0);
       days.push({
         date,
         label: d.toLocaleDateString("pt-BR", {
@@ -1754,6 +1774,14 @@ function NutritionTracker({
         day: d.getDate(),
         protein: Math.round(protein),
         kcal: Math.round(kcal),
+        carbs: Math.round(carbs),
+        fat: Math.round(fat),
+        fiber: Math.round(fiber),
+        salt: Math.round(salt * 10) / 10,
+        carbsGoal: g.carbs,
+        fatGoal: g.fat,
+        fiberGoal: g.fiber,
+        saltGoal: g.salt,
         proteinGoal: g.protein,
         kcalGoal: g.kcal,
         metProtein: protein >= g.protein,
@@ -2023,7 +2051,8 @@ function NutritionTracker({
       goalType: next.goalType || "",
       goalKg: next.goalType === "maintenance" ? "" : (next.goalKg || ""),
       goalWeeks: next.goalType === "maintenance" ? "" : (next.goalWeeks || ""),
-      manualAdjustment: next.manualAdjustment || ""
+      manualAdjustment: next.manualAdjustment || "",
+      proteinMultiplier: next.proteinMultiplier || ""
     };
     setNutritionPrefs(clean);
     storage.set("activityLevel", clean.activityLevel).catch(() => {});
@@ -2031,6 +2060,7 @@ function NutritionTracker({
     storage.set("goalKg", clean.goalKg).catch(() => {});
     storage.set("goalWeeks", clean.goalWeeks).catch(() => {});
     storage.set("manualCalorieAdjustment", clean.manualAdjustment).catch(() => {});
+    storage.set("proteinMultiplier", clean.proteinMultiplier).catch(() => {});
     if (!silent) notify("Preferências nutricionais atualizadas.");
   }
   async function generateFoodPatterns() {
@@ -2267,6 +2297,38 @@ function NutritionTracker({
     setFeedbackSaved(false);
     try {
       let prompt = "";
+      const storedUserName = await storage.get("userName").catch(() => null);
+      const feedbackUserName = storedUserName?.value ? String(storedUserName.value).trim() : "";
+      const activityInfo = ACTIVITY_LEVELS[nutritionPrefs.activityLevel || "moderate"];
+      const objectiveLabel = nutritionPrefs.goalType === "loss" ? "perda de peso" : nutritionPrefs.goalType === "gain" ? "ganho de peso/massa" : "manutenção do peso";
+      const objectiveDetails = nutritionPrefs.goalType === "loss" || nutritionPrefs.goalType === "gain" ? (nutritionPrefs.goalKg || "?") + "kg em " + (nutritionPrefs.goalWeeks || "?") + " semanas" : "sem ajuste de peso planejado";
+      const userAge = calculateAge(profileData.birthDate);
+      const latestWeight = currentWeight || viewWeight;
+      const latestHeight = currentHeight || viewHeight;
+      const profileLines = [
+        feedbackUserName ? "Nome: " + feedbackUserName : "",
+        latestWeight ? "Último peso registrado: " + latestWeight + "kg" : "",
+        latestHeight ? "Altura: " + latestHeight + "cm" : "",
+        userAge ? "Idade calculada: " + userAge + " anos" : "",
+        profileData.gender ? "Gênero informado: " + (profileData.gender === "male" ? "masculino" : "feminino") : "",
+        latestWeight && latestHeight ? "IMC atual: " + (latestWeight / ((latestHeight/100)**2)).toFixed(1) : "",
+        "Objetivo atual: " + objectiveLabel + " (" + objectiveDetails + ")",
+        activityInfo ? "Nível de atividade física: " + activityInfo.pt + " — " + activityInfo.descPt + " | FA: " + (baseGoals.fa || activityInfo.factor) : "",
+        "Dia analisado como: " + (isTraining ? "dia de treino/atividade" : "dia de descanso"),
+        "Calorias de base calculadas antes do ajuste: " + (calorieBase || "?") + " kcal",
+        "Ajuste calórico do objetivo: " + (calorieAdjustment > 0 ? "+" : "") + calorieAdjustment + " kcal/dia",
+        "Metas em uso: " + (goals.kcal || "?") + " kcal, " + (goals.protein || "?") + "g proteína, " + (goals.carbs || "?") + "g carboidratos, " + (goals.fat || "?") + "g gorduras, " + (goals.fiber || "?") + "g fibra, " + (goals.salt || "?") + "g sal",
+        "Multiplicador de proteína: " + Number(proteinMultiplier).toFixed(1) + "g/kg"
+      ].filter(Boolean).join("\n");
+      const feedbackRules = [
+        "Use o nome do usuário de forma natural quando ele estiver disponível, sem repetir em excesso.",
+        "Analise os dados em relação ao objetivo atual, ao último peso registrado, às metas calóricas/proteicas e aos demais nutrientes disponíveis.",
+        "Seja equilibrado: destaque pontos fortes reais e pontos passíveis de melhora sem alarmismo.",
+        "Não trate diferenças pequenas como problema grande. Desvios menores que 5% da meta, ou poucos gramas em nutrientes, devem aparecer no máximo como observação leve.",
+        "Priorize padrões relevantes, consistência, escolhas alimentares, distribuição de proteína/calorias, fibra, sal, gorduras e adequação ao objetivo.",
+        "Evite diagnóstico médico. Dê orientação prática e realista baseada apenas nos dados fornecidos.",
+        "Quando faltar dado, diga que a conclusão é limitada em vez de inventar."
+      ].join("\n");
       if (type === "day") {
         const entries = Object.values(activeLog).flat();
         const mealSummary = MEALS.map(meal => {
@@ -2285,18 +2347,13 @@ function NutritionTracker({
         const perfProt = goals.protein > 0 ? Math.round(p / goals.protein * 100) : null;
         const perfKcal = goals.kcal    > 0 ? Math.round(k / goals.kcal    * 100) : null;
         const lines = [
-          "Você é um nutricionista analisando o diário alimentar do dia de um usuário. Seja específico, direto e use os dados exatos abaixo — não fale em termos genéricos.",
+          "Você é um analista nutricional avaliando o diário alimentar de um dia. Seja específico, proporcional e prático.",
           "",
-          "=== PERFIL DO USUÁRIO ===",
-          currentWeight ? "Peso: " + currentWeight + "kg" : "",
-          currentHeight ? "Altura: " + currentHeight + "cm" : "",
-          currentBMI    ? "IMC: " + currentBMI : "",
+          "=== PERFIL, OBJETIVO E METAS DO USUÁRIO ===",
+          profileLines,
           "",
           "=== CONTEXTO DO DIA ===",
           "Data: " + viewDate + " | " + (isTraining ? "DIA DE TREINO" : "DIA DE DESCANSO"),
-          "",
-          "=== METAS DO DIA ===",
-          "Proteína: " + (goals.protein||"?") + "g | Calorias: " + (goals.kcal||"?") + "kcal | Carbs: " + (goals.carbs||"?") + "g | Gordura: " + (goals.fat||"?") + "g | Fibra: " + (goals.fiber||"?") + "g",
           "",
           "=== O QUE COMEU ===",
           mealSummary || "Nenhum alimento registrado",
@@ -2306,14 +2363,18 @@ function NutritionTracker({
           "Calorias: " + Math.round(k) + "kcal (" + (perfKcal !== null ? perfKcal + "% da meta" : "sem meta") + ")",
           "Carbs: " + Math.round(c) + "g | Gordura: " + Math.round(f) + "g | Fibra: " + Math.round(fi) + "g | Sal: " + (Math.round(sa*10)/10) + "g",
           "",
+          "=== REGRAS DE ANÁLISE ===",
+          feedbackRules,
+          "",
           "=== INSTRUÇÕES ===",
           "Estruture o feedback assim:",
-          "✅ PONTOS POSITIVOS — cite alimentos ou refeições específicas que foram boas escolhas",
-          "⚠️ O QUE MELHORAR — aponte défices ou excessos com os números reais (ex: ficou Xg abaixo da meta de proteína)",
-          "💡 SUGESTÕES CONCRETAS — dê 2-3 substituições ou adições práticas para o próximo dia",
-          "📊 RESUMO GERAL — avaliação do dia em 2-3 frases, mencionando se as metas foram cumpridas",
+          "✅ PONTOS FORTES — cite alimentos, refeições ou escolhas que ajudaram o objetivo",
+          "🔎 OBSERVAÇÕES — comente desvios pequenos de forma leve e contextual, sem dramatizar",
+          "⚠️ PONTOS A MELHORAR — aponte apenas excessos, déficits ou hábitos relevantes, com números reais e proporção",
+          "💡 PRÓXIMOS PASSOS — dê 2-3 ajustes concretos para o próximo dia, compatíveis com o objetivo",
+          "📊 RESUMO GERAL — avaliação realista do dia em 2-3 frases",
           "",
-          "Responda em português do Brasil. Seja direto e use os dados acima — não generalize."
+          "Responda em português do Brasil. Use os dados acima e não generalize."
         ].filter(l => l !== null && l !== undefined).join("\n");
         prompt = lines;
       } else {
@@ -2325,37 +2386,43 @@ function NutritionTracker({
         }
         const avg = {
           protein: Math.round(days.reduce((s, d) => s + d.protein, 0) / days.length),
-          kcal:    Math.round(days.reduce((s, d) => s + d.kcal,    0) / days.length)
+          kcal:    Math.round(days.reduce((s, d) => s + d.kcal,    0) / days.length),
+          carbs:   Math.round(days.reduce((s, d) => s + (d.carbs || 0), 0) / days.length),
+          fat:     Math.round(days.reduce((s, d) => s + (d.fat || 0), 0) / days.length),
+          fiber:   Math.round(days.reduce((s, d) => s + (d.fiber || 0), 0) / days.length),
+          salt:    Math.round(days.reduce((s, d) => s + (d.salt || 0), 0) / days.length * 10) / 10
         };
         const daySummary = days.map(d =>
           d.date + " — proteína: " + d.protein + "g/" + d.proteinGoal + "g (" + (d.metProtein ? "✓ meta" : "✗ abaixo") + "), " +
-          "calorias: " + d.kcal + "/" + d.kcalGoal + "kcal"
+          "calorias: " + d.kcal + "/" + d.kcalGoal + "kcal, carbs: " + (d.carbs || 0) + "g/" + (d.carbsGoal || "?") + "g, gordura: " + (d.fat || 0) + "g/" + (d.fatGoal || "?") + "g, fibra: " + (d.fiber || 0) + "g/" + (d.fiberGoal || "?") + "g, sal: " + (d.salt || 0) + "g/" + (d.saltGoal || "?") + "g"
         ).join("\n");
         const daysMetProt = days.filter(d => d.metProtein).length;
         const currentBMI2 = (currentWeight && currentHeight) ? (currentWeight / ((currentHeight/100)**2)).toFixed(1) : null;
         const weekLines = [
-          "Você é um nutricionista analisando o diário alimentar semanal de um usuário. Use os dados abaixo e seja específico.",
+          "Você é um analista nutricional avaliando a alimentação semanal de um usuário. Seja específico, proporcional e prático.",
           "",
-          "=== PERFIL DO USUÁRIO ===",
-          currentWeight ? "Peso: " + currentWeight + "kg" : "",
-          currentHeight ? "Altura: " + currentHeight + "cm" : "",
-          currentBMI2   ? "IMC: " + currentBMI2 : "",
+          "=== PERFIL, OBJETIVO E METAS DO USUÁRIO ===",
+          profileLines,
           "",
           "=== RESUMO DA SEMANA (" + days.length + " dias registrados) ===",
           daySummary,
           "",
           "=== MÉDIAS ===",
-          "Proteína: " + avg.protein + "g/dia | Calorias: " + avg.kcal + "kcal/dia",
+          "Proteína: " + avg.protein + "g/dia | Calorias: " + avg.kcal + "kcal/dia | Carbs: " + avg.carbs + "g/dia | Gordura: " + avg.fat + "g/dia | Fibra: " + avg.fiber + "g/dia | Sal: " + avg.salt + "g/dia",
           "Dias que atingiu a meta de proteína: " + daysMetProt + "/" + days.length,
+          "",
+          "=== REGRAS DE ANÁLISE ===",
+          feedbackRules,
           "",
           "=== INSTRUÇÕES ===",
           "Estruture o feedback assim:",
-          "✅ PONTOS POSITIVOS — dias ou padrões que foram bons, cite as datas",
-          "⚠️ O QUE MELHORAR — dias ou padrões fracos com os números reais",
-          "💡 SUGESTÕES CONCRETAS — 2-3 ajustes práticos para a próxima semana",
-          "📊 AVALIAÇÃO DA SEMANA — nota geral e o que mais precisa de atenção",
+          "✅ PONTOS FORTES — dias, padrões ou escolhas que ajudaram o objetivo; cite datas quando fizer sentido",
+          "🔎 OBSERVAÇÕES — comente pequenas variações como observações, não como falhas relevantes",
+          "⚠️ PONTOS A MELHORAR — destaque apenas padrões realmente importantes, com números e proporção",
+          "💡 PRÓXIMOS PASSOS — 2-3 ajustes práticos para a próxima semana, alinhados ao objetivo",
+          "📊 AVALIAÇÃO DA SEMANA — síntese realista do progresso e do principal foco",
           "",
-          "Responda em português do Brasil. Use os dados acima — não generalize."
+          "Responda em português do Brasil. Use os dados acima e não generalize."
         ].filter(l => l !== null && l !== undefined).join("\n");
         prompt = weekLines;
       }
@@ -2664,6 +2731,11 @@ function NutritionTracker({
   };
   const baseWaterGoal = viewWeight ? Math.round(viewWeight * (isTraining ? 40 : 35) / 50) * 50 : 2500;
   const baseGoals = computeGoals(viewWeight, isTraining, goalProfile);
+  const calorieBase = baseGoals.baseCalories || (baseGoals.kcal - getGoalAdjustment(nutritionPrefs));
+  const calorieAdjustment = baseGoals.adjustment ?? getGoalAdjustment(nutritionPrefs);
+  const proteinMultiplier = baseGoals.proteinMultiplier || getProteinMultiplier(nutritionPrefs);
+  const adjustmentPct = calorieBase ? Math.round(Math.abs(calorieAdjustment) / calorieBase * 100) : 0;
+  const aggressiveAdjustment = adjustmentPct >= 25;
   const goals = {
     protein: customGoals.protein || baseGoals.protein,
     kcal: customGoals.kcal || baseGoals.kcal,
@@ -3049,7 +3121,7 @@ function NutritionTracker({
         // Full backup
         const listed = await storage.list();
         const allKeys = listed?.keys || [];
-        const staticKeys = ['pantry_v2','suppPantry','waterGoal','customGoals','mealTemplates','weightHistory','trainingByDate','birthDate','gender','activityLevel','goalType','goalKg','goalWeeks','manualCalorieAdjustment'];
+        const staticKeys = ['pantry_v2','suppPantry','waterGoal','customGoals','mealTemplates','weightHistory','trainingByDate','birthDate','gender','activityLevel','goalType','goalKg','goalWeeks','manualCalorieAdjustment','proteinMultiplier'];
         const toFetch = [...new Set([...staticKeys, ...allKeys])];
         for (let i = 0; i < toFetch.length; i += 20) {
           await Promise.all(toFetch.slice(i,i+20).map(async k => {
@@ -3110,7 +3182,7 @@ function NutritionTracker({
       const listed = await storage.list();
       const allKeys = listed?.keys || [];
       // Also always try static keys
-      const staticKeys = ['pantry_v2', 'suppPantry', 'waterGoal', 'customGoals', 'mealTemplates', 'weightHistory', 'trainingByDate', 'birthDate', 'gender', 'activityLevel', 'goalType', 'goalKg', 'goalWeeks', 'manualCalorieAdjustment'];
+      const staticKeys = ['pantry_v2', 'suppPantry', 'waterGoal', 'customGoals', 'mealTemplates', 'weightHistory', 'trainingByDate', 'birthDate', 'gender', 'activityLevel', 'goalType', 'goalKg', 'goalWeeks', 'manualCalorieAdjustment', 'proteinMultiplier'];
       const toFetch = [...new Set([...staticKeys, ...allKeys])];
       // Fetch in parallel batches of 20
       for (let i = 0; i < toFetch.length; i += 20) {
@@ -7480,16 +7552,44 @@ function NutritionTracker({
     onChange: e => saveNutritionPrefs({...nutritionPrefs, manualAdjustment: e.target.value}),
     placeholder: "auto: " + getGoalAdjustment(nutritionPrefs),
     style: inp
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "1 1 180px"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: lbl
+  }, "Proteina g/kg"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: "0.8",
+    step: "0.1",
+    value: nutritionPrefs.proteinMultiplier || "",
+    onChange: e => saveNutritionPrefs({...nutritionPrefs, proteinMultiplier: e.target.value}),
+    placeholder: "auto: " + defaultProteinMultiplier(nutritionPrefs.goalType).toFixed(1),
+    style: inp
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 10,
+      marginTop: 12,
+      border: "1px solid var(--border3)",
+      borderRadius: 6,
+      padding: "10px 12px",
+      background: "var(--panel)",
       display: "flex",
-      gap: 12,
+      gap: 14,
       flexWrap: "wrap",
       fontSize: 14,
       color: "var(--muted)"
     }
-  }, /*#__PURE__*/React.createElement("span", null, "Ajuste: ", getGoalAdjustment(nutritionPrefs), " kcal/dia"), /*#__PURE__*/React.createElement("span", null, "Meta atual: ", goals.kcal, " kcal · ", goals.protein, "g proteína"))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", null, "TMB: ", baseGoals.bmr || "-", " kcal"), /*#__PURE__*/React.createElement("span", null, "Base do dia: ", calorieBase || "-", " kcal"), /*#__PURE__*/React.createElement("span", null, "Ajuste do objetivo: ", calorieAdjustment > 0 ? "+" : "", calorieAdjustment, " kcal/dia", calorieBase ? " (" + adjustmentPct + "%)" : ""), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--green)",
+      fontWeight: 500
+    }
+  }, "Meta final: ", goals.kcal, " kcal"), /*#__PURE__*/React.createElement("span", null, "Proteina: ", viewWeight || "-", "kg x ", Number(proteinMultiplier).toFixed(1), " = ", goals.protein, "g"), aggressiveAdjustment && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "var(--red)",
+      flexBasis: "100%"
+    }
+  }, "Ajuste alto: revise o prazo ou use um ajuste manual menor para uma meta mais sustentavel."))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 24,
       borderTop: "1px solid var(--border3)",
@@ -8275,7 +8375,7 @@ function PrivacyPanel({ lang, onClose, onLogout }) {
       await fbSignIn(email, delPwd); // throws if wrong password
       // Delete all user data from Firebase
       const keys = ['pantry_v2','suppPantry','waterGoal','customGoals','mealTemplates',
-                    'weightHistory','trainingByDate','birthDate','gender','activityLevel','goalType','goalKg','goalWeeks','manualCalorieAdjustment','userName','notes_' + new Date().toISOString().split('T')[0]];
+                    'weightHistory','trainingByDate','birthDate','gender','activityLevel','goalType','goalKg','goalWeeks','manualCalorieAdjustment','proteinMultiplier','userName','notes_' + new Date().toISOString().split('T')[0]];
       await Promise.all(keys.map(k => fbDel(k).catch(()=>{})));
       // Delete account via REST
       const token = await fbToken();
@@ -8968,9 +9068,9 @@ function LoginScreen({onLogin, onPendingVerification}) {
         if (!verified) { onPendingVerification(email); return; }
         onLogin(false);
       } else {
-        if (!regName.trim()) { setError(loginLang==='pt'?'O nome � obrigat�rio.':'Name is required.'); setLoading(false); return; }
-        if (!isValidBirthDate(regBirthDate)) { setError(loginLang==='pt'?'A data de nascimento � obrigat�ria e deve ser v�lida.':'Date of birth is required and must be valid.'); setLoading(false); return; }
-        if (!isValidGender(regGender)) { setError(loginLang==='pt'?'O g�nero � obrigat�rio.':'Gender is required.'); setLoading(false); return; }
+        if (!regName.trim()) { setError(loginLang==='pt'?'O nome ï¿½ obrigatï¿½rio.':'Name is required.'); setLoading(false); return; }
+        if (!isValidBirthDate(regBirthDate)) { setError(loginLang==='pt'?'A data de nascimento ï¿½ obrigatï¿½ria e deve ser vï¿½lida.':'Date of birth is required and must be valid.'); setLoading(false); return; }
+        if (!isValidGender(regGender)) { setError(loginLang==='pt'?'O gï¿½nero ï¿½ obrigatï¿½rio.':'Gender is required.'); setLoading(false); return; }
         await fbSignUp(email, password);
         localStorage.setItem('fb_email', email);
         // Set displayName so it appears in Firebase email templates
@@ -9087,7 +9187,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
           value:regGender, onChange:e=>setRegGender(e.target.value), required:true,
           style:{...inp, marginBottom:12}
         },
-          React.createElement('option', {value:''}, loginLang==='pt' ? 'G�nero *' : 'Gender *'),
+          React.createElement('option', {value:''}, loginLang==='pt' ? 'Gï¿½nero *' : 'Gender *'),
           React.createElement('option', {value:'male'}, loginLang==='pt' ? 'Masculino' : 'Male'),
           React.createElement('option', {value:'female'}, loginLang==='pt' ? 'Feminino' : 'Female')
         ),
