@@ -30,7 +30,8 @@
     body { background: var(--bg); color: var(--text); }
     #loading{position:fixed;inset:0;background:#f2f1ed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#888;font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000}
     .dark-loading #loading{background:#111;color:#555;}
-    select option{background:var(--input,#f5f3ef);color:var(--text,#252220)}
+    .dark-loading #loading div:first-child{border-color:#2a3a2a!important;border-top-color:#7ec87e!important;}
+    select option{background:#f5f3ef;color:#252220}
     ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg,#f2f1ed)}::-webkit-scrollbar-thumb{background:var(--border2,#b8b4ac);border-radius:2px}
     input[type=date]{color-scheme:dark}
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -56,7 +57,7 @@
 </head>
 <body>
   <div id="loading">
-    <div style="font-size:28px;animation:spin 1.5s linear infinite;display:inline-block">⟳</div>
+    <div style="width:30px;height:30px;border-radius:50%;border:3px solid #d8d4cc;border-top-color:#2a6a2a;animation:spin 1.2s linear infinite"></div>
     <div style="animation:pulse 1.5s ease-in-out infinite">A carregar...</div>
   </div>
   <div id="root"></div>
@@ -1177,7 +1178,53 @@ const MICRO_FIELDS_BASE = [{
 }];
 const ALL_FIELDS_KEYS = [...MACRO_FIELDS_BASE, ...MICRO_FIELDS_BASE]; // keys only, no labels
 
-function computeGoals(weight, train) {
+const ACTIVITY_LEVELS = {
+  sedentary: { factor: 1.2, pt: "Sedentario", en: "Sedentary", descPt: "Pouco ou nenhum exercicio estruturado", descEn: "Little or no structured exercise" },
+  light: { factor: 1.375, pt: "Levemente ativo", en: "Lightly active", descPt: "Exercicios leves 1 a 3 vezes por semana", descEn: "Light exercise 1 to 3 times per week" },
+  moderate: { factor: 1.55, pt: "Moderadamente ativo", en: "Moderately active", descPt: "Exercicios moderados 3 a 5 vezes por semana", descEn: "Moderate exercise 3 to 5 times per week" },
+  very: { factor: 1.725, pt: "Muito ativo", en: "Very active", descPt: "Exercicios intensos 6 a 7 vezes por semana ou trabalho fisico exigente", descEn: "Intense exercise 6 to 7 times per week or demanding physical work" },
+  extreme: { factor: 1.9, pt: "Extremamente ativo", en: "Extremely active", descPt: "Atletas ou rotina extremamente ativa", descEn: "Athletes or extremely active routines" }
+};
+function calculateAge(birthDate, refDate = new Date()) {
+  if (!birthDate) return null;
+  const d = new Date(birthDate + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return null;
+  let age = refDate.getFullYear() - d.getFullYear();
+  const m = refDate.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && refDate.getDate() < d.getDate())) age--;
+  return age > 0 ? age : null;
+}
+function getGoalAdjustment(prefs) {
+  const manual = prefs && prefs.manualAdjustment !== "" && prefs.manualAdjustment != null ? Number(prefs.manualAdjustment) : null;
+  if (Number.isFinite(manual)) return Math.round(manual);
+  const type = prefs?.goalType || "maintenance";
+  if (type === "maintenance") return 0;
+  const kg = Number(prefs?.goalKg);
+  const weeks = Number(prefs?.goalWeeks);
+  if (!kg || !weeks || kg <= 0 || weeks <= 0) return 0;
+  const daily = Math.round(kg * 7700 / (weeks * 7));
+  return type === "loss" ? -daily : daily;
+}
+function computeGoals(weight, train, profile = {}) {
+  const height = Number(profile.height);
+  const age = calculateAge(profile.birthDate);
+  const gender = profile.gender;
+  const prefs = profile.prefs || {};
+  const activityLevel = prefs.activityLevel || "moderate";
+  if (weight && height && age && (gender === "male" || gender === "female")) {
+    const bmr = 10 * weight + 6.25 * height - 5 * age + (gender === "male" ? 5 : -161);
+    const fa = train ? (ACTIVITY_LEVELS[activityLevel]?.factor || 1.55) : (activityLevel === "sedentary" ? 1.0 : 1.35);
+    const kcal = Math.max(1200, Math.round(bmr * fa + getGoalAdjustment(prefs)));
+    const proteinFactor = prefs.goalType === "loss" ? 2.0 : prefs.goalType === "gain" ? 2.2 : 1.6;
+    return {
+      protein: Math.round(weight * proteinFactor),
+      kcal,
+      carbs: Math.round(weight * (train ? 4.0 : 3.0)),
+      fat: Math.round(weight * 0.9),
+      fiber: 30,
+      salt: 5
+    };
+  }
   if (!weight) return train ? {
     protein: 160,
     kcal: 3100,
@@ -1506,6 +1553,14 @@ function NutritionTracker({
   const [expandMicros, setExpandMicros] = useState(false);
   const [detailFood, setDetailFood] = useState(null);
   const [weightHistory, setWeightHistory] = useState([]);
+  const [profileData, setProfileData] = useState({ birthDate: "", gender: "" });
+  const [nutritionPrefs, setNutritionPrefs] = useState({
+    activityLevel: "",
+    goalType: "",
+    goalKg: "",
+    goalWeeks: "",
+    manualAdjustment: ""
+  });
   const [weightForm, setWeightForm] = useState({
     weight: "",
     height: "",
@@ -1578,7 +1633,7 @@ function NutritionTracker({
       setLoaded(true);
     }, 12000);
     try {
-      const [p, l, t, w, mt, n, wg, wi, sp, sl, cg] = await Promise.all([storage.get("pantry_v2").catch(() => null), storage.get("log_v2_" + TODAY).catch(() => null), storage.get("trainingByDate").catch(() => null), storage.get("weightHistory").catch(() => null), storage.get("mealTemplates").catch(() => null), storage.get("notes_" + TODAY).catch(() => null), storage.get("waterGoal").catch(() => null), storage.get("waterIntake_" + TODAY).catch(() => null), storage.get("suppPantry").catch(() => null), storage.get("suppLog_" + TODAY).catch(() => null), storage.get("customGoals").catch(() => null)]);
+      const [p, l, t, w, mt, n, wg, wi, sp, sl, cg, bd, gd, al, gt, gkg, gw, ma] = await Promise.all([storage.get("pantry_v2").catch(() => null), storage.get("log_v2_" + TODAY).catch(() => null), storage.get("trainingByDate").catch(() => null), storage.get("weightHistory").catch(() => null), storage.get("mealTemplates").catch(() => null), storage.get("notes_" + TODAY).catch(() => null), storage.get("waterGoal").catch(() => null), storage.get("waterIntake_" + TODAY).catch(() => null), storage.get("suppPantry").catch(() => null), storage.get("suppLog_" + TODAY).catch(() => null), storage.get("customGoals").catch(() => null), storage.get("birthDate").catch(() => null), storage.get("gender").catch(() => null), storage.get("activityLevel").catch(() => null), storage.get("goalType").catch(() => null), storage.get("goalKg").catch(() => null), storage.get("goalWeeks").catch(() => null), storage.get("manualCalorieAdjustment").catch(() => null)]);
       if (p) setPantry(JSON.parse(p.value));
       if (l) setLog(normalizeMealKeys(JSON.parse(l.value)));
       if (t) setTrainingByDate(JSON.parse(t.value));
@@ -1590,6 +1645,17 @@ function NutritionTracker({
       if (sp) setSuppPantry(JSON.parse(sp.value));
       if (sl) setSuppLog(JSON.parse(sl.value));
       if (cg) setCustomGoals(JSON.parse(cg.value));
+      setProfileData({
+        birthDate: bd && bd.value ? bd.value : "",
+        gender: gd && gd.value ? gd.value : ""
+      });
+      setNutritionPrefs({
+        activityLevel: al && al.value ? al.value : "",
+        goalType: gt && gt.value ? gt.value : "",
+        goalKg: gkg && gkg.value ? gkg.value : "",
+        goalWeeks: gw && gw.value ? gw.value : "",
+        manualAdjustment: ma && ma.value ? ma.value : ""
+      });
     } catch (_) {}
     clearTimeout(_loadTimeout);
     setSyncing(false);
@@ -1677,7 +1743,7 @@ function NutritionTracker({
       const entries = Object.values(dayLog).flat();
       const we = getWeightForDate(weightHistory, date);
       const dayIsTraining = trainingByDate[date] ?? true;
-      const g = computeGoals(we?.weight || currentWeight, dayIsTraining);
+      const g = computeGoals(we?.weight || currentWeight, dayIsTraining, {height: we?.height || currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs});
       const protein = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
       const kcal = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
       days.push({
@@ -1951,6 +2017,22 @@ function NutritionTracker({
     setEditingGoals(false);
     notify("Metas atualizadas.");
   }
+  function saveNutritionPrefs(next, silent = true) {
+    const clean = {
+      activityLevel: next.activityLevel || "",
+      goalType: next.goalType || "",
+      goalKg: next.goalType === "maintenance" ? "" : (next.goalKg || ""),
+      goalWeeks: next.goalType === "maintenance" ? "" : (next.goalWeeks || ""),
+      manualAdjustment: next.manualAdjustment || ""
+    };
+    setNutritionPrefs(clean);
+    storage.set("activityLevel", clean.activityLevel).catch(() => {});
+    storage.set("goalType", clean.goalType).catch(() => {});
+    storage.set("goalKg", clean.goalKg).catch(() => {});
+    storage.set("goalWeeks", clean.goalWeeks).catch(() => {});
+    storage.set("manualCalorieAdjustment", clean.manualAdjustment).catch(() => {});
+    if (!silent) notify("Preferências nutricionais atualizadas.");
+  }
   async function generateFoodPatterns() {
     setPatternsLoading(true);
     setPatternsText("");
@@ -1973,7 +2055,7 @@ function NutritionTracker({
         const f = Math.round(entries.reduce((s, e) => s + (e.fiber ?? 0), 0));
         const isTrain = trainingByDate[date] ?? true;
         const wE = getWeightForDate(weightHistory, date);
-        const g = computeGoals(wE?.weight || currentWeight, isTrain);
+        const g = computeGoals(wE?.weight || currentWeight, isTrain, {height: wE?.height || currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs});
         dayData.push({
           date,
           protein: p,
@@ -2146,7 +2228,7 @@ function NutritionTracker({
         }
         const totals = buildDayTotals(dayLog);
         const wEntry = getWeightForDate(weightHistory, date);
-        const g = computeGoals(wEntry?.weight || currentWeight, trainingByDate[date] ?? true);
+        const g = computeGoals(wEntry?.weight || currentWeight, trainingByDate[date] ?? true, {height: wEntry?.height || currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs});
         days.push({
           date,
           isTraining: trainingByDate[date] ?? true,
@@ -2573,8 +2655,15 @@ function NutritionTracker({
   const isTraining = trainingByDate[viewDate] ?? true;
   const viewEntry = getWeightForDate(weightHistory, viewDate);
   const viewWeight = viewEntry?.weight || currentWeight;
+  const viewHeight = viewEntry?.height || currentHeight;
+  const goalProfile = {
+    height: viewHeight,
+    birthDate: profileData.birthDate,
+    gender: profileData.gender,
+    prefs: nutritionPrefs
+  };
   const baseWaterGoal = viewWeight ? Math.round(viewWeight * (isTraining ? 40 : 35) / 50) * 50 : 2500;
-  const baseGoals = computeGoals(viewWeight, isTraining);
+  const baseGoals = computeGoals(viewWeight, isTraining, goalProfile);
   const goals = {
     protein: customGoals.protein || baseGoals.protein,
     kcal: customGoals.kcal || baseGoals.kcal,
@@ -2960,7 +3049,7 @@ function NutritionTracker({
         // Full backup
         const listed = await storage.list();
         const allKeys = listed?.keys || [];
-        const staticKeys = ['pantry_v2','suppPantry','waterGoal','customGoals','mealTemplates','weightHistory','trainingByDate'];
+        const staticKeys = ['pantry_v2','suppPantry','waterGoal','customGoals','mealTemplates','weightHistory','trainingByDate','birthDate','gender','activityLevel','goalType','goalKg','goalWeeks','manualCalorieAdjustment'];
         const toFetch = [...new Set([...staticKeys, ...allKeys])];
         for (let i = 0; i < toFetch.length; i += 20) {
           await Promise.all(toFetch.slice(i,i+20).map(async k => {
@@ -3021,7 +3110,7 @@ function NutritionTracker({
       const listed = await storage.list();
       const allKeys = listed?.keys || [];
       // Also always try static keys
-      const staticKeys = ['pantry_v2', 'suppPantry', 'waterGoal', 'customGoals', 'mealTemplates', 'weightHistory', 'trainingByDate'];
+      const staticKeys = ['pantry_v2', 'suppPantry', 'waterGoal', 'customGoals', 'mealTemplates', 'weightHistory', 'trainingByDate', 'birthDate', 'gender', 'activityLevel', 'goalType', 'goalKg', 'goalWeeks', 'manualCalorieAdjustment'];
       const toFetch = [...new Set([...staticKeys, ...allKeys])];
       // Fetch in parallel batches of 20
       for (let i = 0; i < toFetch.length; i += 20) {
@@ -3850,10 +3939,10 @@ function NutritionTracker({
     }
   }, label))), /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "18px 20px 28px",
+      padding: "20px clamp(18px, 3vw, 34px) 32px",
       boxSizing: "border-box",
       width: "100%",
-      maxWidth: 1160,
+      maxWidth: 1180,
       margin: "0 auto"
     }
   }, tab === "diario" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
@@ -5670,7 +5759,7 @@ function NutritionTracker({
     }
   }, exportResult.filename))))))), tab === "despensa" && /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "2px 0 26px",
+      padding: "2px 16px 28px",
       boxSizing: "border-box",
       width: "100%"
     }
@@ -5882,7 +5971,8 @@ function NutritionTracker({
   }, pantrySearch ? t('noResults') : t('pantryEmpty')), sortedPantry.map(f => /*#__PURE__*/React.createElement("div", {
     key: f.id,
     style: {
-      borderBottom: "1px solid var(--border3)"
+      borderBottom: "1px solid var(--border3)",
+      padding: "8px 6px"
     }
   }, editingId === f.id ? /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6115,7 +6205,7 @@ function NutritionTracker({
     key: tmpl.id,
     style: {
       borderBottom: "1px solid var(--border3)",
-      padding: "10px 0"
+      padding: "10px 6px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6323,7 +6413,7 @@ function NutritionTracker({
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      padding: "8px 0",
+      padding: "8px 6px",
       borderBottom: "1px solid var(--border3)"
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
@@ -6935,7 +7025,13 @@ function NutritionTracker({
       fontSize: 14,
       letterSpacing: 1
     }
-  }, "\uD83D\uDCBE Guardar nas notas de hoje")))), tab === "metricas" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCBE Guardar nas notas de hoje")))), tab === "metricas" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "2px 16px 30px",
+      boxSizing: "border-box",
+      width: "100%"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 16
     }
@@ -7028,19 +7124,19 @@ function NutritionTracker({
     c: bmiNum < 18.5 ? "#c86e8e" : bmiNum < 25 ? "#6ec8a9" : bmiNum < 30 ? "#c8a96e" : "#c86e8e"
   }, {
     l: t('goalProtTrain'),
-    v: `${computeGoals(currentWeight, true).protein}g`,
+    v: `${computeGoals(currentWeight, true, {height: currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs}).protein}g`,
     c: "#c8a96e"
   }, {
     l: t('goalProtRest'),
-    v: `${computeGoals(currentWeight, false).protein}g`,
+    v: `${computeGoals(currentWeight, false, {height: currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs}).protein}g`,
     c: "#a9c8a9"
   }, {
     l: t('goalKcalTrain'),
-    v: String(computeGoals(currentWeight, true).kcal),
+    v: String(computeGoals(currentWeight, true, {height: currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs}).kcal),
     c: "#8ec8c8"
   }, {
     l: t('goalKcalRest'),
-    v: String(computeGoals(currentWeight, false).kcal),
+    v: String(computeGoals(currentWeight, false, {height: currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs}).kcal),
     c: "#8ec8a9"
   }].map(x => /*#__PURE__*/React.createElement("div", {
     key: x.l
@@ -7144,7 +7240,8 @@ function NutritionTracker({
     return /*#__PURE__*/React.createElement("div", {
       key: e.id,
       style: {
-        borderBottom: "1px solid var(--border3)"
+        borderBottom: "1px solid var(--border3)",
+        padding: "0 6px"
       }
     }, isEd ? /*#__PURE__*/React.createElement("div", {
       style: {
@@ -7252,7 +7349,7 @@ function NutritionTracker({
       style: {
         color: "var(--muted)"
       }
-    }, "prot ", computeGoals(e.weight, true).protein, "g"), /*#__PURE__*/React.createElement("div", {
+    }, "prot ", computeGoals(e.weight, true, {height: e.height || currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs}).protein, "g"), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         gap: 5
@@ -7287,6 +7384,112 @@ function NutritionTracker({
       marginTop: 20
     }
   }, "Ainda sem registos de peso."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 24,
+      borderTop: "1px solid var(--border3)",
+      paddingTop: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      letterSpacing: 1,
+      color: "var(--muted)",
+      textTransform: "uppercase",
+      marginBottom: 12
+    }
+  }, "Perfil nutricional"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "var(--dim)",
+      marginBottom: 12
+    }
+  }, "Atividade e objetivo usados para calcular calorias e proteína automaticamente."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "1 1 220px"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: lbl
+  }, "Atividade física"), /*#__PURE__*/React.createElement("select", {
+    value: nutritionPrefs.activityLevel || "",
+    onChange: e => saveNutritionPrefs({...nutritionPrefs, activityLevel: e.target.value}),
+    style: inp
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Selecionar"), Object.entries(ACTIVITY_LEVELS).map(([key, data]) => /*#__PURE__*/React.createElement("option", {
+    key,
+    value: key
+  }, data.pt + " - " + data.descPt)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "1 1 220px"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: lbl
+  }, "Objetivo"), /*#__PURE__*/React.createElement("select", {
+    value: nutritionPrefs.goalType || "",
+    onChange: e => saveNutritionPrefs({...nutritionPrefs, goalType: e.target.value}),
+    style: inp
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Selecionar"), /*#__PURE__*/React.createElement("option", {
+    value: "maintenance"
+  }, "Manutenção"), /*#__PURE__*/React.createElement("option", {
+    value: "loss"
+  }, "Perda de peso"), /*#__PURE__*/React.createElement("option", {
+    value: "gain"
+  }, "Ganho de peso"))), (nutritionPrefs.goalType === "loss" || nutritionPrefs.goalType === "gain") && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "1 1 160px"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: lbl
+  }, nutritionPrefs.goalType === "loss" ? "Kg a perder" : "Kg a ganhar"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: "0.1",
+    step: "0.1",
+    value: nutritionPrefs.goalKg || "",
+    onChange: e => saveNutritionPrefs({...nutritionPrefs, goalKg: e.target.value}),
+    style: inp
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "1 1 160px"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: lbl
+  }, "Semanas"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: "1",
+    step: "1",
+    value: nutritionPrefs.goalWeeks || "",
+    onChange: e => saveNutritionPrefs({...nutritionPrefs, goalWeeks: e.target.value}),
+    style: inp
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "1 1 220px"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: lbl
+  }, "Ajuste manual kcal/dia"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: nutritionPrefs.manualAdjustment || "",
+    onChange: e => saveNutritionPrefs({...nutritionPrefs, manualAdjustment: e.target.value}),
+    placeholder: "auto: " + getGoalAdjustment(nutritionPrefs),
+    style: inp
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      display: "flex",
+      gap: 12,
+      flexWrap: "wrap",
+      fontSize: 14,
+      color: "var(--muted)"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Ajuste: ", getGoalAdjustment(nutritionPrefs), " kcal/dia"), /*#__PURE__*/React.createElement("span", null, "Meta atual: ", goals.kcal, " kcal · ", goals.protein, "g proteína"))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 24,
       borderTop: "1px solid var(--border3)",
@@ -8072,7 +8275,7 @@ function PrivacyPanel({ lang, onClose, onLogout }) {
       await fbSignIn(email, delPwd); // throws if wrong password
       // Delete all user data from Firebase
       const keys = ['pantry_v2','suppPantry','waterGoal','customGoals','mealTemplates',
-                    'weightHistory','trainingByDate','userName','notes_' + new Date().toISOString().split('T')[0]];
+                    'weightHistory','trainingByDate','birthDate','gender','activityLevel','goalType','goalKg','goalWeeks','manualCalorieAdjustment','userName','notes_' + new Date().toISOString().split('T')[0]];
       await Promise.all(keys.map(k => fbDel(k).catch(()=>{})));
       // Delete account via REST
       const token = await fbToken();
@@ -8580,39 +8783,70 @@ function isValidGender(value) {
   return value === 'male' || value === 'female';
 }
 
+function isValidActivityLevel(value) {
+  return !!ACTIVITY_LEVELS[value];
+}
+
+function isValidGoalProfile(profile) {
+  if (!profile || !['maintenance','loss','gain'].includes(profile.goalType)) return false;
+  if (!isValidActivityLevel(profile.activityLevel)) return false;
+  if (profile.goalType === 'maintenance') return true;
+  return Number(profile.goalKg) > 0 && Number(profile.goalWeeks) > 0;
+}
+
 async function getRequiredProfileData() {
-  const [birthDate, gender] = await Promise.all([
+  const [birthDate, gender, activityLevel, goalType, goalKg, goalWeeks, manualAdjustment] = await Promise.all([
     storage.get('birthDate').catch(()=>null),
-    storage.get('gender').catch(()=>null)
+    storage.get('gender').catch(()=>null),
+    storage.get('activityLevel').catch(()=>null),
+    storage.get('goalType').catch(()=>null),
+    storage.get('goalKg').catch(()=>null),
+    storage.get('goalWeeks').catch(()=>null),
+    storage.get('manualCalorieAdjustment').catch(()=>null)
   ]);
   return {
     birthDate: birthDate && birthDate.value ? birthDate.value : '',
-    gender: gender && gender.value ? gender.value : ''
+    gender: gender && gender.value ? gender.value : '',
+    activityLevel: activityLevel && activityLevel.value ? activityLevel.value : '',
+    goalType: goalType && goalType.value ? goalType.value : '',
+    goalKg: goalKg && goalKg.value ? goalKg.value : '',
+    goalWeeks: goalWeeks && goalWeeks.value ? goalWeeks.value : '',
+    manualAdjustment: manualAdjustment && manualAdjustment.value ? manualAdjustment.value : ''
   };
 }
 
 function hasRequiredProfileData(profile) {
-  return !!profile && isValidBirthDate(profile.birthDate) && isValidGender(profile.gender);
+  return !!profile && isValidBirthDate(profile.birthDate) && isValidGender(profile.gender) && isValidGoalProfile(profile);
 }
 
-function RequiredProfileModal({lang, onComplete}) {
+function RequiredProfileModal({lang, profile, onComplete}) {
   const isPt = (lang || 'pt') === 'pt';
-  const [birthDate, setBirthDate] = React.useState('');
-  const [gender, setGender] = React.useState('');
+  const [birthDate, setBirthDate] = React.useState(profile?.birthDate || '');
+  const [gender, setGender] = React.useState(profile?.gender || '');
+  const [activityLevel, setActivityLevel] = React.useState(profile?.activityLevel || '');
+  const [goalType, setGoalType] = React.useState(profile?.goalType || '');
+  const [goalKg, setGoalKg] = React.useState(profile?.goalKg || '');
+  const [goalWeeks, setGoalWeeks] = React.useState(profile?.goalWeeks || '');
   const [error, setError] = React.useState('');
   const [saving, setSaving] = React.useState(false);
   const S = isPt
-    ? {title:'Completar perfil', text:'Para continuar, informa estes dados obrigat�rios.', birth:'Data de nascimento *', gender:'G�nero *', choose:'Selecionar', male:'Masculino', female:'Feminino', save:'Guardar e continuar', saving:'A guardar...', err:'Preenche uma data de nascimento v�lida e o g�nero.'}
-    : {title:'Complete profile', text:'To continue, please add these required details.', birth:'Date of birth *', gender:'Gender *', choose:'Select', male:'Male', female:'Female', save:'Save and continue', saving:'Saving...', err:'Enter a valid date of birth and gender.'};
-  const inp = {width:'100%',background:'var(--input)',border:'1px solid var(--border2)',color:'var(--text)',padding:'12px 14px',borderRadius:8,fontSize:15,fontFamily:'inherit',boxSizing:'border-box',outline:'none',marginTop:6,marginBottom:14};
+    ? {title:'Completar perfil nutricional', text:'Para calcular suas metas, estes dados sao obrigatorios.', birth:'Data de nascimento *', gender:'Genero *', activity:'Atividade fisica *', goal:'Objetivo *', choose:'Selecionar', male:'Masculino', female:'Feminino', maintenance:'Manutencao do peso', loss:'Perda de peso', gain:'Ganho de peso', kgLoss:'Quantos kg deseja perder?', kgGain:'Quantos kg deseja ganhar?', weeks:'Em quantas semanas?', save:'Guardar e continuar', saving:'A guardar...', err:'Preenche todos os dados obrigatorios.'}
+    : {title:'Complete nutrition profile', text:'These details are required to calculate your targets.', birth:'Date of birth *', gender:'Gender *', activity:'Physical activity *', goal:'Goal *', choose:'Select', male:'Male', female:'Female', maintenance:'Weight maintenance', loss:'Weight loss', gain:'Weight gain', kgLoss:'How many kg do you want to lose?', kgGain:'How many kg do you want to gain?', weeks:'In how many weeks?', save:'Save and continue', saving:'Saving...', err:'Fill all required details.'};
+  const inp = {width:'100%',background:'#f5f3ef',border:'1px solid #b8b4ac',color:'#252220',padding:'12px 14px',borderRadius:8,fontSize:15,fontFamily:'inherit',boxSizing:'border-box',outline:'none',marginTop:6,marginBottom:14};
+  const labelStyle = {fontSize:10,letterSpacing:1.5,color:'#6a6662',textTransform:'uppercase'};
   async function saveProfile(e) {
     e.preventDefault();
     setError('');
-    if (!isValidBirthDate(birthDate) || !isValidGender(gender)) { setError(S.err); return; }
+    const nextProfile = {birthDate, gender, activityLevel, goalType, goalKg, goalWeeks};
+    if (!isValidBirthDate(birthDate) || !isValidGender(gender) || !isValidGoalProfile(nextProfile)) { setError(S.err); return; }
     setSaving(true);
     await Promise.all([
       storage.set('birthDate', birthDate).catch(()=>{}),
-      storage.set('gender', gender).catch(()=>{})
+      storage.set('gender', gender).catch(()=>{}),
+      storage.set('activityLevel', activityLevel).catch(()=>{}),
+      storage.set('goalType', goalType).catch(()=>{}),
+      storage.set('goalKg', goalType === 'maintenance' ? '' : goalKg).catch(()=>{}),
+      storage.set('goalWeeks', goalType === 'maintenance' ? '' : goalWeeks).catch(()=>{})
     ]);
     const savedProfile = await getRequiredProfileData().catch(()=>null);
     if (!hasRequiredProfileData(savedProfile)) {
@@ -8623,20 +8857,38 @@ function RequiredProfileModal({lang, onComplete}) {
     setSaving(false);
     onComplete(savedProfile);
   }
-  return React.createElement('div', {style:{position:'fixed',inset:0,zIndex:100000,background:'rgba(0,0,0,0.86)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}},
-    React.createElement('form', {onSubmit:saveProfile, style:{width:'100%',maxWidth:380,background:'var(--surface,#161616)',border:'1px solid var(--border2,#2a2a2a)',borderRadius:14,padding:24,boxShadow:'0 20px 80px rgba(0,0,0,0.45)'}},
-      React.createElement('div', {style:{fontSize:20,color:'var(--text3,#c9bfb0)',marginBottom:8}}, S.title),
-      React.createElement('div', {style:{fontSize:13,color:'var(--muted,#888)',lineHeight:1.5,marginBottom:20}}, S.text),
-      React.createElement('label', {style:{fontSize:10,letterSpacing:1.5,color:'var(--muted)',textTransform:'uppercase'}}, S.birth),
+  return React.createElement('div', {style:{position:'fixed',inset:0,zIndex:100000,background:'rgba(242,241,237,0.94)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}},
+    React.createElement('form', {onSubmit:saveProfile, style:{width:'100%',maxWidth:420,background:'#ffffff',border:'1px solid #ccc8c0',borderRadius:14,padding:24,boxShadow:'0 20px 80px rgba(60,50,40,0.18)',margin:'auto'}},
+      React.createElement('div', {style:{fontSize:20,color:'#3a3733',marginBottom:8}}, S.title),
+      React.createElement('div', {style:{fontSize:13,color:'#6a6662',lineHeight:1.5,marginBottom:20}}, S.text),
+      React.createElement('label', {style:labelStyle}, S.birth),
       React.createElement('input', {type:'date', value:birthDate, onChange:e=>setBirthDate(e.target.value), required:true, max:new Date().toISOString().split('T')[0], min:'1900-01-01', style:inp}),
-      React.createElement('label', {style:{fontSize:10,letterSpacing:1.5,color:'var(--muted)',textTransform:'uppercase'}}, S.gender),
+      React.createElement('label', {style:labelStyle}, S.gender),
       React.createElement('select', {value:gender, onChange:e=>setGender(e.target.value), required:true, style:inp},
-        React.createElement('option', {value:''}, S.choose),
-        React.createElement('option', {value:'male'}, S.male),
-        React.createElement('option', {value:'female'}, S.female)
+        React.createElement('option', {value:'', style:{background:'#f5f3ef',color:'#252220'}}, S.choose),
+        React.createElement('option', {value:'male', style:{background:'#f5f3ef',color:'#252220'}}, S.male),
+        React.createElement('option', {value:'female', style:{background:'#f5f3ef',color:'#252220'}}, S.female)
+      ),
+      React.createElement('label', {style:labelStyle}, S.activity),
+      React.createElement('select', {value:activityLevel, onChange:e=>setActivityLevel(e.target.value), required:true, style:inp},
+        React.createElement('option', {value:'', style:{background:'#f5f3ef',color:'#252220'}}, S.choose),
+        Object.entries(ACTIVITY_LEVELS).map(([key, data]) => React.createElement('option', {key, value:key, style:{background:'#f5f3ef',color:'#252220'}}, (isPt ? data.pt + ' - ' + data.descPt : data.en + ' - ' + data.descEn)))
+      ),
+      React.createElement('label', {style:labelStyle}, S.goal),
+      React.createElement('select', {value:goalType, onChange:e=>setGoalType(e.target.value), required:true, style:inp},
+        React.createElement('option', {value:'', style:{background:'#f5f3ef',color:'#252220'}}, S.choose),
+        React.createElement('option', {value:'maintenance', style:{background:'#f5f3ef',color:'#252220'}}, S.maintenance),
+        React.createElement('option', {value:'loss', style:{background:'#f5f3ef',color:'#252220'}}, S.loss),
+        React.createElement('option', {value:'gain', style:{background:'#f5f3ef',color:'#252220'}}, S.gain)
+      ),
+      (goalType === 'loss' || goalType === 'gain') && React.createElement(React.Fragment, null,
+        React.createElement('label', {style:labelStyle}, goalType === 'loss' ? S.kgLoss : S.kgGain),
+        React.createElement('input', {type:'number', min:'0.1', step:'0.1', value:goalKg, onChange:e=>setGoalKg(e.target.value), required:true, style:inp}),
+        React.createElement('label', {style:labelStyle}, S.weeks),
+        React.createElement('input', {type:'number', min:'1', step:'1', value:goalWeeks, onChange:e=>setGoalWeeks(e.target.value), required:true, style:inp})
       ),
       error && React.createElement('div', {style:{color:'#c87e7e',fontSize:12,marginBottom:14,padding:'8px 12px',background:'rgba(200,80,80,0.1)',borderRadius:6,border:'1px solid rgba(200,80,80,0.2)'}}, error),
-      React.createElement('button', {type:'submit', disabled:saving, style:{width:'100%',background:saving?'var(--btn-inactive)':'var(--btn-ok)',border:'1px solid var(--btn-ok-border)',color:saving?'var(--muted)':'var(--btn-ok-text)',padding:'13px',borderRadius:8,fontSize:12,letterSpacing:1,textTransform:'uppercase',cursor:saving?'default':'pointer',fontFamily:'inherit'}}, saving ? S.saving : S.save)
+      React.createElement('button', {type:'submit', disabled:saving, style:{width:'100%',background:saving?'#ede9e3':'#e8f4e8',border:'1px solid #a8cfa8',color:saving?'#8a8680':'#2a6a2a',padding:'13px',borderRadius:8,fontSize:12,letterSpacing:1,textTransform:'uppercase',cursor:saving?'default':'pointer',fontFamily:'inherit'}}, saving ? S.saving : S.save)
     )
   );
 }
@@ -8984,7 +9236,7 @@ function App() {
   function toggleDark() { setDarkMode(d => { const next = !d; localStorage.setItem('appDarkMode', String(next)); return next; }); }
   async function checkRequiredProfile() {
     setProfileChecking(true);
-    const profile = await getRequiredProfileData().catch(()=>({birthDate:'', gender:''}));
+    const profile = await getRequiredProfileData().catch(()=>({birthDate:'', gender:'', activityLevel:'', goalType:'', goalKg:'', goalWeeks:'', manualAdjustment:''}));
     setRequiredProfile(hasRequiredProfileData(profile) ? null : profile);
     setProfileChecking(false);
   }
@@ -9011,11 +9263,11 @@ function App() {
 
   // Show loading indicator while checking auth
   if (checking || profileChecking) return React.createElement('div', {style:{
-    position:'fixed',top:0,left:0,right:0,bottom:0,background:'var(--surface)',display:'flex',
+    position:'fixed',top:0,left:0,right:0,bottom:0,background:darkMode?'#111':'#f2f1ed',display:'flex',
     flexDirection:'column',alignItems:'center',justifyContent:'center',
-    gap:16,color:'#aaa',fontSize:12,letterSpacing:1,textTransform:'uppercase'
+    gap:16,color:darkMode?'#8a8a8a':'#6a6662',fontSize:12,letterSpacing:1,textTransform:'uppercase'
   }},
-    React.createElement('div', {style:{fontSize:30,color:'#7ec87e',display:'inline-block',animation:'spin 1.2s linear infinite'}}, '↻'),
+    React.createElement('div', {style:{width:30,height:30,borderRadius:'50%',border:'3px solid ' + (darkMode?'#2a3a2a':'#d8d4cc'),borderTopColor:darkMode?'#7ec87e':'#2a6a2a',animation:'spin 1.2s linear infinite'}}),
     React.createElement('div', null, lang==='en'?'Signing in...':'A entrar...')
   );
   if (pendingEmail) return React.createElement(VerifyEmailScreen, {
@@ -9043,9 +9295,10 @@ function App() {
     React.createElement(React.Fragment, null,
       requiredProfile ? React.createElement(RequiredProfileModal, {
         lang,
+        profile: requiredProfile,
         onComplete: () => setRequiredProfile(null)
       }) : null,
-      React.createElement(NutritionTracker, {
+      !requiredProfile && React.createElement(NutritionTracker, {
         onOpenSettings: () => setShowSettings(true),
         onLogout: () => { setAuthed(false); },
         onStartTutorial: () => setShowTutorial(true),
