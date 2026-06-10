@@ -1366,8 +1366,6 @@ function Bar({
       transition: "width 0.4s ease"
     }
   })));
-
-
 }
 function NutritionTracker({
   onOpenSettings,
@@ -1376,13 +1374,7 @@ function NutritionTracker({
   onOpenPrivacy,
   onOpenBackup,
   externalLang,
-  externalDarkMode,
-  profileBirth,
-  profileGender,
-  profileActivity,
-  profileGoal,
-  profileGoalKg,
-  profileGoalWeeks,
+  externalDarkMode
 }) {
   const [lang, setLang] = useState(() => externalLang || localStorage.getItem('appLang') || 'pt');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1468,6 +1460,7 @@ function NutritionTracker({
   });
   const [mealTemplates, setMealTemplates] = useState([]);
   const [templateName, setTemplateName] = useState("");
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [describeMode, setDescribeMode] = useState(false);
   const [mealDescription, setMealDescription] = useState("");
   const [describeMeal, setDescribeMeal] = useState("Almoço");
@@ -1507,15 +1500,6 @@ function NutritionTracker({
   const [gaProtMin, setGAProtMin]       = useState(20);
   const [gaProtMax, setGAProtMax]       = useState(60);
   const [loaded, setLoaded] = useState(false);
-  // Nutrition goals
-  const [userBirth, setUserBirth] = useState('');
-  const [userGender, setUserGender] = useState('');
-  const [userActivity, setUserActivity] = useState('1.55');
-  const [userGoal, setUserGoal] = useState('maintain'); // maintain | lose | gain
-  const [goalKg, setGoalKg] = useState('');
-  const [goalWeeks, setGoalWeeks] = useState('');
-  const [showGoalSetup, setShowGoalSetup] = useState(false);
-  const [showNutritionSettings, setShowNutritionSettings] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [autoFillLoading, setAutoFillLoading] = useState(false);
   const [notification, setNotification] = useState("");
@@ -1560,10 +1544,6 @@ function NutritionTracker({
   });
   const [showSuppForm, setShowSuppForm] = useState(false);
   const [showSuppAdd, setShowSuppAdd] = useState(false);
-  const [pantryListOpen, setPantryListOpen] = useState(false);
-  const [showSavedMeals, setShowSavedMeals] = useState(false);
-  const [showSuppSection, setShowSuppSection] = useState(false);
-  const [expandedTemplate, setExpandedTemplate] = useState(null);
   const [suppAddId, setSuppAddId] = useState("");
   const [suppAddDose, setSuppAddDose] = useState("");
   // Custom goals
@@ -1609,16 +1589,6 @@ function NutritionTracker({
   useEffect(() => {
     if (loaded) scheduleSave("pantry_v2", pantry);
   }, [pantry, loaded]);
-  // Sync profile props when wizard completes
-  useEffect(() => {
-    if (profileBirth) setUserBirth(profileBirth);
-    if (profileGender) setUserGender(profileGender);
-    if (profileActivity) setUserActivity(profileActivity);
-    if (profileGoal) setUserGoal(profileGoal);
-    if (profileGoalKg) setGoalKg(profileGoalKg);
-    if (profileGoalWeeks) setGoalWeeks(profileGoalWeeks);
-  }, [profileBirth, profileGender, profileActivity, profileGoal, profileGoalKg, profileGoalWeeks]);
-
   useEffect(() => {
     if (loaded) scheduleSave("log_v2_" + TODAY, log);
   }, [log, loaded]);
@@ -1666,6 +1636,10 @@ function NutritionTracker({
       setHistoryNote(n ? n.value || "" : "");
     }
   }
+  useEffect(() => {
+    // Scroll to top when changing tabs
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [tab]);
   useEffect(() => {
     if (tab === "semana" && loaded) {
       loadWeekData();
@@ -2725,7 +2699,9 @@ function NutritionTracker({
     });
     setAddEntry(e => ({
       ...e,
-      qty: ""
+      qty: "",
+      foodSearch: "",
+      foodId: ""
     }));
     notify(`${food.name} adicionado.`);
   }
@@ -2740,6 +2716,7 @@ function NutritionTracker({
     setAddEntry(e => ({
       ...e,
       foodId: "",
+      foodSearch: "",
       qty: ""
     }));
   }
@@ -4728,43 +4705,38 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 8
     }
-  }, "Templates r\xE1pidos"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 6
-    }
-  }, mealTemplates.map(t => /*#__PURE__*/React.createElement("div", {
-    key: t.id,
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 0,
-      background: "var(--btn-info)",
-      border: "1px solid var(--border-info)",
-      borderRadius: 20
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => loadTemplate(t),
-    style: {
-      background: "none",
-      border: "none",
-      color: "#8ec8c8",
-      padding: "5px 12px 5px 14px",
-      fontSize: 14,
-      cursor: "pointer"
-    }
-  }, t.name), /*#__PURE__*/React.createElement("button", {
-    onClick: () => deleteTemplate(t.id),
-    style: {
-      background: "none",
-      border: "none",
-      color: "var(--faint)",
-      padding: "5px 10px 5px 0",
-      fontSize: 14,
-      cursor: "pointer"
-    }
-  }, "\xD7"))))), /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "Saved meals" : "Refeições salvas"),
+  /*#__PURE__*/React.createElement("div", {style:{display:"flex",flexDirection:"column",gap:6}},
+    mealTemplates.map(tmpl => /*#__PURE__*/React.createElement("div", {
+      key: tmpl.id,
+      style:{
+        background:"var(--surface)", border:"1px solid var(--border2)",
+        borderRadius:10, padding:"10px 12px",
+        display:"flex", alignItems:"center", gap:8
+      }
+    },
+      /*#__PURE__*/React.createElement("div", {style:{flex:1, minWidth:0}},
+        /*#__PURE__*/React.createElement("div", {style:{fontSize:14,fontWeight:500,color:"var(--text)",marginBottom:2}}, tmpl.name),
+        /*#__PURE__*/React.createElement("div", {style:{fontSize:12,color:"var(--muted)"}},
+          tmpl.items.length + (lang==='en'?' item(s)':' item(s)') + " · " +
+          Math.round(tmpl.items.reduce((s,i)=>s+(i.protein||0),0)) + "g prot · " +
+          Math.round(tmpl.items.reduce((s,i)=>s+(i.kcal||0),0)) + " kcal"
+        )
+      ),
+      /*#__PURE__*/React.createElement("button", {
+        onClick: () => loadTemplate(tmpl),
+        style:{
+          background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",
+          color:"var(--btn-ok-text)",borderRadius:8,padding:"6px 12px",
+          fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:500,whiteSpace:"nowrap"
+        }
+      }, lang==='en'?'Use':'Usar'),
+      /*#__PURE__*/React.createElement("button", {
+        onClick: () => deleteTemplate(tmpl.id),
+        style:{background:"none",border:"none",color:"var(--muted)",fontSize:18,cursor:"pointer",padding:"0 2px",lineHeight:1}
+      }, "\xD7")
+    ))
+  ))), tab === "adicionar" && /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 14
     }
@@ -4858,7 +4830,7 @@ function NutritionTracker({
         color: "#8ec8c8"
       }
     }, r.kcal, " kcal")))));
-  }))), /*#__PURE__*/React.createElement("div", {
+  }))), tab === "adicionar" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
@@ -5058,7 +5030,8 @@ function NutritionTracker({
     placeholder: t('searchFood'),
     style: inp
   }), addEntry.foodSearch && (() => {
-    const results = sortedAllPantry.filter(f => f.name.toLowerCase().includes(addEntry.foodSearch.toLowerCase()));
+    const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    const results = sortedAllPantry.filter(f => norm(f.name).includes(norm(addEntry.foodSearch)));
     if (!results.length) return /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 14,
@@ -5091,16 +5064,17 @@ function NutritionTracker({
         cursor: "pointer",
         borderBottom: "1px solid var(--border3)",
         fontSize: 14,
-        color: addEntry.foodId === f.id ? "#c8a96e" : "#d5cfc8",
-        background: addEntry.foodId === f.id ? "#1e2a1e" : "transparent"
+        color: addEntry.foodId === f.id ? "var(--btn-ok-text)" : "var(--text)",
+        background: addEntry.foodId === f.id ? "var(--btn-ok)" : "transparent"
       }
-    }, f.name, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 14,
-        color: "var(--muted)",
-        marginLeft: 8
-      }
-    }, f.protein100, f.unit === "un" ? "g/un" : "g", " prot \xB7 ", f.kcal100, f.unit === "un" ? "kcal/un" : t('kcalUnit'), "/100", f.unit === "un" ? "un" : f.unit))));
+    },
+    /*#__PURE__*/React.createElement("span", {style:{fontSize:14,fontWeight:500,color:"var(--text)"}}, f.name),
+    /*#__PURE__*/React.createElement("span", {style:{fontSize:12,color:"#c8a96e",marginLeft:8}},
+      f.protein100, f.unit==="un" ? "g" : "g", " prot"
+    ),
+    /*#__PURE__*/React.createElement("span", {style:{fontSize:12,color:"#8ec8c8",marginLeft:6}},
+      f.kcal100, f.unit==="un" ? " kcal/un" : " kcal/100"+f.unit
+    ))));
   })(), !addEntry.foodSearch && /*#__PURE__*/React.createElement("select", {
     value: addEntry.foodId,
     onChange: e => setAddEntry(a => ({
@@ -5338,36 +5312,19 @@ function NutritionTracker({
       ...btn,
       marginTop: 8
     }
-  }, "\u2713 Registar refei\xE7\xE3o (", staged.items.length, " item", staged.items.length !== 1 ? "s" : "", ")"), /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "\u2713 Log meal (" : "\u2713 Registrar refeição (", staged.items.length, " item", staged.items.length !== 1 ? "s" : "", ")"),
+  /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowSaveTemplateModal(true),
+    disabled: !staged.items.length,
     style: {
-      display: "flex",
-      gap: 6,
-      marginTop: 8
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: templateName,
-    onChange: e => setTemplateName(e.target.value),
-    placeholder: t('templateName'),
-    style: {
-      ...inp,
-      flex: 1,
-      marginTop: 0,
-      padding: "8px 10px",
-      fontSize: 12
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: saveTemplate,
-    style: {
+      ...btn,
+      marginTop: 6,
       background: "var(--btn-info)",
-      border: "1px solid var(--border-info)",
-      color: "#8ec8c8",
-      borderRadius: 6,
-      padding: "0 12px",
-      fontSize: 14,
-      cursor: "pointer",
-      whiteSpace: "nowrap"
+      border: "1px solid var(--btn-info-border)",
+      color: "var(--btn-info-text)",
+      opacity: staged.items.length ? 1 : 0.4
     }
-  }, "Guardar template")))), pantry.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "\uD83D\uDCBE Save as meal template" : "\uD83D\uDCBE Salvar como refeição")), pantry.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16,
       color: "var(--faint)",
@@ -5599,7 +5556,7 @@ function NutritionTracker({
     style: {
       color: "var(--muted)"
     }
-  }, exportResult.filename))))), tab === "despensa" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, exportResult.filename))))))), tab === "despensa" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -5742,35 +5699,54 @@ function NutritionTracker({
     style: {
       marginTop: 24
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setPantryListOpen(o => !o),
-    style: { width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center",
-      background:"none", border:"none", cursor:"pointer", fontFamily:"inherit", padding:"0 0 10px 0" }
-  },
-    /*#__PURE__*/React.createElement("span", { style:{ fontSize:14, letterSpacing:1, color:"var(--dim)", textTransform:"uppercase" } },
-      t('pantryTitle'), " (", pantry.length, ")"
-    ),
-    /*#__PURE__*/React.createElement("span", { style:{ color:"var(--muted)", fontSize:14, display:"inline-block",
-      transform: pantryListOpen ? "rotate(180deg)" : "rotate(0deg)", transition:"transform 0.2s" } }, "\u25BE")
-  ),
-  pantryListOpen && /*#__PURE__*/React.createElement(React.Fragment, null,
-    /*#__PURE__*/React.createElement("div", { style:{ display:"flex", justifyContent:"flex-end", gap:6, marginBottom:8 } },
-      /*#__PURE__*/React.createElement("label", { style: sBtnLbl("var(--btn-info)", "var(--btn-info-border)", "#7e7ec8") },
-        "\u2191 Importar",
-        /*#__PURE__*/React.createElement("input", { type:"file", accept:".csv", onChange: importCSV, style:{ display:"none" } })
-      ),
-      pantry.length > 0 && /*#__PURE__*/React.createElement("button", {
-        onClick: exportCSV, style: sBtn("var(--btn-teal)", "var(--btn-teal-border)", "#7ec8c8")
-      }, "\u2193 Exportar")
-    ),
-    /*#__PURE__*/React.createElement("input", {
-      value: pantrySearch, onChange: e => setPantrySearch(e.target.value),
-      placeholder: t('pantrySearch'), style: { ...inp, marginBottom: 10 }
-    }),
-    filteredPantry.length === 0 && /*#__PURE__*/React.createElement("div", {
-      style: { color:"var(--faint)", fontSize:14, fontStyle:"italic", textAlign:"center", marginTop:12 }
-    }, pantrySearch ? t('noResults') : t('pantryEmpty')),
-    sortedPantry.map(f => /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      letterSpacing: 1,
+      color: "var(--dim)",
+      textTransform: "uppercase"
+    }
+  }, t('pantryTitle'), " (", pantry.length, ")"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: sBtnLbl("var(--btn-info)", "var(--btn-info-border)", "#7e7ec8")
+  }, "\u2191 Importar", /*#__PURE__*/React.createElement("input", {
+    type: "file",
+    accept: ".csv",
+    onChange: importCSV,
+    style: {
+      display: "none"
+    }
+  })), pantry.length > 0 && /*#__PURE__*/React.createElement("button", {
+    onClick: exportCSV,
+    style: sBtn("var(--btn-teal)", "var(--btn-teal-border)", "#7ec8c8")
+  }, "\u2193 Exportar"))), /*#__PURE__*/React.createElement("input", {
+    value: pantrySearch,
+    onChange: e => setPantrySearch(e.target.value),
+    placeholder: t('pantrySearch'),
+    style: {
+      ...inp,
+      marginBottom: 10
+    }
+  }), filteredPantry.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--faint)",
+      fontSize: 14,
+      fontStyle: "italic",
+      textAlign: "center",
+      marginTop: 12
+    }
+  }, pantrySearch ? t('noResults') : t('pantryEmpty')), sortedPantry.map(f => /*#__PURE__*/React.createElement("div", {
     key: f.id,
     style: {
       borderBottom: "1px solid var(--border3)"
@@ -5961,97 +5937,30 @@ function NutritionTracker({
       fontSize: 14,
       cursor: "pointer"
     }
-  }, "\xD7")))))),
-  /* Refeições salvas */
-  /*#__PURE__*/React.createElement("div", { style:{ marginTop:20, borderTop:"1px solid var(--border3)", paddingTop:12 } },
-    /*#__PURE__*/React.createElement("button", {
-      onClick: () => setShowSavedMeals(o => !o),
-      style:{ width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center",
-        background:"none", border:"none", cursor:"pointer", fontFamily:"inherit", padding:"0 0 10px 0" }
-    },
-      /*#__PURE__*/React.createElement("span", { style:{ fontSize:14, letterSpacing:1, color:"var(--dim)", textTransform:"uppercase" } },
-        "\uD83C\uDF7D\uFE0F ", lang==="en" ? "Saved meals" : "Refeições salvas", " (", mealTemplates.length, ")"
-      ),
-      /*#__PURE__*/React.createElement("span", { style:{ color:"var(--muted)", fontSize:14, display:"inline-block",
-        transform: showSavedMeals ? "rotate(180deg)" : "rotate(0deg)", transition:"transform 0.2s" } }, "\u25BE")
-    ),
-    showSavedMeals && mealTemplates.length === 0 && /*#__PURE__*/React.createElement("p", {
-      style:{ color:"var(--faint)", fontSize:13, fontStyle:"italic", textAlign:"center", margin:"4px 0 8px" }
-    }, lang==="en" ? "No saved meals yet" : "Nenhuma refeição salva ainda"),
-    showSavedMeals && mealTemplates.length > 0 && /*#__PURE__*/React.createElement("div", {
-      style:{ border:"1px solid var(--border2)", borderRadius:10, overflow:"hidden", marginBottom:8 }
-    },
-      mealTemplates.map((tmpl, ti) => /*#__PURE__*/React.createElement("div", {
-        key: tmpl.id,
-        style:{ background: ti%2===0 ? "var(--surface)" : "var(--row)",
-          borderBottom: ti < mealTemplates.length-1 ? "1px solid var(--border3)" : "none" }
-      },
-        /*#__PURE__*/React.createElement("div", { style:{ display:"flex", alignItems:"center", padding:"11px 14px", gap:8 } },
-          /*#__PURE__*/React.createElement("button", {
-            onClick: () => setExpandedTemplate(expandedTemplate===tmpl.id ? null : tmpl.id),
-            style:{ background:"none", border:"none", cursor:"pointer", padding:0, flex:1, textAlign:"left", fontFamily:"inherit" }
-          },
-            /*#__PURE__*/React.createElement("div", { style:{ fontSize:14, fontWeight:500, color:"var(--text)", display:"flex", alignItems:"center", gap:6 } },
-              /*#__PURE__*/React.createElement("span", { style:{ fontSize:11, color:"var(--muted)", display:"inline-block",
-                transform: expandedTemplate===tmpl.id ? "rotate(90deg)" : "rotate(0deg)", transition:"transform 0.2s" } }, "\u25BA"),
-              tmpl.name
-            ),
-            /*#__PURE__*/React.createElement("div", { style:{ fontSize:12, color:"var(--muted)", marginTop:2 } },
-              tmpl.items.length + " item(s) \u00B7 " +
-              Math.round(tmpl.items.reduce((s,i) => s+(i.protein||0), 0)) + "g prot \u00B7 " +
-              Math.round(tmpl.items.reduce((s,i) => s+(i.kcal||0), 0)) + " kcal"
-            )
-          ),
-          /*#__PURE__*/React.createElement("button", {
-            onClick: () => { loadTemplate(tmpl); setTab("adicionar"); },
-            style:{ background:"var(--btn-ok)", border:"1px solid var(--btn-ok-border)",
-              color:"var(--btn-ok-text)", borderRadius:8, padding:"5px 10px",
-              fontSize:12, cursor:"pointer", fontFamily:"inherit", fontWeight:500, whiteSpace:"nowrap" }
-          }, lang==="en" ? "Use" : "Usar"),
-          /*#__PURE__*/React.createElement("button", {
-            onClick: () => deleteTemplate(tmpl.id),
-            style:{ background:"var(--btn-warn)", border:"1px solid var(--btn-warn-border)",
-              color:"var(--btn-warn-text)", borderRadius:8, padding:"5px 8px",
-              fontSize:13, cursor:"pointer", fontFamily:"inherit" }
-          }, "\uD83D\uDDD1")
-        ),
-        expandedTemplate===tmpl.id && /*#__PURE__*/React.createElement("div", {
-          style:{ padding:"0 14px 12px", display:"flex", flexDirection:"column", gap:4 }
-        },
-          tmpl.items.map((item, ii) => /*#__PURE__*/React.createElement("div", {
-            key: ii,
-            style:{ display:"flex", justifyContent:"space-between", alignItems:"center",
-              fontSize:13, padding:"5px 10px", background:"var(--bg)",
-              borderRadius:6, border:"1px solid var(--border3)" }
-          },
-            /*#__PURE__*/React.createElement("span", { style:{ color:"var(--text2)", fontWeight:500 } }, item.name),
-            /*#__PURE__*/React.createElement("span", { style:{ color:"var(--muted)", fontSize:12 } },
-              item.qty + item.unit + " \u00B7 " + Math.round(item.protein||0) + "g \u00B7 " + Math.round(item.kcal||0) + " kcal"
-            )
-          ))
-        )
-      ))
-    )
-  ),
-  /*#__PURE__*/React.createElement("div", {
-    style: { marginTop: 20, borderTop: "1px solid var(--border3)", paddingTop: 12 }
-  },
-  /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowSuppSection(o => !o),
-    style: { width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center",
-      background:"none", border:"none", cursor:"pointer", fontFamily:"inherit", padding:"0 0 10px 0" }
-  },
-    /*#__PURE__*/React.createElement("span", { style:{ fontSize:14, letterSpacing:1, color:"var(--muted)", textTransform:"uppercase" } },
-      "\uD83D\uDC8A ", t('suppPantryTitle'), " (", suppPantry.length, ")"
-    ),
-    /*#__PURE__*/React.createElement("span", { style:{ color:"var(--muted)", fontSize:14, display:"inline-block",
-      transform: showSuppSection ? "rotate(180deg)" : "rotate(0deg)", transition:"transform 0.2s" } }, "\u25BE")
-  ),
-  showSuppSection && /*#__PURE__*/React.createElement("div", { style:{ marginBottom:10 } },
-    /*#__PURE__*/React.createElement("button", {
-      onClick: () => setShowSuppForm(s => !s),
-      style: { ...sBtn("var(--btn-info)", "var(--btn-info-border)", "#9090c8"), marginBottom: showSuppForm ? 10 : 0 }
-    }, showSuppForm ? "\u25B2 fechar" : "+ adicionar"), showSuppForm && /*#__PURE__*/React.createElement("div", {
+  }, "\xD7")))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 28,
+      borderTop: "1px solid var(--border3)",
+      paddingTop: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      letterSpacing: 1,
+      color: "var(--muted)",
+      textTransform: "uppercase"
+    }
+  }, `💊 ${t('suppPantryTitle')} (${suppPantry.length})`), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowSuppForm(s => !s),
+    style: sBtn("var(--btn-info)", "var(--btn-info-border)", "#9090c8")
+  }, showSuppForm ? "▲ fechar" : "+ adicionar")), showSuppForm && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -6175,7 +6084,7 @@ function NutritionTracker({
       fontSize: 14,
       cursor: "pointer"
     }
-  }, "\xD7"))))))))), tab === "semana" && /*#__PURE__*/React.createElement("div", null, weekData.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, "\xD7"))))), tab === "semana" && /*#__PURE__*/React.createElement("div", null, weekData.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       color: "var(--faint)",
@@ -7113,8 +7022,7 @@ function NutritionTracker({
       textAlign: "center",
       marginTop: 20
     }
-  }, "Ainda sem registos de peso."),
- /*#__PURE__*/React.createElement("div", {
+  }, "Ainda sem registos de peso."), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 24,
       borderTop: "1px solid var(--border3)",
@@ -7278,7 +7186,50 @@ function NutritionTracker({
       fontSize: 14,
       letterSpacing: 1
     }
-  }, "Repor metas autom\xE1ticas")))), showGA && React.createElement("div", {
+  }, "Repor metas autom\xE1ticas")))), showSaveTemplateModal && /*#__PURE__*/React.createElement("div", {
+  style:{position:"fixed",inset:0,zIndex:99997,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(3px)",
+    display:"flex",alignItems:"center",justifyContent:"center",padding:16},
+  onClick: e => { if(e.target===e.currentTarget) setShowSaveTemplateModal(false); }
+},
+  /*#__PURE__*/React.createElement("div", {
+    style:{background:"var(--surface)",borderRadius:14,padding:"24px",
+      width:"100%",maxWidth:380,border:"1px solid var(--border2)",
+      boxShadow:"0 8px 32px rgba(0,0,0,0.4)"}
+  },
+    /*#__PURE__*/React.createElement("h3", {
+      style:{margin:"0 0 6px",fontSize:16,color:"var(--text)",fontWeight:600}
+    }, lang==='en'?"Save meal template":"Salvar refeição"),
+    /*#__PURE__*/React.createElement("p", {
+      style:{margin:"0 0 16px",fontSize:13,color:"var(--muted)"}
+    }, staged.items.map(i=>i.name).join(", ")),
+    /*#__PURE__*/React.createElement("input", {
+      type:"text", value:templateName,
+      onChange: e => setTemplateName(e.target.value),
+      onKeyDown: e => { if(e.key==='Enter'){ saveTemplate(); setShowSaveTemplateModal(false); }},
+      placeholder: lang==='en'?"Name (e.g. Pre-workout shake)":"Nome (ex: Shake pré-treino)",
+      autoFocus: true,
+      style:{...inp,marginBottom:14}
+    }),
+    /*#__PURE__*/React.createElement("div",{style:{display:"flex",gap:8}},
+      /*#__PURE__*/React.createElement("button",{
+        onClick:()=>setShowSaveTemplateModal(false),
+        style:{flex:1,padding:"10px",borderRadius:8,background:"none",
+          border:"1px solid var(--border2)",color:"var(--text2)",
+          cursor:"pointer",fontFamily:"inherit",fontSize:13}
+      }, lang==='en'?"Cancel":"Cancelar"),
+      /*#__PURE__*/React.createElement("button",{
+        onClick:()=>{ saveTemplate(); setShowSaveTemplateModal(false); },
+        disabled: !templateName.trim(),
+        style:{flex:2,padding:"10px",borderRadius:8,
+          background:templateName.trim()?"var(--btn-ok)":"var(--btn-inactive)",
+          border:"none",color:templateName.trim()?"var(--btn-ok-text)":"var(--muted)",
+          cursor:templateName.trim()?"pointer":"default",fontFamily:"inherit",
+          fontSize:13,fontWeight:600}
+      }, lang==='en'?"Save":"Salvar")
+    )
+  )
+),
+showGA && React.createElement("div", {
   style: {
     position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
     background: "#000000ee", zIndex: 99999,
@@ -7592,7 +7543,7 @@ function NutritionTracker({
       style: { color:"var(--text2)", fontSize:12, textAlign:"center" }
     }, lang==='en' ? "No combinations found. Try adjusting tolerance or max units." : "Nenhuma combina\xe7\xe3o encontrada. Tente aumentar a toler\xe2ncia ou o m\xe1x. de unidades.")
   )
-)
+));
 }
 const inp = {
   width: "100%",
@@ -8205,220 +8156,148 @@ function BackupModal({ lang, darkMode, onClose }) {
 function TutorialOverlay({ lang, onDone }) {
   const isPt = lang === 'pt';
   const [step, setStep] = React.useState(0);
+  const [rect, setRect] = React.useState(null);
 
   const steps = isPt ? [
-    {
-      title: 'Bem-vindo! 👋',
-      text: 'Este app te ajuda a acompanhar sua nutrição diária. Vamos te guiar pelos 4 passos para começar — leva menos de 2 minutos.',
-      icon: '🥗',
-      position: 'center'
-    },
-    {
-      title: '1. Defina suas metas 🎯',
-      text: 'Vá em Métricas e informe seu peso e altura. O app calcula automaticamente suas metas de proteína e calorias.',
-      icon: '📊',
-      position: 'center',
-      highlight: 'tab-metricas',
-      tip: '→ Toque em Métricas e depois em Editar metas'
-    },
-    {
-      title: '2. Monte sua despensa 🏪',
-      text: 'Adicione os alimentos que você tem em casa. Eles serão usados para registros rápidos e sugestões de refeições.',
-      icon: '🏪',
-      position: 'center',
-      highlight: 'tab-despensa',
-      tip: '→ Toque em Despensa e adicione seus alimentos'
-    },
-    {
-      title: '3. Registre suas refeições ➕',
-      text: 'Use a aba + para registrar o que você come ao longo do dia. Busque alimentos ou escolha direto da sua despensa.',
-      icon: '➕',
-      position: 'center',
-      highlight: 'tab-adicionar',
-      tip: '→ Toque em + para adicionar sua primeira refeição'
-    },
-    {
-      title: '4. Acompanhe no Diário 📋',
-      text: 'O Diário mostra seu consumo do dia em tempo real. Quando bater aquela dúvida do que comer, use o botão "Sugerir o que comer".',
-      icon: '📋',
-      position: 'center',
-      highlight: 'tab-diario',
-      tip: '→ Aqui você acompanha proteínas, calorias e macros'
-    },
-    {
-      title: 'Tudo certo! 🚀',
-      text: 'Comece por Métricas → Despensa → registre sua primeira refeição. Qualquer dúvida, refaça o tutorial pelo menu ⚙.',
-      icon: '✅',
-      position: 'center'
-    }
+    { title: 'Bem-vindo! 👋',      text: 'Vamos te mostrar os 4 passos para começar.', highlight: null },
+    { title: '1. Métricas 🎯',     text: 'Defina seu peso, altura e metas. O app calcula tudo automaticamente.', highlight: 'tab-metricas' },
+    { title: '2. Despensa 🏪',     text: 'Cadastre os alimentos que você tem em casa.', highlight: 'tab-despensa' },
+    { title: '3. Adicionar ➕',    text: 'Registre suas refeições ao longo do dia.', highlight: 'tab-adicionar' },
+    { title: '4. Diário 📋',       text: 'Acompanhe seu progresso diário aqui.', highlight: 'tab-diario' },
+    { title: 'Tudo certo! 🚀',     text: 'Comece por Métricas → Despensa → registre sua primeira refeição.', highlight: null }
   ] : [
-    {
-      title: 'Welcome! 👋',
-      text: "This app helps you track your daily nutrition. We'll guide you through 4 steps to get started — takes less than 2 minutes.",
-      icon: '🥗',
-      position: 'center'
-    },
-    {
-      title: '1. Set your goals 🎯',
-      text: 'Go to Metrics and enter your weight and height. The app automatically calculates your protein and calorie targets.',
-      icon: '📊',
-      position: 'center',
-      highlight: 'tab-metricas',
-      tip: '→ Tap Metrics then Edit goals'
-    },
-    {
-      title: '2. Build your pantry 🏪',
-      text: 'Add the foods you have at home. They will be used for quick logging and meal suggestions.',
-      icon: '🏪',
-      position: 'center',
-      highlight: 'tab-despensa',
-      tip: '→ Tap Pantry and add your foods'
-    },
-    {
-      title: '3. Log your meals ➕',
-      text: 'Use the + tab to log what you eat throughout the day. Search for foods or choose from your pantry.',
-      icon: '➕',
-      position: 'center',
-      highlight: 'tab-adicionar',
-      tip: '→ Tap + to add your first meal'
-    },
-    {
-      title: '4. Track in your Diary 📋',
-      text: 'The Diary shows your daily intake in real time. When you are unsure what to eat, use the "Suggest what to eat" button.',
-      icon: '📋',
-      position: 'center',
-      highlight: 'tab-diario',
-      tip: '→ Here you track protein, calories and macros'
-    },
-    {
-      title: 'All set! 🚀',
-      text: 'Start with Metrics → Pantry → log your first meal. If you need a refresher, redo the tutorial from the ⚙ menu.',
-      icon: '✅',
-      position: 'center'
-    }
+    { title: 'Welcome! 👋',        text: "Let's show you the 4 steps to get started.", highlight: null },
+    { title: '1. Metrics 🎯',      text: 'Set your weight, height and goals. The app calculates everything.', highlight: 'tab-metricas' },
+    { title: '2. Pantry 🏪',       text: 'Add the foods you have at home.', highlight: 'tab-despensa' },
+    { title: '3. Add ➕',          text: 'Log your meals throughout the day.', highlight: 'tab-adicionar' },
+    { title: '4. Diary 📋',        text: 'Track your daily progress here.', highlight: 'tab-diario' },
+    { title: 'All set! 🚀',        text: 'Start with Metrics → Pantry → log your first meal.', highlight: null }
   ];
 
   const current = steps[step];
   const isLast = step === steps.length - 1;
   const isFirst = step === 0;
+  const PAD = 10;
 
-  // Highlight element by data-tutorial attribute
+  // Measure element and lock scroll
   React.useEffect(() => {
-    if (current.highlight) {
-      const el = document.querySelector('[data-tutorial="' + current.highlight + '"]');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        el.setAttribute('data-tutorial-active', 'true');
-      }
-    }
-    return () => {
-      document.querySelectorAll('[data-tutorial-active]').forEach(el => {
-        el.removeAttribute('data-tutorial-active');
-      });
-    };
+    // Lock scroll
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Remeasure on step change
+  React.useEffect(() => {
+    const key = current.highlight;
+    if (!key) { setRect(null); return; }
+    const el = document.querySelector('[data-tutorial="' + key + '"]');
+    if (!el) { setRect(null); return; }
+    // Scroll element into view first, then measure
+    el.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    const r = el.getBoundingClientRect();
+    setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
   }, [step]);
 
-  const boxStyle = {
-    position: 'fixed',
-    zIndex: 100001,
-    background: 'var(--card, #1a1a1a)',
-    border: '1px solid var(--accent, #7ec87e)',
-    borderRadius: 16,
-    padding: '24px 24px 20px',
-    maxWidth: 340,
-    width: 'calc(100% - 48px)',
-    boxShadow: '0 12px 48px rgba(0,0,0,0.7)',
-  };
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 400;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+  const R = 8;
 
-  // Position logic
-  const pos = current.position || 'center';
-  const posStyle = pos === 'center'
-    ? { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }
-    : pos === 'bottom'
-    ? { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }
-    : pos === 'top-right'
-    ? { top: 70, right: 16, left: 'auto', transform: 'none' }
-    : { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' };
+  // SVG cutout path
+  const cutout = rect
+    ? 'M0,0 H' + vw + ' V' + vh + ' H0 Z ' +
+      'M' + (rect.left - PAD + R) + ',' + (rect.top - PAD) + ' ' +
+      'H' + (rect.left + rect.width + PAD - R) + ' ' +
+      'Q' + (rect.left + rect.width + PAD) + ',' + (rect.top - PAD) + ' ' + (rect.left + rect.width + PAD) + ',' + (rect.top - PAD + R) + ' ' +
+      'V' + (rect.top + rect.height + PAD - R) + ' ' +
+      'Q' + (rect.left + rect.width + PAD) + ',' + (rect.top + rect.height + PAD) + ' ' + (rect.left + rect.width + PAD - R) + ',' + (rect.top + rect.height + PAD) + ' ' +
+      'H' + (rect.left - PAD + R) + ' ' +
+      'Q' + (rect.left - PAD) + ',' + (rect.top + rect.height + PAD) + ' ' + (rect.left - PAD) + ',' + (rect.top + rect.height + PAD - R) + ' ' +
+      'V' + (rect.top - PAD + R) + ' ' +
+      'Q' + (rect.left - PAD) + ',' + (rect.top - PAD) + ' ' + (rect.left - PAD + R) + ',' + (rect.top - PAD) + ' Z'
+    : 'M0,0 H' + vw + ' V' + vh + ' H0 Z';
+
+  // Tooltip positioning: place above or below, never overlapping the highlight
+  const TOOLTIP_W = Math.min(320, vw - 32);
+  const TOOLTIP_H = 160;
+  const GAP = 20; // gap between highlight and tooltip
+
+  let tooltipTop, tooltipLeft;
+  if (!rect) {
+    tooltipTop = vh / 2 - TOOLTIP_H / 2;
+    tooltipLeft = vw / 2 - TOOLTIP_W / 2;
+  } else {
+    const spaceBelow = vh - (rect.top + rect.height + PAD);
+    const spaceAbove = rect.top - PAD;
+    if (spaceAbove >= TOOLTIP_H + GAP) {
+      // Above the element
+      tooltipTop = rect.top - PAD - GAP - TOOLTIP_H;
+    } else if (spaceBelow >= TOOLTIP_H + GAP) {
+      // Below
+      tooltipTop = rect.top + rect.height + PAD + GAP;
+    } else {
+      // Center vertically, left side
+      tooltipTop = vh / 2 - TOOLTIP_H / 2;
+    }
+    tooltipLeft = Math.max(16, Math.min(rect.left + rect.width / 2 - TOOLTIP_W / 2, vw - TOOLTIP_W - 16));
+  }
 
   return React.createElement(React.Fragment, null,
-    // Backdrop — intercepts all clicks so tabs/buttons can't be triggered
+    // SVG overlay with cutout
+    React.createElement('svg', {
+      style: { position:'fixed', inset:0, zIndex:100000, pointerEvents:'none', overflow:'visible' },
+      width: vw, height: vh, viewBox: '0 0 ' + vw + ' ' + vh
+    },
+      React.createElement('path', { d: cutout, fill:'rgba(0,0,0,0.75)', fillRule:'evenodd' }),
+      rect && React.createElement('rect', {
+        x: rect.left - PAD, y: rect.top - PAD,
+        width: rect.width + PAD*2, height: rect.height + PAD*2,
+        rx: R, ry: R, fill:'none', stroke:'#7ec87e', strokeWidth:2
+      })
+    ),
+    // Click/scroll blocker
     React.createElement('div', {
-      style: {
-        position: 'fixed', inset: 0, zIndex: 100000,
-        background: 'rgba(0,0,0,0.65)',
-        backdropFilter: 'blur(2px)'
-      },
+      style:{ position:'fixed', inset:0, zIndex:100001 },
       onClick: e => e.stopPropagation(),
       onMouseDown: e => e.stopPropagation(),
-      onPointerDown: e => e.stopPropagation()
+      onTouchMove: e => e.preventDefault(),
+      onWheel: e => e.preventDefault()
     }),
-    // Tooltip box
-    React.createElement('div', { style: { ...boxStyle, ...posStyle } },
-      // Step indicator
-      React.createElement('div', { style: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 } },
-        React.createElement('div', { style: { display:'flex', gap:5 } },
-          steps.map((_, i) => React.createElement('div', {
-            key: i,
-            style: {
-              width: i === step ? 18 : 6, height: 6,
-              borderRadius: 3,
-              background: i === step ? 'var(--accent, #7ec87e)' : 'var(--border2, #333)',
-              transition: 'all 0.3s'
-            }
-          }))
-        ),
+    // Tooltip
+    React.createElement('div', {
+      style:{
+        position:'fixed', zIndex:100002,
+        top: tooltipTop, left: tooltipLeft,
+        width: TOOLTIP_W,
+        background:'var(--surface,#1a1a1a)',
+        borderRadius:14, padding:'18px 18px 14px',
+        boxShadow:'0 8px 32px rgba(0,0,0,0.3)',
+        border:'1px solid var(--border2,#333)'
+      }
+    },
+      // Progress dots
+      React.createElement('div', {style:{display:'flex',gap:4,marginBottom:12}},
+        steps.map((_, i) => React.createElement('div', {key:i, style:{
+          width: i===step?16:5, height:5, borderRadius:3,
+          background: i===step?'#7ec87e':'var(--border2,#444)',
+          transition:'all 0.25s'
+        }}))
+      ),
+      React.createElement('div', {style:{fontSize:15,fontWeight:600,color:'var(--text,#fff)',marginBottom:6}}, current.title),
+      React.createElement('div', {style:{fontSize:13,color:'var(--muted,#888)',lineHeight:1.5,marginBottom:16}}, current.text),
+      React.createElement('div', {style:{display:'flex',gap:8,alignItems:'center'}},
         React.createElement('button', {
           onClick: onDone,
-          style: {
-            background: 'none', border: 'none', color: 'var(--muted, #666)',
-            fontSize: 14, letterSpacing: 1, textTransform: 'uppercase',
-            cursor: 'pointer', fontFamily: 'inherit', padding: '2px 6px'
-          }
-        }, isPt ? 'Pular' : 'Skip')
-      ),
-      // Icon + title
-      React.createElement('div', { style: { display:'flex', alignItems:'center', gap:10, marginBottom:10 } },
-        React.createElement('span', { style: { fontSize: 28 } }, current.icon),
-        React.createElement('h3', { style: {
-          margin: 0, fontSize: 14, color: 'var(--text1, #fff)',
-          fontWeight: 600, lineHeight: 1.3
-        }}, current.title)
-      ),
-      // Text
-      React.createElement('p', { style: {
-        margin: '0 0 12px', fontSize: 14, color: 'var(--text2, #aaa)',
-        lineHeight: 1.6
-      }}, current.text),
-      current.tip && React.createElement('div', { style: {
-        margin: '0 0 16px', fontSize: 13,
-        background: 'rgba(126,200,126,0.12)',
-        border: '1px solid rgba(126,200,126,0.3)',
-        borderRadius: 8, padding: '8px 12px',
-        color: 'var(--accent, #4a9a4a)', fontWeight: 500, lineHeight: 1.4
-      }}, current.tip),
-      // Buttons
-      React.createElement('div', { style: { display:'flex', gap:8 } },
+          style:{fontSize:12,color:'var(--muted,#888)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',padding:'6px 0',marginRight:'auto'}
+        }, isPt?'Pular':'Skip'),
         !isFirst && React.createElement('button', {
-          onClick: () => setStep(s => s - 1),
-          style: {
-            flex: 1, padding: '10px', borderRadius: 8,
-            background: 'none', border: '1px solid var(--border2, #333)',
-            color: 'var(--text2, #aaa)', fontSize: 14, cursor: 'pointer',
-            fontFamily: 'inherit', letterSpacing: 1
-          }
-        }, isPt ? '← Anterior' : '← Back'),
+          onClick: () => setStep(s=>s-1),
+          style:{fontSize:13,padding:'8px 14px',borderRadius:8,background:'none',border:'1px solid var(--border2,#444)',color:'var(--text2,#aaa)',cursor:'pointer',fontFamily:'inherit'}
+        }, '←'),
         React.createElement('button', {
-          onClick: isLast ? onDone : () => setStep(s => s + 1),
-          style: {
-            flex: isFirst ? 2 : 1, padding: '10px', borderRadius: 8,
-            background: 'var(--accent, #7ec87e)',
-            border: '1px solid var(--accent, #7ec87e)',
-            color: '#111', fontSize: 14, cursor: 'pointer',
-            fontFamily: 'inherit', fontWeight: 600, letterSpacing: 1
-          }
-        }, isLast
-          ? (isPt ? 'Começar! 🚀' : 'Start! 🚀')
-          : (isPt ? 'Próximo →' : 'Next →'))
+          onClick: isLast ? onDone : ()=>setStep(s=>s+1),
+          style:{fontSize:13,padding:'8px 18px',borderRadius:8,background:'#7ec87e',border:'none',color:'#111',fontWeight:600,cursor:'pointer',fontFamily:'inherit'}
+        }, isLast?(isPt?'Começar!':'Start!'):(isPt?'Próximo →':'Next →'))
       )
     )
   );
@@ -8435,8 +8314,6 @@ function LoginScreen({onLogin, onPendingVerification}) {
   const [regWeight, setRegWeight] = React.useState('');
   const [regHeight, setRegHeight] = React.useState('');
   const [regName,   setRegName]   = React.useState('');
-  const [regBirth,  setRegBirth]  = React.useState('');
-  const [regGender, setRegGender] = React.useState('');
   const [loginDark, setLoginDark] = React.useState(() => {
     const saved = localStorage.getItem('appDarkMode');
     return saved !== null ? saved === 'true' : false;
@@ -8500,8 +8377,6 @@ function LoginScreen({onLogin, onPendingVerification}) {
         onLogin(false);
       } else {
         if (!regName.trim()) { setError(loginLang==='pt'?'O nome é obrigatório.':'Name is required.'); setLoading(false); return; }
-        if (!regBirth) { setError(loginLang==='pt'?'A data de nascimento é obrigatória.':'Date of birth is required.'); setLoading(false); return; }
-        if (!regGender) { setError(loginLang==='pt'?'O gênero é obrigatório.':'Gender is required.'); setLoading(false); return; }
         await fbSignUp(email, password);
         localStorage.setItem('fb_email', email);
         // Set displayName so it appears in Firebase email templates
@@ -8515,8 +8390,6 @@ function LoginScreen({onLogin, onPendingVerification}) {
           await fbSet('weightHistory', JSON.stringify([entry])).catch(()=>{});
         }
         await fbSet('userName', regName.trim()).catch(()=>{});
-        await fbSet('userBirth', regBirth).catch(()=>{});
-        await fbSet('userGender', regGender).catch(()=>{});
         // Send verification email
         await fbSendVerificationEmail().catch(()=>{});
         onPendingVerification(email, regName.trim());
@@ -8621,26 +8494,6 @@ function LoginScreen({onLogin, onPendingVerification}) {
             style:{...inp, marginBottom:0, flex:1}
           })
         ),
-        mode === 'register' && React.createElement('div', {style:{marginBottom:12}},
-          React.createElement('label', {style:{fontSize:12, color:'var(--muted)', display:'block', marginBottom:4}},
-            loginLang==='pt' ? 'Data de nascimento *' : 'Date of birth *'
-          ),
-          React.createElement('input', {type:'date', value:regBirth, required:true,
-            onChange:e=>setRegBirth(e.target.value),
-            style:{...inp, marginBottom:0, colorScheme: loginDark ? 'dark' : 'light'}})
-        ),
-        mode === 'register' && React.createElement('div', {style:{marginBottom:12}},
-          React.createElement('label', {style:{fontSize:12, color:'var(--muted)', display:'block', marginBottom:4}},
-            loginLang==='pt' ? 'Gênero *' : 'Gender *'
-          ),
-          React.createElement('select', {value:regGender, onChange:e=>setRegGender(e.target.value),
-            style:{...inp, marginBottom:0}},
-            React.createElement('option', {value:''}, loginLang==='pt' ? '— selecionar —' : '— select —'),
-            React.createElement('option', {value:'M'}, loginLang==='pt' ? 'Masculino' : 'Male'),
-            React.createElement('option', {value:'F'}, loginLang==='pt' ? 'Feminino' : 'Female'),
-            React.createElement('option', {value:'O'}, loginLang==='pt' ? 'Outro' : 'Other')
-          )
-        ),
         error && React.createElement('div', {style:{
           color:'#c87e7e',fontSize:12,marginBottom:16,padding:'8px 12px',
           background:'rgba(200,80,80,0.1)',borderRadius:6,border:'1px solid rgba(200,80,80,0.2)'
@@ -8726,25 +8579,22 @@ function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDar
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = {error: null}; }
   static getDerivedStateFromError(e) { return {error: e}; }
-  componentDidCatch(e, info) { 
-    console.error('App crash:', e, info);
-    this._stack = (e.stack || '') + '\n' + (info?.componentStack || '');
-  }
+  componentDidCatch(e, info) { console.error('App crash:', e, info); }
   render() {
     if (this.state.error) {
       return React.createElement('div', {style:{
-        position:'fixed',top:0,left:0,right:0,bottom:0,background:'#111',
+        position:'fixed',top:0,left:0,right:0,bottom:0,background:'var(--surface)',
         display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
         gap:12,padding:20,textAlign:'center'
       }},
-        React.createElement('div', {style:{color:'#ff6060',fontSize:16,letterSpacing:2,fontWeight:'bold'}}, '⚠ ERRO'),
+        React.createElement('div', {style:{color:'#c87e7e',fontSize:13,letterSpacing:2}}, '⚠ ERRO'),
         React.createElement('div', {style:{color:'#c87e7e',fontSize:11,maxWidth:360}},
           (this.state.error.message||String(this.state.error)).toUpperCase()
         ),
         React.createElement('button', {
           onClick:()=>this.setState({error:null}),
-          style:{marginTop:20,background:'rgba(255,80,80,0.2)',border:'1px solid rgba(255,80,80,0.5)',
-            color:'#ff8080',borderRadius:8,padding:'10px 24px',fontSize:13,cursor:'pointer',fontFamily:'inherit'}
+          style:{marginTop:20,background:'none',border:'1px solid #333',color:'#555',
+            borderRadius:6,padding:'8px 16px',fontSize:11,cursor:'pointer'}
         }, 'RETRY / TENTAR')
       );
     }
@@ -8760,17 +8610,6 @@ function App() {
   const [showTutorial,setShowTutorial] = React.useState(false);
   const [showPrivacy, setShowPrivacy]  = React.useState(false);
   const [showBackup,  setShowBackup]   = React.useState(false);
-  const [showProfileWizard, setShowProfileWizard] = React.useState(false);
-  const [wizardStep, setWizardStep] = React.useState(0);
-  const [wBirth, setWBirth] = React.useState('');
-  const [wGender, setWGender] = React.useState('');
-  const [wActivity, setWActivity] = React.useState('');
-  const [wGoal, setWGoal] = React.useState('maintain');
-  const [wGoalKg, setWGoalKg] = React.useState('');
-  const [wGoalWeeks, setWGoalWeeks] = React.useState('');
-  const [wMissingBirth, setWMissingBirth] = React.useState(false);
-  const [wMissingGender, setWMissingGender] = React.useState(false);
-  const [wMissingActivity, setWMissingActivity] = React.useState(false);
   const [pendingEmail, setPendingEmail] = React.useState('');
   const [pendingName,  setPendingName]  = React.useState('');
   const [appLang, setAppLang] = React.useState(() => localStorage.getItem('appLang') || 'pt');
@@ -8790,30 +8629,6 @@ function App() {
       .then(() => { clearTimeout(timeout); setChecking(false); })
       .catch(() => { clearTimeout(timeout); fbSignOut(); setAuthed(false); setChecking(false); });
   }, []);
-
-  React.useEffect(function() {
-    if (!authed) return;
-    Promise.all([
-      storage.get('userBirth').catch(function(){return null;}),
-      storage.get('userGender').catch(function(){return null;}),
-      storage.get('userActivity').catch(function(){return null;}),
-      storage.get('userGoal').catch(function(){return null;})
-    ]).then(function(results) {
-      var birth=results[0], gender=results[1], activity=results[2], goal=results[3];
-      var hasBirth=birth&&birth.value&&birth.value.length>3;
-      var hasGender=gender&&gender.value&&gender.value.length>0;
-      var hasActivity=activity&&activity.value&&activity.value.length>0;
-      if (hasBirth) setWBirth(birth.value);
-      if (hasGender) setWGender(gender.value);
-      if (hasActivity) setWActivity(activity.value);
-      if (goal&&goal.value) { try { var g=JSON.parse(goal.value); setWGoal(g.type||'maintain'); setWGoalKg(g.kg||''); setWGoalWeeks(g.weeks||''); } catch(e){} }
-      if (!hasBirth||!hasGender||!hasActivity) {
-        setWMissingBirth(!hasBirth); setWMissingGender(!hasGender); setWMissingActivity(!hasActivity);
-        setWizardStep((!hasBirth||!hasGender)?0:!hasActivity?1:2);
-        setShowProfileWizard(true);
-      }
-    }).catch(function(){});
-  }, [authed]);
 
   // Removed: was auto-opening settings on every login
 
@@ -8875,185 +8690,6 @@ function App() {
         onClose: () => setShowPrivacy(false),
         onLogout: () => { setAuthed(false); setShowPrivacy(false); }
       }) : null,
-      /* Profile Wizard — lives in App, outside NutritionTracker */
-      showProfileWizard ? React.createElement('div', {
-        style: {position:'fixed',inset:0,zIndex:200000,background:'rgba(0,0,0,0.82)',
-          display:'flex',alignItems:'center',justifyContent:'center',padding:16}
-      },
-        React.createElement('div', {style:{
-          background: darkMode ? '#1e1e1e' : '#ffffff',
-          borderRadius:16, padding:'28px 24px', width:'100%', maxWidth:400,
-          border:'1px solid ' + (darkMode?'#333':'#ddd'),
-          boxShadow:'0 8px 40px rgba(0,0,0,0.4)'
-        }},
-          /* Step indicator */
-          React.createElement('div', {style:{fontSize:11,color:'#888',letterSpacing:1,textTransform:'uppercase',marginBottom:6}},
-            (lang==='pt'?'Passo ':'Step ') + (wizardStep+1) + ' de 3'
-          ),
-          /* STEP 0: birth + gender */
-          wizardStep === 0 && React.createElement(React.Fragment, null,
-            React.createElement('h2', {style:{margin:'0 0 6px',fontSize:18,fontWeight:700,color:darkMode?'#fff':'#111'}},
-              lang==='pt'?'Seu perfil':'Your profile'),
-            React.createElement('p', {style:{margin:'0 0 18px',fontSize:13,color:'#888',lineHeight:1.5}},
-              lang==='pt'?'Usamos esses dados para calcular suas metas nutricionais.':'We use this to calculate your nutrition targets.'),
-            wMissingBirth && React.createElement(React.Fragment, null,
-              React.createElement('label', {style:{fontSize:12,color:'#888',display:'block',marginBottom:4}}, lang==='pt'?'Data de nascimento *':'Date of birth *'),
-              React.createElement('input', {type:'date', value:wBirth, onChange:function(e){setWBirth(e.target.value);},
-                style:{width:'100%',background:darkMode?'#2a2a2a':'#f5f5f5',border:'1px solid '+(darkMode?'#444':'#ccc'),
-                  color:darkMode?'#fff':'#111',borderRadius:8,padding:'10px 12px',fontSize:14,
-                  fontFamily:'inherit',marginBottom:14,boxSizing:'border-box',colorScheme:darkMode?'dark':'light'}})
-            ),
-            wMissingGender && React.createElement(React.Fragment, null,
-              React.createElement('label', {style:{fontSize:12,color:'#888',display:'block',marginBottom:4}}, lang==='pt'?'Gênero *':'Gender *'),
-              React.createElement('select', {value:wGender, onChange:function(e){setWGender(e.target.value);},
-                style:{width:'100%',background:darkMode?'#2a2a2a':'#f5f5f5',border:'1px solid '+(darkMode?'#444':'#ccc'),
-                  color:darkMode?'#fff':'#111',borderRadius:8,padding:'10px 12px',fontSize:14,
-                  fontFamily:'inherit',marginBottom:20,boxSizing:'border-box'}},
-                React.createElement('option',{value:''},lang==='pt'?'— selecionar —':'— select —'),
-                React.createElement('option',{value:'M'},lang==='pt'?'Masculino':'Male'),
-                React.createElement('option',{value:'F'},lang==='pt'?'Feminino':'Female'),
-                React.createElement('option',{value:'O'},lang==='pt'?'Outro':'Other')
-              )
-            ),
-            React.createElement('button', {
-              onClick:function(){setWizardStep(1);},
-              disabled: (wMissingBirth && !wBirth) || (wMissingGender && !wGender),
-              style:{width:'100%',padding:'12px',borderRadius:10,border:'none',cursor:'pointer',
-                fontFamily:'inherit',fontWeight:600,fontSize:14,
-                background: ((wMissingBirth&&!wBirth)||(wMissingGender&&!wGender)) ? '#444' : '#4a7c59',
-                color: ((wMissingBirth&&!wBirth)||(wMissingGender&&!wGender)) ? '#888' : '#fff'}
-            }, lang==='pt'?'Continuar →':'Continue →')
-          ),
-          /* STEP 1: activity */
-          wizardStep === 1 && React.createElement(React.Fragment, null,
-            React.createElement('h2', {style:{margin:'0 0 6px',fontSize:18,fontWeight:700,color:darkMode?'#fff':'#111'}},
-              lang==='pt'?'Nível de atividade':'Activity level'),
-            React.createElement('p', {style:{margin:'0 0 14px',fontSize:13,color:'#888',lineHeight:1.5}},
-              lang==='pt'?'Escolha o que melhor descreve sua rotina:':'Choose what best describes your routine:'),
-            React.createElement('div', {style:{display:'flex',flexDirection:'column',gap:6,marginBottom:18}},
-              React.createElement('button', {onClick:function(){setWActivity('1.20');},
-                style:{textAlign:'left',padding:'10px 14px',borderRadius:8,fontFamily:'inherit',cursor:'pointer',
-                  border:wActivity==='1.20'?'2px solid #4a7c59':'1px solid '+(darkMode?'#444':'#ccc'),
-                  background:wActivity==='1.20'?(darkMode?'#1a3028':'#e8f5e9'):(darkMode?'#2a2a2a':'#f9f9f9'),
-                  color:darkMode?'#fff':'#111'}},
-                React.createElement('div',{style:{fontWeight:600,fontSize:13}}, lang==='pt'?'Sedentário':'Sedentary'),
-                React.createElement('div',{style:{fontSize:11,color:'#888',marginTop:2}}, lang==='pt'?'Pouco ou nenhum exercício':'Little or no exercise')
-              ),
-              React.createElement('button', {onClick:function(){setWActivity('1.375');},
-                style:{textAlign:'left',padding:'10px 14px',borderRadius:8,fontFamily:'inherit',cursor:'pointer',
-                  border:wActivity==='1.375'?'2px solid #4a7c59':'1px solid '+(darkMode?'#444':'#ccc'),
-                  background:wActivity==='1.375'?(darkMode?'#1a3028':'#e8f5e9'):(darkMode?'#2a2a2a':'#f9f9f9'),
-                  color:darkMode?'#fff':'#111'}},
-                React.createElement('div',{style:{fontWeight:600,fontSize:13}}, lang==='pt'?'Levemente ativo':'Lightly active'),
-                React.createElement('div',{style:{fontSize:11,color:'#888',marginTop:2}}, lang==='pt'?'Exercícios leves 1–3x/semana':'Light exercise 1–3x/week')
-              ),
-              React.createElement('button', {onClick:function(){setWActivity('1.55');},
-                style:{textAlign:'left',padding:'10px 14px',borderRadius:8,fontFamily:'inherit',cursor:'pointer',
-                  border:wActivity==='1.55'?'2px solid #4a7c59':'1px solid '+(darkMode?'#444':'#ccc'),
-                  background:wActivity==='1.55'?(darkMode?'#1a3028':'#e8f5e9'):(darkMode?'#2a2a2a':'#f9f9f9'),
-                  color:darkMode?'#fff':'#111'}},
-                React.createElement('div',{style:{fontWeight:600,fontSize:13}}, lang==='pt'?'Moderadamente ativo':'Moderately active'),
-                React.createElement('div',{style:{fontSize:11,color:'#888',marginTop:2}}, lang==='pt'?'Exercícios moderados 3–5x/semana':'Moderate exercise 3–5x/week')
-              ),
-              React.createElement('button', {onClick:function(){setWActivity('1.725');},
-                style:{textAlign:'left',padding:'10px 14px',borderRadius:8,fontFamily:'inherit',cursor:'pointer',
-                  border:wActivity==='1.725'?'2px solid #4a7c59':'1px solid '+(darkMode?'#444':'#ccc'),
-                  background:wActivity==='1.725'?(darkMode?'#1a3028':'#e8f5e9'):(darkMode?'#2a2a2a':'#f9f9f9'),
-                  color:darkMode?'#fff':'#111'}},
-                React.createElement('div',{style:{fontWeight:600,fontSize:13}}, lang==='pt'?'Muito ativo':'Very active'),
-                React.createElement('div',{style:{fontSize:11,color:'#888',marginTop:2}}, lang==='pt'?'Exercícios intensos 6–7x/semana':'Hard exercise 6–7x/week')
-              ),
-              React.createElement('button', {onClick:function(){setWActivity('1.90');},
-                style:{textAlign:'left',padding:'10px 14px',borderRadius:8,fontFamily:'inherit',cursor:'pointer',
-                  border:wActivity==='1.90'?'2px solid #4a7c59':'1px solid '+(darkMode?'#444':'#ccc'),
-                  background:wActivity==='1.90'?(darkMode?'#1a3028':'#e8f5e9'):(darkMode?'#2a2a2a':'#f9f9f9'),
-                  color:darkMode?'#fff':'#111'}},
-                React.createElement('div',{style:{fontWeight:600,fontSize:13}}, lang==='pt'?'Extremamente ativo':'Extremely active'),
-                React.createElement('div',{style:{fontSize:11,color:'#888',marginTop:2}}, lang==='pt'?'Atleta em treino intenso':'Athlete / intense training')
-              )
-            ),
-            React.createElement('div',{style:{display:'flex',gap:8}},
-              React.createElement('button',{onClick:function(){setWizardStep(0);},
-                style:{flex:1,padding:'12px',borderRadius:10,border:'1px solid '+(darkMode?'#444':'#ccc'),cursor:'pointer',
-                  fontFamily:'inherit',fontSize:14,background:'transparent',color:darkMode?'#aaa':'#555'}
-              }, lang==='pt'?'← Voltar':'← Back'),
-              React.createElement('button',{onClick:function(){setWizardStep(2);}, disabled:!wActivity,
-                style:{flex:2,padding:'12px',borderRadius:10,border:'none',cursor:wActivity?'pointer':'default',
-                  fontFamily:'inherit',fontWeight:600,fontSize:14,
-                  background:wActivity?'#4a7c59':'#444', color:wActivity?'#fff':'#888'}
-              }, lang==='pt'?'Continuar →':'Continue →')
-            )
-          ),
-          /* STEP 2: goal */
-          wizardStep === 2 && React.createElement(React.Fragment, null,
-            React.createElement('h2', {style:{margin:'0 0 6px',fontSize:18,fontWeight:700,color:darkMode?'#fff':'#111'}},
-              lang==='pt'?'Seu objetivo':'Your goal'),
-            React.createElement('p', {style:{margin:'0 0 14px',fontSize:13,color:'#888',lineHeight:1.5}},
-              lang==='pt'?'O que você quer alcançar?':'What do you want to achieve?'),
-            React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:6,marginBottom:14}},
-              React.createElement('button',{onClick:function(){setWGoal('maintain');},
-                style:{textAlign:'left',padding:'12px 14px',borderRadius:8,fontFamily:'inherit',cursor:'pointer',fontSize:14,
-                  border:wGoal==='maintain'?'2px solid #4a7c59':'1px solid '+(darkMode?'#444':'#ccc'),
-                  background:wGoal==='maintain'?(darkMode?'#1a3028':'#e8f5e9'):(darkMode?'#2a2a2a':'#f9f9f9'),
-                  color:darkMode?'#fff':'#111', fontWeight:wGoal==='maintain'?600:400}
-              }, '⚖️ ' + (lang==='pt'?'Manutenção do peso':'Maintain weight')),
-              React.createElement('button',{onClick:function(){setWGoal('lose');},
-                style:{textAlign:'left',padding:'12px 14px',borderRadius:8,fontFamily:'inherit',cursor:'pointer',fontSize:14,
-                  border:wGoal==='lose'?'2px solid #4a7c59':'1px solid '+(darkMode?'#444':'#ccc'),
-                  background:wGoal==='lose'?(darkMode?'#1a3028':'#e8f5e9'):(darkMode?'#2a2a2a':'#f9f9f9'),
-                  color:darkMode?'#fff':'#111', fontWeight:wGoal==='lose'?600:400}
-              }, '📉 ' + (lang==='pt'?'Perda de peso':'Lose weight')),
-              React.createElement('button',{onClick:function(){setWGoal('gain');},
-                style:{textAlign:'left',padding:'12px 14px',borderRadius:8,fontFamily:'inherit',cursor:'pointer',fontSize:14,
-                  border:wGoal==='gain'?'2px solid #4a7c59':'1px solid '+(darkMode?'#444':'#ccc'),
-                  background:wGoal==='gain'?(darkMode?'#1a3028':'#e8f5e9'):(darkMode?'#2a2a2a':'#f9f9f9'),
-                  color:darkMode?'#fff':'#111', fontWeight:wGoal==='gain'?600:400}
-              }, '📈 ' + (lang==='pt'?'Ganho de massa':'Gain weight/muscle'))
-            ),
-            (wGoal === 'lose' || wGoal === 'gain') && React.createElement('div',{style:{display:'flex',gap:8,marginBottom:14}},
-              React.createElement('div',{style:{flex:1}},
-                React.createElement('label',{style:{fontSize:11,color:'#888',display:'block',marginBottom:3}}, 'kg'),
-                React.createElement('input',{type:'number',min:0.5,max:50,step:0.5,value:wGoalKg,
-                  onChange:function(e){setWGoalKg(e.target.value);},
-                  placeholder:'ex: 5',
-                  style:{width:'100%',background:darkMode?'#2a2a2a':'#f5f5f5',border:'1px solid '+(darkMode?'#444':'#ccc'),
-                    color:darkMode?'#fff':'#111',borderRadius:8,padding:'10px 12px',fontSize:14,
-                    fontFamily:'inherit',boxSizing:'border-box'}})
-              ),
-              React.createElement('div',{style:{flex:1}},
-                React.createElement('label',{style:{fontSize:11,color:'#888',display:'block',marginBottom:3}}, lang==='pt'?'Meses':'Months'),
-                React.createElement('input',{type:'number',min:1,max:24,value:wGoalWeeks,
-                  onChange:function(e){setWGoalWeeks(e.target.value);},
-                  placeholder:'ex: 3',
-                  style:{width:'100%',background:darkMode?'#2a2a2a':'#f5f5f5',border:'1px solid '+(darkMode?'#444':'#ccc'),
-                    color:darkMode?'#fff':'#111',borderRadius:8,padding:'10px 12px',fontSize:14,
-                    fontFamily:'inherit',boxSizing:'border-box'}})
-              )
-            ),
-            React.createElement('div',{style:{display:'flex',gap:8,marginTop:4}},
-              React.createElement('button',{onClick:function(){setWizardStep(1);},
-                style:{flex:1,padding:'12px',borderRadius:10,border:'1px solid '+(darkMode?'#444':'#ccc'),cursor:'pointer',
-                  fontFamily:'inherit',fontSize:14,background:'transparent',color:darkMode?'#aaa':'#555'}
-              }, lang==='pt'?'← Voltar':'← Back'),
-              React.createElement('button',{
-                onClick:async function(){
-                  if (!wGoal) return;
-                  if ((wGoal==='lose'||wGoal==='gain') && (!wGoalKg||!wGoalWeeks)) return;
-                  if (wBirth) await storage.set('userBirth', wBirth).catch(function(){});
-                  if (wGender) await storage.set('userGender', wGender).catch(function(){});
-                  if (wActivity) await storage.set('userActivity', wActivity).catch(function(){});
-                  await storage.set('userGoal', JSON.stringify({type:wGoal,kg:wGoalKg,weeks:wGoalWeeks})).catch(function(){});
-                  setShowProfileWizard(false);
-                },
-                disabled: !wGoal || ((wGoal==='lose'||wGoal==='gain') && (!wGoalKg||!wGoalWeeks)),
-                style:{flex:2,padding:'12px',borderRadius:10,border:'none',cursor:'pointer',
-                  fontFamily:'inherit',fontWeight:600,fontSize:14,background:'#4a7c59',color:'#fff'}
-              }, lang==='pt'?'✓ Salvar':'✓ Save')
-            )
-          )
-        )
-      ) : null,
-
       showBackup ? React.createElement(BackupModal, {
         lang,
         darkMode,
