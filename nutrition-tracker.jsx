@@ -678,6 +678,14 @@ export default function NutritionTracker({onOpenSettings}) {
   const [userName,setUserName]       = useState("");
   const [syncing,setSyncing]         = useState(false);
   const [autoFillLoading,setAutoFillLoading] = useState(false);
+  const [barcodeModalOpen,setBarcodeModalOpen] = useState(false);
+  const [barcodeInput,setBarcodeInput] = useState("");
+  const [barcodeLoading,setBarcodeLoading] = useState(false);
+  const [barcodeScanning,setBarcodeScanning] = useState(false);
+  const [barcodeMessage,setBarcodeMessage] = useState("");
+  const videoRef = useRef(null);
+  const barcodeStreamRef = useRef(null);
+  const barcodeScanRef = useRef(false);
   const [notification,setNotification] = useState("");
   const [expandMicros,setExpandMicros] = useState(false);
   const [detailFood,setDetailFood]   = useState(null);
@@ -780,6 +788,7 @@ export default function NutritionTracker({onOpenSettings}) {
     window.addEventListener("resize", updateMobileView);
     return () => window.removeEventListener("resize", updateMobileView);
   },[]);
+  useEffect(()=>()=>stopBarcodeScanner(),[]);
 
   function scheduleSave(key,value,delay=800) {
     if(saveTimeout.current[key]) clearTimeout(saveTimeout.current[key]);
@@ -905,6 +914,121 @@ export default function NutritionTracker({onOpenSettings}) {
   }
 
   function notify(msg,duration=3000){setNotification(msg);setTimeout(()=>setNotification(""),duration);}
+
+  function applyBarcodeProduct(product) {
+    const n = product.nutriments || {};
+    const val = (...keys) => {
+      for (const key of keys) {
+        const v = n[key];
+        if (v !== undefined && v !== null && v !== "") return Number(v);
+      }
+      return null;
+    };
+    const kcal = val("energy-kcal_100g", "energy-kcal", "energy_100g");
+    const mapped = {
+      protein100: val("proteins_100g", "proteins"),
+      kcal100: kcal && kcal > 1000 ? Math.round(kcal / 4.184) : kcal,
+      carbs100: val("carbohydrates_100g", "carbohydrates"),
+      sugars100: val("sugars_100g", "sugars"),
+      fat100: val("fat_100g", "fat"),
+      satfat100: val("saturated-fat_100g", "saturated-fat"),
+      fiber100: val("fiber_100g", "fiber"),
+      salt100: val("salt_100g", "salt")
+    };
+    setForm(f => {
+      const next = {
+        ...f,
+        name: product.product_name || product.generic_name || product.brands || f.name,
+        unit: f.unit === "un" ? "g" : f.unit
+      };
+      Object.entries(mapped).forEach(([key, value]) => {
+        if (Number.isFinite(value)) next[key] = String(Math.round(value * 10) / 10);
+      });
+      return next;
+    });
+    notify(lang === 'en' ? "Values imported from Open Food Facts. Please review before saving." : "Valores importados do Open Food Facts. Revise antes de salvar.", 6000);
+  }
+  function stopBarcodeScanner() {
+    barcodeScanRef.current = false;
+    if (barcodeStreamRef.current) {
+      barcodeStreamRef.current.getTracks().forEach(track => track.stop());
+      barcodeStreamRef.current = null;
+    }
+    setBarcodeScanning(false);
+  }
+  function closeBarcodeModal() {
+    stopBarcodeScanner();
+    setBarcodeModalOpen(false);
+  }
+  async function fetchBarcodeProduct(rawBarcode) {
+    const barcode = String(rawBarcode || barcodeInput || "").replace(/\D/g, "");
+    if (!barcode) {
+      setBarcodeMessage(lang === 'en' ? "Enter a barcode first." : "Digite um código de barras primeiro.");
+      return;
+    }
+    setBarcodeLoading(true);
+    setBarcodeMessage("");
+    try {
+      const url = "https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(barcode) + ".json?fields=product_name,generic_name,brands,nutriments,quantity";
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Open Food Facts");
+      const data = await res.json();
+      if (!data || data.status !== 1 || !data.product) {
+        setBarcodeMessage(lang === 'en' ? "Product not found. You can enter the data manually." : "Produto não encontrado. Você pode preencher os dados manualmente.");
+        return;
+      }
+      applyBarcodeProduct(data.product);
+      setBarcodeInput(barcode);
+      setBarcodeMessage(lang === 'en' ? "Product found. Review the values before saving." : "Produto encontrado. Revise os valores antes de salvar.");
+      stopBarcodeScanner();
+      setBarcodeModalOpen(false);
+    } catch (_) {
+      setBarcodeMessage(lang === 'en' ? "Could not search this barcode right now." : "Não foi possível buscar este código agora.");
+    } finally {
+      setBarcodeLoading(false);
+    }
+  }
+  async function startBarcodeScanner() {
+    if (!("BarcodeDetector" in window)) {
+      setBarcodeMessage(lang === 'en' ? "Camera barcode scanning is not supported in this browser. Use manual entry below." : "Este navegador não suporta leitura de código pela câmera. Use a digitação manual abaixo.");
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setBarcodeMessage(lang === 'en' ? "Camera access is not available. Use manual entry below." : "O acesso à câmera não está disponível. Use a digitação manual abaixo.");
+      return;
+    }
+    stopBarcodeScanner();
+    setBarcodeMessage(lang === 'en' ? "Point the camera at the barcode." : "Aponte a câmera para o código de barras.");
+    try {
+      const detector = new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
+      const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}, audio:false});
+      barcodeStreamRef.current = stream;
+      barcodeScanRef.current = true;
+      setBarcodeScanning(true);
+      setTimeout(async () => {
+        if (!videoRef.current) return;
+        videoRef.current.srcObject = stream;
+        try { await videoRef.current.play(); } catch (_) {}
+        const scan = async () => {
+          if (!barcodeScanRef.current || !videoRef.current) return;
+          try {
+            const codes = await detector.detect(videoRef.current);
+            if (codes && codes.length) {
+              const code = codes[0].rawValue;
+              setBarcodeInput(code);
+              await fetchBarcodeProduct(code);
+              return;
+            }
+          } catch (_) {}
+          if (barcodeScanRef.current) requestAnimationFrame(scan);
+        };
+        scan();
+      }, 0);
+    } catch (_) {
+      stopBarcodeScanner();
+      setBarcodeMessage(lang === 'en' ? "Camera permission was denied or unavailable. Use manual entry below." : "A permissão da câmera foi negada ou não está disponível. Use a digitação manual abaixo.");
+    }
+  }
 
   async function autoFillNutrition() {
     if(!form.name.trim()){notify("Escreve o nome do alimento primeiro.");return;}
@@ -2387,6 +2511,14 @@ export default function NutritionTracker({onOpenSettings}) {
               <div style={{flex:1}}><label style={lbl}>{t('foodName')}</label><input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder={t('foodNamePh')} style={inp}/></div>
               <div style={{width:90}}><label style={lbl}>{t('unit')}</label><select value={form.unit} onChange={e=>setForm(f=>({...f,unit:e.target.value}))} style={inp}><option value="g">g</option><option value="ml">ml</option><option value="un">un</option></select></div>
             </div>
+            <button onClick={()=>{setBarcodeModalOpen(true);setBarcodeMessage("");}} style={{
+              width:"100%",background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",
+              color:"var(--btn-ok-text)",padding:"9px",borderRadius:6,
+              fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",
+              fontFamily:"inherit",marginBottom:8
+            }}>
+              {lang==='en'?'Scan barcode':'Ler código de barras'}
+            </button>
             <button onClick={autoFillNutrition} disabled={autoFillLoading} style={{
               width:"100%",background:"var(--btn-info)",border:"1px solid var(--btn-info-border)",
               color:autoFillLoading?"var(--muted)":"var(--btn-info-text)",padding:"9px",borderRadius:6,
@@ -2839,6 +2971,43 @@ export default function NutritionTracker({onOpenSettings}) {
                 <button onClick={()=>{setCustomGoals({});notify("Metas repostas para os valores automáticos.");}} style={{...btn,marginTop:12,background:"var(--btn-warn)",border:"1px solid var(--btn-warn-border)",color:"var(--btn-warn-text)",fontSize:10,letterSpacing:1}}>
                   Repor metas automáticas
                 </button>
+              )}
+            </div>
+          </div>
+        )}
+        {barcodeModalOpen&&(
+          <div style={{position:"fixed",inset:0,zIndex:99998,background:"rgba(0,0,0,0.62)",backdropFilter:"blur(3px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
+            onClick={e=>{if(e.target===e.currentTarget) closeBarcodeModal();}}>
+            <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:18,width:"100%",maxWidth:430,boxShadow:"0 8px 32px rgba(0,0,0,0.42)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,marginBottom:12}}>
+                <div>
+                  <div style={{fontSize:16,color:"var(--text)",fontWeight:600}}>{lang==='en'?'Barcode scanner':'Leitor de código de barras'}</div>
+                  <div style={{fontSize:12,color:"var(--muted)",marginTop:3,lineHeight:1.4}}>
+                    {lang==='en'?'Use the camera when supported, or type the code manually.':'Use a câmera quando disponível, ou digite o código manualmente.'}
+                  </div>
+                </div>
+                <button onClick={closeBarcodeModal} style={{background:"none",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:20}}>×</button>
+              </div>
+              <video ref={videoRef} playsInline muted style={{width:"100%",minHeight:170,maxHeight:240,objectFit:"cover",borderRadius:10,background:"var(--bg)",border:"1px solid var(--border)",display:barcodeScanning?"block":"none",marginBottom:10}}/>
+              <button onClick={barcodeScanning?stopBarcodeScanner:startBarcodeScanner} disabled={barcodeLoading} style={{
+                ...btn,background:barcodeScanning?"var(--btn-warn)":"var(--btn-ok)",
+                border:"1px solid "+(barcodeScanning?"var(--btn-warn-border)":"var(--btn-ok-border)"),
+                color:barcodeScanning?"var(--btn-warn-text)":"var(--btn-ok-text)",marginBottom:10
+              }}>
+                {barcodeScanning?(lang==='en'?'Stop camera':'Parar câmera'):(lang==='en'?'Use camera':'Usar câmera')}
+              </button>
+              <div style={{display:"flex",gap:8,marginBottom:8}}>
+                <input value={barcodeInput} onChange={e=>setBarcodeInput(e.target.value.replace(/\D/g,""))} inputMode="numeric"
+                  placeholder={lang==='en'?'Barcode number':'Número do código de barras'} style={{...inp,flex:1,marginTop:0}}/>
+                <button onClick={()=>fetchBarcodeProduct()} disabled={barcodeLoading}
+                  style={{...sBtn("var(--btn-teal)","var(--btn-teal-border)","var(--btn-teal-text)"),minWidth:90,opacity:barcodeLoading?0.6:1}}>
+                  {barcodeLoading?(lang==='en'?'Searching':'Buscando'):(lang==='en'?'Search':'Buscar')}
+                </button>
+              </div>
+              {barcodeMessage&&(
+                <div style={{fontSize:12,color:"var(--muted)",lineHeight:1.5,background:"var(--surface3)",border:"1px solid var(--border3)",borderRadius:8,padding:"8px 10px"}}>
+                  {barcodeMessage}
+                </div>
               )}
             </div>
           </div>
