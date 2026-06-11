@@ -53,6 +53,25 @@
       0%, 100% { box-shadow: 0 0 0 0 rgba(126,200,126,0.4); }
       50% { box-shadow: 0 0 0 6px rgba(126,200,126,0); }
     }
+    .nutrition-summary-cards > span {
+      flex: 1 1 160px;
+      min-width: 150px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text2);
+    }
+    .nutrition-summary-cards > span:nth-child(1),
+    .nutrition-summary-cards > span:nth-child(5) {
+      color: #c8a96e;
+    }
+    .nutrition-summary-cards > span:nth-child(2) {
+      color: #8ec8c8;
+    }
+    .nutrition-summary-cards > span:nth-child(3) {
+      color: #c86e8e;
+    }
 </style>
 </head>
 <body>
@@ -1474,7 +1493,7 @@ function NutritionTracker({
   // Maps storage key -> display name
   const mealDisplay = key => {
     const i = MEAL_KEYS.indexOf(key);
-    return i >= 0 ? MEALS[i] : key;
+    return i >= 0 ? mealLabel(MEALS[i]) : key;
   };
   const MACRO_FIELDS = MACRO_FIELDS_BASE.map(f => ({
     ...f,
@@ -1775,7 +1794,7 @@ function NutritionTracker({
       const salt = entries.reduce((s, e) => s + (e.salt ?? 0), 0);
       days.push({
         date,
-        label: d.toLocaleDateString("pt-BR", {
+        label: d.toLocaleDateString(lang === 'en' ? "en-US" : "pt-BR", {
           weekday: "short"
         }),
         day: d.getDate(),
@@ -3471,7 +3490,7 @@ function NutritionTracker({
   const sortedAllPantry = [...pantry].sort((a, b) => a.name.localeCompare(b.name, "pt"));
   const remainProtein = Math.max(0, Math.round(goals.protein - tot.protein));
   const remainKcal = Math.max(0, Math.round(goals.kcal - tot.kcal));
-  const dateStr = new Date(viewDate + "T12:00:00").toLocaleDateString("pt-BR", {
+  const dateStr = new Date(viewDate + "T12:00:00").toLocaleDateString(lang === 'en' ? "en-US" : "pt-BR", {
     weekday: "long",
     day: "numeric",
     month: "long"
@@ -3644,7 +3663,7 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 2
     }
-  }, "Di\xE1rio Nutricional"), /*#__PURE__*/React.createElement("div", {
+  }, t('appTitle')), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 15,
       color: "var(--text3)",
@@ -3962,13 +3981,13 @@ function NutritionTracker({
       fontSize: 14,
       color: "var(--faint)"
     }
-  }, lang==='en'?'goal ':'meta ', goal, unit))))), isToday && (remainProtein > 0 || remainKcal > 0) && /*#__PURE__*/React.createElement("div", {
+  }, lang==='en'?'goal ':'meta ', goal, unit))))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface3)",
       borderBottom: "1px solid var(--border3)",
       padding: "7px 20px"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, (remainProtein > 0 || remainKcal > 0) && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 20,
@@ -6641,7 +6660,7 @@ function NutritionTracker({
       background: "var(--surface)",
       border: "1px solid var(--border)",
       borderRadius: 8,
-      marginBottom: 16,
+      margin: "0 16px 16px",
       overflow: "hidden"
     }
   }, [{
@@ -6680,10 +6699,13 @@ function NutritionTracker({
   }, x.l)))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 6,
+      gap: 10,
       overflowX: "auto",
-      paddingBottom: 8,
-      marginBottom: 16
+      padding: "0 16px 10px",
+      margin: "0 auto 16px",
+      justifyContent: "center",
+      boxSizing: "border-box",
+      maxWidth: "100%"
     }
   }, weekData.map(d => /*#__PURE__*/React.createElement("div", {
     key: d.date,
@@ -6734,7 +6756,7 @@ function NutritionTracker({
       border: "1px solid var(--border)",
       borderRadius: 8,
       padding: "14px",
-      marginBottom: 12
+      margin: "0 16px 12px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6744,7 +6766,7 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 10
     }
-  }, "Prote\xEDna (g) \u2014 7 dias"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+  }, lang === 'en' ? "Protein (g) \u2014 7 days" : "Prote\xEDna (g) \u2014 7 dias"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
     width: "100%",
     height: 130
   }, /*#__PURE__*/React.createElement(LineChart, {
@@ -6804,7 +6826,8 @@ function NutritionTracker({
       background: "var(--surface)",
       border: "1px solid var(--border)",
       borderRadius: 8,
-      padding: "14px"
+      padding: "14px",
+      margin: "0 16px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6814,7 +6837,7 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 10
     }
-  }, "Calorias \u2014 7 dias"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+  }, lang === 'en' ? "Calories \u2014 7 days" : "Calorias \u2014 7 dias"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
     width: "100%",
     height: 130
   }, /*#__PURE__*/React.createElement(LineChart, {
@@ -6879,7 +6902,7 @@ function NutritionTracker({
     }
   }, lang === 'en' ? 'Click a day to see details' : 'Clica num dia para ver o detalhe'), Object.keys(mealAverages).length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 20
+      margin: "20px 16px 0"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6889,7 +6912,7 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 10
     }
-  }, "M\xE9dias por refei\xE7\xE3o (\xFAltimos 30 dias)"), (() => {
+  }, lang === 'en' ? "Meal averages (last 30 days)" : "M\xE9dias por refei\xE7\xE3o (\xFAltimos 30 dias)"), (() => {
     const sorted = Object.entries(mealAverages).sort((a, b) => b[1].avgProtein - a[1].avgProtein);
     const maxProt = sorted[0]?.[1].avgProtein || 1;
     return sorted.map(([meal, d]) => /*#__PURE__*/React.createElement("div", {
@@ -6913,7 +6936,7 @@ function NutritionTracker({
         fontSize: 14,
         color: "var(--text3)"
       }
-    }, meal), /*#__PURE__*/React.createElement("span", {
+    }, mealLabel(meal)), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 14,
         color: "var(--muted)"
@@ -6942,7 +6965,7 @@ function NutritionTracker({
         color: "var(--muted)",
         marginLeft: "auto"
       }
-    }, Math.round(d.avgProtein / goals.protein * 100), "% meta prot")), /*#__PURE__*/React.createElement("div", {
+    }, Math.round(d.avgProtein / goals.protein * 100), lang === 'en' ? "% protein goal" : "% meta prot")), /*#__PURE__*/React.createElement("div", {
       style: {
         height: 4,
         background: "var(--track)",
@@ -7683,14 +7706,11 @@ function NutritionTracker({
     placeholder: "auto: " + defaultProteinMultiplier(nutritionPrefs.goalType).toFixed(1),
     style: inp
   }))), /*#__PURE__*/React.createElement("div", {
+    className: "nutrition-summary-cards",
     style: {
       marginTop: 12,
-      border: "1px solid var(--border3)",
-      borderRadius: 6,
-      padding: "10px 12px",
-      background: "var(--panel)",
       display: "flex",
-      gap: 14,
+      gap: 10,
       flexWrap: "wrap",
       fontSize: 14,
       color: "var(--muted)"
@@ -7734,7 +7754,7 @@ function NutritionTracker({
       color: "var(--dim)",
       marginBottom: 12
     }
-  }, "Deixa em branco para usar o valor calculado automaticamente pelo peso. Os valores personalizados t\xEAm prioridade."), editingGoals ? /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "Leave blank to use the value calculated automatically from your weight. Custom values take priority." : "Deixe em branco para usar o valor calculado automaticamente pelo peso. Os valores personalizados t\xEAm prioridade."), editingGoals ? /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexWrap: "wrap",
