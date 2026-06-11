@@ -711,6 +711,10 @@ window.storage = {get:fbGet, set:fbSet, delete:fbDel, list:fbList};
 const {useState,useEffect,useRef}=React;
 const {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,ReferenceLine}=Recharts;
 const TODAY = new Date().toISOString().split("T")[0];
+function rnd(value) {
+  const n = Number(value) || 0;
+  return Math.round(n * 10) / 10;
+}
 
 // ── Translations ──────────────────────────────────────────────────────────────
 const STRINGS = {
@@ -1815,6 +1819,11 @@ function NutritionTracker({
   const [mealTemplatesOpen, setMealTemplatesOpen] = useState(false);
   const [addTemplatesOpen, setAddTemplatesOpen] = useState(false);
   const [addTemplateSearch, setAddTemplateSearch] = useState("");
+  const [expandedTemplateIds, setExpandedTemplateIds] = useState({});
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(TODAY.slice(0, 7));
+  const [calendarData, setCalendarData] = useState({});
+  const [calendarLoading, setCalendarLoading] = useState(false);
   const [suppPantryOpen, setSuppPantryOpen] = useState(false);
   const [editEntryId, setEditEntryId] = useState(null);
   const [editEntryQty, setEditEntryQty] = useState("");
@@ -1928,13 +1937,34 @@ function NutritionTracker({
   }, [goalHistory, loaded]);
   async function changeViewDate(date) {
     setViewDate(date);
+    if (date) setCalendarMonth(date.slice(0, 7));
     setEditEntryId(null);
     setDetailFood(null);
     if (date !== TODAY) {
       const [l, n] = await Promise.all([storage.get("log_v2_" + date).catch(() => null), storage.get("notes_" + date).catch(() => null)]);
-      setHistoryLog(l ? JSON.parse(l.value) : {});
+      setHistoryLog(l ? normalizeMealKeys(JSON.parse(l.value)) : {});
       setHistoryNote(n ? n.value || "" : "");
     }
+  }
+  function dayGoalForDate(date) {
+    const we = getWeightForDate(weightHistory, date);
+    const dayIsTraining = trainingByDate[date] ?? true;
+    const rawGoal = computeGoals(we?.weight || currentWeight, dayIsTraining, {
+      height: we?.height || currentHeight,
+      birthDate: profileData.birthDate,
+      gender: profileData.gender,
+      prefs: nutritionPrefs
+    });
+    const computedGoal = {
+      ...rawGoal,
+      protein: customGoals.protein || rawGoal.protein,
+      kcal: customGoals.kcal || rawGoal.kcal,
+      carbs: customGoals.carbs || rawGoal.carbs,
+      fat: customGoals.fat || rawGoal.fat,
+      fiber: customGoals.fiber || rawGoal.fiber,
+      salt: customGoals.salt || rawGoal.salt
+    };
+    return date !== TODAY && goalHistory[date] ? {...computedGoal, ...goalHistory[date]} : computedGoal;
   }
   useEffect(() => {
     // Scroll to top when changing tabs
@@ -3061,9 +3091,74 @@ function NutritionTracker({
     salt: customGoals.salt || baseGoals.salt,
     water: customGoals.water || baseWaterGoal
   };
+  const extremeAdjustment = Math.abs(calorieAdjustment) >= 750 || adjustmentPct >= 35 || calculatedGoals.kcal < 1200;
+  const calorieAdjustmentWarning = extremeAdjustment
+    ? (lang === 'en'
+      ? "This calorie adjustment looks very aggressive. Very low targets or large deficits/surpluses can be unhealthy and hard to sustain; consider a smaller adjustment or a longer timeline."
+      : "Este ajuste calórico parece muito agressivo. Metas muito baixas ou déficits/superávits grandes podem ser pouco saudáveis e difíceis de sustentar; considere um ajuste menor ou um prazo mais longo.")
+    : aggressiveAdjustment
+      ? (lang === 'en'
+        ? "This is a high adjustment. Review the timeline or use a smaller manual adjustment if the target feels too extreme."
+        : "Este é um ajuste alto. Revise o prazo ou use um ajuste manual menor se a meta parecer extrema.")
+      : "";
   const isToday = viewDate === TODAY;
   const frozenGoals = goalHistory[viewDate];
   const goals = !isToday && frozenGoals ? {...calculatedGoals, ...frozenGoals} : calculatedGoals;
+  function monthDays(monthKey) {
+    const [year, month] = monthKey.split("-").map(Number);
+    const first = new Date(year, month - 1, 1, 12);
+    const startOffset = first.getDay();
+    const lastDay = new Date(year, month, 0, 12).getDate();
+    const cells = Array.from({length: startOffset}, () => null);
+    for (let day = 1; day <= lastDay; day++) {
+      cells.push(`${monthKey}-${String(day).padStart(2, "0")}`);
+    }
+    while (cells.length % 7 !== 0) cells.push(null);
+    return cells;
+  }
+  function shiftMonth(monthKey, delta) {
+    const [year, month] = monthKey.split("-").map(Number);
+    const d = new Date(year, month - 1 + delta, 1, 12);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+  function calendarMarkerFor(logForDay, targetGoals) {
+    const entries = Object.values(logForDay || {}).flat();
+    const protein = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
+    const kcal = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
+    return {
+      hasData: entries.length > 0,
+      proteinMet: protein >= targetGoals.protein,
+      kcalGood: kcal >= targetGoals.kcal * 0.85 && kcal <= targetGoals.kcal * 1.15,
+      kcalOver: kcal > targetGoals.kcal * 1.15,
+      protein: Math.round(protein),
+      kcal: Math.round(kcal)
+    };
+  }
+  useEffect(() => {
+    if (!loaded || !calendarOpen) return;
+    let cancelled = false;
+    async function loadCalendarMonth() {
+      setCalendarLoading(true);
+      const nextData = {};
+      const dates = monthDays(calendarMonth).filter(Boolean).filter(date => date <= TODAY);
+      for (const date of dates) {
+        let dayLog = date === TODAY ? log : {};
+        if (date !== TODAY) {
+          const saved = await storage.get("log_v2_" + date).catch(() => null);
+          if (saved) dayLog = normalizeMealKeys(JSON.parse(saved.value));
+        }
+        nextData[date] = calendarMarkerFor(dayLog, dayGoalForDate(date));
+      }
+      if (!cancelled) {
+        setCalendarData(prev => ({...prev, [calendarMonth]: nextData}));
+        setCalendarLoading(false);
+      }
+    }
+    loadCalendarMonth();
+    return () => {
+      cancelled = true;
+    };
+  }, [loaded, calendarOpen, calendarMonth, log, goalHistory, trainingByDate, weightHistory, customGoals, nutritionPrefs]);
   useEffect(() => {
     if (!loaded) return;
     const snapshot = {
@@ -3287,7 +3382,14 @@ function NutritionTracker({
         foodId: e.foodId,
         name: e.name,
         qty: e.qty,
-        unit: e.unit
+        unit: e.unit,
+        protein: e.protein,
+        kcal: e.kcal,
+        carbs: e.carbs,
+        fat: e.fat,
+        fiber: e.fiber,
+        salt: e.salt,
+        foodSnapshot: e.foodSnapshot ? {...e.foodSnapshot} : null
       }))
     };
     setMealTemplates(mt => [...mt, t]);
@@ -3295,10 +3397,7 @@ function NutritionTracker({
     notify(lang === 'en' ? "Meal template saved." : "Modelo salvo.");
   }
   function loadTemplate(t) {
-    const items = t.items.map(item => {
-      const food = pantry.find(f => f.id === item.foodId);
-      return food ? buildEntry(food, item.qty) : null;
-    }).filter(Boolean);
+    const items = templateEntries(t).filter(Boolean);
     setStaged({
       meal: t.meal,
       items
@@ -3307,10 +3406,7 @@ function NutritionTracker({
     notify(lang === 'en' ? `"${t.name}" loaded.` : `"${t.name}" carregado.`);
   }
   function appendTemplateToStaged(t) {
-    const items = t.items.map(item => {
-      const food = pantry.find(f => f.id === item.foodId);
-      return food ? buildEntry(food, item.qty) : null;
-    }).filter(Boolean);
+    const items = templateEntries(t).filter(Boolean);
     if (!items.length) {
       notify(lang === 'en' ? "No ingredient from the saved meal was found in the pantry." : "Nenhum ingrediente da refeição salva foi encontrado na despensa.");
       return;
@@ -3321,6 +3417,47 @@ function NutritionTracker({
     }));
     setBatchMode(true);
     notify(lang === 'en' ? `"${t.name}" added to the meal in progress.` : `"${t.name}" adicionada à preparação.`);
+  }
+  function templateItemEntry(item) {
+    const qty = Number(item.qty) || 0;
+    if (item.foodSnapshot) return buildEntryFromSnapshot(item.foodSnapshot, qty);
+    if (item.kcal != null || item.protein != null) {
+      return {
+        ...item,
+        id: item.foodId || item.name,
+        qty,
+        protein: item.protein || 0,
+        kcal: item.kcal || 0,
+        carbs: item.carbs || 0,
+        fat: item.fat || 0,
+        fiber: item.fiber || 0,
+        salt: item.salt || 0
+      };
+    }
+    const food = pantry.find(f => f.id === item.foodId || f.name === item.name);
+    return food ? buildEntry(food, qty) : {
+      ...item,
+      id: item.foodId || item.name,
+      qty,
+      protein: 0,
+      kcal: 0,
+      carbs: 0,
+      fat: 0,
+      fiber: 0,
+      salt: 0
+    };
+  }
+  function templateEntries(tmpl) {
+    return (tmpl.items || []).map(templateItemEntry);
+  }
+  function templateTotals(tmpl) {
+    return buildDayTotals({items: templateEntries(tmpl)});
+  }
+  function pctOf(value, target) {
+    return target ? Math.round(value / target * 100) : 0;
+  }
+  function toggleTemplateExpanded(id) {
+    setExpandedTemplateIds(prev => ({...prev, [id]: !prev[id]}));
   }
   function loadRecentMealToStaged(recentMeal) {
     const items = recentMeal.entries.map(e => ({
@@ -3698,6 +3835,133 @@ function NutritionTracker({
     day: "numeric",
     month: "long"
   });
+  function renderSavedMealCard(tmpl, context) {
+    const entries = templateEntries(tmpl);
+    const totals = templateTotals(tmpl);
+    const expanded = !!expandedTemplateIds[tmpl.id];
+    const proteinPct = pctOf(totals.protein, goals.protein);
+    const kcalPct = pctOf(totals.kcal, goals.kcal);
+    return /*#__PURE__*/React.createElement("div", {
+      key: tmpl.id,
+      style: {
+        border: "1px solid var(--border3)",
+        borderRadius: 8,
+        padding: "10px 12px",
+        background: "var(--surface2, var(--surface))"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => toggleTemplateExpanded(tmpl.id),
+      title: expanded ? (lang === 'en' ? "Collapse" : "Recolher") : (lang === 'en' ? "Expand" : "Expandir"),
+      style: {
+        background: "none",
+        border: "1px solid var(--border3)",
+        color: "var(--muted)",
+        borderRadius: 6,
+        width: 28,
+        height: 28,
+        cursor: "pointer",
+        flexShrink: 0
+      }
+    }, expanded ? "−" : "+"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        color: "var(--text2)",
+        marginBottom: 4,
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis"
+      }
+    }, tmpl.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "6px 10px",
+        fontSize: 12,
+        color: "var(--muted)"
+      }
+    }, /*#__PURE__*/React.createElement("span", null, Math.round(totals.kcal), " kcal · ", kcalPct, "%"), /*#__PURE__*/React.createElement("span", null, Math.round(totals.protein), "g ", lang === 'en' ? "protein" : "proteína", " · ", proteinPct, "%"), /*#__PURE__*/React.createElement("span", null, (tmpl.items || []).length, " item", (tmpl.items || []).length !== 1 ? "s" : ""))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        flexWrap: "wrap",
+        justifyContent: "flex-end"
+      }
+    }, context === "add" && /*#__PURE__*/React.createElement("button", {
+      onClick: () => appendTemplateToStaged(tmpl),
+      style: sBtn("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)")
+    }, lang === 'en' ? "Add" : "Adicionar"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        loadTemplate(tmpl);
+        if (context === "pantry") setTab("adicionar");
+      },
+      style: sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)")
+    }, lang === 'en' ? "Edit" : "Editar"), context === "pantry" && /*#__PURE__*/React.createElement("button", {
+      onClick: () => deleteTemplate(tmpl.id),
+      title: lang === 'en' ? "Delete" : "Apagar",
+      style: {
+        background: "none",
+        border: "1px solid var(--border3)",
+        color: "var(--dim)",
+        borderRadius: 6,
+        padding: "4px 8px",
+        fontSize: 14,
+        cursor: "pointer"
+      }
+    }, "×"))), expanded && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        paddingTop: 10,
+        borderTop: "1px solid var(--border3)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8
+      }
+    }, entries.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "var(--faint)",
+        fontStyle: "italic"
+      }
+    }, lang === 'en' ? "No ingredients saved." : "Sem ingredientes salvos.") : entries.map((item, idx) => /*#__PURE__*/React.createElement("div", {
+      key: item.foodId || item.name || idx,
+      style: {
+        display: "grid",
+        gridTemplateColumns: "minmax(120px, 1fr) auto",
+        gap: 10,
+        alignItems: "start",
+        fontSize: 13
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "var(--text2)",
+        minWidth: 0
+      }
+    }, item.name, /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "var(--muted)",
+        fontSize: 12,
+        marginTop: 2
+      }
+    }, item.qty, item.unit)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "var(--muted2)",
+        fontSize: 12,
+        textAlign: "right",
+        lineHeight: 1.45
+      }
+    }, Math.round(item.kcal || 0), " kcal · ", Math.round(item.protein || 0), "g prot", /*#__PURE__*/React.createElement("br", null), Math.round(item.carbs || 0), "g carb · ", Math.round(item.fat || 0), "g gord")))));
+  }
   const weightChartData = weightHistory.map(e => ({
     date: e.date.slice(5),
     weight: e.weight
@@ -4384,7 +4648,18 @@ function NutritionTracker({
       whiteSpace: "nowrap",
       cursor: "pointer"
     }
-  }, label))), /*#__PURE__*/React.createElement("div", {
+  }, label))), isMobileView && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      color: "var(--faint)",
+      fontSize: 11,
+      textAlign: "center",
+      padding: "4px 0 6px",
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      borderBottom: "1px solid var(--border3)"
+    }
+  }, lang === 'en' ? "Swipe tabs sideways" : "Deslize as abas para os lados"), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "20px clamp(18px, 3vw, 34px) 32px",
       boxSizing: "border-box",
@@ -4394,13 +4669,18 @@ function NutritionTracker({
     }
   }, tab === "diario" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
       marginBottom: 14,
       background: "var(--surface)",
       borderRadius: 8,
       padding: "8px 12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+      flexWrap: "wrap"
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => changeViewDate(addDays(viewDate, -1)),
@@ -4412,9 +4692,15 @@ function NutritionTracker({
       fontSize: 18,
       padding: "0 8px"
     }
-  }, "\u2039"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2039"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setCalendarOpen(v => !v),
     style: {
-      textAlign: "center"
+      background: "none",
+      border: "none",
+      textAlign: "center",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      flex: "1 1 180px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -4433,12 +4719,120 @@ function NutritionTracker({
     style: {
       background: "none",
       border: "none",
-      color: viewDate >= TODAY ? "#2a2a2a" : "#666",
+      color: viewDate >= TODAY ? "var(--faint)" : "var(--muted)",
       cursor: viewDate >= TODAY ? "default" : "pointer",
       fontSize: 18,
       padding: "0 8px"
     }
-  }, "\u203A")), !isToday && (() => {
+  }, "\u203A"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => changeViewDate(TODAY),
+    disabled: isToday,
+    style: {
+      ...sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)"),
+      opacity: isToday ? 0.45 : 1,
+      cursor: isToday ? "default" : "pointer"
+    }
+  }, lang === 'en' ? "Today" : "Hoje")), calendarOpen && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      borderTop: "1px solid var(--border3)",
+      paddingTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setCalendarMonth(m => shiftMonth(m, -1)),
+    style: sBtn("transparent", "var(--border3)", "var(--muted)")
+  }, "\u2039"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text2)",
+      textTransform: "uppercase",
+      letterSpacing: 1
+    }
+  }, new Date(calendarMonth + "-01T12:00:00").toLocaleDateString(lang === 'en' ? "en-US" : "pt-BR", {month: "long", year: "numeric"})), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      const next = shiftMonth(calendarMonth, 1);
+      if (next <= TODAY.slice(0, 7)) setCalendarMonth(next);
+    },
+    disabled: calendarMonth >= TODAY.slice(0, 7),
+    style: {
+      ...sBtn("transparent", "var(--border3)", "var(--muted)"),
+      opacity: calendarMonth >= TODAY.slice(0, 7) ? 0.4 : 1
+    }
+  }, "\u203A")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+      gap: 4
+    }
+  }, (lang === 'en' ? ["S","M","T","W","T","F","S"] : ["D","S","T","Q","Q","S","S"]).map((d, idx) => /*#__PURE__*/React.createElement("div", {
+    key: d + idx,
+    style: {
+      textAlign: "center",
+      color: "var(--muted)",
+      fontSize: 11,
+      padding: "4px 0"
+    }
+  }, d)), monthDays(calendarMonth).map((date, idx) => {
+    const marker = date ? (calendarData[calendarMonth] || {})[date] : null;
+    const selected = date === viewDate;
+    const disabled = !date || date > TODAY;
+    return /*#__PURE__*/React.createElement("button", {
+      key: date || "blank-" + idx,
+      disabled,
+      onClick: () => date && changeViewDate(date),
+      title: marker && marker.hasData ? `${marker.kcal} kcal · ${marker.protein}g` : "",
+      style: {
+        minHeight: 40,
+        borderRadius: 6,
+        border: selected ? "1px solid #c8a96e" : "1px solid var(--border3)",
+        background: selected ? "var(--btn-info)" : "transparent",
+        color: disabled ? "var(--faint)" : "var(--text2)",
+        cursor: disabled ? "default" : "pointer",
+        fontFamily: "inherit",
+        padding: 4
+      }
+    }, date ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13
+      }
+    }, Number(date.slice(-2))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "center",
+        gap: 3,
+        marginTop: 4,
+        minHeight: 5
+      }
+    }, marker?.hasData && /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 5,
+        height: 5,
+        borderRadius: "50%",
+        background: marker.proteinMet ? "#c8a96e" : "var(--border3)"
+      }
+    }), marker?.hasData && /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 5,
+        height: 5,
+        borderRadius: "50%",
+        background: marker.kcalOver ? "#cf6679" : marker.kcalGood ? "#66c2c2" : "var(--border3)"
+      }
+    }))) : "");
+  })), calendarLoading && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--faint)",
+      fontSize: 12,
+      textAlign: "center",
+      marginTop: 8
+    }
+  }, lang === 'en' ? "Loading..." : "Carregando..."))), !isToday && (() => {
     const entries = Object.values(activeLog).flat();
     const p = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
     const k = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
@@ -5316,75 +5710,7 @@ function NutritionTracker({
       textAlign: "center",
       padding: "10px 0"
     }
-  }, lang === 'en' ? "No saved meals found." : "Nenhuma refei\xE7\xE3o salva encontrada.") : mealTemplates.filter(tmpl => tmpl.name.toLowerCase().includes(addTemplateSearch.trim().toLowerCase())).map(tmpl => /*#__PURE__*/React.createElement("div", {
-    key: tmpl.id,
-    style: {
-      borderTop: "1px solid var(--border3)",
-      paddingTop: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: "var(--text2)",
-      marginBottom: 2
-    }
-  }, tmpl.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--muted)"
-    }
-  }, tmpl.items.length, " item", tmpl.items.length !== 1 ? "s" : "")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => appendTemplateToStaged(tmpl),
-    style: sBtn("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)")
-  }, lang === 'en' ? "Add" : "Adicionar"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => loadTemplate(tmpl),
-    style: sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)")
-  }, lang === 'en' ? "Edit" : "Editar")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 5,
-      paddingLeft: 8,
-      borderLeft: "2px solid var(--border3)"
-    }
-  }, tmpl.items.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--faint)",
-      fontStyle: "italic"
-    }
-  }, lang === 'en' ? "No ingredients saved." : "Sem ingredientes salvos.") : tmpl.items.map((item, idx) => /*#__PURE__*/React.createElement("div", {
-    key: item.foodId || item.name || idx,
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      gap: 12,
-      fontSize: 13,
-      color: "var(--muted)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--text2)",
-      minWidth: 0
-    }
-  }, item.name), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flexShrink: 0,
-      color: "var(--muted2)"
-    }
-  }, item.qty, item.unit))))))))), tab === "adicionar" && /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "No saved meals found." : "Nenhuma refei\xE7\xE3o salva encontrada.") : mealTemplates.filter(tmpl => tmpl.name.toLowerCase().includes(addTemplateSearch.trim().toLowerCase())).map(tmpl => renderSavedMealCard(tmpl, "add"))))), tab === "adicionar" && /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 14
     }
@@ -6654,84 +6980,7 @@ function NutritionTracker({
       textAlign: "center",
       padding: "10px 0"
     }
-  }, lang === 'en' ? "No saved meals." : "Nenhuma refei\xE7\xE3o salva.") : mealTemplates.map(tmpl => /*#__PURE__*/React.createElement("div", {
-    key: tmpl.id,
-    style: {
-      borderBottom: "1px solid var(--border3)",
-      padding: "10px 6px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: "var(--text2)",
-      marginBottom: 2
-    }
-  }, tmpl.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--muted)"
-    }
-  }, tmpl.items.length, " item", tmpl.items.length !== 1 ? "s" : "")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => { loadTemplate(tmpl); setTab("adicionar"); },
-    style: sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)")
-  }, lang === 'en' ? "Edit" : "editar"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => deleteTemplate(tmpl.id),
-    title: lang === 'en' ? "Delete" : "Apagar",
-    style: {
-      background: "none",
-      border: "1px solid var(--border3)",
-      color: "var(--dim)",
-      borderRadius: 4,
-      padding: "3px 8px",
-      fontSize: 14,
-      cursor: "pointer"
-    }
-  }, "\uD83D\uDDD1\uFE0F")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 5,
-      paddingLeft: 8,
-      borderLeft: "2px solid var(--border3)"
-    }
-  }, tmpl.items.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--faint)",
-      fontStyle: "italic"
-    }
-  }, lang === 'en' ? "No ingredients saved." : "Sem ingredientes salvos.") : tmpl.items.map((item, idx) => /*#__PURE__*/React.createElement("div", {
-    key: item.foodId || item.name || idx,
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      gap: 12,
-      fontSize: 13,
-      color: "var(--muted)"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--text2)",
-      minWidth: 0
-    }
-  }, item.name), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flexShrink: 0,
-      color: "var(--muted2)"
-    }
-  }, item.qty, item.unit)))))))), /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "No saved meals." : "Nenhuma refei\xE7\xE3o salva.") : mealTemplates.map(tmpl => renderSavedMealCard(tmpl, "pantry")))), /*#__PURE__*/React.createElement("div", {
     "data-tutorial": "pantry-supplements",
     style: {
       marginTop: 12,
@@ -7942,7 +8191,18 @@ function NutritionTracker({
     onChange: e => saveNutritionPrefs({...nutritionPrefs, manualAdjustment: e.target.value}),
     placeholder: "auto: " + getGoalAdjustment(nutritionPrefs),
     style: inp
-  })), /*#__PURE__*/React.createElement("div", {
+  }), calorieAdjustmentWarning && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: -6,
+      padding: "8px 10px",
+      border: "1px solid var(--notif-err-border)",
+      background: "var(--notif-err-bg)",
+      color: "var(--notif-err-text)",
+      borderRadius: 6,
+      fontSize: 12,
+      lineHeight: 1.35
+    }
+  }, calorieAdjustmentWarning)), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: "1 1 180px"
     }
@@ -9254,7 +9514,7 @@ function TutorialOverlay({ lang, onDone }) {
       if (!key) { setRect(null); return; }
       const el = document.querySelector('[data-tutorial="' + key + '"]');
       if (!el) { setRect(null); return; }
-      el.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+      el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
       const r = el.getBoundingClientRect();
       setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
     };
@@ -9287,9 +9547,9 @@ function TutorialOverlay({ lang, onDone }) {
       'Q' + (rect.left - PAD) + ',' + (rect.top - PAD) + ' ' + (rect.left - PAD + R) + ',' + (rect.top - PAD) + ' Z'
     : 'M0,0 H' + vw + ' V' + vh + ' H0 Z';
 
-  // Tooltip positioning: place above or below, never overlapping the highlight
+  // Tooltip positioning: prefer the open side of the highlight and avoid covering it.
   const TOOLTIP_W = Math.min(320, vw - 32);
-  const TOOLTIP_H = 220;
+  const TOOLTIP_H = Math.min(240, vh - 32);
   const GAP = 20; // gap between highlight and tooltip
 
   let tooltipTop, tooltipLeft;
@@ -9297,17 +9557,20 @@ function TutorialOverlay({ lang, onDone }) {
     tooltipTop = vh / 2 - TOOLTIP_H / 2;
     tooltipLeft = vw / 2 - TOOLTIP_W / 2;
   } else {
-    const spaceBelow = vh - (rect.top + rect.height + PAD);
+    const rectBottom = rect.top + rect.height;
+    const spaceBelow = vh - (rectBottom + PAD);
     const spaceAbove = rect.top - PAD;
-    if (spaceAbove >= TOOLTIP_H + GAP) {
-      // Above the element
-      tooltipTop = rect.top - PAD - GAP - TOOLTIP_H;
-    } else if (spaceBelow >= TOOLTIP_H + GAP) {
-      // Below
-      tooltipTop = rect.top + rect.height + PAD + GAP;
+    if (spaceBelow >= TOOLTIP_H + GAP || spaceBelow >= spaceAbove) {
+      tooltipTop = rectBottom + PAD + GAP;
     } else {
-      // Center vertically, left side
-      tooltipTop = vh / 2 - TOOLTIP_H / 2;
+      tooltipTop = rect.top - PAD - GAP - TOOLTIP_H;
+    }
+    tooltipTop = Math.max(16, Math.min(tooltipTop, vh - TOOLTIP_H - 16));
+    const overlapsHighlight = tooltipTop < rectBottom + GAP && tooltipTop + TOOLTIP_H > rect.top - GAP;
+    if (overlapsHighlight) {
+      tooltipTop = rect.top > vh / 2
+        ? Math.max(16, rect.top - PAD - GAP - TOOLTIP_H)
+        : Math.min(vh - TOOLTIP_H - 16, rectBottom + PAD + GAP);
     }
     tooltipLeft = Math.max(16, Math.min(rect.left + rect.width / 2 - TOOLTIP_W / 2, vw - TOOLTIP_W - 16));
   }
@@ -9342,7 +9605,10 @@ function TutorialOverlay({ lang, onDone }) {
         background:'var(--surface,#1a1a1a)',
         borderRadius:14, padding:'18px 18px 14px',
         boxShadow:'0 8px 32px rgba(0,0,0,0.3)',
-        border:'1px solid var(--border2,#333)'
+        border:'1px solid var(--border2,#333)',
+        maxHeight: TOOLTIP_H,
+        overflowY: 'auto',
+        boxSizing: 'border-box'
       }
     },
       // Progress dots
@@ -9935,7 +10201,7 @@ function App() {
         darkMode,
         onClose: () => setShowBackup(false)
       }) : null,
-      showTutorial ? React.createElement(TutorialOverlay, {
+      showTutorial && !requiredProfile ? React.createElement(TutorialOverlay, {
         lang,
         onDone: () => {
           storage.set('tutorialSeen', 'true').catch(()=>{});
