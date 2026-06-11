@@ -1214,6 +1214,13 @@ const ACTIVITY_LEVELS = {
   very: { factor: 1.725, pt: "Muito ativo", en: "Very active", descPt: "Exercicios intensos 6 a 7 vezes por semana ou trabalho fisico exigente", descEn: "Intense exercise 6 to 7 times per week or demanding physical work" },
   extreme: { factor: 1.9, pt: "Extremamente ativo", en: "Extremely active", descPt: "Atletas ou rotina extremamente ativa", descEn: "Athletes or extremely active routines" }
 };
+const REST_FACTORS = {
+  sedentary: 1.05,
+  light: 1.25,
+  moderate: 1.35,
+  very: 1.45,
+  extreme: 1.55
+};
 function calculateAge(birthDate, refDate = new Date()) {
   if (!birthDate) return null;
   const d = new Date(birthDate + "T00:00:00");
@@ -1249,7 +1256,7 @@ function computeGoals(weight, train, profile = {}) {
   const activityLevel = prefs.activityLevel || "moderate";
   if (weight && height && age && (gender === "male" || gender === "female")) {
     const bmr = 10 * weight + 6.25 * height - 5 * age + (gender === "male" ? 5 : -161);
-    const fa = train ? (ACTIVITY_LEVELS[activityLevel]?.factor || 1.55) : (activityLevel === "sedentary" ? 1.0 : 1.35);
+    const fa = train ? (ACTIVITY_LEVELS[activityLevel]?.factor || 1.55) : (REST_FACTORS[activityLevel] || 1.35);
     const baseCalories = Math.round(bmr * fa);
     const adjustment = getGoalAdjustment(prefs);
     const kcal = Math.max(1200, Math.round(baseCalories + adjustment));
