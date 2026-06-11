@@ -1827,7 +1827,10 @@ function NutritionTracker({
   }
   // Sync external lang changes
   useEffect(() => {
-    if (externalLang && externalLang !== lang) setLang(externalLang);
+    if (externalLang && externalLang !== lang) {
+      localStorage.setItem('appLang', externalLang);
+      setLang(externalLang);
+    }
   }, [externalLang]);
   // MEALS always uses PT names as storage keys (data compatibility)
   const MEALS = STRINGS.pt.meals;
@@ -2924,6 +2927,7 @@ function NutritionTracker({
     return {
       reportType: type,
       format,
+      lang,
       generatedFromAppAt: new Date().toISOString(),
       profile: {
         userName,
@@ -7254,6 +7258,7 @@ function NutritionTracker({
   }, "ml"), /*#__PURE__*/React.createElement("option", {
     value: "un"
   }, "un")))), /*#__PURE__*/React.createElement("button", {
+    "data-tutorial": "barcode-scan-button",
     onClick: () => {
       setBarcodeModalOpen(true);
       setBarcodeMessage("");
@@ -9228,6 +9233,7 @@ function NutritionTracker({
       lineHeight: 1.45
     }
   }, lang === 'en' ? "Generate HTML or PDF reports with charts and period analysis." : "Gere relatórios em HTML ou PDF com gráficos e análise do período.")), /*#__PURE__*/React.createElement("button", {
+    "data-tutorial": "advanced-reports",
     onClick: () => {
       setReportMessage("");
       setReportModalOpen(true);
@@ -10531,9 +10537,11 @@ function TutorialOverlay({ lang, onDone }) {
     { title: 'Evolução do peso', text: 'Quando houver mais de um registro, o gráfico aparece aqui para acompanhar tendência, não só o peso isolado de um dia.', tab: 'metricas', highlight: 'weight-chart' },
     { title: 'Perfil nutricional', text: 'Escolha atividade física e objetivo. Isso ajusta as calorias automaticamente para manutenção, perda ou ganho.', tab: 'metricas', highlight: 'nutrition-profile' },
     { title: 'Como ler a meta', text: 'Aqui você vê TMB, base do dia, ajuste do objetivo e a meta final. É o resumo do cálculo usado no diário.', tab: 'metricas', highlight: 'metrics-target-summary' },
+    { title: 'Relatórios avançados', text: 'Gere relatórios em HTML ou PDF para o dia, semana, mês ou histórico completo. Eles incluem gráficos, metas, médias e uma análise resumida.', tab: 'metricas', highlight: 'advanced-reports' },
     { title: 'Tipo do dia', text: 'Marque se hoje é treino ou descanso. O app troca o fator calórico e recalcula a meta do dia.', tab: 'diario', highlight: 'day-type' },
     { title: 'Por que a despensa vem antes', text: 'Antes de registrar refeições, cadastre alimentos na Despensa. O app usa esses itens para calcular porções, montar refeições e sugerir combinações.', tab: 'despensa', highlight: 'tab-despensa' },
     { title: 'Criar alimento', text: 'Comece pelo nome e unidade. Você pode preencher macros manualmente ou usar o preenchimento automático como ponto de partida.', tab: 'despensa', highlight: 'pantry-food-name' },
+    { title: 'Ler código de barras', text: 'Use o leitor de código de barras para buscar alimentos no Open Food Facts. Quando a câmera não estiver disponível, você ainda pode digitar o código manualmente.', tab: 'despensa', highlight: 'barcode-scan-button' },
     { title: 'Salvar na despensa', text: 'Salve o alimento quando os valores fizerem sentido. Depois ele fica disponível para registrar refeições e para as sugestões da IA.', tab: 'despensa', highlight: 'pantry-save-button' },
     { title: 'Alimentos salvos', text: 'Aqui ficam os alimentos cadastrados. Use a busca para encontrar rápido, editar valores ou conferir o que já existe.', tab: 'despensa', highlight: 'pantry-saved-foods' },
     { title: 'Modelos de refeição', text: 'Modelos guardam combinações frequentes, como um café da manhã ou almoço padrão, para repetir depois com poucos toques.', tab: 'despensa', highlight: 'pantry-meal-templates' },
@@ -10551,9 +10559,11 @@ function TutorialOverlay({ lang, onDone }) {
     { title: 'Weight trend', text: 'Once there is more than one record, this chart appears here to track the trend, not just one isolated weigh-in.', tab: 'metricas', highlight: 'weight-chart' },
     { title: 'Nutrition profile', text: 'Choose physical activity and objective. This adjusts calories for maintenance, loss, or gain.', tab: 'metricas', highlight: 'nutrition-profile' },
     { title: 'Reading the target', text: 'Here you see BMR, day base, goal adjustment, and final target. This summarizes the calculation used in the diary.', tab: 'metricas', highlight: 'metrics-target-summary' },
+    { title: 'Advanced reports', text: 'Generate HTML or PDF reports for the day, week, month, or full history. They include charts, goals, averages, and a short analysis.', tab: 'metricas', highlight: 'advanced-reports' },
     { title: 'Day type', text: 'Mark today as training or rest. The app changes the calorie factor and recalculates the day target.', tab: 'diario', highlight: 'day-type' },
     { title: 'Why pantry comes first', text: 'Before logging meals, add foods to the Pantry. The app uses those items to calculate portions, build meals, and suggest combinations.', tab: 'despensa', highlight: 'tab-despensa' },
     { title: 'Create a food', text: 'Start with name and unit. You can fill macros manually or use auto-fill as a starting point.', tab: 'despensa', highlight: 'pantry-food-name' },
+    { title: 'Scan barcode', text: 'Use barcode scanning to look up foods in Open Food Facts. If the camera is unavailable, you can still type the barcode manually.', tab: 'despensa', highlight: 'barcode-scan-button' },
     { title: 'Save to pantry', text: 'Save the food once the values look right. It then becomes available for meal logging and AI suggestions.', tab: 'despensa', highlight: 'pantry-save-button' },
     { title: 'Saved foods', text: 'Your registered foods live here. Use search to find them quickly, edit values, or confirm what already exists.', tab: 'despensa', highlight: 'pantry-saved-foods' },
     { title: 'Meal templates', text: 'Templates save frequent combinations, such as a standard breakfast or lunch, so you can repeat them with fewer taps.', tab: 'despensa', highlight: 'pantry-meal-templates' },
@@ -11193,7 +11203,6 @@ function App() {
   const [pendingName,  setPendingName]  = React.useState('');
   const [requiredProfile, setRequiredProfile] = React.useState(null);
   const [profileChecking, setProfileChecking] = React.useState(fbIsLoggedIn());
-  const [appLang, setAppLang] = React.useState(() => localStorage.getItem('appLang') || 'pt');
   const [lang, setLang]         = React.useState(()=>localStorage.getItem('appLang')||'pt');
   const [darkMode, setDarkMode] = React.useState(() => {
     const saved = localStorage.getItem('appDarkMode');
@@ -11241,7 +11250,7 @@ function App() {
   if (pendingEmail) return React.createElement(VerifyEmailScreen, {
     email: pendingEmail,
     name: pendingName,
-    lang: appLang,
+    lang,
     onVerified: (isNew) => {
       setPendingEmail(null); setPendingName('');
       afterAuthenticated(isNew);
@@ -11250,12 +11259,13 @@ function App() {
   });
   if (!authed) return React.createElement(LoginScreen, {
     onLogin: (isNew) => {
+      setLang(localStorage.getItem('appLang') || 'pt');
       afterAuthenticated(isNew);
     },
     onPendingVerification: (email, name) => {
       setPendingEmail(email);
       setPendingName(name || '');
-      setAppLang(localStorage.getItem('appLang') || 'pt');
+      setLang(localStorage.getItem('appLang') || 'pt');
     }
   });
 
