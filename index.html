@@ -419,6 +419,7 @@ const FB_KEY     = "AIzaSyCFRIi8LToXFRqO3vwoaL0EEqzrK3TUgGE";
 const FB_BASE    = "https://firestore.googleapis.com/v1/projects/" + FB_PROJECT + "/databases/(default)/documents/nutrition";
 const AUTH_BASE  = "https://identitytoolkit.googleapis.com/v1/accounts";
 const TOKEN_BASE = "https://securetoken.googleapis.com/v1/token";
+const REPORT_SERVER_URL = "http://192.168.1.82:8000";
 
 // ── Auth state ───────────────────────────────────────────────
 let _idToken      = null;
@@ -1946,6 +1947,11 @@ function NutritionTracker({
   const [barcodeLoading, setBarcodeLoading] = useState(false);
   const [barcodeScanning, setBarcodeScanning] = useState(false);
   const [barcodeMessage, setBarcodeMessage] = useState("");
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportType, setReportType] = useState("week");
+  const [reportFormat, setReportFormat] = useState("html");
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportMessage, setReportMessage] = useState("");
   const videoRef = useRef(null);
   const barcodeStreamRef = useRef(null);
   const barcodeReaderRef = useRef(null);
@@ -2851,6 +2857,115 @@ function NutritionTracker({
       fiber: rnd(entries.reduce((s, e) => s + (e.fiber ?? 0), 0)),
       salt: rnd(entries.reduce((s, e) => s + (e.salt ?? 0), 0))
     };
+  }
+  function reportDateShift(date, days) {
+    const d = new Date(date + "T12:00:00");
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split("T")[0];
+  }
+  function reportDateRange(start, end) {
+    const dates = [];
+    let d = start;
+    while (d <= end) {
+      dates.push(d);
+      d = reportDateShift(d, 1);
+    }
+    return dates;
+  }
+  async function loadReportDay(date) {
+    let dayLog = date === TODAY ? log : {};
+    if (date !== TODAY) {
+      const saved = await storage.get("log_v2_" + date).catch(() => null);
+      if (saved) dayLog = normalizeMealKeys(JSON.parse(saved.value));
+    }
+    const [noteRes, waterRes, suppRes] = await Promise.all([
+      date === TODAY ? Promise.resolve({value: todayNote || ""}) : storage.get("notes_" + date).catch(() => null),
+      date === TODAY ? Promise.resolve({value: JSON.stringify(waterIntake || [])}) : storage.get("waterIntake_" + date).catch(() => null),
+      date === TODAY ? Promise.resolve({value: JSON.stringify(suppLog || [])}) : storage.get("suppLog_" + date).catch(() => null)
+    ]);
+    const weightEntry = getWeightForDate(weightHistory, date);
+    return {
+      date,
+      isTraining: trainingByDate[date] ?? true,
+      weight: weightEntry?.weight || null,
+      height: weightEntry?.height || null,
+      goals: dayGoalForDate(date),
+      totals: buildDayTotals(dayLog),
+      meals: dayLog,
+      water: waterRes?.value ? JSON.parse(waterRes.value) : [],
+      supplements: suppRes?.value ? JSON.parse(suppRes.value) : [],
+      notes: noteRes?.value || ""
+    };
+  }
+  async function buildAdvancedReportPayload(type, format) {
+    const anchor = viewDate || TODAY;
+    let dates = [];
+    if (type === "day") {
+      dates = [anchor];
+    } else if (type === "week") {
+      dates = reportDateRange(reportDateShift(anchor, -6), anchor);
+    } else if (type === "month") {
+      const first = anchor.slice(0, 8) + "01";
+      const lastDate = new Date(anchor.slice(0, 7) + "-01T12:00:00");
+      lastDate.setMonth(lastDate.getMonth() + 1);
+      lastDate.setDate(0);
+      const last = lastDate.toISOString().split("T")[0];
+      dates = reportDateRange(first, last);
+    } else {
+      const listed = await storage.list("log_v2_").catch(() => ({keys: []}));
+      dates = (listed.keys || [])
+        .map(k => String(k).replace("log_v2_", "").slice(0, 10))
+        .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
+      if (!dates.includes(TODAY)) dates.push(TODAY);
+      dates = Array.from(new Set(dates)).sort();
+    }
+    const days = await Promise.all(dates.map(loadReportDay));
+    const nonEmptyDays = days.filter(d => Object.values(d.meals || {}).some(items => (items || []).length) || d.date === TODAY || type === "day");
+    return {
+      reportType: type,
+      format,
+      generatedFromAppAt: new Date().toISOString(),
+      profile: {
+        userName,
+        birthDate: profileData.birthDate,
+        gender: profileData.gender,
+        currentWeight,
+        currentHeight
+      },
+      nutritionPrefs,
+      customGoals,
+      period: {
+        start: dates[0],
+        end: dates[dates.length - 1]
+      },
+      days: nonEmptyDays,
+      pantry,
+      mealTemplates,
+      weightHistory
+    };
+  }
+  async function generateAdvancedReport() {
+    setReportLoading(true);
+    setReportMessage("");
+    try {
+      const payload = await buildAdvancedReportPayload(reportType, reportFormat);
+      const response = await fetch(REPORT_SERVER_URL.replace(/\/$/, "") + "/reports/from-body", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || (lang === 'en' ? "Could not generate report." : "Não foi possível gerar o relatório."));
+      const targetUrl = REPORT_SERVER_URL.replace(/\/$/, "") + (reportFormat === "pdf" ? data.downloadUrl : data.htmlUrl);
+      window.open(targetUrl, "_blank", "noopener,noreferrer");
+      setReportMessage(lang === 'en' ? "Report generated and opened in a new tab." : "Relatório gerado e aberto em uma nova aba.");
+    } catch (err) {
+      const msg = err?.message || String(err);
+      setReportMessage(msg);
+      notify("⚠ " + msg, 8000);
+    } finally {
+      setReportLoading(false);
+    }
   }
   async function runExport(period, format) {
     setShowExportPanel(null);
@@ -9069,7 +9184,40 @@ function NutritionTracker({
       fontSize: 14,
       letterSpacing: 1
     }
-  }, lang === 'en' ? "Reset automatic targets" : "Repor metas autom\xE1ticas"))), isMobileView && /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "Reset automatic targets" : "Repor metas autom\xE1ticas"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 16,
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 8,
+      padding: "14px 16px",
+      display: "flex",
+      gap: 12,
+      alignItems: "center",
+      justifyContent: "space-between",
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      letterSpacing: 1,
+      color: "var(--muted)",
+      textTransform: "uppercase",
+      marginBottom: 6
+    }
+  }, lang === 'en' ? "Advanced reports" : "Relatórios avançados"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "var(--dim)",
+      lineHeight: 1.45
+    }
+  }, lang === 'en' ? "Generate HTML or PDF reports with charts and period analysis." : "Gere relatórios em HTML ou PDF com gráficos e análise do período.")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setReportMessage("");
+      setReportModalOpen(true);
+    },
+    style: sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)")
+  }, lang === 'en' ? "Generate report" : "Gerar relatório")), isMobileView && /*#__PURE__*/React.createElement("div", {
     style: {
       position: "fixed",
       left: 0,
@@ -9100,7 +9248,116 @@ function NutritionTracker({
       setTab("diario");
     },
     style: sBtn("transparent", "var(--border2)", "var(--muted)")
-  }, lang === 'en' ? "Today" : "Hoje")), barcodeModalOpen && /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "Today" : "Hoje")), reportModalOpen && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 99998,
+      background: "rgba(0,0,0,0.62)",
+      backdropFilter: "blur(3px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 16
+    },
+    onClick: e => {
+      if (e.target === e.currentTarget && !reportLoading) setReportModalOpen(false);
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      border: "1px solid var(--border2)",
+      borderRadius: 10,
+      width: "min(560px, 100%)",
+      maxHeight: "90vh",
+      overflow: "auto",
+      padding: 18,
+      boxShadow: "0 18px 50px rgba(0,0,0,0.35)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 16,
+      letterSpacing: 1.5,
+      color: "var(--muted)",
+      textTransform: "uppercase"
+    }
+  }, lang === 'en' ? "Generate report" : "Gerar relatório"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => !reportLoading && setReportModalOpen(false),
+    style: {
+      background: "none",
+      border: "none",
+      color: "var(--muted)",
+      fontSize: 24,
+      cursor: "pointer"
+    }
+  }, "×")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: "var(--dim)",
+      lineHeight: 1.55,
+      marginBottom: 14
+    }
+  }, lang === 'en' ? "Choose the period and output format. The report opens in a new tab when ready." : "Escolha o período e o formato. O relatório abre em uma nova aba quando estiver pronto."), /*#__PURE__*/React.createElement("label", {
+    style: lbl
+  }, lang === 'en' ? "Report type" : "Tipo de relatório"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+      gap: 8,
+      marginBottom: 14
+    }
+  }, [["day", lang === 'en' ? "Day" : "Dia"], ["week", lang === 'en' ? "Week" : "Semana"], ["month", lang === 'en' ? "Month" : "Mês"], ["full", lang === 'en' ? "Full history" : "Histórico completo"]].map(([value, label]) => /*#__PURE__*/React.createElement("button", {
+    key: value,
+    onClick: () => setReportType(value),
+    disabled: reportLoading,
+    style: {
+      ...sBtn(reportType === value ? "var(--btn-ok)" : "transparent", reportType === value ? "var(--btn-ok-border)" : "var(--border2)", reportType === value ? "var(--btn-ok-text)" : "var(--muted)"),
+      marginTop: 0
+    }
+  }, label))), /*#__PURE__*/React.createElement("label", {
+    style: lbl
+  }, lang === 'en' ? "Format" : "Formato"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 8,
+      marginBottom: 16
+    }
+  }, [["html", "HTML"], ["pdf", "PDF"]].map(([value, label]) => /*#__PURE__*/React.createElement("button", {
+    key: value,
+    onClick: () => setReportFormat(value),
+    disabled: reportLoading,
+    style: {
+      ...sBtn(reportFormat === value ? "var(--btn-info)" : "transparent", reportFormat === value ? "var(--btn-info-border)" : "var(--border2)", reportFormat === value ? "var(--btn-info-text)" : "var(--muted)"),
+      marginTop: 0
+    }
+  }, label))), /*#__PURE__*/React.createElement("button", {
+    onClick: generateAdvancedReport,
+    disabled: reportLoading,
+    style: {
+      ...btn,
+      marginTop: 0,
+      opacity: reportLoading ? 0.6 : 1
+    }
+  }, reportLoading ? (lang === 'en' ? "Generating..." : "Gerando...") : (lang === 'en' ? "Generate" : "Gerar")), reportMessage && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      padding: "10px 12px",
+      borderRadius: 6,
+      border: "1px solid var(--border2)",
+      color: "var(--muted)",
+      fontSize: 14,
+      lineHeight: 1.45
+    }
+  }, reportMessage))), barcodeModalOpen && /*#__PURE__*/React.createElement("div", {
     style: {
       position: "fixed",
       inset: 0,
