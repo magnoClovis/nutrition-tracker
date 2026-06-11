@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /nutrition/{docId} {
+      function signedIn() {
+        return request.auth != null;
+      }
+
+      function isOwnUserDoc() {
+        return signedIn() && docId == request.auth.uid;
+      }
+
+      function isOwnLegacyDoc() {
+        return signedIn() && docId.matches('^' + request.auth.uid + '_.*$');
+      }
+
+      // Temporary migration window:
+      // - New app data is read/written at nutrition/{uid}.
+      // - Legacy docs nutrition/{uid}_{field} are read-only so old data can be migrated.
+      allow read: if isOwnUserDoc() || isOwnLegacyDoc();
+      allow create, update, delete: if isOwnUserDoc();
+    }
+  }
+}
