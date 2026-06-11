@@ -54,13 +54,17 @@
       50% { box-shadow: 0 0 0 6px rgba(126,200,126,0); }
     }
     .nutrition-summary-cards > span {
-      flex: 1 1 160px;
-      min-width: 150px;
+      min-height: 76px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 12px 14px;
       color: var(--text2);
+      line-height: 1.35;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      flex-direction: column;
     }
     .nutrition-summary-cards > span:nth-child(1),
     .nutrition-summary-cards > span:nth-child(5) {
@@ -71,6 +75,12 @@
     }
     .nutrition-summary-cards > span:nth-child(3) {
       color: #c86e8e;
+    }
+    .nutrition-summary-cards > span:nth-child(4) {
+      border-color: var(--btn-ok-border);
+      background: var(--btn-ok);
+      color: var(--btn-ok-text) !important;
+      font-weight: 600;
     }
 </style>
 </head>
@@ -7708,12 +7718,14 @@ function NutritionTracker({
   }))), /*#__PURE__*/React.createElement("div", {
     className: "nutrition-summary-cards",
     style: {
-      marginTop: 12,
-      display: "flex",
+      flex: "1 1 100%",
+      marginTop: 6,
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
       gap: 10,
-      flexWrap: "wrap",
       fontSize: 14,
-      color: "var(--muted)"
+      color: "var(--muted)",
+      alignSelf: "flex-start"
     }
   }, /*#__PURE__*/React.createElement("span", null, lang === 'en' ? "BMR: " : "TMB: ", baseGoals.bmr || "-", " kcal"), /*#__PURE__*/React.createElement("span", null, lang === 'en' ? "Day base: " : "Base do dia: ", calorieBase || "-", " kcal"), /*#__PURE__*/React.createElement("span", null, lang === 'en' ? "Goal adjustment: " : "Ajuste do objetivo: ", calorieAdjustment > 0 ? "+" : "", calorieAdjustment, lang === 'en' ? " kcal/day" : " kcal/dia", calorieBase ? " (" + adjustmentPct + "%)" : ""), /*#__PURE__*/React.createElement("span", {
     style: {
