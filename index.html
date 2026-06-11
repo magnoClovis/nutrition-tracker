@@ -705,7 +705,190 @@ async function fbList(p) {
   } catch(e) { return {keys:[]}; }
 }
 
-window.storage = {get:fbGet, set:fbSet, delete:fbDel, list:fbList};
+// Firestore v3 storage:
+// - nutrition/{uid}: small profile/preferences fields.
+// - nutrition/{uid}/data/{key}: app data that can grow over time.
+// Legacy root fields and nutrition/{uid}_{key} docs remain readable as fallback.
+const PROFILE_FIELD_KEYS = new Set([
+  "birthDate", "gender", "activityLevel", "goalType", "goalKg", "goalWeeks",
+  "manualCalorieAdjustment", "proteinMultiplier", "userName", "tutorialSeen"
+]);
+let _rootDocCache3 = null;
+let _rootDocLoaded3 = false;
+let _dataKeyCache3 = null;
+let _migrationPromise3 = null;
+function _dataDocUrl3(k) {
+  return _userDocUrl2() + "/data/" + encodeURIComponent(k);
+}
+function _isProfileKey3(k) {
+  return PROFILE_FIELD_KEYS.has(k);
+}
+async function _fetchRootFields3() {
+  if (!_uid) return {};
+  const r = await fetch(_userDocUrl2(), {headers: await fbHeaders()});
+  if (!r.ok) return {};
+  const d = await r.json();
+  const out = {};
+  Object.entries(d.fields || {}).forEach(([k, v]) => out[k] = _decodeFsValue2(v));
+  return out;
+}
+async function _loadRootFields3() {
+  if (!_rootDocLoaded3) {
+    _rootDocCache3 = await _fetchRootFields3().catch(() => ({}));
+    _rootDocLoaded3 = true;
+  }
+  return _rootDocCache3 || {};
+}
+async function _patchRootFields3(fields, deleteKeys) {
+  await _patchUserFields2(fields, deleteKeys);
+  _rootDocCache3 = {...(_rootDocCache3 || {}), ...(fields || {})};
+  (deleteKeys || []).forEach(k => { if (_rootDocCache3) delete _rootDocCache3[k]; });
+  _rootDocLoaded3 = true;
+}
+async function _getDataDoc3(k) {
+  const r = await fetch(_dataDocUrl3(k), {headers: await fbHeaders()});
+  if (!r.ok) return null;
+  const d = await r.json();
+  const value = _decodeFsValue2(d?.fields?.value);
+  return value !== undefined && value !== null ? {value: _storageValue2(value)} : null;
+}
+async function _setDataDoc3(k, v) {
+  const r = await fetch(_dataDocUrl3(k), {
+    method: "PATCH",
+    headers: await fbHeaders(),
+    body: JSON.stringify({fields: {value: _encodeFsValue2(typeof v === "string" ? v : JSON.stringify(v))}})
+  });
+  if (!r.ok) throw new Error("Firestore data write failed");
+  if (_dataKeyCache3) _dataKeyCache3.add(k);
+}
+async function _deleteDataDoc3(k) {
+  const r = await fetch(_dataDocUrl3(k), {method: "DELETE", headers: await fbHeaders()});
+  if (!r.ok && r.status !== 404) throw new Error("Firestore data delete failed");
+  if (_dataKeyCache3) _dataKeyCache3.delete(k);
+}
+async function _listDataKeys3() {
+  if (_dataKeyCache3) return Array.from(_dataKeyCache3);
+  const keys = new Set();
+  let pageToken = "";
+  do {
+    const url = _userDocUrl2() + "/data?pageSize=1000" + (pageToken ? "&pageToken=" + encodeURIComponent(pageToken) : "");
+    const r = await fetch(url, {headers: await fbHeaders()});
+    if (!r.ok) break;
+    const d = await r.json();
+    (d.documents || []).forEach(doc => keys.add(decodeURIComponent((doc.name || "").split("/").pop() || "")));
+    pageToken = d.nextPageToken || "";
+  } while (pageToken);
+  _dataKeyCache3 = keys;
+  return Array.from(keys);
+}
+function _knownMigrationKeys3() {
+  const base = [
+    "pantry_v2", "suppPantry", "waterGoal", "customGoals", "goalHistory",
+    "mealTemplates", "weightHistory", "trainingByDate", "birthDate", "gender",
+    "activityLevel", "goalType", "goalKg", "goalWeeks", "manualCalorieAdjustment",
+    "proteinMultiplier", "userName", "tutorialSeen"
+  ];
+  const dateKeys = [];
+  for (let i = 0; i < 120; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const date = d.toISOString().split("T")[0];
+    dateKeys.push("log_v2_" + date, "notes_" + date, "waterIntake_" + date, "suppLog_" + date);
+  }
+  return Array.from(new Set([...base, ...dateKeys]));
+}
+async function migrateStorageToFirestoreV3(options) {
+  if (!_uid) return {migrated: 0, skipped: 0};
+  const onlyIfMissing = !options || options.onlyIfMissing !== false;
+  let migrated = 0;
+  let skipped = 0;
+  const rootFields = await _loadRootFields3();
+  const dataKeys = new Set(await _listDataKeys3().catch(() => []));
+  for (const [key, value] of Object.entries(rootFields)) {
+    if (_isProfileKey3(key) || value === undefined || value === null) continue;
+    if (onlyIfMissing && dataKeys.has(key)) {
+      skipped++;
+      continue;
+    }
+    try {
+      await _setDataDoc3(key, _storageValue2(value));
+      migrated++;
+      dataKeys.add(key);
+    } catch (_) {}
+  }
+  for (const key of _knownMigrationKeys3()) {
+    const hasNew = _isProfileKey3(key)
+      ? rootFields[key] !== undefined && rootFields[key] !== null
+      : dataKeys.has(key);
+    if (onlyIfMissing && hasNew) {
+      skipped++;
+      continue;
+    }
+    const legacy = await _legacyGet2(key).catch(() => null);
+    if (!legacy) continue;
+    try {
+      if (_isProfileKey3(key)) {
+        await _patchRootFields3({[key]: legacy.value}, []);
+        rootFields[key] = legacy.value;
+      } else {
+        await _setDataDoc3(key, legacy.value);
+        dataKeys.add(key);
+      }
+      migrated++;
+    } catch (_) {}
+  }
+  await _patchRootFields3({_schemaVersion: 3, _schemaMigratedAt: new Date().toISOString()}, []);
+  return {migrated, skipped};
+}
+window.migrateStorageToFirestoreV3 = migrateStorageToFirestoreV3;
+window.migrateLegacyNutritionDocs = migrateStorageToFirestoreV3;
+async function _ensureStorageMigration3() {
+  if (!_migrationPromise3) _migrationPromise3 = migrateStorageToFirestoreV3({onlyIfMissing: true}).catch(() => null);
+  await _migrationPromise3;
+}
+async function fbGet3(k) {
+  if (!_uid) return null;
+  if (!_migrationPromise3) _ensureStorageMigration3();
+  if (_isProfileKey3(k)) {
+    const fields = await _loadRootFields3();
+    if (fields[k] !== undefined && fields[k] !== null) return {value: _storageValue2(fields[k])};
+  } else {
+    const data = await _getDataDoc3(k).catch(() => null);
+    if (data) return data;
+    const fields = await _loadRootFields3();
+    if (fields[k] !== undefined && fields[k] !== null) {
+      const value = _storageValue2(fields[k]);
+      _setDataDoc3(k, value).catch(() => {});
+      return {value};
+    }
+  }
+  const legacy = await _legacyGet2(k).catch(() => null);
+  if (legacy) fbSet3(k, legacy.value).catch(() => {});
+  return legacy;
+}
+async function fbSet3(k, v) {
+  if (!_uid) return;
+  const value = typeof v === "string" ? v : JSON.stringify(v);
+  if (_isProfileKey3(k)) await _patchRootFields3({[k]: value}, []);
+  else await _setDataDoc3(k, value);
+}
+async function fbDel3(k) {
+  if (!_uid) return;
+  if (_isProfileKey3(k)) await _patchRootFields3({}, [k]);
+  else await _deleteDataDoc3(k);
+}
+async function fbList3(p) {
+  const rootFields = await _loadRootFields3().catch(() => ({}));
+  const rootKeys = Object.keys(rootFields).filter(k => !k.startsWith("_") && rootFields[k] !== undefined && rootFields[k] !== null);
+  const dataKeys = await _listDataKeys3().catch(() => []);
+  const keys = Array.from(new Set([...rootKeys, ...dataKeys]));
+  return {keys: p ? keys.filter(k => k.indexOf(p) === 0) : keys};
+}
+fbGet = fbGet3;
+fbSet = fbSet3;
+fbDel = fbDel3;
+fbList = fbList3;
+window.storage = {get:fbGet3, set:fbSet3, delete:fbDel3, list:fbList3};
 </script>
   <script>
 const {useState,useEffect,useRef}=React;
@@ -1765,6 +1948,8 @@ function NutritionTracker({
   const [barcodeMessage, setBarcodeMessage] = useState("");
   const videoRef = useRef(null);
   const barcodeStreamRef = useRef(null);
+  const barcodeReaderRef = useRef(null);
+  const barcodeControlsRef = useRef(null);
   const barcodeScanRef = useRef(false);
   const [notification, setNotification] = useState("");
   const [expandMicros, setExpandMicros] = useState(false);
@@ -2145,6 +2330,13 @@ function NutritionTracker({
   }
   function stopBarcodeScanner() {
     barcodeScanRef.current = false;
+    if (barcodeControlsRef.current && typeof barcodeControlsRef.current.stop === "function") {
+      try { barcodeControlsRef.current.stop(); } catch (_) {}
+      barcodeControlsRef.current = null;
+    }
+    if (barcodeReaderRef.current && typeof barcodeReaderRef.current.reset === "function") {
+      try { barcodeReaderRef.current.reset(); } catch (_) {}
+    }
     if (barcodeStreamRef.current) {
       barcodeStreamRef.current.getTracks().forEach(track => track.stop());
       barcodeStreamRef.current = null;
@@ -2183,48 +2375,123 @@ function NutritionTracker({
       setBarcodeLoading(false);
     }
   }
+  let barcodeLibPromise = null;
+  function loadBarcodeFallbackLibrary() {
+    const getLoaded = () => {
+      const lib = window.ZXingBrowser || window.ZXing;
+      if (lib && (lib.BrowserMultiFormatReader || lib.BrowserBarcodeReader)) return lib;
+      return null;
+    };
+    const loaded = getLoaded();
+    if (loaded) return Promise.resolve(loaded);
+    if (barcodeLibPromise) return barcodeLibPromise;
+    const urls = [
+      "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js",
+      "https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js",
+      "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js",
+      "https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"
+    ];
+    barcodeLibPromise = new Promise((resolve, reject) => {
+      let idx = 0;
+      const tryNext = () => {
+        const current = getLoaded();
+        if (current) return resolve(current);
+        if (idx >= urls.length) return reject(new Error("ZXing unavailable"));
+        const script = document.createElement("script");
+        script.src = urls[idx++];
+        script.async = true;
+        script.onload = () => {
+          const lib = getLoaded();
+          lib ? resolve(lib) : tryNext();
+        };
+        script.onerror = tryNext;
+        document.head.appendChild(script);
+      };
+      tryNext();
+    });
+    return barcodeLibPromise;
+  }
+  async function startNativeBarcodeScanner() {
+    const detector = new BarcodeDetector({formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"]});
+    const stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}, audio: false});
+    barcodeStreamRef.current = stream;
+    barcodeScanRef.current = true;
+    setBarcodeScanning(true);
+    setTimeout(async () => {
+      if (!videoRef.current) return;
+      videoRef.current.srcObject = stream;
+      try { await videoRef.current.play(); } catch (_) {}
+      const scan = async () => {
+        if (!barcodeScanRef.current || !videoRef.current) return;
+        try {
+          const codes = await detector.detect(videoRef.current);
+          if (codes && codes.length) {
+            const code = codes[0].rawValue;
+            setBarcodeInput(code);
+            await fetchBarcodeProduct(code);
+            return;
+          }
+        } catch (_) {}
+        if (barcodeScanRef.current) requestAnimationFrame(scan);
+      };
+      scan();
+    }, 0);
+  }
+  async function startFallbackBarcodeScanner() {
+    setBarcodeMessage(lang === 'en' ? "Loading compatible barcode scanner..." : "Carregando leitor compatível...");
+    const lib = await loadBarcodeFallbackLibrary();
+    const Reader = lib.BrowserMultiFormatReader || lib.BrowserBarcodeReader;
+    if (!Reader) throw new Error("ZXing reader unavailable");
+    const reader = new Reader();
+    barcodeReaderRef.current = reader;
+    barcodeScanRef.current = true;
+    setBarcodeScanning(true);
+    setBarcodeMessage(lang === 'en' ? "Point the camera at the barcode." : "Aponte a câmera para o código de barras.");
+    setTimeout(async () => {
+      if (!videoRef.current || !barcodeScanRef.current) return;
+      try {
+        if (typeof reader.decodeFromVideoDevice === "function") {
+          const maybeControls = await reader.decodeFromVideoDevice(null, videoRef.current, async (result, err, controls) => {
+            if (controls && !barcodeControlsRef.current) barcodeControlsRef.current = controls;
+            if (!result || !barcodeScanRef.current) return;
+            const code = typeof result.getText === "function" ? result.getText() : (result.text || result.rawValue || String(result));
+            if (!code) return;
+            setBarcodeInput(code);
+            if (controls && typeof controls.stop === "function") {
+              try { controls.stop(); } catch (_) {}
+            }
+            await fetchBarcodeProduct(code);
+          });
+          if (maybeControls && typeof maybeControls.stop === "function") barcodeControlsRef.current = maybeControls;
+        } else if (typeof reader.decodeOnceFromVideoDevice === "function") {
+          const result = await reader.decodeOnceFromVideoDevice(null, videoRef.current);
+          const code = typeof result.getText === "function" ? result.getText() : (result.text || result.rawValue || String(result));
+          setBarcodeInput(code);
+          await fetchBarcodeProduct(code);
+        } else {
+          throw new Error("ZXing video API unavailable");
+        }
+      } catch (e) {
+        stopBarcodeScanner();
+        setBarcodeMessage(lang === 'en' ? "Compatible camera scanner failed. Type the barcode manually below." : "O leitor compatível pela câmera falhou. Digite o código manualmente abaixo.");
+      }
+    }, 0);
+  }
   async function startBarcodeScanner() {
-    if (!("BarcodeDetector" in window)) {
-      setBarcodeMessage(lang === 'en' ? "Camera barcode scanning is not supported in this browser. Use manual entry below." : "Este navegador não suporta leitura de código pela câmera. Use a digitação manual abaixo.");
-      return;
-    }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setBarcodeMessage(lang === 'en' ? "Camera access is not available. Use manual entry below." : "O acesso à câmera não está disponível. Use a digitação manual abaixo.");
+      setBarcodeMessage(lang === 'en' ? "Camera access is not available. Use manual entry below." : "O acesso � c�mera n�o est� dispon�vel. Use a digita��o manual abaixo.");
       return;
     }
     stopBarcodeScanner();
-    setBarcodeMessage(lang === 'en' ? "Point the camera at the barcode." : "Aponte a câmera para o código de barras.");
+    setBarcodeMessage(lang === 'en' ? "Point the camera at the barcode." : "Aponte a c�mera para o c�digo de barras.");
     try {
-      const detector = new BarcodeDetector({formats: ["ean_13", "ean_8", "upc_a", "upc_e"]});
-      const stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}, audio: false});
-      barcodeStreamRef.current = stream;
-      barcodeScanRef.current = true;
-      setBarcodeScanning(true);
-      setTimeout(async () => {
-        if (!videoRef.current) return;
-        videoRef.current.srcObject = stream;
-        try { await videoRef.current.play(); } catch (_) {}
-        const scan = async () => {
-          if (!barcodeScanRef.current || !videoRef.current) return;
-          try {
-            const codes = await detector.detect(videoRef.current);
-            if (codes && codes.length) {
-              const code = codes[0].rawValue;
-              setBarcodeInput(code);
-              await fetchBarcodeProduct(code);
-              return;
-            }
-          } catch (_) {}
-          if (barcodeScanRef.current) requestAnimationFrame(scan);
-        };
-        scan();
-      }, 0);
+      if ("BarcodeDetector" in window) await startNativeBarcodeScanner();
+      else await startFallbackBarcodeScanner();
     } catch (e) {
       stopBarcodeScanner();
-      setBarcodeMessage(lang === 'en' ? "Camera permission was denied or unavailable. Use manual entry below." : "A permissão da câmera foi negada ou não está disponível. Use a digitação manual abaixo.");
+      setBarcodeMessage(lang === 'en' ? "Camera permission was denied, unavailable, or unsupported. Use manual entry below." : "A permiss�o da c�mera foi negada, n�o est� dispon�vel ou n�o � compat�vel. Use a digita��o manual abaixo.");
     }
-  }
-  async function searchFoodDatabase() {
+  }  async function searchFoodDatabase() {
     const query = form.name.trim();
     if (!query) {
       notify(lang === 'en' ? "Enter the food name first." : "Escreva o nome do alimento primeiro.");
@@ -10771,4 +11038,5 @@ if (_ldg) _ldg.style.display = 'none';
   </script>
 </body>
 </html>
+
 
