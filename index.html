@@ -2822,6 +2822,16 @@ function NutritionTracker({
     }
   }
 
+  function openMealSuggestions() {
+    setGAResults([]);
+    setGAProgress(0);
+    setGATargetMeal(MEALS[1] || MEALS[0]);
+    setShowGA(true);
+    if (!pantry.length) {
+      notify(lang === 'en' ? "Add foods to the pantry first." : "Adicione alimentos \u00e0 despensa primeiro.");
+    }
+  }
+
   function addGAResultToDiary(result) {
     const meal = gaTargetMeal || MEALS[1]; // default almoço
     result.items.forEach(({food, gene}) => {
@@ -3848,7 +3858,7 @@ function NutritionTracker({
       textAlign: "left", fontFamily: "inherit"
     }
   }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83C\uDF93"),
-    /*#__PURE__*/React.createElement("span", null, lang === "en" ? "Redo tutorial" : "Refazer tutorial")
+    /*#__PURE__*/React.createElement("span", null, lang === "en" ? "Quick help" : "Ajuda rápida")
   ), /*#__PURE__*/React.createElement("div", {
     style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
   }), onLogout && /*#__PURE__*/React.createElement("button", {
@@ -3876,6 +3886,7 @@ function NutritionTracker({
     }
   }, t('dayOf')),
   /*#__PURE__*/React.createElement("button", {
+    "data-tutorial": "day-type",
     onClick: () => setTrainingByDate(prev => ({ ...prev, [viewDate]: !isTraining })),
     style: {
       display: "flex", alignItems: "center", gap: 6,
@@ -4020,7 +4031,8 @@ function NutritionTracker({
       color: "#8ec8c8"
     }
   }, lang === 'en' ? "Missing " : "Faltam ", /*#__PURE__*/React.createElement("b", null, remainKcal), " kcal")), /*#__PURE__*/React.createElement("button", {
-    onClick: function(){ setGAResults([]); setGAProgress(0); setGATargetMeal(MEALS[1]||MEALS[0]); setShowGA(true); setTimeout(runGASafely, 0); },
+    "data-tutorial": "suggest-meal-button",
+    onClick: openMealSuggestions,
     disabled: gaRunning || suggestLoading,
     style: {
       width: "100%",
@@ -5256,6 +5268,7 @@ function NutritionTracker({
       }
     }, r.kcal, " kcal")))));
   }))), tab === "adicionar" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "add-modes",
     style: {
       display: "flex",
       gap: 6,
@@ -5586,6 +5599,7 @@ function NutritionTracker({
       }
     }, x.val % 1 === 0 ? Math.round(x.val) : x.val.toFixed(1), x.unit))));
   })(), !batchMode ? /*#__PURE__*/React.createElement("button", {
+    "data-tutorial": "add-log-button",
     onClick: addToLog,
     style: btn
   }, t('logToDiary')) : /*#__PURE__*/React.createElement("button", {
@@ -5623,6 +5637,7 @@ function NutritionTracker({
       borderBottom: "1px solid var(--border3)"
     }
   }, /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "pantry-food-name",
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -6124,9 +6139,11 @@ function NutritionTracker({
     placeholder: f.unit,
     style: inp
   })))), /*#__PURE__*/React.createElement("button", {
+    "data-tutorial": "pantry-save-button",
     onClick: addFood,
     style: btn
   }, t('savePantry')), /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "pantry-saved-foods",
     style: {
       marginTop: 24,
       background: "var(--surface)",
@@ -6385,6 +6402,7 @@ function NutritionTracker({
       cursor: "pointer"
     }
   }, "\xD7"))))))), /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "pantry-meal-templates",
     style: {
       marginTop: 12,
       background: "var(--surface)",
@@ -6503,6 +6521,7 @@ function NutritionTracker({
       color: "var(--muted2)"
     }
   }, item.qty, item.unit)))))))), /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "pantry-supplements",
     style: {
       marginTop: 12,
       background: "var(--surface)",
@@ -7253,7 +7272,7 @@ function NutritionTracker({
       fontSize: 14,
       letterSpacing: 1
     }
-  }, lang === 'en' ? "\uD83D\uDCBE Save to today's notes" : "\uD83D\uDCBE Salvar nas notas de hoje"))))), tab === "metricas" && /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "\uD83D\uDCBE Save to today's notes" : "\uD83D\uDCBE Salvar nas notas de hoje"))))), (tab === "metricas" || showGA) && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "2px 16px 30px",
       boxSizing: "border-box",
@@ -7272,6 +7291,7 @@ function NutritionTracker({
       marginBottom: 10
     }
   }, t('logMeasurements')), /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "metrics-measures",
     style: {
       display: "flex",
       gap: 8,
@@ -7317,6 +7337,7 @@ function NutritionTracker({
     onClick: saveWeight,
     style: btn
   }, t('suppLogToday'))), currentWeight && /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "metrics-current",
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -7391,6 +7412,7 @@ function NutritionTracker({
       color: bmiNum < 18.5 ? "#c86e8e" : bmiNum < 25 ? "#6ec8a9" : bmiNum < 30 ? "#c8a96e" : "#c86e8e"
     }
   }, bmiNum < 18.5 ? t('bmiUnderweight') : bmiNum < 25 ? t('bmiNormal') : bmiNum < 30 ? t('bmiOverweight') : t('bmiObese')))), weightChartData.length > 1 && /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "weight-chart",
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -7612,6 +7634,7 @@ function NutritionTracker({
       marginTop: 20
     }
   }, t('noWeightData')), /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "nutrition-profile",
     style: {
       marginTop: 24,
       borderTop: "1px solid var(--border3)",
@@ -7723,6 +7746,7 @@ function NutritionTracker({
     placeholder: "auto: " + defaultProteinMultiplier(nutritionPrefs.goalType).toFixed(1),
     style: inp
   }))), /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "metrics-target-summary",
     className: "nutrition-summary-cards",
     style: {
       flex: "1 1 100%",
@@ -8881,25 +8905,61 @@ function TutorialOverlay({ lang, onDone }) {
   const [rect, setRect] = React.useState(null);
 
   const steps = isPt ? [
-    { title: 'Bem-vindo! 👋',      text: 'Vamos te mostrar os 4 passos para começar.', highlight: null },
-    { title: '1. Métricas 🎯',     text: 'Defina seu peso, altura e metas. O app calcula tudo automaticamente.', highlight: 'tab-metricas' },
-    { title: '2. Despensa 🏪',     text: 'Cadastre os alimentos que você tem em casa.', highlight: 'tab-despensa' },
-    { title: '3. Adicionar ➕',    text: 'Registre suas refeições ao longo do dia.', highlight: 'tab-adicionar' },
-    { title: '4. Diário 📋',       text: 'Acompanhe seu progresso diário aqui.', highlight: 'tab-diario' },
-    { title: 'Tudo certo! 🚀',     text: 'Comece por Métricas → Despensa → registre sua primeira refeição.', highlight: null }
+    { title: 'Começo guiado', text: 'Vamos fazer os primeiros passos juntos:\n1. Registrar medidas\n2. Confirmar objetivo\n3. Definir treino/descanso\n4. Criar um alimento\n5. Registrar uma refeição', highlight: null },
+    { title: 'Medidas de base', text: 'Preencha peso e altura. Esses dados entram no cálculo de IMC, proteína e calorias do dia.', tab: 'metricas', highlight: 'metrics-measures' },
+    { title: 'Métricas atuais', text: 'Depois de registrar medidas, este bloco mostra peso, altura, IMC e metas calculadas para treino e descanso.', tab: 'metricas', highlight: 'metrics-current' },
+    { title: 'Evolução do peso', text: 'Quando houver mais de um registro, o gráfico aparece aqui para acompanhar tendência, não só o peso isolado de um dia.', tab: 'metricas', highlight: 'weight-chart' },
+    { title: 'Perfil nutricional', text: 'Escolha atividade física e objetivo. Isso ajusta as calorias automaticamente para manutenção, perda ou ganho.', tab: 'metricas', highlight: 'nutrition-profile' },
+    { title: 'Como ler a meta', text: 'Aqui você vê TMB, base do dia, ajuste do objetivo e a meta final. É o resumo do cálculo usado no diário.', tab: 'metricas', highlight: 'metrics-target-summary' },
+    { title: 'Tipo do dia', text: 'Marque se hoje é treino ou descanso. O app troca o fator calórico e recalcula a meta do dia.', tab: 'diario', highlight: 'day-type' },
+    { title: 'Por que a despensa vem antes', text: 'Antes de registrar refeições, cadastre alimentos na Despensa. O app usa esses itens para calcular porções, montar refeições e sugerir combinações.', tab: 'despensa', highlight: 'tab-despensa' },
+    { title: 'Criar alimento', text: 'Comece pelo nome e unidade. Você pode preencher macros manualmente ou usar o preenchimento automático como ponto de partida.', tab: 'despensa', highlight: 'pantry-food-name' },
+    { title: 'Salvar na despensa', text: 'Salve o alimento quando os valores fizerem sentido. Depois ele fica disponível para registrar refeições e para as sugestões da IA.', tab: 'despensa', highlight: 'pantry-save-button' },
+    { title: 'Alimentos salvos', text: 'Aqui ficam os alimentos cadastrados. Use a busca para encontrar rápido, editar valores ou conferir o que já existe.', tab: 'despensa', highlight: 'pantry-saved-foods' },
+    { title: 'Modelos de refeição', text: 'Modelos guardam combinações frequentes, como um café da manhã ou almoço padrão, para repetir depois com poucos toques.', tab: 'despensa', highlight: 'pantry-meal-templates' },
+    { title: 'Suplementos', text: 'Esta área é separada dos alimentos. Use para creatina, vitaminas ou outros suplementos que você queira acompanhar.', tab: 'despensa', highlight: 'pantry-supplements' },
+    { title: 'Formas de registrar', text: 'Na aba Adicionar há três caminhos: um alimento por vez, montar uma refeição com vários itens, ou descrever um prato para estimar.', tab: 'adicionar', highlight: 'add-modes' },
+    { title: 'Registrar no diário', text: 'Depois de selecionar alimento e quantidade, este botão envia a refeição para o Diário do dia.', tab: 'adicionar', highlight: 'add-log-button' },
+    { title: 'Sugerir o que comer', text: 'Este botão usa o que ainda falta nas suas metas e os itens da despensa para sugerir combinações. Para funcionar bem, primeiro cadastre alimentos na Despensa.', tab: 'diario', highlight: 'suggest-meal-button' },
+    { title: 'Acompanhar progresso', text: 'Volte ao Diário para ver o que falta, excessos e progresso contra suas metas.', tab: 'diario', highlight: 'tab-diario' },
+    { title: 'Ajuda rápida', text: 'Se precisar rever este guia, abra o menu de configurações e toque em Ajuda rápida.', highlight: 'menu-settings' },
+    { title: 'Agora é com você', text: 'Vamos abrir Métricas para você preencher ou conferir os dados de base.', highlight: null, action: 'tab-metricas' }
   ] : [
-    { title: 'Welcome! 👋',        text: "Let's show you the 4 steps to get started.", highlight: null },
-    { title: '1. Metrics 🎯',      text: 'Set your weight, height and goals. The app calculates everything.', highlight: 'tab-metricas' },
-    { title: '2. Pantry 🏪',       text: 'Add the foods you have at home.', highlight: 'tab-despensa' },
-    { title: '3. Add ➕',          text: 'Log your meals throughout the day.', highlight: 'tab-adicionar' },
-    { title: '4. Diary 📋',        text: 'Track your daily progress here.', highlight: 'tab-diario' },
-    { title: 'All set! 🚀',        text: 'Start with Metrics → Pantry → log your first meal.', highlight: null }
+    { title: 'Guided start', text: 'Let’s take the first steps together:\n1. Log measurements\n2. Confirm objective\n3. Set training/rest\n4. Create a food\n5. Log a meal', highlight: null },
+    { title: 'Baseline measurements', text: 'Fill weight and height. These drive BMI, protein, and daily calorie calculations.', tab: 'metricas', highlight: 'metrics-measures' },
+    { title: 'Current metrics', text: 'After logging measurements, this block shows weight, height, BMI, and calculated targets for training and rest days.', tab: 'metricas', highlight: 'metrics-current' },
+    { title: 'Weight trend', text: 'Once there is more than one record, this chart appears here to track the trend, not just one isolated weigh-in.', tab: 'metricas', highlight: 'weight-chart' },
+    { title: 'Nutrition profile', text: 'Choose physical activity and objective. This adjusts calories for maintenance, loss, or gain.', tab: 'metricas', highlight: 'nutrition-profile' },
+    { title: 'Reading the target', text: 'Here you see BMR, day base, goal adjustment, and final target. This summarizes the calculation used in the diary.', tab: 'metricas', highlight: 'metrics-target-summary' },
+    { title: 'Day type', text: 'Mark today as training or rest. The app changes the calorie factor and recalculates the day target.', tab: 'diario', highlight: 'day-type' },
+    { title: 'Why pantry comes first', text: 'Before logging meals, add foods to the Pantry. The app uses those items to calculate portions, build meals, and suggest combinations.', tab: 'despensa', highlight: 'tab-despensa' },
+    { title: 'Create a food', text: 'Start with name and unit. You can fill macros manually or use auto-fill as a starting point.', tab: 'despensa', highlight: 'pantry-food-name' },
+    { title: 'Save to pantry', text: 'Save the food once the values look right. It then becomes available for meal logging and AI suggestions.', tab: 'despensa', highlight: 'pantry-save-button' },
+    { title: 'Saved foods', text: 'Your registered foods live here. Use search to find them quickly, edit values, or confirm what already exists.', tab: 'despensa', highlight: 'pantry-saved-foods' },
+    { title: 'Meal templates', text: 'Templates save frequent combinations, such as a standard breakfast or lunch, so you can repeat them with fewer taps.', tab: 'despensa', highlight: 'pantry-meal-templates' },
+    { title: 'Supplements', text: 'This area is separate from foods. Use it for creatine, vitamins, or other supplements you want to track.', tab: 'despensa', highlight: 'pantry-supplements' },
+    { title: 'Logging modes', text: 'In Add there are three paths: one food at a time, building a meal with multiple items, or describing a dish for estimation.', tab: 'adicionar', highlight: 'add-modes' },
+    { title: 'Log to diary', text: 'After choosing food and quantity, this button sends the meal to today’s Diary.', tab: 'adicionar', highlight: 'add-log-button' },
+    { title: 'Suggest what to eat', text: 'This button looks at what is still missing from your targets and uses pantry items to suggest combinations. Add pantry foods first for useful results.', tab: 'diario', highlight: 'suggest-meal-button' },
+    { title: 'Track progress', text: 'Return to the Diary to see what is missing, what went over, and progress against your targets.', tab: 'diario', highlight: 'tab-diario' },
+    { title: 'Quick help', text: 'To restart this guide, open the settings menu and tap Quick help.', highlight: 'menu-settings' },
+    { title: 'Your turn', text: 'Let’s open Metrics so you can fill or confirm your baseline data.', highlight: null, action: 'tab-metricas' }
   ];
 
   const current = steps[step];
   const isLast = step === steps.length - 1;
   const isFirst = step === 0;
   const PAD = 10;
+  function finishTutorial() {
+    const action = current.action;
+    onDone();
+    if (action) {
+      setTimeout(() => {
+        const el = document.querySelector('[data-tutorial="' + action + '"]');
+        if (el) el.click();
+      }, 0);
+    }
+  }
 
   // Measure element and lock scroll
   React.useEffect(() => {
@@ -8909,16 +8969,28 @@ function TutorialOverlay({ lang, onDone }) {
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  // Remeasure on step change
+  // Navigate to the step tab, then measure the highlighted element.
   React.useEffect(() => {
-    const key = current.highlight;
-    if (!key) { setRect(null); return; }
-    const el = document.querySelector('[data-tutorial="' + key + '"]');
-    if (!el) { setRect(null); return; }
-    // Scroll element into view first, then measure
-    el.scrollIntoView({ block: 'nearest', behavior: 'instant' });
-    const r = el.getBoundingClientRect();
-    setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+    let cancelled = false;
+    const measure = () => {
+      if (cancelled) return;
+      const key = current.highlight;
+      if (!key) { setRect(null); return; }
+      const el = document.querySelector('[data-tutorial="' + key + '"]');
+      if (!el) { setRect(null); return; }
+      el.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+      const r = el.getBoundingClientRect();
+      setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+    };
+    if (current.tab) {
+      const tabEl = document.querySelector('[data-tutorial="tab-' + current.tab + '"]');
+      if (tabEl) tabEl.click();
+      setRect(null);
+      const timer = setTimeout(measure, 80);
+      return () => { cancelled = true; clearTimeout(timer); };
+    }
+    measure();
+    return () => { cancelled = true; };
   }, [step]);
 
   const vw = typeof window !== 'undefined' ? window.innerWidth : 400;
@@ -8941,7 +9013,7 @@ function TutorialOverlay({ lang, onDone }) {
 
   // Tooltip positioning: place above or below, never overlapping the highlight
   const TOOLTIP_W = Math.min(320, vw - 32);
-  const TOOLTIP_H = 160;
+  const TOOLTIP_H = 220;
   const GAP = 20; // gap between highlight and tooltip
 
   let tooltipTop, tooltipLeft;
@@ -9006,7 +9078,7 @@ function TutorialOverlay({ lang, onDone }) {
         }}))
       ),
       React.createElement('div', {style:{fontSize:15,fontWeight:600,color:'var(--text,#fff)',marginBottom:6}}, current.title),
-      React.createElement('div', {style:{fontSize:13,color:'var(--muted,#888)',lineHeight:1.5,marginBottom:16}}, current.text),
+      React.createElement('div', {style:{fontSize:13,color:'var(--muted,#888)',lineHeight:1.5,marginBottom:16,whiteSpace:'pre-line'}}, current.text),
       React.createElement('div', {style:{display:'flex',gap:8,alignItems:'center'}},
         React.createElement('button', {
           onClick: onDone,
@@ -9017,9 +9089,9 @@ function TutorialOverlay({ lang, onDone }) {
           style:{fontSize:13,padding:'8px 14px',borderRadius:8,background:'none',border:'1px solid var(--border2,#444)',color:'var(--text2,#aaa)',cursor:'pointer',fontFamily:'inherit'}
         }, '←'),
         React.createElement('button', {
-          onClick: isLast ? onDone : ()=>setStep(s=>s+1),
+          onClick: isLast ? finishTutorial : ()=>setStep(s=>s+1),
           style:{fontSize:13,padding:'8px 18px',borderRadius:8,background:'#7ec87e',border:'none',color:'#111',fontWeight:600,cursor:'pointer',fontFamily:'inherit'}
-        }, isLast?(isPt?'Começar!':'Start!'):(isPt?'Próximo →':'Next →'))
+        }, isLast?(isPt?'Ir para Métricas':'Go to Metrics'):(isPt?'Próximo →':'Next →'))
       )
     )
   );
