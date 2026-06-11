@@ -13,8 +13,10 @@ const STRINGS = {
     dayOf:"Dia de", trainDay:"TREINO", restDay:"DESCANSO",
     syncDone:"↻ sync", syncing:"↻ sync...", lightMode:"☀️", darkMode:"🌙",
     settings:"Configurações",
+    greetingMorning:"Bom dia", greetingAfternoon:"Boa tarde", greetingEvening:"Boa noite",
+    greetingLine:"Vamos cuidar do plano de hoje.",
     // Tabs
-    tabDiary:"Diário", tabAdd:"+", tabPantry:"Despensa", tabWeek:"Semana", tabMetrics:"Métricas",
+    tabDiary:"Diário", tabAdd:"Registrar", tabPantry:"Despensa", tabWeek:"Semana", tabMetrics:"Métricas",
     // Nutrients
     protein:"Proteína", calories:"Calorias", carbs:"Carboidratos",
     sugars:"dos quais açúcares", fat:"Gorduras", satfat:"das quais saturadas",
@@ -237,8 +239,10 @@ const STRINGS = {
     dayOf:"Day type", trainDay:"TRAINING", restDay:"REST",
     syncDone:"↻ sync", syncing:"↻ syncing...", lightMode:"☀️", darkMode:"🌙",
     settings:"Settings",
+    greetingMorning:"Good morning", greetingAfternoon:"Good afternoon", greetingEvening:"Good evening",
+    greetingLine:"Let's keep today's plan on track.",
     // Tabs
-    tabDiary:"Diary", tabAdd:"+", tabPantry:"Pantry", tabWeek:"Week", tabMetrics:"Metrics",
+    tabDiary:"Diary", tabAdd:"Log", tabPantry:"Pantry", tabWeek:"Week", tabMetrics:"Metrics",
     // Nutrients
     protein:"Protein", calories:"Calories", carbs:"Carbohydrates",
     sugars:"of which sugars", fat:"Fats", satfat:"of which saturated",
@@ -670,6 +674,8 @@ export default function NutritionTracker({onOpenSettings}) {
   const [suggestLoading,setSuggestLoading]   = useState(false);
   const [suggestions,setSuggestions]         = useState(null); // {content, filename, copied}
   const [loaded,setLoaded]           = useState(false);
+  const [isMobileView,setIsMobileView] = useState(() => typeof window !== "undefined" && window.innerWidth <= 520);
+  const [userName,setUserName]       = useState("");
   const [syncing,setSyncing]         = useState(false);
   const [autoFillLoading,setAutoFillLoading] = useState(false);
   const [notification,setNotification] = useState("");
@@ -718,7 +724,7 @@ export default function NutritionTracker({onOpenSettings}) {
   async function loadAll() {
     setSyncing(true);
     try {
-      const [p,l,t,w,mt,n,wg,wi,sp,sl,cg,bd,gd,al,gt,gkg,gw,ma,pm] = await Promise.all([
+      const [p,l,t,w,mt,n,wg,wi,sp,sl,cg,bd,gd,al,gt,gkg,gw,ma,pm,un] = await Promise.all([
         window.storage.get("pantry_v2").catch(()=>null),
         window.storage.get("log_v2_"+TODAY).catch(()=>null),
         window.storage.get("trainingByDate").catch(()=>null),
@@ -738,6 +744,7 @@ export default function NutritionTracker({onOpenSettings}) {
         window.storage.get("goalWeeks").catch(()=>null),
         window.storage.get("manualCalorieAdjustment").catch(()=>null),
         window.storage.get("proteinMultiplier").catch(()=>null),
+        window.storage.get("userName").catch(()=>null),
       ]);
       if(p) setPantry(JSON.parse(p.value));
       if(l) setLog(JSON.parse(l.value));
@@ -750,6 +757,7 @@ export default function NutritionTracker({onOpenSettings}) {
       if(sp) setSuppPantry(JSON.parse(sp.value));
       if(sl) setSuppLog(JSON.parse(sl.value));
       if(cg) setCustomGoals(JSON.parse(cg.value));
+      if(un?.value) setUserName(String(un.value).trim());
       setProfileData({birthDate: bd?.value || "", gender: gd?.value || ""});
       setNutritionPrefs({
         activityLevel: al?.value || "",
@@ -765,6 +773,13 @@ export default function NutritionTracker({onOpenSettings}) {
   }
 
   useEffect(()=>{loadAll();},[]);
+  useEffect(()=>{
+    if (typeof window === "undefined") return;
+    const updateMobileView = () => setIsMobileView(window.innerWidth <= 520);
+    updateMobileView();
+    window.addEventListener("resize", updateMobileView);
+    return () => window.removeEventListener("resize", updateMobileView);
+  },[]);
 
   function scheduleSave(key,value,delay=800) {
     if(saveTimeout.current[key]) clearTimeout(saveTimeout.current[key]);
@@ -1359,7 +1374,6 @@ export default function NutritionTracker({onOpenSettings}) {
   }
   function removeFood(id){
     setPantry(p=>p.filter(f=>f.id!==id));
-    const nl={};Object.keys(log).forEach(m=>{nl[m]=(log[m]||[]).filter(e=>e.foodId!==id);});setLog(nl);
   }
   function startEdit(food){
     const f={...food};ALL_FIELDS.forEach(ff=>{if(f[ff.key]==null)f[ff.key]="";});
@@ -1372,11 +1386,27 @@ export default function NutritionTracker({onOpenSettings}) {
     setEditingId(null);setEditForm(null);notify("Alimento atualizado.");
   }
 
-  function buildEntry(food,qty){
-    const e={id:Date.now().toString()+Math.random(),foodId:food.id,name:food.name,qty,unit:food.unit};
-    const div=divisor(food.unit);
-    ALL_FIELDS_KEYS.forEach(f=>{e[f.key.replace("100","")]=food[f.key]!=null?(food[f.key]*qty)/div:null;});
+  function buildFoodSnapshot(food){
+    const snap={id:food.id||null,name:food.name,unit:food.unit};
+    ALL_FIELDS_KEYS.forEach(f=>{snap[f.key]=food[f.key]!=null?food[f.key]:null;});
+    return snap;
+  }
+  function buildEntryFromSnapshot(snapshot,qty){
+    const e={id:Date.now().toString()+Math.random(),foodId:snapshot.id||null,name:snapshot.name,qty,unit:snapshot.unit,foodSnapshot:{...snapshot}};
+    const div=divisor(snapshot.unit);
+    ALL_FIELDS_KEYS.forEach(f=>{e[f.key.replace("100","")]=snapshot[f.key]!=null?(snapshot[f.key]*qty)/div:null;});
     return e;
+  }
+  function buildEntry(food,qty){return buildEntryFromSnapshot(buildFoodSnapshot(food),qty);}
+  function recalcEntryQuantity(entry,qty){
+    if(entry.foodSnapshot){
+      const ne=buildEntryFromSnapshot(entry.foodSnapshot,qty);
+      return {...ne,id:entry.id,time:entry.time||ne.time};
+    }
+    const ratio=entry.qty?qty/entry.qty:1;
+    const upd={...entry,qty};
+    ALL_FIELDS_KEYS.forEach(f=>{const k=f.key.replace("100","");if(entry[k]!=null)upd[k]=entry[k]*ratio;});
+    return upd;
   }
 
   // Diary entry edit
@@ -1386,11 +1416,7 @@ export default function NutritionTracker({onOpenSettings}) {
     if(isNaN(qty)||qty<=0){setEditEntryId(null);return;}
     setActiveLog({...activeLog,[meal]:activeLog[meal].map(e=>{
       if(e.id!==editEntryId) return e;
-      const food=pantry.find(f=>f.id===e.foodId);
-      if(food){const ne=buildEntry(food,qty);ne.id=e.id;return ne;}
-      const ratio=qty/e.qty;const upd={...e,qty};
-      ALL_FIELDS.forEach(f=>{const k=f.key.replace("100","");if(e[k]!=null)upd[k]=e[k]*ratio;});
-      return upd;
+      return recalcEntryQuantity(e,qty);
     })});
     setEditEntryId(null);notify("Quantidade actualizada.");
   }
@@ -1444,12 +1470,7 @@ export default function NutritionTracker({onOpenSettings}) {
     if(isNaN(qty)||qty<=0){setEditStagedIdx(null);return;}
     setStaged(s=>({...s,items:s.items.map((item,i)=>{
       if(i!==editStagedIdx) return item;
-      const food=pantry.find(f=>f.id===item.foodId);
-      if(food){const ne=buildEntry(food,qty);ne.id=item.id;return ne;}
-      const ratio=qty/item.qty;
-      const upd={...item,qty};
-      ALL_FIELDS.forEach(f=>{const k=f.key.replace("100","");if(item[k]!=null)upd[k]=item[k]*ratio;});
-      return upd;
+      return recalcEntryQuantity(item,qty);
     })}));
     setEditStagedIdx(null);
   }
@@ -1666,6 +1687,11 @@ export default function NutritionTracker({onOpenSettings}) {
     </div>
   );
 
+  const greetingHour = new Date().getHours();
+  const greetingKey = greetingHour < 12 ? "greetingMorning" : greetingHour < 18 ? "greetingAfternoon" : "greetingEvening";
+  const greetingFirstName = userName.trim().split(/\s+/).filter(Boolean)[0] || "";
+  const greetingText = t(greetingKey) + (greetingFirstName ? ", " + greetingFirstName : "") + "!";
+
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",paddingBottom:60,...THEME}}>
 
@@ -1702,6 +1728,11 @@ export default function NutritionTracker({onOpenSettings}) {
       </div>
 
       {/* Rings — show for all dates */}
+      <div style={{padding:isMobileView?"10px 20px 12px":"10px 28px 14px",background:"var(--surface)"}}>
+        <div style={{fontSize:isMobileView?18:20,lineHeight:1.2,color:"var(--text)",fontWeight:700,letterSpacing:0,overflowWrap:"anywhere"}}>{greetingText}</div>
+        <div style={{marginTop:4,fontSize:13,color:"var(--muted)",lineHeight:1.35}}>{t('greetingLine')}</div>
+      </div>
+
       <>
           <div style={{display:"flex",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
             {[{label:t('protein'),val:tot.protein,goal:goals.protein,color:"#c8a96e",unit:"g"},{label:t('calories'),val:tot.kcal,goal:goals.kcal,color:"#8ec8c8",unit:"kcal"}].map(({label,val,goal,color,unit})=>(
@@ -1787,9 +1818,9 @@ export default function NutritionTracker({onOpenSettings}) {
       {notification&&(()=>{const isErr=notification.startsWith("?")||notification.startsWith("Erro");return <div style={{margin:"8px 16px 0",background:isErr?"var(--notif-err-bg)":"var(--notif-ok-bg)",border:`1px solid ${isErr?"var(--notif-err-border)":"var(--notif-ok-border)"}`,color:isErr?"var(--notif-err-text)":"var(--notif-ok-text)",padding:"7px 14px",borderRadius:6,fontSize:12,textAlign:"center"}}>{notification}</div>})()}
 
       {/* Tabs */}
-      <div style={{display:"flex",borderBottom:"1px solid var(--border)",marginTop:10}}>
-        {[["diario",t('tabDiary')],["adicionar","+"],["despensa",t('tabPantry')],["semana",t('tabWeek')],["metricas",t('tabMetrics')]].map(([t,label])=>(
-          <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:"10px 0",background:tab===t?"var(--tab-active)":"transparent",border:"none",borderBottom:tab===t?"2px solid #c8a96e":"2px solid transparent",color:tab===t?"#c8a96e":"#444",fontSize:9,letterSpacing:1,textTransform:"uppercase",cursor:"pointer"}}>{label}</button>
+      <div style={{display:"flex",gap:isMobileView?8:0,borderBottom:"1px solid var(--border)",marginTop:0,overflowX:isMobileView?"auto":"visible",overflowY:"hidden",WebkitOverflowScrolling:"touch",scrollbarWidth:isMobileView?"none":"auto",padding:isMobileView?"0 12px":0,background:"var(--surface)"}}>
+        {[["diario",t('tabDiary')],["adicionar",isMobileView?"+":t('tabAdd')],["despensa",t('tabPantry')],["semana",t('tabWeek')],["metricas",t('tabMetrics')]].map(([t,label])=>(
+          <button key={t} onClick={()=>setTab(t)} style={{flex:isMobileView?"0 0 auto":1,minWidth:isMobileView?(t==="adicionar"?58:96):0,padding:isMobileView?"10px 14px":"10px 0",background:tab===t?"var(--tab-active)":"transparent",border:"none",borderBottom:tab===t?"2px solid #c8a96e":"2px solid transparent",color:tab===t?"#c8a96e":"#444",fontSize:t==="adicionar"&&isMobileView?20:14,fontWeight:t==="adicionar"?700:400,letterSpacing:t==="adicionar"&&isMobileView?0:1,textTransform:"uppercase",whiteSpace:"nowrap",cursor:"pointer"}}>{label}</button>
         ))}
       </div>
 

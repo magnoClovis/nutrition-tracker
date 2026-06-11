@@ -29,8 +29,8 @@
     }
     body { background: var(--bg); color: var(--text); }
     #loading{position:fixed;inset:0;background:#f2f1ed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#888;font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000}
-    .dark-loading #loading{background:#111;color:#555;}
-    .dark-loading #loading div:first-child{border-color:#2a3a2a!important;border-top-color:#7ec87e!important;}
+    .dark-loading #loading{background:#f2f1ed;color:#888;}
+    .dark-loading #loading div:first-child{border-color:#d8d4cc!important;border-top-color:#2a6a2a!important;}
     select option{background:#f5f3ef;color:#252220}
     ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg,#f2f1ed)}::-webkit-scrollbar-thumb{background:var(--border2,#b8b4ac);border-radius:2px}
     input[type=date]{color-scheme:dark}
@@ -430,6 +430,9 @@ window._saveSession = function _saveSession(d) {
   _idToken      = d.idToken || d.id_token;
   _refreshToken = d.refreshToken || d.refresh_token;
   _uid          = d.localId || d.user_id || _uid;
+  _userDocCache = null;
+  _userDocLoaded = false;
+  _migrationPromise = null;
   _tokenExpiry  = Date.now() + (+( d.expiresIn || d.expires_in) - 60) * 1000;
   localStorage.setItem("fb_refresh", _refreshToken);
   if (_uid) localStorage.setItem("fb_uid", _uid);
@@ -503,6 +506,9 @@ async function fbToken() {
 function fbSignOut() {
   _idToken = _refreshToken = _uid = null;
   _tokenExpiry = 0;
+  _userDocCache = null;
+  _userDocLoaded = false;
+  _migrationPromise = null;
   localStorage.removeItem("fb_refresh");
   localStorage.removeItem("fb_uid");
 }
@@ -512,8 +518,7 @@ function fbIsLoggedIn() { return !!_refreshToken; }
 // ── Key namespacing (each user gets their own data) ───────────
 // All keys are prefixed with the user's UID internally.
 // The app uses plain keys like "pantry_v2" and never se??es the prefix.
-function _uk(k) { return _uid ? _uid + "_" + k : k; }
-function _stripUid(k) { return (_uid && k.startsWith(_uid + "_")) ? k.slice(_uid.length + 1) : k; }
+// Legacy uid_field helpers removed from active persistence. Kept data is read by the migration layer below.
 
 // ── Firestore helpers (authenticated + namespaced) ────────────
 async function fbHeaders() {
@@ -521,42 +526,181 @@ async function fbHeaders() {
   return {"Content-Type": "application/json", "Authorization": "Bearer " + token};
 }
 
-async function fbGet(k) {
+async function fbGetLegacyInactive(k) {
+  return null;
+}
+
+async function fbSetLegacyInactive(k, v) {
+}
+
+async function fbDelLegacyInactive(k) {
+}
+
+async function fbListLegacyInactive(p) {
+  return {keys: []};
+}
+
+function _legacyKey2(k) { return _uid ? _uid + "_" + k : k; }
+function _stripLegacyUid2(k) { return (_uid && k.startsWith(_uid + "_")) ? k.slice(_uid.length + 1) : k; }
+function _userDocUrl2() { return FB_BASE + "/" + encodeURIComponent(_uid); }
+function _legacyDocUrl2(k) { return FB_BASE + "/" + encodeURIComponent(_legacyKey2(k)); }
+function _fieldPath2(k) {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(k) ? k : "`" + String(k).replace(/\\/g, "\\\\").replace(/`/g, "\\`") + "`";
+}
+function _decodeFsValue2(v) {
+  if (!v) return undefined;
+  if ("stringValue" in v) return v.stringValue;
+  if ("integerValue" in v) return Number(v.integerValue);
+  if ("doubleValue" in v) return Number(v.doubleValue);
+  if ("booleanValue" in v) return !!v.booleanValue;
+  if ("nullValue" in v) return null;
+  if ("arrayValue" in v) return (v.arrayValue.values || []).map(_decodeFsValue2);
+  if ("mapValue" in v) {
+    const out = {};
+    Object.entries(v.mapValue.fields || {}).forEach(([k, val]) => out[k] = _decodeFsValue2(val));
+    return out;
+  }
+  return undefined;
+}
+function _encodeFsValue2(v) {
+  if (v === null || v === undefined) return {nullValue: null};
+  if (typeof v === "boolean") return {booleanValue: v};
+  if (typeof v === "number" && Number.isFinite(v)) return Number.isInteger(v) ? {integerValue: String(v)} : {doubleValue: v};
+  if (Array.isArray(v)) return {arrayValue: {values: v.map(_encodeFsValue2)}};
+  if (typeof v === "object") {
+    const fields = {};
+    Object.entries(v).forEach(([k, val]) => fields[k] = _encodeFsValue2(val));
+    return {mapValue: {fields}};
+  }
+  return {stringValue: String(v)};
+}
+function _storageValue2(v) { return typeof v === "string" ? v : JSON.stringify(v); }
+let _userDocCache = null;
+let _userDocLoaded = false;
+let _migrationPromise = null;
+
+async function _fetchUserDocFields2() {
+  if (!_uid) return {};
+  const r = await fetch(_userDocUrl2(), {headers: await fbHeaders()});
+  if (!r.ok) return {};
+  const d = await r.json();
+  const out = {};
+  Object.entries(d.fields || {}).forEach(([k, v]) => out[k] = _decodeFsValue2(v));
+  return out;
+}
+
+async function _patchUserFields2(fields, deleteKeys) {
+  if (!_uid) return;
+  const setFields = fields || {};
+  const deletes = deleteKeys || [];
+  const params = new URLSearchParams();
+  [...Object.keys(setFields), ...deletes].forEach(k => params.append("updateMask.fieldPaths", _fieldPath2(k)));
+  const bodyFields = {};
+  Object.entries(setFields).forEach(([k, v]) => bodyFields[k] = _encodeFsValue2(v));
+  const r = await fetch(_userDocUrl2() + (params.toString() ? "?" + params.toString() : ""), {
+    method: "PATCH",
+    headers: await fbHeaders(),
+    body: JSON.stringify({fields: bodyFields})
+  });
+  if (!r.ok) throw new Error("Firestore write failed");
+  _userDocCache = {...(_userDocCache || {}), ...setFields};
+  deletes.forEach(k => { if (_userDocCache) delete _userDocCache[k]; });
+  _userDocLoaded = true;
+}
+
+async function _legacyGet2(k) {
   try {
-    const r = await fetch(FB_BASE + "/" + encodeURIComponent(_uk(k)), {headers: await fbHeaders()});
+    const r = await fetch(_legacyDocUrl2(k), {headers: await fbHeaders()});
     if (!r.ok) return null;
     const d = await r.json();
-    const v = d?.fields?.value?.stringValue;
-    return v !== undefined ? {value: v} : null;
+    const v = _decodeFsValue2(d?.fields?.value);
+    return v !== undefined && v !== null ? {value: _storageValue2(v)} : null;
   } catch(e) { return null; }
+}
+
+async function migrateLegacyNutritionDocs(options) {
+  if (!_uid) return {migrated: 0, skipped: 0};
+  const onlyIfMissing = !options || options.onlyIfMissing !== false;
+  try {
+    const headers = await fbHeaders();
+    const [listRes, currentFields] = await Promise.all([
+      fetch(FB_BASE + "?pageSize=1000", {headers}),
+      _fetchUserDocFields2().catch(() => ({}))
+    ]);
+    if (!listRes.ok) return {migrated: 0, skipped: 0};
+    const data = await listRes.json();
+    const prefix = _uid + "_";
+    const updates = {};
+    let skipped = 0;
+    (data.documents || []).forEach(doc => {
+      const rawId = decodeURIComponent((doc.name || "").split("/").pop() || "");
+      if (!rawId.startsWith(prefix)) return;
+      const key = _stripLegacyUid2(rawId);
+      if (!key || key === rawId) return;
+      if (onlyIfMissing && currentFields[key] !== undefined && currentFields[key] !== null) {
+        skipped++;
+        return;
+      }
+      const value = _decodeFsValue2(doc.fields?.value);
+      if (value !== undefined && value !== null) updates[key] = value;
+    });
+    const keys = Object.keys(updates);
+    if (keys.length) await _patchUserFields2(updates, []);
+    _userDocCache = {...currentFields, ...updates, ...(_userDocCache || {})};
+    _userDocLoaded = true;
+    return {migrated: keys.length, skipped};
+  } catch(e) {
+    return {migrated: 0, skipped: 0, error: e.message || String(e)};
+  }
+}
+window.migrateLegacyNutritionDocs = migrateLegacyNutritionDocs;
+
+async function _loadUserDoc2() {
+  if (!_uid) return {};
+  if (!_userDocLoaded) {
+    _userDocCache = await _fetchUserDocFields2().catch(() => ({}));
+    _userDocLoaded = true;
+  }
+  if (!_migrationPromise) {
+    _migrationPromise = migrateLegacyNutritionDocs({onlyIfMissing: true});
+    await _migrationPromise;
+  }
+  return _userDocCache || {};
+}
+
+async function fbGet(k) {
+  const fields = await _loadUserDoc2();
+  if (fields[k] !== undefined && fields[k] !== null) return {value: _storageValue2(fields[k])};
+  const legacy = await _legacyGet2(k);
+  if (legacy) fbSet(k, legacy.value).catch(() => {});
+  return legacy;
 }
 
 async function fbSet(k, v) {
   try {
-    await fetch(FB_BASE + "/" + encodeURIComponent(_uk(k)), {
-      method: "PATCH", headers: await fbHeaders(),
-      body: JSON.stringify({fields:{value:{stringValue: typeof v === "string" ? v : JSON.stringify(v)}}})
-    });
+    await _patchUserFields2({[k]: typeof v === "string" ? v : JSON.stringify(v)}, []);
   } catch(e) {}
 }
 
 async function fbDel(k) {
   try {
-    await fetch(FB_BASE + "/" + encodeURIComponent(_uk(k)), {method: "DELETE", headers: await fbHeaders()});
+    await _patchUserFields2({}, [k]);
   } catch(e) {}
 }
 
 async function fbList(p) {
   try {
-    const r = await fetch(FB_BASE + "?pageSize=300", {headers: await fbHeaders()});
-    if (!r.ok) return {keys:[]};
+    const fields = await _loadUserDoc2();
+    const newKeys = Object.keys(fields).filter(k => fields[k] !== undefined && fields[k] !== null);
+    const r = await fetch(FB_BASE + "?pageSize=1000", {headers: await fbHeaders()});
+    if (!r.ok) return {keys: p ? newKeys.filter(k => k.indexOf(p) === 0) : newKeys};
     const d = await r.json();
-    // Only return keys belonging to this user, stripped of UID prefix
     const prefix = _uid ? _uid + "_" : "";
-    const keys = (d.documents||[])
-      .map(doc => doc.name.split("/").pop())
+    const legacyKeys = (d.documents||[])
+      .map(doc => decodeURIComponent(doc.name.split("/").pop()))
       .filter(k => !_uid || k.startsWith(prefix))
-      .map(k => _stripUid(k));
+      .map(k => _stripLegacyUid2(k));
+    const keys = Array.from(new Set([...newKeys, ...legacyKeys]));
     return {keys: p ? keys.filter(k => k.indexOf(p) === 0) : keys};
   } catch(e) { return {keys:[]}; }
 }
@@ -583,9 +727,13 @@ const STRINGS = {
     lightMode: "☀️",
     darkMode: "🌙",
     settings: "Configurações",
+    greetingMorning: "Bom dia",
+    greetingAfternoon: "Boa tarde",
+    greetingEvening: "Boa noite",
+    greetingLine: "Vamos cuidar do plano de hoje.",
     // Tabs
     tabDiary: "Diário",
-    tabAdd: "+",
+    tabAdd: "Registrar",
     tabPantry: "Despensa",
     tabWeek: "Semana",
     tabMetrics: "Métricas",
@@ -851,9 +999,13 @@ const STRINGS = {
     lightMode: "☀️",
     darkMode: "🌙",
     settings: "Settings",
+    greetingMorning: "Good morning",
+    greetingAfternoon: "Good afternoon",
+    greetingEvening: "Good evening",
+    greetingLine: "Let's keep today's plan on track.",
     // Tabs
     tabDiary: "Diary",
-    tabAdd: "+",
+    tabAdd: "Log",
     tabPantry: "Pantry",
     tabWeek: "Week",
     tabMetrics: "Metrics",
@@ -1483,6 +1635,7 @@ function NutritionTracker({
     const nl = lang === 'pt' ? 'en' : 'pt';
     localStorage.setItem('appLang', nl);
     setLang(nl);
+    setTimeout(() => window.location.reload(), 0);
   }
   // Sync external lang changes
   useEffect(() => {
@@ -1595,6 +1748,8 @@ function NutritionTracker({
   const [gaProtMin, setGAProtMin]       = useState("");
   const [gaProtMax, setGAProtMax]       = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(() => typeof window !== "undefined" && window.innerWidth <= 520);
+  const [userName, setUserName] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [autoFillLoading, setAutoFillLoading] = useState(false);
   const [notification, setNotification] = useState("");
@@ -1683,7 +1838,7 @@ function NutritionTracker({
       setLoaded(true);
     }, 12000);
     try {
-      const [p, l, t, w, mt, n, wg, wi, sp, sl, cg, gh, bd, gd, al, gt, gkg, gw, ma, pm] = await Promise.all([storage.get("pantry_v2").catch(() => null), storage.get("log_v2_" + TODAY).catch(() => null), storage.get("trainingByDate").catch(() => null), storage.get("weightHistory").catch(() => null), storage.get("mealTemplates").catch(() => null), storage.get("notes_" + TODAY).catch(() => null), storage.get("waterGoal").catch(() => null), storage.get("waterIntake_" + TODAY).catch(() => null), storage.get("suppPantry").catch(() => null), storage.get("suppLog_" + TODAY).catch(() => null), storage.get("customGoals").catch(() => null), storage.get("goalHistory").catch(() => null), storage.get("birthDate").catch(() => null), storage.get("gender").catch(() => null), storage.get("activityLevel").catch(() => null), storage.get("goalType").catch(() => null), storage.get("goalKg").catch(() => null), storage.get("goalWeeks").catch(() => null), storage.get("manualCalorieAdjustment").catch(() => null), storage.get("proteinMultiplier").catch(() => null)]);
+      const [p, l, t, w, mt, n, wg, wi, sp, sl, cg, gh, bd, gd, al, gt, gkg, gw, ma, pm, un] = await Promise.all([storage.get("pantry_v2").catch(() => null), storage.get("log_v2_" + TODAY).catch(() => null), storage.get("trainingByDate").catch(() => null), storage.get("weightHistory").catch(() => null), storage.get("mealTemplates").catch(() => null), storage.get("notes_" + TODAY).catch(() => null), storage.get("waterGoal").catch(() => null), storage.get("waterIntake_" + TODAY).catch(() => null), storage.get("suppPantry").catch(() => null), storage.get("suppLog_" + TODAY).catch(() => null), storage.get("customGoals").catch(() => null), storage.get("goalHistory").catch(() => null), storage.get("birthDate").catch(() => null), storage.get("gender").catch(() => null), storage.get("activityLevel").catch(() => null), storage.get("goalType").catch(() => null), storage.get("goalKg").catch(() => null), storage.get("goalWeeks").catch(() => null), storage.get("manualCalorieAdjustment").catch(() => null), storage.get("proteinMultiplier").catch(() => null), storage.get("userName").catch(() => null)]);
       if (p) setPantry(JSON.parse(p.value));
       if (l) setLog(normalizeMealKeys(JSON.parse(l.value)));
       if (t) setTrainingByDate(JSON.parse(t.value));
@@ -1696,6 +1851,7 @@ function NutritionTracker({
       if (sl) setSuppLog(JSON.parse(sl.value));
       if (cg) setCustomGoals(JSON.parse(cg.value));
       if (gh) setGoalHistory(JSON.parse(gh.value));
+      if (un && un.value) setUserName(String(un.value).trim());
       setProfileData({
         birthDate: bd && bd.value ? bd.value : "",
         gender: gd && gd.value ? gd.value : ""
@@ -1715,6 +1871,13 @@ function NutritionTracker({
   }
   useEffect(() => {
     loadAll();
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const updateMobileView = () => setIsMobileView(window.innerWidth <= 520);
+    updateMobileView();
+    window.addEventListener("resize", updateMobileView);
+    return () => window.removeEventListener("resize", updateMobileView);
   }, []);
   function scheduleSave(key, value, delay = 800) {
     if (saveTimeout.current[key]) clearTimeout(saveTimeout.current[key]);
@@ -2956,11 +3119,6 @@ function NutritionTracker({
   }
   function removeFood(id) {
     setPantry(p => p.filter(f => f.id !== id));
-    const nl = {};
-    Object.keys(log).forEach(m => {
-      nl[m] = (log[m] || []).filter(e => e.foodId !== id);
-    });
-    setLog(nl);
   }
   function startEdit(food) {
     const f = {
@@ -2985,20 +3143,57 @@ function NutritionTracker({
     setEditForm(null);
     notify(lang === 'en' ? "Food updated." : "Alimento atualizado.");
   }
-  function buildEntry(food, qty) {
-    const e = {
-      id: Date.now().toString() + Math.random(),
-      foodId: food.id,
+  function buildFoodSnapshot(food) {
+    const snap = {
+      id: food.id || null,
       name: food.name,
-      qty,
       unit: food.unit
     };
-    const div = divisor(food.unit);
     ALL_FIELDS_KEYS.forEach(f => {
-      e[f.key.replace("100", "")] = food[f.key] != null ? food[f.key] * qty / div : null;
+      snap[f.key] = food[f.key] != null ? food[f.key] : null;
+    });
+    return snap;
+  }
+  function buildEntryFromSnapshot(snapshot, qty) {
+    const e = {
+      id: Date.now().toString() + Math.random(),
+      foodId: snapshot.id || null,
+      name: snapshot.name,
+      qty,
+      unit: snapshot.unit,
+      foodSnapshot: {
+        ...snapshot
+      }
+    };
+    const div = divisor(snapshot.unit);
+    ALL_FIELDS_KEYS.forEach(f => {
+      e[f.key.replace("100", "")] = snapshot[f.key] != null ? snapshot[f.key] * qty / div : null;
     });
     e.time = new Date().toTimeString().slice(0,5);
     return e;
+  }
+  function buildEntry(food, qty) {
+    return buildEntryFromSnapshot(buildFoodSnapshot(food), qty);
+  }
+  function recalcEntryQuantity(entry, qty) {
+    if (entry.foodSnapshot) {
+      const ne = buildEntryFromSnapshot(entry.foodSnapshot, qty);
+      return {
+        ...ne,
+        id: entry.id,
+        time: entry.time || ne.time
+      };
+    }
+    const ratio = entry.qty ? qty / entry.qty : 1;
+    const upd = {
+      ...entry,
+      qty
+    };
+    ALL_FIELDS_KEYS.forEach(f => {
+      const k = f.key.replace("100", "");
+      if (entry[k] != null) upd[k] = entry[k] * ratio;
+    });
+    return upd;
   }
 
   // Diary entry edit
@@ -3016,22 +3211,7 @@ function NutritionTracker({
       ...activeLog,
       [meal]: activeLog[meal].map(e => {
         if (e.id !== editEntryId) return e;
-        const food = pantry.find(f => f.id === e.foodId);
-        if (food) {
-          const ne = buildEntry(food, qty);
-          ne.id = e.id;
-          return ne;
-        }
-        const ratio = qty / e.qty;
-        const upd = {
-          ...e,
-          qty
-        };
-        ALL_FIELDS.forEach(f => {
-          const k = f.key.replace("100", "");
-          if (e[k] != null) upd[k] = e[k] * ratio;
-        });
-        return upd;
+        return recalcEntryQuantity(e, qty);
       })
     });
     setEditEntryId(null);
@@ -3165,22 +3345,7 @@ function NutritionTracker({
       ...s,
       items: s.items.map((item, i) => {
         if (i !== editStagedIdx) return item;
-        const food = pantry.find(f => f.id === item.foodId);
-        if (food) {
-          const ne = buildEntry(food, qty);
-          ne.id = item.id;
-          return ne;
-        }
-        const ratio = qty / item.qty;
-        const upd = {
-          ...item,
-          qty
-        };
-        ALL_FIELDS.forEach(f => {
-          const k = f.key.replace("100", "");
-          if (item[k] != null) upd[k] = item[k] * ratio;
-        });
-        return upd;
+        return recalcEntryQuantity(item, qty);
       })
     }));
     setEditStagedIdx(null);
@@ -3649,16 +3814,20 @@ function NutritionTracker({
     border: darkMode ? "#2a2a2a" : "#e0dbd3",
     label: darkMode ? "#aaa" : "#777"
   };
+  const greetingHour = new Date().getHours();
+  const greetingKey = greetingHour < 12 ? "greetingMorning" : greetingHour < 18 ? "greetingAfternoon" : "greetingEvening";
+  const greetingFirstName = userName.trim().split(/\s+/).filter(Boolean)[0] || "";
+  const greetingText = t(greetingKey) + (greetingFirstName ? ", " + greetingFirstName : "") + "!";
   if (!loaded) return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: "100vh",
-      background: "var(--bg)",
+      background: "#f2f1ed",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
       gap: 12,
-      color: "#888",
+      color: "#6a6662",
       fontFamily: "system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -3939,7 +4108,28 @@ function NutritionTracker({
       color: "var(--muted)",
       marginLeft: "auto"
     }
-  }, currentWeight, "kg", bmi ? ` · ${t('bmi')} ${bmi}` : ""))), /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }, currentWeight, "kg", bmi ? ` · ${t('bmi')} ${bmi}` : ""))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: isMobileView ? "10px 20px 12px" : "10px 28px 14px",
+      background: "var(--surface)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: isMobileView ? 18 : 20,
+      lineHeight: 1.2,
+      color: "var(--text)",
+      fontWeight: 700,
+      letterSpacing: 0,
+      overflowWrap: "anywhere"
+    }
+  }, greetingText), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
+      fontSize: 13,
+      color: "var(--muted)",
+      lineHeight: 1.35
+    }
+  }, t('greetingLine'))), /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       background: "var(--surface)",
@@ -4165,23 +4355,33 @@ function NutritionTracker({
   })(), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
+      gap: isMobileView ? 8 : 0,
       borderBottom: "1px solid var(--border)",
-      marginTop: 10
+      marginTop: 0,
+      overflowX: isMobileView ? "auto" : "visible",
+      overflowY: "hidden",
+      WebkitOverflowScrolling: "touch",
+      scrollbarWidth: isMobileView ? "none" : "auto",
+      padding: isMobileView ? "0 12px" : 0,
+      background: "var(--surface)"
     }
-  }, [["diario", t('tabDiary')], ["adicionar", "+"], ["despensa", t('tabPantry')], ["semana", t('tabWeek')], ["metricas", t('tabMetrics')]].map(([t, label]) => /*#__PURE__*/React.createElement("button", {
+  }, [["diario", t('tabDiary')], ["adicionar", isMobileView ? "+" : t('tabAdd')], ["despensa", t('tabPantry')], ["semana", t('tabWeek')], ["metricas", t('tabMetrics')]].map(([t, label]) => /*#__PURE__*/React.createElement("button", {
     "data-tutorial": "tab-" + t,
     key: t,
     onClick: () => setTab(t),
     style: {
-      flex: 1,
-      padding: "10px 0",
+      flex: isMobileView ? "0 0 auto" : 1,
+      minWidth: isMobileView ? (t === "adicionar" ? 58 : 96) : 0,
+      padding: isMobileView ? "10px 14px" : "10px 0",
       background: tab === t ? "var(--tab-active)" : "transparent",
       border: "none",
       borderBottom: tab === t ? "2px solid #c8a96e" : "2px solid transparent",
       color: tab === t ? "#c8a96e" : "#444",
-      fontSize: 14,
-      letterSpacing: 1,
+      fontSize: t === "adicionar" && isMobileView ? 20 : 14,
+      fontWeight: t === "adicionar" ? 700 : 400,
+      letterSpacing: t === "adicionar" && isMobileView ? 0 : 1,
       textTransform: "uppercase",
+      whiteSpace: "nowrap",
       cursor: "pointer"
     }
   }, label))), /*#__PURE__*/React.createElement("div", {
@@ -9650,7 +9850,7 @@ function App() {
     return saved !== null ? saved === 'true' : false; // padrão: modo claro
   });
 
-  function toggleLang() { const nl=lang==='pt'?'en':'pt'; localStorage.setItem('appLang',nl); setLang(nl); }
+  function toggleLang() { const nl=lang==='pt'?'en':'pt'; localStorage.setItem('appLang',nl); setLang(nl); setTimeout(() => window.location.reload(), 0); }
   function toggleDark() { setDarkMode(d => { const next = !d; localStorage.setItem('appDarkMode', String(next)); return next; }); }
   async function checkRequiredProfile() {
     setProfileChecking(true);
