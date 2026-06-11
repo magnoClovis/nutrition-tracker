@@ -2,24 +2,38 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /nutrition/{docId} {
+    match /nutrition/{uid} {
       function signedIn() {
         return request.auth != null;
       }
 
       function isOwnUserDoc() {
-        return signedIn() && docId == request.auth.uid;
+        return signedIn() && uid == request.auth.uid;
+      }
+
+      // User profile/preferences live at nutrition/{uid}.
+      allow read: if isOwnUserDoc();
+      allow create, update, delete: if isOwnUserDoc();
+
+      // Growing app data lives here to avoid an oversized user document.
+      match /data/{key} {
+        allow read, create, update, delete: if isOwnUserDoc();
+      }
+    }
+
+    match /nutrition/{docId} {
+      function signedIn() {
+        return request.auth != null;
       }
 
       function isOwnLegacyDoc() {
         return signedIn() && docId.matches('^' + request.auth.uid + '_.*$');
       }
 
-      // Temporary migration window:
-      // - New app data is read/written at nutrition/{uid}.
-      // - Legacy docs nutrition/{uid}_{field} are read-only so old data can be migrated.
-      allow read: if isOwnUserDoc() || isOwnLegacyDoc();
-      allow create, update, delete: if isOwnUserDoc();
+      // Temporary migration window. Legacy docs nutrition/{uid}_{field}
+      // stay read-only so old data can be copied into the new structure.
+      allow read: if isOwnLegacyDoc();
+      allow create, update, delete: if false;
     }
   }
 }

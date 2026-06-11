@@ -685,6 +685,8 @@ export default function NutritionTracker({onOpenSettings}) {
   const [barcodeMessage,setBarcodeMessage] = useState("");
   const videoRef = useRef(null);
   const barcodeStreamRef = useRef(null);
+  const barcodeReaderRef = useRef(null);
+  const barcodeControlsRef = useRef(null);
   const barcodeScanRef = useRef(false);
   const [notification,setNotification] = useState("");
   const [expandMicros,setExpandMicros] = useState(false);
@@ -950,6 +952,13 @@ export default function NutritionTracker({onOpenSettings}) {
   }
   function stopBarcodeScanner() {
     barcodeScanRef.current = false;
+    if (barcodeControlsRef.current && typeof barcodeControlsRef.current.stop === "function") {
+      try { barcodeControlsRef.current.stop(); } catch (_) {}
+      barcodeControlsRef.current = null;
+    }
+    if (barcodeReaderRef.current && typeof barcodeReaderRef.current.reset === "function") {
+      try { barcodeReaderRef.current.reset(); } catch (_) {}
+    }
     if (barcodeStreamRef.current) {
       barcodeStreamRef.current.getTracks().forEach(track => track.stop());
       barcodeStreamRef.current = null;
@@ -988,48 +997,123 @@ export default function NutritionTracker({onOpenSettings}) {
       setBarcodeLoading(false);
     }
   }
+  let barcodeLibPromise = null;
+  function loadBarcodeFallbackLibrary() {
+    const getLoaded = () => {
+      const lib = window.ZXingBrowser || window.ZXing;
+      if (lib && (lib.BrowserMultiFormatReader || lib.BrowserBarcodeReader)) return lib;
+      return null;
+    };
+    const loaded = getLoaded();
+    if (loaded) return Promise.resolve(loaded);
+    if (barcodeLibPromise) return barcodeLibPromise;
+    const urls = [
+      "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js",
+      "https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js",
+      "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js",
+      "https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"
+    ];
+    barcodeLibPromise = new Promise((resolve, reject) => {
+      let idx = 0;
+      const tryNext = () => {
+        const current = getLoaded();
+        if (current) return resolve(current);
+        if (idx >= urls.length) return reject(new Error("ZXing unavailable"));
+        const script = document.createElement("script");
+        script.src = urls[idx++];
+        script.async = true;
+        script.onload = () => {
+          const lib = getLoaded();
+          lib ? resolve(lib) : tryNext();
+        };
+        script.onerror = tryNext;
+        document.head.appendChild(script);
+      };
+      tryNext();
+    });
+    return barcodeLibPromise;
+  }
+  async function startNativeBarcodeScanner() {
+    const detector = new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]});
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}, audio:false});
+    barcodeStreamRef.current = stream;
+    barcodeScanRef.current = true;
+    setBarcodeScanning(true);
+    setTimeout(async () => {
+      if (!videoRef.current) return;
+      videoRef.current.srcObject = stream;
+      try { await videoRef.current.play(); } catch (_) {}
+      const scan = async () => {
+        if (!barcodeScanRef.current || !videoRef.current) return;
+        try {
+          const codes = await detector.detect(videoRef.current);
+          if (codes && codes.length) {
+            const code = codes[0].rawValue;
+            setBarcodeInput(code);
+            await fetchBarcodeProduct(code);
+            return;
+          }
+        } catch (_) {}
+        if (barcodeScanRef.current) requestAnimationFrame(scan);
+      };
+      scan();
+    }, 0);
+  }
+  async function startFallbackBarcodeScanner() {
+    setBarcodeMessage(lang === 'en' ? "Loading compatible barcode scanner..." : "Carregando leitor compat�vel...");
+    const lib = await loadBarcodeFallbackLibrary();
+    const Reader = lib.BrowserMultiFormatReader || lib.BrowserBarcodeReader;
+    if (!Reader) throw new Error("ZXing reader unavailable");
+    const reader = new Reader();
+    barcodeReaderRef.current = reader;
+    barcodeScanRef.current = true;
+    setBarcodeScanning(true);
+    setBarcodeMessage(lang === 'en' ? "Point the camera at the barcode." : "Aponte a c�mera para o c�digo de barras.");
+    setTimeout(async () => {
+      if (!videoRef.current || !barcodeScanRef.current) return;
+      try {
+        if (typeof reader.decodeFromVideoDevice === "function") {
+          const maybeControls = await reader.decodeFromVideoDevice(null, videoRef.current, async (result, err, controls) => {
+            if (controls && !barcodeControlsRef.current) barcodeControlsRef.current = controls;
+            if (!result || !barcodeScanRef.current) return;
+            const code = typeof result.getText === "function" ? result.getText() : (result.text || result.rawValue || String(result));
+            if (!code) return;
+            setBarcodeInput(code);
+            if (controls && typeof controls.stop === "function") {
+              try { controls.stop(); } catch (_) {}
+            }
+            await fetchBarcodeProduct(code);
+          });
+          if (maybeControls && typeof maybeControls.stop === "function") barcodeControlsRef.current = maybeControls;
+        } else if (typeof reader.decodeOnceFromVideoDevice === "function") {
+          const result = await reader.decodeOnceFromVideoDevice(null, videoRef.current);
+          const code = typeof result.getText === "function" ? result.getText() : (result.text || result.rawValue || String(result));
+          setBarcodeInput(code);
+          await fetchBarcodeProduct(code);
+        } else {
+          throw new Error("ZXing video API unavailable");
+        }
+      } catch (_) {
+        stopBarcodeScanner();
+        setBarcodeMessage(lang === 'en' ? "Compatible camera scanner failed. Type the barcode manually below." : "O leitor compat�vel pela c�mera falhou. Digite o c�digo manualmente abaixo.");
+      }
+    }, 0);
+  }
   async function startBarcodeScanner() {
-    if (!("BarcodeDetector" in window)) {
-      setBarcodeMessage(lang === 'en' ? "Camera barcode scanning is not supported in this browser. Use manual entry below." : "Este navegador não suporta leitura de código pela câmera. Use a digitação manual abaixo.");
-      return;
-    }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setBarcodeMessage(lang === 'en' ? "Camera access is not available. Use manual entry below." : "O acesso à câmera não está disponível. Use a digitação manual abaixo.");
+      setBarcodeMessage(lang === 'en' ? "Camera access is not available. Use manual entry below." : "O acesso � c�mera n�o est� dispon�vel. Use a digita��o manual abaixo.");
       return;
     }
     stopBarcodeScanner();
-    setBarcodeMessage(lang === 'en' ? "Point the camera at the barcode." : "Aponte a câmera para o código de barras.");
+    setBarcodeMessage(lang === 'en' ? "Point the camera at the barcode." : "Aponte a c�mera para o c�digo de barras.");
     try {
-      const detector = new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e"]});
-      const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}, audio:false});
-      barcodeStreamRef.current = stream;
-      barcodeScanRef.current = true;
-      setBarcodeScanning(true);
-      setTimeout(async () => {
-        if (!videoRef.current) return;
-        videoRef.current.srcObject = stream;
-        try { await videoRef.current.play(); } catch (_) {}
-        const scan = async () => {
-          if (!barcodeScanRef.current || !videoRef.current) return;
-          try {
-            const codes = await detector.detect(videoRef.current);
-            if (codes && codes.length) {
-              const code = codes[0].rawValue;
-              setBarcodeInput(code);
-              await fetchBarcodeProduct(code);
-              return;
-            }
-          } catch (_) {}
-          if (barcodeScanRef.current) requestAnimationFrame(scan);
-        };
-        scan();
-      }, 0);
+      if ("BarcodeDetector" in window) await startNativeBarcodeScanner();
+      else await startFallbackBarcodeScanner();
     } catch (_) {
       stopBarcodeScanner();
-      setBarcodeMessage(lang === 'en' ? "Camera permission was denied or unavailable. Use manual entry below." : "A permissão da câmera foi negada ou não está disponível. Use a digitação manual abaixo.");
+      setBarcodeMessage(lang === 'en' ? "Camera permission was denied, unavailable, or unsupported. Use manual entry below." : "A permiss�o da c�mera foi negada, n�o est� dispon�vel ou n�o � compat�vel. Use a digita��o manual abaixo.");
     }
   }
-
   async function autoFillNutrition() {
     if(!form.name.trim()){notify("Escreve o nome do alimento primeiro.");return;}
     setAutoFillLoading(true);
@@ -3056,3 +3140,4 @@ const lbl={fontSize:10,letterSpacing:1.5,color:"var(--muted)",textTransform:"upp
 const btn={width:"100%",background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",color:"var(--btn-ok-text)",padding:"11px",borderRadius:6,fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",marginTop:4};
 function sBtn(bg,border,color){return{background:bg,border:"1px solid "+border,color,borderRadius:4,padding:"6px 10px",fontSize:10,letterSpacing:1,textTransform:"uppercase",cursor:"pointer"};}
 function sBtnLbl(bg,border,color){return{...sBtn(bg,border,color),display:"inline-block"};}
+
