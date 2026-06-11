@@ -1756,6 +1756,8 @@ function NutritionTracker({
   const [userName, setUserName] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [autoFillLoading, setAutoFillLoading] = useState(false);
+  const [foodDbLoading, setFoodDbLoading] = useState(false);
+  const [foodDbResults, setFoodDbResults] = useState([]);
   const [notification, setNotification] = useState("");
   const [expandMicros, setExpandMicros] = useState(false);
   const [detailFood, setDetailFood] = useState(null);
@@ -2095,6 +2097,62 @@ function NutritionTracker({
   function notify(msg, duration = 3000) {
     setNotification(msg);
     setTimeout(() => setNotification(""), duration);
+  }
+  function applyFoodDbProduct(product) {
+    const n = product.nutriments || {};
+    const val = (...keys) => {
+      for (const key of keys) {
+        const v = n[key];
+        if (v !== undefined && v !== null && v !== "") return Number(v);
+      }
+      return null;
+    };
+    const kcal = val("energy-kcal_100g", "energy-kcal", "energy_100g");
+    const mapped = {
+      protein100: val("proteins_100g", "proteins"),
+      kcal100: kcal && kcal > 1000 ? Math.round(kcal / 4.184) : kcal,
+      carbs100: val("carbohydrates_100g", "carbohydrates"),
+      sugars100: val("sugars_100g", "sugars"),
+      fat100: val("fat_100g", "fat"),
+      satfat100: val("saturated-fat_100g", "saturated-fat"),
+      fiber100: val("fiber_100g", "fiber"),
+      salt100: val("salt_100g", "salt")
+    };
+    setForm(f => {
+      const next = {
+        ...f,
+        name: product.product_name || product.generic_name || product.brands || f.name,
+        unit: f.unit === "un" ? "g" : f.unit,
+        portionSize: "100"
+      };
+      Object.entries(mapped).forEach(([key, value]) => {
+        if (Number.isFinite(value)) next[key] = String(Math.round(value * 10) / 10);
+      });
+      return next;
+    });
+    notify(lang === 'en' ? "Values imported from Open Food Facts. Please review before saving." : "Valores importados do Open Food Facts. Revise antes de salvar.", 6000);
+  }
+  async function searchFoodDatabase() {
+    const query = form.name.trim();
+    if (!query) {
+      notify(lang === 'en' ? "Enter the food name first." : "Escreva o nome do alimento primeiro.");
+      return;
+    }
+    setFoodDbLoading(true);
+    setFoodDbResults([]);
+    try {
+      const url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(query) + "&search_simple=1&action=process&json=1&page_size=8&fields=product_name,generic_name,brands,nutriments,quantity";
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Open Food Facts");
+      const data = await res.json();
+      const products = (data.products || []).filter(p => p.nutriments && (p.nutriments["energy-kcal_100g"] || p.nutriments["proteins_100g"]));
+      setFoodDbResults(products);
+      if (!products.length) notify(lang === 'en' ? "No matching food found in Open Food Facts." : "Nenhum alimento correspondente encontrado no Open Food Facts.", 5000);
+      else applyFoodDbProduct(products[0]);
+    } catch (e) {
+      notify(lang === 'en' ? "Could not search Open Food Facts right now." : "Não foi possível buscar no Open Food Facts agora.", 6000);
+    }
+    setFoodDbLoading(false);
   }
   async function autoFillNutrition() {
     if (!form.name.trim()) {
@@ -3101,6 +3159,14 @@ function NutritionTracker({
         ? "This is a high adjustment. Review the timeline or use a smaller manual adjustment if the target feels too extreme."
         : "Este é um ajuste alto. Revise o prazo ou use um ajuste manual menor se a meta parecer extrema.")
       : "";
+  const weeklyGoalRate = Number(nutritionPrefs.goalKg) && Number(nutritionPrefs.goalWeeks) ? Number(nutritionPrefs.goalKg) / Number(nutritionPrefs.goalWeeks) : 0;
+  const healthGuardrails = [
+    calculatedGoals.kcal < 1200 && (lang === 'en' ? "Final target below 1200 kcal/day: this is usually too low without professional supervision." : "Meta final abaixo de 1200 kcal/dia: normalmente é baixa demais sem acompanhamento profissional."),
+    Math.abs(calorieAdjustment) >= 750 && (lang === 'en' ? "Adjustment above 750 kcal/day: consider a longer timeline to protect adherence and recovery." : "Ajuste acima de 750 kcal/dia: considere um prazo maior para proteger aderência e recuperação."),
+    adjustmentPct >= 35 && (lang === 'en' ? "Adjustment above 35% of your day base: this is an extreme change compared with your estimated maintenance." : "Ajuste acima de 35% da base do dia: é uma mudança extrema em relação à manutenção estimada."),
+    nutritionPrefs.goalType === "loss" && weeklyGoalRate > 1 && (lang === 'en' ? "Planned loss above 1 kg/week: this may increase hunger, fatigue, and muscle-loss risk." : "Perda planejada acima de 1 kg/semana: pode aumentar fome, fadiga e risco de perda muscular."),
+    nutritionPrefs.goalType === "gain" && weeklyGoalRate > 0.5 && (lang === 'en' ? "Planned gain above 0.5 kg/week: a large surplus may add unnecessary fat gain." : "Ganho planejado acima de 0,5 kg/semana: um superávit grande pode aumentar ganho de gordura desnecessário.")
+  ].filter(Boolean);
   const isToday = viewDate === TODAY;
   const frozenGoals = goalHistory[viewDate];
   const goals = !isToday && frozenGoals ? {...calculatedGoals, ...frozenGoals} : calculatedGoals;
@@ -3830,6 +3896,35 @@ function NutritionTracker({
   const sortedAllPantry = [...pantry].sort((a, b) => a.name.localeCompare(b.name, "pt"));
   const remainProtein = Math.max(0, Math.round(goals.protein - tot.protein));
   const remainKcal = Math.max(0, Math.round(goals.kcal - tot.kcal));
+  const dayProteinPct = goals.protein ? Math.round(tot.protein / goals.protein * 100) : 0;
+  const dayKcalPct = goals.kcal ? Math.round(tot.kcal / goals.kcal * 100) : 0;
+  const diaryStatus = (() => {
+    if (!allEntries.length) return {
+      tone: "muted",
+      title: lang === 'en' ? "No meals logged yet" : "Nenhuma refeição registrada ainda",
+      text: lang === 'en' ? "Start with a meal or ask for a suggestion based on your pantry." : "Comece registrando uma refeição ou peça uma sugestão com base na despensa."
+    };
+    if (dayKcalPct > 115) return {
+      tone: "warn",
+      title: lang === 'en' ? "Calories are running high" : "Calorias acima do ideal",
+      text: lang === 'en' ? "You are past the comfortable range for today. Prioritize lighter, protein-focused choices." : "Você passou da faixa confortável de hoje. Priorize escolhas mais leves e com boa proteína."
+    };
+    if (dayProteinPct < 60 && dayKcalPct > 60) return {
+      tone: "warn",
+      title: lang === 'en' ? "Protein is lagging behind" : "Proteína está ficando para trás",
+      text: lang === 'en' ? "Calories are moving faster than protein. A lean protein option may help balance the day." : "As calorias estão avançando mais rápido que a proteína. Uma opção proteica magra pode equilibrar o dia."
+    };
+    if (dayProteinPct >= 100 && dayKcalPct <= 115) return {
+      tone: "ok",
+      title: lang === 'en' ? "Good path for today" : "Bom caminho para hoje",
+      text: lang === 'en' ? "Protein is covered and calories are still controlled." : "A proteína está coberta e as calorias seguem controladas."
+    };
+    return {
+      tone: "info",
+      title: lang === 'en' ? "On track" : "No caminho",
+      text: lang === 'en' ? "Keep an eye on what remains before choosing the next meal." : "Observe o que ainda falta antes de escolher a próxima refeição."
+    };
+  })();
   const dateStr = new Date(viewDate + "T12:00:00").toLocaleDateString(lang === 'en' ? "en-US" : "pt-BR", {
     weekday: "long",
     day: "numeric",
@@ -3961,6 +4056,15 @@ function NutritionTracker({
         lineHeight: 1.45
       }
     }, Math.round(item.kcal || 0), " kcal · ", Math.round(item.protein || 0), "g prot", /*#__PURE__*/React.createElement("br", null), Math.round(item.carbs || 0), "g carb · ", Math.round(item.fat || 0), "g gord")))));
+  }
+  function calendarMonthStats() {
+    const markers = Object.values(calendarData[calendarMonth] || {}).filter(m => m && m.hasData);
+    const registered = markers.length;
+    const proteinDays = markers.filter(m => m.proteinMet).length;
+    const kcalOverDays = markers.filter(m => m.kcalOver).length;
+    const avgKcalMonth = registered ? Math.round(markers.reduce((s, m) => s + (m.kcal || 0), 0) / registered) : 0;
+    const avgProteinMonth = registered ? Math.round(markers.reduce((s, m) => s + (m.protein || 0), 0) / registered) : 0;
+    return {registered, proteinDays, kcalOverDays, avgKcalMonth, avgProteinMonth};
   }
   const weightChartData = weightHistory.map(e => ({
     date: e.date.slice(5),
@@ -4670,6 +4774,40 @@ function NutritionTracker({
   }, tab === "diario" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 14,
+      background: diaryStatus.tone === "ok" ? "var(--notif-ok-bg)" : diaryStatus.tone === "warn" ? "var(--notif-err-bg)" : "var(--surface)",
+      border: "1px solid " + (diaryStatus.tone === "ok" ? "var(--notif-ok-border)" : diaryStatus.tone === "warn" ? "var(--notif-err-border)" : "var(--border)"),
+      borderRadius: 8,
+      padding: "12px 14px",
+      display: "grid",
+      gridTemplateColumns: isMobileView ? "1fr" : "1fr auto",
+      gap: 10,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: diaryStatus.tone === "warn" ? "var(--notif-err-text)" : "var(--text2)",
+      fontSize: 15,
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, diaryStatus.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--muted)",
+      fontSize: 13,
+      lineHeight: 1.4
+    }
+  }, diaryStatus.text)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap",
+      justifyContent: isMobileView ? "flex-start" : "flex-end",
+      fontSize: 12,
+      color: "var(--muted)"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, dayProteinPct, "% ", lang === 'en' ? "protein" : "proteína"), /*#__PURE__*/React.createElement("span", null, dayKcalPct, "% kcal"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14,
       background: "var(--surface)",
       borderRadius: 8,
       padding: "8px 12px"
@@ -4825,7 +4963,54 @@ function NutritionTracker({
         background: marker.kcalOver ? "#cf6679" : marker.kcalGood ? "#66c2c2" : "var(--border3)"
       }
     }))) : "");
-  })), calendarLoading && /*#__PURE__*/React.createElement("div", {
+  })), (() => {
+    const ms = calendarMonthStats();
+    const legendItem = (color, label) => /*#__PURE__*/React.createElement("span", {
+      style: { display: "inline-flex", alignItems: "center", gap: 5 }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: { width: 7, height: 7, borderRadius: "50%", background: color, display: "inline-block" }
+    }), label);
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 12,
+        borderTop: "1px solid var(--border3)",
+        paddingTop: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "8px 14px",
+        fontSize: 12,
+        color: "var(--muted)",
+        marginBottom: 10
+      }
+    }, legendItem("#c8a96e", lang === 'en' ? "Protein hit" : "Proteína batida"), legendItem("#66c2c2", lang === 'en' ? "Calories in range" : "Calorias na faixa"), legendItem("#cf6679", lang === 'en' ? "High calorie excess" : "Excesso calórico"), legendItem("var(--border3)", lang === 'en' ? "Not hit / no record" : "Não batido / sem registro")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+        gap: 8,
+        fontSize: 12,
+        color: "var(--text2)"
+      }
+    }, [
+      [lang === 'en' ? "Logged days" : "Dias registrados", ms.registered],
+      [lang === 'en' ? "Protein days" : "Dias com proteína", ms.proteinDays],
+      [lang === 'en' ? "Avg kcal" : "Média kcal", ms.avgKcalMonth],
+      [lang === 'en' ? "Avg protein" : "Média proteína", ms.avgProteinMonth + "g"],
+      [lang === 'en' ? "Excess days" : "Dias com excesso", ms.kcalOverDays]
+    ].map(([label, value]) => /*#__PURE__*/React.createElement("div", {
+      key: label,
+      style: {
+        background: "var(--bg)",
+        border: "1px solid var(--border3)",
+        borderRadius: 6,
+        padding: "7px 8px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: { color: "var(--muted)", marginBottom: 2 }
+    }, label), /*#__PURE__*/React.createElement("b", null, value)))));
+  })(), calendarLoading && /*#__PURE__*/React.createElement("div", {
     style: {
       color: "var(--faint)",
       fontSize: 12,
@@ -6579,6 +6764,23 @@ function NutritionTracker({
   }, "ml"), /*#__PURE__*/React.createElement("option", {
     value: "un"
   }, "un")))), /*#__PURE__*/React.createElement("button", {
+    onClick: searchFoodDatabase,
+    disabled: foodDbLoading,
+    style: {
+      width: "100%",
+      background: "var(--btn-teal)",
+      border: "1px solid var(--btn-teal-border)",
+      color: foodDbLoading ? "var(--muted)" : "var(--btn-teal-text)",
+      padding: "9px",
+      borderRadius: 6,
+      fontSize: 14,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      cursor: foodDbLoading ? "default" : "pointer",
+      fontFamily: "inherit",
+      marginBottom: 8
+    }
+  }, foodDbLoading ? (lang === 'en' ? "Searching database..." : "Buscando na base...") : (lang === 'en' ? "Search nutrition database" : "Buscar na base nutricional")), /*#__PURE__*/React.createElement("button", {
     onClick: autoFillNutrition,
     disabled: autoFillLoading,
     style: {
@@ -8191,7 +8393,7 @@ function NutritionTracker({
     onChange: e => saveNutritionPrefs({...nutritionPrefs, manualAdjustment: e.target.value}),
     placeholder: "auto: " + getGoalAdjustment(nutritionPrefs),
     style: inp
-  }), calorieAdjustmentWarning && /*#__PURE__*/React.createElement("div", {
+  }), (calorieAdjustmentWarning || healthGuardrails.length > 0) && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: -6,
       padding: "8px 10px",
@@ -8202,7 +8404,11 @@ function NutritionTracker({
       fontSize: 12,
       lineHeight: 1.35
     }
-  }, calorieAdjustmentWarning)), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { fontWeight: 700, marginBottom: healthGuardrails.length ? 5 : 0 }
+  }, calorieAdjustmentWarning || (lang === 'en' ? "Health guardrails" : "Alertas de saúde")), healthGuardrails.map((msg, idx) => /*#__PURE__*/React.createElement("div", {
+    key: idx
+  }, "• ", msg)))), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: "1 1 180px"
     }
@@ -8403,7 +8609,38 @@ function NutritionTracker({
       fontSize: 14,
       letterSpacing: 1
     }
-  }, lang === 'en' ? "Reset automatic targets" : "Repor metas autom\xE1ticas"))), showSaveTemplateModal && /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "Reset automatic targets" : "Repor metas autom\xE1ticas"))), isMobileView && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 99950,
+      background: "var(--surface)",
+      borderTop: "1px solid var(--border2)",
+      padding: "8px 10px calc(8px + env(safe-area-inset-bottom, 0px))",
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 8,
+      boxShadow: "0 -6px 24px rgba(0,0,0,0.18)"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setTab("adicionar"),
+    style: sBtn("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)")
+  }, lang === 'en' ? "Log" : "Registrar"), /*#__PURE__*/React.createElement("button", {
+    onClick: openMealSuggestions,
+    disabled: gaRunning || suggestLoading,
+    style: {
+      ...sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)"),
+      opacity: gaRunning || suggestLoading ? 0.5 : 1
+    }
+  }, lang === 'en' ? "Suggest" : "Sugerir"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      changeViewDate(TODAY);
+      setTab("diario");
+    },
+    style: sBtn("transparent", "var(--border2)", "var(--muted)")
+  }, lang === 'en' ? "Today" : "Hoje")), showSaveTemplateModal && /*#__PURE__*/React.createElement("div", {
   style:{position:"fixed",inset:0,zIndex:99997,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(3px)",
     display:"flex",alignItems:"center",justifyContent:"center",padding:16},
   onClick: e => { if(e.target===e.currentTarget) setShowSaveTemplateModal(false); }
