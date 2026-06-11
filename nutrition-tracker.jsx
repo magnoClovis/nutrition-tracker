@@ -2519,6 +2519,40 @@ export default function NutritionTracker({onOpenSettings}) {
             }}>
               {lang==='en'?'Scan barcode':'Ler código de barras'}
             </button>
+            {barcodeModalOpen&&(
+              <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:12,marginBottom:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div style={{fontSize:14,color:"var(--text2)",fontWeight:600}}>
+                    {lang==='en'?'Barcode lookup':'Buscar por código de barras'}
+                  </div>
+                  <button onClick={closeBarcodeModal} style={{background:"none",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:18}}>×</button>
+                </div>
+                <video ref={videoRef} playsInline muted style={{
+                  width:"100%",minHeight:150,maxHeight:220,objectFit:"cover",borderRadius:8,
+                  background:"var(--bg)",border:"1px solid var(--border2)",
+                  display:barcodeScanning?"block":"none",marginBottom:8
+                }}/>
+                <button onClick={barcodeScanning?stopBarcodeScanner:startBarcodeScanner} disabled={barcodeLoading} style={{
+                  ...sBtn(barcodeScanning?"var(--btn-warn)":"var(--btn-ok)",barcodeScanning?"var(--btn-warn-border)":"var(--btn-ok-border)",barcodeScanning?"var(--btn-warn-text)":"var(--btn-ok-text)"),
+                  width:"100%",marginBottom:8
+                }}>
+                  {barcodeScanning?(lang==='en'?'Stop camera':'Parar câmera'):(lang==='en'?'Use camera':'Usar câmera')}
+                </button>
+                <div style={{display:"flex",gap:8}}>
+                  <input value={barcodeInput} onChange={e=>setBarcodeInput(e.target.value.replace(/\D/g,""))} inputMode="numeric"
+                    placeholder={lang==='en'?'Barcode number':'Número do código'} style={{...inp,flex:1,marginTop:0}}/>
+                  <button onClick={()=>fetchBarcodeProduct()} disabled={barcodeLoading}
+                    style={{...sBtn("var(--btn-teal)","var(--btn-teal-border)","var(--btn-teal-text)"),minWidth:86}}>
+                    {barcodeLoading?(lang==='en'?'Searching':'Buscando'):(lang==='en'?'Search':'Buscar')}
+                  </button>
+                </div>
+                {barcodeMessage&&(
+                  <div style={{marginTop:8,fontSize:12,color:"var(--muted)",lineHeight:1.45}}>
+                    {barcodeMessage}
+                  </div>
+                )}
+              </div>
+            )}
             <button onClick={autoFillNutrition} disabled={autoFillLoading} style={{
               width:"100%",background:"var(--btn-info)",border:"1px solid var(--btn-info-border)",
               color:autoFillLoading?"var(--muted)":"var(--btn-info-text)",padding:"9px",borderRadius:6,
