@@ -1579,6 +1579,8 @@ function NutritionTracker({
   const [showGA, setShowGA]           = useState(false);
   const [gaUseAll, setGAUseAll]       = useState(true);
   const [gaSelIds, setGASelIds]       = useState({});
+  const [gaFoodSearch, setGAFoodSearch] = useState("");
+  const [gaAdvancedOpen, setGAAdvancedOpen] = useState(false);
   const [gaLimits, setGALimits]       = useState({});
   const [gaGlobalMax, setGAGlobalMax] = useState(5);
   const [gaTolerance, setGATolerance] = useState(15);
@@ -1588,14 +1590,10 @@ function NutritionTracker({
   const [gaTargetMeal, setGATargetMeal] = useState(''); // {content, filename, copied}
   const [gaUseProtTol, setGAUseProtTol] = useState(false);
   const [gaProtTolerance, setGAProtTolerance] = useState(20);
-  const [gaUseKcalMin, setGAUseKcalMin] = useState(false);
-  const [gaUseKcalMax, setGAUseKcalMax] = useState(false);
-  const [gaUseProtMin, setGAUseProtMin] = useState(false);
-  const [gaUseProtMax, setGAUseProtMax] = useState(false);
-  const [gaKcalMin, setGAKcalMin]       = useState(200);
-  const [gaKcalMax, setGAKcalMax]       = useState(800);
-  const [gaProtMin, setGAProtMin]       = useState(20);
-  const [gaProtMax, setGAProtMax]       = useState(60);
+  const [gaKcalMin, setGAKcalMin]       = useState("");
+  const [gaKcalMax, setGAKcalMax]       = useState("");
+  const [gaProtMin, setGAProtMin]       = useState("");
+  const [gaProtMax, setGAProtMax]       = useState("");
   const [loaded, setLoaded] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [autoFillLoading, setAutoFillLoading] = useState(false);
@@ -2577,6 +2575,19 @@ function NutritionTracker({
     const targetProt = Math.max(10, (goals.protein||150) - eatenProt);
     const targetKcal = Math.max(50, (goals.kcal||2000) - eatenKcal);
     const kcalBudget = targetKcal * (1 + gaTolerance/100);
+    const readLimit = v => {
+      if (v === "" || v === null || v === undefined) return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+    const kcalMinLimit = readLimit(gaKcalMin);
+    const kcalMaxLimit = readLimit(gaKcalMax);
+    const protMinLimit = readLimit(gaProtMin);
+    const protMaxLimit = readLimit(gaProtMax);
+    const hasKcalMin = kcalMinLimit !== null;
+    const hasKcalMax = kcalMaxLimit !== null;
+    const hasProtMin = protMinLimit !== null;
+    const hasProtMax = protMaxLimit !== null;
 
     // Per-food gene bounds
     // gene unit: for "un" foods = 1 item; for g/ml = 100g/ml
@@ -2609,18 +2620,18 @@ function NutritionTracker({
 
     // Determine effective kcal interval
     // Tolerance slider now ranges -40% to +40%, allowing deficit targets
-    const kcalLo = gaUseKcalMin ? gaKcalMin : 0;
-    const kcalHi = gaUseKcalMax ? gaKcalMax : kcalBudget;
+    const kcalLo = hasKcalMin ? kcalMinLimit : 0;
+    const kcalHi = hasKcalMax ? kcalMaxLimit : kcalBudget;
 
     // Protein budget from tolerance (if enabled)
     const protBudget = gaUseProtTol
       ? targetProt * (1 + gaProtTolerance/100)
       : Infinity;
-    const protLo = gaUseProtMin ? gaProtMin : 0;
-    const protHi = gaUseProtMax ? gaProtMax : Infinity;
+    const protLo = hasProtMin ? protMinLimit : 0;
+    const protHi = hasProtMax ? protMaxLimit : Infinity;
 
     // Decide which fitness variant to use
-    const hasAbsLimits = gaUseKcalMin || gaUseKcalMax || gaUseProtMin || gaUseProtMax;
+    const hasAbsLimits = hasKcalMin || hasKcalMax || hasProtMin || hasProtMax;
 
     const fitness = genes => {
       const t = totals(genes);
@@ -2631,16 +2642,16 @@ function NutritionTracker({
         // Penalize being outside user-defined [min, max] ranges
         // Inside the interval → small reward for being centered
         const kPen = intervalPen(t.kcal,
-          gaUseKcalMin ? kcalLo : Math.max(0, kcalHi*0.2),
-          gaUseKcalMax ? kcalHi : kcalBudget,
+          hasKcalMin ? kcalLo : Math.max(0, kcalHi*0.2),
+          hasKcalMax ? kcalHi : kcalBudget,
           8);
         const pPen = intervalPen(t.protein,
-          gaUseProtMin ? protLo : (gaUseProtTol ? 0 : targetProt*0.5),
-          gaUseProtMax ? protHi : (gaUseProtTol ? protBudget : targetProt*1.5),
+          hasProtMin ? protLo : (gaUseProtTol ? 0 : targetProt*0.5),
+          hasProtMax ? protHi : (gaUseProtTol ? protBudget : targetProt*1.5),
           8);
         // Soft centering bonus (pulls solution toward middle of interval)
-        const kMid = ((gaUseKcalMin?kcalLo:kcalHi*0.2) + (gaUseKcalMax?kcalHi:kcalBudget)) / 2;
-        const pMid = ((gaUseProtMin?protLo:targetProt*0.5) + (gaUseProtMax?protHi:targetProt*1.5)) / 2;
+        const kMid = ((hasKcalMin?kcalLo:kcalHi*0.2) + (hasKcalMax?kcalHi:kcalBudget)) / 2;
+        const pMid = ((hasProtMin?protLo:targetProt*0.5) + (hasProtMax?protHi:targetProt*1.5)) / 2;
         const kCenter = 0.1 * Math.abs(t.kcal - kMid) / Math.max(kMid, 1);
         const pCenter = 0.1 * Math.abs(t.protein - pMid) / Math.max(pMid, 1);
         return kPen + pPen + kCenter + pCenter;
@@ -8001,6 +8012,48 @@ showGA && React.createElement("div", {
       }, "\u2715")
     ),
 
+    /* Resumo e modo simples */
+    React.createElement("div", { style: { background:"var(--bg)", border:"1px solid var(--border2)", borderRadius:10, padding:12, marginBottom:14 } },
+      React.createElement("div", { style: { fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:8 } },
+        lang==='en' ? "Based on what is still missing today" : "Baseado no que ainda falta hoje"
+      ),
+      (function(){
+        var entries = Object.values(activeLog).flat();
+        var eatenProt = entries.reduce(function(s,e){return s+(e.protein||0);},0);
+        var eatenKcal = entries.reduce(function(s,e){return s+(e.kcal||0);},0);
+        var missProt = Math.max(0, Math.round((goals.protein||150) - eatenProt));
+        var missKcal = Math.max(0, Math.round((goals.kcal||2000) - eatenKcal));
+        return React.createElement("div", { style: { display:"flex", gap:8, flexWrap:"wrap" } },
+          React.createElement("span", { style:{fontSize:12,color:"#c8b47e"} }, (lang==='en' ? "Protein left: " : "Prote\u00edna restante: ") + missProt + "g"),
+          React.createElement("span", { style:{fontSize:12,color:"#7ec8c8"} }, (lang==='en' ? "Calories left: " : "Calorias restantes: ") + missKcal + " kcal"),
+          React.createElement("span", { style:{fontSize:12,color:"var(--text2)"} }, (lang==='en' ? "Pantry foods: " : "Alimentos na despensa: ") + pantry.length)
+        );
+      })()
+    ),
+
+    React.createElement("div", { style: { marginBottom:14 } },
+      React.createElement("div", { style: { fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:6 } },
+        lang==='en' ? "Meal size" : "Tamanho da sugest\u00e3o"
+      ),
+      React.createElement("p", { style:{color:"var(--text2)", fontSize:12, lineHeight:1.45, margin:"0 0 8px"} },
+        lang==='en' ? "Choose how much of today's remaining calories the suggestion may use." : "Escolha quanto das calorias restantes do dia a sugest\u00e3o pode usar."
+      ),
+      React.createElement("div", { style:{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6} },
+        [
+          {label:lang==='en'?"Light":"Leve", value:-20},
+          {label:lang==='en'?"Balanced":"Equilibrada", value:0},
+          {label:lang==='en'?"Reinforced":"Refor\u00e7ada", value:20}
+        ].map(function(opt){
+          var active = Math.abs(gaTolerance - opt.value) <= 10;
+          return React.createElement("button", {
+            key:opt.value,
+            onClick:function(){ setGATolerance(opt.value); },
+            style:{padding:"9px 6px", borderRadius:7, border:"1px solid " + (active ? "var(--accent)" : "var(--border2)"), background:active ? "rgba(126,200,126,0.14)" : "transparent", color:active ? "var(--text1)" : "var(--text2)", cursor:"pointer", fontSize:12, fontFamily:"inherit"}
+          }, opt.label);
+        })
+      )
+    ),
+
     /* Usar todos ou selecioner */
     React.createElement("div", { style: { marginBottom:12 } },
       React.createElement("label", { style: { color:"var(--text2)", fontSize:13, display:"flex", alignItems:"center", gap:8, cursor:"pointer" } },
@@ -8008,7 +8061,12 @@ showGA && React.createElement("div", {
           type:"checkbox", checked:gaUseAll,
           onChange: function(e){ setGAUseAll(e.target.checked); }
         }),
-        lang==='en' ? "Use all pantry foods" : "Usar todos os alimentos da despensa"
+        React.createElement("span", null,
+          lang==='en' ? "Use all pantry foods" : "Usar todos os alimentos da despensa",
+          React.createElement("span", { style:{display:"block", color:"var(--text2)", fontSize:12, marginTop:2} },
+            lang==='en' ? "Recommended: the app checks your pantry and chooses the best combination automatically." : "Recomendado: o app olha a despensa e escolhe a melhor combina\u00e7\u00e3o automaticamente."
+          )
+        )
       )
     ),
 
@@ -8016,10 +8074,24 @@ showGA && React.createElement("div", {
     !gaUseAll && React.createElement("div", {
       style: { background:"var(--bg)", borderRadius:8, padding:10, marginBottom:12, maxHeight:160, overflowY:"auto" }
     },
+      React.createElement("input", {
+        type:"search",
+        value:gaFoodSearch,
+        onChange:function(e){ setGAFoodSearch(e.target.value); },
+        placeholder: lang==='en' ? "Search food by name" : "Pesquisar alimento pelo nome",
+        style:Object.assign({}, inp, { marginBottom:8 })
+      }),
       React.createElement("p", { style: { color:"var(--text2)", fontSize:11, margin:"0 0 8px" } },
         lang==='en' ? "Select foods to include:" : "Selecione os alimentos a incluir:"
       ),
-      pantry.map(function(f){
+      (function(){
+        var q = gaFoodSearch.trim().toLowerCase();
+        var foods = pantry.slice().sort(function(a,b){ return (a.name||"").localeCompare(b.name||"", lang==='en'?'en':'pt', {sensitivity:'base'}); })
+          .filter(function(f){ return !q || (f.name||"").toLowerCase().indexOf(q) !== -1; });
+        if (!foods.length) {
+          return React.createElement("p", { style:{color:"var(--muted)", fontSize:12, margin:0} }, lang==='en' ? "No foods found." : "Nenhum alimento encontrado.");
+        }
+        return foods.map(function(f){
         return React.createElement("label", {
           key:f.id,
           style: { display:"flex", alignItems:"center", gap:8, padding:"3px 0", cursor:"pointer", color:"var(--text1)", fontSize:13 }
@@ -8036,8 +8108,16 @@ showGA && React.createElement("div", {
             " (" + (f.kcal100||0) + "kcal, " + (f.protein100||0) + "g prot)"
           )
         );
-      })
+        });
+      })()
     ),
+
+    React.createElement("button", {
+      onClick:function(){ setGAAdvancedOpen(!gaAdvancedOpen); },
+      style:{width:"100%", padding:"10px", borderRadius:8, border:"1px solid var(--border2)", background:"transparent", color:"var(--text2)", cursor:"pointer", fontFamily:"inherit", fontSize:12, marginBottom:gaAdvancedOpen?12:16, textAlign:"left"}
+    }, (gaAdvancedOpen ? "\u25be " : "\u25b8 ") + (lang==='en' ? "Advanced optional adjustments" : "Ajustes avan\u00e7ados opcionais")),
+
+    gaAdvancedOpen && React.createElement(React.Fragment, null,
 
     /* Limites por unidade */
     React.createElement("div", { style: { marginBottom:12 } },
@@ -8090,11 +8170,11 @@ showGA && React.createElement("div", {
           type:"checkbox", checked:gaUseProtTol,
           onChange: function(e){ setGAUseProtTol(e.target.checked); }
         }),
-        lang==='en' ? "Set protein tolerance" : "Definir toler\xe2ncia prote\xeaca"
+        lang==='en' ? "Set protein flexibility" : "Definir flexibilidade de prote\u00edna"
       ),
       gaUseProtTol && React.createElement("div", { style: { marginTop:8 } },
         React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"block", marginBottom:4 } },
-          (lang==='en' ? "Protein tolerance: " : "Toler\xe2ncia prote\xeaca: ") + gaProtTolerance + "%"
+          (lang==='en' ? "Protein flexibility: " : "Flexibilidade de prote\u00edna: ") + gaProtTolerance + "%"
         ),
         React.createElement("input", {
           type:"range", min:5, max:50, value:gaProtTolerance,
@@ -8109,49 +8189,45 @@ showGA && React.createElement("div", {
       React.createElement("div", { style: { fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:8 } },
         lang==='en' ? "Absolute limits (optional)" : "Limites absolutos (opcional)"
       ),
-      React.createElement("div", { style: { display:"flex", gap:8, flexWrap:"wrap" } },
-        /* Kcal min */
-        React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"flex", alignItems:"center", gap:6, cursor:"pointer", flex:"1 1 120px" } },
-          React.createElement("input", { type:"checkbox", checked:gaUseKcalMin, onChange:function(e){setGAUseKcalMin(e.target.checked);} }),
-          lang==='en' ? "Min kcal:" : "M\xedn. kcal:",
-          gaUseKcalMin && React.createElement("input", {
-            type:"number", min:0, max:5000, value:gaKcalMin,
-            onChange:function(e){setGAKcalMin(parseInt(e.target.value)||0);},
-            style:Object.assign({},inp,{width:70, padding:"3px 6px"})
-          })
-        ),
-        /* Kcal max */
-        React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"flex", alignItems:"center", gap:6, cursor:"pointer", flex:"1 1 120px" } },
-          React.createElement("input", { type:"checkbox", checked:gaUseKcalMax, onChange:function(e){setGAUseKcalMax(e.target.checked);} }),
-          lang==='en' ? "Max kcal:" : "M\xe1x. kcal:",
-          gaUseKcalMax && React.createElement("input", {
-            type:"number", min:0, max:5000, value:gaKcalMax,
-            onChange:function(e){setGAKcalMax(parseInt(e.target.value)||0);},
-            style:Object.assign({},inp,{width:70, padding:"3px 6px"})
-          })
-        ),
-        /* Prot min */
-        React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"flex", alignItems:"center", gap:6, cursor:"pointer", flex:"1 1 120px" } },
-          React.createElement("input", { type:"checkbox", checked:gaUseProtMin, onChange:function(e){setGAUseProtMin(e.target.checked);} }),
-          lang==='en' ? "Min prot (g):" : "M\xedn. prot (g):",
-          gaUseProtMin && React.createElement("input", {
-            type:"number", min:0, max:500, value:gaProtMin,
-            onChange:function(e){setGAProtMin(parseInt(e.target.value)||0);},
-            style:Object.assign({},inp,{width:60, padding:"3px 6px"})
-          })
-        ),
-        /* Prot max */
-        React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"flex", alignItems:"center", gap:6, cursor:"pointer", flex:"1 1 120px" } },
-          React.createElement("input", { type:"checkbox", checked:gaUseProtMax, onChange:function(e){setGAUseProtMax(e.target.checked);} }),
-          lang==='en' ? "Max prot (g):" : "M\xe1x. prot (g):",
-          gaUseProtMax && React.createElement("input", {
-            type:"number", min:0, max:500, value:gaProtMax,
-            onChange:function(e){setGAProtMax(parseInt(e.target.value)||0);},
-            style:Object.assign({},inp,{width:60, padding:"3px 6px"})
-          })
-        )
+      React.createElement("p", { style:{color:"var(--muted)", fontSize:11, lineHeight:1.4, margin:"0 0 10px"} },
+        lang==='en'
+          ? "Leave a field empty to use the automatic value. Fill only the limits you want to force."
+          : "Deixe vazio para usar o valor autom\u00e1tico. Preencha apenas os limites que quiser for\u00e7ar."
+      ),
+      React.createElement("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,minmax(0,1fr))", gap:10 } },
+        [
+          {key:"kmin", label:lang==='en'?"Min calories":"Calorias m\u00edn.", unit:"kcal", value:gaKcalMin, set:setGAKcalMin, ph:function(){return lang==='en'?"auto: no minimum":"auto: sem m\u00ednimo";}},
+          {key:"kmax", label:lang==='en'?"Max calories":"Calorias m\u00e1x.", unit:"kcal", value:gaKcalMax, set:setGAKcalMax, ph:function(){
+            var base = Math.max(50, (goals.kcal||2000) - Object.values(activeLog).flat().reduce(function(s,e){return s+(e.kcal||0);},0));
+            var v = Math.round(base * (1 + gaTolerance/100));
+            return (lang==='en'?"auto: ":"auto: ") + v + " kcal";
+          }},
+          {key:"pmin", label:lang==='en'?"Min protein":"Prote\u00edna m\u00edn.", unit:"g", value:gaProtMin, set:setGAProtMin, ph:function(){
+            var base = Math.max(10, (goals.protein||150) - Object.values(activeLog).flat().reduce(function(s,e){return s+(e.protein||0);},0));
+            return (lang==='en'?"auto: about ":"auto: aprox. ") + Math.round(base*0.5) + "g";
+          }},
+          {key:"pmax", label:lang==='en'?"Max protein":"Prote\u00edna m\u00e1x.", unit:"g", value:gaProtMax, set:setGAProtMax, ph:function(){
+            var base = Math.max(10, (goals.protein||150) - Object.values(activeLog).flat().reduce(function(s,e){return s+(e.protein||0);},0));
+            return gaUseProtTol
+              ? (lang==='en'?"auto: ":"auto: ") + Math.round(base * (1 + gaProtTolerance/100)) + "g"
+              : (lang==='en'?"auto: about ":"auto: aprox. ") + Math.round(base*1.5) + "g";
+          }}
+        ].map(function(item){
+          return React.createElement("label", { key:item.key, style:{display:"block", minWidth:0} },
+            React.createElement("span", { style:{display:"block", color:"var(--text2)", fontSize:12, marginBottom:4} }, item.label),
+            React.createElement("div", { style:{display:"flex", alignItems:"center", gap:6} },
+              React.createElement("input", {
+                type:"number", min:0, value:item.value,
+                placeholder:item.ph(),
+                onChange:function(e){ item.set(e.target.value); },
+                style:Object.assign({}, inp, { marginTop:0, minWidth:0, flex:1, padding:"7px 8px" })
+              }),
+              React.createElement("span", { style:{color:"var(--muted)", fontSize:11, width:28} }, item.unit)
+            )
+          );
+        })
       )
-    ),
+    )),
 
     /* Refeição alvo */
     React.createElement("div", { style: { marginBottom:16 } },
@@ -8178,7 +8254,7 @@ showGA && React.createElement("div", {
       })
     }, gaRunning
       ? (lang==='en' ? "Running... " : "Executando... ") + gaProgress + "%"
-      : (lang==='en' ? "\uD83E\uDDEC Find meals" : "\uD83E\uDDEC Buscar sugest\xf5es")
+      : (lang==='en' ? "Find meals" : "Buscar sugest\u00f5es")
     ),
 
     /* Barra de progresso */
@@ -9454,12 +9530,17 @@ function LoginScreen({onLogin, onPendingVerification}) {
 }
 
 // ── Settings Panel (compact slide-up menu) ───────────────────
-function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDark}) {
-  const [showKey, setShowKey] = React.useState(false);
+function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDark, directKey}) {
+  const [showKey, setShowKey] = React.useState(!!directKey);
   const [groqKey, setGroqKey] = React.useState(()=>localStorage.getItem('groq_key')||'');
   const [proxy, setProxy] = React.useState(()=>localStorage.getItem('cors_proxy')||'');
   const isPt = (lang||'pt') === 'pt';
-  function saveKey() { localStorage.setItem('groq_key',groqKey); setShowKey(false); }
+  function closeKey() { directKey ? onClose() : setShowKey(false); }
+  function saveKey() {
+    localStorage.setItem('groq_key',groqKey);
+    localStorage.setItem('cors_proxy',proxy);
+    closeKey();
+  }
   function doLogout() { fbSignOut(); onLogout(); onClose(); }
   const S = isPt
     ? {title:'Configurações',langSwitch:'🇺🇸 Switch to English',themeLight:'☀️  Modo claro',themeDark:'🌙  Modo escuro',
@@ -9470,6 +9551,16 @@ function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDar
        apiKey:'🔑  Groq API Key',logout:'⏻  Sign out',save:'Save',
        keyLabel:'Groq API Key',keyHint:'Get it at aistudio.google.com → Get API key',
        proxyLabel:'CORS Proxy (optional)',proxyHint:'Required if AI features fail'};
+
+  Object.assign(S, isPt
+    ? {title:'Configura\u00e7\u00f5es',langSwitch:'Switch to English',themeLight:'Modo claro',themeDark:'Modo escuro',
+       apiKey:'Chave API Groq',logout:'Sair da conta',save:'Salvar',
+       keyLabel:'Chave API Groq',keyHint:'Cole aqui sua chave da Groq. Ela fica salva apenas neste navegador.',
+       proxyLabel:'Proxy CORS (opcional)',proxyHint:'Use somente se os recursos de IA falharem por bloqueio de CORS.'}
+    : {title:'Settings',langSwitch:'Switch to Portuguese',themeLight:'Light mode',themeDark:'Dark mode',
+       apiKey:'Groq API Key',logout:'Sign out',save:'Save',
+       keyLabel:'Groq API Key',keyHint:'Paste your Groq key here. It is stored only in this browser.',
+       proxyLabel:'CORS proxy (optional)',proxyHint:'Use only if AI features fail because of CORS blocking.'});
 
   const rowBtn = (label, onClick, danger) => React.createElement('button', {onClick, style:{
     display:'block',width:'100%',background:'none',border:'none',
@@ -9483,14 +9574,14 @@ function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDar
     React.createElement('div', {style:{background:'var(--surface,#fff)',borderRadius:14,width:'100%',maxWidth:400,padding:24,border:'1px solid var(--border2)'}},
       React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}},
         React.createElement('span',{style:{fontSize:11,letterSpacing:1,color:'#555',textTransform:'uppercase'}}, S.keyLabel),
-        React.createElement('button',{onClick:()=>setShowKey(false),style:{background:'none',border:'none',color:'#444',fontSize:22,cursor:'pointer',lineHeight:1}},'×')
+        React.createElement('button',{onClick:closeKey,style:{background:'none',border:'none',color:'#444',fontSize:22,cursor:'pointer',lineHeight:1}},'×')
       ),
       React.createElement('input',{type:'text',value:groqKey,onChange:e=>setGroqKey(e.target.value),
         placeholder:'gsk_...',style:{...inp,fontFamily:'monospace',fontSize:11,marginBottom:4}}),
       React.createElement('div',{style:{fontSize:12,color:'#444',marginBottom:14}},S.keyHint),
       React.createElement('input',{type:'text',value:proxy,onChange:e=>setProxy(e.target.value),
         placeholder:'https://corsproxy.io/?',style:{...inp,marginBottom:4}}),
-      React.createElement('div',{style:{fontSize:12,color:'#444',marginBottom:20}},S.proxyLabel+': '+S.proxyHint),
+      React.createElement('div',{style:{fontSize:12,color:'#444',marginBottom:20}},S.proxyLabel + ' - ' + S.proxyHint),
       React.createElement('button',{onClick:saveKey,style:{width:'100%',background:'#1a2a1a',border:'1px solid #3a5a3a',
         color:'#7ec87e',padding:'12px',borderRadius:8,fontSize:11,letterSpacing:1,
         textTransform:'uppercase',cursor:'pointer',fontFamily:'inherit'}}, S.save)
@@ -9654,7 +9745,8 @@ function App() {
       showSettings ? React.createElement(SettingsPanel, {
         onClose:  () => setShowSettings(false),
         onLogout: () => { setAuthed(false); setShowSettings(false); },
-        lang, darkMode, toggleLang, toggleDark
+        lang, darkMode, toggleLang, toggleDark,
+        directKey: true
       }) : null
     )
   );
