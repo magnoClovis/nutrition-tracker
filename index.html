@@ -2948,19 +2948,35 @@ function NutritionTracker({
     setReportLoading(true);
     setReportMessage("");
     try {
+      const serverUrl = REPORT_SERVER_URL.replace(/\/$/, "");
+      if (window.location.protocol === "https:" && serverUrl.startsWith("http://")) {
+        throw new Error(lang === 'en'
+          ? "The app is open over HTTPS, but the report server is HTTP. Browsers block this request. Use the local file/app over HTTP, or expose the report server with HTTPS."
+          : "O app está aberto em HTTPS, mas o servidor de relatórios está em HTTP. O navegador bloqueia essa conexão. Use o app localmente/em HTTP ou exponha o servidor de relatórios com HTTPS.");
+      }
+      if (/^http:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(serverUrl) && window.location.protocol !== "file:" && !["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+        throw new Error(lang === 'en'
+          ? "The report server is set to localhost/127.0.0.1. On another device this points to that device itself, not to the server PC. Use the server PC LAN IP in the code."
+          : "O servidor de relatórios está como localhost/127.0.0.1. Em outro dispositivo isso aponta para o próprio dispositivo, não para o PC servidor. Use o IP local do PC servidor no código.");
+      }
       const payload = await buildAdvancedReportPayload(reportType, reportFormat);
-      const response = await fetch(REPORT_SERVER_URL.replace(/\/$/, "") + "/reports/from-body", {
+      const response = await fetch(serverUrl + "/reports/from-body", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(payload)
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || (lang === 'en' ? "Could not generate report." : "Não foi possível gerar o relatório."));
-      const targetUrl = REPORT_SERVER_URL.replace(/\/$/, "") + (reportFormat === "pdf" ? data.downloadUrl : data.htmlUrl);
+      const targetUrl = serverUrl + (reportFormat === "pdf" ? data.downloadUrl : data.htmlUrl);
       window.open(targetUrl, "_blank", "noopener,noreferrer");
       setReportMessage(lang === 'en' ? "Report generated and opened in a new tab." : "Relatório gerado e aberto em uma nova aba.");
     } catch (err) {
-      const msg = err?.message || String(err);
+      let msg = err?.message || String(err);
+      if (/NetworkError|Failed to fetch|Network request failed/i.test(msg)) {
+        msg = lang === 'en'
+          ? "Could not reach the report server. Check that the server is running, that the IP/port are reachable from this device, and that HTTPS pages are not trying to call an HTTP server."
+          : "Não foi possível acessar o servidor de relatórios. Confira se o servidor está ligado, se o IP/porta estão acessíveis por este dispositivo e se uma página HTTPS não está tentando chamar um servidor HTTP.";
+      }
       setReportMessage(msg);
       notify("⚠ " + msg, 8000);
     } finally {
