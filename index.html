@@ -712,7 +712,9 @@ async function fbList(p) {
 // Legacy root fields and nutrition/{uid}_{key} docs remain readable as fallback.
 const PROFILE_FIELD_KEYS = new Set([
   "birthDate", "gender", "activityLevel", "goalType", "goalKg", "goalWeeks",
-  "manualCalorieAdjustment", "proteinMultiplier", "userName", "tutorialSeen"
+  "manualCalorieAdjustment", "proteinMultiplier", "userName", "tutorialSeen",
+  "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
+  "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
 ]);
 let _rootDocCache3 = null;
 let _rootDocLoaded3 = false;
@@ -787,7 +789,9 @@ function _knownMigrationKeys3() {
     "pantry_v2", "suppPantry", "waterGoal", "customGoals", "goalHistory",
     "mealTemplates", "weightHistory", "trainingByDate", "birthDate", "gender",
     "activityLevel", "goalType", "goalKg", "goalWeeks", "manualCalorieAdjustment",
-    "proteinMultiplier", "userName", "tutorialSeen"
+    "proteinMultiplier", "userName", "tutorialSeen",
+    "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
+    "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
   ];
   const dateKeys = [];
   for (let i = 0; i < 120; i++) {
@@ -1882,6 +1886,18 @@ function NutritionTracker({
   const [pantry, setPantry] = useState([]);
   const [log, setLog] = useState({});
   const [tab, setTab] = useState("diario");
+  function openTab(nextTab, opts = {}) {
+    setTab(nextTab);
+    if (opts.skipTutorial || window.__tutorialNavigating) return;
+    storage.get('tutorialSeen_' + nextTab).then(r => {
+      if (!r || !r.value) {
+        setTimeout(() => onStartTutorial && onStartTutorial(nextTab), 120);
+      }
+    }).catch(() => {});
+  }
+  function reopenTabTutorial() {
+    onStartTutorial && onStartTutorial(tab);
+  }
   const [trainingByDate, setTrainingByDate] = useState({});
   const [form, setForm] = useState(emptyFood());
   const [showMicroForm, setShowMicroForm] = useState(false);
@@ -5160,6 +5176,7 @@ function NutritionTracker({
       borderBottom: "1px solid var(--border3)"
     }
   }, /*#__PURE__*/React.createElement("button", {
+    "data-tutorial": "microLabel",
     onClick: () => setExpandMicros(e => !e),
     style: {
       width: "100%",
@@ -5230,7 +5247,7 @@ function NutritionTracker({
   }, [["diario", t('tabDiary')], ["adicionar", isMobileView ? "+" : t('tabAdd')], ["despensa", t('tabPantry')], ["semana", t('tabWeek')], ["metricas", t('tabMetrics')]].map(([t, label]) => /*#__PURE__*/React.createElement("button", {
     "data-tutorial": "tab-" + t,
     key: t,
-    onClick: () => setTab(t),
+    onClick: () => openTab(t),
     style: {
       flex: isMobileView ? "0 0 auto" : 1,
       minWidth: isMobileView ? (t === "adicionar" ? 58 : 96) : 0,
@@ -5265,7 +5282,31 @@ function NutritionTracker({
       maxWidth: 1180,
       margin: "0 auto"
     }
-  }, tab === "diario" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: reopenTabTutorial,
+    title: lang === 'en' ? "Show this tab tutorial" : "Ver tutorial desta aba",
+    "aria-label": lang === 'en' ? "Show this tab tutorial" : "Ver tutorial desta aba",
+    style: {
+      width: 26,
+      height: 26,
+      borderRadius: "50%",
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      color: "var(--muted)",
+      fontSize: 14,
+      fontWeight: 700,
+      fontFamily: "inherit",
+      cursor: "pointer",
+      lineHeight: "24px",
+      textAlign: "center"
+    }
+  }, "i")), tab === "diario" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 14,
       background: diaryStatus.tone === "ok" ? "var(--notif-ok-bg)" : diaryStatus.tone === "warn" ? "var(--notif-err-bg)" : "var(--surface)",
@@ -7948,6 +7989,7 @@ function NutritionTracker({
       fontStyle: "italic"
     }
   }, t('loading')) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "week-summary",
     style: {
       display: "flex",
       gap: 0,
@@ -7991,6 +8033,7 @@ function NutritionTracker({
       textTransform: "uppercase"
     }
   }, x.l)))), /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "week-days",
     style: {
       display: "flex",
       gap: 10,
@@ -8045,6 +8088,7 @@ function NutritionTracker({
       margin: "6px auto 0"
     }
   })))), /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "week-protein-chart",
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -8116,6 +8160,7 @@ function NutritionTracker({
     },
     connectNulls: false
   })))), /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "week-calories-chart",
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -8195,6 +8240,7 @@ function NutritionTracker({
       fontStyle: "italic"
     }
   }, lang === 'en' ? 'Click a day to see details' : 'Clica num dia para ver o detalhe'), Object.keys(mealAverages).length > 0 && /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "week-meal-averages",
     style: {
       margin: "20px 16px 0"
     }
@@ -10525,60 +10571,104 @@ function BackupModal({ lang, darkMode, onClose }) {
 }
 
 // ── Tutorial Overlay ──────────────────────────────────────────
-function TutorialOverlay({ lang, onDone }) {
+function TutorialOverlay({ lang, type = 'main', onDone }) {
   const isPt = lang === 'pt';
   const [step, setStep] = React.useState(0);
   const [rect, setRect] = React.useState(null);
 
-  const steps = isPt ? [
-    { title: 'Começo guiado', text: 'Vamos fazer os primeiros passos juntos:\n1. Registrar medidas\n2. Confirmar objetivo\n3. Definir treino/descanso\n4. Criar um alimento\n5. Registrar uma refeição', highlight: null },
-    { title: 'Medidas de base', text: 'Preencha peso e altura. Esses dados entram no cálculo de IMC, proteína e calorias do dia.', tab: 'metricas', highlight: 'metrics-measures' },
-    { title: 'Métricas atuais', text: 'Depois de registrar medidas, este bloco mostra peso, altura, IMC e metas calculadas para treino e descanso.', tab: 'metricas', highlight: 'metrics-current' },
-    { title: 'Evolução do peso', text: 'Quando houver mais de um registro, o gráfico aparece aqui para acompanhar tendência, não só o peso isolado de um dia.', tab: 'metricas', highlight: 'weight-chart' },
-    { title: 'Perfil nutricional', text: 'Escolha atividade física e objetivo. Isso ajusta as calorias automaticamente para manutenção, perda ou ganho.', tab: 'metricas', highlight: 'nutrition-profile' },
-    { title: 'Como ler a meta', text: 'Aqui você vê TMB, base do dia, ajuste do objetivo e a meta final. É o resumo do cálculo usado no diário.', tab: 'metricas', highlight: 'metrics-target-summary' },
-    { title: 'Relatórios avançados', text: 'Gere relatórios em HTML ou PDF para o dia, semana, mês ou histórico completo. Eles incluem gráficos, metas, médias e uma análise resumida.', tab: 'metricas', highlight: 'advanced-reports' },
-    { title: 'Tipo do dia', text: 'Marque se hoje é treino ou descanso. O app troca o fator calórico e recalcula a meta do dia.', tab: 'diario', highlight: 'day-type' },
-    { title: 'Por que a despensa vem antes', text: 'Antes de registrar refeições, cadastre alimentos na Despensa. O app usa esses itens para calcular porções, montar refeições e sugerir combinações.', tab: 'despensa', highlight: 'tab-despensa' },
-    { title: 'Criar alimento', text: 'Comece pelo nome e unidade. Você pode preencher macros manualmente ou usar o preenchimento automático como ponto de partida.', tab: 'despensa', highlight: 'pantry-food-name' },
-    { title: 'Ler código de barras', text: 'Use o leitor de código de barras para buscar alimentos no Open Food Facts. Quando a câmera não estiver disponível, você ainda pode digitar o código manualmente.', tab: 'despensa', highlight: 'barcode-scan-button' },
-    { title: 'Salvar na despensa', text: 'Salve o alimento quando os valores fizerem sentido. Depois ele fica disponível para registrar refeições e para as sugestões da IA.', tab: 'despensa', highlight: 'pantry-save-button' },
-    { title: 'Alimentos salvos', text: 'Aqui ficam os alimentos cadastrados. Use a busca para encontrar rápido, editar valores ou conferir o que já existe.', tab: 'despensa', highlight: 'pantry-saved-foods' },
-    { title: 'Modelos de refeição', text: 'Modelos guardam combinações frequentes, como um café da manhã ou almoço padrão, para repetir depois com poucos toques.', tab: 'despensa', highlight: 'pantry-meal-templates' },
-    { title: 'Suplementos', text: 'Esta área é separada dos alimentos. Use para creatina, vitaminas ou outros suplementos que você queira acompanhar.', tab: 'despensa', highlight: 'pantry-supplements' },
-    { title: 'Formas de registrar', text: 'Na aba Adicionar há três caminhos: um alimento por vez, montar uma refeição com vários itens, ou descrever um prato para estimar.', tab: 'adicionar', highlight: 'add-modes' },
-    { title: 'Registrar no diário', text: 'Depois de selecionar alimento e quantidade, este botão envia a refeição para o Diário do dia.', tab: 'adicionar', highlight: 'add-log-button' },
-    { title: 'Sugerir o que comer', text: 'Este botão usa o que ainda falta nas suas metas e os itens da despensa para sugerir combinações. Para funcionar bem, primeiro cadastre alimentos na Despensa.', tab: 'diario', highlight: 'suggest-meal-button' },
-    { title: 'Acompanhar progresso', text: 'Volte ao Diário para ver o que falta, excessos e progresso contra suas metas.', tab: 'diario', highlight: 'tab-diario' },
-    { title: 'Ajuda rápida', text: 'Se precisar rever este guia, abra o menu de configurações e toque em Ajuda rápida.', highlight: 'menu-settings' },
-    { title: 'Agora é com você', text: 'Vamos abrir Métricas para você preencher ou conferir os dados de base.', highlight: null, action: 'tab-metricas' }
-  ] : [
-    { title: 'Guided start', text: 'Let’s take the first steps together:\n1. Log measurements\n2. Confirm objective\n3. Set training/rest\n4. Create a food\n5. Log a meal', highlight: null },
-    { title: 'Baseline measurements', text: 'Fill weight and height. These drive BMI, protein, and daily calorie calculations.', tab: 'metricas', highlight: 'metrics-measures' },
-    { title: 'Current metrics', text: 'After logging measurements, this block shows weight, height, BMI, and calculated targets for training and rest days.', tab: 'metricas', highlight: 'metrics-current' },
-    { title: 'Weight trend', text: 'Once there is more than one record, this chart appears here to track the trend, not just one isolated weigh-in.', tab: 'metricas', highlight: 'weight-chart' },
-    { title: 'Nutrition profile', text: 'Choose physical activity and objective. This adjusts calories for maintenance, loss, or gain.', tab: 'metricas', highlight: 'nutrition-profile' },
-    { title: 'Reading the target', text: 'Here you see BMR, day base, goal adjustment, and final target. This summarizes the calculation used in the diary.', tab: 'metricas', highlight: 'metrics-target-summary' },
-    { title: 'Advanced reports', text: 'Generate HTML or PDF reports for the day, week, month, or full history. They include charts, goals, averages, and a short analysis.', tab: 'metricas', highlight: 'advanced-reports' },
-    { title: 'Day type', text: 'Mark today as training or rest. The app changes the calorie factor and recalculates the day target.', tab: 'diario', highlight: 'day-type' },
-    { title: 'Why pantry comes first', text: 'Before logging meals, add foods to the Pantry. The app uses those items to calculate portions, build meals, and suggest combinations.', tab: 'despensa', highlight: 'tab-despensa' },
-    { title: 'Create a food', text: 'Start with name and unit. You can fill macros manually or use auto-fill as a starting point.', tab: 'despensa', highlight: 'pantry-food-name' },
-    { title: 'Scan barcode', text: 'Use barcode scanning to look up foods in Open Food Facts. If the camera is unavailable, you can still type the barcode manually.', tab: 'despensa', highlight: 'barcode-scan-button' },
-    { title: 'Save to pantry', text: 'Save the food once the values look right. It then becomes available for meal logging and AI suggestions.', tab: 'despensa', highlight: 'pantry-save-button' },
-    { title: 'Saved foods', text: 'Your registered foods live here. Use search to find them quickly, edit values, or confirm what already exists.', tab: 'despensa', highlight: 'pantry-saved-foods' },
-    { title: 'Meal templates', text: 'Templates save frequent combinations, such as a standard breakfast or lunch, so you can repeat them with fewer taps.', tab: 'despensa', highlight: 'pantry-meal-templates' },
-    { title: 'Supplements', text: 'This area is separate from foods. Use it for creatine, vitamins, or other supplements you want to track.', tab: 'despensa', highlight: 'pantry-supplements' },
-    { title: 'Logging modes', text: 'In Add there are three paths: one food at a time, building a meal with multiple items, or describing a dish for estimation.', tab: 'adicionar', highlight: 'add-modes' },
-    { title: 'Log to diary', text: 'After choosing food and quantity, this button sends the meal to today’s Diary.', tab: 'adicionar', highlight: 'add-log-button' },
-    { title: 'Suggest what to eat', text: 'This button looks at what is still missing from your targets and uses pantry items to suggest combinations. Add pantry foods first for useful results.', tab: 'diario', highlight: 'suggest-meal-button' },
-    { title: 'Track progress', text: 'Return to the Diary to see what is missing, what went over, and progress against your targets.', tab: 'diario', highlight: 'tab-diario' },
-    { title: 'Quick help', text: 'To restart this guide, open the settings menu and tap Quick help.', highlight: 'menu-settings' },
-    { title: 'Your turn', text: 'Let’s open Metrics so you can fill or confirm your baseline data.', highlight: null, action: 'tab-metricas' }
-  ];
+  const stepSets = isPt ? {
+    main: [
+      { title: 'Visão geral', text: 'O app é dividido em abas. Este primeiro guia é curto; cada aba terá uma explicação própria quando você abrir pela primeira vez.', highlight: null },
+      { title: 'Diário', text: 'Aqui você acompanha o dia: refeições, água, metas, progresso e sugestões do que comer.', highlight: 'tab-diario' },
+      { title: 'Adicionar', text: 'Use esta aba para registrar alimentos, montar refeições ou repetir modelos salvos.', highlight: 'tab-adicionar' },
+      { title: 'Despensa', text: 'Cadastre alimentos, leia códigos de barras, organize refeições salvas e acompanhe suplementos.', highlight: 'tab-despensa' },
+      { title: 'Semana', text: 'Veja tendências recentes, gráficos e médias por refeição.', highlight: 'tab-semana' },
+      { title: 'Métricas', text: 'Registre medidas, ajuste metas, confira cálculos nutricionais e gere relatórios.', highlight: 'tab-metricas' },
+      { title: 'Ajuda por aba', text: 'Em cada aba há um botão discreto com “i”. Toque nele para rever o tutorial daquela área.', highlight: null }
+    ],
+    diario: [
+      { title: 'Diário do dia', text: 'Esta aba mostra o que você registrou no dia selecionado e compara com as metas daquele dia.', tab: 'diario', highlight: 'tab-diario' },
+      { title: 'Treino ou descanso', text: 'O tipo do dia altera a meta calórica. Use treino para dias ativos e descanso quando quiser aplicar a regra reduzida.', tab: 'diario', highlight: 'day-type' },
+      { title: 'Sugerir o que comer', text: 'Este botão combina o que falta nas suas metas com os alimentos da despensa para montar sugestões.', tab: 'diario', highlight: 'suggest-meal-button' },
+      { title: 'Micronutrientes', text: 'Abra esta área para conferir vitaminas e minerais registrados pelos alimentos do dia.', tab: 'diario', highlight: 'microLabel' }
+    ],
+    adicionar: [
+      { title: 'Adicionar refeições', text: 'Aqui você escolhe como registrar: alimento único, refeição com vários itens ou descrição de prato.', tab: 'adicionar', highlight: 'add-modes' },
+      { title: 'Registrar no diário', text: 'Depois de escolher alimento, quantidade e refeição, este botão salva tudo no dia atual.', tab: 'adicionar', highlight: 'add-log-button' }
+    ],
+    despensa: [
+      { title: 'Criar alimento', text: 'Comece por nome e unidade. Depois preencha macros manualmente ou use preenchimento automático.', tab: 'despensa', highlight: 'pantry-food-name' },
+      { title: 'Código de barras', text: 'Use a câmera para buscar no Open Food Facts. Se o navegador não permitir, digite o código manualmente.', tab: 'despensa', highlight: 'barcode-scan-button' },
+      { title: 'Salvar alimento', text: 'Quando os valores estiverem corretos, salve na despensa para usar nos registros e sugestões.', tab: 'despensa', highlight: 'pantry-save-button' },
+      { title: 'Itens salvos', text: 'A lista de alimentos fica aqui. Você pode buscar, editar e remover itens.', tab: 'despensa', highlight: 'pantry-saved-foods' },
+      { title: 'Refeições salvas', text: 'Modelos guardam combinações frequentes para repetir depois com poucos toques.', tab: 'despensa', highlight: 'pantry-meal-templates' },
+      { title: 'Suplementos', text: 'Suplementos ficam separados dos alimentos para facilitar o acompanhamento.', tab: 'despensa', highlight: 'pantry-supplements' }
+    ],
+    semana: [
+      { title: 'Resumo semanal', text: 'Estes cartões mostram médias e quantos dias ficaram alinhados com a meta de proteína.', tab: 'semana', highlight: 'week-summary' },
+      { title: 'Dias da semana', text: 'Toque em um dia para abrir o diário daquele dia e ver os detalhes.', tab: 'semana', highlight: 'week-days' },
+      { title: 'Proteína', text: 'Este gráfico mostra a ingestão de proteína e a linha de referência da meta.', tab: 'semana', highlight: 'week-protein-chart' },
+      { title: 'Calorias', text: 'Aqui você acompanha a variação calórica recente em relação à meta.', tab: 'semana', highlight: 'week-calories-chart' },
+      { title: 'Médias por refeição', text: 'Quando houver dados suficientes, esta área mostra quais refeições concentram mais calorias, proteína e carboidratos.', tab: 'semana', highlight: 'week-meal-averages' }
+    ],
+    metricas: [
+      { title: 'Medidas de base', text: 'Registre peso e altura. Esses dados alimentam IMC, calorias e meta de proteína.', tab: 'metricas', highlight: 'metrics-measures' },
+      { title: 'Métricas atuais', text: 'Aqui aparecem peso, altura, IMC e metas atuais calculadas.', tab: 'metricas', highlight: 'metrics-current' },
+      { title: 'Evolução do peso', text: 'Com mais de um registro, o gráfico ajuda a ver tendência, não só um peso isolado.', tab: 'metricas', highlight: 'weight-chart' },
+      { title: 'Perfil nutricional', text: 'Atividade física, objetivo, ajuste calórico e proteína por kg definem as metas automáticas.', tab: 'metricas', highlight: 'nutrition-profile' },
+      { title: 'Cálculo da meta', text: 'Este resumo mostra TMB, base do dia, ajuste do objetivo e meta final.', tab: 'metricas', highlight: 'metrics-target-summary' },
+      { title: 'Relatórios', text: 'Gere relatórios HTML ou PDF para dia, semana, mês ou histórico completo.', tab: 'metricas', highlight: 'advanced-reports' }
+    ]
+  } : {
+    main: [
+      { title: 'Overview', text: 'The app is organized into tabs. This first guide is short; each tab has its own tutorial the first time you open it.', highlight: null },
+      { title: 'Diary', text: 'Track today’s meals, water, goals, progress, and food suggestions.', highlight: 'tab-diario' },
+      { title: 'Add', text: 'Log foods, build meals, or reuse saved meal templates.', highlight: 'tab-adicionar' },
+      { title: 'Pantry', text: 'Create foods, scan barcodes, organize saved meals, and track supplements.', highlight: 'tab-despensa' },
+      { title: 'Week', text: 'Review recent trends, charts, and meal averages.', highlight: 'tab-semana' },
+      { title: 'Metrics', text: 'Log measurements, adjust goals, review nutrition calculations, and generate reports.', highlight: 'tab-metricas' },
+      { title: 'Help by tab', text: 'Each tab has a discreet “i” button. Tap it to reopen that tab’s tutorial.', highlight: null }
+    ],
+    diario: [
+      { title: 'Daily diary', text: 'This tab shows what you logged for the selected day and compares it with that day’s goals.', tab: 'diario', highlight: 'tab-diario' },
+      { title: 'Training or rest', text: 'Day type changes the calorie target. Use training for active days and rest for the reduced-day rule.', tab: 'diario', highlight: 'day-type' },
+      { title: 'Suggest what to eat', text: 'This combines what is still missing from your goals with pantry foods to create suggestions.', tab: 'diario', highlight: 'suggest-meal-button' },
+      { title: 'Micronutrients', text: 'Open this area to review vitamins and minerals logged from the day’s foods.', tab: 'diario', highlight: 'microLabel' }
+    ],
+    adicionar: [
+      { title: 'Add meals', text: 'Choose how to log: single food, multi-item meal, or dish description.', tab: 'adicionar', highlight: 'add-modes' },
+      { title: 'Log to diary', text: 'After choosing food, quantity, and meal, this button saves everything to the current day.', tab: 'adicionar', highlight: 'add-log-button' }
+    ],
+    despensa: [
+      { title: 'Create a food', text: 'Start with name and unit. Then fill macros manually or use auto-fill.', tab: 'despensa', highlight: 'pantry-food-name' },
+      { title: 'Barcode', text: 'Use the camera to search Open Food Facts. If the browser blocks it, type the code manually.', tab: 'despensa', highlight: 'barcode-scan-button' },
+      { title: 'Save food', text: 'Once values look right, save it to the pantry for logging and suggestions.', tab: 'despensa', highlight: 'pantry-save-button' },
+      { title: 'Saved items', text: 'Your food list lives here. Search, edit, or remove items as needed.', tab: 'despensa', highlight: 'pantry-saved-foods' },
+      { title: 'Saved meals', text: 'Templates save frequent combinations so you can repeat them with fewer taps.', tab: 'despensa', highlight: 'pantry-meal-templates' },
+      { title: 'Supplements', text: 'Supplements are separate from foods so they are easier to track.', tab: 'despensa', highlight: 'pantry-supplements' }
+    ],
+    semana: [
+      { title: 'Weekly summary', text: 'These cards show averages and how many days aligned with the protein goal.', tab: 'semana', highlight: 'week-summary' },
+      { title: 'Week days', text: 'Tap a day to open that day’s diary and inspect details.', tab: 'semana', highlight: 'week-days' },
+      { title: 'Protein', text: 'This chart shows protein intake and the goal reference line.', tab: 'semana', highlight: 'week-protein-chart' },
+      { title: 'Calories', text: 'Here you can follow recent calorie variation against the goal.', tab: 'semana', highlight: 'week-calories-chart' },
+      { title: 'Meal averages', text: 'When enough data exists, this area shows which meals concentrate more calories, protein, and carbs.', tab: 'semana', highlight: 'week-meal-averages' }
+    ],
+    metricas: [
+      { title: 'Baseline measurements', text: 'Log weight and height. These feed BMI, calories, and protein goals.', tab: 'metricas', highlight: 'metrics-measures' },
+      { title: 'Current metrics', text: 'This shows current weight, height, BMI, and calculated targets.', tab: 'metricas', highlight: 'metrics-current' },
+      { title: 'Weight trend', text: 'With more than one record, this chart helps read the trend rather than a single weigh-in.', tab: 'metricas', highlight: 'weight-chart' },
+      { title: 'Nutrition profile', text: 'Activity, objective, calorie adjustment, and protein per kg define automatic targets.', tab: 'metricas', highlight: 'nutrition-profile' },
+      { title: 'Target calculation', text: 'This summary shows BMR, day base, goal adjustment, and final target.', tab: 'metricas', highlight: 'metrics-target-summary' },
+      { title: 'Reports', text: 'Generate HTML or PDF reports for day, week, month, or full history.', tab: 'metricas', highlight: 'advanced-reports' }
+    ]
+  };
+  const steps = stepSets[type] || stepSets.main;
 
   const current = steps[step];
   const isLast = step === steps.length - 1;
   const isFirst = step === 0;
+  const doneLabel = current.done || (isPt ? 'Concluir' : 'Done');
   const PAD = 10;
   function finishTutorial() {
     const action = current.action;
@@ -10614,7 +10704,11 @@ function TutorialOverlay({ lang, onDone }) {
     };
     if (current.tab) {
       const tabEl = document.querySelector('[data-tutorial="tab-' + current.tab + '"]');
-      if (tabEl) tabEl.click();
+      if (tabEl) {
+        window.__tutorialNavigating = true;
+        tabEl.click();
+        setTimeout(() => { window.__tutorialNavigating = false; }, 180);
+      }
       setRect(null);
       const timer = setTimeout(measure, 80);
       return () => { cancelled = true; clearTimeout(timer); };
@@ -10727,7 +10821,7 @@ function TutorialOverlay({ lang, onDone }) {
         React.createElement('button', {
           onClick: isLast ? finishTutorial : ()=>setStep(s=>s+1),
           style:{fontSize:13,padding:'8px 18px',borderRadius:8,background:'#7ec87e',border:'none',color:'#111',fontWeight:600,cursor:'pointer',fontFamily:'inherit'}
-        }, isLast?(isPt?'Ir para Métricas':'Go to Metrics'):(isPt?'Próximo →':'Next →'))
+        }, isLast ? doneLabel : (isPt?'Próximo →':'Next →'))
       )
     )
   );
@@ -11197,6 +11291,7 @@ function App() {
   const [checking,setChecking]  = React.useState(fbIsLoggedIn());
   const [showSettings,setShowSettings] = React.useState(false);
   const [showTutorial,setShowTutorial] = React.useState(false);
+  const [tutorialType,setTutorialType] = React.useState('main');
   const [showPrivacy, setShowPrivacy]  = React.useState(false);
   const [showBackup,  setShowBackup]   = React.useState(false);
   const [pendingEmail, setPendingEmail] = React.useState('');
@@ -11220,10 +11315,10 @@ function App() {
   function afterAuthenticated(isNew) {
     setAuthed(true);
     checkRequiredProfile();
-    if (isNew) setShowTutorial(true);
+    if (isNew) { setTutorialType('main'); setShowTutorial(true); }
     else {
-      storage.get('tutorialSeen').then(r => {
-        if (!r || !r.value) setShowTutorial(true);
+      storage.get('tutorialSeen_main').then(r => {
+        if (!r || !r.value) { setTutorialType('main'); setShowTutorial(true); }
       }).catch(()=>{});
     }
   }
@@ -11279,7 +11374,7 @@ function App() {
       !requiredProfile && React.createElement(NutritionTracker, {
         onOpenSettings: () => setShowSettings(true),
         onLogout: () => { setAuthed(false); },
-        onStartTutorial: () => setShowTutorial(true),
+        onStartTutorial: (type = 'main') => { setTutorialType(type); setShowTutorial(true); },
         onOpenPrivacy: () => setShowPrivacy(true),
         onOpenBackup: () => setShowBackup(true),
         externalLang: lang,
@@ -11297,8 +11392,9 @@ function App() {
       }) : null,
       showTutorial && !requiredProfile ? React.createElement(TutorialOverlay, {
         lang,
+        type: tutorialType,
         onDone: () => {
-          storage.set('tutorialSeen', 'true').catch(()=>{});
+          storage.set('tutorialSeen_' + tutorialType, 'true').catch(()=>{});
           setShowTutorial(false);
         }
       }) : null,
