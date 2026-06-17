@@ -712,7 +712,7 @@ async function fbList(p) {
 // Legacy root fields and nutrition/{uid}_{key} docs remain readable as fallback.
 const PROFILE_FIELD_KEYS = new Set([
   "birthDate", "gender", "activityLevel", "goalType", "goalKg", "goalWeeks",
-  "manualCalorieAdjustment", "proteinMultiplier", "userName", "tutorialSeen",
+  "manualCalorieAdjustment", "proteinMultiplier", "bodyFatGoal", "userName", "tutorialSeen",
   "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
   "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
 ]);
@@ -789,7 +789,7 @@ function _knownMigrationKeys3() {
     "pantry_v2", "suppPantry", "waterGoal", "customGoals", "goalHistory",
     "mealTemplates", "weightHistory", "trainingByDate", "birthDate", "gender",
     "activityLevel", "goalType", "goalKg", "goalWeeks", "manualCalorieAdjustment",
-    "proteinMultiplier", "userName", "tutorialSeen",
+    "proteinMultiplier", "bodyFatGoal", "userName", "tutorialSeen",
     "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
     "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
   ];
@@ -1657,7 +1657,8 @@ function emptyFood() {
   const f = {
     name: "",
     unit: "g",
-    portionSize: "100"
+    portionSize: "100",
+    unitWeightG: ""
   };
   ALL_FIELDS_KEYS.forEach(ff => {
     f[ff.key] = "";
@@ -1898,6 +1899,27 @@ function NutritionTracker({
   function reopenTabTutorial() {
     onStartTutorial && onStartTutorial(tab);
   }
+  useEffect(() => {
+    if (tab === "adicionar" && pantry.length === 0 && !describeMode) {
+      setDescribeMode(true);
+      setBatchMode(false);
+    }
+  }, [tab, pantry.length]);
+  function selectAddMode(mode) {
+    if (mode !== "describe" && pantry.length === 0) {
+      notify(lang === 'en' ? "Add foods to the pantry first, or use Describe dish." : "Cadastre alimentos na despensa primeiro, ou use Descrever prato.");
+      setDescribeMode(true);
+      setBatchMode(false);
+      return;
+    }
+    if (mode === "describe") {
+      setDescribeMode(true);
+      setBatchMode(false);
+    } else {
+      setDescribeMode(false);
+      setBatchMode(mode === "batch");
+    }
+  }
   const [trainingByDate, setTrainingByDate] = useState({});
   const [form, setForm] = useState(emptyFood());
   const [showMicroForm, setShowMicroForm] = useState(false);
@@ -1919,6 +1941,8 @@ function NutritionTracker({
   const [templateName, setTemplateName] = useState("");
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [describeMode, setDescribeMode] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState(null);
+  const [templateEditDraft, setTemplateEditDraft] = useState(null);
   const [mealDescription, setMealDescription] = useState("");
   const [describeMeal, setDescribeMeal] = useState("Almoço");
   const [describeResult, setDescribeResult] = useState(null);
@@ -1982,23 +2006,33 @@ function NutritionTracker({
   const [weightHistory, setWeightHistory] = useState([]);
   const [profileData, setProfileData] = useState({ birthDate: "", gender: "" });
   const [goalHistory, setGoalHistory] = useState({});
+  const [metricsProgressOpen, setMetricsProgressOpen] = useState(false);
+  const [metricsProgressInfoOpen, setMetricsProgressInfoOpen] = useState(false);
+  const [bodyCompositionOpen, setBodyCompositionOpen] = useState(false);
   const [nutritionPrefs, setNutritionPrefs] = useState({
     activityLevel: "",
     goalType: "",
     goalKg: "",
     goalWeeks: "",
     manualAdjustment: "",
-    proteinMultiplier: ""
+    proteinMultiplier: "",
+    bodyFatGoal: ""
   });
   const [weightForm, setWeightForm] = useState({
     weight: "",
     height: "",
+    bodyFatPct: "",
+    waistCm: "",
+    muscleMassKg: "",
     date: TODAY
   });
   const [editingWeightId, setEditingWeightId] = useState(null);
   const [editWeightForm, setEditWeightForm] = useState({
     weight: "",
     height: "",
+    bodyFatPct: "",
+    waistCm: "",
+    muscleMassKg: "",
     date: ""
   });
   const [viewDate, setViewDate] = useState(TODAY);
@@ -2067,7 +2101,7 @@ function NutritionTracker({
       setLoaded(true);
     }, 12000);
     try {
-      const [p, l, t, w, mt, n, wg, wi, sp, sl, cg, gh, bd, gd, al, gt, gkg, gw, ma, pm, un] = await Promise.all([storage.get("pantry_v2").catch(() => null), storage.get("log_v2_" + TODAY).catch(() => null), storage.get("trainingByDate").catch(() => null), storage.get("weightHistory").catch(() => null), storage.get("mealTemplates").catch(() => null), storage.get("notes_" + TODAY).catch(() => null), storage.get("waterGoal").catch(() => null), storage.get("waterIntake_" + TODAY).catch(() => null), storage.get("suppPantry").catch(() => null), storage.get("suppLog_" + TODAY).catch(() => null), storage.get("customGoals").catch(() => null), storage.get("goalHistory").catch(() => null), storage.get("birthDate").catch(() => null), storage.get("gender").catch(() => null), storage.get("activityLevel").catch(() => null), storage.get("goalType").catch(() => null), storage.get("goalKg").catch(() => null), storage.get("goalWeeks").catch(() => null), storage.get("manualCalorieAdjustment").catch(() => null), storage.get("proteinMultiplier").catch(() => null), storage.get("userName").catch(() => null)]);
+      const [p, l, t, w, mt, n, wg, wi, sp, sl, cg, gh, bd, gd, al, gt, gkg, gw, ma, pm, bfg, un] = await Promise.all([storage.get("pantry_v2").catch(() => null), storage.get("log_v2_" + TODAY).catch(() => null), storage.get("trainingByDate").catch(() => null), storage.get("weightHistory").catch(() => null), storage.get("mealTemplates").catch(() => null), storage.get("notes_" + TODAY).catch(() => null), storage.get("waterGoal").catch(() => null), storage.get("waterIntake_" + TODAY).catch(() => null), storage.get("suppPantry").catch(() => null), storage.get("suppLog_" + TODAY).catch(() => null), storage.get("customGoals").catch(() => null), storage.get("goalHistory").catch(() => null), storage.get("birthDate").catch(() => null), storage.get("gender").catch(() => null), storage.get("activityLevel").catch(() => null), storage.get("goalType").catch(() => null), storage.get("goalKg").catch(() => null), storage.get("goalWeeks").catch(() => null), storage.get("manualCalorieAdjustment").catch(() => null), storage.get("proteinMultiplier").catch(() => null), storage.get("bodyFatGoal").catch(() => null), storage.get("userName").catch(() => null)]);
       if (p) setPantry(JSON.parse(p.value));
       if (l) setLog(normalizeMealKeys(JSON.parse(l.value)));
       if (t) setTrainingByDate(JSON.parse(t.value));
@@ -2091,7 +2125,8 @@ function NutritionTracker({
         goalKg: gkg && gkg.value ? gkg.value : "",
         goalWeeks: gw && gw.value ? gw.value : "",
         manualAdjustment: ma && ma.value ? ma.value : "",
-        proteinMultiplier: pm && pm.value ? pm.value : ""
+        proteinMultiplier: pm && pm.value ? pm.value : "",
+        bodyFatGoal: bfg && bfg.value ? bfg.value : ""
       });
     } catch (_) {}
     clearTimeout(_loadTimeout);
@@ -2198,6 +2233,9 @@ function NutritionTracker({
       loadWeekData();
       loadMealAnalysis();
     }
+    if (tab === "metricas" && loaded) {
+      loadWeekData();
+    }
     if (tab === "adicionar" && loaded) loadRecentMeals();
   }, [tab, loaded, log]);
   async function loadWeekData() {
@@ -2241,6 +2279,8 @@ function NutritionTracker({
         saltGoal: g.salt,
         proteinGoal: g.protein,
         kcalGoal: g.kcal,
+        baseCalories: rawGoal.baseCalories || g.kcal,
+        adjustment: rawGoal.adjustment || 0,
         metProtein: protein >= g.protein,
         metKcal: kcal >= g.kcal * 0.85 && kcal <= g.kcal * 1.15,
         hasData: entries.length > 0,
@@ -2344,7 +2384,8 @@ function NutritionTracker({
         ...f,
         name: product.product_name || product.generic_name || product.brands || f.name,
         unit: f.unit === "un" ? "g" : f.unit,
-        portionSize: "100"
+        portionSize: "100",
+        unitWeightG: ""
       };
       Object.entries(mapped).forEach(([key, value]) => {
         if (Number.isFinite(value)) next[key] = String(Math.round(value * 10) / 10);
@@ -2570,7 +2611,8 @@ function NutritionTracker({
           fat100: scale(p.fat100) != null ? String(scale(p.fat100)) : f.fat100,
           satfat100: scale(p.satfat100) != null ? String(scale(p.satfat100)) : f.satfat100,
           fiber100: scale(p.fiber100) != null ? String(scale(p.fiber100)) : f.fiber100,
-          salt100: scale(p.salt100) != null ? String(scale(p.salt100)) : f.salt100
+          salt100: scale(p.salt100) != null ? String(scale(p.salt100)) : f.salt100,
+          unitWeightG: ""
         }));
         notify(lang === 'en' ? `Fields filled based on ${w}g per unit. Check whether the weight looks right.` : `Campos preenchidos com base em ${w}g por unidade. Verifique se o peso está correto.`);
       } else {
@@ -2723,6 +2765,9 @@ function NutritionTracker({
     setEditingGoals(false);
     notify(lang === 'en' ? "Targets updated." : "Metas atualizadas.");
   }
+  // Persists nutrition and body-goal preferences. The object is kept flat because
+  // Firestore stores these as profile fields under nutrition/{uid}; empty values
+  // intentionally mean "not configured yet" and keep old accounts compatible.
   function saveNutritionPrefs(next, silent = true) {
     const clean = {
       activityLevel: next.activityLevel || "",
@@ -2730,7 +2775,8 @@ function NutritionTracker({
       goalKg: next.goalType === "maintenance" ? "" : (next.goalKg || ""),
       goalWeeks: next.goalType === "maintenance" ? "" : (next.goalWeeks || ""),
       manualAdjustment: next.manualAdjustment || "",
-      proteinMultiplier: next.proteinMultiplier || ""
+      proteinMultiplier: next.proteinMultiplier || "",
+      bodyFatGoal: next.bodyFatGoal || ""
     };
     setNutritionPrefs(clean);
     storage.set("activityLevel", clean.activityLevel).catch(() => {});
@@ -2739,6 +2785,7 @@ function NutritionTracker({
     storage.set("goalWeeks", clean.goalWeeks).catch(() => {});
     storage.set("manualCalorieAdjustment", clean.manualAdjustment).catch(() => {});
     storage.set("proteinMultiplier", clean.proteinMultiplier).catch(() => {});
+    storage.set("bodyFatGoal", clean.bodyFatGoal).catch(() => {});
     if (!silent) notify(lang === 'en' ? "Nutrition preferences updated." : "Preferências nutricionais atualizadas.");
   }
   async function generateFoodPatterns() {
@@ -3595,13 +3642,14 @@ function NutritionTracker({
   }
 
   function openMealSuggestions() {
+    if (!pantry.length) {
+      notify(lang === 'en' ? "Add foods to the pantry first." : "Adicione alimentos à despensa primeiro.");
+      return;
+    }
     setGAResults([]);
     setGAProgress(0);
     setGATargetMeal(MEALS[1] || MEALS[0]);
     setShowGA(true);
-    if (!pantry.length) {
-      notify(lang === 'en' ? "Add foods to the pantry first." : "Adicione alimentos \u00e0 despensa primeiro.");
-    }
   }
 
   function addGAResultToDiary(result) {
@@ -3774,19 +3822,26 @@ function NutritionTracker({
   function addFood() {
     if (!form.name || !form.protein100 || !form.kcal100) return;
     const portion = parseFloat(form.portionSize) || 100;
-    const scale = portion !== 100 ? (v) => v !== "" && v != null ? Math.round(parseFloat(v) / portion * 100 * 10) / 10 : "" : (v) => v;
+    const unitWeight = parseFloat(form.unitWeightG);
+    const convertUnitFrom100g = form.unit === "un" && Number.isFinite(unitWeight) && unitWeight > 0;
+    const scale = convertUnitFrom100g
+      ? (v) => v !== "" && v != null ? Math.round(parseFloat(v) * unitWeight / 100 * 100) / 100 : ""
+      : portion !== 100 ? (v) => v !== "" && v != null ? Math.round(parseFloat(v) / portion * 100 * 10) / 10 : "" : (v) => v;
     const food = {
       id: Date.now().toString(),
       name: form.name.trim(),
       unit: form.unit
     };
+    if (convertUnitFrom100g) food.unitWeightG = unitWeight;
     ALL_FIELDS.forEach(f => {
       const raw = scale(form[f.key]);
       food[f.key] = raw === "" || raw == null ? null : parseFloat(raw);
     });
     setPantry(p => [...p, food]);
     setForm(emptyFood());
-    notify(lang === 'en' ? 'Food saved.' : 'Alimento salvo.');
+    notify(convertUnitFrom100g
+      ? (lang === 'en' ? 'Food saved as units using the average unit weight.' : 'Alimento salvo por unidade usando o peso médio informado.')
+      : (lang === 'en' ? 'Food saved.' : 'Alimento salvo.'));
   }
   function removeFood(id) {
     setPantry(p => p.filter(f => f.id !== id));
@@ -3889,6 +3944,10 @@ function NutritionTracker({
     notify(lang === 'en' ? "Amount updated." : "Quantidade atualizada.");
   }
   function addToLog() {
+    if (!pantry.length) {
+      notify(lang === 'en' ? "Add foods to the pantry first, or use Describe dish." : "Cadastre alimentos na despensa primeiro, ou use Descrever prato.");
+      return;
+    }
     if (!addEntry.foodId || !addEntry.qty) return;
     const food = pantry.find(f => f.id === addEntry.foodId);
     if (!food) return;
@@ -3906,6 +3965,10 @@ function NutritionTracker({
     notify(lang === 'en' ? `${food.name} added.` : `${food.name} adicionado.`);
   }
   function addToStaged() {
+    if (!pantry.length) {
+      notify(lang === 'en' ? "Add foods to the pantry first, or use Describe dish." : "Cadastre alimentos na despensa primeiro, ou use Descrever prato.");
+      return;
+    }
     if (!addEntry.foodId || !addEntry.qty) return;
     const food = pantry.find(f => f.id === addEntry.foodId);
     if (!food) return;
@@ -3927,6 +3990,10 @@ function NutritionTracker({
     }));
   }
   function commitStaged() {
+    if (!pantry.length) {
+      notify(lang === 'en' ? "Add foods to the pantry first, or use Describe dish." : "Cadastre alimentos na despensa primeiro, ou use Descrever prato.");
+      return;
+    }
     if (!staged.items.length) return;
     const meal = staged.meal,
       items = [...staged.items];
@@ -3948,6 +4015,11 @@ function NutritionTracker({
   }
 
   // Templates
+  function openSaveTemplateModal() {
+    if (!staged.items.length) return;
+    setTemplateName("");
+    setShowSaveTemplateModal(true);
+  }
   function saveTemplate() {
     if (!templateName.trim() || !staged.items.length) return;
     const t = {
@@ -3970,7 +4042,23 @@ function NutritionTracker({
     };
     setMealTemplates(mt => [...mt, t]);
     setTemplateName("");
+    setShowSaveTemplateModal(false);
     notify(lang === 'en' ? "Meal template saved." : "Modelo salvo.");
+  }
+  function deleteTemplate(id) {
+    const tmpl = mealTemplates.find(t => t.id === id);
+    const ok = window.confirm(lang === 'en'
+      ? `Delete saved meal "${tmpl?.name || ""}"?`
+      : `Apagar a refeição salva "${tmpl?.name || ""}"?`);
+    if (!ok) return;
+    if (editingTemplateId === id) cancelTemplateEdit();
+    setMealTemplates(mt => mt.filter(t => t.id !== id));
+    setExpandedTemplateIds(prev => {
+      const next = {...prev};
+      delete next[id];
+      return next;
+    });
+    notify(lang === 'en' ? "Saved meal deleted." : "Refeição salva apagada.");
   }
   function loadTemplate(t) {
     const items = templateEntries(t).filter(Boolean);
@@ -4064,20 +4152,29 @@ function NutritionTracker({
     setEditStagedIdx(null);
   }
 
-  // Weight
+  // Saves the daily measurement record. Optional body-composition fields stay in
+  // the same weightHistory entry so charts, forecasts and exports can read one
+  // chronological source of truth.
   function saveWeight() {
-    if (!weightForm.weight && !weightForm.height) return;
-    const existing = getWeightForDate(weightHistory, weightForm.date || TODAY);
+    if (!weightForm.weight && !weightForm.height && !weightForm.bodyFatPct && !weightForm.waistCm && !weightForm.muscleMassKg) return;
+    const entryDate = weightForm.date || TODAY;
+    const existing = getWeightForDate(weightHistory, entryDate);
     const entry = {
       id: existing?.id || Date.now().toString(),
-      date: weightForm.date || TODAY,
+      date: entryDate,
       weight: weightForm.weight ? parseFloat(weightForm.weight) : (existing?.weight || currentWeight || null),
-      height: weightForm.height ? parseFloat(weightForm.height) : (existing?.height || currentHeight || null)
+      height: weightForm.height ? parseFloat(weightForm.height) : (existing?.height || currentHeight || null),
+      bodyFatPct: weightForm.bodyFatPct ? parseFloat(weightForm.bodyFatPct) : (existing?.bodyFatPct || null),
+      waistCm: weightForm.waistCm ? parseFloat(weightForm.waistCm) : (existing?.waistCm || null),
+      muscleMassKg: weightForm.muscleMassKg ? parseFloat(weightForm.muscleMassKg) : (existing?.muscleMassKg || null)
     };
-    setWeightHistory(h => [...h.filter(e => e.date !== TODAY), entry].sort((a, b) => a.date.localeCompare(b.date)));
+    setWeightHistory(h => [...h.filter(e => e.date !== entryDate), entry].sort((a, b) => a.date.localeCompare(b.date)));
     setWeightForm({
       weight: "",
       height: "",
+      bodyFatPct: "",
+      waistCm: "",
+      muscleMassKg: "",
       date: TODAY
     });
     notify(lang === 'en' ? "Weight updated." : "Peso atualizado.");
@@ -4087,15 +4184,23 @@ function NutritionTracker({
     setEditWeightForm({
       weight: String(e.weight),
       height: e.height ? String(e.height) : "",
+      bodyFatPct: e.bodyFatPct ? String(e.bodyFatPct) : "",
+      waistCm: e.waistCm ? String(e.waistCm) : "",
+      muscleMassKg: e.muscleMassKg ? String(e.muscleMassKg) : "",
       date: e.date
     });
   }
+  // Updates an existing measurement while keeping optional fields nullable.
+  // Null values mean "not measured", not zero.
   function saveWeightEdit() {
     if (!editWeightForm.weight) return;
     setWeightHistory(h => h.map(e => e.id === editingWeightId ? {
       ...e,
       weight: parseFloat(editWeightForm.weight),
       height: editWeightForm.height ? parseFloat(editWeightForm.height) : e.height,
+      bodyFatPct: editWeightForm.bodyFatPct ? parseFloat(editWeightForm.bodyFatPct) : null,
+      waistCm: editWeightForm.waistCm ? parseFloat(editWeightForm.waistCm) : null,
+      muscleMassKg: editWeightForm.muscleMassKg ? parseFloat(editWeightForm.muscleMassKg) : null,
       date: editWeightForm.date
     } : e).sort((a, b) => a.date.localeCompare(b.date)));
     setEditingWeightId(null);
@@ -4171,7 +4276,7 @@ function NutritionTracker({
         // Full backup
         const listed = await storage.list();
         const allKeys = listed?.keys || [];
-        const staticKeys = ['pantry_v2','suppPantry','waterGoal','customGoals','goalHistory','mealTemplates','weightHistory','trainingByDate','birthDate','gender','activityLevel','goalType','goalKg','goalWeeks','manualCalorieAdjustment','proteinMultiplier'];
+        const staticKeys = ['pantry_v2','suppPantry','waterGoal','customGoals','goalHistory','mealTemplates','weightHistory','trainingByDate','birthDate','gender','activityLevel','goalType','goalKg','goalWeeks','manualCalorieAdjustment','proteinMultiplier','bodyFatGoal'];
         const toFetch = [...new Set([...staticKeys, ...allKeys])];
         for (let i = 0; i < toFetch.length; i += 20) {
           await Promise.all(toFetch.slice(i,i+20).map(async k => {
@@ -4232,7 +4337,7 @@ function NutritionTracker({
       const listed = await storage.list();
       const allKeys = listed?.keys || [];
       // Also always try static keys
-      const staticKeys = ['pantry_v2', 'suppPantry', 'waterGoal', 'customGoals', 'goalHistory', 'mealTemplates', 'weightHistory', 'trainingByDate', 'birthDate', 'gender', 'activityLevel', 'goalType', 'goalKg', 'goalWeeks', 'manualCalorieAdjustment', 'proteinMultiplier'];
+      const staticKeys = ['pantry_v2', 'suppPantry', 'waterGoal', 'customGoals', 'goalHistory', 'mealTemplates', 'weightHistory', 'trainingByDate', 'birthDate', 'gender', 'activityLevel', 'goalType', 'goalKg', 'goalWeeks', 'manualCalorieAdjustment', 'proteinMultiplier', 'bodyFatGoal'];
       const toFetch = [...new Set([...staticKeys, ...allKeys])];
       // Fetch in parallel batches of 20
       for (let i = 0; i < toFetch.length; i += 20) {
@@ -4440,10 +4545,91 @@ function NutritionTracker({
     day: "numeric",
     month: "long"
   });
+  function beginTemplateEdit(tmpl) {
+    setEditingTemplateId(tmpl.id);
+    setExpandedTemplateIds(prev => ({...prev, [tmpl.id]: true}));
+    setTemplateEditDraft({
+      name: tmpl.name || "",
+      meal: tmpl.meal || MEALS[0],
+      addFoodId: "",
+      addQty: "",
+      items: (tmpl.items || []).map(item => ({...item}))
+    });
+  }
+  function cancelTemplateEdit() {
+    setEditingTemplateId(null);
+    setTemplateEditDraft(null);
+  }
+  function updateTemplateDraftItem(idx, patch) {
+    setTemplateEditDraft(d => ({
+      ...d,
+      items: d.items.map((item, i) => i === idx ? {...item, ...patch} : item)
+    }));
+  }
+  function removeTemplateDraftItem(idx) {
+    setTemplateEditDraft(d => ({
+      ...d,
+      items: d.items.filter((_, i) => i !== idx)
+    }));
+  }
+  function addTemplateDraftItem() {
+    if (!templateEditDraft?.addFoodId || !templateEditDraft?.addQty) return;
+    const food = pantry.find(f => f.id === templateEditDraft.addFoodId);
+    const qty = parseFloat(templateEditDraft.addQty);
+    if (!food || isNaN(qty) || qty <= 0) return;
+    const entry = buildEntry(food, qty);
+    setTemplateEditDraft(d => ({
+      ...d,
+      addFoodId: "",
+      addQty: "",
+      items: [...d.items, {
+        foodId: entry.foodId,
+        name: entry.name,
+        qty: entry.qty,
+        unit: entry.unit,
+        protein: entry.protein,
+        kcal: entry.kcal,
+        carbs: entry.carbs,
+        fat: entry.fat,
+        fiber: entry.fiber,
+        salt: entry.salt,
+        foodSnapshot: entry.foodSnapshot ? {...entry.foodSnapshot} : null
+      }]
+    }));
+  }
+  function saveTemplateEdit() {
+    if (!editingTemplateId || !templateEditDraft || !templateEditDraft.name.trim() || !templateEditDraft.items.length) return;
+    const updated = {
+      id: editingTemplateId,
+      name: templateEditDraft.name.trim(),
+      meal: templateEditDraft.meal,
+      items: templateEditDraft.items.map(item => {
+        const qty = Number(item.qty) || 0;
+        const refreshed = templateItemEntry({...item, qty});
+        return {
+          foodId: item.foodId,
+          name: item.name,
+          qty,
+          unit: item.unit,
+          protein: refreshed.protein,
+          kcal: refreshed.kcal,
+          carbs: refreshed.carbs,
+          fat: refreshed.fat,
+          fiber: refreshed.fiber,
+          salt: refreshed.salt,
+          foodSnapshot: item.foodSnapshot ? {...item.foodSnapshot} : null
+        };
+      })
+    };
+    setMealTemplates(list => list.map(t => t.id === editingTemplateId ? updated : t));
+    cancelTemplateEdit();
+    notify(lang === 'en' ? "Saved meal updated." : "Refeição salva atualizada.");
+  }
   function renderSavedMealCard(tmpl, context) {
     const entries = templateEntries(tmpl);
     const totals = templateTotals(tmpl);
     const expanded = !!expandedTemplateIds[tmpl.id];
+    const isEditingTemplate = context === "pantry" && editingTemplateId === tmpl.id && templateEditDraft;
     const proteinPct = pctOf(totals.protein, goals.protein);
     const kcalPct = pctOf(totals.kcal, goals.kcal);
     return /*#__PURE__*/React.createElement("div", {
@@ -4506,10 +4692,7 @@ function NutritionTracker({
       onClick: () => appendTemplateToStaged(tmpl),
       style: sBtn("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)")
     }, lang === 'en' ? "Add" : "Adicionar"), /*#__PURE__*/React.createElement("button", {
-      onClick: () => {
-        loadTemplate(tmpl);
-        if (context === "pantry") setTab("adicionar");
-      },
+      onClick: () => context === "pantry" ? beginTemplateEdit(tmpl) : loadTemplate(tmpl),
       style: sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)")
     }, lang === 'en' ? "Edit" : "Editar"), context === "pantry" && /*#__PURE__*/React.createElement("button", {
       onClick: () => deleteTemplate(tmpl.id),
@@ -4523,7 +4706,133 @@ function NutritionTracker({
         fontSize: 14,
         cursor: "pointer"
       }
-    }, "×"))), expanded && /*#__PURE__*/React.createElement("div", {
+    }, "×"))), isEditingTemplate ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        paddingTop: 10,
+        borderTop: "1px solid var(--border3)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: isMobileView ? "1fr" : "minmax(180px, 1fr) minmax(160px, 220px)",
+        gap: 8,
+        marginBottom: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, lang === 'en' ? "Template name" : "Nome da refeição"), /*#__PURE__*/React.createElement("input", {
+      value: templateEditDraft.name,
+      onChange: e => setTemplateEditDraft(d => ({...d, name: e.target.value})),
+      style: inp
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, lang === 'en' ? "Default meal" : "Refeição padrão"), /*#__PURE__*/React.createElement("select", {
+      value: templateEditDraft.meal,
+      onChange: e => setTemplateEditDraft(d => ({...d, meal: e.target.value})),
+      style: inp
+    }, MEALS.map(m => /*#__PURE__*/React.createElement("option", {
+      key: m,
+      value: m
+    }, mealLabel(m)))))), templateEditDraft.items.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "var(--faint)",
+        fontSize: 13,
+        fontStyle: "italic",
+        padding: "8px 0"
+      }
+    }, lang === 'en' ? "No ingredients in this template." : "Sem ingredientes neste modelo.") : templateEditDraft.items.map((item, idx) => /*#__PURE__*/React.createElement("div", {
+      key: (item.foodId || item.name || "item") + idx,
+      style: {
+        display: "grid",
+        gridTemplateColumns: isMobileView ? "1fr" : "minmax(150px, 1fr) 96px 34px",
+        gap: 8,
+        alignItems: "end",
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "var(--text2)",
+        fontSize: 14,
+        minWidth: 0
+      }
+    }, item.name, /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "var(--muted)",
+        fontSize: 12,
+        marginTop: 2
+      }
+    }, Math.round((templateItemEntry(item).kcal || 0)), " kcal · ", Math.round((templateItemEntry(item).protein || 0)), "g ", lang === 'en' ? "protein" : "proteína")), /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      value: item.qty,
+      onChange: e => updateTemplateDraftItem(idx, {qty: e.target.value}),
+      style: {
+        ...inp,
+        marginTop: 0
+      }
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: () => removeTemplateDraftItem(idx),
+      title: lang === 'en' ? "Remove ingredient" : "Remover ingrediente",
+      style: {
+        height: 36,
+        background: "none",
+        border: "1px solid var(--border3)",
+        color: "var(--dim)",
+        borderRadius: 6,
+        cursor: "pointer",
+        fontSize: 16
+      }
+    }, "×"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: isMobileView ? "1fr" : "minmax(180px, 1fr) 96px auto",
+        gap: 8,
+        alignItems: "end",
+        marginTop: 10,
+        paddingTop: 10,
+        borderTop: "1px solid var(--border3)"
+      }
+    }, /*#__PURE__*/React.createElement("select", {
+      value: templateEditDraft.addFoodId,
+      onChange: e => setTemplateEditDraft(d => ({...d, addFoodId: e.target.value})),
+      style: inp
+    }, /*#__PURE__*/React.createElement("option", {
+      value: ""
+    }, lang === 'en' ? "Add ingredient..." : "Adicionar ingrediente..."), sortedAllPantry.map(f => /*#__PURE__*/React.createElement("option", {
+      key: f.id,
+      value: f.id
+    }, f.name))), /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      value: templateEditDraft.addQty,
+      onChange: e => setTemplateEditDraft(d => ({...d, addQty: e.target.value})),
+      placeholder: lang === 'en' ? "Qty" : "Qtd",
+      style: inp
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: addTemplateDraftItem,
+      disabled: !templateEditDraft.addFoodId || !templateEditDraft.addQty,
+      style: {
+        ...sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)"),
+        height: 36,
+        opacity: templateEditDraft.addFoodId && templateEditDraft.addQty ? 1 : 0.45
+      }
+    }, lang === 'en' ? "Add" : "Adicionar")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        justifyContent: "flex-end",
+        marginTop: 12
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: cancelTemplateEdit,
+      style: sBtn("transparent", "var(--border2)", "var(--muted)")
+    }, lang === 'en' ? "Cancel" : "Cancelar"), /*#__PURE__*/React.createElement("button", {
+      onClick: saveTemplateEdit,
+      disabled: !templateEditDraft.name.trim() || !templateEditDraft.items.length,
+      style: {
+        ...sBtn("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)"),
+        opacity: templateEditDraft.name.trim() && templateEditDraft.items.length ? 1 : 0.45
+      }
+    }, lang === 'en' ? "Save changes" : "Salvar alterações"))) : expanded && /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: 10,
         paddingTop: 10,
@@ -4584,6 +4893,89 @@ function NutritionTracker({
   const avgProtein = daysWithData.length ? Math.round(daysWithData.reduce((s, d) => s + d.protein, 0) / daysWithData.length) : 0;
   const avgKcal = daysWithData.length ? Math.round(daysWithData.reduce((s, d) => s + d.kcal, 0) / daysWithData.length) : 0;
   const daysMetProtein = daysWithData.filter(d => d.metProtein).length;
+  const completedWeekDays = weekData.filter(d => d.hasData && !d.isToday);
+  const weeklyProgress = (() => {
+    const deficit = completedWeekDays.reduce((s, d) => s + Math.max(0, (d.baseCalories || d.kcalGoal || 0) - d.kcal), 0);
+    const surplus = completedWeekDays.reduce((s, d) => s + Math.max(0, d.kcal - (d.baseCalories || d.kcalGoal || 0)), 0);
+    const plannedDaily = Math.abs(calorieAdjustment || 0);
+    const plannedWeek = plannedDaily * 7;
+    const relevant = nutritionPrefs.goalType === "gain" ? surplus : nutritionPrefs.goalType === "loss" ? deficit : Math.abs(surplus - deficit);
+    const adherence = plannedWeek ? Math.round(Math.min(999, relevant / plannedWeek * 100)) : 0;
+    const avgDaily = completedWeekDays.length ? Math.round((nutritionPrefs.goalType === "gain" ? surplus : deficit) / completedWeekDays.length) : 0;
+    return {
+      days: completedWeekDays.length,
+      deficit: Math.round(deficit),
+      surplus: Math.round(surplus),
+      plannedWeek: Math.round(plannedWeek),
+      avgDaily,
+      adherence
+    };
+  })();
+  const weightTrend = (() => {
+    const sorted = [...weightHistory].filter(e => Number(e.weight) > 0).sort((a, b) => a.date.localeCompare(b.date));
+    const avg = arr => arr.length ? arr.reduce((s, e) => s + Number(e.weight || 0), 0) / arr.length : null;
+    const avg7 = avg(sorted.slice(-7));
+    const avg14 = avg(sorted.slice(-14));
+    const recent = sorted.slice(-14);
+    let weeklyRate = 0;
+    if (recent.length >= 2) {
+      const first = recent[0];
+      const last = recent[recent.length - 1];
+      const days = Math.max(1, (new Date(last.date + "T12:00:00") - new Date(first.date + "T12:00:00")) / 86400000);
+      weeklyRate = (Number(last.weight) - Number(first.weight)) / days * 7;
+    }
+    const goalKg = Number(nutritionPrefs.goalKg || 0);
+    const directionOk = nutritionPrefs.goalType === "loss" ? weeklyRate < -0.05 : nutritionPrefs.goalType === "gain" ? weeklyRate > 0.05 : false;
+    const weeksRemaining = directionOk && goalKg > 0 ? goalKg / Math.abs(weeklyRate) : null;
+    return {
+      avg7,
+      avg14,
+      weeklyRate,
+      weeksRemaining,
+      hasEnough: recent.length >= 2
+    };
+  })();
+  // Body-composition model. These calculations are estimates: body-fat scales
+  // and bioimpedance can be noisy, so the UI treats them as trend signals. If a
+  // target body-fat percentage exists, weightTarget assumes lean mass is stable.
+  const bodyComposition = (() => {
+    const sorted = [...weightHistory].filter(e => Number(e.weight) > 0).sort((a, b) => a.date.localeCompare(b.date));
+    const measured = sorted.filter(e => Number(e.bodyFatPct) > 0 || Number(e.waistCm) > 0 || Number(e.muscleMassKg) > 0);
+    const latest = [...measured].reverse()[0] || null;
+    const currentFatPct = latest && Number(latest.bodyFatPct) > 0 ? Number(latest.bodyFatPct) : null;
+    const currentWeightForBody = latest?.weight || currentWeight || null;
+    const fatKg = currentFatPct && currentWeightForBody ? currentWeightForBody * currentFatPct / 100 : null;
+    const leanMassKg = fatKg && currentWeightForBody ? currentWeightForBody - fatKg : null;
+    const targetPct = Number(nutritionPrefs.bodyFatGoal || 0);
+    const weightTarget = leanMassKg && targetPct > 0 && targetPct < 60 ? leanMassKg / (1 - targetPct / 100) : null;
+    const fatToLose = weightTarget && currentWeightForBody ? Math.max(0, currentWeightForBody - weightTarget) : null;
+    const fatEntries = sorted.filter(e => Number(e.bodyFatPct) > 0 && Number(e.weight) > 0).map(e => ({
+      ...e,
+      fatKg: Number(e.weight) * Number(e.bodyFatPct) / 100
+    }));
+    const recentFat = fatEntries.slice(-6);
+    let fatWeeklyRate = 0;
+    if (recentFat.length >= 3) {
+      const first = recentFat[0];
+      const last = recentFat[recentFat.length - 1];
+      const days = Math.max(1, (new Date(last.date + "T12:00:00") - new Date(first.date + "T12:00:00")) / 86400000);
+      fatWeeklyRate = (last.fatKg - first.fatKg) / days * 7;
+    }
+    const weeksRemaining = fatToLose && fatWeeklyRate < -0.03 ? fatToLose / Math.abs(fatWeeklyRate) : null;
+    return {
+      latest,
+      measured,
+      currentFatPct,
+      fatKg,
+      leanMassKg,
+      targetPct,
+      weightTarget,
+      fatToLose,
+      fatWeeklyRate,
+      weeksRemaining,
+      hasEnoughFatTrend: recentFat.length >= 3
+    };
+  })();
   const THEME = darkMode ? {
     "--bg": "#111",
     "--surface": "#161616",
@@ -5280,33 +5672,40 @@ function NutritionTracker({
       boxSizing: "border-box",
       width: "100%",
       maxWidth: 1180,
-      margin: "0 auto"
+      margin: "0 auto",
+      position: "relative"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      justifyContent: "flex-end",
-      marginBottom: 8
+      position: "absolute",
+      top: 12,
+      right: "clamp(18px, 3vw, 34px)",
+      zIndex: 5
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: reopenTabTutorial,
     title: lang === 'en' ? "Show this tab tutorial" : "Ver tutorial desta aba",
     "aria-label": lang === 'en' ? "Show this tab tutorial" : "Ver tutorial desta aba",
     style: {
-      width: 26,
-      height: 26,
-      borderRadius: "50%",
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
+      minWidth: isMobileView ? 24 : 64,
+      height: 24,
+      padding: isMobileView ? 0 : "0 9px",
+      borderRadius: 999,
+      border: "1px solid var(--border3)",
+      background: "var(--surface3)",
       color: "var(--muted)",
-      fontSize: 14,
-      fontWeight: 700,
+      fontSize: 11,
+      fontWeight: 600,
       fontFamily: "inherit",
       cursor: "pointer",
-      lineHeight: "24px",
-      textAlign: "center"
+      lineHeight: "22px",
+      textAlign: "center",
+      letterSpacing: 0.7,
+      textTransform: "uppercase",
+      opacity: 0.88,
+      boxShadow: "0 1px 4px rgba(0,0,0,0.04)"
     }
-  }, "i")), tab === "diario" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, isMobileView ? "i" : (lang === 'en' ? "i Help" : "i Ajuda"))), tab === "diario" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 14,
       background: diaryStatus.tone === "ok" ? "var(--notif-ok-bg)" : diaryStatus.tone === "warn" ? "var(--notif-err-bg)" : "var(--surface)",
@@ -6524,7 +6923,49 @@ function NutritionTracker({
         color: "#8ec8c8"
       }
     }, r.kcal, " kcal")))));
-  }))), tab === "adicionar" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }))), tab === "adicionar" && /*#__PURE__*/React.createElement(React.Fragment, null, showSaveTemplateModal && /*#__PURE__*/React.createElement("div", {
+    style:{position:"fixed",inset:0,zIndex:100003,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(3px)",
+      display:"flex",alignItems:"center",justifyContent:"center",padding:16},
+    onClick: e => { if(e.target===e.currentTarget) setShowSaveTemplateModal(false); }
+  },
+    /*#__PURE__*/React.createElement("div", {
+      style:{background:"var(--surface)",borderRadius:14,padding:"24px",
+        width:"100%",maxWidth:380,border:"1px solid var(--border2)",
+        boxShadow:"0 8px 32px rgba(0,0,0,0.4)"}
+    },
+      /*#__PURE__*/React.createElement("h3", {
+        style:{margin:"0 0 6px",fontSize:16,color:"var(--text)",fontWeight:600}
+      }, lang==='en'?"Save meal template":"Salvar refeição"),
+      /*#__PURE__*/React.createElement("p", {
+        style:{margin:"0 0 16px",fontSize:13,color:"var(--muted)"}
+      }, staged.items.map(i=>i.name).join(", ")),
+      /*#__PURE__*/React.createElement("input", {
+        type:"text", value:templateName,
+        onChange: e => setTemplateName(e.target.value),
+        onKeyDown: e => { if(e.key==='Enter'){ saveTemplate(); }},
+        placeholder: lang==='en'?"Name (e.g. Pre-workout shake)":"Nome (ex: Shake pré-treino)",
+        autoFocus: true,
+        style:{...inp,marginBottom:14}
+      }),
+      /*#__PURE__*/React.createElement("div",{style:{display:"flex",gap:8}},
+        /*#__PURE__*/React.createElement("button",{
+          onClick:()=>setShowSaveTemplateModal(false),
+          style:{flex:1,padding:"10px",borderRadius:8,background:"none",
+            border:"1px solid var(--border2)",color:"var(--text2)",
+            cursor:"pointer",fontFamily:"inherit",fontSize:13}
+        }, lang==='en'?"Cancel":"Cancelar"),
+        /*#__PURE__*/React.createElement("button",{
+          onClick: saveTemplate,
+          disabled: !templateName.trim(),
+          style:{flex:2,padding:"10px",borderRadius:8,
+            background:templateName.trim()?"var(--btn-ok)":"var(--btn-inactive)",
+            border:"none",color:templateName.trim()?"var(--btn-ok-text)":"var(--muted)",
+            cursor:templateName.trim()?"pointer":"default",fontFamily:"inherit",
+            fontSize:13,fontWeight:600}
+        }, lang==='en'?"Save":"Salvar")
+      )
+    )
+  ), /*#__PURE__*/React.createElement("div", {
     "data-tutorial": "add-modes",
     style: {
       display: "flex",
@@ -6533,16 +6974,10 @@ function NutritionTracker({
     }
   }, [["single", t('modeOneByOne')], ["batch", t('modeBatch')], ["describe", t('modeDescribe')]].map(([m, l]) => {
     const active = m === "describe" ? describeMode : !describeMode && (m === "batch" ? batchMode : !batchMode);
+    const unavailable = pantry.length === 0 && m !== "describe";
     return /*#__PURE__*/React.createElement("button", {
       key: m,
-      onClick: () => {
-        if (m === "describe") {
-          setDescribeMode(true);
-        } else {
-          setDescribeMode(false);
-          setBatchMode(m === "batch");
-        }
-      },
+      onClick: () => selectAddMode(m),
       style: {
         flex: 1,
         padding: "7px 0",
@@ -6552,7 +6987,8 @@ function NutritionTracker({
         borderRadius: 6,
         fontSize: 14,
         cursor: "pointer",
-        letterSpacing: 0.5
+        letterSpacing: 0.5,
+        opacity: unavailable ? 0.55 : 1
       }
     }, l);
   })), describeMode && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
@@ -7011,7 +7447,7 @@ function NutritionTracker({
     }
   }, lang === 'en' ? "\u2713 Log meal (" : "\u2713 Registrar refeição (", staged.items.length, " item", staged.items.length !== 1 ? "s" : "", ")"),
   /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowSaveTemplateModal(true),
+    onClick: openSaveTemplateModal,
     disabled: !staged.items.length,
     style: {
       ...btn,
@@ -7289,7 +7725,8 @@ function NutritionTracker({
     value: form.unit,
     onChange: e => setForm(f => ({
       ...f,
-      unit: e.target.value
+      unit: e.target.value,
+      unitWeightG: e.target.value === "un" ? f.unitWeightG : ""
     })),
     style: inp
   }, /*#__PURE__*/React.createElement("option", {
@@ -7298,7 +7735,38 @@ function NutritionTracker({
     value: "ml"
   }, "ml"), /*#__PURE__*/React.createElement("option", {
     value: "un"
-  }, "un")))), /*#__PURE__*/React.createElement("button", {
+  }, "un")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: form.unit === "un" ? "var(--btn-ok)" : "var(--surface)",
+      border: "1px solid " + (form.unit === "un" ? "var(--btn-ok-border)" : "var(--border2)"),
+      borderRadius: 8,
+      padding: "10px 12px",
+      marginBottom: 8,
+      display: "grid",
+      gridTemplateColumns: isMobileView ? "1fr" : "1fr auto",
+      gap: 10,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: form.unit === "un" ? "var(--btn-ok-text)" : "var(--text2)",
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      marginBottom: 3
+    }
+  }, lang === 'en' ? "Register by unit" : "Cadastrar por unidade"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted)",
+      lineHeight: 1.4
+    }
+  }, lang === 'en'
+    ? "Use this for breads, bars, cookies and similar items when the label gives values per 100g and you know the average unit weight."
+    : "Use para pães, barras, bolachas e itens parecidos quando a tabela informa valores por 100g e você sabe o peso médio da unidade.")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setForm(f => ({...f, unit: "un"})),
+    style: sBtn(form.unit === "un" ? "transparent" : "var(--btn-info)", form.unit === "un" ? "var(--btn-ok-border)" : "var(--btn-info-border)", form.unit === "un" ? "var(--btn-ok-text)" : "var(--btn-info-text)")
+  }, form.unit === "un" ? (lang === 'en' ? "Active" : "Ativo") : (lang === 'en' ? "Use units" : "Usar unidades"))), /*#__PURE__*/React.createElement("button", {
     "data-tutorial": "barcode-scan-button",
     onClick: () => {
       setBarcodeModalOpen(true);
@@ -7443,7 +7911,7 @@ function NutritionTracker({
       marginBottom: 8,
       marginTop: 12
     }
-  }, t('macros') + ' (' + portionLabel(form.unit, lang) + ')' + ((form.unit === 'g' || form.unit === 'ml') && parseFloat(form.portionSize||'100') !== 100 ? ' \u2192 base 100' + form.unit : ''), " "),
+  }, t('macros') + ' (' + (form.unit === 'un' && parseFloat(form.unitWeightG||'0') > 0 ? (lang === 'en' ? 'per 100g \u2192 per unit' : 'por 100g \u2192 por unidade') : portionLabel(form.unit, lang)) + ')' + ((form.unit === 'g' || form.unit === 'ml') && parseFloat(form.portionSize||'100') !== 100 ? ' \u2192 base 100' + form.unit : ''), " "),
   /* Porção base — só para g e ml */
   (form.unit === 'g' || form.unit === 'ml') && /*#__PURE__*/React.createElement("div", {
     style: { marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10,
@@ -7459,6 +7927,32 @@ function NutritionTracker({
       style: { ...inp, width: 70, marginBottom: 0, textAlign: 'center' }
     }),
     /*#__PURE__*/React.createElement("span", { style: { fontSize: 14, color: 'var(--text2)' } }, form.unit)
+  ),
+  form.unit === 'un' && /*#__PURE__*/React.createElement("div", {
+    style: { marginBottom: 10, display: 'grid', gridTemplateColumns: isMobileView ? '1fr' : '1fr 120px',
+      gap: 10, alignItems: 'end', background: 'var(--bg)', borderRadius: 8,
+      padding: '8px 12px', border: '1px solid var(--border2)' }
+  },
+    /*#__PURE__*/React.createElement("div", null,
+      /*#__PURE__*/React.createElement("div", { style: { fontSize: 14, color: 'var(--text2)', lineHeight: 1.35 } },
+        lang === 'en' ? 'Optional: average unit weight' : 'Opcional: peso médio da unidade'
+      ),
+      /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: 'var(--muted)', lineHeight: 1.35, marginTop: 2 } },
+        lang === 'en'
+          ? 'Fill this only when the label values above are per 100g. The app will save the food as one unit.'
+          : 'Preencha apenas quando os valores acima estiverem por 100g. O app salvará o alimento como 1 unidade.'
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", null,
+      /*#__PURE__*/React.createElement("input", {
+        type: 'number', min: 1, step: '0.1',
+        value: form.unitWeightG || '',
+        onChange: e => setForm(ff => ({ ...ff, unitWeightG: e.target.value })),
+        placeholder: '25',
+        style: { ...inp, marginTop: 0, textAlign: 'center' }
+      }),
+      /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: 'var(--muted)', textAlign: 'center', marginTop: 3 } }, 'g/un')
+    )
   ),
   /*#__PURE__*/React.createElement("div", {
     style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }
@@ -7938,7 +8432,51 @@ function NutritionTracker({
     })),
     placeholder: "ex: tomar com \xE1gua, em jejum...",
     style: inp
-  })), /*#__PURE__*/React.createElement("button", {
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      padding: "10px 12px",
+      border: "1px solid var(--border3)",
+      borderRadius: 8,
+      background: "var(--surface)",
+      display: "grid",
+      gridTemplateColumns: isMobileView ? "1fr" : "repeat(3, 1fr)",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { gridColumn: isMobileView ? "auto" : "1 / -1", color: "var(--muted)", fontSize: 12, lineHeight: 1.4 }
+  }, lang === 'en' ? "Optional body-composition data. Use it as a trend, not as an exact diagnosis." : "Dados opcionais de composição corporal. Use como tendência, não como diagnóstico exato."), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: lbl
+  }, lang === 'en' ? "Body fat %" : "Gordura corporal %"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: "1",
+    max: "70",
+    step: "0.1",
+    value: weightForm.bodyFatPct,
+    onChange: e => setWeightForm(f => ({...f, bodyFatPct: e.target.value})),
+    placeholder: bodyComposition.currentFatPct ? String(Math.round(bodyComposition.currentFatPct * 10) / 10) : "",
+    style: inp
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: lbl
+  }, lang === 'en' ? "Waist (cm)" : "Cintura (cm)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: "30",
+    step: "0.1",
+    value: weightForm.waistCm,
+    onChange: e => setWeightForm(f => ({...f, waistCm: e.target.value})),
+    placeholder: bodyComposition.latest?.waistCm ? String(bodyComposition.latest.waistCm) : "",
+    style: inp
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: lbl
+  }, lang === 'en' ? "Muscle mass (kg)" : "Massa muscular (kg)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: "1",
+    step: "0.1",
+    value: weightForm.muscleMassKg,
+    onChange: e => setWeightForm(f => ({...f, muscleMassKg: e.target.value})),
+    placeholder: bodyComposition.latest?.muscleMassKg ? String(bodyComposition.latest.muscleMassKg) : "",
+    style: inp
+  }))), /*#__PURE__*/React.createElement("button", {
     onClick: addSuppToPantry,
     style: btn
   }, t('suppSave'))), suppPantryOpen && suppPantry.length === 0 && /*#__PURE__*/React.createElement("div", {
@@ -8855,6 +9393,26 @@ function NutritionTracker({
       style: inp
     }))), /*#__PURE__*/React.createElement("div", {
       style: {
+        display: "grid",
+        gridTemplateColumns: isMobileView ? "1fr" : "repeat(3, 1fr)",
+        gap: 8,
+        marginBottom: 8
+      }
+    }, [["bodyFatPct", lang === 'en' ? "Body fat %" : "Gordura %"], ["waistCm", lang === 'en' ? "Waist (cm)" : "Cintura (cm)"], ["muscleMassKg", lang === 'en' ? "Muscle mass (kg)" : "Massa muscular (kg)"]].map(([key, label]) => /*#__PURE__*/React.createElement("div", {
+      key
+    }, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, label), /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      step: "0.1",
+      value: editWeightForm[key] || "",
+      onChange: ev => setEditWeightForm(f => ({
+        ...f,
+        [key]: ev.target.value
+      })),
+      style: inp
+    })))), /*#__PURE__*/React.createElement("div", {
+      style: {
         display: "flex",
         gap: 8
       }
@@ -8899,7 +9457,15 @@ function NutritionTracker({
       style: {
         color: "var(--muted)"
       }
-    }, t('bmi')+' ', bE), /*#__PURE__*/React.createElement("span", {
+    }, t('bmi')+' ', bE), e.bodyFatPct && /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#c86e8e"
+      }
+    }, e.bodyFatPct, "% ", lang === 'en' ? "fat" : "gord."), e.waistCm && /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "var(--muted)"
+      }
+    }, e.waistCm, "cm ", lang === 'en' ? "waist" : "cint."), /*#__PURE__*/React.createElement("span", {
       style: {
         color: "var(--muted)"
       }
@@ -8938,6 +9504,335 @@ function NutritionTracker({
       marginTop: 20
     }
   }, t('noWeightData')), /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "body-composition",
+    style: {
+      marginTop: 20,
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 8,
+      padding: "12px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setBodyCompositionOpen(v => !v),
+    style: {
+      width: "100%",
+      background: "none",
+      border: "none",
+      padding: 0,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      textAlign: "left"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: { fontSize: 14, letterSpacing: 1, color: "var(--muted)", textTransform: "uppercase" }
+  }, bodyCompositionOpen ? "▾ " : "▸ ", lang === 'en' ? "Body composition" : "Composição corporal"), /*#__PURE__*/React.createElement("div", {
+    style: { marginTop: 4, fontSize: 12, color: "var(--dim)", lineHeight: 1.35 }
+  }, lang === 'en' ? "Optional measurements for body-fat and waist trends." : "Medidas opcionais para acompanhar gordura corporal e cintura.")), /*#__PURE__*/React.createElement("div", {
+    style: { fontSize: 12, color: "var(--muted)", flexShrink: 0 }
+  }, bodyComposition.measured.length, lang === 'en' ? " records" : " registros"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+      gap: 8
+    }
+  }, [{
+    l: lang === 'en' ? "Body fat" : "Gordura corporal",
+    v: bodyComposition.currentFatPct ? (Math.round(bodyComposition.currentFatPct * 10) / 10) + "%" : "—",
+    c: "#c86e8e"
+  }, {
+    l: lang === 'en' ? "Fat mass" : "Gordura em kg",
+    v: bodyComposition.fatKg ? (Math.round(bodyComposition.fatKg * 10) / 10) + " kg" : "—",
+    c: "#c8a96e"
+  }, {
+    l: lang === 'en' ? "Lean mass" : "Massa livre",
+    v: bodyComposition.leanMassKg ? (Math.round(bodyComposition.leanMassKg * 10) / 10) + " kg" : "—",
+    c: "#6ec8a9"
+  }, {
+    l: lang === 'en' ? "Target weight" : "Peso alvo estimado",
+    v: bodyComposition.weightTarget ? (Math.round(bodyComposition.weightTarget * 10) / 10) + " kg" : "—",
+    c: "#8ec8c8"
+  }].map(card => /*#__PURE__*/React.createElement("div", {
+    key: card.l,
+    style: {
+      border: "1px solid var(--border3)",
+      borderRadius: 8,
+      padding: "10px 12px",
+      background: "var(--bg)",
+      minHeight: 58
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { fontSize: 11, letterSpacing: 1, color: "var(--muted)", textTransform: "uppercase", marginBottom: 5 }
+  }, card.l), /*#__PURE__*/React.createElement("div", {
+    style: { fontSize: 17, color: card.c, fontWeight: 600 }
+  }, card.v)))), bodyCompositionOpen && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      borderTop: "1px solid var(--border3)",
+      paddingTop: 12,
+      display: "grid",
+      gridTemplateColumns: isMobileView ? "1fr" : "minmax(220px, 320px) 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: lbl
+  }, lang === 'en' ? "Target body fat %" : "Meta de gordura corporal %"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: "3",
+    max: "60",
+    step: "0.1",
+    value: nutritionPrefs.bodyFatGoal || "",
+    onChange: e => saveNutritionPrefs({...nutritionPrefs, bodyFatGoal: e.target.value}),
+    placeholder: lang === 'en' ? "e.g. 13" : "ex: 13",
+    style: inp
+  }), /*#__PURE__*/React.createElement("div", {
+    style: { color: "var(--muted)", fontSize: 12, lineHeight: 1.45, marginTop: 6 }
+  }, lang === 'en' ? "Target weight assumes lean mass stays stable. Use it as an estimate." : "O peso alvo assume massa livre estável. Use como estimativa.")), /*#__PURE__*/React.createElement("div", {
+    style: { fontSize: 13, color: "var(--text3)", lineHeight: 1.6 }
+  }, bodyComposition.fatToLose ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("b", {
+    style: { color: "var(--text2)" }
+  }, lang === 'en' ? "Forecast" : "Previsão"), /*#__PURE__*/React.createElement("br", null), lang === 'en'
+    ? "Estimated fat to lose: " + (Math.round(bodyComposition.fatToLose * 10) / 10) + " kg."
+    : "Gordura estimada a perder: " + (Math.round(bodyComposition.fatToLose * 10) / 10) + " kg.", /*#__PURE__*/React.createElement("div", {
+    style: { marginTop: 6, color: "var(--muted)" }
+  }, bodyComposition.weeksRemaining
+    ? (lang === 'en'
+      ? "At the recent fat-mass trend, this would take about " + (Math.round(bodyComposition.weeksRemaining * 10) / 10) + " weeks."
+      : "Pela tendência recente de gordura, isso levaria cerca de " + (Math.round(bodyComposition.weeksRemaining * 10) / 10) + " semanas.")
+    : (lang === 'en'
+      ? "There is not enough aligned body-fat trend yet for a date estimate."
+      : "Ainda não há tendência de gordura alinhada suficiente para estimar uma data."))) : (lang === 'en'
+    ? "Add body-fat percentage and a target to unlock fat-mass estimates."
+    : "Registre gordura corporal e uma meta para liberar estimativas de gordura."))), bodyCompositionOpen && bodyComposition.measured.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: { marginTop: 10, display: "grid", gap: 6 }
+  }, bodyComposition.measured.slice(-6).reverse().map(e => /*#__PURE__*/React.createElement("div", {
+    key: "body-" + e.id,
+    style: {
+      display: "flex",
+      gap: 10,
+      justifyContent: "space-between",
+      borderTop: "1px solid var(--border3)",
+      paddingTop: 6,
+      fontSize: 12,
+      color: "var(--muted)"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, e.date), /*#__PURE__*/React.createElement("span", null, e.bodyFatPct ? e.bodyFatPct + "% " + (lang === 'en' ? "fat" : "gord.") : "—"), /*#__PURE__*/React.createElement("span", null, e.waistCm ? e.waistCm + "cm " + (lang === 'en' ? "waist" : "cint.") : "—"), /*#__PURE__*/React.createElement("span", null, e.muscleMassKg ? e.muscleMassKg + "kg " + (lang === 'en' ? "muscle" : "musc.") : "—"))))), /*#__PURE__*/React.createElement("div", {
+    "data-tutorial": "metrics-progress",
+    style: {
+      marginTop: 20,
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 8,
+      padding: "12px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: () => setMetricsProgressOpen(v => !v),
+    role: "button",
+    tabIndex: 0,
+    style: {
+      flex: "1 1 auto",
+      minWidth: 0,
+      background: "none",
+      border: "none",
+      padding: 0,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      textAlign: "left",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      letterSpacing: 1,
+      color: "var(--muted)",
+      textTransform: "uppercase"
+    }
+  }, metricsProgressOpen ? "▾ " : "▸ ", lang === 'en' ? "Progress and forecast" : "Progresso e previsão"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
+      fontSize: 12,
+      color: "var(--dim)",
+      lineHeight: 1.35
+    }
+  }, lang === 'en' ? "Rolling view of completed days, excluding today." : "Visão rolante dos dias concluídos, sem contar hoje.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      setMetricsProgressInfoOpen(v => !v);
+    },
+    style: {
+      background: metricsProgressInfoOpen ? "var(--btn-info)" : "var(--surface3)",
+      border: "1px solid " + (metricsProgressInfoOpen ? "var(--btn-info-border)" : "var(--border3)"),
+      color: metricsProgressInfoOpen ? "var(--btn-info-text)" : "var(--muted)",
+      borderRadius: 999,
+      padding: isMobileView ? "4px 8px" : "4px 10px",
+      fontSize: 11,
+      letterSpacing: 0.6,
+      textTransform: "uppercase",
+      fontFamily: "inherit",
+      cursor: "pointer",
+      whiteSpace: "nowrap"
+    }
+  }, lang === 'en' ? "More info" : "Mais info"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--muted)"
+    }
+  }, weeklyProgress.days, "/7"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))",
+      gap: 8
+    }
+  }, [{
+    l: lang === 'en' ? "Weekly target" : "Meta semanal",
+    v: weeklyProgress.plannedWeek ? weeklyProgress.plannedWeek + " kcal" : "—",
+    c: "#8ec8c8"
+  }, {
+    l: lang === 'en' ? "Deficit" : "Déficit",
+    v: weeklyProgress.deficit + " kcal",
+    c: "#c8a96e"
+  }, {
+    l: lang === 'en' ? "Surplus" : "Superávit",
+    v: weeklyProgress.surplus + " kcal",
+    c: "#c86e8e"
+  }, {
+    l: lang === 'en' ? "Adherence" : "Aderência",
+    v: weeklyProgress.plannedWeek ? weeklyProgress.adherence + "%" : "—",
+    c: weeklyProgress.adherence >= 80 && weeklyProgress.adherence <= 120 ? "#6ec8a9" : "#c8a96e"
+  }, {
+    l: lang === 'en' ? "7-entry avg" : "Média 7 registros",
+    v: weightTrend.avg7 ? (Math.round(weightTrend.avg7 * 10) / 10) + " kg" : "—",
+    c: "#c8a96e"
+  }, {
+    l: lang === 'en' ? "Trend" : "Tendência",
+    v: weightTrend.hasEnough ? (weightTrend.weeklyRate > 0 ? "+" : "") + (Math.round(weightTrend.weeklyRate * 100) / 100) + (lang === 'en' ? " kg/wk" : " kg/sem") : "—",
+    c: weightTrend.weeklyRate < 0 ? "#6ec8a9" : weightTrend.weeklyRate > 0 ? "#c86e8e" : "var(--muted)"
+  }].map(card => /*#__PURE__*/React.createElement("div", {
+    key: card.l,
+    style: {
+      border: "1px solid var(--border3)",
+      borderRadius: 8,
+      padding: "10px 12px",
+      background: "var(--bg)",
+      minHeight: 58
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      letterSpacing: 1,
+      color: "var(--muted)",
+      textTransform: "uppercase",
+      marginBottom: 5
+    }
+  }, card.l), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 17,
+      color: card.c,
+      fontWeight: 600
+    }
+  }, card.v)))), metricsProgressInfoOpen && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      background: "var(--bg)",
+      border: "1px solid var(--border3)",
+      borderRadius: 8,
+      padding: "12px 14px",
+      fontSize: 13,
+      color: "var(--text3)",
+      lineHeight: 1.55
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--text2)",
+      fontWeight: 700,
+      marginBottom: 8
+    }
+  }, lang === 'en' ? "How to read these values" : "Como interpretar estes valores"), (lang === 'en' ? [
+    ["Weekly target", "The total calorie adjustment planned for the last 7 completed days. It comes from your current objective and does not include today."],
+    ["Deficit", "Calories below the estimated maintenance base across completed days. This is mainly useful for weight-loss goals."],
+    ["Surplus", "Calories above the estimated maintenance base across completed days. This is mainly useful for weight-gain goals."],
+    ["Adherence", "How close the accumulated deficit or surplus is to the planned weekly target. Around 100% means the pace is close to the plan; much lower or higher suggests the pace is slower or faster."],
+    ["7-entry average", "Average of the last 7 weight records. It is not necessarily the last 7 calendar days."],
+    ["Trend", "Estimated weekly weight change from recent records. Treat it as a direction signal, because water, glycogen, sodium, and digestion can move weight day to day."]
+  ] : [
+    ["Meta semanal", "O ajuste calórico total planejado para os últimos 7 dias concluídos. Ele vem do objetivo atual e não inclui hoje."],
+    ["Déficit", "Calorias abaixo da base estimada de manutenção nos dias concluídos. É mais útil para objetivos de perda de peso."],
+    ["Superávit", "Calorias acima da base estimada de manutenção nos dias concluídos. É mais útil para objetivos de ganho de peso."],
+    ["Aderência", "Quão perto o déficit ou superávit acumulado está da meta semanal planejada. Perto de 100% indica um ritmo alinhado ao plano; muito abaixo ou acima sugere ritmo mais lento ou mais rápido."],
+    ["Média 7 registros", "Média dos últimos 7 registros de peso. Não significa necessariamente os últimos 7 dias do calendário."],
+    ["Tendência", "Mudança semanal estimada a partir dos registros recentes. Use como sinal de direção, porque água, glicogênio, sódio e digestão podem alterar o peso no dia a dia."]
+  ]).map(([title, text]) => /*#__PURE__*/React.createElement("div", {
+    key: title,
+    style: { marginTop: 6 }
+  }, /*#__PURE__*/React.createElement("b", {
+    style: { color: "var(--text2)" }
+  }, title, ": "), text)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      color: "var(--muted)"
+    }
+  }, lang === 'en'
+    ? "Use this section as a trend reader, not as a daily judgment. Small deviations are normal."
+    : "Use esta seção para ler tendência, não como julgamento diário. Pequenos desvios são normais.")), metricsProgressOpen && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      borderTop: "1px solid var(--border3)",
+      paddingTop: 12,
+      display: "grid",
+      gridTemplateColumns: isMobileView ? "1fr" : "1fr 1fr",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text3)",
+      lineHeight: 1.55
+    }
+  }, /*#__PURE__*/React.createElement("b", {
+    style: { color: "var(--text2)" }
+  }, lang === 'en' ? "Weekly balance" : "Saldo semanal"), /*#__PURE__*/React.createElement("br", null), lang === 'en'
+    ? "Deficit and surplus are calculated against the estimated maintenance base for each completed day. The weekly target uses your current goal adjustment."
+    : "Déficit e superávit são calculados contra a base estimada de manutenção de cada dia concluído. A meta semanal usa o ajuste atual do seu objetivo.", weeklyProgress.days === 0 && /*#__PURE__*/React.createElement("div", {
+      style: { marginTop: 8, color: "var(--muted)" }
+    }, lang === 'en' ? "Log past days to see this section fill in." : "Registre dias anteriores para preencher esta seção.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text3)",
+      lineHeight: 1.55
+    }
+  }, /*#__PURE__*/React.createElement("b", {
+    style: { color: "var(--text2)" }
+  }, lang === 'en' ? "Forecast" : "Previsão"), /*#__PURE__*/React.createElement("br", null), nutritionPrefs.goalType === "maintenance"
+    ? (lang === 'en' ? "Forecast is most useful for loss or gain goals." : "A previsão é mais útil para objetivos de perda ou ganho.")
+    : weightTrend.weeksRemaining
+      ? (lang === 'en'
+        ? "At the current weight trend, the planned change would take about " + (Math.round(weightTrend.weeksRemaining * 10) / 10) + " weeks."
+        : "No ritmo atual do peso, a mudança planejada levaria cerca de " + (Math.round(weightTrend.weeksRemaining * 10) / 10) + " semanas.")
+      : (lang === 'en'
+        ? "There is not enough aligned trend yet to estimate an arrival date."
+        : "Ainda não há tendência alinhada suficiente para estimar uma data de chegada."), weightTrend.avg14 && /*#__PURE__*/React.createElement("div", {
+      style: { marginTop: 8, color: "var(--muted)" }
+    }, lang === 'en' ? "14-entry average: " : "Média 14 registros: ", Math.round(weightTrend.avg14 * 10) / 10, " kg")))), /*#__PURE__*/React.createElement("div", {
     "data-tutorial": "nutrition-profile",
     style: {
       marginTop: 24,
@@ -9539,49 +10434,7 @@ function NutritionTracker({
       borderRadius: 8,
       padding: "8px 10px"
     }
-  }, barcodeMessage))), showSaveTemplateModal && /*#__PURE__*/React.createElement("div", {
-  style:{position:"fixed",inset:0,zIndex:99997,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(3px)",
-    display:"flex",alignItems:"center",justifyContent:"center",padding:16},
-  onClick: e => { if(e.target===e.currentTarget) setShowSaveTemplateModal(false); }
-},
-  /*#__PURE__*/React.createElement("div", {
-    style:{background:"var(--surface)",borderRadius:14,padding:"24px",
-      width:"100%",maxWidth:380,border:"1px solid var(--border2)",
-      boxShadow:"0 8px 32px rgba(0,0,0,0.4)"}
-  },
-    /*#__PURE__*/React.createElement("h3", {
-      style:{margin:"0 0 6px",fontSize:16,color:"var(--text)",fontWeight:600}
-    }, lang==='en'?"Save meal template":"Salvar refeição"),
-    /*#__PURE__*/React.createElement("p", {
-      style:{margin:"0 0 16px",fontSize:13,color:"var(--muted)"}
-    }, staged.items.map(i=>i.name).join(", ")),
-    /*#__PURE__*/React.createElement("input", {
-      type:"text", value:templateName,
-      onChange: e => setTemplateName(e.target.value),
-      onKeyDown: e => { if(e.key==='Enter'){ saveTemplate(); setShowSaveTemplateModal(false); }},
-      placeholder: lang==='en'?"Name (e.g. Pre-workout shake)":"Nome (ex: Shake pré-treino)",
-      autoFocus: true,
-      style:{...inp,marginBottom:14}
-    }),
-    /*#__PURE__*/React.createElement("div",{style:{display:"flex",gap:8}},
-      /*#__PURE__*/React.createElement("button",{
-        onClick:()=>setShowSaveTemplateModal(false),
-        style:{flex:1,padding:"10px",borderRadius:8,background:"none",
-          border:"1px solid var(--border2)",color:"var(--text2)",
-          cursor:"pointer",fontFamily:"inherit",fontSize:13}
-      }, lang==='en'?"Cancel":"Cancelar"),
-      /*#__PURE__*/React.createElement("button",{
-        onClick:()=>{ saveTemplate(); setShowSaveTemplateModal(false); },
-        disabled: !templateName.trim(),
-        style:{flex:2,padding:"10px",borderRadius:8,
-          background:templateName.trim()?"var(--btn-ok)":"var(--btn-inactive)",
-          border:"none",color:templateName.trim()?"var(--btn-ok-text)":"var(--muted)",
-          cursor:templateName.trim()?"pointer":"default",fontFamily:"inherit",
-          fontSize:13,fontWeight:600}
-      }, lang==='en'?"Save":"Salvar")
-    )
-  )
-),
+  }, barcodeMessage))),
 showGA && React.createElement("div", {
   style: {
     position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -9961,7 +10814,7 @@ showGA && React.createElement("div", {
       style: { color:"var(--text2)", fontSize:12, textAlign:"center" }
     }, lang==='en' ? "No combinations found. Try adjusting tolerance or max units." : "Nenhuma combina\xe7\xe3o encontrada. Tente aumentar a toler\xe2ncia ou o m\xe1x. de unidades.")
   )
-))));
+)))));
 }
 const inp = {
   width: "100%",
@@ -10226,7 +11079,7 @@ function PrivacyPanel({ lang, onClose, onLogout }) {
       await fbSignIn(email, delPwd); // throws if wrong password
       // Delete all user data from Firebase
       const keys = ['pantry_v2','suppPantry','waterGoal','customGoals','mealTemplates',
-                    'weightHistory','trainingByDate','goalHistory','birthDate','gender','activityLevel','goalType','goalKg','goalWeeks','manualCalorieAdjustment','proteinMultiplier','userName','notes_' + new Date().toISOString().split('T')[0]];
+                    'weightHistory','trainingByDate','goalHistory','birthDate','gender','activityLevel','goalType','goalKg','goalWeeks','manualCalorieAdjustment','proteinMultiplier','bodyFatGoal','userName','notes_' + new Date().toISOString().split('T')[0]];
       await Promise.all(keys.map(k => fbDel(k).catch(()=>{})));
       // Delete account via REST
       const token = await fbToken();
@@ -10615,6 +11468,8 @@ function TutorialOverlay({ lang, type = 'main', onDone }) {
       { title: 'Medidas de base', text: 'Registre peso e altura. Esses dados alimentam IMC, calorias e meta de proteína.', tab: 'metricas', highlight: 'metrics-measures' },
       { title: 'Métricas atuais', text: 'Aqui aparecem peso, altura, IMC e metas atuais calculadas.', tab: 'metricas', highlight: 'metrics-current' },
       { title: 'Evolução do peso', text: 'Com mais de um registro, o gráfico ajuda a ver tendência, não só um peso isolado.', tab: 'metricas', highlight: 'weight-chart' },
+      { title: 'Composição corporal', text: 'Registre gordura corporal, cintura e massa muscular quando tiver esses dados. Eles são opcionais e servem para acompanhar tendência.', tab: 'metricas', highlight: 'body-composition' },
+      { title: 'Progresso e previsão', text: 'Esta seção compacta mostra déficit, superávit, aderência semanal e tendência de peso com médias móveis.', tab: 'metricas', highlight: 'metrics-progress' },
       { title: 'Perfil nutricional', text: 'Atividade física, objetivo, ajuste calórico e proteína por kg definem as metas automáticas.', tab: 'metricas', highlight: 'nutrition-profile' },
       { title: 'Cálculo da meta', text: 'Este resumo mostra TMB, base do dia, ajuste do objetivo e meta final.', tab: 'metricas', highlight: 'metrics-target-summary' },
       { title: 'Relatórios', text: 'Gere relatórios HTML ou PDF para dia, semana, mês ou histórico completo.', tab: 'metricas', highlight: 'advanced-reports' }
@@ -10658,6 +11513,8 @@ function TutorialOverlay({ lang, type = 'main', onDone }) {
       { title: 'Baseline measurements', text: 'Log weight and height. These feed BMI, calories, and protein goals.', tab: 'metricas', highlight: 'metrics-measures' },
       { title: 'Current metrics', text: 'This shows current weight, height, BMI, and calculated targets.', tab: 'metricas', highlight: 'metrics-current' },
       { title: 'Weight trend', text: 'With more than one record, this chart helps read the trend rather than a single weigh-in.', tab: 'metricas', highlight: 'weight-chart' },
+      { title: 'Body composition', text: 'Log body-fat percentage, waist, and muscle mass when you have those measurements. They are optional and mainly useful for trends.', tab: 'metricas', highlight: 'body-composition' },
+      { title: 'Progress and forecast', text: 'This compact section shows deficit, surplus, weekly adherence, and weight trend with moving averages.', tab: 'metricas', highlight: 'metrics-progress' },
       { title: 'Nutrition profile', text: 'Activity, objective, calorie adjustment, and protein per kg define automatic targets.', tab: 'metricas', highlight: 'nutrition-profile' },
       { title: 'Target calculation', text: 'This summary shows BMR, day base, goal adjustment, and final target.', tab: 'metricas', highlight: 'metrics-target-summary' },
       { title: 'Reports', text: 'Generate HTML or PDF reports for day, week, month, or full history.', tab: 'metricas', highlight: 'advanced-reports' }
