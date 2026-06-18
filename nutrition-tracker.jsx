@@ -678,16 +678,6 @@ export default function NutritionTracker({onOpenSettings}) {
   const [userName,setUserName]       = useState("");
   const [syncing,setSyncing]         = useState(false);
   const [autoFillLoading,setAutoFillLoading] = useState(false);
-  const [barcodeModalOpen,setBarcodeModalOpen] = useState(false);
-  const [barcodeInput,setBarcodeInput] = useState("");
-  const [barcodeLoading,setBarcodeLoading] = useState(false);
-  const [barcodeScanning,setBarcodeScanning] = useState(false);
-  const [barcodeMessage,setBarcodeMessage] = useState("");
-  const videoRef = useRef(null);
-  const barcodeStreamRef = useRef(null);
-  const barcodeReaderRef = useRef(null);
-  const barcodeControlsRef = useRef(null);
-  const barcodeScanRef = useRef(false);
   const [notification,setNotification] = useState("");
   const [expandMicros,setExpandMicros] = useState(false);
   const [detailFood,setDetailFood]   = useState(null);
@@ -790,7 +780,6 @@ export default function NutritionTracker({onOpenSettings}) {
     window.addEventListener("resize", updateMobileView);
     return () => window.removeEventListener("resize", updateMobileView);
   },[]);
-  useEffect(()=>()=>stopBarcodeScanner(),[]);
 
   function scheduleSave(key,value,delay=800) {
     if(saveTimeout.current[key]) clearTimeout(saveTimeout.current[key]);
@@ -917,203 +906,6 @@ export default function NutritionTracker({onOpenSettings}) {
 
   function notify(msg,duration=3000){setNotification(msg);setTimeout(()=>setNotification(""),duration);}
 
-  function applyBarcodeProduct(product) {
-    const n = product.nutriments || {};
-    const val = (...keys) => {
-      for (const key of keys) {
-        const v = n[key];
-        if (v !== undefined && v !== null && v !== "") return Number(v);
-      }
-      return null;
-    };
-    const kcal = val("energy-kcal_100g", "energy-kcal", "energy_100g");
-    const mapped = {
-      protein100: val("proteins_100g", "proteins"),
-      kcal100: kcal && kcal > 1000 ? Math.round(kcal / 4.184) : kcal,
-      carbs100: val("carbohydrates_100g", "carbohydrates"),
-      sugars100: val("sugars_100g", "sugars"),
-      fat100: val("fat_100g", "fat"),
-      satfat100: val("saturated-fat_100g", "saturated-fat"),
-      fiber100: val("fiber_100g", "fiber"),
-      salt100: val("salt_100g", "salt")
-    };
-    setForm(f => {
-      const next = {
-        ...f,
-        name: product.product_name || product.generic_name || product.brands || f.name,
-        unit: f.unit === "un" ? "g" : f.unit
-      };
-      Object.entries(mapped).forEach(([key, value]) => {
-        if (Number.isFinite(value)) next[key] = String(Math.round(value * 10) / 10);
-      });
-      return next;
-    });
-    notify(lang === 'en' ? "Values imported from Open Food Facts. Please review before saving." : "Valores importados do Open Food Facts. Revise antes de salvar.", 6000);
-  }
-  function stopBarcodeScanner() {
-    barcodeScanRef.current = false;
-    if (barcodeControlsRef.current && typeof barcodeControlsRef.current.stop === "function") {
-      try { barcodeControlsRef.current.stop(); } catch (_) {}
-      barcodeControlsRef.current = null;
-    }
-    if (barcodeReaderRef.current && typeof barcodeReaderRef.current.reset === "function") {
-      try { barcodeReaderRef.current.reset(); } catch (_) {}
-    }
-    if (barcodeStreamRef.current) {
-      barcodeStreamRef.current.getTracks().forEach(track => track.stop());
-      barcodeStreamRef.current = null;
-    }
-    setBarcodeScanning(false);
-  }
-  function closeBarcodeModal() {
-    stopBarcodeScanner();
-    setBarcodeModalOpen(false);
-  }
-  async function fetchBarcodeProduct(rawBarcode) {
-    const barcode = String(rawBarcode || barcodeInput || "").replace(/\D/g, "");
-    if (!barcode) {
-      setBarcodeMessage(lang === 'en' ? "Enter a barcode first." : "Digite um código de barras primeiro.");
-      return;
-    }
-    setBarcodeLoading(true);
-    setBarcodeMessage("");
-    try {
-      const url = "https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(barcode) + ".json?fields=product_name,generic_name,brands,nutriments,quantity";
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Open Food Facts");
-      const data = await res.json();
-      if (!data || data.status !== 1 || !data.product) {
-        setBarcodeMessage(lang === 'en' ? "Product not found. You can enter the data manually." : "Produto não encontrado. Você pode preencher os dados manualmente.");
-        return;
-      }
-      applyBarcodeProduct(data.product);
-      setBarcodeInput(barcode);
-      setBarcodeMessage(lang === 'en' ? "Product found. Review the values before saving." : "Produto encontrado. Revise os valores antes de salvar.");
-      stopBarcodeScanner();
-      setBarcodeModalOpen(false);
-    } catch (_) {
-      setBarcodeMessage(lang === 'en' ? "Could not search this barcode right now." : "Não foi possível buscar este código agora.");
-    } finally {
-      setBarcodeLoading(false);
-    }
-  }
-  let barcodeLibPromise = null;
-  function loadBarcodeFallbackLibrary() {
-    const getLoaded = () => {
-      const lib = window.ZXingBrowser || window.ZXing;
-      if (lib && (lib.BrowserMultiFormatReader || lib.BrowserBarcodeReader)) return lib;
-      return null;
-    };
-    const loaded = getLoaded();
-    if (loaded) return Promise.resolve(loaded);
-    if (barcodeLibPromise) return barcodeLibPromise;
-    const urls = [
-      "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js",
-      "https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js",
-      "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js",
-      "https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"
-    ];
-    barcodeLibPromise = new Promise((resolve, reject) => {
-      let idx = 0;
-      const tryNext = () => {
-        const current = getLoaded();
-        if (current) return resolve(current);
-        if (idx >= urls.length) return reject(new Error("ZXing unavailable"));
-        const script = document.createElement("script");
-        script.src = urls[idx++];
-        script.async = true;
-        script.onload = () => {
-          const lib = getLoaded();
-          lib ? resolve(lib) : tryNext();
-        };
-        script.onerror = tryNext;
-        document.head.appendChild(script);
-      };
-      tryNext();
-    });
-    return barcodeLibPromise;
-  }
-  async function startNativeBarcodeScanner() {
-    const detector = new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]});
-    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}, audio:false});
-    barcodeStreamRef.current = stream;
-    barcodeScanRef.current = true;
-    setBarcodeScanning(true);
-    setTimeout(async () => {
-      if (!videoRef.current) return;
-      videoRef.current.srcObject = stream;
-      try { await videoRef.current.play(); } catch (_) {}
-      const scan = async () => {
-        if (!barcodeScanRef.current || !videoRef.current) return;
-        try {
-          const codes = await detector.detect(videoRef.current);
-          if (codes && codes.length) {
-            const code = codes[0].rawValue;
-            setBarcodeInput(code);
-            await fetchBarcodeProduct(code);
-            return;
-          }
-        } catch (_) {}
-        if (barcodeScanRef.current) requestAnimationFrame(scan);
-      };
-      scan();
-    }, 0);
-  }
-  async function startFallbackBarcodeScanner() {
-    setBarcodeMessage(lang === 'en' ? "Loading compatible barcode scanner..." : "Carregando leitor compat�vel...");
-    const lib = await loadBarcodeFallbackLibrary();
-    const Reader = lib.BrowserMultiFormatReader || lib.BrowserBarcodeReader;
-    if (!Reader) throw new Error("ZXing reader unavailable");
-    const reader = new Reader();
-    barcodeReaderRef.current = reader;
-    barcodeScanRef.current = true;
-    setBarcodeScanning(true);
-    setBarcodeMessage(lang === 'en' ? "Point the camera at the barcode." : "Aponte a c�mera para o c�digo de barras.");
-    setTimeout(async () => {
-      if (!videoRef.current || !barcodeScanRef.current) return;
-      try {
-        if (typeof reader.decodeFromVideoDevice === "function") {
-          const maybeControls = await reader.decodeFromVideoDevice(null, videoRef.current, async (result, err, controls) => {
-            if (controls && !barcodeControlsRef.current) barcodeControlsRef.current = controls;
-            if (!result || !barcodeScanRef.current) return;
-            const code = typeof result.getText === "function" ? result.getText() : (result.text || result.rawValue || String(result));
-            if (!code) return;
-            setBarcodeInput(code);
-            if (controls && typeof controls.stop === "function") {
-              try { controls.stop(); } catch (_) {}
-            }
-            await fetchBarcodeProduct(code);
-          });
-          if (maybeControls && typeof maybeControls.stop === "function") barcodeControlsRef.current = maybeControls;
-        } else if (typeof reader.decodeOnceFromVideoDevice === "function") {
-          const result = await reader.decodeOnceFromVideoDevice(null, videoRef.current);
-          const code = typeof result.getText === "function" ? result.getText() : (result.text || result.rawValue || String(result));
-          setBarcodeInput(code);
-          await fetchBarcodeProduct(code);
-        } else {
-          throw new Error("ZXing video API unavailable");
-        }
-      } catch (_) {
-        stopBarcodeScanner();
-        setBarcodeMessage(lang === 'en' ? "Compatible camera scanner failed. Type the barcode manually below." : "O leitor compat�vel pela c�mera falhou. Digite o c�digo manualmente abaixo.");
-      }
-    }, 0);
-  }
-  async function startBarcodeScanner() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setBarcodeMessage(lang === 'en' ? "Camera access is not available. Use manual entry below." : "O acesso � c�mera n�o est� dispon�vel. Use a digita��o manual abaixo.");
-      return;
-    }
-    stopBarcodeScanner();
-    setBarcodeMessage(lang === 'en' ? "Point the camera at the barcode." : "Aponte a c�mera para o c�digo de barras.");
-    try {
-      if ("BarcodeDetector" in window) await startNativeBarcodeScanner();
-      else await startFallbackBarcodeScanner();
-    } catch (_) {
-      stopBarcodeScanner();
-      setBarcodeMessage(lang === 'en' ? "Camera permission was denied, unavailable, or unsupported. Use manual entry below." : "A permiss�o da c�mera foi negada, n�o est� dispon�vel ou n�o � compat�vel. Use a digita��o manual abaixo.");
-    }
-  }
   async function autoFillNutrition() {
     if(!form.name.trim()){notify("Escreve o nome do alimento primeiro.");return;}
     setAutoFillLoading(true);
@@ -2595,48 +2387,6 @@ export default function NutritionTracker({onOpenSettings}) {
               <div style={{flex:1}}><label style={lbl}>{t('foodName')}</label><input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder={t('foodNamePh')} style={inp}/></div>
               <div style={{width:90}}><label style={lbl}>{t('unit')}</label><select value={form.unit} onChange={e=>setForm(f=>({...f,unit:e.target.value}))} style={inp}><option value="g">g</option><option value="ml">ml</option><option value="un">un</option></select></div>
             </div>
-            <button onClick={()=>{setBarcodeModalOpen(true);setBarcodeMessage("");}} style={{
-              width:"100%",background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",
-              color:"var(--btn-ok-text)",padding:"9px",borderRadius:6,
-              fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",
-              fontFamily:"inherit",marginBottom:8
-            }}>
-              {lang==='en'?'Scan barcode':'Ler código de barras'}
-            </button>
-            {barcodeModalOpen&&(
-              <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:12,marginBottom:8}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <div style={{fontSize:14,color:"var(--text2)",fontWeight:600}}>
-                    {lang==='en'?'Barcode lookup':'Buscar por código de barras'}
-                  </div>
-                  <button onClick={closeBarcodeModal} style={{background:"none",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:18}}>×</button>
-                </div>
-                <video ref={videoRef} playsInline muted style={{
-                  width:"100%",minHeight:150,maxHeight:220,objectFit:"cover",borderRadius:8,
-                  background:"var(--bg)",border:"1px solid var(--border2)",
-                  display:barcodeScanning?"block":"none",marginBottom:8
-                }}/>
-                <button onClick={barcodeScanning?stopBarcodeScanner:startBarcodeScanner} disabled={barcodeLoading} style={{
-                  ...sBtn(barcodeScanning?"var(--btn-warn)":"var(--btn-ok)",barcodeScanning?"var(--btn-warn-border)":"var(--btn-ok-border)",barcodeScanning?"var(--btn-warn-text)":"var(--btn-ok-text)"),
-                  width:"100%",marginBottom:8
-                }}>
-                  {barcodeScanning?(lang==='en'?'Stop camera':'Parar câmera'):(lang==='en'?'Use camera':'Usar câmera')}
-                </button>
-                <div style={{display:"flex",gap:8}}>
-                  <input value={barcodeInput} onChange={e=>setBarcodeInput(e.target.value.replace(/\D/g,""))} inputMode="numeric"
-                    placeholder={lang==='en'?'Barcode number':'Número do código'} style={{...inp,flex:1,marginTop:0}}/>
-                  <button onClick={()=>fetchBarcodeProduct()} disabled={barcodeLoading}
-                    style={{...sBtn("var(--btn-teal)","var(--btn-teal-border)","var(--btn-teal-text)"),minWidth:86}}>
-                    {barcodeLoading?(lang==='en'?'Searching':'Buscando'):(lang==='en'?'Search':'Buscar')}
-                  </button>
-                </div>
-                {barcodeMessage&&(
-                  <div style={{marginTop:8,fontSize:12,color:"var(--muted)",lineHeight:1.45}}>
-                    {barcodeMessage}
-                  </div>
-                )}
-              </div>
-            )}
             <button onClick={autoFillNutrition} disabled={autoFillLoading} style={{
               width:"100%",background:"var(--btn-info)",border:"1px solid var(--btn-info-border)",
               color:autoFillLoading?"var(--muted)":"var(--btn-info-text)",padding:"9px",borderRadius:6,
@@ -3093,43 +2843,6 @@ export default function NutritionTracker({onOpenSettings}) {
             </div>
           </div>
         )}
-        {barcodeModalOpen&&(
-          <div style={{position:"fixed",inset:0,zIndex:99998,background:"rgba(0,0,0,0.62)",backdropFilter:"blur(3px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
-            onClick={e=>{if(e.target===e.currentTarget) closeBarcodeModal();}}>
-            <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:18,width:"100%",maxWidth:430,boxShadow:"0 8px 32px rgba(0,0,0,0.42)"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,marginBottom:12}}>
-                <div>
-                  <div style={{fontSize:16,color:"var(--text)",fontWeight:600}}>{lang==='en'?'Barcode scanner':'Leitor de código de barras'}</div>
-                  <div style={{fontSize:12,color:"var(--muted)",marginTop:3,lineHeight:1.4}}>
-                    {lang==='en'?'Use the camera when supported, or type the code manually.':'Use a câmera quando disponível, ou digite o código manualmente.'}
-                  </div>
-                </div>
-                <button onClick={closeBarcodeModal} style={{background:"none",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:20}}>×</button>
-              </div>
-              <video ref={videoRef} playsInline muted style={{width:"100%",minHeight:170,maxHeight:240,objectFit:"cover",borderRadius:10,background:"var(--bg)",border:"1px solid var(--border)",display:barcodeScanning?"block":"none",marginBottom:10}}/>
-              <button onClick={barcodeScanning?stopBarcodeScanner:startBarcodeScanner} disabled={barcodeLoading} style={{
-                ...btn,background:barcodeScanning?"var(--btn-warn)":"var(--btn-ok)",
-                border:"1px solid "+(barcodeScanning?"var(--btn-warn-border)":"var(--btn-ok-border)"),
-                color:barcodeScanning?"var(--btn-warn-text)":"var(--btn-ok-text)",marginBottom:10
-              }}>
-                {barcodeScanning?(lang==='en'?'Stop camera':'Parar câmera'):(lang==='en'?'Use camera':'Usar câmera')}
-              </button>
-              <div style={{display:"flex",gap:8,marginBottom:8}}>
-                <input value={barcodeInput} onChange={e=>setBarcodeInput(e.target.value.replace(/\D/g,""))} inputMode="numeric"
-                  placeholder={lang==='en'?'Barcode number':'Número do código de barras'} style={{...inp,flex:1,marginTop:0}}/>
-                <button onClick={()=>fetchBarcodeProduct()} disabled={barcodeLoading}
-                  style={{...sBtn("var(--btn-teal)","var(--btn-teal-border)","var(--btn-teal-text)"),minWidth:90,opacity:barcodeLoading?0.6:1}}>
-                  {barcodeLoading?(lang==='en'?'Searching':'Buscando'):(lang==='en'?'Search':'Buscar')}
-                </button>
-              </div>
-              {barcodeMessage&&(
-                <div style={{fontSize:12,color:"var(--muted)",lineHeight:1.5,background:"var(--surface3)",border:"1px solid var(--border3)",borderRadius:8,padding:"8px 10px"}}>
-                  {barcodeMessage}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -3140,4 +2853,3 @@ const lbl={fontSize:10,letterSpacing:1.5,color:"var(--muted)",textTransform:"upp
 const btn={width:"100%",background:"var(--btn-ok)",border:"1px solid var(--btn-ok-border)",color:"var(--btn-ok-text)",padding:"11px",borderRadius:6,fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",marginTop:4};
 function sBtn(bg,border,color){return{background:bg,border:"1px solid "+border,color,borderRadius:4,padding:"6px 10px",fontSize:10,letterSpacing:1,textTransform:"uppercase",cursor:"pointer"};}
 function sBtnLbl(bg,border,color){return{...sBtn(bg,border,color),display:"inline-block"};}
-

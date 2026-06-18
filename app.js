@@ -32,7 +32,7 @@ const STRINGS = {
     // Tabs
     tabDiary: "Diário",
     tabAdd: "Registrar",
-    tabPantry: "Despensa",
+    tabPantry: "Alimentos",
     tabWeek: "Semana",
     tabMetrics: "Métricas",
     // Nutrients
@@ -195,12 +195,12 @@ const STRINGS = {
     micros: "Micronutrientes",
     hideMicro: "▲ Ocultar micronutrientes",
     showMicro: "▼ Micronutrientes (opcional)",
-    savePantry: "Salvar na despensa",
+    savePantry: "Salvar alimento",
     meal: "Refeição",
     // Pantry
     pantryTitle: "Salvos",
-    pantrySearch: "🔍 Pesquisar na despensa...",
-    pantryEmpty: "A despensa está vazia.",
+    pantrySearch: "Pesquisar alimentos salvos...",
+    pantryEmpty: "Nenhum alimento salvo.",
     noResults: "Nenhum resultado.",
     pantryEdit: "Editar",
     pantryDelete: "Apagar",
@@ -213,7 +213,7 @@ const STRINGS = {
     saveTemplate: "Salvar modelo",
     applyTemplate: "Aplicar",
     deleteTemplate: "×",
-    suppPantryTitle: "Despensa de suplementos",
+    suppPantryTitle: "Suplementos",
     suppEmpty: "Nenhum suplemento adicionado.",
     // Export/Import
     exportImportTitle: "Exportar / Importar",
@@ -304,7 +304,7 @@ const STRINGS = {
     // Tabs
     tabDiary: "Diary",
     tabAdd: "Log",
-    tabPantry: "Pantry",
+    tabPantry: "Foods",
     tabWeek: "Week",
     tabMetrics: "Metrics",
     // Nutrients
@@ -467,12 +467,12 @@ const STRINGS = {
     micros: "Micronutrients",
     hideMicro: "▲ Hide micronutrients",
     showMicro: "▼ Micronutrients (optional)",
-    savePantry: "Save to pantry",
+    savePantry: "Save food",
     meal: "Meal",
     // Pantry
     pantryTitle: "Saved items",
-    pantrySearch: "🔍 Search pantry...",
-    pantryEmpty: "Your pantry is empty.",
+    pantrySearch: "Search saved foods...",
+    pantryEmpty: "No saved foods.",
     noResults: "No results.",
     pantryEdit: "Edit",
     pantryDelete: "Delete",
@@ -485,7 +485,7 @@ const STRINGS = {
     saveTemplate: "Save template",
     applyTemplate: "Apply",
     deleteTemplate: "×",
-    suppPantryTitle: "Supplement pantry",
+    suppPantryTitle: "Supplements",
     suppEmpty: "No supplements added.",
     // Export/Import
     exportImportTitle: "Export / Import",
@@ -1118,6 +1118,7 @@ function NutritionTracker({
   const [notification, setNotification] = useState("");
   const [expandMicros, setExpandMicros] = useState(false);
   const [detailFood, setDetailFood] = useState(null);
+  const [entryMenuId, setEntryMenuId] = useState(null);
   const [weightHistory, setWeightHistory] = useState([]);
   const [profileData, setProfileData] = useState({ birthDate: "", gender: "" });
   const [goalHistory, setGoalHistory] = useState({});
@@ -1191,6 +1192,7 @@ function NutritionTracker({
   const [pantrySearch, setPantrySearch] = useState("");
   const [pantryItemsOpen, setPantryItemsOpen] = useState(false);
   const [mealTemplatesOpen, setMealTemplatesOpen] = useState(false);
+  const [newFoodOpen, setNewFoodOpen] = useState(false);
   const [addTemplatesOpen, setAddTemplatesOpen] = useState(false);
   const [addTemplateSearch, setAddTemplateSearch] = useState("");
   const [expandedTemplateIds, setExpandedTemplateIds] = useState({});
@@ -1207,6 +1209,7 @@ function NutritionTracker({
       setPantryItemsOpen(false);
       setMealTemplatesOpen(false);
       setSuppPantryOpen(false);
+      setNewFoodOpen(false);
     }
     if (tab === "adicionar") {
       setAddTemplatesOpen(false);
@@ -1387,6 +1390,11 @@ function NutritionTracker({
       const g = date !== TODAY && goalHistory[date] ? {...computedGoal, ...goalHistory[date]} : computedGoal;
       const protein = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
       const kcal = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
+      const isTodayEntry = date === TODAY;
+      const hoursElapsed = new Date().getHours() + new Date().getMinutes() / 60;
+      const dayProjectionFactor = isTodayEntry ? Math.max(1, Math.min(3, 24 / Math.max(6, hoursElapsed))) : 1;
+      const proteinTrend = isTodayEntry ? Math.round(protein * dayProjectionFactor) : Math.round(protein);
+      const kcalTrend = isTodayEntry ? Math.round(kcal * dayProjectionFactor) : Math.round(kcal);
       const carbs = entries.reduce((s, e) => s + (e.carbs ?? 0), 0);
       const fat = entries.reduce((s, e) => s + (e.fat ?? 0), 0);
       const fiber = entries.reduce((s, e) => s + (e.fiber ?? 0), 0);
@@ -1398,7 +1406,9 @@ function NutritionTracker({
         }),
         day: d.getDate(),
         protein: Math.round(protein),
+        proteinTrend,
         kcal: Math.round(kcal),
+        kcalTrend,
         carbs: Math.round(carbs),
         fat: Math.round(fat),
         fiber: Math.round(fiber),
@@ -1414,7 +1424,7 @@ function NutritionTracker({
         metProtein: protein >= g.protein,
         metKcal: kcal >= g.kcal * 0.85 && kcal <= g.kcal * 1.15,
         hasData: entries.length > 0,
-        isToday: date === TODAY
+        isToday: isTodayEntry
       });
     }
     setWeekData(days);
@@ -2040,7 +2050,7 @@ function NutritionTracker({
       items
     });
     setBatchMode(true);
-    setTab("adicionar");
+    openTab("adicionar");
     notify(lang === 'en' ? "\"" + sugg.name + "\" loaded. Adjust and log it." : "\"" + sugg.name + "\" carregada. Ajuste e registre.");
   }
   function buildDayTotals(log) {
@@ -3073,6 +3083,23 @@ function NutritionTracker({
     setEditEntryId(null);
     notify(lang === 'en' ? "Amount updated." : "Quantidade atualizada.");
   }
+  function openAddForMeal(meal) {
+    setAddEntry(a => ({
+      ...a,
+      meal,
+      foodId: "",
+      foodSearch: "",
+      qty: ""
+    }));
+    setStaged(s => ({
+      ...s,
+      meal
+    }));
+    setDescribeMeal(meal);
+    setBatchMode(false);
+    setDescribeMode(pantry.length === 0);
+    openTab("adicionar");
+  }
   function addToLog() {
     if (!pantry.length) {
       notify(lang === 'en' ? "Add foods to the pantry first, or use Describe dish." : "Cadastre alimentos na despensa primeiro, ou use Descrever prato.");
@@ -3142,6 +3169,20 @@ function NutritionTracker({
       ...activeLog,
       [meal]: activeLog[meal].filter(e => e.id !== id)
     });
+    setEntryMenuId(null);
+  }
+  function duplicateEntry(meal, entry) {
+    const copy = {
+      ...entry,
+      id: Date.now().toString() + Math.random(),
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    };
+    setActiveLog({
+      ...activeLog,
+      [meal]: [...(activeLog[meal] || []), copy]
+    });
+    setEntryMenuId(null);
+    notify(lang === 'en' ? "Entry duplicated." : "Registro duplicado.");
   }
 
   // Templates
@@ -4279,6 +4320,11 @@ function NutritionTracker({
     "--btn-warn-text": "#c87e7e",
     "--btn-teal-border": "#3a6a6a",
     "--btn-teal-text": "#7ec8c8",
+    "--protein": "#d2a85a",
+    "--calories": "#62b9bd",
+    "--ai-bg": "linear-gradient(135deg, rgba(126,200,126,0.16), rgba(126,158,200,0.16))",
+    "--ai-border": "#3f6b58",
+    "--ai-text": "#91d39a",
     "--toggle-train-bg": "#1e2e1e",
     "--toggle-train-border": "#3a6a3a",
     "--toggle-train-text": "var(--btn-ok-text)",
@@ -4331,6 +4377,11 @@ function NutritionTracker({
     "--btn-inactive": "#ede9e3",
     "--btn-inactive-border": "#ccc8c0",
     "--tab-active": "#ffffff",
+    "--protein": "#b88735",
+    "--calories": "#2f9ca3",
+    "--ai-bg": "linear-gradient(135deg, rgba(232,244,232,0.96), rgba(232,244,244,0.96))",
+    "--ai-border": "#9dc7ae",
+    "--ai-text": "#186c39",
     "--toggle-train-bg": "#e8f4e8",
     "--toggle-train-border": "#a8cfa8",
     "--toggle-train-text": "#2a6a2a",
@@ -4358,6 +4409,78 @@ function NutritionTracker({
   const greetingKey = greetingHour < 12 ? "greetingMorning" : greetingHour < 18 ? "greetingAfternoon" : "greetingEvening";
   const greetingFirstName = userName.trim().split(/\s+/).filter(Boolean)[0] || "";
   const greetingText = t(greetingKey) + (greetingFirstName ? ", " + greetingFirstName : "") + "!";
+  const tabNavItems = [["diario", t('tabDiary')], ["despensa", t('tabPantry')], ["semana", t('tabWeek')], ["metricas", t('tabMetrics')]];
+  const proteinColor = "var(--protein)";
+  const caloriesColor = "var(--calories)";
+  const aiButtonStyle = {
+    background: "var(--ai-bg)",
+    border: "1px solid var(--ai-border)",
+    color: "var(--ai-text)",
+    borderRadius: 8,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    fontWeight: 650
+  };
+  const miniProgressItems = [{
+    label: t('protein'),
+    value: tot.protein,
+    goal: goals.protein,
+    unit: "g",
+    color: proteinColor
+  }, {
+    label: t('calories'),
+    value: tot.kcal,
+    goal: goals.kcal,
+    unit: t('kcalUnit'),
+    color: caloriesColor
+  }];
+  const renderMiniProgress = item => {
+    const pct = Math.max(0, Math.min(100, item.goal ? item.value / item.goal * 100 : 0));
+    return /*#__PURE__*/React.createElement("div", {
+      key: item.label,
+      style: {
+        minWidth: isMobileView ? 120 : 180,
+        flex: "1 1 180px",
+        padding: "0 4px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 10,
+        alignItems: "baseline",
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "var(--muted)",
+        fontSize: 11,
+        letterSpacing: 1,
+        textTransform: "uppercase"
+      }
+    }, item.label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: item.value > item.goal ? "var(--btn-warn-text)" : item.color,
+        fontSize: 12,
+        fontVariantNumeric: "tabular-nums",
+        whiteSpace: "nowrap"
+      }
+    }, Math.round(item.value), " / ", item.goal, item.unit)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 5,
+        borderRadius: 999,
+        background: "var(--track)",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: pct + "%",
+        height: "100%",
+        borderRadius: 999,
+        background: item.value > item.goal ? "var(--btn-warn-text)" : item.color
+      }
+    })));
+  };
   if (!loaded) return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: "100vh",
@@ -4390,17 +4513,39 @@ function NutritionTracker({
       overflowX: "hidden",
       ...THEME
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("footer", {
+    style: {
+      position: "fixed",
+      left: 0,
+      right: 0,
+      bottom: isMobileView ? 56 : 4,
+      zIndex: 70,
+      textAlign: "center",
+      color: "var(--faint)",
+      fontSize: 11,
+      letterSpacing: 0.5,
+      pointerEvents: "none",
+      opacity: 0.78
+    }
+  }, "Di\u00E1rio Nutricional v0.7.5 Beta"), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)",
-      padding: "14px 20px 12px"
+      padding: isMobileView ? "10px 14px 8px" : "12px 20px 10px",
+      position: "sticky",
+      top: 0,
+      zIndex: 80,
+      boxShadow: "0 2px 14px rgba(0,0,0,0.06)",
+      transition: "padding 240ms ease, box-shadow 240ms ease, background-color 240ms ease",
+      display: "flex",
+      flexDirection: "column"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "center"
+      alignItems: "center",
+      order: 0
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -4597,7 +4742,8 @@ function NutritionTracker({
       display: "flex",
       alignItems: "center",
       gap: 10,
-      marginTop: 10
+      marginTop: 10,
+      order: 1
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -4642,16 +4788,82 @@ function NutritionTracker({
         color: isTraining ? "var(--toggle-train-text)" : "var(--toggle-rest-text)"
       }
     }, isTraining ? t('trainDay') : t('restDay'))
-  ), currentWeight && /*#__PURE__*/React.createElement("span", {
+  ), currentWeight && /*#__PURE__*/React.createElement("button", {
+    onClick: () => openTab("metricas"),
+    title: lang === 'en' ? "Open metrics" : "Abrir métricas",
     style: {
+      background: "none",
+      border: "none",
       fontSize: 14,
       color: "var(--muted)",
-      marginLeft: "auto"
+      marginLeft: "auto",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      padding: 0
     }
-  }, currentWeight, "kg", bmi ? ` · ${t('bmi')} ${bmi}` : ""))), /*#__PURE__*/React.createElement("div", {
+  }, currentWeight, "kg", bmi ? ` · ${t('bmi')} ${bmi}` : ""))), tab === "diario" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: isMobileView ? 8 : 0,
+      borderTop: "1px solid var(--border3)",
+      borderBottom: "1px solid var(--border)",
+      marginTop: 10,
+      marginLeft: isMobileView ? -14 : -20,
+      marginRight: isMobileView ? -14 : -20,
+      overflowX: isMobileView ? "auto" : "visible",
+      overflowY: "hidden",
+      WebkitOverflowScrolling: "touch",
+      scrollbarWidth: isMobileView ? "none" : "auto",
+      padding: isMobileView ? "0 12px" : 0,
+      background: "var(--surface)",
+      animation: "softIn 220ms ease-out both"
+    }
+  }, tabNavItems.map(([t, label]) => /*#__PURE__*/React.createElement("button", {
+    "data-tutorial": "tab-" + t,
+    key: t,
+    onClick: () => openTab(t),
+    style: {
+      flex: isMobileView ? "0 0 auto" : 1,
+      minWidth: isMobileView ? 96 : 0,
+      padding: isMobileView ? "10px 14px" : "10px 0",
+      background: tab === t ? "var(--tab-active)" : "transparent",
+      border: "none",
+      borderBottom: tab === t ? "2px solid #c8a96e" : "2px solid transparent",
+      color: tab === t ? "#c8a96e" : "#444",
+      fontSize: 14,
+      fontWeight: 400,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      whiteSpace: "nowrap",
+      cursor: "pointer"
+    }
+  }, label))), tab === "diario" && isMobileView && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      color: "var(--faint)",
+      fontSize: 11,
+      textAlign: "center",
+      padding: "4px 0 0",
+      letterSpacing: 1,
+      textTransform: "uppercase"
+    }
+  }, lang === 'en' ? "Swipe tabs sideways" : "Deslize as abas para os lados"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: tab === "diario" ? "none" : "flex",
+      gap: isMobileView ? 10 : 18,
+      alignItems: "center",
+      marginTop: 10,
+      padding: isMobileView ? "0 4px" : "0 8px",
+      boxSizing: "border-box",
+      animation: "softIn 240ms ease-out both",
+      order: 3
+    }
+  }, miniProgressItems.map(renderMiniProgress)), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: isMobileView ? "10px 20px 12px" : "10px 28px 14px",
-      background: "var(--surface)"
+      background: "var(--surface)",
+      display: tab === "diario" ? "block" : "none",
+      order: 4
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -4671,21 +4883,22 @@ function NutritionTracker({
     }
   }, t('greetingLine'))), /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
+      display: tab === "diario" ? "flex" : "none",
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--border)",
+      order: 5
     }
   }, [{
     label: t('protein'),
     val: tot.protein,
     goal: goals.protein,
-    color: "#c8a96e",
+    color: proteinColor,
     unit: "g"
   }, {
     label: t('calories'),
     val: tot.kcal,
     goal: goals.kcal,
-    color: "#8ec8c8",
+    color: caloriesColor,
     unit: t('kcalUnit')
   }].map(({
     label,
@@ -4750,36 +4963,35 @@ function NutritionTracker({
       fontSize: 14,
       color: "var(--faint)"
     }
-  }, lang==='en'?'goal ':'meta ', goal, unit))))), /*#__PURE__*/React.createElement("div", {
+  }, lang==='en'?'goal ':'meta ', goal, unit), label === t('protein') && remainProtein > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6,
+      fontSize: 13,
+      color: proteinColor
+    }
+  }, lang === 'en' ? "Missing " : "Faltam ", /*#__PURE__*/React.createElement("b", null, remainProtein, "g"), lang === 'en' ? " protein" : " prote\xEDna"), label === t('calories') && remainKcal > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6,
+      fontSize: 13,
+      color: caloriesColor
+    }
+  }, lang === 'en' ? "Missing " : "Faltam ", /*#__PURE__*/React.createElement("b", null, remainKcal), " kcal"))))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface3)",
       borderBottom: "1px solid var(--border3)",
-      padding: "7px 20px"
+      padding: "7px 20px",
+      display: tab === "diario" ? "block" : "none",
+      order: 6
     }
-  }, (remainProtein > 0 || remainKcal > 0) && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 20,
-      fontSize: 14,
-      marginBottom: 6
-    }
-  }, remainProtein > 0 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#c8a96e"
-    }
-  }, lang === 'en' ? "Missing " : "Faltam ", /*#__PURE__*/React.createElement("b", null, remainProtein, "g"), lang === 'en' ? " protein" : " prote\xEDna"), remainKcal > 0 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#8ec8c8"
-    }
-  }, lang === 'en' ? "Missing " : "Faltam ", /*#__PURE__*/React.createElement("b", null, remainKcal), " kcal")), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("button", {
     "data-tutorial": "suggest-meal-button",
     onClick: openMealSuggestions,
     disabled: gaRunning || suggestLoading,
     style: {
       width: "100%",
-      background: gaRunning || suggestLoading ? "var(--btn-inactive)" : "var(--btn-ok)",
-      border: "1px solid var(--btn-ok-border)",
-      color: gaRunning || suggestLoading ? "var(--muted)" : "var(--btn-ok-text)",
+      ...aiButtonStyle,
+      background: gaRunning || suggestLoading ? "var(--btn-inactive)" : aiButtonStyle.background,
+      color: gaRunning || suggestLoading ? "var(--muted)" : aiButtonStyle.color,
       padding: "7px",
       borderRadius: 6,
       fontSize: 14,
@@ -4792,7 +5004,32 @@ function NutritionTracker({
     style: {
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)",
-      padding: "12px 20px"
+      padding: "12px 20px",
+      display: tab === "diario" ? "block" : "none",
+      order: 7
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    "data-tutorial": "microLabel",
+    onClick: () => setExpandMicros(e => !e),
+    style: {
+      width: "100%",
+      background: "none",
+      border: "none",
+      color: "var(--muted)",
+      padding: "2px 0 8px",
+      fontSize: 14,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      cursor: "pointer",
+      textAlign: "left",
+      display: "flex",
+      justifyContent: "space-between",
+      fontFamily: "inherit"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, lang === 'en' ? "NUTRIENTS" : "NUTRIENTES"), /*#__PURE__*/React.createElement("span", null, expandMicros ? "\u25B2" : "\u25BC")), expandMicros && /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflow: "hidden",
+      animation: "softIn 220ms ease-out both"
     }
   }, /*#__PURE__*/React.createElement(Bar, {
     value: Math.round(tot.carbs * 10) / 10,
@@ -4832,10 +5069,12 @@ function NutritionTracker({
     color: "#888",
     label: t('salt'),
     unit: "g"
-  })), hasMicros && /*#__PURE__*/React.createElement("div", {
+  }))), tab === "diario" && expandMicros && hasMicros && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface3)",
-      borderBottom: "1px solid var(--border3)"
+      borderBottom: "1px solid var(--border3)",
+      order: 7,
+      animation: "softIn 220ms ease-out both"
     }
   }, /*#__PURE__*/React.createElement("button", {
     "data-tutorial": "microLabel",
@@ -4890,10 +5129,11 @@ function NutritionTracker({
         padding: "7px 14px",
         borderRadius: 6,
         fontSize: 14,
-        textAlign: "center"
+        textAlign: "center",
+        order: 8
       }
     }, notification);
-  })(), /*#__PURE__*/React.createElement("div", {
+  })(), tab !== "diario" && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: isMobileView ? 8 : 0,
@@ -4904,9 +5144,11 @@ function NutritionTracker({
       WebkitOverflowScrolling: "touch",
       scrollbarWidth: isMobileView ? "none" : "auto",
       padding: isMobileView ? "0 12px" : 0,
-      background: "var(--surface)"
+      background: "var(--surface)",
+      order: 2,
+      animation: "softIn 220ms ease-out both"
     }
-  }, [["diario", t('tabDiary')], ["adicionar", isMobileView ? "+" : t('tabAdd')], ["despensa", t('tabPantry')], ["semana", t('tabWeek')], ["metricas", t('tabMetrics')]].map(([t, label]) => /*#__PURE__*/React.createElement("button", {
+  }, tabNavItems.map(([t, label]) => /*#__PURE__*/React.createElement("button", {
     "data-tutorial": "tab-" + t,
     key: t,
     onClick: () => openTab(t),
@@ -4918,14 +5160,14 @@ function NutritionTracker({
       border: "none",
       borderBottom: tab === t ? "2px solid #c8a96e" : "2px solid transparent",
       color: tab === t ? "#c8a96e" : "#444",
-      fontSize: t === "adicionar" && isMobileView ? 20 : 14,
-      fontWeight: t === "adicionar" ? 700 : 400,
-      letterSpacing: t === "adicionar" && isMobileView ? 0 : 1,
+      fontSize: 14,
+      fontWeight: 400,
+      letterSpacing: 1,
       textTransform: "uppercase",
       whiteSpace: "nowrap",
       cursor: "pointer"
     }
-  }, label))), isMobileView && /*#__PURE__*/React.createElement("div", {
+  }, label))), tab !== "diario" && isMobileView && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface)",
       color: "var(--faint)",
@@ -4934,18 +5176,80 @@ function NutritionTracker({
       padding: "4px 0 6px",
       letterSpacing: 1,
       textTransform: "uppercase",
+      borderBottom: "1px solid var(--border3)",
+      order: 2
+    }
+   }, lang === 'en' ? "Swipe tabs sideways" : "Deslize as abas para os lados"), tab === "adicionar" && /*#__PURE__*/React.createElement("div", {
+    onClick: () => openTab("diario"),
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 840,
+      background: "rgba(0,0,0,0.36)",
+      backdropFilter: "blur(2px)",
+      animation: "softIn 180ms ease-out both"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    key: tab,
+    style: {
+      padding: tab === "adicionar" ? (isMobileView ? "18px 18px calc(22px + env(safe-area-inset-bottom,0px))" : "22px 24px 26px") : "20px clamp(18px, 3vw, 34px) 32px",
+      boxSizing: "border-box",
+      width: tab === "adicionar" ? (isMobileView ? "100%" : 720) : "100%",
+      maxWidth: tab === "adicionar" ? (isMobileView ? "100%" : "calc(100vw - 48px)") : 1180,
+      margin: tab === "adicionar" ? (isMobileView ? 0 : "0 auto") : "0 auto",
+      position: tab === "adicionar" ? "fixed" : "relative",
+      left: tab === "adicionar" ? (isMobileView ? 0 : 24) : "auto",
+      right: tab === "adicionar" ? (isMobileView ? 0 : 24) : "auto",
+      top: tab === "adicionar" ? (isMobileView ? "auto" : 78) : "auto",
+      bottom: tab === "adicionar" ? (isMobileView ? 0 : 28) : "auto",
+      transform: "none",
+      maxHeight: tab === "adicionar" ? (isMobileView ? "86vh" : "calc(100vh - 110px)") : "none",
+      overflowY: tab === "adicionar" ? "auto" : "visible",
+      background: tab === "adicionar" ? "var(--surface)" : "transparent",
+      border: tab === "adicionar" ? "1px solid var(--border2)" : "none",
+      borderRadius: tab === "adicionar" ? (isMobileView ? "18px 18px 0 0" : 18) : 0,
+      boxShadow: tab === "adicionar" ? "0 24px 80px rgba(0,0,0,0.36)" : "none",
+      zIndex: tab === "adicionar" ? 850 : "auto",
+      animation: tab === "adicionar" ? "softIn 220ms ease-out both" : "softIn 260ms ease-out both",
+      transition: "width 260ms ease, max-height 260ms ease, transform 260ms ease, border-radius 260ms ease, background-color 220ms ease"
+    }
+  }, tab === "adicionar" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 16,
+      paddingBottom: 12,
       borderBottom: "1px solid var(--border3)"
     }
-  }, lang === 'en' ? "Swipe tabs sideways" : "Deslize as abas para os lados"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "20px clamp(18px, 3vw, 34px) 32px",
-      boxSizing: "border-box",
-      width: "100%",
-      maxWidth: 1180,
-      margin: "0 auto",
-      position: "relative"
+      fontSize: 14,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--muted)",
+      marginBottom: 3
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "Log meal" : "Registrar refeição"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text3)"
+    }
+  }, lang === 'en' ? "Choose a method and save it to today's diary." : "Escolha um método e salve no diário de hoje.")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => openTab("diario"),
+    style: {
+      background: "var(--btn-inactive)",
+      border: "1px solid var(--btn-inactive-border)",
+      color: "var(--muted)",
+      borderRadius: 999,
+      width: 34,
+      height: 34,
+      cursor: "pointer",
+      fontSize: 18,
+      lineHeight: "30px"
+    }
+  }, "\u00D7")), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
       top: 12,
@@ -4975,9 +5279,15 @@ function NutritionTracker({
       opacity: 0.88,
       boxShadow: "0 1px 4px rgba(0,0,0,0.04)"
     }
-  }, isMobileView ? "i" : (lang === 'en' ? "i Help" : "i Ajuda"))), tab === "diario" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, isMobileView ? "i" : (lang === 'en' ? "i Help" : "i Ajuda"))), tab === "diario" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 14,
+      order: -1,
       background: diaryStatus.tone === "ok" ? "var(--notif-ok-bg)" : diaryStatus.tone === "warn" ? "var(--notif-err-bg)" : "var(--surface)",
       border: "1px solid " + (diaryStatus.tone === "ok" ? "var(--notif-ok-border)" : diaryStatus.tone === "warn" ? "var(--notif-err-border)" : "var(--border)"),
       borderRadius: 8,
@@ -5012,6 +5322,7 @@ function NutritionTracker({
   }, /*#__PURE__*/React.createElement("span", null, dayProteinPct, "% ", lang === 'en' ? "protein" : "proteína"), /*#__PURE__*/React.createElement("span", null, dayKcalPct, "% kcal"))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 14,
+      order: -2,
       background: "var(--surface)",
       borderRadius: 8,
       padding: "8px 12px"
@@ -5071,6 +5382,7 @@ function NutritionTracker({
     disabled: isToday,
     style: {
       ...sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)"),
+      display: isToday ? "none" : "inline-flex",
       opacity: isToday ? 0.45 : 1,
       cursor: isToday ? "default" : "pointer"
     }
@@ -5255,11 +5567,13 @@ function NutritionTracker({
     }, Math.round(k), " kcal"));
   })(), isToday && /*#__PURE__*/React.createElement("div", {
     style: {
+      display: tab === "diario" ? "none" : "block",
       background: "var(--surface)",
-      border: "1px solid var(--btn-teal-border)",
-      borderRadius: 8,
-      padding: "12px 14px",
-      marginBottom: 14
+      border: "1px solid var(--border3)",
+      borderRadius: 10,
+      padding: "13px 15px",
+      marginBottom: 14,
+      animation: "softIn 240ms ease-out both"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5275,7 +5589,7 @@ function NutritionTracker({
       color: darkMode ? "#3ab88a" : "#1a8a6a",
       textTransform: "uppercase"
     }
-  }, "\uD83D\uDCA7 ", t('water')), /*#__PURE__*/React.createElement("div", {
+    }, t('water')), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -5284,7 +5598,7 @@ function NutritionTracker({
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14,
-      color: totalWater >= goals.water ? "#6ec8a9" : "#8ec8c8"
+      color: totalWater >= goals.water ? "#6ec8a9" : caloriesColor
     }
   }, totalWater, "ml"), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -5307,24 +5621,25 @@ function NutritionTracker({
     }
   }, "\u2699"))), /*#__PURE__*/React.createElement("div", {
     style: {
-      height: 4,
+      height: 7,
       background: "var(--track)",
-      borderRadius: 4,
+      borderRadius: 999,
       marginBottom: 10
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       height: "100%",
       width: Math.min(totalWater / goals.water * 100, 100) + "%",
-      borderRadius: 4,
-      background: totalWater >= goals.water ? "#6ec8a9" : "#3a8a7a",
-      transition: "width 0.4s ease"
+      borderRadius: 999,
+      background: totalWater >= goals.water ? "#6ec8a9" : caloriesColor,
+      transition: "width 420ms cubic-bezier(0.2,0.8,0.2,1), background-color 220ms ease"
     }
   })), editWaterGoal && /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
+      display: "none",
       gap: 6,
-      marginBottom: 8
+      marginBottom: 8,
+      animation: "softIn 180ms ease-out both"
     }
   }, /*#__PURE__*/React.createElement("input", {
     type: "number",
@@ -5351,7 +5666,7 @@ function NutritionTracker({
       background: "var(--btn-ok)",
       border: "1px solid var(--btn-ok-border)",
       color: "var(--btn-ok-text)",
-      borderRadius: 6,
+      borderRadius: 999,
       padding: "6px 12px",
       fontSize: 14,
       cursor: "pointer"
@@ -5370,7 +5685,7 @@ function NutritionTracker({
       background: "var(--btn-teal)",
       border: "1px solid var(--btn-teal-border)",
       color: darkMode ? "#3ab88a" : "#1a8a6a",
-      borderRadius: 4,
+      borderRadius: 999,
       padding: "4px 10px",
       fontSize: 14,
       cursor: "pointer"
@@ -5415,7 +5730,7 @@ function NutritionTracker({
     style: {
       background: "var(--btn-teal)",
       border: "1px solid var(--btn-teal-border)",
-      borderRadius: 4,
+      borderRadius: 999,
       padding: "3px 8px",
       fontSize: 14,
       color: darkMode ? "#3ab88a" : "#1a8a6a",
@@ -5490,48 +5805,101 @@ function NutritionTracker({
     }
   }, "\xD7")))), MEALS.map(meal => {
     const entries = activeLog[meal] || [];
-    if (!entries.length) return null;
     const mp = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
     const mk = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
     return /*#__PURE__*/React.createElement("div", {
       key: meal,
       style: {
-        marginBottom: 20
+        marginBottom: 12,
+        background: "var(--surface)",
+        border: "1px solid var(--border3)",
+        borderRadius: 10,
+        padding: isMobileView ? "12px" : "13px 15px",
+        animation: "softIn 260ms ease-out both"
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "baseline",
-        borderBottom: "1px solid var(--border3)",
-        paddingBottom: 5,
-        marginBottom: 7
+        alignItems: "center",
+        gap: 12,
+        paddingBottom: entries.length ? 9 : 0,
+        borderBottom: entries.length ? "1px solid var(--border3)" : "none"
       }
-    }, /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 14,
+        fontSize: 13,
         letterSpacing: 1,
         color: "var(--muted2)",
-        textTransform: "uppercase"
+        textTransform: "uppercase",
+        marginBottom: 3
       }
-    }, meal), /*#__PURE__*/React.createElement("span", {
+    }, mealLabel(meal)), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 14,
-        color: "var(--dim)"
+        fontSize: 12,
+        color: entries.length ? "var(--muted)" : "var(--faint)"
       }
-    }, Math.round(mp), "g \xB7 ", Math.round(mk), " kcal")), entries.map(e => /*#__PURE__*/React.createElement("div", {
+    }, entries.length ? entries.length + " item" + (entries.length !== 1 ? "s" : "") : lang === 'en' ? "No food logged" : "Sem alimentos registrados")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        marginLeft: "auto"
+      }
+    }, entries.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "right",
+        fontSize: 12,
+        lineHeight: 1.35,
+        whiteSpace: "nowrap"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: proteinColor,
+        fontWeight: 700
+      }
+    }, Math.round(mp), "g ", lang === 'en' ? "protein" : "prot."), /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: caloriesColor,
+        fontWeight: 700
+      }
+    }, Math.round(mk), " kcal")), isToday && /*#__PURE__*/React.createElement("button", {
+      "data-tutorial": "open-log-sheet",
+      onClick: () => openAddForMeal(meal),
+      style: {
+        background: "var(--btn-ok)",
+        border: "1px solid var(--btn-ok-border)",
+        color: "var(--btn-ok-text)",
+        borderRadius: 999,
+        padding: isMobileView ? "7px 10px" : "7px 12px",
+        fontSize: 12,
+        fontWeight: 700,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        fontFamily: "inherit"
+      }
+    }, "+ ", lang === 'en' ? "Add" : "Adicionar"))), entries.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: "var(--faint)",
+        fontSize: 13,
+        paddingTop: 10,
+        lineHeight: 1.4
+      }
+    }, lang === 'en' ? "Use + Add to log something here." : "Use + Adicionar para registrar algo aqui.") : entries.map(e => /*#__PURE__*/React.createElement("div", {
       key: e.id
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "6px 0",
-        borderBottom: "1px solid #181818"
+        gap: 10,
+        padding: "9px 0",
+        borderBottom: "1px solid var(--border3)"
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
-        flex: 1
+        flex: 1,
+        minWidth: 0
       }
     }, editEntryId === e.id ? /*#__PURE__*/React.createElement("div", {
       style: {
@@ -5576,71 +5944,99 @@ function NutritionTracker({
         cursor: "pointer",
         fontSize: 13
       }
-    }, "\u2715")) : /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
+    }, "\u2715")) : /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 14,
-        color: "var(--text2)"
+        color: "var(--text2)",
+        fontWeight: 600,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
       }
     }, e.name), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 14,
-        color: "var(--dim)",
-        marginLeft: 8
+        fontSize: 12,
+        color: "var(--muted)"
       }
-    }, e.qty, e.unit))), editEntryId !== e.id && /*#__PURE__*/React.createElement("div", {
+    }, e.qty, e.unit, e.time ? " · " + e.time : ""))), editEntryId !== e.id && /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
-        gap: 8
+        gap: 8,
+        position: "relative",
+        flexShrink: 0
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 14,
-        color: "#c8a96e"
+        fontSize: 13,
+        color: proteinColor,
+        fontWeight: 700
       }
     }, Math.round(e.protein ?? 0), "g"), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 14,
-        color: "#8ec8c8"
+        fontSize: 13,
+        color: caloriesColor,
+        fontWeight: 700
       }
-    }, Math.round(e.kcal ?? 0), "kcal"), e.time ? /*#__PURE__*/React.createElement("span", {
-      style: {fontSize:12, color:"#7a9e7a", marginLeft:4, fontVariantNumeric:"tabular-nums"}
-    }, e.time) : null, /*#__PURE__*/React.createElement("button", {
-      onClick: () => setDetailFood(detailFood === e.id ? null : e.id),
+    }, Math.round(e.kcal ?? 0), "kcal"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setEntryMenuId(entryMenuId === e.id ? null : e.id),
       style: {
+        background: "var(--btn-inactive)",
+        border: "1px solid var(--btn-inactive-border)",
+        color: "var(--muted)",
+        borderRadius: 999,
+        cursor: "pointer",
+        fontSize: 16,
+        width: 30,
+        height: 28,
+        lineHeight: "22px"
+      }
+    }, "\u22EF"), entryMenuId === e.id && /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "absolute",
+        top: "calc(100% + 6px)",
+        right: 0,
+        zIndex: 20,
+        minWidth: 150,
+        background: "var(--surface)",
+        border: "1px solid var(--border2)",
+        borderRadius: 8,
+        padding: 5,
+        boxShadow: "0 10px 24px rgba(0,0,0,0.22)",
+        animation: "softScaleIn 160ms ease-out both"
+      }
+    }, [[lang === 'en' ? "Details" : "Detalhes", () => {
+      setDetailFood(detailFood === e.id ? null : e.id);
+      setEntryMenuId(null);
+    }], [lang === 'en' ? "Edit amount" : "Editar quantidade", () => {
+      startEditEntry(e);
+      setEntryMenuId(null);
+    }], [lang === 'en' ? "Duplicate" : "Duplicar", () => duplicateEntry(meal, e)], [lang === 'en' ? "Delete" : "Excluir", () => removeEntry(meal, e.id)]].map(([label, action], idx) => /*#__PURE__*/React.createElement("button", {
+      key: label,
+      onClick: action,
+      style: {
+        width: "100%",
         background: "none",
         border: "none",
-        color: "var(--dim)",
+        borderTop: idx === 3 ? "1px solid var(--border3)" : "none",
+        color: idx === 3 ? "var(--btn-warn-text)" : "var(--text2)",
+        padding: "8px 9px",
+        textAlign: "left",
+        borderRadius: 6,
         cursor: "pointer",
+        fontFamily: "inherit",
         fontSize: 13
       }
-    }, "\xB7\xB7\xB7"), /*#__PURE__*/React.createElement("button", {
-      onClick: () => startEditEntry(e),
-      style: {
-        background: "none",
-        border: "none",
-        color: "var(--muted)",
-        cursor: "pointer",
-        fontSize: 14
-      }
-    }, "\u270F"), /*#__PURE__*/React.createElement("button", {
-      onClick: () => removeEntry(meal, e.id),
-      style: {
-        background: "none",
-        border: "none",
-        color: "var(--dim)",
-        cursor: "pointer",
-        fontSize: 16
-      }
-    }, "\xD7"))), detailFood === e.id && /*#__PURE__*/React.createElement("div", {
+    }, label))))), detailFood === e.id && /*#__PURE__*/React.createElement("div", {
       style: {
         background: "var(--row)",
-        borderRadius: 4,
+        borderRadius: 8,
         padding: "8px 12px",
-        marginBottom: 3,
+        margin: "0 0 4px",
         display: "flex",
         flexWrap: "wrap",
-        gap: "5px 16px"
+        gap: "5px 16px",
+        animation: "softIn 180ms ease-out both"
       }
     }, [{
       l: "Carbs",
@@ -5736,7 +6132,7 @@ function NutritionTracker({
         color: x.c
       }
     }, x.v % 1 === 0 ? x.v : x.v.toFixed(2), x.u)))))));
-  }), allEntries.length === 0 && isToday && /*#__PURE__*/React.createElement("div", {
+  }), false && allEntries.length === 0 && isToday && /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center", padding: "32px 16px 16px",
     }
@@ -5758,7 +6154,7 @@ function NutritionTracker({
     },
       /*#__PURE__*/React.createElement("p", { style: {
         color: "var(--btn-ok-text)", fontSize: 14, margin: "0 0 10px", fontWeight: 500
-      } }, "\uD83D\uDCA1 " + (lang === 'en' ? "Tip: Start by adding foods to your Pantry" : "Dica: Comece adicionando alimentos à sua Despensa")),
+      } }, "\uD83D\uDCA1 " + (lang === 'en' ? "Tip: Start by adding foods to Foods" : "Dica: Comece adicionando alimentos em Alimentos")),
       /*#__PURE__*/React.createElement("button", {
         onClick: () => setTab("despensa"),
         style: {
@@ -5766,10 +6162,10 @@ function NutritionTracker({
           borderRadius: 8, padding: "8px 16px", fontSize: 14,
           cursor: "pointer", fontFamily: "inherit", fontWeight: 500
         }
-      }, lang === 'en' ? "Go to Pantry \u2192" : "Ir para Despensa \u2192")
+      }, lang === 'en' ? "Go to Foods \u2192" : "Ir para Alimentos \u2192")
     ),
     /*#__PURE__*/React.createElement("button", {
-      onClick: () => setTab("adicionar"),
+      onClick: () => openAddForMeal(MEALS[0]),
       style: {
         background: "var(--accent, #4a9a4a)", border: "none", color: "#fff",
         borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 600,
@@ -6239,8 +6635,12 @@ function NutritionTracker({
     "data-tutorial": "add-modes",
     style: {
       display: "flex",
-      gap: 6,
-      marginBottom: 14
+      gap: 4,
+      marginBottom: 16,
+      padding: 4,
+      background: "var(--surface3)",
+      border: "1px solid var(--border3)",
+      borderRadius: 999
     }
   }, [["single", t('modeOneByOne')], ["batch", t('modeBatch')], ["describe", t('modeDescribe')]].map(([m, l]) => {
     const active = m === "describe" ? describeMode : !describeMode && (m === "batch" ? batchMode : !batchMode);
@@ -6250,17 +6650,19 @@ function NutritionTracker({
       onClick: () => selectAddMode(m),
       style: {
         flex: 1,
-        padding: "7px 0",
-        background: active ? "var(--btn-ok)" : "var(--btn-inactive)",
-        border: "1px solid " + (active ? "var(--btn-ok-border)" : "var(--btn-inactive-border)"),
-        color: active ? "var(--btn-ok-text)" : "var(--muted)",
-        borderRadius: 6,
-        fontSize: 14,
+        padding: isMobileView ? "9px 8px" : "9px 12px",
+        background: active ? (m === "describe" ? "var(--ai-bg)" : "var(--btn-ok)") : "transparent",
+        border: "1px solid " + (active ? (m === "describe" ? "var(--ai-border)" : "var(--btn-ok-border)") : "transparent"),
+        color: active ? (m === "describe" ? "var(--ai-text)" : "var(--btn-ok-text)") : "var(--muted)",
+        borderRadius: 999,
+        fontSize: isMobileView ? 12 : 14,
+        fontWeight: active ? 700 : 500,
         cursor: "pointer",
-        letterSpacing: 0.5,
+        letterSpacing: 0,
+        whiteSpace: "nowrap",
         opacity: unavailable ? 0.55 : 1
       }
-    }, l);
+    }, m === "describe" ? "\u2726 " + l : l);
   })), describeMode && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 8
@@ -6302,9 +6704,9 @@ function NutritionTracker({
     disabled: describeLoading,
     style: {
       ...btn,
-      background: "var(--btn-info)",
-      border: "1px solid var(--btn-info-border)",
-      color: describeLoading ? "var(--muted)" : "var(--btn-info-text)"
+      ...aiButtonStyle,
+      background: describeLoading ? "var(--btn-inactive)" : aiButtonStyle.background,
+      color: describeLoading ? "var(--muted)" : aiButtonStyle.color
     }
   }, describeLoading ? t('estimating') : lang === 'en' ? '✦ Estimate nutritional values' : '✦ Estimar valores nutricionais'), describeResult && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6470,28 +6872,20 @@ function NutritionTracker({
       }
     },
     /*#__PURE__*/React.createElement("span", {style:{fontSize:14,fontWeight:500,color:"var(--text)"}}, f.name),
-    /*#__PURE__*/React.createElement("span", {style:{fontSize:12,color:"#c8a96e",marginLeft:8}},
+    /*#__PURE__*/React.createElement("span", {style:{fontSize:12,color:proteinColor,marginLeft:8}},
       f.protein100, f.unit==="un" ? "g" : "g", " prot"
     ),
-    /*#__PURE__*/React.createElement("span", {style:{fontSize:12,color:"#8ec8c8",marginLeft:6}},
+    /*#__PURE__*/React.createElement("span", {style:{fontSize:12,color:caloriesColor,marginLeft:6}},
       f.kcal100, f.unit==="un" ? " kcal/un" : " kcal/100"+f.unit
     ))));
-  })(), !addEntry.foodSearch && /*#__PURE__*/React.createElement("select", {
-    value: addEntry.foodId,
-    onChange: e => setAddEntry(a => ({
-      ...a,
-      foodId: e.target.value
-    })),
+  })(), !addEntry.foodSearch && /*#__PURE__*/React.createElement("div", {
     style: {
-      ...inp,
-      marginTop: 4
+      fontSize: 12,
+      color: "var(--muted)",
+      marginTop: 5,
+      lineHeight: 1.35
     }
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, lang === 'en' ? '— or select from list —' : '— ou selecione da lista —'), sortedAllPantry.map(f => /*#__PURE__*/React.createElement("option", {
-    key: f.id,
-    value: f.id
-  }, f.name)))), selectedFood && /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "Start typing to search your saved foods." : "Comece a digitar para buscar nos alimentos salvos."), selectedFood && /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 8
     }
@@ -6967,6 +7361,98 @@ function NutritionTracker({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
+      display: "grid",
+      gridTemplateColumns: isMobileView ? "1fr" : "1fr auto",
+      gap: 10,
+      alignItems: "center",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: pantrySearch,
+    onChange: e => setPantrySearch(e.target.value),
+    placeholder: t('pantrySearch'),
+    style: {
+      ...inp,
+      marginTop: 0,
+      marginBottom: 0
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setNewFoodOpen(true),
+    style: {
+      ...btn,
+      marginTop: 0,
+      minWidth: isMobileView ? "100%" : 180
+    }
+  }, lang === 'en' ? "+ New food" : "+ Novo alimento")), newFoodOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setNewFoodOpen(false),
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 880,
+      background: "rgba(0,0,0,0.34)",
+      backdropFilter: "blur(2px)",
+      animation: "softIn 180ms ease-out both"
+    }
+  }), newFoodOpen && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      left: isMobileView ? 0 : 24,
+      right: isMobileView ? 0 : 24,
+      top: isMobileView ? "auto" : 66,
+      bottom: isMobileView ? 0 : 24,
+      width: isMobileView ? "100%" : 760,
+      maxWidth: isMobileView ? "100%" : "calc(100vw - 48px)",
+      maxHeight: isMobileView ? "86vh" : "calc(100vh - 96px)",
+      overflowY: "auto",
+      margin: isMobileView ? 0 : "0 auto",
+      transform: "none",
+      background: "var(--surface)",
+      border: "1px solid var(--border2)",
+      borderRadius: isMobileView ? "18px 18px 0 0" : 18,
+      boxShadow: "0 24px 80px rgba(0,0,0,0.36)",
+      padding: isMobileView ? "18px 18px calc(22px + env(safe-area-inset-bottom,0px))" : "22px 24px 26px",
+      boxSizing: "border-box",
+      zIndex: 890,
+      animation: "softIn 220ms ease-out both"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 16,
+      paddingBottom: 12,
+      borderBottom: "1px solid var(--border3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      color: "var(--muted)",
+      marginBottom: 3
+    }
+  }, lang === 'en' ? "New food" : "Novo alimento"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text3)"
+    }
+  }, lang === 'en' ? "Save food macros to reuse in meals." : "Cadastre macros para reutilizar nas refeições.")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setNewFoodOpen(false),
+    style: {
+      background: "var(--btn-inactive)",
+      border: "1px solid var(--btn-inactive-border)",
+      color: "var(--muted)",
+      borderRadius: 999,
+      width: 34,
+      height: 34,
+      cursor: "pointer",
+      fontSize: 18,
+      lineHeight: "30px"
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+    style: {
       display: "flex",
       gap: 8,
       marginBottom: 8
@@ -7282,7 +7768,7 @@ function NutritionTracker({
     "data-tutorial": "pantry-save-button",
     onClick: addFood,
     style: btn
-  }, t('savePantry')), /*#__PURE__*/React.createElement("div", {
+  }, t('savePantry'))), /*#__PURE__*/React.createElement("div", {
     "data-tutorial": "pantry-saved-foods",
     style: {
       marginTop: 24,
@@ -7339,7 +7825,8 @@ function NutritionTracker({
     placeholder: t('pantrySearch'),
     style: {
       ...inp,
-      marginBottom: 10
+      marginBottom: 10,
+      display: "none"
     }
   }), filteredPantry.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -7953,10 +8440,15 @@ function NutritionTracker({
     y: weekData[0].proteinGoal,
     stroke: "#c8a96e",
     strokeDasharray: "3 3",
-    strokeOpacity: 0.3
+    strokeOpacity: 0.65,
+    label: {
+      value: (lang === 'en' ? "goal " : "meta ") + weekData[0].proteinGoal + "g",
+      fill: CT.label,
+      fontSize: 11
+    }
   }), /*#__PURE__*/React.createElement(Line, {
     type: "monotone",
-    dataKey: "protein",
+    dataKey: "proteinTrend",
     stroke: "#c8a96e",
     strokeWidth: 2,
     dot: {
@@ -8025,10 +8517,15 @@ function NutritionTracker({
     y: weekData[0].kcalGoal,
     stroke: "#8ec8c8",
     strokeDasharray: "3 3",
-    strokeOpacity: 0.3
+    strokeOpacity: 0.65,
+    label: {
+      value: (lang === 'en' ? "goal " : "meta ") + weekData[0].kcalGoal + " kcal",
+      fill: CT.label,
+      fontSize: 11
+    }
   }), /*#__PURE__*/React.createElement(Line, {
     type: "monotone",
-    dataKey: "kcal",
+    dataKey: "kcalTrend",
     stroke: "#8ec8c8",
     strokeWidth: 2,
     dot: {
@@ -8514,7 +9011,7 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 12
     }
-  }, "M\xE9tricas actuais"), /*#__PURE__*/React.createElement("div", {
+  }, "M\xE9tricas atuais"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexWrap: "wrap",
@@ -9590,7 +10087,18 @@ function NutritionTracker({
       setReportModalOpen(true);
     },
     style: sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)")
-  }, lang === 'en' ? "Generate report" : "Gerar relatório")), isMobileView && /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "Generate report" : "Gerar relatório")), /*#__PURE__*/React.createElement("footer", {
+    style: {
+      display: "none",
+      padding: isMobileView ? "18px 12px 86px" : "18px 12px 28px",
+      textAlign: "center",
+      color: "var(--faint)",
+      fontSize: 12,
+      letterSpacing: 0.6,
+      borderTop: "1px solid var(--border3)",
+      marginTop: 18
+    }
+  }, "Di\u00E1rio Nutricional v0.7.5 Beta"), isMobileView && /*#__PURE__*/React.createElement("div", {
     style: {
       position: "fixed",
       left: 0,
@@ -9606,7 +10114,7 @@ function NutritionTracker({
       boxShadow: "0 -6px 24px rgba(0,0,0,0.18)"
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setTab("adicionar"),
+    onClick: () => openAddForMeal(addEntry.meal || MEALS[0]),
     style: sBtn("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)")
   }, lang === 'en' ? "Log" : "Registrar"), /*#__PURE__*/React.createElement("button", {
     onClick: openMealSuggestions,
@@ -10224,7 +10732,7 @@ showGA && React.createElement("div", {
       style: { color:"var(--text2)", fontSize:12, textAlign:"center" }
     }, lang==='en' ? "No combinations found. Try adjusting tolerance or max units." : "Nenhuma combina\xe7\xe3o encontrada. Tente aumentar a toler\xe2ncia ou o m\xe1x. de unidades.")
   )
-))))));
+)))))));
 }
 const inp = {
   width: "100%",
@@ -10615,7 +11123,7 @@ function BackupModal({ lang, darkMode, onClose }) {
     { key:'today',  icon:'📅', title:'Diário — hoje',        desc:'Refeições e totais do dia atual' },
     { key:'week',   icon:'📆', title:'Últimos 7 dias',        desc:'Histórico da semana com refeições e macros' },
     { key:'month',  icon:'🗓️', title:'Último mês (30 dias)',  desc:'Histórico do mês com totais diários' },
-    { key:'pantry', icon:'🏪', title:'Despensa',              desc:'Todos os alimentos cadastrados' },
+    { key:'pantry', icon:'🏪', title:'Alimentos',             desc:'Todos os alimentos cadastrados' },
     { key:'weight', icon:'⚖️', title:'Histórico de peso',     desc:'Peso e altura registrados' },
     { key:'all',    icon:'💾', title:'Backup completo',       desc:'Tudo: diário, despensa, peso, metas, água', highlight:true },
   ] : [
@@ -10843,8 +11351,8 @@ function TutorialOverlay({ lang, type = 'main', onDone }) {
     main: [
       { title: 'Visão geral', text: 'O app é dividido em abas. Este primeiro guia é curto; cada aba terá uma explicação própria quando você abrir pela primeira vez.', highlight: null },
       { title: 'Diário', text: 'Aqui você acompanha o dia: refeições, água, metas, progresso e sugestões do que comer.', highlight: 'tab-diario' },
-      { title: 'Adicionar', text: 'Use esta aba para registrar alimentos, montar refeições ou repetir modelos salvos.', highlight: 'tab-adicionar' },
-      { title: 'Despensa', text: 'Cadastre alimentos, leia códigos de barras, organize refeições salvas e acompanhe suplementos.', highlight: 'tab-despensa' },
+      { title: 'Registrar', text: 'Use os botões de adicionar nas refeições para abrir o registro com alimento único, refeição montada ou descrição de prato.', highlight: 'open-log-sheet' },
+      { title: 'Alimentos', text: 'Consulte alimentos salvos, crie novos itens, leia códigos de barras, organize refeições salvas e acompanhe suplementos.', highlight: 'tab-despensa' },
       { title: 'Semana', text: 'Veja tendências recentes, gráficos e médias por refeição.', highlight: 'tab-semana' },
       { title: 'Métricas', text: 'Registre medidas, ajuste metas, confira cálculos nutricionais e gere relatórios.', highlight: 'tab-metricas' },
       { title: 'Ajuda por aba', text: 'Em cada aba há um botão discreto com “i”. Toque nele para rever o tutorial daquela área.', highlight: null }
@@ -10852,7 +11360,7 @@ function TutorialOverlay({ lang, type = 'main', onDone }) {
     diario: [
       { title: 'Diário do dia', text: 'Esta aba mostra o que você registrou no dia selecionado e compara com as metas daquele dia.', tab: 'diario', highlight: 'tab-diario' },
       { title: 'Treino ou descanso', text: 'O tipo do dia altera a meta calórica. Use treino para dias ativos e descanso quando quiser aplicar a regra reduzida.', tab: 'diario', highlight: 'day-type' },
-      { title: 'Sugerir o que comer', text: 'Este botão combina o que falta nas suas metas com os alimentos da despensa para montar sugestões.', tab: 'diario', highlight: 'suggest-meal-button' },
+      { title: 'Sugerir o que comer', text: 'Este botão combina o que falta nas suas metas com os alimentos salvos para montar sugestões.', tab: 'diario', highlight: 'suggest-meal-button' },
       { title: 'Micronutrientes', text: 'Abra esta área para conferir vitaminas e minerais registrados pelos alimentos do dia.', tab: 'diario', highlight: 'microLabel' }
     ],
     adicionar: [
@@ -10860,9 +11368,9 @@ function TutorialOverlay({ lang, type = 'main', onDone }) {
       { title: 'Registrar no diário', text: 'Depois de escolher alimento, quantidade e refeição, este botão salva tudo no dia atual.', tab: 'adicionar', highlight: 'add-log-button' }
     ],
     despensa: [
-      { title: 'Criar alimento', text: 'Comece por nome e unidade. Depois preencha macros manualmente ou use preenchimento automático.', tab: 'despensa', highlight: 'pantry-food-name' },
+      { title: 'Criar alimento', text: 'Use + Novo alimento para abrir o cadastro. Comece por nome e unidade; depois preencha macros manualmente ou use preenchimento automático.', tab: 'despensa', highlight: 'pantry-food-name' },
       { title: 'Código de barras', text: 'Use a câmera para buscar no Open Food Facts. Se o navegador não permitir, digite o código manualmente.', tab: 'despensa', highlight: 'barcode-scan-button' },
-      { title: 'Salvar alimento', text: 'Quando os valores estiverem corretos, salve na despensa para usar nos registros e sugestões.', tab: 'despensa', highlight: 'pantry-save-button' },
+      { title: 'Salvar alimento', text: 'Quando os valores estiverem corretos, salve para usar nos registros e sugestões.', tab: 'despensa', highlight: 'pantry-save-button' },
       { title: 'Itens salvos', text: 'A lista de alimentos fica aqui. Você pode buscar, editar e remover itens.', tab: 'despensa', highlight: 'pantry-saved-foods' },
       { title: 'Refeições salvas', text: 'Modelos guardam combinações frequentes para repetir depois com poucos toques.', tab: 'despensa', highlight: 'pantry-meal-templates' },
       { title: 'Suplementos', text: 'Suplementos ficam separados dos alimentos para facilitar o acompanhamento.', tab: 'despensa', highlight: 'pantry-supplements' }
@@ -10888,8 +11396,8 @@ function TutorialOverlay({ lang, type = 'main', onDone }) {
     main: [
       { title: 'Overview', text: 'The app is organized into tabs. This first guide is short; each tab has its own tutorial the first time you open it.', highlight: null },
       { title: 'Diary', text: 'Track today’s meals, water, goals, progress, and food suggestions.', highlight: 'tab-diario' },
-      { title: 'Add', text: 'Log foods, build meals, or reuse saved meal templates.', highlight: 'tab-adicionar' },
-      { title: 'Pantry', text: 'Create foods, scan barcodes, organize saved meals, and track supplements.', highlight: 'tab-despensa' },
+      { title: 'Log', text: 'Use the add buttons inside meals to open logging with single food, meal builder, or dish description.', highlight: 'open-log-sheet' },
+      { title: 'Foods', text: 'Search saved foods, create new items, scan barcodes, organize saved meals, and track supplements.', highlight: 'tab-despensa' },
       { title: 'Week', text: 'Review recent trends, charts, and meal averages.', highlight: 'tab-semana' },
       { title: 'Metrics', text: 'Log measurements, adjust goals, review nutrition calculations, and generate reports.', highlight: 'tab-metricas' },
       { title: 'Help by tab', text: 'Each tab has a discreet “i” button. Tap it to reopen that tab’s tutorial.', highlight: null }
@@ -10897,7 +11405,7 @@ function TutorialOverlay({ lang, type = 'main', onDone }) {
     diario: [
       { title: 'Daily diary', text: 'This tab shows what you logged for the selected day and compares it with that day’s goals.', tab: 'diario', highlight: 'tab-diario' },
       { title: 'Training or rest', text: 'Day type changes the calorie target. Use training for active days and rest for the reduced-day rule.', tab: 'diario', highlight: 'day-type' },
-      { title: 'Suggest what to eat', text: 'This combines what is still missing from your goals with pantry foods to create suggestions.', tab: 'diario', highlight: 'suggest-meal-button' },
+      { title: 'Suggest what to eat', text: 'This combines what is still missing from your goals with saved foods to create suggestions.', tab: 'diario', highlight: 'suggest-meal-button' },
       { title: 'Micronutrients', text: 'Open this area to review vitamins and minerals logged from the day’s foods.', tab: 'diario', highlight: 'microLabel' }
     ],
     adicionar: [
@@ -10905,9 +11413,9 @@ function TutorialOverlay({ lang, type = 'main', onDone }) {
       { title: 'Log to diary', text: 'After choosing food, quantity, and meal, this button saves everything to the current day.', tab: 'adicionar', highlight: 'add-log-button' }
     ],
     despensa: [
-      { title: 'Create a food', text: 'Start with name and unit. Then fill macros manually or use auto-fill.', tab: 'despensa', highlight: 'pantry-food-name' },
+      { title: 'Create a food', text: 'Use + New food to open the form. Start with name and unit, then fill macros manually or use auto-fill.', tab: 'despensa', highlight: 'pantry-food-name' },
       { title: 'Barcode', text: 'Use the camera to search Open Food Facts. If the browser blocks it, type the code manually.', tab: 'despensa', highlight: 'barcode-scan-button' },
-      { title: 'Save food', text: 'Once values look right, save it to the pantry for logging and suggestions.', tab: 'despensa', highlight: 'pantry-save-button' },
+      { title: 'Save food', text: 'Once values look right, save it for logging and suggestions.', tab: 'despensa', highlight: 'pantry-save-button' },
       { title: 'Saved items', text: 'Your food list lives here. Search, edit, or remove items as needed.', tab: 'despensa', highlight: 'pantry-saved-foods' },
       { title: 'Saved meals', text: 'Templates save frequent combinations so you can repeat them with fewer taps.', tab: 'despensa', highlight: 'pantry-meal-templates' },
       { title: 'Supplements', text: 'Supplements are separate from foods so they are easier to track.', tab: 'despensa', highlight: 'pantry-supplements' }
