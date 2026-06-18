@@ -1,0 +1,486 @@
+﻿// Firebase auth and Firestore persistence adapter.
+// Public functions are assigned to window/storage because the app is loaded as
+// plain browser scripts. Keep persistence concerns here so app.js can focus on UI,
+// calculations, and user flows.
+// ── Firebase config ──────────────────────────────────────────
+const FB_PROJECT = "nutrition-tracker-780b3";
+const FB_KEY     = "AIzaSyCFRIi8LToXFRqO3vwoaL0EEqzrK3TUgGE";
+const FB_BASE    = "https://firestore.googleapis.com/v1/projects/" + FB_PROJECT + "/databases/(default)/documents/nutrition";
+const AUTH_BASE  = "https://identitytoolkit.googleapis.com/v1/accounts";
+const TOKEN_BASE = "https://securetoken.googleapis.com/v1/token";
+const REPORT_SERVER_URL = "http://192.168.1.82:8000";
+
+// ── Auth state ───────────────────────────────────────────────
+let _idToken      = null;
+let _uid          = localStorage.getItem("fb_uid") || null;
+let _refreshToken = localStorage.getItem("fb_refresh") || null;
+let _tokenExpiry  = 0;
+
+window._saveSession = function _saveSession(d) {
+  _idToken      = d.idToken || d.id_token;
+  _refreshToken = d.refreshToken || d.refresh_token;
+  _uid          = d.localId || d.user_id || _uid;
+  _userDocCache = null;
+  _userDocLoaded = false;
+  _migrationPromise = null;
+  _tokenExpiry  = Date.now() + (+( d.expiresIn || d.expires_in) - 60) * 1000;
+  localStorage.setItem("fb_refresh", _refreshToken);
+  if (_uid) localStorage.setItem("fb_uid", _uid);
+}
+
+async function fbSignIn(email, password) {
+  const r = await fetch(AUTH_BASE + ":signInWithPassword?key=" + FB_KEY, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({email, password, returnSecureToken: true})
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error?.message || "Login falhou");
+  _saveSession(d);
+  localStorage.setItem('fb_email', email);
+  return d;
+}
+
+async function fbSignUp(email, password) {
+  const r = await fetch(AUTH_BASE + ":signUp?key=" + FB_KEY, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({email, password, returnSecureToken: true})
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error?.message || "Registro falhou");
+  _saveSession(d); return d;
+}
+
+async function fbUpdateProfile(displayName) {
+  const token = await fbToken();
+  await fetch(AUTH_BASE + ":update?key=" + FB_KEY, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({idToken: token, displayName, returnSecureToken: false})
+  });
+}
+
+async function fbSendVerificationEmail() {
+  const token = await fbToken();
+  await fetch(AUTH_BASE + ":sendOobCode?key=" + FB_KEY, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({requestType: "VERIFY_EMAIL", idToken: token})
+  });
+}
+
+async function fbCheckEmailVerified() {
+  const token = await fbToken();
+  const r = await fetch(AUTH_BASE + ":lookup?key=" + FB_KEY, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({idToken: token})
+  });
+  const d = await r.json();
+  return d?.users?.[0]?.emailVerified === true;
+}
+
+async function fbRefreshToken() {
+  if (!_refreshToken) throw new Error("Sem sessão");
+  const r = await fetch(TOKEN_BASE + "?key=" + FB_KEY, {
+    method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"},
+    body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(_refreshToken)
+  });
+  const d = await r.json();
+  if (!r.ok) { _refreshToken = null; localStorage.removeItem("fb_refresh"); localStorage.removeItem("fb_uid"); throw new Error("Sessão expirada"); }
+  _saveSession(d);
+}
+
+async function fbToken() {
+  if (_idToken && Date.now() < _tokenExpiry) return _idToken;
+  await fbRefreshToken();
+  return _idToken;
+}
+
+function fbSignOut() {
+  _idToken = _refreshToken = _uid = null;
+  _tokenExpiry = 0;
+  _userDocCache = null;
+  _userDocLoaded = false;
+  _migrationPromise = null;
+  localStorage.removeItem("fb_refresh");
+  localStorage.removeItem("fb_uid");
+}
+
+function fbIsLoggedIn() { return !!_refreshToken; }
+
+// ── Key namespacing (each user gets their own data) ───────────
+// All keys are prefixed with the user's UID internally.
+// The app uses plain keys like "pantry_v2" and never se??es the prefix.
+// Legacy uid_field helpers removed from active persistence. Kept data is read by the migration layer below.
+
+// ── Firestore helpers (authenticated + namespaced) ────────────
+async function fbHeaders() {
+  const token = await fbToken();
+  return {"Content-Type": "application/json", "Authorization": "Bearer " + token};
+}
+
+async function fbGetLegacyInactive(k) {
+  return null;
+}
+
+async function fbSetLegacyInactive(k, v) {
+}
+
+async function fbDelLegacyInactive(k) {
+}
+
+async function fbListLegacyInactive(p) {
+  return {keys: []};
+}
+
+function _legacyKey2(k) { return _uid ? _uid + "_" + k : k; }
+function _stripLegacyUid2(k) { return (_uid && k.startsWith(_uid + "_")) ? k.slice(_uid.length + 1) : k; }
+function _userDocUrl2() { return FB_BASE + "/" + encodeURIComponent(_uid); }
+function _legacyDocUrl2(k) { return FB_BASE + "/" + encodeURIComponent(_legacyKey2(k)); }
+function _fieldPath2(k) {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(k) ? k : "`" + String(k).replace(/\\/g, "\\\\").replace(/`/g, "\\`") + "`";
+}
+function _decodeFsValue2(v) {
+  if (!v) return undefined;
+  if ("stringValue" in v) return v.stringValue;
+  if ("integerValue" in v) return Number(v.integerValue);
+  if ("doubleValue" in v) return Number(v.doubleValue);
+  if ("booleanValue" in v) return !!v.booleanValue;
+  if ("nullValue" in v) return null;
+  if ("arrayValue" in v) return (v.arrayValue.values || []).map(_decodeFsValue2);
+  if ("mapValue" in v) {
+    const out = {};
+    Object.entries(v.mapValue.fields || {}).forEach(([k, val]) => out[k] = _decodeFsValue2(val));
+    return out;
+  }
+  return undefined;
+}
+function _encodeFsValue2(v) {
+  if (v === null || v === undefined) return {nullValue: null};
+  if (typeof v === "boolean") return {booleanValue: v};
+  if (typeof v === "number" && Number.isFinite(v)) return Number.isInteger(v) ? {integerValue: String(v)} : {doubleValue: v};
+  if (Array.isArray(v)) return {arrayValue: {values: v.map(_encodeFsValue2)}};
+  if (typeof v === "object") {
+    const fields = {};
+    Object.entries(v).forEach(([k, val]) => fields[k] = _encodeFsValue2(val));
+    return {mapValue: {fields}};
+  }
+  return {stringValue: String(v)};
+}
+function _storageValue2(v) { return typeof v === "string" ? v : JSON.stringify(v); }
+let _userDocCache = null;
+let _userDocLoaded = false;
+let _migrationPromise = null;
+
+async function _fetchUserDocFields2() {
+  if (!_uid) return {};
+  const r = await fetch(_userDocUrl2(), {headers: await fbHeaders()});
+  if (!r.ok) return {};
+  const d = await r.json();
+  const out = {};
+  Object.entries(d.fields || {}).forEach(([k, v]) => out[k] = _decodeFsValue2(v));
+  return out;
+}
+
+async function _patchUserFields2(fields, deleteKeys) {
+  if (!_uid) return;
+  const setFields = fields || {};
+  const deletes = deleteKeys || [];
+  const params = new URLSearchParams();
+  [...Object.keys(setFields), ...deletes].forEach(k => params.append("updateMask.fieldPaths", _fieldPath2(k)));
+  const bodyFields = {};
+  Object.entries(setFields).forEach(([k, v]) => bodyFields[k] = _encodeFsValue2(v));
+  const r = await fetch(_userDocUrl2() + (params.toString() ? "?" + params.toString() : ""), {
+    method: "PATCH",
+    headers: await fbHeaders(),
+    body: JSON.stringify({fields: bodyFields})
+  });
+  if (!r.ok) throw new Error("Firestore write failed");
+  _userDocCache = {...(_userDocCache || {}), ...setFields};
+  deletes.forEach(k => { if (_userDocCache) delete _userDocCache[k]; });
+  _userDocLoaded = true;
+}
+
+async function _legacyGet2(k) {
+  try {
+    const r = await fetch(_legacyDocUrl2(k), {headers: await fbHeaders()});
+    if (!r.ok) return null;
+    const d = await r.json();
+    const v = _decodeFsValue2(d?.fields?.value);
+    return v !== undefined && v !== null ? {value: _storageValue2(v)} : null;
+  } catch(e) { return null; }
+}
+
+async function migrateLegacyNutritionDocs(options) {
+  if (!_uid) return {migrated: 0, skipped: 0};
+  const onlyIfMissing = !options || options.onlyIfMissing !== false;
+  try {
+    const headers = await fbHeaders();
+    const [listRes, currentFields] = await Promise.all([
+      fetch(FB_BASE + "?pageSize=1000", {headers}),
+      _fetchUserDocFields2().catch(() => ({}))
+    ]);
+    if (!listRes.ok) return {migrated: 0, skipped: 0};
+    const data = await listRes.json();
+    const prefix = _uid + "_";
+    const updates = {};
+    let skipped = 0;
+    (data.documents || []).forEach(doc => {
+      const rawId = decodeURIComponent((doc.name || "").split("/").pop() || "");
+      if (!rawId.startsWith(prefix)) return;
+      const key = _stripLegacyUid2(rawId);
+      if (!key || key === rawId) return;
+      if (onlyIfMissing && currentFields[key] !== undefined && currentFields[key] !== null) {
+        skipped++;
+        return;
+      }
+      const value = _decodeFsValue2(doc.fields?.value);
+      if (value !== undefined && value !== null) updates[key] = value;
+    });
+    const keys = Object.keys(updates);
+    if (keys.length) await _patchUserFields2(updates, []);
+    _userDocCache = {...currentFields, ...updates, ...(_userDocCache || {})};
+    _userDocLoaded = true;
+    return {migrated: keys.length, skipped};
+  } catch(e) {
+    return {migrated: 0, skipped: 0, error: e.message || String(e)};
+  }
+}
+window.migrateLegacyNutritionDocs = migrateLegacyNutritionDocs;
+
+async function _loadUserDoc2() {
+  if (!_uid) return {};
+  if (!_userDocLoaded) {
+    _userDocCache = await _fetchUserDocFields2().catch(() => ({}));
+    _userDocLoaded = true;
+  }
+  if (!_migrationPromise) {
+    _migrationPromise = migrateLegacyNutritionDocs({onlyIfMissing: true});
+    await _migrationPromise;
+  }
+  return _userDocCache || {};
+}
+
+async function fbGet(k) {
+  const fields = await _loadUserDoc2();
+  if (fields[k] !== undefined && fields[k] !== null) return {value: _storageValue2(fields[k])};
+  const legacy = await _legacyGet2(k);
+  if (legacy) fbSet(k, legacy.value).catch(() => {});
+  return legacy;
+}
+
+async function fbSet(k, v) {
+  try {
+    await _patchUserFields2({[k]: typeof v === "string" ? v : JSON.stringify(v)}, []);
+  } catch(e) {}
+}
+
+async function fbDel(k) {
+  try {
+    await _patchUserFields2({}, [k]);
+  } catch(e) {}
+}
+
+async function fbList(p) {
+  try {
+    const fields = await _loadUserDoc2();
+    const newKeys = Object.keys(fields).filter(k => fields[k] !== undefined && fields[k] !== null);
+    const r = await fetch(FB_BASE + "?pageSize=1000", {headers: await fbHeaders()});
+    if (!r.ok) return {keys: p ? newKeys.filter(k => k.indexOf(p) === 0) : newKeys};
+    const d = await r.json();
+    const prefix = _uid ? _uid + "_" : "";
+    const legacyKeys = (d.documents||[])
+      .map(doc => decodeURIComponent(doc.name.split("/").pop()))
+      .filter(k => !_uid || k.startsWith(prefix))
+      .map(k => _stripLegacyUid2(k));
+    const keys = Array.from(new Set([...newKeys, ...legacyKeys]));
+    return {keys: p ? keys.filter(k => k.indexOf(p) === 0) : keys};
+  } catch(e) { return {keys:[]}; }
+}
+
+// Firestore v3 storage:
+// - nutrition/{uid}: small profile/preferences fields.
+// - nutrition/{uid}/data/{key}: app data that can grow over time.
+// Legacy root fields and nutrition/{uid}_{key} docs remain readable as fallback.
+const PROFILE_FIELD_KEYS = new Set([
+  "birthDate", "gender", "activityLevel", "goalType", "goalKg", "goalWeeks",
+  "manualCalorieAdjustment", "proteinMultiplier", "bodyFatGoal", "userName", "tutorialSeen",
+  "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
+  "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
+]);
+let _rootDocCache3 = null;
+let _rootDocLoaded3 = false;
+let _dataKeyCache3 = null;
+let _migrationPromise3 = null;
+function _dataDocUrl3(k) {
+  return _userDocUrl2() + "/data/" + encodeURIComponent(k);
+}
+function _isProfileKey3(k) {
+  return PROFILE_FIELD_KEYS.has(k);
+}
+async function _fetchRootFields3() {
+  if (!_uid) return {};
+  const r = await fetch(_userDocUrl2(), {headers: await fbHeaders()});
+  if (!r.ok) return {};
+  const d = await r.json();
+  const out = {};
+  Object.entries(d.fields || {}).forEach(([k, v]) => out[k] = _decodeFsValue2(v));
+  return out;
+}
+async function _loadRootFields3() {
+  if (!_rootDocLoaded3) {
+    _rootDocCache3 = await _fetchRootFields3().catch(() => ({}));
+    _rootDocLoaded3 = true;
+  }
+  return _rootDocCache3 || {};
+}
+async function _patchRootFields3(fields, deleteKeys) {
+  await _patchUserFields2(fields, deleteKeys);
+  _rootDocCache3 = {...(_rootDocCache3 || {}), ...(fields || {})};
+  (deleteKeys || []).forEach(k => { if (_rootDocCache3) delete _rootDocCache3[k]; });
+  _rootDocLoaded3 = true;
+}
+async function _getDataDoc3(k) {
+  const r = await fetch(_dataDocUrl3(k), {headers: await fbHeaders()});
+  if (!r.ok) return null;
+  const d = await r.json();
+  const value = _decodeFsValue2(d?.fields?.value);
+  return value !== undefined && value !== null ? {value: _storageValue2(value)} : null;
+}
+async function _setDataDoc3(k, v) {
+  const r = await fetch(_dataDocUrl3(k), {
+    method: "PATCH",
+    headers: await fbHeaders(),
+    body: JSON.stringify({fields: {value: _encodeFsValue2(typeof v === "string" ? v : JSON.stringify(v))}})
+  });
+  if (!r.ok) throw new Error("Firestore data write failed");
+  if (_dataKeyCache3) _dataKeyCache3.add(k);
+}
+async function _deleteDataDoc3(k) {
+  const r = await fetch(_dataDocUrl3(k), {method: "DELETE", headers: await fbHeaders()});
+  if (!r.ok && r.status !== 404) throw new Error("Firestore data delete failed");
+  if (_dataKeyCache3) _dataKeyCache3.delete(k);
+}
+async function _listDataKeys3() {
+  if (_dataKeyCache3) return Array.from(_dataKeyCache3);
+  const keys = new Set();
+  let pageToken = "";
+  do {
+    const url = _userDocUrl2() + "/data?pageSize=1000" + (pageToken ? "&pageToken=" + encodeURIComponent(pageToken) : "");
+    const r = await fetch(url, {headers: await fbHeaders()});
+    if (!r.ok) break;
+    const d = await r.json();
+    (d.documents || []).forEach(doc => keys.add(decodeURIComponent((doc.name || "").split("/").pop() || "")));
+    pageToken = d.nextPageToken || "";
+  } while (pageToken);
+  _dataKeyCache3 = keys;
+  return Array.from(keys);
+}
+function _knownMigrationKeys3() {
+  const base = [
+    "pantry_v2", "suppPantry", "waterGoal", "customGoals", "goalHistory",
+    "mealTemplates", "weightHistory", "trainingByDate", "birthDate", "gender",
+    "activityLevel", "goalType", "goalKg", "goalWeeks", "manualCalorieAdjustment",
+    "proteinMultiplier", "bodyFatGoal", "userName", "tutorialSeen",
+    "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
+    "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
+  ];
+  const dateKeys = [];
+  for (let i = 0; i < 120; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const date = d.toISOString().split("T")[0];
+    dateKeys.push("log_v2_" + date, "notes_" + date, "waterIntake_" + date, "suppLog_" + date);
+  }
+  return Array.from(new Set([...base, ...dateKeys]));
+}
+async function migrateStorageToFirestoreV3(options) {
+  if (!_uid) return {migrated: 0, skipped: 0};
+  const onlyIfMissing = !options || options.onlyIfMissing !== false;
+  let migrated = 0;
+  let skipped = 0;
+  const rootFields = await _loadRootFields3();
+  const dataKeys = new Set(await _listDataKeys3().catch(() => []));
+  for (const [key, value] of Object.entries(rootFields)) {
+    if (_isProfileKey3(key) || value === undefined || value === null) continue;
+    if (onlyIfMissing && dataKeys.has(key)) {
+      skipped++;
+      continue;
+    }
+    try {
+      await _setDataDoc3(key, _storageValue2(value));
+      migrated++;
+      dataKeys.add(key);
+    } catch (_) {}
+  }
+  for (const key of _knownMigrationKeys3()) {
+    const hasNew = _isProfileKey3(key)
+      ? rootFields[key] !== undefined && rootFields[key] !== null
+      : dataKeys.has(key);
+    if (onlyIfMissing && hasNew) {
+      skipped++;
+      continue;
+    }
+    const legacy = await _legacyGet2(key).catch(() => null);
+    if (!legacy) continue;
+    try {
+      if (_isProfileKey3(key)) {
+        await _patchRootFields3({[key]: legacy.value}, []);
+        rootFields[key] = legacy.value;
+      } else {
+        await _setDataDoc3(key, legacy.value);
+        dataKeys.add(key);
+      }
+      migrated++;
+    } catch (_) {}
+  }
+  await _patchRootFields3({_schemaVersion: 3, _schemaMigratedAt: new Date().toISOString()}, []);
+  return {migrated, skipped};
+}
+window.migrateStorageToFirestoreV3 = migrateStorageToFirestoreV3;
+window.migrateLegacyNutritionDocs = migrateStorageToFirestoreV3;
+async function _ensureStorageMigration3() {
+  if (!_migrationPromise3) _migrationPromise3 = migrateStorageToFirestoreV3({onlyIfMissing: true}).catch(() => null);
+  await _migrationPromise3;
+}
+async function fbGet3(k) {
+  if (!_uid) return null;
+  if (!_migrationPromise3) _ensureStorageMigration3();
+  if (_isProfileKey3(k)) {
+    const fields = await _loadRootFields3();
+    if (fields[k] !== undefined && fields[k] !== null) return {value: _storageValue2(fields[k])};
+  } else {
+    const data = await _getDataDoc3(k).catch(() => null);
+    if (data) return data;
+    const fields = await _loadRootFields3();
+    if (fields[k] !== undefined && fields[k] !== null) {
+      const value = _storageValue2(fields[k]);
+      _setDataDoc3(k, value).catch(() => {});
+      return {value};
+    }
+  }
+  const legacy = await _legacyGet2(k).catch(() => null);
+  if (legacy) fbSet3(k, legacy.value).catch(() => {});
+  return legacy;
+}
+async function fbSet3(k, v) {
+  if (!_uid) return;
+  const value = typeof v === "string" ? v : JSON.stringify(v);
+  if (_isProfileKey3(k)) await _patchRootFields3({[k]: value}, []);
+  else await _setDataDoc3(k, value);
+}
+async function fbDel3(k) {
+  if (!_uid) return;
+  if (_isProfileKey3(k)) await _patchRootFields3({}, [k]);
+  else await _deleteDataDoc3(k);
+}
+async function fbList3(p) {
+  const rootFields = await _loadRootFields3().catch(() => ({}));
+  const rootKeys = Object.keys(rootFields).filter(k => !k.startsWith("_") && rootFields[k] !== undefined && rootFields[k] !== null);
+  const dataKeys = await _listDataKeys3().catch(() => []);
+  const keys = Array.from(new Set([...rootKeys, ...dataKeys]));
+  return {keys: p ? keys.filter(k => k.indexOf(p) === 0) : keys};
+}
+fbGet = fbGet3;
+fbSet = fbSet3;
+fbDel = fbDel3;
+fbList = fbList3;
+window.storage = {get:fbGet3, set:fbSet3, delete:fbDel3, list:fbList3};
+
