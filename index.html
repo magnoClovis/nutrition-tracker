@@ -103,6 +103,21 @@
       color: var(--btn-ok-text) !important;
       font-weight: 600;
     }
+#app-version-footer {
+  width: 100%;
+  padding: 34px 16px 40px;
+  background: #ebe8e2;
+  color: #746f68;
+  border-top: 1px solid #d8d3ca;
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: .6px;
+}
+@media (max-width: 720px) {
+  #app-version-footer {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  }
+}
 </style>
 </head>
 <body>
@@ -111,7 +126,12 @@
     <div style="animation:pulse 1.5s ease-in-out infinite">Carregando...</div>
   </div>
   <div id="root"></div>
+  <footer id="app-version-footer" aria-label="Versão do aplicativo"></footer>
   <script>
+  window.APP_VERSION_LABEL = 'Diário Nutricional v0.7.5 Beta';
+
+  document.getElementById('app-version-footer').textContent = window.APP_VERSION_LABEL;
+
   // Applies the saved theme before React renders, so the loading screen does
   // not flash in the wrong mode while Firebase and the app scripts initialize.
   (function(){
@@ -129,7 +149,7 @@
     if (el && el.style.display !== 'none') {
       el.innerHTML =
         '<div style="color:#c87e7e;padding:24px;text-align:center">' +
-        '⚠ ' + msg.slice(0, 200) +
+        msg.slice(0, 200) +
         '</div>';
     }
   });
@@ -140,7 +160,7 @@
     if (el) {
       el.innerHTML =
         '<div style="color:#c87e7e;padding:24px;text-align:center;max-width:400px;line-height:1.6">' +
-          '<div style="font-size:18px;margin-bottom:12px">⚠ Erro</div>' +
+          '<div style="font-size:18px;margin-bottom:12px">Erro</div>' +
           '<div style="font-size:12px;word-break:break-word;opacity:0.8">' +
             String(msg).slice(0, 300) +
           '</div>' +
@@ -160,8 +180,8 @@
   <script src="vendor/recharts.min.js"></script>
 
   <!-- App scripts are split by responsibility: persistence adapter first, UI/application second. -->
-  <script src="firebase-storage.js"></script>
-  <script src="app.js"></script>
+  <script src="firebase-storage.js?v=0.7.5-beta-20260619-2"></script>
+  <script src="app.js?v=0.7.5-beta-20260619-2"></script>
 </body>
 </html>
 

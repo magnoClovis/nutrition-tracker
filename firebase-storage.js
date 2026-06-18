@@ -300,8 +300,9 @@ async function fbList(p) {
 // - nutrition/{uid}/data/{key}: app data that can grow over time.
 // Legacy root fields and nutrition/{uid}_{key} docs remain readable as fallback.
 const PROFILE_FIELD_KEYS = new Set([
-  "birthDate", "gender", "activityLevel", "goalType", "goalKg", "goalWeeks",
+  "birthDate", "gender", "height", "activityLevel", "goalType", "goalKg", "goalWeeks",
   "manualCalorieAdjustment", "proteinMultiplier", "bodyFatGoal", "userName", "tutorialSeen",
+  "language", "lastLoginAt", "lastActivityAt", "tutorial_most_recent_version_seen",
   "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
   "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
 ]);
@@ -379,6 +380,7 @@ function _knownMigrationKeys3() {
     "mealTemplates", "weightHistory", "trainingByDate", "birthDate", "gender",
     "activityLevel", "goalType", "goalKg", "goalWeeks", "manualCalorieAdjustment",
     "proteinMultiplier", "bodyFatGoal", "userName", "tutorialSeen",
+    "language", "lastLoginAt", "lastActivityAt", "tutorial_most_recent_version_seen",
     "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
     "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
   ];
