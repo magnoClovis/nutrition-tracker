@@ -28,6 +28,27 @@
       --tab-active:#191919; --tab-text-active:#c9bfb0;
     }
     body { background: var(--bg); color: var(--text); }
+    button,input,select,textarea {
+      transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease, box-shadow 220ms ease, transform 180ms ease, opacity 220ms ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    @keyframes softIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes softScaleIn {
+      from { opacity: 0; transform: scale(.985); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *,*::before,*::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
     #loading{position:fixed;inset:0;background:#f2f1ed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#888;font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000}
     .dark-loading #loading{background:#f2f1ed;color:#888;}
     .dark-loading #loading div:first-child{border-color:#d8d4cc!important;border-top-color:#2a6a2a!important;}
