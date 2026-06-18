@@ -1373,7 +1373,10 @@ function NutritionTracker({
   }, [tab, loaded, log]);
   async function loadWeekData() {
     const days = [];
-    for (let i = 6; i >= 0; i--) {
+    // Week charts intentionally use 7 completed days plus today.
+    // Today's value is projected and drawn as an in-progress segment, so the
+    // chart does not look like nutrition suddenly collapsed before the day ends.
+    for (let i = 7; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const date = d.toISOString().split("T")[0];
@@ -1407,8 +1410,12 @@ function NutritionTracker({
         day: d.getDate(),
         protein: Math.round(protein),
         proteinTrend,
+        proteinPastLine: isTodayEntry ? null : proteinTrend,
+        proteinTodayLine: null,
         kcal: Math.round(kcal),
         kcalTrend,
+        kcalPastLine: isTodayEntry ? null : kcalTrend,
+        kcalTodayLine: null,
         carbs: Math.round(carbs),
         fat: Math.round(fat),
         fiber: Math.round(fiber),
@@ -1426,6 +1433,13 @@ function NutritionTracker({
         hasData: entries.length > 0,
         isToday: isTodayEntry
       });
+    }
+    const todayIdx = days.findIndex(d => d.isToday);
+    if (todayIdx > 0) {
+      days[todayIdx - 1].proteinTodayLine = days[todayIdx - 1].proteinTrend;
+      days[todayIdx].proteinTodayLine = days[todayIdx].proteinTrend;
+      days[todayIdx - 1].kcalTodayLine = days[todayIdx - 1].kcalTrend;
+      days[todayIdx].kcalTodayLine = days[todayIdx].kcalTrend;
     }
     setWeekData(days);
   }
@@ -4513,21 +4527,7 @@ function NutritionTracker({
       overflowX: "hidden",
       ...THEME
     }
-  }, /*#__PURE__*/React.createElement("footer", {
-    style: {
-      position: "fixed",
-      left: 0,
-      right: 0,
-      bottom: isMobileView ? 56 : 4,
-      zIndex: 70,
-      textAlign: "center",
-      color: "var(--faint)",
-      fontSize: 11,
-      letterSpacing: 0.5,
-      pointerEvents: "none",
-      opacity: 0.78
-    }
-  }, "Di\u00E1rio Nutricional v0.7.5 Beta"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)",
@@ -5221,7 +5221,11 @@ function NutritionTracker({
       gap: 12,
       marginBottom: 16,
       paddingBottom: 12,
-      borderBottom: "1px solid var(--border3)"
+      borderBottom: "1px solid var(--border3)",
+      position: "sticky",
+      top: isMobileView ? -18 : -22,
+      background: "var(--surface)",
+      zIndex: 3
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -8327,7 +8331,24 @@ function NutritionTracker({
       marginTop: 3,
       textTransform: "uppercase"
     }
-  }, x.l)))), /*#__PURE__*/React.createElement("div", {
+  }, x.l), i === 2 && /*#__PURE__*/React.createElement("div", {
+    title: lang === 'en' ? "Protein goal by day" : "Meta de prote\xEDna por dia",
+    style: {
+      display: "flex",
+      justifyContent: "center",
+      gap: 4,
+      marginTop: 8
+    }
+  }, weekData.filter(d => !d.isToday).slice(-7).map(d => /*#__PURE__*/React.createElement("span", {
+    key: d.date,
+    style: {
+      width: 6,
+      height: 6,
+      borderRadius: "50%",
+      background: d.hasData && d.metProtein ? "var(--btn-ok-text)" : "var(--border2)",
+      display: "inline-block"
+    }
+  })))))), /*#__PURE__*/React.createElement("div", {
     "data-tutorial": "week-days",
     style: {
       display: "flex",
@@ -8399,7 +8420,7 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 10
     }
-  }, lang === 'en' ? "Protein (g) \u2014 7 days" : "Prote\xEDna (g) \u2014 7 dias"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+  }, lang === 'en' ? "Protein (g) \u2014 7 completed days + today" : "Prote\xEDna (g) \u2014 7 dias conclu\xEDdos + hoje"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
     width: "100%",
     height: 130
   }, /*#__PURE__*/React.createElement(LineChart, {
@@ -8448,9 +8469,23 @@ function NutritionTracker({
     }
   }), /*#__PURE__*/React.createElement(Line, {
     type: "monotone",
-    dataKey: "proteinTrend",
+    dataKey: "proteinPastLine",
     stroke: "#c8a96e",
     strokeWidth: 2,
+    dot: {
+      fill: "#c8a96e",
+      r: 3
+    },
+    activeDot: {
+      r: 5
+    },
+    connectNulls: false
+  }), /*#__PURE__*/React.createElement(Line, {
+    type: "monotone",
+    dataKey: "proteinTodayLine",
+    stroke: "#c8a96e",
+    strokeWidth: 2,
+    strokeDasharray: "5 5",
     dot: {
       fill: "#c8a96e",
       r: 3
@@ -8476,7 +8511,7 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 10
     }
-  }, lang === 'en' ? "Calories \u2014 7 days" : "Calorias \u2014 7 dias"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+  }, lang === 'en' ? "Calories \u2014 7 completed days + today" : "Calorias \u2014 7 dias conclu\xEDdos + hoje"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
     width: "100%",
     height: 130
   }, /*#__PURE__*/React.createElement(LineChart, {
@@ -8525,9 +8560,23 @@ function NutritionTracker({
     }
   }), /*#__PURE__*/React.createElement(Line, {
     type: "monotone",
-    dataKey: "kcalTrend",
+    dataKey: "kcalPastLine",
     stroke: "#8ec8c8",
     strokeWidth: 2,
+    dot: {
+      fill: "#8ec8c8",
+      r: 3
+    },
+    activeDot: {
+      r: 5
+    },
+    connectNulls: false
+  }), /*#__PURE__*/React.createElement(Line, {
+    type: "monotone",
+    dataKey: "kcalTodayLine",
+    stroke: "#8ec8c8",
+    strokeWidth: 2,
+    strokeDasharray: "5 5",
     dot: {
       fill: "#8ec8c8",
       r: 3
@@ -10356,27 +10405,38 @@ function NutritionTracker({
 showGA && React.createElement("div", {
   style: {
     position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-    background: "#000000ee", zIndex: 99999,
-    display: "flex", alignItems: "center", justifyContent: "center",
-    padding: 16, backdropFilter: "blur(4px)"
+    background: "rgba(0,0,0,0.42)", zIndex: 99999,
+    display: "flex",
+    alignItems: isMobileView ? "flex-end" : "center",
+    justifyContent: "center",
+    padding: isMobileView ? "14px 10px 0" : 16,
+    backdropFilter: "blur(4px)"
   },
   onClick: function(e){ if(e.target===e.currentTarget) setShowGA(false); }
 },
   React.createElement("div", {
     style: {
-      background: "var(--card)", borderRadius: 14, padding: 24,
-      width: "100%", maxWidth: 480, maxHeight: "85vh",
-      overflowY: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.5)",
+      background: "var(--surface)",
+      borderRadius: isMobileView ? "18px 18px 0 0" : 14,
+      padding: isMobileView ? "18px 18px calc(18px + env(safe-area-inset-bottom,0px))" : 24,
+      width: "100%",
+      maxWidth: 560,
+      maxHeight: isMobileView ? "88vh" : "85vh",
+      overflowY: "auto",
+      boxShadow: "0 18px 54px rgba(0,0,0,0.32)",
       border: "1px solid var(--border2)"
     }
   },
     /* Header */
-    React.createElement("div", { style: { display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 } },
-      React.createElement("h2", { style: { margin:0, color:"var(--text1)", fontSize:16 } }, (lang==='en' ? "Meal Suggestions" : "Sugest\xe3o de refei\xe7\xf5es")),
+    React.createElement("div", { style: { display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, marginBottom:16, paddingBottom:12, borderBottom:"1px solid var(--border3)", position:"sticky", top:isMobileView ? -18 : -24, background:"var(--surface)", zIndex:2 } },
+      React.createElement("div", null,
+        React.createElement("h2", { style: { margin:0, color:"var(--text2)", fontSize:16, letterSpacing:1, textTransform:"uppercase" } }, (lang==='en' ? "Meal suggestions" : "Sugestões de refeição")),
+        React.createElement("div", { style: { color:"var(--dim)", fontSize:13, marginTop:4 } }, lang==='en' ? "Combines pantry foods with what is still missing today." : "Combina alimentos salvos com o que ainda falta hoje.")
+      ),
       React.createElement("button", {
         onClick: function(){ setShowGA(false); },
-        style: { background:"none", border:"none", color:"var(--text2)", fontSize:20, cursor:"pointer" }
-      }, "\u2715")
+        style: { background:"var(--btn-inactive)", border:"1px solid var(--btn-inactive-border)", color:"var(--muted)", borderRadius:999, width:34, height:34, fontSize:20, lineHeight:"28px", cursor:"pointer", flexShrink:0 }
+      }, "\xD7")
     ),
 
     /* Resumo e modo simples */
