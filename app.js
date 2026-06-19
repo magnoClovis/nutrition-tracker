@@ -3700,21 +3700,74 @@ function NutritionTracker({
   function aiLang() {
     return lang === 'en' ? '\nRespond in American English.\n' : '\nResponda em português do Brasil.\n';
   }
+
+  /**
+   * Fallback full-backup builder used only if the Firebase adapter has not
+   * exposed exportFullAccountBackup yet. It cannot see legacy documents, so the
+   * adapter-level exporter remains the authoritative complete backup path.
+   */
+  async function buildLegacyFullBackup() {
+    const result = {};
+    const listed = await storage.list();
+    const allKeys = listed?.keys || [];
+    const staticKeys = [
+      'pantry_v2', 'suppPantry', 'waterGoal', 'customGoals', 'goalHistory',
+      'mealTemplates', 'weightHistory', 'trainingByDate', 'birthDate', 'gender',
+      'activityLevel', 'goalType', 'goalKg', 'goalWeeks',
+      'manualCalorieAdjustment', 'proteinMultiplier', 'bodyFatGoal'
+    ];
+    const toFetch = [...new Set([...staticKeys, ...allKeys])];
+
+    for (let i = 0; i < toFetch.length; i += 20) {
+      await Promise.all(toFetch.slice(i, i + 20).map(async key => {
+        try {
+          const r = await storage.get(key);
+          if (r && r.value !== undefined && r.value !== null) result[key] = r.value;
+        } catch (_) {}
+      }));
+    }
+
+    return {
+      exportedAt: new Date().toISOString(),
+      version: 2,
+      data: result
+    };
+  }
+
   async function importFullBackup(e) {
     const file = e.target.files[0];
     if (!file) return;
     e.target.value = "";
-    const reader = new FileReader();
-    reader.onload = async evt => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async evt => {
       try {
         const parsed = JSON.parse(evt.target.result);
+        if (window.importFullAccountBackup) {
+          const countInfo = parsed.counts
+            ? `${parsed.counts.root || 0} root, ${parsed.counts.data || 0} data, ${parsed.counts.legacy || 0} legacy`
+            : null;
+          const confirmText = lang === 'en'
+            ? `Import this full account backup${countInfo ? ` (${countInfo})` : ''}? Existing data with the same keys will be replaced.`
+            : `Importar este backup completo da conta${countInfo ? ` (${countInfo})` : ''}? Dados existentes com as mesmas chaves serão substituídos.`;
+          if (!window.confirm(confirmText)) return resolve({cancelled: true});
+          notify(lang === 'en' ? "Importing..." : "Importando...");
+          const result = await window.importFullAccountBackup(parsed);
+          notify(lang === 'en'
+            ? `Imported ${result.imported} records. Reload the page to see everything.`
+            : `Importados ${result.imported} registros. Recarregue a página para ver tudo.`);
+          resolve(result);
+          return;
+        }
         const data = parsed.data || parsed;
         const keys = Object.keys(data);
         if (!keys.length) {
           notify(lang === 'en' ? "Empty or invalid file." : "Arquivo vazio ou inválido.");
-          return;
+          return resolve({imported: 0});
         }
-        if (!window.confirm(`Importar ${keys.length} registros? Os dados existentes com as mesmas chaves serão substituídos.`)) return;
+        if (!window.confirm(`Importar ${keys.length} registros? Os dados existentes com as mesmas chaves serão substituídos.`)) {
+          return resolve({cancelled: true});
+        }
         notify(lang === 'en' ? "Importing..." : "Importando...");
         let count = 0;
         for (let i = 0; i < keys.length; i += 10) {
@@ -3725,12 +3778,16 @@ function NutritionTracker({
             } catch (_) {}
           }));
         }
-        notify(lang === 'en' ? `? ${count} records imported. Reload the page to see everything.` : `? ${count} registros importados. Recarregue a página para ver tudo.`);
+        notify(lang === 'en' ? `${count} records imported. Reload the page to see everything.` : `${count} registros importados. Recarregue a página para ver tudo.`);
+        resolve({imported: count});
       } catch (err) {
         notify((lang === 'en' ? "Error reading file: " : "Erro ao ler arquivo: ") + err.message);
+        reject(err);
       }
-    };
-    reader.readAsText(file);
+      };
+      reader.onerror = () => reject(reader.error || new Error("File read failed"));
+      reader.readAsText(file);
+    });
   }
   // Export specific data types and download as .json
   async function exportAndDownload(type) {
@@ -3741,18 +3798,11 @@ function NutritionTracker({
       let filename = '';
 
       if (type === 'all') {
-        // Full backup
-        const listed = await storage.list();
-        const allKeys = listed?.keys || [];
-        const staticKeys = ['pantry_v2','suppPantry','waterGoal','customGoals','goalHistory','mealTemplates','weightHistory','trainingByDate','birthDate','gender','activityLevel','goalType','goalKg','goalWeeks','manualCalorieAdjustment','proteinMultiplier','bodyFatGoal'];
-        const toFetch = [...new Set([...staticKeys, ...allKeys])];
-        for (let i = 0; i < toFetch.length; i += 20) {
-          await Promise.all(toFetch.slice(i,i+20).map(async k => {
-            try { const r = await storage.get(k); if (r?.value) data[k] = r.value; } catch(_){}
-          }));
-        }
+        const backup = window.exportFullAccountBackup
+          ? await window.exportFullAccountBackup()
+          : await buildLegacyFullBackup();
         filename = 'backup_completo_' + today + '.json';
-        downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),version:2,data},null,2), filename, 'application/json');
+        downloadFile(JSON.stringify(backup, null, 2), filename, 'application/json');
 
       } else if (type === 'pantry') {
         const r = await storage.get('pantry_v2');
@@ -3800,29 +3850,12 @@ function NutritionTracker({
     setBackupLoading(true);
     setBackupJson(null);
     try {
-      const result = {};
-      // List all existing keys first (one call only)
-      const listed = await storage.list();
-      const allKeys = listed?.keys || [];
-      // Also always try static keys
-      const staticKeys = ['pantry_v2', 'suppPantry', 'waterGoal', 'customGoals', 'goalHistory', 'mealTemplates', 'weightHistory', 'trainingByDate', 'birthDate', 'gender', 'activityLevel', 'goalType', 'goalKg', 'goalWeeks', 'manualCalorieAdjustment', 'proteinMultiplier', 'bodyFatGoal'];
-      const toFetch = [...new Set([...staticKeys, ...allKeys])];
-      // Fetch in parallel batches of 20
-      for (let i = 0; i < toFetch.length; i += 20) {
-        const batch = toFetch.slice(i, i + 20);
-        await Promise.all(batch.map(async key => {
-          try {
-            const r = await storage.get(key);
-            if (r && r.value) result[key] = r.value;
-          } catch (_) {}
-        }));
-      }
-      const json = JSON.stringify({
-        exportedAt: new Date().toISOString(),
-        version: 2,
-        data: result
-      }, null, 2);
+      const backup = window.exportFullAccountBackup
+        ? await window.exportFullAccountBackup()
+        : await buildLegacyFullBackup();
+      const json = JSON.stringify(backup, null, 2);
       setBackupJson(json);
+      downloadFile(json, 'backup_completo_' + TODAY + '.json', 'application/json');
       notify(t('notifBackupDone'));
     } catch (e) {
       notify((lang === 'en' ? "Export error: " : "Erro ao exportar: ") + e.message);
@@ -12308,10 +12341,11 @@ function PrivacyPanel({ lang, onClose, onLogout }) {
     try {
       const email = localStorage.getItem('fb_email') || '';
       await fbSignIn(email, delPwd); // throws if wrong password
-      // Delete all user data from Firebase
-      const keys = ['pantry_v2','suppPantry','waterGoal','customGoals','mealTemplates',
-                    'weightHistory','trainingByDate','goalHistory','birthDate','gender','activityLevel','goalType','goalKg','goalWeeks','manualCalorieAdjustment','proteinMultiplier','bodyFatGoal','userName','notes_' + new Date().toISOString().split('T')[0]];
-      await Promise.all(keys.map(k => fbDel(k).catch(()=>{})));
+      // Firestore data must be deleted before Auth deletion; Firebase Auth does
+      // not cascade-delete user documents after accounts:delete.
+      if (typeof window.deleteCurrentUserFirestoreData === 'function') {
+        await window.deleteCurrentUserFirestoreData();
+      }
       // Delete account via REST
       const token = await fbToken();
       await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_KEY, {
@@ -12526,10 +12560,18 @@ function BackupModal({ lang, darkMode, onClose }) {
     setLoading(null);
   }
 
-  function doImport(e) {
+  async function doImport(e) {
     if (window._importFullBackup) {
-      window._importFullBackup(e);
-      setImportDone(isPt ? 'Importação iniciada! Recarregue a página.' : 'Import started! Reload the page.');
+      try {
+        const result = await window._importFullBackup(e);
+        if (result?.cancelled) return;
+        const count = result?.imported ?? 0;
+        setImportDone(isPt
+          ? `Importação concluída: ${count} registros. Recarregue a página.`
+          : `Import complete: ${count} records. Reload the page.`);
+      } catch (error) {
+        setImportDone((isPt ? 'Erro ao importar: ' : 'Import error: ') + (error?.message || String(error)));
+      }
     }
   }
 
@@ -13487,7 +13529,20 @@ function App() {
   async function normalizeStorageAfterLogin() {
     if (typeof window.normalizeCurrentUserStorage !== 'function') return null;
     try {
-      const result = await window.normalizeCurrentUserStorage({cleanup: true});
+      const migration = window.normalizeCurrentUserStorage({cleanup: true});
+      const result = await Promise.race([
+        migration,
+        new Promise(resolve => setTimeout(() => resolve({skipped: 0, background: true}), 2500))
+      ]);
+      migration.catch(error => console.warn('Background storage normalization failed', error));
+      migration
+        .then(() => {
+          if (typeof window.cleanupLegacyNutritionDocs === 'function') {
+            return window.cleanupLegacyNutritionDocs();
+          }
+          return null;
+        })
+        .catch(error => console.warn('Background legacy cleanup failed', error));
       if (result?.error || result?.cleanupFailures) {
         console.warn('Storage normalization completed with warnings', result);
       }
