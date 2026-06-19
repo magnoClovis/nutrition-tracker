@@ -22,7 +22,7 @@ function rnd(value) {
  */
 async function resetTutorialsForCurrentVersion() {
   const writes = [
-    storage.set(MOST_RECENT_TUTORIAL_KEY, "false"),
+    storage.set(MOST_RECENT_TUTORIAL_KEY, "pending"),
     ...TUTORIAL_TYPES.map(type => storage.set(tutorialSeenKey(type), "false"))
   ];
   await Promise.all(writes.map(p => p.catch(() => {})));
@@ -34,6 +34,16 @@ async function resetTutorialsForCurrentVersion() {
  */
 async function markCurrentVersionTutorialSeen() {
   await storage.set(MOST_RECENT_TUTORIAL_KEY, "true").catch(() => {});
+}
+
+/**
+ * Puts the release tutorial in a pending state without resetting tab tutorial
+ * flags on every reload. Input: stored flag value. Output: persisted pending
+ * state when needed.
+ */
+async function ensureCurrentVersionTutorialPending(currentValue) {
+  if (currentValue === "pending") return;
+  await resetTutorialsForCurrentVersion();
 }
 
 const GREETING_PHRASES = {
@@ -1297,6 +1307,7 @@ function NutritionTracker({
   const [weightHistory, setWeightHistory] = useState([]);
   const [profileData, setProfileData] = useState({ birthDate: "", gender: "", height: "" });
   const [goalHistory, setGoalHistory] = useState({});
+  const hydratedStorageKeysRef = useRef(new Set());
   const [metricsProgressOpen, setMetricsProgressOpen] = useState(false);
   const [metricsProgressInfoOpen, setMetricsProgressInfoOpen] = useState(false);
   const [bodyCompositionOpen, setBodyCompositionOpen] = useState(false);
@@ -1400,7 +1411,36 @@ function NutritionTracker({
       setLoaded(true);
     }, 12000);
     try {
-      const [p, l, t, w, mt, n, wg, wi, sp, sl, cg, gh, bd, gd, ht, al, gt, gkg, gw, ma, pm, bfg, un] = await Promise.all([storage.get("pantry_v2").catch(() => null), storage.get("log_v2_" + TODAY).catch(() => null), storage.get("trainingByDate").catch(() => null), storage.get("weightHistory").catch(() => null), storage.get("mealTemplates").catch(() => null), storage.get("notes_" + TODAY).catch(() => null), storage.get("waterGoal").catch(() => null), storage.get("waterIntake_" + TODAY).catch(() => null), storage.get("suppPantry").catch(() => null), storage.get("suppLog_" + TODAY).catch(() => null), storage.get("customGoals").catch(() => null), storage.get("goalHistory").catch(() => null), storage.get("birthDate").catch(() => null), storage.get("gender").catch(() => null), storage.get("height").catch(() => null), storage.get("activityLevel").catch(() => null), storage.get("goalType").catch(() => null), storage.get("goalKg").catch(() => null), storage.get("goalWeeks").catch(() => null), storage.get("manualCalorieAdjustment").catch(() => null), storage.get("proteinMultiplier").catch(() => null), storage.get("bodyFatGoal").catch(() => null), storage.get("userName").catch(() => null)]);
+      const loadKeys = [
+        "pantry_v2",
+        "log_v2_" + TODAY,
+        "trainingByDate",
+        "weightHistory",
+        "mealTemplates",
+        "notes_" + TODAY,
+        "waterGoal",
+        "waterIntake_" + TODAY,
+        "suppPantry",
+        "suppLog_" + TODAY,
+        "customGoals",
+        "goalHistory",
+        "birthDate",
+        "gender",
+        "height",
+        "activityLevel",
+        "goalType",
+        "goalKg",
+        "goalWeeks",
+        "manualCalorieAdjustment",
+        "proteinMultiplier",
+        "bodyFatGoal",
+        "userName"
+      ];
+      const loadedValues = await Promise.all(loadKeys.map(key => storage.get(key).catch(() => null)));
+      loadedValues.forEach((value, index) => {
+        if (value) hydratedStorageKeysRef.current.add(loadKeys[index]);
+      });
+      const [p, l, t, w, mt, n, wg, wi, sp, sl, cg, gh, bd, gd, ht, al, gt, gkg, gw, ma, pm, bfg, un] = loadedValues;
       if (p) setPantry(JSON.parse(p.value));
       if (l) setLog(normalizeMealKeys(JSON.parse(l.value)));
       if (t) setTrainingByDate(JSON.parse(t.value));
@@ -1456,28 +1496,44 @@ function NutritionTracker({
   useEffect(() => {
     return () => stopBarcodeScanner();
   }, []);
+  /**
+   * Returns whether a key is safe to persist after startup.
+   * If a large data key was not hydrated, saving its default empty state could
+   * overwrite real Firestore data after a transient read failure.
+   */
+  function canPersistHydratedKey(key, value) {
+    if (hydratedStorageKeysRef.current.has(key)) return true;
+    if (Array.isArray(value)) return value.length > 0;
+    if (value && typeof value === "object") return Object.keys(value).length > 0;
+    return typeof value === "string" ? value.length > 0 : value !== null && value !== undefined;
+  }
+
   function scheduleSave(key, value, delay = 800) {
     if (saveTimeout.current[key]) clearTimeout(saveTimeout.current[key]);
-    saveTimeout.current[key] = setTimeout(() => storage.set(key, typeof value === "string" ? value : JSON.stringify(value)).catch(() => {}), delay);
+    saveTimeout.current[key] = setTimeout(() => {
+      storage.set(key, typeof value === "string" ? value : JSON.stringify(value))
+        .then(() => hydratedStorageKeysRef.current.add(key))
+        .catch(() => {});
+    }, delay);
   }
   useEffect(() => {
-    if (loaded) scheduleSave("pantry_v2", pantry);
+    if (loaded && canPersistHydratedKey("pantry_v2", pantry)) scheduleSave("pantry_v2", pantry);
   }, [pantry, loaded]);
   useEffect(() => {
     if (loaded) scheduleSave("log_v2_" + TODAY, log);
   }, [log, loaded]);
   useEffect(() => {
-    if (loaded) scheduleSave("trainingByDate", trainingByDate);
+    if (loaded && canPersistHydratedKey("trainingByDate", trainingByDate)) scheduleSave("trainingByDate", trainingByDate);
   }, [trainingByDate, loaded]);
   useEffect(() => {
-    if (loaded) scheduleSave("weightHistory", weightHistory);
+    if (loaded && canPersistHydratedKey("weightHistory", weightHistory)) scheduleSave("weightHistory", weightHistory);
   }, [weightHistory, loaded]);
   // Update function refs on every render (data refs set later, after activeLog is declared)
   window._exportFullBackup = exportFullBackup;
   window._importFullBackup = importFullBackup;
   window._exportAndDownload = exportAndDownload;
   useEffect(() => {
-    if (loaded) scheduleSave("mealTemplates", mealTemplates);
+    if (loaded && canPersistHydratedKey("mealTemplates", mealTemplates)) scheduleSave("mealTemplates", mealTemplates);
   }, [mealTemplates, loaded]);
   useEffect(() => {
     if (loaded) scheduleSave("notes_" + TODAY, todayNote, 1500);
@@ -1486,22 +1542,22 @@ function NutritionTracker({
     if (loaded && viewDate !== TODAY) scheduleSave("notes_" + viewDate, historyNote, 1500);
   }, [historyNote, loaded]);
   useEffect(() => {
-    if (loaded) scheduleSave("waterGoal", waterGoal);
+    if (loaded && canPersistHydratedKey("waterGoal", waterGoal)) scheduleSave("waterGoal", waterGoal);
   }, [waterGoal, loaded]);
   useEffect(() => {
     if (loaded) scheduleSave("waterIntake_" + TODAY, waterIntake);
   }, [waterIntake, loaded]);
   useEffect(() => {
-    if (loaded) scheduleSave("suppPantry", suppPantry);
+    if (loaded && canPersistHydratedKey("suppPantry", suppPantry)) scheduleSave("suppPantry", suppPantry);
   }, [suppPantry, loaded]);
   useEffect(() => {
     if (loaded) scheduleSave("suppLog_" + TODAY, suppLog);
   }, [suppLog, loaded]);
   useEffect(() => {
-    if (loaded) scheduleSave("customGoals", customGoals);
+    if (loaded && canPersistHydratedKey("customGoals", customGoals)) scheduleSave("customGoals", customGoals);
   }, [customGoals, loaded]);
   useEffect(() => {
-    if (loaded) scheduleSave("goalHistory", goalHistory);
+    if (loaded && canPersistHydratedKey("goalHistory", goalHistory)) scheduleSave("goalHistory", goalHistory);
   }, [goalHistory, loaded]);
   async function changeViewDate(date) {
     setViewDate(date);
@@ -12996,22 +13052,25 @@ function RequiredProfileModal({lang, profile, onComplete}) {
     const nextProfile = {birthDate, gender, activityLevel, goalType, goalKg, goalWeeks};
     if (!isValidBirthDate(birthDate) || !isValidGender(gender) || !isValidGoalProfile(nextProfile)) { setError(S.err); return; }
     setSaving(true);
-    await Promise.all([
-      storage.set('birthDate', birthDate).catch(()=>{}),
-      storage.set('gender', gender).catch(()=>{}),
-      storage.set('activityLevel', activityLevel).catch(()=>{}),
-      storage.set('goalType', goalType).catch(()=>{}),
-      storage.set('goalKg', goalType === 'maintenance' ? '' : goalKg).catch(()=>{}),
-      storage.set('goalWeeks', goalType === 'maintenance' ? '' : goalWeeks).catch(()=>{})
-    ]);
-    const savedProfile = await getRequiredProfileData().catch(()=>null);
-    if (!hasRequiredProfileData(savedProfile)) {
+    try {
+      await Promise.all([
+        storage.set('birthDate', birthDate),
+        storage.set('gender', gender),
+        storage.set('activityLevel', activityLevel),
+        storage.set('goalType', goalType),
+        storage.set('goalKg', goalType === 'maintenance' ? '' : goalKg),
+        storage.set('goalWeeks', goalType === 'maintenance' ? '' : goalWeeks)
+      ]);
+      const savedProfile = await getRequiredProfileData().catch(()=>null);
+      if (!hasRequiredProfileData(savedProfile)) {
+        throw new Error(isPt ? 'Os dados não foram encontrados depois de salvar.' : 'Saved details could not be read back.');
+      }
       setSaving(false);
-      setError(S.err);
-      return;
+      onComplete(savedProfile);
+    } catch (err) {
+      setSaving(false);
+      setError((isPt ? 'Não foi possível salvar no banco de dados: ' : 'Could not save to the database: ') + (err?.message || err));
     }
-    setSaving(false);
-    onComplete(savedProfile);
   }
   return React.createElement('div', {style:{position:'fixed',inset:0,zIndex:100000,background:'rgba(242,241,237,0.94)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto'}},
     React.createElement('form', {onSubmit:saveProfile, style:{width:'100%',maxWidth:420,background:'#ffffff',border:'1px solid #ccc8c0',borderRadius:14,padding:24,boxShadow:'0 20px 80px rgba(60,50,40,0.18)',margin:'auto'}},
@@ -13431,7 +13490,7 @@ function App() {
     checkRequiredProfile();
     const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(()=>null);
     if (!tutorialVersion || tutorialVersion.value !== "true") {
-      await resetTutorialsForCurrentVersion();
+      await ensureCurrentVersionTutorialPending(tutorialVersion?.value);
       setShowReleaseNotice(true);
       return;
     }
@@ -13454,7 +13513,7 @@ function App() {
         storage.set('lastLoginAt', new Date().toISOString()).catch(()=>{});
         const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(()=>null);
         if (!tutorialVersion || tutorialVersion.value !== "true") {
-          await resetTutorialsForCurrentVersion();
+          await ensureCurrentVersionTutorialPending(tutorialVersion?.value);
           setShowReleaseNotice(true);
         }
         setChecking(false);
