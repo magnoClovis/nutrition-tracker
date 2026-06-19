@@ -4499,6 +4499,114 @@ function NutritionTracker({
     ? Math.round(bodyComposition.fatToLose * 10) / 10
     : "";
 
+  /**
+   * Chart configs for optional body metrics.
+   * Input: weightHistory entries with optional bodyFatPct, waistCm and
+   * muscleMassKg. Output: one config per metric that has at least one value.
+   */
+  const bodyMetricChartConfigs = [
+    {
+      key: "bodyFatPct",
+      title: lang === "en" ? "Body-fat trend" : "Evolução da gordura corporal",
+      label: lang === "en" ? "Body fat" : "Gordura corporal",
+      unit: "%",
+      color: "#c86e8e",
+      target: bodyComposition.targetPct || null
+    },
+    {
+      key: "muscleMassKg",
+      title: lang === "en" ? "Muscle-mass trend" : "Evolução da massa muscular",
+      label: lang === "en" ? "Muscle mass" : "Massa muscular",
+      unit: "kg",
+      color: "#6ec8a9"
+    },
+    {
+      key: "waistCm",
+      title: lang === "en" ? "Waist trend" : "Evolução da cintura",
+      label: lang === "en" ? "Waist" : "Cintura",
+      unit: "cm",
+      color: "#8ec8c8"
+    }
+  ].map(config => ({
+    ...config,
+    data: normalizeWeightHistory(weightHistory)
+      .filter(entry => Number(entry[config.key]) > 0)
+      .map(entry => ({
+        date: entry.date.slice(5),
+        value: Number(entry[config.key])
+      }))
+  })).filter(config => config.data.length > 0);
+
+  /**
+   * Renders a compact Recharts line chart for optional body measurements.
+   * Input: bodyMetricChartConfigs item. Output: React element.
+   */
+  function renderBodyMetricChart(config) {
+    return /*#__PURE__*/React.createElement("div", {
+      key: config.key,
+      style: {
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderRadius: 8,
+        padding: "14px",
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        letterSpacing: 1,
+        color: "var(--muted)",
+        textTransform: "uppercase",
+        marginBottom: 12
+      }
+    }, config.title), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+      width: "100%",
+      height: 150
+    }, /*#__PURE__*/React.createElement(LineChart, {
+      data: config.data
+    }, /*#__PURE__*/React.createElement(XAxis, {
+      dataKey: "date",
+      tick: { fontSize: 12, fill: CT.tick },
+      axisLine: false,
+      tickLine: false
+    }), /*#__PURE__*/React.createElement(YAxis, {
+      tick: { fontSize: 12, fill: CT.tick },
+      axisLine: false,
+      tickLine: false,
+      domain: ["auto", "auto"],
+      width: 38
+    }), /*#__PURE__*/React.createElement(Tooltip, {
+      contentStyle: {
+        background: CT.bg,
+        border: "1px solid " + CT.border,
+        borderRadius: 4,
+        fontSize: 14,
+        color: CT.label
+      },
+      labelStyle: { color: CT.label },
+      formatter: value => [
+        Math.round(Number(value) * 10) / 10 + config.unit,
+        config.label
+      ]
+    }), config.target ? /*#__PURE__*/React.createElement(ReferenceLine, {
+      y: config.target,
+      stroke: "#8ec8c8",
+      strokeDasharray: "4 4",
+      label: {
+        value: (lang === "en" ? "Target " : "Meta ") + config.target + config.unit,
+        fill: CT.tick,
+        fontSize: 11
+      }
+    }) : null, /*#__PURE__*/React.createElement(Line, {
+      type: "monotone",
+      dataKey: "value",
+      stroke: config.color,
+      strokeWidth: 2,
+      dot: { fill: config.color, r: 3 },
+      activeDot: { r: 5 }
+    }))));
+  }
+
   function getSuggestedBodyGoalWeeks() {
     const currentFatPct = Number(bodyGoalForm.currentFatPct || bodyComposition.currentFatPct || 0);
     const targetPct = Number(bodyGoalForm.targetFatPct || nutritionPrefs.bodyFatGoal || 0);
@@ -10500,7 +10608,14 @@ function NutritionTracker({
     activeDot: {
       r: 5
     }
-  })))), normalizeWeightHistory(weightHistory).length > 0 && /*#__PURE__*/React.createElement("div", {
+  })))), bodyMetricChartConfigs.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: metricsSection === "tracking" ? "grid" : "none",
+      gridTemplateColumns: isMobileView ? "1fr" : "repeat(auto-fit, minmax(260px, 1fr))",
+      gap: 12,
+      marginBottom: 14
+    }
+  }, bodyMetricChartConfigs.map(renderBodyMetricChart)), normalizeWeightHistory(weightHistory).length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       display: metricsSection === "tracking" ? "block" : "none"
     }
@@ -10512,7 +10627,34 @@ function NutritionTracker({
       textTransform: "uppercase",
       marginBottom: 8
     }
-  }, lang === 'en' ? "History" : "Histórico"), [...normalizeWeightHistory(weightHistory)].reverse().map(e => {
+  }, lang === 'en' ? "History" : "Histórico"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowX: "auto",
+      maxHeight: 285,
+      borderTop: "1px solid var(--border3)",
+      borderBottom: "1px solid var(--border3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobileView ? "92px 82px 72px 84px 86px 96px 84px 104px" : "1fr 1fr 1fr 1fr 1fr 1fr 1fr 120px",
+      gap: 10,
+      minWidth: isMobileView ? 740 : 0,
+      alignItems: "center",
+      padding: "8px 6px",
+      fontSize: 11,
+      letterSpacing: 1,
+      color: "var(--dim)",
+      textTransform: "uppercase",
+      borderBottom: "1px solid var(--border3)",
+      position: "sticky",
+      top: 0,
+      background: "var(--bg)",
+      zIndex: 1
+    }
+  }, [lang === 'en' ? "Date" : "Data", lang === 'en' ? "Weight" : "Peso", t('bmi'), lang === 'en' ? "Fat" : "Gordura", lang === 'en' ? "Muscle" : "Músculo", lang === 'en' ? "Waist" : "Cintura", lang === 'en' ? "Protein" : "Proteína", ""].map(label => /*#__PURE__*/React.createElement("span", {
+    key: label || "actions"
+  }, label))), [...normalizeWeightHistory(weightHistory)].reverse().map(e => {
     const bE = e.height ? (e.weight / (e.height / 100) ** 2).toFixed(1) : null;
     const isEd = editingWeightId === e.date;
     return /*#__PURE__*/React.createElement("div", {
@@ -10625,8 +10767,10 @@ function NutritionTracker({
       }
     }, lang === 'en' ? "Cancel" : "Cancelar"))) : /*#__PURE__*/React.createElement("div", {
       style: {
-        display: "flex",
-        justifyContent: "space-between",
+        display: "grid",
+        gridTemplateColumns: isMobileView ? "92px 82px 72px 84px 86px 96px 84px 104px" : "1fr 1fr 1fr 1fr 1fr 1fr 1fr 120px",
+        gap: 10,
+        minWidth: isMobileView ? 740 : 0,
         alignItems: "center",
         padding: "7px 0",
         fontSize: 12
@@ -10639,19 +10783,23 @@ function NutritionTracker({
       style: {
         color: "#c8a96e"
       }
-    }, e.weight, " kg"), bE && /*#__PURE__*/React.createElement("span", {
+    }, e.weight, " kg"), /*#__PURE__*/React.createElement("span", {
       style: {
         color: "var(--muted)"
       }
-    }, t('bmi')+' ', bE), e.bodyFatPct && /*#__PURE__*/React.createElement("span", {
+    }, bE ? t('bmi') + " " + bE : "—"), /*#__PURE__*/React.createElement("span", {
       style: {
         color: "#c86e8e"
       }
-    }, e.bodyFatPct, "% ", lang === 'en' ? "fat" : "gord."), e.waistCm && /*#__PURE__*/React.createElement("span", {
+    }, e.bodyFatPct ? e.bodyFatPct + "% " + (lang === 'en' ? "fat" : "gord.") : "—"), /*#__PURE__*/React.createElement("span", {
       style: {
         color: "var(--muted)"
       }
-    }, e.waistCm, "cm ", lang === 'en' ? "waist" : "cint."), /*#__PURE__*/React.createElement("span", {
+    }, e.muscleMassKg ? e.muscleMassKg + "kg " + (lang === 'en' ? "muscle" : "musc.") : "—"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "var(--muted)"
+      }
+    }, e.waistCm ? e.waistCm + "cm " + (lang === 'en' ? "waist" : "cint.") : "—"), /*#__PURE__*/React.createElement("span", {
       style: {
         color: "var(--muted)"
       }
@@ -10672,7 +10820,7 @@ function NutritionTracker({
         cursor: "pointer"
       }
     }, t('editItem')), /*#__PURE__*/React.createElement("button", {
-      onClick: () => setWeightHistory(h => h.filter(x => x.id !== e.id)),
+      onClick: () => setWeightHistory(h => h.filter(x => x.date !== e.date)),
       style: {
         background: "none",
         border: "none",
@@ -10681,7 +10829,7 @@ function NutritionTracker({
         fontSize: 14
       }
     }, "\xD7"))));
-  })), weightHistory.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }))), weightHistory.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       color: "var(--faint)",
       fontSize: 14,
