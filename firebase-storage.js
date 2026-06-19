@@ -367,6 +367,7 @@ const PROFILE_FIELD_KEYS = new Set([
   "birthDate", "gender", "height", "activityLevel", "goalType", "goalKg", "goalWeeks",
   "manualCalorieAdjustment", "proteinMultiplier", "bodyFatGoal", "userName", "tutorialSeen",
   "language", "lastLoginAt", "lastActivityAt", "tutorial_most_recent_version_seen",
+  "_storageSchemaVerified", "_storageSchemaVerifiedAt", "_legacyCleanupDone",
   "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
   "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
 ]);
@@ -379,6 +380,56 @@ function _dataDocUrl3(k) {
 }
 function _isProfileKey3(k) {
   return PROFILE_FIELD_KEYS.has(k);
+}
+
+/**
+ * Normalizes scalar profile fields that may have been saved by older beta
+ * builds with legacy names or as JSON-encoded strings. Keeping this inside the
+ * persistence adapter prevents UI/profile validation code from knowing about
+ * temporary migration formats.
+ */
+function _normalizeProfileValue3(key, value) {
+  let parsed = _parseStorageJson3(value);
+  if (parsed === null || parsed === undefined) return parsed;
+
+  if (key === "goalType") {
+    const text = String(parsed);
+    if (["lose", "loss", "lose_weight", "weight_loss"].includes(text)) return "loss";
+    if (["gain", "gain_weight", "weight_gain"].includes(text)) return "gain";
+    if (["maintain", "maintenance", "keep"].includes(text)) return "maintenance";
+    return text;
+  }
+
+  if (key === "gender") {
+    const text = String(parsed).toLowerCase();
+    if (["masculino", "male", "m"].includes(text)) return "male";
+    if (["feminino", "female", "f"].includes(text)) return "female";
+    return text;
+  }
+
+  if (key === "activityLevel") {
+    const text = String(parsed);
+    const aliases = {
+      sedentario: "sedentary",
+      sedentary: "sedentary",
+      light: "light",
+      leve: "light",
+      moderate: "moderate",
+      moderado: "moderate",
+      very: "very",
+      muito: "very",
+      extreme: "extreme",
+      extremo: "extreme"
+    };
+    return aliases[text] || text;
+  }
+
+  return parsed;
+}
+
+function _storageRecord3(key, value) {
+  const normalized = _isProfileKey3(key) ? _normalizeProfileValue3(key, value) : _parseStorageJson3(value);
+  return normalized !== undefined && normalized !== null ? {value: _storageValue2(normalized)} : null;
 }
 async function _fetchRootFields3() {
   if (!_uid) return {};
@@ -452,6 +503,30 @@ async function _listDataKeys3() {
   } while (pageToken);
   _dataKeyCache3 = keys;
   return Array.from(keys);
+}
+
+/**
+ * Lists only legacy nutrition/{uid}_{key} documents that really exist.
+ * This keeps the temporary migration from doing hundreds of slow 404 reads
+ * during login while it searches for old beta data layouts.
+ */
+async function _listLegacyKeys3() {
+  if (!_uid) return new Set();
+  const keys = new Set();
+  let pageToken = "";
+  do {
+    const url = FB_BASE + "?pageSize=1000" + (pageToken ? "&pageToken=" + encodeURIComponent(pageToken) : "");
+    const r = await fetch(url, {headers: await fbHeaders()});
+    if (!r.ok) break;
+    const d = await r.json();
+    (d.documents || [])
+      .map(doc => decodeURIComponent(doc.name.split("/").pop()))
+      .filter(id => id.startsWith(_uid + "_"))
+      .map(id => id.slice(_uid.length + 1))
+      .forEach(key => keys.add(key));
+    pageToken = d.nextPageToken || "";
+  } while (pageToken);
+  return keys;
 }
 function _knownMigrationKeys3() {
   const base = [
@@ -564,8 +639,8 @@ function _extractProfileFromLegacyUserGoal3(rawUserGoal) {
   const userGoal = _parseStorageJson3(rawUserGoal);
   if (!userGoal || typeof userGoal !== "object") return {};
   const out = {};
-  if (userGoal.type && !out.goalType) out.goalType = userGoal.type;
-  if (userGoal.goalType && !out.goalType) out.goalType = userGoal.goalType;
+  if (userGoal.type && !out.goalType) out.goalType = _normalizeProfileValue3("goalType", userGoal.type);
+  if (userGoal.goalType && !out.goalType) out.goalType = _normalizeProfileValue3("goalType", userGoal.goalType);
   if (userGoal.kg !== undefined && userGoal.kg !== null) out.goalKg = String(userGoal.kg);
   if (userGoal.goalKg !== undefined && userGoal.goalKg !== null) out.goalKg = String(userGoal.goalKg);
   if (userGoal.weeks !== undefined && userGoal.weeks !== null) out.goalWeeks = String(userGoal.weeks);
@@ -590,11 +665,12 @@ async function migrateStorageToFirestoreV3(options) {
   const now = new Date().toISOString();
   const rootFields = await _loadRootFields3();
 
-  if (Number(rootFields._schemaVersion || 0) >= 4 && rootFields._legacyCleanupAt) {
+  if (rootFields._storageSchemaVerified === true || rootFields._storageSchemaVerified === "true") {
     return {migrated: 0, cleaned: 0, skipped: 1};
   }
 
   const dataKeys = new Set(await _listDataKeys3().catch(() => []));
+  const legacyKeys = await _listLegacyKeys3().catch(() => new Set());
   const rootDeletes = new Set();
   const dataDeletes = new Set();
   const legacyDeletes = new Set();
@@ -604,7 +680,7 @@ async function migrateStorageToFirestoreV3(options) {
   let cleanupFailures = 0;
 
   const finalKeys = _knownMigrationKeys3().filter(key => !["pantry", "userBirth", "userGender", "userActivity", "userGoal"].includes(key));
-  const legacyUserGoal = await _legacyGet2("userGoal").catch(() => null);
+  const legacyUserGoal = legacyKeys.has("userGoal") ? await _legacyGet2("userGoal").catch(() => null) : null;
   Object.assign(rootUpdates, _extractProfileFromLegacyUserGoal3(legacyUserGoal?.value));
   if (legacyUserGoal) legacyDeletes.add("userGoal");
 
@@ -614,6 +690,7 @@ async function migrateStorageToFirestoreV3(options) {
     const root = rootFields[key] !== undefined && rootFields[key] !== null ? {value: _storageValue2(rootFields[key])} : null;
     const legacyCandidates = [];
     for (const legacyKey of [key, ...aliases]) {
+      if (!legacyKeys.has(legacyKey)) continue;
       const legacy = await _legacyGet2(legacyKey).catch(() => null);
       if (legacy) {
         legacyCandidates.push({...legacy, legacyKey});
@@ -625,9 +702,10 @@ async function migrateStorageToFirestoreV3(options) {
     if (!mergedValue) continue;
 
     if (_isProfileKey3(key)) {
-      const currentValue = root ? root.value : null;
-      if (currentValue !== mergedValue) {
-        rootUpdates[key] = mergedValue;
+      const normalizedValue = _normalizeProfileValue3(key, mergedValue);
+      const currentValue = root ? _normalizeProfileValue3(key, root.value) : null;
+      if (currentValue !== normalizedValue) {
+        rootUpdates[key] = normalizedValue;
         migrated++;
       }
       if (data) dataDeletes.add(key);
@@ -645,8 +723,15 @@ async function migrateStorageToFirestoreV3(options) {
     await _patchRootFields3({
       ...rootUpdates,
       _schemaVersion: 4,
+      _storageSchemaVerified: true,
+      _storageSchemaVerifiedAt: now,
       _schemaMigratedAt: rootFields._schemaMigratedAt || now,
       _schemaNormalizedAt: now
+    }, []);
+  } else {
+    await _patchRootFields3({
+      _storageSchemaVerified: true,
+      _storageSchemaVerifiedAt: now
     }, []);
   }
 
@@ -684,9 +769,103 @@ async function migrateStorageToFirestoreV3(options) {
 
   return {migrated, cleaned, cleanupFailures, skipped: 0};
 }
+
+/**
+ * Temporary legacy cleanup for top-level nutrition/{uid}_{key} documents.
+ *
+ * This is intentionally separate from the normalizer: after a user account has
+ * been copied into the current structure, this can keep retrying lightweight
+ * deletes in the background without re-running the whole migration. Remove this
+ * function after all beta users have been normalized and old docs are gone.
+ */
+async function cleanupLegacyNutritionDocsV3() {
+  if (!_uid) return {cleaned: 0, failed: 0, skipped: 1};
+  const now = new Date().toISOString();
+  const rootFields = await _loadRootFields3();
+  if (rootFields._legacyCleanupDone === true || rootFields._legacyCleanupDone === "true") {
+    return {cleaned: 0, failed: 0, skipped: 1};
+  }
+
+  const legacyKeys = Array.from(await _listLegacyKeys3().catch(() => new Set()));
+  if (!legacyKeys.length) {
+    await _patchRootFields3({
+      _legacyCleanupDone: true,
+      _legacyCleanupAt: now
+    }, ["_legacyCleanupErrorAt"]);
+    return {cleaned: 0, failed: 0, skipped: 0};
+  }
+
+  const results = await Promise.allSettled(legacyKeys.map(key => _legacyDelete3(key)));
+  const failed = results.filter(result => result.status === "rejected").length;
+  const cleaned = results.length - failed;
+
+  if (failed) {
+    await _patchRootFields3({
+      _legacyCleanupDone: false,
+      _legacyCleanupErrorAt: now
+    }, []);
+  } else {
+    await _patchRootFields3({
+      _legacyCleanupDone: true,
+      _legacyCleanupAt: now
+    }, ["_legacyCleanupErrorAt"]);
+  }
+
+  return {cleaned, failed, skipped: 0};
+}
+
+/**
+ * Deletes all Firestore data owned by the currently authenticated user.
+ *
+ * Firebase Authentication does not cascade-delete Firestore documents. Account
+ * deletion must therefore call this before accounts:delete, while the user's
+ * token still exists. It removes the current schema first
+ * (nutrition/{uid}/data/*, then nutrition/{uid}) and then the temporary legacy
+ * nutrition/{uid}_{key} documents used by older beta builds.
+ */
+async function deleteCurrentUserFirestoreData3() {
+  if (!_uid) throw new Error("No authenticated user");
+
+  const dataKeys = await _listDataKeys3().catch(() => []);
+  const legacyKeys = Array.from(await _listLegacyKeys3().catch(() => new Set()));
+  let deleted = 0;
+  let failed = 0;
+
+  for (let i = 0; i < dataKeys.length; i += 20) {
+    const results = await Promise.allSettled(dataKeys.slice(i, i + 20).map(key => _deleteDataDoc3(key)));
+    deleted += results.filter(result => result.status === "fulfilled").length;
+    failed += results.filter(result => result.status === "rejected").length;
+  }
+
+  for (let i = 0; i < legacyKeys.length; i += 20) {
+    const results = await Promise.allSettled(legacyKeys.slice(i, i + 20).map(key => _legacyDelete3(key)));
+    deleted += results.filter(result => result.status === "fulfilled").length;
+    failed += results.filter(result => result.status === "rejected").length;
+  }
+
+  const rootDelete = await fetch(_userDocUrl2(), {
+    method: "DELETE",
+    headers: await fbHeaders()
+  });
+  if (rootDelete.ok || rootDelete.status === 404) {
+    deleted++;
+  } else {
+    failed++;
+  }
+
+  _resetFirestoreCaches();
+
+  if (failed) throw new Error("Some account data could not be deleted");
+  return {deleted, failed};
+}
+
 window.migrateStorageToFirestoreV3 = migrateStorageToFirestoreV3;
 window.migrateLegacyNutritionDocs = migrateStorageToFirestoreV3;
 window.normalizeCurrentUserStorage = migrateStorageToFirestoreV3;
+window.cleanupLegacyNutritionDocs = cleanupLegacyNutritionDocsV3;
+window.deleteCurrentUserFirestoreData = deleteCurrentUserFirestoreData3;
+window.exportFullAccountBackup = exportFullAccountBackup3;
+window.importFullAccountBackup = importFullAccountBackup3;
 async function _ensureStorageMigration3() {
   if (!_migrationPromise3) _migrationPromise3 = migrateStorageToFirestoreV3({cleanup: true}).catch(error => ({error: error?.message || String(error)}));
   await _migrationPromise3;
@@ -696,11 +875,16 @@ async function fbGet3(k) {
   if (!_migrationPromise3) _ensureStorageMigration3();
   if (_isProfileKey3(k)) {
     const fields = await _loadRootFields3();
-    if (fields[k] !== undefined && fields[k] !== null) return {value: _storageValue2(fields[k])};
+    if (fields[k] !== undefined && fields[k] !== null) {
+      const normalized = _normalizeProfileValue3(k, fields[k]);
+      if (normalized !== fields[k]) _patchRootFields3({[k]: normalized}, []).catch(() => {});
+      return _storageRecord3(k, normalized);
+    }
     const misplacedData = await _getDataDoc3(k).catch(() => null);
     if (misplacedData) {
-      _patchRootFields3({[k]: misplacedData.value}, []).catch(() => {});
-      return misplacedData;
+      const normalized = _normalizeProfileValue3(k, misplacedData.value);
+      _patchRootFields3({[k]: normalized}, []).catch(() => {});
+      return _storageRecord3(k, normalized);
     }
   } else {
     const data = await _getDataDoc3(k).catch(() => null);
@@ -722,18 +906,20 @@ async function fbGet3(k) {
   if (legacy && !(_isCriticalStorageKey3(k) && _isEmptyStoredValue3(legacy.value))) {
     fbSet3(k, legacy.value).catch(() => {});
   }
-  if (legacy && !(_isCriticalStorageKey3(k) && _isEmptyStoredValue3(legacy.value))) return legacy;
+  if (legacy && !(_isCriticalStorageKey3(k) && _isEmptyStoredValue3(legacy.value))) {
+    return _storageRecord3(k, legacy.value);
+  }
   const local = _localFallbackGet3(k);
   if (local && !(_isCriticalStorageKey3(k) && _isEmptyStoredValue3(local.value))) {
     fbSet3(k, local.value).catch(() => {});
-    return local;
+    return _storageRecord3(k, local.value);
   }
-  return local;
+  return local ? _storageRecord3(k, local.value) : null;
 }
 async function fbSet3(k, v) {
   if (!_uid) return;
   const value = typeof v === "string" ? v : JSON.stringify(v);
-  if (_isProfileKey3(k)) await _patchRootFields3({[k]: value}, []);
+  if (_isProfileKey3(k)) await _patchRootFields3({[k]: _normalizeProfileValue3(k, value)}, []);
   else await _setDataDoc3(k, value);
 }
 async function fbDel3(k) {
@@ -747,6 +933,124 @@ async function fbList3(p) {
   const dataKeys = await _listDataKeys3().catch(() => []);
   const keys = Array.from(new Set([...rootKeys, ...dataKeys]));
   return {keys: p ? keys.filter(k => k.indexOf(p) === 0) : keys};
+}
+
+const ACCOUNT_BACKUP_SCHEMA = "nutrition-tracker-account-backup";
+const ACCOUNT_BACKUP_VERSION = 3;
+
+/**
+ * Builds a complete account backup from every storage shape the app can read.
+ *
+ * storage.list() is intentionally app-facing: it hides internal fields and does
+ * not enumerate legacy nutrition/{uid}_{key} documents. This function is
+ * backup-facing, so it includes root profile fields, current data documents, and
+ * legacy documents. Values stay in storage-string form so import can replay
+ * them without changing numeric precision or object schemas.
+ */
+async function exportFullAccountBackup3() {
+  if (!_uid) throw new Error("No authenticated user");
+
+  const rootFields = await _loadRootFields3().catch(() => ({}));
+  const dataKeys = await _listDataKeys3().catch(() => []);
+  const legacyKeys = Array.from(await _listLegacyKeys3().catch(() => new Set()));
+
+  const root = {};
+  Object.entries(rootFields || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) root[key] = _storageValue2(value);
+  });
+
+  const data = {};
+  for (let i = 0; i < dataKeys.length; i += 20) {
+    await Promise.all(dataKeys.slice(i, i + 20).map(async key => {
+      const doc = await _getDataDoc3(key).catch(() => null);
+      if (doc && doc.value !== undefined && doc.value !== null) data[key] = doc.value;
+    }));
+  }
+
+  const legacy = {};
+  for (let i = 0; i < legacyKeys.length; i += 20) {
+    await Promise.all(legacyKeys.slice(i, i + 20).map(async key => {
+      const doc = await _legacyGet2(key).catch(() => null);
+      if (doc && doc.value !== undefined && doc.value !== null) legacy[key] = doc.value;
+    }));
+  }
+
+  return {
+    schema: ACCOUNT_BACKUP_SCHEMA,
+    version: ACCOUNT_BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    uid: _uid,
+    root,
+    data,
+    legacy,
+    counts: {
+      root: Object.keys(root).length,
+      data: Object.keys(data).length,
+      legacy: Object.keys(legacy).length
+    }
+  };
+}
+
+function _normalizeBackupPayload3(rawBackup) {
+  const backup = rawBackup || {};
+
+  if (backup.schema === ACCOUNT_BACKUP_SCHEMA && backup.version >= 3) {
+    return {
+      ...(backup.legacy || {}),
+      ...(backup.root || {}),
+      ...(backup.data || {})
+    };
+  }
+
+  if (backup.data && typeof backup.data === "object" && !Array.isArray(backup.data)) {
+    return {...backup.data};
+  }
+
+  if (typeof backup === "object" && !Array.isArray(backup)) {
+    return {...backup};
+  }
+
+  return {};
+}
+
+function _shouldSkipBackupImportKey3(key) {
+  // Migration/cache metadata belongs to the previous account state. The target
+  // account receives fresh migration flags after user data is restored.
+  return !key || key.startsWith("_") || key === "uid";
+}
+
+/**
+ * Restores any supported full-backup shape into the current account.
+ *
+ * Legacy keys are imported through fbSet3(), not recreated as legacy docs. That
+ * means a backup from an old account is restored directly into the current
+ * nutrition/{uid} + nutrition/{uid}/data/{key} structure.
+ */
+async function importFullAccountBackup3(rawBackup) {
+  if (!_uid) throw new Error("No authenticated user");
+
+  const flat = _normalizeBackupPayload3(rawBackup);
+  const keys = Object.keys(flat).filter(key => !_shouldSkipBackupImportKey3(key));
+  let imported = 0;
+
+  for (let i = 0; i < keys.length; i += 15) {
+    await Promise.all(keys.slice(i, i + 15).map(async key => {
+      await fbSet3(key, flat[key]);
+      imported++;
+    }));
+  }
+
+  await _patchRootFields3({
+    _schemaVersion: 4,
+    _storageSchemaVerified: true,
+    _storageSchemaVerifiedAt: new Date().toISOString(),
+    _legacyCleanupDone: true
+  }, ["_legacyCleanupErrorAt"]);
+
+  return {
+    imported,
+    skipped: Object.keys(flat).length - keys.length
+  };
 }
 
 /**
