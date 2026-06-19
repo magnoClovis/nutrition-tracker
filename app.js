@@ -8,6 +8,16 @@ const APP_VERSION_LABEL = window.APP_VERSION_LABEL || "Diário Nutricional v0.7.
 const TUTORIAL_TYPES = ["main", "diario", "adicionar", "despensa", "semana", "metricas"];
 const MOST_RECENT_TUTORIAL_KEY = "tutorial_most_recent_version_seen";
 const tutorialSeenKey = type => "tutorialSeen_" + type;
+
+/**
+ * Reads tutorial flags safely across legacy/string and current/boolean values.
+ * Input: storage record shaped like { value }. Output: true only when the user
+ * has explicitly completed the tutorial/release cycle.
+ */
+function hasSeenTutorial(record) {
+  return record && (record.value === true || record.value === "true");
+}
+
 const TODAY = new Date().toISOString().split("T")[0];
 function rnd(value) {
   const n = Number(value) || 0;
@@ -1191,7 +1201,7 @@ function NutritionTracker({
     setTab(nextTab);
     if (opts.skipTutorial || window.__tutorialNavigating) return;
     storage.get(tutorialSeenKey(nextTab)).then(r => {
-      if (!r || !r.value) {
+      if (!hasSeenTutorial(r)) {
         setTimeout(() => onStartTutorial && onStartTutorial(nextTab), 120);
       }
     }).catch(() => {});
@@ -13566,13 +13576,13 @@ function App() {
     }
     await checkRequiredProfile();
     const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(()=>null);
-    if (!tutorialVersion || tutorialVersion.value !== "true") {
+    if (!hasSeenTutorial(tutorialVersion)) {
       await ensureCurrentVersionTutorialPending(tutorialVersion?.value);
       setShowReleaseNotice(true);
       return;
     }
     storage.get(tutorialSeenKey('main')).then(r => {
-      if (isNew || !r || !r.value) { setTutorialType('main'); setShowTutorial(true); }
+      if (isNew || !hasSeenTutorial(r)) { setTutorialType('main'); setShowTutorial(true); }
     }).catch(()=>{});
   }
 
@@ -13590,7 +13600,7 @@ function App() {
         }
         storage.set('lastLoginAt', new Date().toISOString()).catch(()=>{});
         const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(()=>null);
-        if (!tutorialVersion || tutorialVersion.value !== "true") {
+        if (!hasSeenTutorial(tutorialVersion)) {
           await ensureCurrentVersionTutorialPending(tutorialVersion?.value);
           setShowReleaseNotice(true);
         }
