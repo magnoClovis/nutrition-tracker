@@ -64,6 +64,26 @@ async function fbSendVerificationEmail() {
   });
 }
 
+/**
+ * Sends Firebase's native password-reset email to the provided address.
+ * Input: account email. Output: resolves when Firebase accepts the request.
+ * The UI intentionally shows a neutral message so account existence is not
+ * exposed through the login screen.
+ */
+async function fbSendPasswordResetEmail(email) {
+  const r = await fetch(AUTH_BASE + ":sendOobCode?key=" + FB_KEY, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      requestType: "PASSWORD_RESET",
+      email: String(email || "").trim()
+    })
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error?.message || "Password reset failed");
+  return d;
+}
+
 async function fbCheckEmailVerified() {
   const token = await fbToken();
   const r = await fetch(AUTH_BASE + ":lookup?key=" + FB_KEY, {

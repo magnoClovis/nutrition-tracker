@@ -13314,7 +13314,9 @@ function LoginScreen({onLogin, onPendingVerification}) {
   const [password, setPassword]   = React.useState('');
   const [password2, setPassword2] = React.useState('');
   const [error, setError]         = React.useState('');
+  const [resetMessage, setResetMessage] = React.useState('');
   const [loading, setLoading]     = React.useState(false);
+  const [resetLoading, setResetLoading] = React.useState(false);
   const [loginLang, setLoginLang] = React.useState(() => localStorage.getItem('appLang') || 'pt');
   const [regWeight, setRegWeight] = React.useState('');
   const [regHeight, setRegHeight] = React.useState('');
@@ -13337,6 +13339,9 @@ function LoginScreen({onLogin, onPendingVerification}) {
     ? {title:'Diário Nutricional', login:'Entrar', register:'Criar conta',
        email:'Email', password:'Senha', confirm:'Confirmar senha',
        loginBtn:'Entrar', registerBtn:'Criar conta', processing:'Processando...',
+       forgotPassword:'Esqueci minha senha', resetSending:'Enviando...',
+       resetSent:'Se existir uma conta com esse e-mail, enviaremos as instruções de recuperação.',
+       resetEmailRequired:'Digite seu e-mail para recuperar a senha.',
        tabLogin:'Entrar', tabRegister:'Criar conta',
        ownData:'Cada conta tem seus próprios dados separados.',
        errCredentials:'Email ou senha incorretos.', errPassword:'Senha incorreta.',
@@ -13349,6 +13354,9 @@ function LoginScreen({onLogin, onPendingVerification}) {
     : {title:'Nutrition Diary', login:'Sign in', register:'Create account',
        email:'Email', password:'Password', confirm:'Confirm password',
        loginBtn:'Sign in', registerBtn:'Create account', processing:'Processing...',
+       forgotPassword:'Forgot password?', resetSending:'Sending...',
+       resetSent:'If an account exists for this email, password recovery instructions will be sent.',
+       resetEmailRequired:'Enter your email to recover your password.',
        tabLogin:'Sign in', tabRegister:'Create account',
        ownData:'Each account has its own separate data.',
        errCredentials:'Incorrect email or password.', errPassword:'Incorrect password.',
@@ -13372,6 +13380,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setResetMessage('');
     if (mode === 'register' && password !== password2) { setError(S.errMatch); return; }
     if (mode === 'register' && password.length < 6)   { setError(S.errShort); return; }
     setLoading(true);
@@ -13409,7 +13418,35 @@ function LoginScreen({onLogin, onPendingVerification}) {
     setLoading(false);
   }
 
-  function switchMode(m) { setMode(m); setError(''); setPassword(''); setPassword2(''); }
+  /**
+   * Requests a Firebase password reset email for the current login email.
+   * Input: current email field. Output: neutral status message or validation
+   * error; the message does not reveal whether an account exists.
+   */
+  async function handlePasswordReset() {
+    const cleanEmail = String(email || "").trim();
+    setError('');
+    setResetMessage('');
+    if (!cleanEmail) {
+      setError(S.resetEmailRequired);
+      return;
+    }
+    setResetLoading(true);
+    try {
+      await fbSendPasswordResetEmail(cleanEmail);
+      setResetMessage(S.resetSent);
+    } catch (err) {
+      if (String(err.message || "").includes("EMAIL_NOT_FOUND")) {
+        setResetMessage(S.resetSent);
+      } else {
+        setError(friendlyError(err.message));
+      }
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
+  function switchMode(m) { setMode(m); setError(''); setResetMessage(''); setPassword(''); setPassword2(''); }
 
   const inp = {width:'100%',background:'var(--input)',border:'1px solid var(--border2)',color:'var(--text)',
     padding:'12px 14px',borderRadius:8,fontSize:15,fontFamily:'inherit',
@@ -13479,6 +13516,23 @@ function LoginScreen({onLogin, onPendingVerification}) {
           style:{...inp, marginBottom: mode==='register'?12:error?8:20},
           autoComplete: mode==='login'?'current-password':'new-password'
         }),
+        mode === 'login' && React.createElement('button', {
+          type:'button',
+          onClick:handlePasswordReset,
+          disabled:resetLoading || loading,
+          style:{
+            width:'100%',
+            background:'none',
+            border:'none',
+            color:'var(--btn-info-text)',
+            cursor:(resetLoading || loading)?'default':'pointer',
+            fontSize:12,
+            fontFamily:'inherit',
+            textAlign:'right',
+            padding:'0 2px 14px',
+            opacity:(resetLoading || loading)?0.65:1
+          }
+        }, resetLoading ? S.resetSending : S.forgotPassword),
         mode === 'register' && React.createElement('input', {
           type:'password', value:password2, onChange:e=>setPassword2(e.target.value),
           placeholder:S.confirm, required:true,
@@ -13524,6 +13578,11 @@ function LoginScreen({onLogin, onPendingVerification}) {
           color:'#c87e7e',fontSize:12,marginBottom:16,padding:'8px 12px',
           background:'rgba(200,80,80,0.1)',borderRadius:6,border:'1px solid rgba(200,80,80,0.2)'
         }}, error),
+        resetMessage && React.createElement('div', {style:{
+          color:'var(--btn-ok-text)',fontSize:12,marginBottom:16,padding:'8px 12px',
+          background:'rgba(80,160,80,0.1)',borderRadius:6,border:'1px solid var(--btn-ok-border)',
+          lineHeight:1.4
+        }}, resetMessage),
         React.createElement('button', {
           type:'submit', disabled:loading, style:{
             width:'100%',
