@@ -30,10 +30,11 @@ service cloud.firestore {
         return signedIn() && docId.matches('^' + request.auth.uid + '_.*$');
       }
 
-      // Temporary migration window. Legacy docs nutrition/{uid}_{field}
-      // stay read-only so old data can be copied into the new structure.
-      allow read: if isOwnLegacyDoc();
-      allow create, update, delete: if false;
+      // Temporary beta migration window. The app may copy and then delete only
+      // the signed-in user's own legacy nutrition/{uid}_{field} documents.
+      // Remove this delete permission after old accounts have normalized.
+      allow read, delete: if isOwnLegacyDoc();
+      allow create, update: if false;
     }
   }
 }

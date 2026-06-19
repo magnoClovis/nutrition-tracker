@@ -241,6 +241,7 @@ function _localFallbackGet3(k) {
 function _isCriticalStorageKey3(k) {
   return [
     "pantry_v2",
+    "suppPantry",
     "weightHistory",
     "goalHistory",
     "mealTemplates",
@@ -454,10 +455,11 @@ async function _listDataKeys3() {
 }
 function _knownMigrationKeys3() {
   const base = [
-    "pantry_v2", "suppPantry", "waterGoal", "customGoals", "goalHistory",
+    "pantry", "pantry_v2", "suppPantry", "waterGoal", "customGoals", "goalHistory",
     "mealTemplates", "weightHistory", "trainingByDate", "birthDate", "gender",
     "activityLevel", "goalType", "goalKg", "goalWeeks", "manualCalorieAdjustment",
     "proteinMultiplier", "bodyFatGoal", "userName", "tutorialSeen",
+    "userBirth", "userGender", "userActivity", "userGoal",
     "language", "lastLoginAt", "lastActivityAt", "tutorial_most_recent_version_seen",
     "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
     "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
@@ -471,64 +473,222 @@ function _knownMigrationKeys3() {
   }
   return Array.from(new Set([...base, ...dateKeys]));
 }
+
+function _parseStorageJson3(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string") return value;
+  const text = value.trim();
+  if (!text) return null;
+  try { return JSON.parse(text); } catch (_) { return value; }
+}
+
+function _normalizedIdentity3(item) {
+  if (!item || typeof item !== "object") return JSON.stringify(item);
+  if (item.date) return "date:" + item.date;
+  if (item.id) return "id:" + item.id;
+  if (item.name) return "name:" + String(item.name).trim().toLowerCase();
+  return JSON.stringify(item);
+}
+
+function _richnessScore3(value) {
+  if (value === null || value === undefined) return 0;
+  if (Array.isArray(value)) return value.length * 10 + value.reduce((s, item) => s + _richnessScore3(item), 0);
+  if (typeof value === "object") return Object.keys(value).length + Object.values(value).reduce((s, item) => s + _richnessScore3(item), 0);
+  return String(value).trim() ? 1 : 0;
+}
+
+function _mergeArrayValues3(values) {
+  const byKey = new Map();
+  values.flat().forEach(item => {
+    if (item === null || item === undefined) return;
+    const identity = _normalizedIdentity3(item);
+    const current = byKey.get(identity);
+    if (!current || _richnessScore3(item) >= _richnessScore3(current)) byKey.set(identity, item);
+  });
+  const merged = Array.from(byKey.values());
+  if (merged.every(item => item && typeof item === "object" && item.date)) {
+    return merged.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  }
+  if (merged.every(item => item && typeof item === "object" && item.name)) {
+    return merged.sort((a, b) => String(a.name).localeCompare(String(b.name), "pt"));
+  }
+  return merged;
+}
+
+function _mergeObjectValues3(values) {
+  const out = {};
+  values.forEach(value => {
+    Object.entries(value || {}).forEach(([key, nextValue]) => {
+      const currentValue = out[key];
+      if (currentValue && typeof currentValue === "object" && nextValue && typeof nextValue === "object" && !Array.isArray(currentValue) && !Array.isArray(nextValue)) {
+        out[key] = _richnessScore3(nextValue) >= _richnessScore3(currentValue) ? {...currentValue, ...nextValue} : {...nextValue, ...currentValue};
+      } else if (currentValue === undefined || _richnessScore3(nextValue) >= _richnessScore3(currentValue)) {
+        out[key] = nextValue;
+      }
+    });
+  });
+  return out;
+}
+
+function _mergeStoredValues3(candidates) {
+  const parsedValues = candidates
+    .filter(candidate => candidate && !_isEmptyStoredValue3(candidate.value))
+    .map(candidate => _parseStorageJson3(candidate.value))
+    .filter(value => value !== null && value !== undefined);
+
+  if (!parsedValues.length) return null;
+  if (parsedValues.some(Array.isArray)) return _storageValue2(_mergeArrayValues3(parsedValues.filter(Array.isArray)));
+  if (parsedValues.some(value => value && typeof value === "object")) {
+    return _storageValue2(_mergeObjectValues3(parsedValues.filter(value => value && typeof value === "object" && !Array.isArray(value))));
+  }
+  parsedValues.sort((a, b) => _richnessScore3(b) - _richnessScore3(a));
+  return _storageValue2(parsedValues[0]);
+}
+
+async function _legacyDelete3(k) {
+  const r = await fetch(_legacyDocUrl2(k), {method: "DELETE", headers: await fbHeaders()});
+  if (!r.ok && r.status !== 404) throw new Error("Legacy delete failed");
+}
+
+function _legacyAliasesForKey3(key) {
+  const aliases = {
+    pantry_v2: ["pantry"],
+    birthDate: ["userBirth"],
+    gender: ["userGender"],
+    activityLevel: ["userActivity"]
+  };
+  return aliases[key] || [];
+}
+
+function _extractProfileFromLegacyUserGoal3(rawUserGoal) {
+  const userGoal = _parseStorageJson3(rawUserGoal);
+  if (!userGoal || typeof userGoal !== "object") return {};
+  const out = {};
+  if (userGoal.type && !out.goalType) out.goalType = userGoal.type;
+  if (userGoal.goalType && !out.goalType) out.goalType = userGoal.goalType;
+  if (userGoal.kg !== undefined && userGoal.kg !== null) out.goalKg = String(userGoal.kg);
+  if (userGoal.goalKg !== undefined && userGoal.goalKg !== null) out.goalKg = String(userGoal.goalKg);
+  if (userGoal.weeks !== undefined && userGoal.weeks !== null) out.goalWeeks = String(userGoal.weeks);
+  if (userGoal.goalWeeks !== undefined && userGoal.goalWeeks !== null) out.goalWeeks = String(userGoal.goalWeeks);
+  return out;
+}
+
+/**
+ * Temporary account-normalization migration.
+ *
+ * Purpose: users created during earlier beta builds may have data split across
+ * nutrition/{uid}, nutrition/{uid}/data/{key}, legacy nutrition/{uid}_{key}
+ * documents, and sometimes browser localStorage. This routine runs after login,
+ * copies the richest available data into the final structure, and deletes only
+ * the authenticated user's legacy documents/old root fields after a successful
+ * write. Once active users have naturally logged in and normalized, this block
+ * can be removed together with the temporary legacy-delete Firestore rule.
+ */
 async function migrateStorageToFirestoreV3(options) {
-  if (!_uid) return {migrated: 0, skipped: 0};
-  const onlyIfMissing = !options || options.onlyIfMissing !== false;
-  let migrated = 0;
-  let skipped = 0;
+  if (!_uid) return {migrated: 0, cleaned: 0, skipped: 0};
+  const cleanup = !options || options.cleanup !== false;
+  const now = new Date().toISOString();
   const rootFields = await _loadRootFields3();
+
+  if (Number(rootFields._schemaVersion || 0) >= 4 && rootFields._legacyCleanupAt) {
+    return {migrated: 0, cleaned: 0, skipped: 1};
+  }
+
   const dataKeys = new Set(await _listDataKeys3().catch(() => []));
-  for (const [key, value] of Object.entries(rootFields)) {
-    if (_isProfileKey3(key) || value === undefined || value === null) continue;
-    if (onlyIfMissing && dataKeys.has(key)) {
-      skipped++;
-      continue;
-    }
-    try {
-      await _setDataDoc3(key, _storageValue2(value));
-      migrated++;
-      dataKeys.add(key);
-    } catch (_) {}
-  }
-  for (const key of _knownMigrationKeys3()) {
-    const hasNew = _isProfileKey3(key)
-      ? rootFields[key] !== undefined && rootFields[key] !== null
-      : dataKeys.has(key);
-    if (onlyIfMissing && hasNew) {
-      skipped++;
-      continue;
-    }
-    if (_isProfileKey3(key) && dataKeys.has(key)) {
-      const misplacedData = await _getDataDoc3(key).catch(() => null);
-      if (misplacedData) {
-        try {
-          await _patchRootFields3({[key]: misplacedData.value}, []);
-          rootFields[key] = misplacedData.value;
-          migrated++;
-          continue;
-        } catch (_) {}
+  const rootDeletes = new Set();
+  const dataDeletes = new Set();
+  const legacyDeletes = new Set();
+  const rootUpdates = {};
+  let migrated = 0;
+  let cleaned = 0;
+  let cleanupFailures = 0;
+
+  const finalKeys = _knownMigrationKeys3().filter(key => !["pantry", "userBirth", "userGender", "userActivity", "userGoal"].includes(key));
+  const legacyUserGoal = await _legacyGet2("userGoal").catch(() => null);
+  Object.assign(rootUpdates, _extractProfileFromLegacyUserGoal3(legacyUserGoal?.value));
+  if (legacyUserGoal) legacyDeletes.add("userGoal");
+
+  for (const key of finalKeys) {
+    const aliases = _legacyAliasesForKey3(key);
+    const data = dataKeys.has(key) ? await _getDataDoc3(key).catch(() => null) : null;
+    const root = rootFields[key] !== undefined && rootFields[key] !== null ? {value: _storageValue2(rootFields[key])} : null;
+    const legacyCandidates = [];
+    for (const legacyKey of [key, ...aliases]) {
+      const legacy = await _legacyGet2(legacyKey).catch(() => null);
+      if (legacy) {
+        legacyCandidates.push({...legacy, legacyKey});
+        legacyDeletes.add(legacyKey);
       }
     }
-    const legacy = await _legacyGet2(key).catch(() => null);
-    if (!legacy) continue;
-    try {
-      if (_isProfileKey3(key)) {
-        await _patchRootFields3({[key]: legacy.value}, []);
-        rootFields[key] = legacy.value;
-      } else {
-        await _setDataDoc3(key, legacy.value);
+    const local = _localFallbackGet3(key);
+    const mergedValue = _mergeStoredValues3([data, root, local, ...legacyCandidates]);
+    if (!mergedValue) continue;
+
+    if (_isProfileKey3(key)) {
+      const currentValue = root ? root.value : null;
+      if (currentValue !== mergedValue) {
+        rootUpdates[key] = mergedValue;
+        migrated++;
+      }
+      if (data) dataDeletes.add(key);
+    } else {
+      if (!data || data.value !== mergedValue) {
+        await _setDataDoc3(key, mergedValue);
         dataKeys.add(key);
+        migrated++;
       }
-      migrated++;
-    } catch (_) {}
+      if (root) rootDeletes.add(key);
+    }
   }
-  await _patchRootFields3({_schemaVersion: 3, _schemaMigratedAt: new Date().toISOString()}, []);
-  return {migrated, skipped};
+
+  if (Object.keys(rootUpdates).length || migrated || cleaned) {
+    await _patchRootFields3({
+      ...rootUpdates,
+      _schemaVersion: 4,
+      _schemaMigratedAt: rootFields._schemaMigratedAt || now,
+      _schemaNormalizedAt: now
+    }, []);
+  }
+
+  if (cleanup) {
+    for (const key of rootDeletes) {
+      try {
+        await _patchRootFields3({}, [key]);
+        cleaned++;
+      } catch (_) {
+        cleanupFailures++;
+      }
+    }
+    for (const key of dataDeletes) {
+      try {
+        await _deleteDataDoc3(key);
+        cleaned++;
+      } catch (_) {
+        cleanupFailures++;
+      }
+    }
+    for (const key of legacyDeletes) {
+      try {
+        await _legacyDelete3(key);
+        cleaned++;
+      } catch (_) {
+        cleanupFailures++;
+      }
+    }
+    if (cleanupFailures) {
+      await _patchRootFields3({_legacyCleanupErrorAt: now}, []);
+    } else {
+      await _patchRootFields3({_legacyCleanupAt: now}, []);
+    }
+  }
+
+  return {migrated, cleaned, cleanupFailures, skipped: 0};
 }
 window.migrateStorageToFirestoreV3 = migrateStorageToFirestoreV3;
 window.migrateLegacyNutritionDocs = migrateStorageToFirestoreV3;
+window.normalizeCurrentUserStorage = migrateStorageToFirestoreV3;
 async function _ensureStorageMigration3() {
-  if (!_migrationPromise3) _migrationPromise3 = migrateStorageToFirestoreV3({onlyIfMissing: true}).catch(() => null);
+  if (!_migrationPromise3) _migrationPromise3 = migrateStorageToFirestoreV3({cleanup: true}).catch(error => ({error: error?.message || String(error)}));
   await _migrationPromise3;
 }
 async function fbGet3(k) {
@@ -597,6 +757,7 @@ async function fbList3(p) {
 window.debugNutritionStorage = async function debugNutritionStorage(keys) {
   const requested = keys || [
     "pantry_v2",
+    "suppPantry",
     "weightHistory",
     "goalHistory",
     "mealTemplates",

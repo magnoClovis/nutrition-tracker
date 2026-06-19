@@ -13477,8 +13477,30 @@ function App() {
     setRequiredProfile(hasRequiredProfileData(profile) ? null : profile);
     setProfileChecking(false);
   }
+
+  /**
+   * Runs the temporary Firestore account normalizer after authentication.
+   * It copies legacy nutrition/{uid}_{key} data into the current structure and,
+   * when Firestore rules allow it, removes only this user's old legacy docs.
+   * Remove this call once all beta accounts have been normalized.
+   */
+  async function normalizeStorageAfterLogin() {
+    if (typeof window.normalizeCurrentUserStorage !== 'function') return null;
+    try {
+      const result = await window.normalizeCurrentUserStorage({cleanup: true});
+      if (result?.error || result?.cleanupFailures) {
+        console.warn('Storage normalization completed with warnings', result);
+      }
+      return result;
+    } catch (error) {
+      console.warn('Storage normalization failed', error);
+      return null;
+    }
+  }
+
   async function afterAuthenticated(isNew) {
     setAuthed(true);
+    await normalizeStorageAfterLogin();
     storage.set('lastLoginAt', new Date().toISOString()).catch(()=>{});
     const savedLang = await storage.get('language').catch(()=>null);
     if (savedLang?.value === 'pt' || savedLang?.value === 'en') {
@@ -13487,7 +13509,7 @@ function App() {
     } else {
       storage.set('language', localStorage.getItem('appLang') || lang || 'pt').catch(()=>{});
     }
-    checkRequiredProfile();
+    await checkRequiredProfile();
     const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(()=>null);
     if (!tutorialVersion || tutorialVersion.value !== "true") {
       await ensureCurrentVersionTutorialPending(tutorialVersion?.value);
@@ -13505,6 +13527,7 @@ function App() {
     fbRefreshToken()
       .then(async () => {
         clearTimeout(timeout);
+        await normalizeStorageAfterLogin();
         const savedLang = await storage.get('language').catch(()=>null);
         if (savedLang?.value === 'pt' || savedLang?.value === 'en') {
           localStorage.setItem('appLang', savedLang.value);
@@ -13517,7 +13540,7 @@ function App() {
           setShowReleaseNotice(true);
         }
         setChecking(false);
-        checkRequiredProfile();
+        await checkRequiredProfile();
       })
       .catch(() => { clearTimeout(timeout); fbSignOut(); setAuthed(false); setChecking(false); setProfileChecking(false); });
   }, []);
