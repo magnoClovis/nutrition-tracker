@@ -1,0 +1,2230 @@
+{
+  "exportedAt": "2026-06-19T05:29:06.689776+00:00",
+  "totalNutritionDocs": 230,
+  "users": {
+    "3GND4Y4HTwMM9lGsczrNJ8uisTp1": {
+      "uid": "3GND4Y4HTwMM9lGsczrNJ8uisTp1",
+      "rootFieldCount": 4,
+      "rootKeys": [
+        "log_v2_2026-06-11",
+        "suppLog_2026-06-11",
+        "tutorialSeen",
+        "waterIntake_2026-06-11"
+      ],
+      "dataSubcollectionCount": 0,
+      "dataKeys": [],
+      "importantCounts": {}
+    },
+    "Co1u7DO3fwhaf9rXy65X3HbMH3B2": {
+      "uid": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "rootFieldCount": 25,
+      "rootKeys": [
+        "_schemaMigratedAt",
+        "_schemaVersion",
+        "activityLevel",
+        "birthDate",
+        "gender",
+        "goalKg",
+        "goalType",
+        "goalWeeks",
+        "lastActivityAt",
+        "lastLoginAt",
+        "releaseNoticeSeen_v0_7_5",
+        "tutorialSeen",
+        "tutorialSeen_adicionar",
+        "tutorialSeen_despensa",
+        "tutorialSeen_diario",
+        "tutorialSeen_main",
+        "tutorialSeen_metricas",
+        "tutorialSeen_semana",
+        "tutorialSeen_v0_7_5_despensa",
+        "tutorialSeen_v0_7_5_diario",
+        "tutorialSeen_v0_7_5_main",
+        "tutorialSeen_v0_7_5_metricas",
+        "tutorialSeen_v0_7_5_semana",
+        "tutorial_most_recent_version_seen",
+        "userName"
+      ],
+      "dataSubcollectionCount": 46,
+      "dataKeys": [
+        "_schemaMigratedAt",
+        "_schemaVersion",
+        "customGoals",
+        "goalHistory",
+        "log_v2_2026-06-03",
+        "log_v2_2026-06-04",
+        "log_v2_2026-06-05",
+        "log_v2_2026-06-06",
+        "log_v2_2026-06-07",
+        "log_v2_2026-06-08",
+        "log_v2_2026-06-09",
+        "log_v2_2026-06-10",
+        "log_v2_2026-06-11",
+        "log_v2_2026-06-17",
+        "log_v2_2026-06-18",
+        "log_v2_2026-06-19",
+        "mealTemplates",
+        "notes_2026-06-07",
+        "notes_2026-06-08",
+        "notes_2026-06-11",
+        "notes_2026-06-17",
+        "notes_2026-06-18",
+        "notes_2026-06-19",
+        "pantry_v2",
+        "releaseNoticeSeen_v0_7_5",
+        "suppLog_2026-06-07",
+        "suppLog_2026-06-08",
+        "suppLog_2026-06-11",
+        "suppLog_2026-06-17",
+        "suppLog_2026-06-18",
+        "suppLog_2026-06-19",
+        "suppPantry",
+        "trainingByDate",
+        "tutorialSeen_v0_7_5_despensa",
+        "tutorialSeen_v0_7_5_diario",
+        "tutorialSeen_v0_7_5_main",
+        "tutorialSeen_v0_7_5_metricas",
+        "tutorialSeen_v0_7_5_semana",
+        "waterGoal",
+        "waterIntake_2026-06-07",
+        "waterIntake_2026-06-08",
+        "waterIntake_2026-06-11",
+        "waterIntake_2026-06-17",
+        "waterIntake_2026-06-18",
+        "waterIntake_2026-06-19",
+        "weightHistory"
+      ],
+      "importantCounts": {
+        "pantry_v2": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "suppPantry": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "weightHistory": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "goalHistory": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 1
+        },
+        "mealTemplates": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "customGoals": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "trainingByDate": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "birthDate": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "gender": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "activityLevel": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalType": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalKg": {
+          "rootPresent": true,
+          "rootCount": 0,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalWeeks": {
+          "rootPresent": true,
+          "rootCount": 0,
+          "subPresent": false,
+          "subCount": null
+        },
+        "userName": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        }
+      }
+    },
+    "GSpYr4Cs8Mhy4M4FDT08aFCWJX02": {
+      "uid": "GSpYr4Cs8Mhy4M4FDT08aFCWJX02",
+      "rootFieldCount": 11,
+      "rootKeys": [
+        "activityLevel",
+        "birthDate",
+        "gender",
+        "goalKg",
+        "goalType",
+        "goalWeeks",
+        "tutorialSeen_adicionar",
+        "tutorialSeen_despensa",
+        "tutorialSeen_diario",
+        "tutorialSeen_metricas",
+        "userName"
+      ],
+      "dataSubcollectionCount": 16,
+      "dataKeys": [
+        "customGoals",
+        "goalHistory",
+        "log_v2_2026-06-16",
+        "log_v2_2026-06-17",
+        "mealTemplates",
+        "notes_2026-06-16",
+        "notes_2026-06-17",
+        "pantry_v2",
+        "suppLog_2026-06-16",
+        "suppLog_2026-06-17",
+        "suppPantry",
+        "trainingByDate",
+        "waterGoal",
+        "waterIntake_2026-06-16",
+        "waterIntake_2026-06-17",
+        "weightHistory"
+      ],
+      "importantCounts": {
+        "pantry_v2": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 1
+        },
+        "suppPantry": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "weightHistory": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 1
+        },
+        "goalHistory": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 2
+        },
+        "mealTemplates": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "customGoals": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "trainingByDate": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 1
+        },
+        "birthDate": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "gender": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "activityLevel": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalType": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalKg": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalWeeks": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "userName": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        }
+      }
+    },
+    "awKl1yt0CPTlA0u7Lj3BUocPZGm1": {
+      "uid": "awKl1yt0CPTlA0u7Lj3BUocPZGm1",
+      "rootFieldCount": 13,
+      "rootKeys": [
+        "_schemaMigratedAt",
+        "_schemaVersion",
+        "activityLevel",
+        "birthDate",
+        "gender",
+        "goalKg",
+        "goalType",
+        "goalWeeks",
+        "tutorialSeen_despensa",
+        "tutorialSeen_main",
+        "tutorialSeen_metricas",
+        "tutorialSeen_semana",
+        "userName"
+      ],
+      "dataSubcollectionCount": 14,
+      "dataKeys": [
+        "_schemaMigratedAt",
+        "_schemaVersion",
+        "customGoals",
+        "goalHistory",
+        "log_v2_2026-06-13",
+        "mealTemplates",
+        "notes_2026-06-13",
+        "pantry_v2",
+        "suppLog_2026-06-13",
+        "suppPantry",
+        "trainingByDate",
+        "waterGoal",
+        "waterIntake_2026-06-13",
+        "weightHistory"
+      ],
+      "importantCounts": {
+        "pantry_v2": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "suppPantry": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "weightHistory": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 1
+        },
+        "goalHistory": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 1
+        },
+        "mealTemplates": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "customGoals": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "trainingByDate": {
+          "rootPresent": false,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "birthDate": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "gender": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "activityLevel": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalType": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalKg": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalWeeks": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "userName": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        }
+      }
+    },
+    "customGoals": {
+      "uid": "customGoals",
+      "rootFieldCount": 1,
+      "rootKeys": [
+        "value"
+      ],
+      "dataSubcollectionCount": 0,
+      "dataKeys": [],
+      "importantCounts": {}
+    },
+    "isTraining": {
+      "uid": "isTraining",
+      "rootFieldCount": 1,
+      "rootKeys": [
+        "value"
+      ],
+      "dataSubcollectionCount": 0,
+      "dataKeys": [],
+      "importantCounts": {}
+    },
+    "mealTemplates": {
+      "uid": "mealTemplates",
+      "rootFieldCount": 1,
+      "rootKeys": [
+        "value"
+      ],
+      "dataSubcollectionCount": 0,
+      "dataKeys": [],
+      "importantCounts": {}
+    },
+    "pantry": {
+      "uid": "pantry",
+      "rootFieldCount": 1,
+      "rootKeys": [
+        "value"
+      ],
+      "dataSubcollectionCount": 0,
+      "dataKeys": [],
+      "importantCounts": {}
+    },
+    "suppPantry": {
+      "uid": "suppPantry",
+      "rootFieldCount": 1,
+      "rootKeys": [
+        "value"
+      ],
+      "dataSubcollectionCount": 0,
+      "dataKeys": [],
+      "importantCounts": {}
+    },
+    "trainingByDate": {
+      "uid": "trainingByDate",
+      "rootFieldCount": 1,
+      "rootKeys": [
+        "value"
+      ],
+      "dataSubcollectionCount": 0,
+      "dataKeys": [],
+      "importantCounts": {}
+    },
+    "uKQ35zJS2NgwD7mZgl1LSYQuuiL2": {
+      "uid": "uKQ35zJS2NgwD7mZgl1LSYQuuiL2",
+      "rootFieldCount": 22,
+      "rootKeys": [
+        "_schemaMigratedAt",
+        "_schemaVersion",
+        "activityLevel",
+        "birthDate",
+        "customGoals",
+        "gender",
+        "goalHistory",
+        "goalKg",
+        "goalType",
+        "goalWeeks",
+        "log_v2_2026-06-11",
+        "mealTemplates",
+        "notes_2026-06-11",
+        "pantry_v2",
+        "suppLog_2026-06-11",
+        "suppPantry",
+        "trainingByDate",
+        "tutorialSeen",
+        "userName",
+        "waterGoal",
+        "waterIntake_2026-06-11",
+        "weightHistory"
+      ],
+      "dataSubcollectionCount": 12,
+      "dataKeys": [
+        "customGoals",
+        "goalHistory",
+        "log_v2_2026-06-11",
+        "mealTemplates",
+        "notes_2026-06-11",
+        "pantry_v2",
+        "suppLog_2026-06-11",
+        "suppPantry",
+        "trainingByDate",
+        "waterGoal",
+        "waterIntake_2026-06-11",
+        "weightHistory"
+      ],
+      "importantCounts": {
+        "pantry_v2": {
+          "rootPresent": true,
+          "rootCount": 2,
+          "subPresent": true,
+          "subCount": 2
+        },
+        "suppPantry": {
+          "rootPresent": true,
+          "rootCount": 1,
+          "subPresent": true,
+          "subCount": 1
+        },
+        "weightHistory": {
+          "rootPresent": true,
+          "rootCount": 1,
+          "subPresent": true,
+          "subCount": 1
+        },
+        "goalHistory": {
+          "rootPresent": true,
+          "rootCount": 1,
+          "subPresent": true,
+          "subCount": 1
+        },
+        "mealTemplates": {
+          "rootPresent": true,
+          "rootCount": 0,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "customGoals": {
+          "rootPresent": true,
+          "rootCount": 0,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "trainingByDate": {
+          "rootPresent": true,
+          "rootCount": 0,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "birthDate": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "gender": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "activityLevel": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalType": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalKg": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalWeeks": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "userName": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        }
+      }
+    },
+    "uR1Hb1WSemVxeUSymS5zDa5mKr12": {
+      "uid": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "rootFieldCount": 81,
+      "rootKeys": [
+        "_schemaMigratedAt",
+        "_schemaVersion",
+        "activityLevel",
+        "birthDate",
+        "bodyFatGoal",
+        "customGoals",
+        "gender",
+        "goalHistory",
+        "goalKg",
+        "goalType",
+        "goalWeeks",
+        "isTraining",
+        "language",
+        "lastActivityAt",
+        "lastLoginAt",
+        "log_v2_2026-05-31",
+        "log_v2_2026-06-01",
+        "log_v2_2026-06-02",
+        "log_v2_2026-06-03",
+        "log_v2_2026-06-04",
+        "log_v2_2026-06-05",
+        "log_v2_2026-06-06",
+        "log_v2_2026-06-07",
+        "log_v2_2026-06-08",
+        "log_v2_2026-06-09",
+        "log_v2_2026-06-10",
+        "log_v2_2026-06-11",
+        "manualCalorieAdjustment",
+        "mealTemplates",
+        "notes_2026-05-30",
+        "notes_2026-05-31",
+        "notes_2026-06-01",
+        "notes_2026-06-02",
+        "notes_2026-06-03",
+        "notes_2026-06-04",
+        "notes_2026-06-05",
+        "notes_2026-06-06",
+        "notes_2026-06-07",
+        "notes_2026-06-08",
+        "notes_2026-06-09",
+        "notes_2026-06-10",
+        "notes_2026-06-11",
+        "pantry",
+        "pantry_v2",
+        "proteinMultiplier",
+        "suppLog_2026-06-02",
+        "suppLog_2026-06-03",
+        "suppLog_2026-06-04",
+        "suppLog_2026-06-05",
+        "suppLog_2026-06-06",
+        "suppLog_2026-06-07",
+        "suppLog_2026-06-08",
+        "suppLog_2026-06-09",
+        "suppLog_2026-06-10",
+        "suppLog_2026-06-11",
+        "suppPantry",
+        "trainingByDate",
+        "tutorialSeen",
+        "tutorialSeen_adicionar",
+        "tutorialSeen_despensa",
+        "tutorialSeen_diario",
+        "tutorialSeen_main",
+        "tutorialSeen_metricas",
+        "tutorialSeen_semana",
+        "tutorial_most_recent_version_seen",
+        "userActivity",
+        "userBirth",
+        "userGender",
+        "userGoal",
+        "userName",
+        "waterGoal",
+        "waterIntake_2026-06-03",
+        "waterIntake_2026-06-04",
+        "waterIntake_2026-06-05",
+        "waterIntake_2026-06-06",
+        "waterIntake_2026-06-07",
+        "waterIntake_2026-06-08",
+        "waterIntake_2026-06-09",
+        "waterIntake_2026-06-10",
+        "waterIntake_2026-06-11",
+        "weightHistory"
+      ],
+      "dataSubcollectionCount": 93,
+      "dataKeys": [
+        "_schemaMigratedAt",
+        "_schemaVersion",
+        "bodyFatGoal",
+        "customGoals",
+        "goalHistory",
+        "isTraining",
+        "log_v2_2026-05-31",
+        "log_v2_2026-06-01",
+        "log_v2_2026-06-02",
+        "log_v2_2026-06-03",
+        "log_v2_2026-06-04",
+        "log_v2_2026-06-05",
+        "log_v2_2026-06-06",
+        "log_v2_2026-06-07",
+        "log_v2_2026-06-08",
+        "log_v2_2026-06-09",
+        "log_v2_2026-06-10",
+        "log_v2_2026-06-11",
+        "log_v2_2026-06-12",
+        "log_v2_2026-06-13",
+        "log_v2_2026-06-14",
+        "log_v2_2026-06-15",
+        "log_v2_2026-06-16",
+        "log_v2_2026-06-17",
+        "log_v2_2026-06-18",
+        "log_v2_2026-06-19",
+        "mealTemplates",
+        "notes_2026-05-30",
+        "notes_2026-05-31",
+        "notes_2026-06-01",
+        "notes_2026-06-02",
+        "notes_2026-06-03",
+        "notes_2026-06-04",
+        "notes_2026-06-05",
+        "notes_2026-06-06",
+        "notes_2026-06-07",
+        "notes_2026-06-08",
+        "notes_2026-06-09",
+        "notes_2026-06-10",
+        "notes_2026-06-11",
+        "notes_2026-06-12",
+        "notes_2026-06-13",
+        "notes_2026-06-14",
+        "notes_2026-06-15",
+        "notes_2026-06-16",
+        "notes_2026-06-17",
+        "notes_2026-06-18",
+        "notes_2026-06-19",
+        "pantry",
+        "pantry_v2",
+        "suppLog_2026-06-02",
+        "suppLog_2026-06-03",
+        "suppLog_2026-06-04",
+        "suppLog_2026-06-05",
+        "suppLog_2026-06-06",
+        "suppLog_2026-06-07",
+        "suppLog_2026-06-08",
+        "suppLog_2026-06-09",
+        "suppLog_2026-06-10",
+        "suppLog_2026-06-11",
+        "suppLog_2026-06-12",
+        "suppLog_2026-06-13",
+        "suppLog_2026-06-14",
+        "suppLog_2026-06-15",
+        "suppLog_2026-06-16",
+        "suppLog_2026-06-17",
+        "suppLog_2026-06-18",
+        "suppLog_2026-06-19",
+        "suppPantry",
+        "trainingByDate",
+        "userActivity",
+        "userBirth",
+        "userGender",
+        "userGoal",
+        "waterGoal",
+        "waterIntake_2026-06-03",
+        "waterIntake_2026-06-04",
+        "waterIntake_2026-06-05",
+        "waterIntake_2026-06-06",
+        "waterIntake_2026-06-07",
+        "waterIntake_2026-06-08",
+        "waterIntake_2026-06-09",
+        "waterIntake_2026-06-10",
+        "waterIntake_2026-06-11",
+        "waterIntake_2026-06-12",
+        "waterIntake_2026-06-13",
+        "waterIntake_2026-06-14",
+        "waterIntake_2026-06-15",
+        "waterIntake_2026-06-16",
+        "waterIntake_2026-06-17",
+        "waterIntake_2026-06-18",
+        "waterIntake_2026-06-19",
+        "weightHistory"
+      ],
+      "importantCounts": {
+        "pantry": {
+          "rootPresent": true,
+          "rootCount": 3,
+          "subPresent": true,
+          "subCount": 3
+        },
+        "pantry_v2": {
+          "rootPresent": true,
+          "rootCount": 19,
+          "subPresent": true,
+          "subCount": 19
+        },
+        "suppPantry": {
+          "rootPresent": true,
+          "rootCount": 1,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "weightHistory": {
+          "rootPresent": true,
+          "rootCount": 3,
+          "subPresent": true,
+          "subCount": 3
+        },
+        "goalHistory": {
+          "rootPresent": true,
+          "rootCount": 2,
+          "subPresent": true,
+          "subCount": 3
+        },
+        "mealTemplates": {
+          "rootPresent": true,
+          "rootCount": 1,
+          "subPresent": true,
+          "subCount": 1
+        },
+        "customGoals": {
+          "rootPresent": true,
+          "rootCount": 0,
+          "subPresent": true,
+          "subCount": 0
+        },
+        "trainingByDate": {
+          "rootPresent": true,
+          "rootCount": 9,
+          "subPresent": true,
+          "subCount": 9
+        },
+        "birthDate": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "userBirth": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": null
+        },
+        "gender": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "activityLevel": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalType": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalKg": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "goalWeeks": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "bodyFatGoal": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": true,
+          "subCount": null
+        },
+        "userName": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        },
+        "language": {
+          "rootPresent": true,
+          "rootCount": null,
+          "subPresent": false,
+          "subCount": null
+        }
+      }
+    },
+    "waterGoal": {
+      "uid": "waterGoal",
+      "rootFieldCount": 1,
+      "rootKeys": [
+        "value"
+      ],
+      "dataSubcollectionCount": 0,
+      "dataKeys": [],
+      "importantCounts": {}
+    },
+    "weightHistory": {
+      "uid": "weightHistory",
+      "rootFieldCount": 1,
+      "rootKeys": [
+        "value"
+      ],
+      "dataSubcollectionCount": 0,
+      "dataKeys": [],
+      "importantCounts": {}
+    }
+  },
+  "legacyDocuments": [
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_activityLevel",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "activityLevel",
+      "valueCount": null
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_birthDate",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "birthDate",
+      "valueCount": null
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_customGoals",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "customGoals",
+      "valueCount": 0
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_gender",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "gender",
+      "valueCount": null
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_goalKg",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "goalKg",
+      "valueCount": null
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_goalType",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "goalType",
+      "valueCount": null
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_goalWeeks",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "goalWeeks",
+      "valueCount": null
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_log_v2_2026-06-10",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "log_v2_2026-06-10",
+      "valueCount": 1
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_log_v2_2026-06-11",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "log_v2_2026-06-11",
+      "valueCount": 1
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_mealTemplates",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "mealTemplates",
+      "valueCount": 0
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_notes_2026-06-10",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "notes_2026-06-10",
+      "valueCount": 0
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_notes_2026-06-11",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "notes_2026-06-11",
+      "valueCount": 0
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_pantry_v2",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "pantry_v2",
+      "valueCount": 0
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_suppLog_2026-06-10",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "suppLog_2026-06-10",
+      "valueCount": 0
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_suppLog_2026-06-11",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "suppLog_2026-06-11",
+      "valueCount": 0
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_suppPantry",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "suppPantry",
+      "valueCount": 0
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_trainingByDate",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "trainingByDate",
+      "valueCount": 2
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_tutorialSeen",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "tutorialSeen",
+      "valueCount": null
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_userName",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "userName",
+      "valueCount": null
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_waterGoal",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "waterGoal",
+      "valueCount": null
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_waterIntake_2026-06-10",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "waterIntake_2026-06-10",
+      "valueCount": 0
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_waterIntake_2026-06-11",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "waterIntake_2026-06-11",
+      "valueCount": 0
+    },
+    {
+      "docId": "3q1DDghxqWWHCm3ENqiXVHV2r912_weightHistory",
+      "uidGuess": "3q1DDghxqWWHCm3ENqiXVHV2r912",
+      "keyGuess": "weightHistory",
+      "valueCount": 1
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_activityLevel",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "activityLevel",
+      "valueCount": null
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_birthDate",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "birthDate",
+      "valueCount": null
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_customGoals",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "customGoals",
+      "valueCount": 7
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_gender",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "gender",
+      "valueCount": null
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_goalKg",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "goalKg",
+      "valueCount": null
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_goalType",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "goalType",
+      "valueCount": null
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_goalWeeks",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "goalWeeks",
+      "valueCount": null
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_log_v2_2026-06-10",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "log_v2_2026-06-10",
+      "valueCount": 2
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_log_v2_2026-06-11",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "log_v2_2026-06-11",
+      "valueCount": 2
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_manualCalorieAdjustment",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "manualCalorieAdjustment",
+      "valueCount": null
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_mealTemplates",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "mealTemplates",
+      "valueCount": 0
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_notes_2026-06-10",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "notes_2026-06-10",
+      "valueCount": 0
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_notes_2026-06-11",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "notes_2026-06-11",
+      "valueCount": 0
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_pantry_v2",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "pantry_v2",
+      "valueCount": 0
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_proteinMultiplier",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "proteinMultiplier",
+      "valueCount": 0
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_suppLog_2026-06-10",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "suppLog_2026-06-10",
+      "valueCount": 0
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_suppLog_2026-06-11",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "suppLog_2026-06-11",
+      "valueCount": 0
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_suppPantry",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "suppPantry",
+      "valueCount": 0
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_trainingByDate",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "trainingByDate",
+      "valueCount": 2
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_tutorialSeen",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "tutorialSeen",
+      "valueCount": null
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_userName",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "userName",
+      "valueCount": null
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_waterGoal",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "waterGoal",
+      "valueCount": null
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_waterIntake_2026-06-10",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "waterIntake_2026-06-10",
+      "valueCount": 0
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_waterIntake_2026-06-11",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "waterIntake_2026-06-11",
+      "valueCount": 2
+    },
+    {
+      "docId": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22_weightHistory",
+      "uidGuess": "5Qda4ZoJPKf7ZlBgQZjIs5B4xz22",
+      "keyGuess": "weightHistory",
+      "valueCount": 1
+    },
+    {
+      "docId": "BFCkfDaPDNawQvsIGehO7geltE82_log_v2_2026-06-07",
+      "uidGuess": "BFCkfDaPDNawQvsIGehO7geltE82",
+      "keyGuess": "log_v2_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "BFCkfDaPDNawQvsIGehO7geltE82_suppLog_2026-06-07",
+      "uidGuess": "BFCkfDaPDNawQvsIGehO7geltE82",
+      "keyGuess": "suppLog_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "BFCkfDaPDNawQvsIGehO7geltE82_tutorialSeen",
+      "uidGuess": "BFCkfDaPDNawQvsIGehO7geltE82",
+      "keyGuess": "tutorialSeen",
+      "valueCount": null
+    },
+    {
+      "docId": "BFCkfDaPDNawQvsIGehO7geltE82_waterIntake_2026-06-07",
+      "uidGuess": "BFCkfDaPDNawQvsIGehO7geltE82",
+      "keyGuess": "waterIntake_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_activityLevel",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "activityLevel",
+      "valueCount": null
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_birthDate",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "birthDate",
+      "valueCount": null
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_customGoals",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "customGoals",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_gender",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "gender",
+      "valueCount": null
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_goalHistory",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "goalHistory",
+      "valueCount": 1
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_goalKg",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "goalKg",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_goalType",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "goalType",
+      "valueCount": null
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_goalWeeks",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "goalWeeks",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_log_v2_2026-06-07",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "log_v2_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_log_v2_2026-06-08",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "log_v2_2026-06-08",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_log_v2_2026-06-11",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "log_v2_2026-06-11",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_mealTemplates",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "mealTemplates",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_notes_2026-06-07",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "notes_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_notes_2026-06-08",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "notes_2026-06-08",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_notes_2026-06-11",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "notes_2026-06-11",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_pantry_v2",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "pantry_v2",
+      "valueCount": 2
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_suppLog_2026-06-07",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "suppLog_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_suppLog_2026-06-08",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "suppLog_2026-06-08",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_suppLog_2026-06-11",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "suppLog_2026-06-11",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_suppPantry",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "suppPantry",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_trainingByDate",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "trainingByDate",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_tutorialSeen",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "tutorialSeen",
+      "valueCount": null
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_userName",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "userName",
+      "valueCount": null
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_waterGoal",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "waterGoal",
+      "valueCount": null
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_waterIntake_2026-06-07",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "waterIntake_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_waterIntake_2026-06-08",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "waterIntake_2026-06-08",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_waterIntake_2026-06-11",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "waterIntake_2026-06-11",
+      "valueCount": 0
+    },
+    {
+      "docId": "Co1u7DO3fwhaf9rXy65X3HbMH3B2_weightHistory",
+      "uidGuess": "Co1u7DO3fwhaf9rXy65X3HbMH3B2",
+      "keyGuess": "weightHistory",
+      "valueCount": 1
+    },
+    {
+      "docId": "Ffo9HnqFnVUQqoVhVmluIO4XZJz1_log_v2_2026-06-07",
+      "uidGuess": "Ffo9HnqFnVUQqoVhVmluIO4XZJz1",
+      "keyGuess": "log_v2_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "Ffo9HnqFnVUQqoVhVmluIO4XZJz1_suppLog_2026-06-07",
+      "uidGuess": "Ffo9HnqFnVUQqoVhVmluIO4XZJz1",
+      "keyGuess": "suppLog_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "Ffo9HnqFnVUQqoVhVmluIO4XZJz1_tutorialSeen",
+      "uidGuess": "Ffo9HnqFnVUQqoVhVmluIO4XZJz1",
+      "keyGuess": "tutorialSeen",
+      "valueCount": null
+    },
+    {
+      "docId": "Ffo9HnqFnVUQqoVhVmluIO4XZJz1_userHeight",
+      "uidGuess": "Ffo9HnqFnVUQqoVhVmluIO4XZJz1",
+      "keyGuess": "userHeight",
+      "valueCount": null
+    },
+    {
+      "docId": "Ffo9HnqFnVUQqoVhVmluIO4XZJz1_waterIntake_2026-06-07",
+      "uidGuess": "Ffo9HnqFnVUQqoVhVmluIO4XZJz1",
+      "keyGuess": "waterIntake_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "SDe42h7d8hPxZLiP24OxOYWrFkc2_userName",
+      "uidGuess": "SDe42h7d8hPxZLiP24OxOYWrFkc2",
+      "keyGuess": "userName",
+      "valueCount": null
+    },
+    {
+      "docId": "SDe42h7d8hPxZLiP24OxOYWrFkc2_weightHistory",
+      "uidGuess": "SDe42h7d8hPxZLiP24OxOYWrFkc2",
+      "keyGuess": "weightHistory",
+      "valueCount": 1
+    },
+    {
+      "docId": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1_customGoals",
+      "uidGuess": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1",
+      "keyGuess": "customGoals",
+      "valueCount": 0
+    },
+    {
+      "docId": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1_log_v2_2026-06-07",
+      "uidGuess": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1",
+      "keyGuess": "log_v2_2026-06-07",
+      "valueCount": 1
+    },
+    {
+      "docId": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1_mealTemplates",
+      "uidGuess": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1",
+      "keyGuess": "mealTemplates",
+      "valueCount": 0
+    },
+    {
+      "docId": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1_notes_2026-06-07",
+      "uidGuess": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1",
+      "keyGuess": "notes_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1_pantry_v2",
+      "uidGuess": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1",
+      "keyGuess": "pantry_v2",
+      "valueCount": 8
+    },
+    {
+      "docId": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1_suppLog_2026-06-07",
+      "uidGuess": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1",
+      "keyGuess": "suppLog_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1_suppPantry",
+      "uidGuess": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1",
+      "keyGuess": "suppPantry",
+      "valueCount": 0
+    },
+    {
+      "docId": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1_trainingByDate",
+      "uidGuess": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1",
+      "keyGuess": "trainingByDate",
+      "valueCount": 1
+    },
+    {
+      "docId": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1_tutorialSeen",
+      "uidGuess": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1",
+      "keyGuess": "tutorialSeen",
+      "valueCount": null
+    },
+    {
+      "docId": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1_userName",
+      "uidGuess": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1",
+      "keyGuess": "userName",
+      "valueCount": null
+    },
+    {
+      "docId": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1_waterGoal",
+      "uidGuess": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1",
+      "keyGuess": "waterGoal",
+      "valueCount": null
+    },
+    {
+      "docId": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1_waterIntake_2026-06-07",
+      "uidGuess": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1",
+      "keyGuess": "waterIntake_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1_weightHistory",
+      "uidGuess": "SpDkUtcG3jeFrfWTvBtVvmOpdwf1",
+      "keyGuess": "weightHistory",
+      "valueCount": 1
+    },
+    {
+      "docId": "eFXFjXZzbycLJOki5XuHg4yzleF2_customGoals",
+      "uidGuess": "eFXFjXZzbycLJOki5XuHg4yzleF2",
+      "keyGuess": "customGoals",
+      "valueCount": 0
+    },
+    {
+      "docId": "eFXFjXZzbycLJOki5XuHg4yzleF2_log_v2_2026-06-07",
+      "uidGuess": "eFXFjXZzbycLJOki5XuHg4yzleF2",
+      "keyGuess": "log_v2_2026-06-07",
+      "valueCount": 1
+    },
+    {
+      "docId": "eFXFjXZzbycLJOki5XuHg4yzleF2_mealTemplates",
+      "uidGuess": "eFXFjXZzbycLJOki5XuHg4yzleF2",
+      "keyGuess": "mealTemplates",
+      "valueCount": 0
+    },
+    {
+      "docId": "eFXFjXZzbycLJOki5XuHg4yzleF2_notes_2026-06-07",
+      "uidGuess": "eFXFjXZzbycLJOki5XuHg4yzleF2",
+      "keyGuess": "notes_2026-06-07",
+      "valueCount": null
+    },
+    {
+      "docId": "eFXFjXZzbycLJOki5XuHg4yzleF2_pantry_v2",
+      "uidGuess": "eFXFjXZzbycLJOki5XuHg4yzleF2",
+      "keyGuess": "pantry_v2",
+      "valueCount": 0
+    },
+    {
+      "docId": "eFXFjXZzbycLJOki5XuHg4yzleF2_suppLog_2026-06-07",
+      "uidGuess": "eFXFjXZzbycLJOki5XuHg4yzleF2",
+      "keyGuess": "suppLog_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "eFXFjXZzbycLJOki5XuHg4yzleF2_suppPantry",
+      "uidGuess": "eFXFjXZzbycLJOki5XuHg4yzleF2",
+      "keyGuess": "suppPantry",
+      "valueCount": 0
+    },
+    {
+      "docId": "eFXFjXZzbycLJOki5XuHg4yzleF2_trainingByDate",
+      "uidGuess": "eFXFjXZzbycLJOki5XuHg4yzleF2",
+      "keyGuess": "trainingByDate",
+      "valueCount": 1
+    },
+    {
+      "docId": "eFXFjXZzbycLJOki5XuHg4yzleF2_tutorialSeen",
+      "uidGuess": "eFXFjXZzbycLJOki5XuHg4yzleF2",
+      "keyGuess": "tutorialSeen",
+      "valueCount": null
+    },
+    {
+      "docId": "eFXFjXZzbycLJOki5XuHg4yzleF2_userName",
+      "uidGuess": "eFXFjXZzbycLJOki5XuHg4yzleF2",
+      "keyGuess": "userName",
+      "valueCount": null
+    },
+    {
+      "docId": "eFXFjXZzbycLJOki5XuHg4yzleF2_waterGoal",
+      "uidGuess": "eFXFjXZzbycLJOki5XuHg4yzleF2",
+      "keyGuess": "waterGoal",
+      "valueCount": null
+    },
+    {
+      "docId": "eFXFjXZzbycLJOki5XuHg4yzleF2_waterIntake_2026-06-07",
+      "uidGuess": "eFXFjXZzbycLJOki5XuHg4yzleF2",
+      "keyGuess": "waterIntake_2026-06-07",
+      "valueCount": 10
+    },
+    {
+      "docId": "eFXFjXZzbycLJOki5XuHg4yzleF2_weightHistory",
+      "uidGuess": "eFXFjXZzbycLJOki5XuHg4yzleF2",
+      "keyGuess": "weightHistory",
+      "valueCount": 1
+    },
+    {
+      "docId": "lNJ6JF56baakPh2V64eMYshb88x1_birthDate",
+      "uidGuess": "lNJ6JF56baakPh2V64eMYshb88x1",
+      "keyGuess": "birthDate",
+      "valueCount": null
+    },
+    {
+      "docId": "lNJ6JF56baakPh2V64eMYshb88x1_gender",
+      "uidGuess": "lNJ6JF56baakPh2V64eMYshb88x1",
+      "keyGuess": "gender",
+      "valueCount": null
+    },
+    {
+      "docId": "lNJ6JF56baakPh2V64eMYshb88x1_userName",
+      "uidGuess": "lNJ6JF56baakPh2V64eMYshb88x1",
+      "keyGuess": "userName",
+      "valueCount": null
+    },
+    {
+      "docId": "lNJ6JF56baakPh2V64eMYshb88x1_weightHistory",
+      "uidGuess": "lNJ6JF56baakPh2V64eMYshb88x1",
+      "keyGuess": "weightHistory",
+      "valueCount": 1
+    },
+    {
+      "docId": "log_v2_2026-05-31",
+      "uidGuess": "log",
+      "keyGuess": "v2_2026-05-31",
+      "valueCount": 5
+    },
+    {
+      "docId": "log_v2_2026-06-01",
+      "uidGuess": "log",
+      "keyGuess": "v2_2026-06-01",
+      "valueCount": 4
+    },
+    {
+      "docId": "log_v2_2026-06-02",
+      "uidGuess": "log",
+      "keyGuess": "v2_2026-06-02",
+      "valueCount": 4
+    },
+    {
+      "docId": "log_v2_2026-06-03",
+      "uidGuess": "log",
+      "keyGuess": "v2_2026-06-03",
+      "valueCount": 2
+    },
+    {
+      "docId": "notes_2026-05-31",
+      "uidGuess": "notes",
+      "keyGuess": "2026-05-31",
+      "valueCount": null
+    },
+    {
+      "docId": "notes_2026-06-01",
+      "uidGuess": "notes",
+      "keyGuess": "2026-06-01",
+      "valueCount": null
+    },
+    {
+      "docId": "notes_2026-06-03",
+      "uidGuess": "notes",
+      "keyGuess": "2026-06-03",
+      "valueCount": 0
+    },
+    {
+      "docId": "pantry_v2",
+      "uidGuess": "pantry",
+      "keyGuess": "v2",
+      "valueCount": 13
+    },
+    {
+      "docId": "suppLog_2026-06-02",
+      "uidGuess": "suppLog",
+      "keyGuess": "2026-06-02",
+      "valueCount": 1
+    },
+    {
+      "docId": "suppLog_2026-06-03",
+      "uidGuess": "suppLog",
+      "keyGuess": "2026-06-03",
+      "valueCount": 1
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_activityLevel",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "activityLevel",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_birthDate",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "birthDate",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_customGoals",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "customGoals",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_gender",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "gender",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_goalHistory",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "goalHistory",
+      "valueCount": 2
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_goalKg",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "goalKg",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_goalType",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "goalType",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_goalWeeks",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "goalWeeks",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_isTraining",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "isTraining",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_log_v2_2026-05-31",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "log_v2_2026-05-31",
+      "valueCount": 5
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_log_v2_2026-06-01",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "log_v2_2026-06-01",
+      "valueCount": 4
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_log_v2_2026-06-02",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "log_v2_2026-06-02",
+      "valueCount": 4
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_log_v2_2026-06-03",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "log_v2_2026-06-03",
+      "valueCount": 6
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_log_v2_2026-06-04",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "log_v2_2026-06-04",
+      "valueCount": 7
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_log_v2_2026-06-05",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "log_v2_2026-06-05",
+      "valueCount": 4
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_log_v2_2026-06-06",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "log_v2_2026-06-06",
+      "valueCount": 4
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_log_v2_2026-06-07",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "log_v2_2026-06-07",
+      "valueCount": 5
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_log_v2_2026-06-08",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "log_v2_2026-06-08",
+      "valueCount": 4
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_log_v2_2026-06-09",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "log_v2_2026-06-09",
+      "valueCount": 5
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_log_v2_2026-06-10",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "log_v2_2026-06-10",
+      "valueCount": 4
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_log_v2_2026-06-11",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "log_v2_2026-06-11",
+      "valueCount": 2
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_manualCalorieAdjustment",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "manualCalorieAdjustment",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_mealTemplates",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "mealTemplates",
+      "valueCount": 1
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_notes_2026-05-30",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "notes_2026-05-30",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_notes_2026-05-31",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "notes_2026-05-31",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_notes_2026-06-01",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "notes_2026-06-01",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_notes_2026-06-02",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "notes_2026-06-02",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_notes_2026-06-03",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "notes_2026-06-03",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_notes_2026-06-04",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "notes_2026-06-04",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_notes_2026-06-05",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "notes_2026-06-05",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_notes_2026-06-06",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "notes_2026-06-06",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_notes_2026-06-07",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "notes_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_notes_2026-06-08",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "notes_2026-06-08",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_notes_2026-06-09",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "notes_2026-06-09",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_notes_2026-06-10",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "notes_2026-06-10",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_notes_2026-06-11",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "notes_2026-06-11",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_pantry",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "pantry",
+      "valueCount": 3
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_pantry_v2",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "pantry_v2",
+      "valueCount": 18
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_proteinMultiplier",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "proteinMultiplier",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_suppLog_2026-06-02",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "suppLog_2026-06-02",
+      "valueCount": 1
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_suppLog_2026-06-03",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "suppLog_2026-06-03",
+      "valueCount": 1
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_suppLog_2026-06-04",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "suppLog_2026-06-04",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_suppLog_2026-06-05",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "suppLog_2026-06-05",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_suppLog_2026-06-06",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "suppLog_2026-06-06",
+      "valueCount": 1
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_suppLog_2026-06-07",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "suppLog_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_suppLog_2026-06-08",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "suppLog_2026-06-08",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_suppLog_2026-06-09",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "suppLog_2026-06-09",
+      "valueCount": 1
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_suppLog_2026-06-10",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "suppLog_2026-06-10",
+      "valueCount": 1
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_suppLog_2026-06-11",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "suppLog_2026-06-11",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_suppPantry",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "suppPantry",
+      "valueCount": 1
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_trainingByDate",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "trainingByDate",
+      "valueCount": 9
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_tutorialSeen",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "tutorialSeen",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_userActivity",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "userActivity",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_userBirth",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "userBirth",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_userGender",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "userGender",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_userGoal",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "userGoal",
+      "valueCount": 3
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_waterGoal",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "waterGoal",
+      "valueCount": null
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_waterIntake_2026-06-03",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "waterIntake_2026-06-03",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_waterIntake_2026-06-04",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "waterIntake_2026-06-04",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_waterIntake_2026-06-05",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "waterIntake_2026-06-05",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_waterIntake_2026-06-06",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "waterIntake_2026-06-06",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_waterIntake_2026-06-07",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "waterIntake_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_waterIntake_2026-06-08",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "waterIntake_2026-06-08",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_waterIntake_2026-06-09",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "waterIntake_2026-06-09",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_waterIntake_2026-06-10",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "waterIntake_2026-06-10",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_waterIntake_2026-06-11",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "waterIntake_2026-06-11",
+      "valueCount": 0
+    },
+    {
+      "docId": "uR1Hb1WSemVxeUSymS5zDa5mKr12_weightHistory",
+      "uidGuess": "uR1Hb1WSemVxeUSymS5zDa5mKr12",
+      "keyGuess": "weightHistory",
+      "valueCount": 3
+    },
+    {
+      "docId": "waterIntake_2026-06-03",
+      "uidGuess": "waterIntake",
+      "keyGuess": "2026-06-03",
+      "valueCount": 0
+    },
+    {
+      "docId": "yvuO5zEDjBZb3HHhzodd7J6MqVT2_customGoals",
+      "uidGuess": "yvuO5zEDjBZb3HHhzodd7J6MqVT2",
+      "keyGuess": "customGoals",
+      "valueCount": 0
+    },
+    {
+      "docId": "yvuO5zEDjBZb3HHhzodd7J6MqVT2_log_v2_2026-06-08",
+      "uidGuess": "yvuO5zEDjBZb3HHhzodd7J6MqVT2",
+      "keyGuess": "log_v2_2026-06-08",
+      "valueCount": 0
+    },
+    {
+      "docId": "yvuO5zEDjBZb3HHhzodd7J6MqVT2_mealTemplates",
+      "uidGuess": "yvuO5zEDjBZb3HHhzodd7J6MqVT2",
+      "keyGuess": "mealTemplates",
+      "valueCount": 0
+    },
+    {
+      "docId": "yvuO5zEDjBZb3HHhzodd7J6MqVT2_notes_2026-06-08",
+      "uidGuess": "yvuO5zEDjBZb3HHhzodd7J6MqVT2",
+      "keyGuess": "notes_2026-06-08",
+      "valueCount": 0
+    },
+    {
+      "docId": "yvuO5zEDjBZb3HHhzodd7J6MqVT2_pantry_v2",
+      "uidGuess": "yvuO5zEDjBZb3HHhzodd7J6MqVT2",
+      "keyGuess": "pantry_v2",
+      "valueCount": 0
+    },
+    {
+      "docId": "yvuO5zEDjBZb3HHhzodd7J6MqVT2_suppLog_2026-06-08",
+      "uidGuess": "yvuO5zEDjBZb3HHhzodd7J6MqVT2",
+      "keyGuess": "suppLog_2026-06-08",
+      "valueCount": 0
+    },
+    {
+      "docId": "yvuO5zEDjBZb3HHhzodd7J6MqVT2_suppPantry",
+      "uidGuess": "yvuO5zEDjBZb3HHhzodd7J6MqVT2",
+      "keyGuess": "suppPantry",
+      "valueCount": 0
+    },
+    {
+      "docId": "yvuO5zEDjBZb3HHhzodd7J6MqVT2_trainingByDate",
+      "uidGuess": "yvuO5zEDjBZb3HHhzodd7J6MqVT2",
+      "keyGuess": "trainingByDate",
+      "valueCount": 0
+    },
+    {
+      "docId": "yvuO5zEDjBZb3HHhzodd7J6MqVT2_tutorialSeen",
+      "uidGuess": "yvuO5zEDjBZb3HHhzodd7J6MqVT2",
+      "keyGuess": "tutorialSeen",
+      "valueCount": null
+    },
+    {
+      "docId": "yvuO5zEDjBZb3HHhzodd7J6MqVT2_userName",
+      "uidGuess": "yvuO5zEDjBZb3HHhzodd7J6MqVT2",
+      "keyGuess": "userName",
+      "valueCount": null
+    },
+    {
+      "docId": "yvuO5zEDjBZb3HHhzodd7J6MqVT2_waterGoal",
+      "uidGuess": "yvuO5zEDjBZb3HHhzodd7J6MqVT2",
+      "keyGuess": "waterGoal",
+      "valueCount": null
+    },
+    {
+      "docId": "yvuO5zEDjBZb3HHhzodd7J6MqVT2_waterIntake_2026-06-08",
+      "uidGuess": "yvuO5zEDjBZb3HHhzodd7J6MqVT2",
+      "keyGuess": "waterIntake_2026-06-08",
+      "valueCount": 0
+    },
+    {
+      "docId": "yvuO5zEDjBZb3HHhzodd7J6MqVT2_weightHistory",
+      "uidGuess": "yvuO5zEDjBZb3HHhzodd7J6MqVT2",
+      "keyGuess": "weightHistory",
+      "valueCount": 1
+    },
+    {
+      "docId": "zLbEVYIm0adYlxIS2eKMrZYeL0d2_log_v2_2026-06-03",
+      "uidGuess": "zLbEVYIm0adYlxIS2eKMrZYeL0d2",
+      "keyGuess": "log_v2_2026-06-03",
+      "valueCount": 0
+    },
+    {
+      "docId": "zLbEVYIm0adYlxIS2eKMrZYeL0d2_log_v2_2026-06-07",
+      "uidGuess": "zLbEVYIm0adYlxIS2eKMrZYeL0d2",
+      "keyGuess": "log_v2_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "zLbEVYIm0adYlxIS2eKMrZYeL0d2_notes_2026-06-03",
+      "uidGuess": "zLbEVYIm0adYlxIS2eKMrZYeL0d2",
+      "keyGuess": "notes_2026-06-03",
+      "valueCount": 0
+    },
+    {
+      "docId": "zLbEVYIm0adYlxIS2eKMrZYeL0d2_suppLog_2026-06-03",
+      "uidGuess": "zLbEVYIm0adYlxIS2eKMrZYeL0d2",
+      "keyGuess": "suppLog_2026-06-03",
+      "valueCount": 0
+    },
+    {
+      "docId": "zLbEVYIm0adYlxIS2eKMrZYeL0d2_suppLog_2026-06-07",
+      "uidGuess": "zLbEVYIm0adYlxIS2eKMrZYeL0d2",
+      "keyGuess": "suppLog_2026-06-07",
+      "valueCount": 0
+    },
+    {
+      "docId": "zLbEVYIm0adYlxIS2eKMrZYeL0d2_tutorialSeen",
+      "uidGuess": "zLbEVYIm0adYlxIS2eKMrZYeL0d2",
+      "keyGuess": "tutorialSeen",
+      "valueCount": null
+    },
+    {
+      "docId": "zLbEVYIm0adYlxIS2eKMrZYeL0d2_waterIntake_2026-06-03",
+      "uidGuess": "zLbEVYIm0adYlxIS2eKMrZYeL0d2",
+      "keyGuess": "waterIntake_2026-06-03",
+      "valueCount": 0
+    },
+    {
+      "docId": "zLbEVYIm0adYlxIS2eKMrZYeL0d2_waterIntake_2026-06-07",
+      "uidGuess": "zLbEVYIm0adYlxIS2eKMrZYeL0d2",
+      "keyGuess": "waterIntake_2026-06-07",
+      "valueCount": 0
+    }
+  ],
+  "unknownDocuments": []
+}
