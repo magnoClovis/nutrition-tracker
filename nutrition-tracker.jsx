@@ -1895,6 +1895,45 @@ function NutritionTracker({
   }
 
   /**
+   * Plays a tiny local cue for goal milestones.
+   * It uses Web Audio instead of an asset file, and silently no-ops when the
+   * browser blocks audio because the page has not received user interaction.
+   */
+  function playGoalToastCue(tone = "success") {
+    if (typeof window === "undefined") return;
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const gain = ctx.createGain();
+      const osc = ctx.createOscillator();
+      const now = ctx.currentTime;
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(tone === "warning" ? 520 : 660, now);
+      osc.frequency.exponentialRampToValueAtTime(tone === "warning" ? 390 : 880, now + 0.12);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.18);
+      setTimeout(() => ctx.close && ctx.close(), 260);
+    } catch (_) {}
+  }
+
+  /**
+   * Gives mobile users a short tactile cue when a goal toast is shown.
+   * Desktop browsers and unsupported mobile browsers simply ignore it.
+   */
+  function vibrateGoalToast(tone = "success") {
+    if (!isMobileView || typeof navigator === "undefined" || !navigator.vibrate) return;
+    try {
+      navigator.vibrate(tone === "warning" ? [35, 35, 35] : 45);
+    } catch (_) {}
+  }
+
+  /**
    * Shows goal milestones as non-blocking toasts.
    * The queue prevents several nutrients from fighting for the same screen
    * space when a single meal crosses multiple targets at once.
@@ -1904,6 +1943,8 @@ function NutritionTracker({
     const next = goalToastQueueRef.current.shift();
     if (!next) return;
     goalToastActiveRef.current = true;
+    playGoalToastCue(next.tone);
+    vibrateGoalToast(next.tone);
     setGoalToast({...next, visible: true});
     if (goalToastTimerRef.current) clearTimeout(goalToastTimerRef.current);
     goalToastTimerRef.current = setTimeout(() => {
