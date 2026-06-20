@@ -117,6 +117,7 @@ function fbSignOut() {
   _resetFirestoreCaches();
   localStorage.removeItem("fb_refresh");
   localStorage.removeItem("fb_uid");
+  localStorage.removeItem("fb_email");
 }
 
 function fbIsLoggedIn() { return !!_refreshToken; }
@@ -550,7 +551,7 @@ async function _listLegacyKeys3() {
 }
 function _knownMigrationKeys3() {
   const base = [
-    "pantry", "pantry_v2", "suppPantry", "waterGoal", "customGoals", "goalHistory",
+    "pantry", "pantry_v2", "suppPantry", "waterGoal", "waterCustomPreset", "customGoals", "goalHistory",
     "mealTemplates", "weightHistory", "trainingByDate", "birthDate", "gender",
     "activityLevel", "goalType", "goalKg", "goalWeeks", "manualCalorieAdjustment",
     "proteinMultiplier", "bodyFatGoal", "userName", "tutorialSeen",

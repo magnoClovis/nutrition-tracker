@@ -15,17 +15,17 @@
     html,body{height:100%;background:#f2f1ed;color:#252220;font-family:system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
     #root{min-height:100vh}
     :root {
-      --bg:#111; --surface:#161616; --surface3:#141414; --input:#1e1e1e;
-      --track:#1c1c1c; --row:#181818; --border:#222; --border2:#2a2a2a;
-      --border3:#1e1e1e; --text:#e8e0d5; --text2:#d5cfc8; --text3:#c9bfb0;
-      --muted:#8a8a8a; --muted2:#7a7a7a; --dim:#444; --faint:#333;
-      --btn-ok:#1e2e1e; --btn-ok-border:#3a5a3a; --btn-ok-text:#7ec87e;
-      --btn-info:#1a1e2a; --btn-info-border:#2a2a4a;
-      --btn-info-text:#8a9ec8; --btn-warn:#2a1a1a; --btn-warn-border:#4a2a2a;
-      --btn-warn-text:#c87e7e; --btn-teal:#1a2a2a; --btn-teal-border:#2a4a4a;
-      --btn-teal-text:#7ec8c8; --btn-inactive:#191919;
-      --btn-inactive-border:#252525; --btn-inactive-text:#666;
-      --tab-active:#191919; --tab-text-active:#c9bfb0;
+      --bg:#f2f1ed; --surface:#ffffff; --surface3:#f7f5f1; --input:#f5f3ef;
+      --track:#dedad2; --row:#fbfaf7; --border:#d8d3ca; --border2:#b8b4ac;
+      --border3:#e4dfd6; --text:#252220; --text2:#4f4b47; --text3:#6a6662;
+      --muted:#7a746e; --muted2:#8a8580; --dim:#9a948c; --faint:#b5aea5;
+      --btn-ok:#e8f4e8; --btn-ok-border:#9ad29a; --btn-ok-text:#2a6a2a;
+      --btn-info:#eef0f8; --btn-info-border:#aab2d8;
+      --btn-info-text:#5264a2; --btn-warn:#f9eeee; --btn-warn-border:#d8aaaa;
+      --btn-warn-text:#a25252; --btn-teal:#e7f5f5; --btn-teal-border:#9ed0d0;
+      --btn-teal-text:#2b8080; --btn-inactive:#f7f5f1;
+      --btn-inactive-border:#d8d3ca; --btn-inactive-text:#8a8580;
+      --tab-active:#ffffff; --tab-text-active:#c8a96e;
     }
     body { background: var(--bg); color: var(--text); }
     button,input,select,textarea {
@@ -57,6 +57,7 @@
     input[type=date]{color-scheme:dark}
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes pulse{0%,100%{opacity:0.5}50%{opacity:1}}
+    .app-loading-spinner{animation:spin 1.2s linear infinite}
   
     @keyframes spin {
       from { transform: rotate(0deg); }
@@ -181,7 +182,7 @@
 
   <!-- App scripts are split by responsibility: persistence adapter first, UI/application second. -->
   <script src="firebase-storage.js?v=0.7.5-beta-20260619-13"></script>
-  <script src="app.js?v=0.7.5-beta-20260619-16"></script>
+  <script src="app.js?v=0.7.5-beta-20260620-01"></script>
 </body>
 </html>
 

@@ -1,4 +1,4 @@
-﻿// Diario Nutricional application script.
+// Diario Nutricional application script.
 // This file is intentionally kept outside index.html so the app code is readable
 // and third-party bundles remain isolated in vendor/. New feature code should keep
 // calculation helpers documented where inputs/outputs are not immediately obvious.
@@ -476,7 +476,7 @@ const STRINGS = {
   },
   en: {
     // App
-    appTitle: "Nutrition Diary",
+    appTitle: "Nutrition Tracker",
     langBtn: "Português",
     // Header
     dayOf: "Day type",
@@ -1020,6 +1020,22 @@ function formatDateDM(date) {
   return year && month && day ? `${day}-${month}` : date;
 }
 
+function capitalizeFirst(text) {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
+function formatHeaderDate(date, lang) {
+  if (!date || typeof date !== "string") return "—";
+  const locale = lang === "en" ? "en-US" : "pt-BR";
+  const d = new Date(date + "T12:00:00");
+  const formatted = d.toLocaleDateString(locale, {
+    weekday: "long",
+    day: "numeric",
+    month: "long"
+  });
+  return capitalizeFirst(formatted);
+}
+
 function addDays(date, n) {
   const d = new Date(date + "T12:00:00");
   d.setDate(d.getDate() + n);
@@ -1133,9 +1149,10 @@ function NutritionTracker({
   function toggleLang() {
     const nl = lang === 'pt' ? 'en' : 'pt';
     localStorage.setItem('appLang', nl);
-    storage.set('language', nl).catch(() => {});
     setLang(nl);
-    setTimeout(() => window.location.reload(), 0);
+    Promise.resolve(storage.set('language', nl))
+      .catch(() => {})
+      .finally(() => setTimeout(() => window.location.reload(), 0));
   }
   // Sync external lang changes
   useEffect(() => {
@@ -1370,6 +1387,7 @@ function NutritionTracker({
   const [waterGoal, setWaterGoal] = useState(2500);
   const [waterGoalInput, setWaterGoalInput] = useState("");
   const [editWaterGoal, setEditWaterGoal] = useState(false);
+  const [waterCustomPreset, setWaterCustomPreset] = useState(null);
   // Supplements
   const [suppPantry, setSuppPantry] = useState([]);
   const [suppLog, setSuppLog] = useState([]);
@@ -1430,6 +1448,7 @@ function NutritionTracker({
         "mealTemplates",
         "notes_" + TODAY,
         "waterGoal",
+        "waterCustomPreset",
         "waterIntake_" + TODAY,
         "suppPantry",
         "suppLog_" + TODAY,
@@ -1451,7 +1470,7 @@ function NutritionTracker({
       loadedValues.forEach((value, index) => {
         if (value) hydratedStorageKeysRef.current.add(loadKeys[index]);
       });
-      const [p, l, t, w, mt, n, wg, wi, sp, sl, cg, gh, bd, gd, ht, al, gt, gkg, gw, ma, pm, bfg, un] = loadedValues;
+      const [p, l, t, w, mt, n, wg, wcp, wi, sp, sl, cg, gh, bd, gd, ht, al, gt, gkg, gw, ma, pm, bfg, un] = loadedValues;
       if (p) setPantry(JSON.parse(p.value));
       if (l) setLog(normalizeMealKeys(JSON.parse(l.value)));
       if (t) setTrainingByDate(JSON.parse(t.value));
@@ -1459,6 +1478,7 @@ function NutritionTracker({
       if (mt) setMealTemplates(JSON.parse(mt.value));
       if (n) setTodayNote(n.value || "");
       if (wg) setWaterGoal(JSON.parse(wg.value));
+      if (wcp) setWaterCustomPreset(JSON.parse(wcp.value));
       if (wi) setWaterIntake(JSON.parse(wi.value));
       if (sp) setSuppPantry(JSON.parse(sp.value));
       if (sl) setSuppLog(JSON.parse(sl.value));
@@ -1555,6 +1575,9 @@ function NutritionTracker({
   useEffect(() => {
     if (loaded && canPersistHydratedKey("waterGoal", waterGoal)) scheduleSave("waterGoal", waterGoal);
   }, [waterGoal, loaded]);
+  useEffect(() => {
+    if (loaded && waterCustomPreset) scheduleSave("waterCustomPreset", waterCustomPreset);
+  }, [waterCustomPreset, loaded]);
   useEffect(() => {
     if (loaded) scheduleSave("waterIntake_" + TODAY, waterIntake);
   }, [waterIntake, loaded]);
@@ -2088,6 +2111,17 @@ function NutritionTracker({
       })
     }]);
     setWaterInput("");
+  }
+  function configureWaterCustomPreset() {
+    const current = waterCustomPreset ? String(waterCustomPreset) : "";
+    const message = lang === "en"
+      ? "Bottle size in ml"
+      : "Tamanho da garrafa em ml";
+    const value = window.prompt(message, current);
+    if (value === null) return;
+    const parsed = Math.round(parseFloat(String(value).replace(",", ".")));
+    if (isNaN(parsed) || parsed <= 0) return;
+    setWaterCustomPreset(parsed);
   }
   function removeWater(id) {
     setWaterIntake(w => w.filter(e => e.id !== id));
@@ -3720,7 +3754,7 @@ function NutritionTracker({
     const listed = await storage.list();
     const allKeys = listed?.keys || [];
     const staticKeys = [
-      'pantry_v2', 'suppPantry', 'waterGoal', 'customGoals', 'goalHistory',
+      'pantry_v2', 'suppPantry', 'waterGoal', 'waterCustomPreset', 'customGoals', 'goalHistory',
       'mealTemplates', 'weightHistory', 'trainingByDate', 'birthDate', 'gender',
       'activityLevel', 'goalType', 'goalKg', 'goalWeeks',
       'manualCalorieAdjustment', 'proteinMultiplier', 'bodyFatGoal'
@@ -4050,7 +4084,7 @@ function NutritionTracker({
       text: lang === 'en' ? "Keep an eye on what remains before choosing the next meal." : "Observe o que ainda falta antes de escolher a próxima refeição."
     };
   })();
-  const dateStr = formatDateDMY(viewDate);
+  const dateStr = formatHeaderDate(viewDate, lang);
   function beginTemplateEdit(tmpl) {
     setEditingTemplateId(tmpl.id);
     setExpandedTemplateIds(prev => ({...prev, [tmpl.id]: true}));
@@ -5230,28 +5264,36 @@ function NutritionTracker({
     );
   }
 
-  if (!loaded) return /*#__PURE__*/React.createElement("div", {
-    style: {
-      minHeight: "100vh",
-      background: "#f2f1ed",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 12,
-      color: "#6a6662",
-      fontFamily: "system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 22
-    }
-  }, "\u27F3"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      letterSpacing: 1
-    }
-  }, t('loading')));
+  if (!loaded) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        minHeight: "100vh",
+        background: THEME["--bg"],
+        color: THEME["--text2"],
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 12,
+        fontFamily: "system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",
+        letterSpacing: 2
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "app-loading-spinner",
+      style: {
+        width: 28,
+        height: 28,
+        border: "3px solid var(--border2)",
+        borderTopColor: THEME["--accent"],
+        borderRadius: "50%"
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 16,
+        color: THEME["--text2"]
+      }
+    }, t('loading')));
+  }
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--bg)",
@@ -5419,7 +5461,7 @@ function NutritionTracker({
       textAlign: "left", fontFamily: "inherit"
     }
   }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83D\uDD11"),
-    /*#__PURE__*/React.createElement("span", null, lang === "en" ? "API Key" : "Chave API Groq")
+    /*#__PURE__*/React.createElement("span", null, lang === "en" ? "AI / API key" : "IA / Chave de API")
   ), /*#__PURE__*/React.createElement("div", {
     style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
   }), onOpenBackup && /*#__PURE__*/React.createElement("button", {
@@ -6467,7 +6509,7 @@ function NutritionTracker({
     }, Math.round(k), " kcal"));
   })(), isToday && /*#__PURE__*/React.createElement("div", {
     style: {
-      display: tab === "diario" ? "none" : "block",
+      display: "block",
       background: "var(--surface)",
       border: "1px solid var(--border3)",
       borderRadius: 10,
@@ -6536,7 +6578,7 @@ function NutritionTracker({
     }
   })), editWaterGoal && /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "none",
+      display: "flex",
       gap: 6,
       marginBottom: 8,
       animation: "softIn 180ms ease-out both"
@@ -6590,7 +6632,36 @@ function NutritionTracker({
       fontSize: 14,
       cursor: "pointer"
     }
-  }, ml, "ml"))), /*#__PURE__*/React.createElement("div", {
+  }, ml, "ml")).concat(waterCustomPreset ? /*#__PURE__*/React.createElement("button", {
+    key: "custom-water-preset",
+    onClick: () => addWater(waterCustomPreset),
+    onDoubleClick: configureWaterCustomPreset,
+    title: lang === "en" ? "Custom bottle size. Double-click to edit." : "Medida personalizada. Clique duas vezes para editar.",
+    style: {
+      background: "var(--btn-teal)",
+      border: "1px solid var(--btn-teal-border)",
+      color: darkMode ? "#3ab88a" : "#1a8a6a",
+      borderRadius: 999,
+      padding: "4px 10px",
+      fontSize: 14,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, waterCustomPreset, "ml") : []).concat(/*#__PURE__*/React.createElement("button", {
+    key: "configure-water-preset",
+    onClick: configureWaterCustomPreset,
+    title: lang === "en" ? "Save a custom quick amount" : "Salvar uma medida rápida personalizada",
+    style: {
+      background: "transparent",
+      border: "1px dashed var(--btn-teal-border)",
+      color: darkMode ? "#3ab88a" : "#1a8a6a",
+      borderRadius: 999,
+      padding: "4px 11px",
+      fontSize: 14,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "+"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6
@@ -6767,7 +6838,7 @@ function NutritionTracker({
         color: caloriesColor,
         fontWeight: 700
       }
-    }, Math.round(mk), " kcal")), isToday && /*#__PURE__*/React.createElement("button", {
+    }, Math.round(mk), " kcal")), /*#__PURE__*/React.createElement("button", {
       "data-tutorial": "open-log-sheet",
       onClick: () => openAddForMeal(meal),
       style: {
@@ -8967,8 +9038,13 @@ function NutritionTracker({
       gap: 6
     }
   }, /*#__PURE__*/React.createElement("label", {
-    style: sBtnLbl("var(--btn-info)", "var(--btn-info-border)", "#7e7ec8")
-  }, "\u2191 Importar", /*#__PURE__*/React.createElement("input", {
+    title: lang === 'en' ? "Import foods" : "Importar alimentos",
+    style: sBtnLbl("var(--btn-info)", "var(--btn-info-border)", "#7e7ec8", isMobileView ? {
+      padding: "5px 7px",
+      fontSize: 10,
+      letterSpacing: 0.5
+    } : {})
+  }, isMobileView ? "\u2191" : (lang === 'en' ? "\u2191 Import" : "\u2191 Importar"), /*#__PURE__*/React.createElement("input", {
     type: "file",
     accept: ".csv",
     onChange: importCSV,
@@ -8977,8 +9053,13 @@ function NutritionTracker({
     }
   })), pantry.length > 0 && /*#__PURE__*/React.createElement("button", {
     onClick: exportCSV,
-    style: sBtn("var(--btn-teal)", "var(--btn-teal-border)", "#7ec8c8")
-  }, "\u2193 Exportar"))), pantryItemsOpen && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
+    title: lang === 'en' ? "Export foods" : "Exportar alimentos",
+    style: sBtn("var(--btn-teal)", "var(--btn-teal-border)", "#7ec8c8", isMobileView ? {
+      padding: "5px 7px",
+      fontSize: 10,
+      letterSpacing: 0.5
+    } : {})
+  }, isMobileView ? "\u2193" : (lang === 'en' ? "\u2193 Export" : "\u2193 Exportar")))), pantryItemsOpen && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
     value: pantrySearch,
     onChange: e => setPantrySearch(e.target.value),
     placeholder: t('pantrySearch'),
@@ -9128,12 +9209,15 @@ function NutritionTracker({
     style: {
       padding: "9px 0",
       display: "flex",
+      gap: 10,
       justifyContent: "space-between",
-      alignItems: "flex-start"
+      alignItems: "flex-start",
+      flexWrap: isMobileView ? "wrap" : "nowrap"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      flex: 1
+      flex: "1 1 260px",
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -9145,7 +9229,8 @@ function NutritionTracker({
     style: {
       display: "flex",
       gap: 8,
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      lineHeight: 1.45
     }
   }, ALL_FIELDS.filter(ff => f[ff.key] != null).map(ff => /*#__PURE__*/React.createElement("span", {
     key: ff.key,
@@ -9163,7 +9248,7 @@ function NutritionTracker({
       display: "flex",
       gap: 5,
       flexShrink: 0,
-      marginLeft: 8
+      marginLeft: isMobileView ? 0 : 8
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => startEdit(f),
@@ -9265,8 +9350,14 @@ function NutritionTracker({
     }
   }, suppPantryOpen ? "\u25BE " : "\u25B8 ", `\uD83D\uDC8A ${t('suppPantryTitle')} (${suppPantry.length})`)), /*#__PURE__*/React.createElement("button", {
     onClick: () => { setSuppPantryOpen(true); setShowSuppForm(s => !s); },
-    style: sBtn("var(--btn-info)", "var(--btn-info-border)", "#9090c8")
-  }, showSuppForm ? "\u25B2 fechar" : "+ adicionar")), suppPantryOpen && showSuppForm && /*#__PURE__*/React.createElement("div", {
+    title: showSuppForm ? (lang === 'en' ? "Close supplement form" : "Fechar formulário") : (lang === 'en' ? "Add supplement" : "Adicionar suplemento"),
+    style: sBtn("var(--btn-info)", "var(--btn-info-border)", "#9090c8", isMobileView ? {
+      padding: "5px 8px",
+      fontSize: 10,
+      letterSpacing: 0.5,
+      whiteSpace: "nowrap"
+    } : {})
+  }, isMobileView ? (showSuppForm ? "\u25B2" : "+") : showSuppForm ? (lang === 'en' ? "\u25B2 close" : "\u25B2 fechar") : (lang === 'en' ? "+ add" : "+ adicionar"))), suppPantryOpen && showSuppForm && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -9621,7 +9712,10 @@ function NutritionTracker({
     label: {
       value: (lang === 'en' ? "goal " : "meta ") + weekData[0].proteinGoal + "g",
       fill: CT.label,
-      fontSize: 11
+      fontSize: 11,
+      position: "insideTopRight",
+      dx: -10,
+      dy: -8
     }
   }), /*#__PURE__*/React.createElement(Line, {
     type: "monotone",
@@ -9712,7 +9806,10 @@ function NutritionTracker({
     label: {
       value: (lang === 'en' ? "goal " : "meta ") + weekData[0].kcalGoal + " kcal",
       fill: CT.label,
-      fontSize: 11
+      fontSize: 11,
+      position: "insideTopRight",
+      dx: -10,
+      dy: -8
     }
   }), /*#__PURE__*/React.createElement(Line, {
     type: "monotone",
@@ -11241,7 +11338,7 @@ function NutritionTracker({
   }, lang === 'en' ? "14-entry average: " : "Média 14 registros: ", Math.round(weightTrend.avg14 * 10) / 10, " kg")))), renderReportsCard(), false && /*#__PURE__*/React.createElement("div", {
     "data-tutorial": "nutrition-profile",
     style: {
-      display: "none",
+      display: "flex",
       marginTop: 24,
       borderTop: "1px solid var(--border3)",
       paddingTop: 16
@@ -11848,399 +11945,7 @@ function NutritionTracker({
       padding: "8px 10px"
     }
   }, barcodeMessage))),
-false && showGA && React.createElement("div", {
-  style: {
-    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-    background: "rgba(0,0,0,0.42)", zIndex: 99999,
-    display: "flex",
-    alignItems: isMobileView ? "flex-end" : "center",
-    justifyContent: "center",
-    padding: isMobileView ? "14px 10px 0" : 16,
-    backdropFilter: "blur(4px)"
-  },
-  onClick: function(e){ if(e.target===e.currentTarget) setShowGA(false); }
-},
-  React.createElement("div", {
-    style: {
-      background: darkMode ? "#1f1f1f" : "#fffdf8",
-      color: "var(--text2)",
-      borderRadius: isMobileView ? "18px 18px 0 0" : 14,
-      padding: isMobileView ? "18px 18px calc(18px + env(safe-area-inset-bottom,0px))" : 24,
-      width: "100%",
-      maxWidth: 560,
-      minHeight: 220,
-      maxHeight: isMobileView ? "88vh" : "85vh",
-      overflowY: "auto",
-      boxShadow: "0 18px 54px rgba(0,0,0,0.32)",
-      border: "1px solid var(--border2)"
-    }
-  },
-    /* Header */
-    React.createElement("div", { style: { display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, marginBottom:16, paddingBottom:12, borderBottom:"1px solid var(--border3)", position:"sticky", top:isMobileView ? -18 : -24, background:"var(--surface)", zIndex:2 } },
-      React.createElement("div", null,
-        React.createElement("h2", { style: { margin:0, color:"var(--text2)", fontSize:16, letterSpacing:1, textTransform:"uppercase" } }, (lang==='en' ? "Meal suggestions" : "Sugestões de refeição")),
-        React.createElement("div", { style: { color:"var(--dim)", fontSize:13, marginTop:4 } }, lang==='en' ? "Combines pantry foods with what is still missing today." : "Combina alimentos salvos com o que ainda falta hoje.")
-      ),
-      React.createElement("button", {
-        onClick: function(){ setShowGA(false); },
-        style: { background:"var(--btn-inactive)", border:"1px solid var(--btn-inactive-border)", color:"var(--muted)", borderRadius:999, width:34, height:34, fontSize:20, lineHeight:"28px", cursor:"pointer", flexShrink:0 }
-      }, "\xD7")
-    ),
-
-    /* Resumo e modo simples */
-    React.createElement("div", { style: { background:"var(--bg)", border:"1px solid var(--border2)", borderRadius:10, padding:12, marginBottom:14 } },
-      React.createElement("div", { style: { fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:8 } },
-        lang==='en' ? "Based on what is still missing today" : "Baseado no que ainda falta hoje"
-      ),
-      (function(){
-        var entries = Object.values(activeLog).flat();
-        var eatenProt = entries.reduce(function(s,e){return s+(e.protein||0);},0);
-        var eatenKcal = entries.reduce(function(s,e){return s+(e.kcal||0);},0);
-        var missProt = Math.max(0, Math.round((goals.protein||150) - eatenProt));
-        var missKcal = Math.max(0, Math.round((goals.kcal||2000) - eatenKcal));
-        return React.createElement("div", { style: { display:"flex", gap:8, flexWrap:"wrap" } },
-          React.createElement("span", { style:{fontSize:12,color:"#c8b47e"} }, (lang==='en' ? "Protein left: " : "Prote\u00edna restante: ") + missProt + "g"),
-          React.createElement("span", { style:{fontSize:12,color:"#7ec8c8"} }, (lang==='en' ? "Calories left: " : "Calorias restantes: ") + missKcal + " kcal"),
-          React.createElement("span", { style:{fontSize:12,color:"var(--text2)"} }, (lang==='en' ? "Pantry foods: " : "Alimentos na despensa: ") + pantry.length)
-        );
-      })()
-    ),
-
-    React.createElement("div", { style: { marginBottom:14 } },
-      React.createElement("div", { style: { fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:6 } },
-        lang==='en' ? "Meal size" : "Tamanho da sugest\u00e3o"
-      ),
-      React.createElement("p", { style:{color:"var(--text2)", fontSize:12, lineHeight:1.45, margin:"0 0 8px"} },
-        lang==='en' ? "Choose how much of today's remaining calories the suggestion may use." : "Escolha quanto das calorias restantes do dia a sugest\u00e3o pode usar."
-      ),
-      React.createElement("div", { style:{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6} },
-        [
-          {label:lang==='en'?"Light":"Leve", value:-20},
-          {label:lang==='en'?"Balanced":"Equilibrada", value:0},
-          {label:lang==='en'?"Reinforced":"Refor\u00e7ada", value:20}
-        ].map(function(opt){
-          var active = Math.abs(gaTolerance - opt.value) <= 10;
-          return React.createElement("button", {
-            key:opt.value,
-            onClick:function(){ setGATolerance(opt.value); },
-            style:{padding:"9px 6px", borderRadius:7, border:"1px solid " + (active ? "var(--accent)" : "var(--border2)"), background:active ? "rgba(126,200,126,0.14)" : "transparent", color:active ? "var(--text1)" : "var(--text2)", cursor:"pointer", fontSize:12, fontFamily:"inherit"}
-          }, opt.label);
-        })
-      )
-    ),
-
-    /* Usar todos ou selecioner */
-    React.createElement("div", { style: { marginBottom:12 } },
-      React.createElement("label", { style: { color:"var(--text2)", fontSize:13, display:"flex", alignItems:"center", gap:8, cursor:"pointer" } },
-        React.createElement("input", {
-          type:"checkbox", checked:gaUseAll,
-          onChange: function(e){ setGAUseAll(e.target.checked); }
-        }),
-        React.createElement("span", null,
-          lang==='en' ? "Use all pantry foods" : "Usar todos os alimentos da despensa",
-          React.createElement("span", { style:{display:"block", color:"var(--text2)", fontSize:12, marginTop:2} },
-            lang==='en' ? "Recommended: the app checks your pantry and chooses the best combination automatically." : "Recomendado: o app olha a despensa e escolhe a melhor combina\u00e7\u00e3o automaticamente."
-          )
-        )
-      )
-    ),
-
-    /* Lista de alimentos (quando gaUseAll=false) */
-    !gaUseAll && React.createElement("div", {
-      style: { background:"var(--bg)", borderRadius:8, padding:10, marginBottom:12, maxHeight:160, overflowY:"auto" }
-    },
-      React.createElement("input", {
-        type:"search",
-        value:gaFoodSearch,
-        onChange:function(e){ setGAFoodSearch(e.target.value); },
-        placeholder: lang==='en' ? "Search food by name" : "Pesquisar alimento pelo nome",
-        style:Object.assign({}, inp, { marginBottom:8 })
-      }),
-      React.createElement("p", { style: { color:"var(--text2)", fontSize:11, margin:"0 0 8px" } },
-        lang==='en' ? "Select foods to include:" : "Selecione os alimentos a incluir:"
-      ),
-      (function(){
-        var q = gaFoodSearch.trim().toLowerCase();
-        var foods = pantry.slice().sort(function(a,b){ return (a.name||"").localeCompare(b.name||"", lang==='en'?'en':'pt', {sensitivity:'base'}); })
-          .filter(function(f){ return !q || (f.name||"").toLowerCase().indexOf(q) !== -1; });
-        if (!foods.length) {
-          return React.createElement("p", { style:{color:"var(--muted)", fontSize:12, margin:0} }, lang==='en' ? "No foods found." : "Nenhum alimento encontrado.");
-        }
-        return foods.map(function(f){
-        return React.createElement("label", {
-          key:f.id,
-          style: { display:"flex", alignItems:"center", gap:8, padding:"3px 0", cursor:"pointer", color:"var(--text1)", fontSize:13 }
-        },
-          React.createElement("input", {
-            type:"checkbox",
-            checked: !!gaSelIds[f.id],
-            onChange: function(e){
-              setGASelIds(function(prev){ return Object.assign({}, prev, {[f.id]: e.target.checked}); });
-            }
-          }),
-          f.name,
-          React.createElement("span", { style: { color:"var(--text2)", fontSize:11 } },
-            " (" + (f.kcal100||0) + "kcal, " + (f.protein100||0) + "g prot)"
-          )
-        );
-        });
-      })()
-    ),
-
-    React.createElement("button", {
-      onClick:function(){ setGAAdvancedOpen(!gaAdvancedOpen); },
-      style:{width:"100%", padding:"10px", borderRadius:8, border:"1px solid var(--border2)", background:"transparent", color:"var(--text2)", cursor:"pointer", fontFamily:"inherit", fontSize:12, marginBottom:gaAdvancedOpen?12:16, textAlign:"left"}
-    }, (gaAdvancedOpen ? "\u25be " : "\u25b8 ") + (lang==='en' ? "Advanced optional adjustments" : "Ajustes avan\u00e7ados opcionais")),
-
-    gaAdvancedOpen && React.createElement(React.Fragment, null,
-
-    /* Limites por unidade */
-    React.createElement("div", { style: { marginBottom:12 } },
-      React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"block", marginBottom:4 } },
-        lang==='en' ? "Global max units per food:" : "M\xe1x. unidades por alimento (global):"
-      ),
-      React.createElement("input", {
-        type:"number", min:1, max:20, value:gaGlobalMax,
-        onChange: function(e){ setGAGlobalMax(parseInt(e.target.value)||5); },
-        style: Object.assign({}, inp, { width:80 })
-      })
-    ),
-
-    /* Ajuste calórico (toler?ncia, pode ser negativo para déficit) */
-    React.createElement("div", { style: { marginBottom:12 } },
-      React.createElement("div", { style: { display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:4 } },
-        React.createElement("label", { style: { color:"var(--text2)", fontSize:12 } },
-          lang==='en' ? "Calorie adjustment:" : "Ajuste cal\xf3rico:"
-        ),
-        React.createElement("span", { style: {
-          fontSize:12, fontWeight:600,
-          color: gaTolerance > 0 ? "#c8b47e" : gaTolerance < 0 ? "#7ec8c8" : "var(--text2)"
-        } },
-          (gaTolerance > 0 ? "+" : "") + gaTolerance + "% " +
-          (function(){
-            var base = (goals.kcal||2000) - Object.values(activeLog).flat().reduce(function(s,e){return s+(e.kcal||0);},0);
-            var abs = Math.round(Math.abs(base * gaTolerance / 100));
-            var adj = Math.round(base * (1 + gaTolerance/100));
-            if(gaTolerance === 0) return "(" + Math.round(base) + "kcal)";
-            return (gaTolerance > 0 ? "(m\xe1x. " : "(m\xe1x. ") + adj + "kcal, " + (gaTolerance > 0 ? "+" : "\u2212") + abs + "kcal)";
-          })()
-        )
-      ),
-      React.createElement("input", {
-        type:"range", min:-40, max:40, value:gaTolerance,
-        onChange: function(e){ setGATolerance(parseInt(e.target.value)); },
-        style: { width:"100%" }
-      }),
-      React.createElement("div", { style: { display:"flex", justifyContent:"space-between", fontSize:12, color:"var(--muted)", marginTop:2 } },
-        React.createElement("span", null, lang==='en'?"\u2212 deficit":"\u2212 d\xe9ficit"),
-        React.createElement("span", null, "0%"),
-        React.createElement("span", null, lang==='en'?"+ surplus":"+ super\xe1vit")
-      )
-    ),
-
-    /* Toler?ncia proteica (opcional) */
-    React.createElement("div", { style: { marginBottom:12 } },
-      React.createElement("label", { style: { color:"var(--text2)", fontSize:13, display:"flex", alignItems:"center", gap:8, cursor:"pointer" } },
-        React.createElement("input", {
-          type:"checkbox", checked:gaUseProtTol,
-          onChange: function(e){ setGAUseProtTol(e.target.checked); }
-        }),
-        lang==='en' ? "Set protein flexibility" : "Definir flexibilidade de prote\u00edna"
-      ),
-      gaUseProtTol && React.createElement("div", { style: { marginTop:8 } },
-        React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"block", marginBottom:4 } },
-          (lang==='en' ? "Protein flexibility: " : "Flexibilidade de prote\u00edna: ") + gaProtTolerance + "%"
-        ),
-        React.createElement("input", {
-          type:"range", min:5, max:50, value:gaProtTolerance,
-          onChange: function(e){ setGAProtTolerance(parseInt(e.target.value)); },
-          style: { width:"100%" }
-        })
-      )
-    ),
-
-    /* Limites absolutos de kcal */
-    React.createElement("div", { style: { marginBottom:12, borderTop:"1px solid var(--border2)", paddingTop:10 } },
-      React.createElement("div", { style: { fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:8 } },
-        lang==='en' ? "Absolute limits (optional)" : "Limites absolutos (opcional)"
-      ),
-      React.createElement("p", { style:{color:"var(--muted)", fontSize:11, lineHeight:1.4, margin:"0 0 10px"} },
-        lang==='en'
-          ? "Leave a field empty to use the automatic value. Fill only the limits you want to force."
-          : "Deixe vazio para usar o valor autom\u00e1tico. Preencha apenas os limites que quiser for\u00e7ar."
-      ),
-      React.createElement("div", { style: { display:"grid", gridTemplateColumns:"repeat(2,minmax(0,1fr))", gap:10 } },
-        [
-          {key:"kmin", label:lang==='en'?"Min calories":"Calorias m\u00edn.", unit:"kcal", value:gaKcalMin, set:setGAKcalMin, ph:function(){return lang==='en'?"auto: no minimum":"auto: sem m\u00ednimo";}},
-          {key:"kmax", label:lang==='en'?"Max calories":"Calorias m\u00e1x.", unit:"kcal", value:gaKcalMax, set:setGAKcalMax, ph:function(){
-            var base = Math.max(50, (goals.kcal||2000) - Object.values(activeLog).flat().reduce(function(s,e){return s+(e.kcal||0);},0));
-            var v = Math.round(base * (1 + gaTolerance/100));
-            return (lang==='en'?"auto: ":"auto: ") + v + " kcal";
-          }},
-          {key:"pmin", label:lang==='en'?"Min protein":"Prote\u00edna m\u00edn.", unit:"g", value:gaProtMin, set:setGAProtMin, ph:function(){
-            var base = Math.max(10, (goals.protein||150) - Object.values(activeLog).flat().reduce(function(s,e){return s+(e.protein||0);},0));
-            return (lang==='en'?"auto: about ":"auto: aprox. ") + Math.round(base*0.5) + "g";
-          }},
-          {key:"pmax", label:lang==='en'?"Max protein":"Prote\u00edna m\u00e1x.", unit:"g", value:gaProtMax, set:setGAProtMax, ph:function(){
-            var base = Math.max(10, (goals.protein||150) - Object.values(activeLog).flat().reduce(function(s,e){return s+(e.protein||0);},0));
-            return gaUseProtTol
-              ? (lang==='en'?"auto: ":"auto: ") + Math.round(base * (1 + gaProtTolerance/100)) + "g"
-              : (lang==='en'?"auto: about ":"auto: aprox. ") + Math.round(base*1.5) + "g";
-          }}
-        ].map(function(item){
-          return React.createElement("label", { key:item.key, style:{display:"block", minWidth:0} },
-            React.createElement("span", { style:{display:"block", color:"var(--text2)", fontSize:12, marginBottom:4} }, item.label),
-            React.createElement("div", { style:{display:"flex", alignItems:"center", gap:6} },
-              React.createElement("input", {
-                type:"number", min:0, value:item.value,
-                placeholder:item.ph(),
-                onChange:function(e){ item.set(e.target.value); },
-                style:Object.assign({}, inp, { marginTop:0, minWidth:0, flex:1, padding:"7px 8px" })
-              }),
-              React.createElement("span", { style:{color:"var(--muted)", fontSize:11, width:28} }, item.unit)
-            )
-          );
-        })
-      )
-    )),
-
-    /* Refeição alvo */
-    React.createElement("div", { style: { marginBottom:16 } },
-      React.createElement("label", { style: { color:"var(--text2)", fontSize:12, display:"block", marginBottom:4 } },
-        lang==='en' ? "Target meal:" : "Refeição alvo:"
-      ),
-      React.createElement("select", {
-        value: gaTargetMeal || MEALS[1],
-        onChange: function(e){ setGATargetMeal(e.target.value); },
-        style: Object.assign({}, inp)
-      },
-        MEALS.map(function(m){ return React.createElement("option", { key:m, value:m }, mealLabel(m)); })
-      )
-    ),
-
-    /* Bot?o Executar */
-    React.createElement("button", {
-      onClick: runGASafely,
-      disabled: gaRunning,
-      style: Object.assign({}, btn, {
-        width:"100%", marginBottom:12,
-        background: gaRunning ? "var(--btn-inactive)" : "var(--accent)",
-        border: "1px solid var(--accent)", color:"#fff", fontSize:14
-      })
-    }, gaRunning
-      ? (lang==='en' ? "Running... " : "Executando... ") + gaProgress + "%"
-      : (lang==='en' ? "Find meals" : "Buscar sugest\u00f5es")
-    ),
-
-    /* Barra de progresso */
-    gaRunning && React.createElement("div", {
-      style: { background:"var(--bg)", borderRadius:4, height:6, marginBottom:12, overflow:"hidden" }
-    },
-      React.createElement("div", {
-        style: { background:"var(--accent)", height:"100%", width:gaProgress+"%", transition:"width 0.3s" }
-      })
-    ),
-
-    /* Resultados */
-    gaResults.length > 0 && React.createElement("div", null,
-      React.createElement("p", { style: { color:"var(--text2)", fontSize:12, marginBottom:8 } },
-        lang==='en' ? "Suggestions found:" : "Sugest\xf5es encontradas:"
-      ),
-      gaResults.map(function(r, ri){
-        return React.createElement("div", {
-          key:ri,
-          style: {
-            background:"var(--bg)", borderRadius:10, padding:12,
-            marginBottom:10, border:"1px solid var(--border2)"
-          }
-        },
-          React.createElement("div", { style: { display:"flex", justifyContent:"space-between", marginBottom:6 } },
-            React.createElement("span", { style: { color:"var(--text1)", fontSize:13, fontWeight:600 } },
-              (lang==='en' ? "Option " : "Op\xe7\xe3o ") + (ri+1)
-            ),
-            React.createElement("span", { style: {
-              fontSize: 14,
-              background: r.fit < 0.08 ? "rgba(80,200,120,0.15)" : "rgba(200,160,80,0.15)",
-              color: r.fit < 0.08 ? "#7ec87e" : "#c8b47e",
-              padding: "2px 7px", borderRadius: 10
-            } }, r.fit < 0.08 ? (lang==='en'?"Optimal":"\xd3timo") : (lang==='en'?"Best found":"Melhor achado"))
-            ),
-            React.createElement("div", { style: { marginBottom:8 } },
-            (function(){
-              var entries = Object.values(activeLog).flat();
-              var todayKcal = entries.reduce(function(s,e){ return s+(e.kcal||0); },0);
-              var todayProt = entries.reduce(function(s,e){ return s+(e.protein||0); },0);
-              var todayCarb = entries.reduce(function(s,e){ return s+(e.carbs||0); },0);
-              var todayFat  = entries.reduce(function(s,e){ return s+(e.fat||0); },0);
-              var macros = [
-                { label: "Kcal", val: r.kcal, today: todayKcal, goal: goals.kcal||2000, unit:"kcal" },
-                { label: "Prot", val: r.protein, today: todayProt, goal: goals.protein||150, unit:"g" },
-                { label: "Carb", val: r.carbs, today: todayCarb, goal: goals.carbs||250, unit:"g" },
-                { label: "Fat",  val: r.fat,  today: todayFat,  goal: goals.fat||70,   unit:"g" }
-              ];
-              return React.createElement("div", null,
-                /* Esta refeição */
-                React.createElement("div", { style: { display:"flex", gap:6, flexWrap:"wrap", marginBottom:6 } },
-                  macros.map(function(m){
-                    var pct = Math.round(m.val/Math.max(m.goal,1)*100);
-                    var col = pct > 110 ? "#c87e7e" : pct > 75 ? "#7ec87e" : "#c8b47e";
-                    return React.createElement("span", { key:m.label, style: {
-                      background:"var(--bg)", borderRadius:6, padding:"3px 8px",
-                      fontSize:11, color:col, border:"1px solid var(--border2)"
-                    } }, m.label + ": " + m.val + m.unit + " (" + pct + "% da meta)");
-                  })
-                ),
-                /* Totais projetados */
-                React.createElement("div", { style: {
-                  background:"rgba(255,255,255,0.04)", borderRadius:8,
-                  padding:"8px 10px", marginTop:4,
-                  borderLeft:"3px solid var(--accent)"
-                } },
-                  React.createElement("div", { style: { fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:5 } },
-                    lang==='en' ? "Total after this meal:" : "Total com esta refei\xe7\xe3o:"
-                  ),
-                  React.createElement("div", { style: { display:"flex", gap:8, flexWrap:"wrap" } },
-                    macros.map(function(m){
-                      var proj = Math.round(m.today + m.val);
-                      var diff = proj - m.goal;
-                      var over = diff > 0;
-                      var col = over ? "#c87e7e" : Math.abs(diff) < m.goal*0.1 ? "#7ec87e" : "var(--text2)";
-                      var diffStr = over
-                        ? ("+" + diff + m.unit + " " + (lang==='en'?"over":"acima"))
-                        : (Math.abs(diff) + m.unit + " " + (lang==='en'?"to go":"restam"));
-                      return React.createElement("span", { key:m.label, style: { fontSize:11, color:col } },
-                        React.createElement("b", null, m.label + ": " + proj + m.unit),
-                        " (", diffStr, ")"
-                      );
-                    })
-                  )
-                )
-              );
-            })()
-          ),
-          r.items.map(function(item, ii){
-            var qty = item.food.unit === 'un' ? item.gene : item.gene * 100;
-            return React.createElement("div", { key:ii, style: { color:"var(--text2)", fontSize:12, padding:"2px 0" } },
-              "\u2022 " + item.food.name + ": " + qty + (item.food.unit==='un' ? ' un' : 'g')
-            );
-          }),
-          React.createElement("button", {
-            onClick: function(){ addGAResultToDiary(r); },
-            style: Object.assign({}, btn, {
-              width:"100%", marginTop:8, fontSize:12,
-              background:"var(--accent)", border:"1px solid var(--accent)", color:"#fff"
-            })
-          }, lang==='en' ? "\u2795 Add to diary" : "\u2795 Adicionar ao di\xe1rio")
-        );
-      })
-    ),
-
-    /* Sem resultados ap?s rodar */
-    !gaRunning && gaResults.length === 0 && gaProgress === 100 && React.createElement("p", {
-      style: { color:"var(--text2)", fontSize:12, textAlign:"center" }
-    }, lang==='en' ? "No combinations found. Try adjusting tolerance or max units." : "Nenhuma combina\xe7\xe3o encontrada. Tente aumentar a toler\xe2ncia ou o m\xe1x. de unidades.")
-  )
-)))))));
+  null))))));
 }
 const inp = {
   width: "100%",
@@ -12276,7 +11981,7 @@ const btn = {
   fontFamily: "inherit",
   marginTop: 4
 };
-function sBtn(bg, border, color) {
+function sBtn(bg, border, color, extra = {}) {
   return {
     background: bg,
     border: "1px solid " + border,
@@ -12286,12 +11991,13 @@ function sBtn(bg, border, color) {
     fontSize: 14,
     letterSpacing: 1,
     textTransform: "uppercase",
-    cursor: "pointer"
+    cursor: "pointer",
+    ...extra
   };
 }
-function sBtnLbl(bg, border, color) {
+function sBtnLbl(bg, border, color, extra = {}) {
   return {
-    ...sBtn(bg, border, color),
+    ...sBtn(bg, border, color, extra),
     display: "inline-block"
   };
 }
@@ -13355,7 +13061,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
        errInvalid:'Email inválido.', errMatch:'As senhas não coincidem.',
        errShort:'A senha deve ter pelo menos 6 caracteres.',
        langToggle:'English'}
-    : {title:'Nutrition Diary', login:'Sign in', register:'Create account',
+    : {title:'Nutrition Tracker', login:'Sign in', register:'Create account',
        email:'Email', password:'Password', confirm:'Confirm password',
        loginBtn:'Sign in', registerBtn:'Create account', processing:'Processing...',
        forgotPassword:'Forgot password?', resetSending:'Sending...',
@@ -13605,7 +13311,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
 }
 
 // Settings Panel
-function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDark, directKey}) {
+function SettingsPanel({onClose, onLogout, onOpenBackup, onOpenPrivacy, lang, darkMode, toggleLang, toggleDark, directKey}) {
   const [showKey, setShowKey] = React.useState(!!directKey);
   const [groqKey, setGroqKey] = React.useState(()=>localStorage.getItem('groq_key')||'');
   const [proxy, setProxy] = React.useState(()=>localStorage.getItem('cors_proxy')||'');
@@ -13616,32 +13322,59 @@ function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDar
     localStorage.setItem('cors_proxy',proxy);
     closeKey();
   }
-  function doLogout() { fbSignOut(); onLogout(); onClose(); }
+  async function doLogout() {
+    try {
+      await Promise.resolve(fbSignOut());
+    } catch (_) {}
+    onLogout();
+    onClose();
+  }
   const S = isPt
     ? {title:'Configurações',langSwitch:'Switch to English',themeLight:'Modo claro',themeDark:'Modo escuro',
-       apiKey:'Chave API Groq',logout:'Sair da conta',save:'Salvar',
+       apiKey:'IA / Chave de API (avançado)',logout:'Sair da conta',save:'Salvar',
        keyLabel:'Chave API Groq',keyHint:'Obtenha em console.groq.com/keys',
        proxyLabel:'Proxy CORS (opcional)',proxyHint:'Necessário se a IA não funcionar'}
     : {title:'Settings',langSwitch:'Switch to Portuguese',themeLight:'Light mode',themeDark:'Dark mode',
-       apiKey:'Groq API Key',logout:'Sign out',save:'Save',
+       apiKey:'AI / API key (advanced)',logout:'Sign out',save:'Save',
        keyLabel:'Groq API Key',keyHint:'Get it at console.groq.com/keys',
        proxyLabel:'CORS Proxy (optional)',proxyHint:'Required if AI features fail'};
 
   Object.assign(S, isPt
     ? {title:'Configura\u00e7\u00f5es',langSwitch:'Switch to English',themeLight:'Modo claro',themeDark:'Modo escuro',
-       apiKey:'Chave API Groq',logout:'Sair da conta',save:'Salvar',
+       apiKey:'IA / Chave de API (avan\u00e7ado)',logout:'Sair da conta',save:'Salvar',
        keyLabel:'Chave API Groq',keyHint:'Cole aqui sua chave da Groq. Ela fica salva apenas neste navegador.',
        proxyLabel:'Proxy CORS (opcional)',proxyHint:'Use somente se os recursos de IA falharem por bloqueio de CORS.'}
     : {title:'Settings',langSwitch:'Switch to Portuguese',themeLight:'Light mode',themeDark:'Dark mode',
-       apiKey:'Groq API Key',logout:'Sign out',save:'Save',
+       apiKey:'AI / API key (advanced)',logout:'Sign out',save:'Save',
        keyLabel:'Groq API Key',keyHint:'Paste your Groq key here. It is stored only in this browser.',
        proxyLabel:'CORS proxy (optional)',proxyHint:'Use only if AI features fail because of CORS blocking.'});
 
-  const rowBtn = (label, onClick, danger) => React.createElement('button', {onClick, style:{
+  const rowBtn = (label, onClick, danger, hint) => React.createElement('button', {onClick, style:{
     display:'block',width:'100%',background:'none',border:'none',
     borderTop:'1px solid var(--border2)',color:danger?'var(--btn-warn-text)':'var(--text2)',
     padding:'15px 20px',fontSize:14,cursor:'pointer',fontFamily:'inherit',textAlign:'left'
-  }}, label);
+  }}, React.createElement('div', null, label), hint ? React.createElement('div', {
+    style:{fontSize:12,color:'var(--muted)',marginTop:4,lineHeight:1.35}
+  }, hint) : null);
+  const sectionTitle = label => React.createElement('div', {
+    style:{
+      padding:'16px 20px 6px',
+      fontSize:11,
+      letterSpacing:2,
+      textTransform:'uppercase',
+      color:'var(--muted)',
+      fontWeight:700
+    }
+  }, label);
+  const languageLabel = isPt
+    ? '🇧🇷 Idioma: Portugu\u00eas (Brasil)'
+    : '🇺🇸 Language: English (US)';
+  const languageHint = isPt
+    ? 'English (US) 🇺🇸'
+    : 'Portugu\u00eas (Brasil) 🇧🇷';
+  const aiHint = isPt
+    ? 'Habilita as fun\u00e7\u00f5es com \u2726, como an\u00e1lises e preenchimento por IA.'
+    : 'Enables \u2726 features such as AI analysis and automatic filling.';
   const inp = {width:'100%',background:'var(--surface)',border:'1px solid var(--border2)',color:'var(--text)',
     padding:'11px 12px',borderRadius:8,fontSize:13,boxSizing:'border-box',outline:'none',fontFamily:'inherit'};
 
@@ -13669,9 +13402,15 @@ function SettingsPanel({onClose, onLogout, lang, darkMode, toggleLang, toggleDar
         React.createElement('div',{style:{width:32,height:4,background:'#2e2e2e',borderRadius:2,margin:'0 auto'}})
       ),
       React.createElement('div',{style:{paddingBottom:8}},
-        rowBtn(S.langSwitch, ()=>{toggleLang(); onClose();}),
+        sectionTitle(isPt ? 'Apar\u00eancia' : 'Appearance'),
+        rowBtn(languageLabel, ()=>{toggleLang(); onClose();}, false, languageHint),
         rowBtn(darkMode?S.themeLight:S.themeDark, ()=>{toggleDark(); onClose();}),
-        rowBtn(S.apiKey, ()=>setShowKey(true)),
+        sectionTitle(isPt ? 'Dados' : 'Data'),
+        rowBtn(isPt ? 'Backup e restaurar' : 'Backup & restore', ()=>{onClose(); onOpenBackup && onOpenBackup();}),
+        rowBtn(isPt ? 'Privacidade e seguran\u00e7a' : 'Privacy & security', ()=>{onClose(); onOpenPrivacy && onOpenPrivacy();}),
+        sectionTitle(isPt ? 'Intelig\u00eancia' : 'Intelligence'),
+        rowBtn(S.apiKey, ()=>setShowKey(true), false, aiHint),
+        sectionTitle(isPt ? 'Conta' : 'Account'),
         rowBtn(S.logout, doLogout, true)
       )
     )
@@ -13729,11 +13468,26 @@ function App() {
   function toggleLang() {
     const nl=lang==='pt'?'en':'pt';
     localStorage.setItem('appLang',nl);
-    storage.set('language', nl).catch(()=>{});
     setLang(nl);
-    setTimeout(() => window.location.reload(), 0);
+    Promise.resolve(storage.set('language', nl))
+      .catch(()=>{})
+      .finally(() => setTimeout(() => window.location.reload(), 0));
   }
   function toggleDark() { setDarkMode(d => { const next = !d; localStorage.setItem('appDarkMode', String(next)); return next; }); }
+  async function handleLogout() {
+    try {
+      await Promise.resolve(fbSignOut());
+    } catch (_) {}
+    setAuthed(false);
+    setChecking(false);
+    setProfileChecking(false);
+    setRequiredProfile(null);
+    setShowSettings(false);
+    setShowPrivacy(false);
+    setShowBackup(false);
+    setShowTutorial(false);
+    setShowReleaseNotice(false);
+  }
   async function checkRequiredProfile() {
     setProfileChecking(true);
     const profile = await getRequiredProfileData().catch(()=>({birthDate:'', gender:'', activityLevel:'', goalType:'', goalKg:'', goalWeeks:'', manualAdjustment:''}));
@@ -13863,7 +13617,7 @@ function App() {
       }) : null,
       !requiredProfile && React.createElement(NutritionTracker, {
         onOpenSettings: () => setShowSettings(true),
-        onLogout: () => { setAuthed(false); },
+        onLogout: handleLogout,
         onStartTutorial: (type = 'main') => { setTutorialType(type); setShowTutorial(true); },
         onOpenPrivacy: () => setShowPrivacy(true),
         onOpenBackup: () => setShowBackup(true),
@@ -13873,7 +13627,7 @@ function App() {
       showPrivacy ? React.createElement(PrivacyPanel, {
         lang,
         onClose: () => setShowPrivacy(false),
-        onLogout: () => { setAuthed(false); setShowPrivacy(false); }
+        onLogout: handleLogout
       }) : null,
       showBackup ? React.createElement(BackupModal, {
         lang,
@@ -13899,9 +13653,11 @@ function App() {
       }) : null,
       showSettings ? React.createElement(SettingsPanel, {
         onClose:  () => setShowSettings(false),
-        onLogout: () => { setAuthed(false); setShowSettings(false); },
+        onLogout: handleLogout,
+        onOpenBackup: () => setShowBackup(true),
+        onOpenPrivacy: () => setShowPrivacy(true),
         lang, darkMode, toggleLang, toggleDark,
-        directKey: true
+        directKey: false
       }) : null
     )
   );
