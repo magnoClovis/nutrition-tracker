@@ -946,6 +946,114 @@ function computeGoals(weight, train, profile = {}) {
     salt: 5
   };
 }
+
+// Goal toast copy is intentionally centralized so future tone changes do not
+// require touching the milestone detection logic.
+const GOAL_TOAST_COPY = {
+  pt: {
+    protein: [
+      "Prote\u00edna completa. Boa base para recupera\u00e7\u00e3o e massa muscular.",
+      "Meta de prote\u00edna batida. O prato fez o trabalho dele.",
+      "Prote\u00edna do dia no alvo. Seus m\u00fasculos registraram presen\u00e7a.",
+      "Boa! A prote\u00edna fechou a conta de hoje.",
+      "Prote\u00edna garantida. Agora o resto do dia fica mais f\u00e1cil de ajustar."
+    ],
+    kcal: [
+      "Meta cal\u00f3rica alcan\u00e7ada. Energia do dia registrada.",
+      "Calorias no alvo. O plano de hoje ganhou forma.",
+      "Meta de calorias batida. A matem\u00e1tica do prato colaborou.",
+      "Energia completa por hoje. Bom ritmo.",
+      "Calorias chegaram na meta. Miss\u00e3o energ\u00e9tica cumprida."
+    ],
+    water: [
+      "Hidrata\u00e7\u00e3o em dia. Meta de \u00e1gua batida.",
+      "\u00c1gua completa por hoje. A garrafa trabalhou bem.",
+      "Boa hidrata\u00e7\u00e3o. Seu eu do futuro agradece.",
+      "Meta de \u00e1gua alcan\u00e7ada. Simples, \u00fatil e feito.",
+      "Hidrata\u00e7\u00e3o fechada. A rotina ganhou um ponto."
+    ],
+    carbs: [
+      "Carboidratos no alvo. Energia dispon\u00edvel para o dia.",
+      "Meta de carboidratos alcan\u00e7ada. Combust\u00edvel registrado.",
+      "Carbos completos. O tanque n\u00e3o ficou no vazio.",
+      "Boa! Os carboidratos chegaram na meta.",
+      "Carboidratos em dia. Agora \u00e9 s\u00f3 usar essa energia com ju\u00edzo."
+    ],
+    fat: [
+      "Gorduras no alvo. Meta do dia alcan\u00e7ada.",
+      "Meta de gorduras batida. Equil\u00edbrio tamb\u00e9m conta ponto.",
+      "Gorduras completas para hoje. Sem drama, s\u00f3 registro bem feito.",
+      "Boa! A meta de gorduras chegou l\u00e1.",
+      "Gorduras em dia. O painel ficou mais completo."
+    ],
+    fiber: [
+      "Fibra em dia. Bom apoio para saciedade e digest\u00e3o.",
+      "Meta de fibra alcan\u00e7ada. O intestino provavelmente aprovou.",
+      "Boa ingest\u00e3o de fibra hoje. Esse detalhe faz diferen\u00e7a.",
+      "Fibra completa. Pequena vit\u00f3ria bem subestimada.",
+      "Meta de fibra batida. Ponto para a qualidade do dia."
+    ],
+    salt: [
+      "Limite de sal atingido. Vale moderar daqui em diante.",
+      "Sal chegou ao limite di\u00e1rio. Aten\u00e7\u00e3o no restante do dia.",
+      "Aviso de sal: limite alcan\u00e7ado. O saleiro j\u00e1 fez participa\u00e7\u00e3o especial.",
+      "Sal no limite. Melhor deixar o pr\u00f3ximo prato mais leve nisso.",
+      "Aten\u00e7\u00e3o: a meta de sal j\u00e1 foi atingida."
+    ]
+  },
+  en: {
+    protein: [
+      "Protein complete. Solid support for recovery and muscle.",
+      "Protein goal hit. The plate did its job.",
+      "Protein is on target today. Muscles have entered the chat.",
+      "Nice. Today's protein goal is covered.",
+      "Protein secured. The rest of the day gets easier to balance."
+    ],
+    kcal: [
+      "Calorie target reached. Today's energy is logged.",
+      "Calories are on target. The plan is taking shape.",
+      "Calorie goal hit. The food math cooperated.",
+      "Energy covered for today. Good rhythm.",
+      "Calories reached the target. Energy mission complete."
+    ],
+    water: [
+      "Hydration is on track. Water goal hit.",
+      "Water complete for today. That bottle put in work.",
+      "Good hydration. Future you says thanks.",
+      "Water goal reached. Simple, useful, done.",
+      "Hydration closed out. One point for the routine."
+    ],
+    carbs: [
+      "Carbs are on target. Energy is available for the day.",
+      "Carb goal reached. Fuel logged.",
+      "Carbs complete. The tank is not empty.",
+      "Nice. Carbs reached the target.",
+      "Carbs are in place. Use that energy wisely."
+    ],
+    fat: [
+      "Fats are on target. Daily goal reached.",
+      "Fat goal hit. Balance counts too.",
+      "Fats complete for today. No drama, just clean tracking.",
+      "Nice. Fat target reached.",
+      "Fats are in place. The dashboard is more complete."
+    ],
+    fiber: [
+      "Fiber is in. Good support for fullness and digestion.",
+      "Fiber goal reached. Your gut may approve.",
+      "Good fiber intake today. This detail matters.",
+      "Fiber complete. An underrated little win.",
+      "Fiber goal hit. Point for food quality today."
+    ],
+    salt: [
+      "Sodium limit reached. Worth moderating from here.",
+      "Sodium reached today's limit. Keep an eye on the rest of the day.",
+      "Sodium notice: limit reached. The salt had its cameo.",
+      "Sodium is at the limit. A lighter next meal may help.",
+      "Heads up: sodium target has been reached."
+    ]
+  }
+};
+
 function getWeightForDate(history, date) {
   return [...history].filter(e => e.date <= date).sort((a, b) => b.date.localeCompare(a.date))[0] || null;
 }
@@ -1329,6 +1437,10 @@ function NutritionTracker({
   const barcodeControlsRef = useRef(null);
   const barcodeScanRef = useRef(false);
   const [notification, setNotification] = useState("");
+  const [goalToast, setGoalToast] = useState(null);
+  const goalToastQueueRef = useRef([]);
+  const goalToastTimerRef = useRef(null);
+  const goalToastActiveRef = useRef(false);
   const [expandMicros, setExpandMicros] = useState(false);
   const [detailFood, setDetailFood] = useState(null);
   const [entryMenuId, setEntryMenuId] = useState(null);
@@ -1526,6 +1638,11 @@ function NutritionTracker({
   }, []);
   useEffect(() => {
     return () => stopBarcodeScanner();
+  }, []);
+  useEffect(() => {
+    return () => {
+      if (goalToastTimerRef.current) clearTimeout(goalToastTimerRef.current);
+    };
   }, []);
   /**
    * Returns whether a key is safe to persist after startup.
@@ -1775,6 +1892,49 @@ function NutritionTracker({
   function notify(msg, duration = 3000) {
     setNotification(msg);
     setTimeout(() => setNotification(""), duration);
+  }
+
+  /**
+   * Shows goal milestones as non-blocking toasts.
+   * The queue prevents several nutrients from fighting for the same screen
+   * space when a single meal crosses multiple targets at once.
+   */
+  function showNextGoalToast() {
+    if (goalToastActiveRef.current) return;
+    const next = goalToastQueueRef.current.shift();
+    if (!next) return;
+    goalToastActiveRef.current = true;
+    setGoalToast({...next, visible: true});
+    if (goalToastTimerRef.current) clearTimeout(goalToastTimerRef.current);
+    goalToastTimerRef.current = setTimeout(() => {
+      setGoalToast(current => current ? {...current, visible: false} : null);
+      goalToastTimerRef.current = setTimeout(() => {
+        setGoalToast(null);
+        goalToastActiveRef.current = false;
+        showNextGoalToast();
+      }, 450);
+    }, 5000);
+  }
+
+  /**
+   * Adds one milestone toast to the queue.
+   * Each toast receives a ready-to-render text because the phrase is randomly
+   * selected at the moment the goal is crossed.
+   */
+  function queueGoalToast(toast) {
+    goalToastQueueRef.current.push(toast);
+    showNextGoalToast();
+  }
+
+  function pickGoalToastPhrase(goalKey) {
+    const copy = GOAL_TOAST_COPY[lang] || GOAL_TOAST_COPY.pt;
+    const options = copy[goalKey] || copy.protein;
+    return options[Math.floor(Math.random() * options.length)];
+  }
+
+  function formatGoalToastValue(value, target, unit) {
+    const pct = target ? Math.round(value / target * 100) : 0;
+    return `${rnd(value)}${unit} / ${rnd(target)}${unit} (${pct}%)`;
   }
   function applyFoodDbProduct(product) {
     const n = product.nutriments || {};
@@ -4084,6 +4244,51 @@ function NutritionTracker({
       text: lang === 'en' ? "Keep an eye on what remains before choosing the next meal." : "Observe o que ainda falta antes de escolher a próxima refeição."
     };
   })();
+  useEffect(() => {
+    if (!loaded || !goals) return;
+    const metrics = [
+      {key: "protein", value: tot.protein, target: goals.protein, unit: "g", tone: "success"},
+      {key: "kcal", value: tot.kcal, target: goals.kcal, unit: "kcal", tone: "success"},
+      {key: "carbs", value: tot.carbs, target: goals.carbs, unit: "g", tone: "success"},
+      {key: "fat", value: tot.fat, target: goals.fat, unit: "g", tone: "success"},
+      {key: "fiber", value: tot.fiber, target: goals.fiber, unit: "g", tone: "success"},
+      {key: "salt", value: tot.salt, target: goals.salt, unit: "g", tone: "warning"}
+    ];
+    if (isToday) {
+      metrics.push({key: "water", value: totalWater, target: goals.water, unit: "ml", tone: "success"});
+    }
+    metrics.forEach(metric => {
+      if (!metric.target || metric.value < metric.target) return;
+      const storageKey = `nutrition_goal_toast_seen_${viewDate}_${metric.key}`;
+      if (typeof window !== "undefined" && window.localStorage.getItem(storageKey)) return;
+      if (typeof window !== "undefined") window.localStorage.setItem(storageKey, "1");
+      queueGoalToast({
+        key: metric.key,
+        tone: metric.tone,
+        text: pickGoalToastPhrase(metric.key),
+        detail: formatGoalToastValue(metric.value, metric.target, metric.unit)
+      });
+    });
+  }, [
+    loaded,
+    viewDate,
+    lang,
+    isToday,
+    totalWater,
+    tot.protein,
+    tot.kcal,
+    tot.carbs,
+    tot.fat,
+    tot.fiber,
+    tot.salt,
+    goals.protein,
+    goals.kcal,
+    goals.carbs,
+    goals.fat,
+    goals.fiber,
+    goals.salt,
+    goals.water
+  ]);
   const dateStr = formatHeaderDate(viewDate, lang);
   function beginTemplateEdit(tmpl) {
     setEditingTemplateId(tmpl.id);
@@ -6056,7 +6261,54 @@ function NutritionTracker({
         color: "var(--muted2)"
       }
     }, val % 1 === 0 ? val : val.toFixed(2), " ", f.unit));
-  })))), notification && (() => {
+  })))), goalToast && (() => {
+    const isWarning = goalToast.tone === "warning";
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "fixed",
+        top: isMobileView ? 10 : 14,
+        left: "50%",
+        zIndex: 10050,
+        width: isMobileView ? "calc(100% - 24px)" : "min(560px, calc(100% - 32px))",
+        transform: `translate(-50%, ${goalToast.visible ? "0" : "-120%"})`,
+        opacity: goalToast.visible ? 1 : 0,
+        transition: "transform 420ms ease, opacity 420ms ease",
+        pointerEvents: "none",
+        background: isWarning ? "#fff7df" : "#e7f5e8",
+        border: `1px solid ${isWarning ? "#d9bd6a" : "#91cf96"}`,
+        color: isWarning ? "#7a5b13" : "#1f6b2b",
+        borderRadius: 8,
+        boxShadow: "0 10px 26px rgba(0,0,0,0.12)",
+        padding: isMobileView ? "10px 12px" : "12px 16px",
+        display: "flex",
+        gap: 10,
+        alignItems: "center",
+        justifyContent: "space-between"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: isMobileView ? 13 : 14,
+        fontWeight: 700,
+        lineHeight: 1.25
+      }
+    }, goalToast.text), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: isMobileView ? 12 : 13,
+        color: isWarning ? "#8b6a1c" : "#2f7b39",
+        marginTop: 2
+      }
+    }, goalToast.detail)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: "0 0 auto",
+        fontSize: 18,
+        lineHeight: 1
+      }
+    }, isWarning ? "!" : "\u2713"));
+  })(), notification && (() => {
     const isErr = notification.startsWith("Erro") || notification.startsWith("Error");
     return /*#__PURE__*/React.createElement("div", {
       style: {
