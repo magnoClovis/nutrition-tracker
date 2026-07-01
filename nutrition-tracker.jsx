@@ -1407,6 +1407,7 @@ function NutritionTracker({
   const [gaRunning, setGARunning]     = useState(false);
   const [gaProgress, setGAProgress]   = useState(0);
   const [gaResults, setGAResults]     = useState([]);
+  const [gaHasSearched, setGAHasSearched] = useState(false);
   const [gaTargetMeal, setGATargetMeal] = useState(''); // {content, filename, copied}
   const [gaUseProtTol, setGAUseProtTol] = useState(false);
   const [gaProtTolerance, setGAProtTolerance] = useState(20);
@@ -3003,6 +3004,7 @@ function NutritionTracker({
     setGARunning(true);
     setGAProgress(0);
     setGAResults([]);
+    setGAHasSearched(true);
 
     // Build food list
     const foods = pantry.filter(f =>
@@ -3035,22 +3037,85 @@ function NutritionTracker({
     const hasProtMin = protMinLimit !== null;
     const hasProtMax = protMaxLimit !== null;
 
-    // Per-food gene bounds
-    // gene unit: for "un" foods = 1 item; for g/ml = 100g/ml
-    const geneMax = i => gaLimits[foods[i]?.id]?.max ?? gaGlobalMax;
-    const geneMin = i => gaLimits[foods[i]?.id]?.min ?? 0;
-    const randGene = i => geneMin(i) + Math.floor(Math.random() * (geneMax(i) - geneMin(i) + 1));
+    const protBudget = gaUseProtTol
+      ? targetProt * (1 + gaProtTolerance/100)
+      : Infinity;
+
+    /**
+     * Computes a safe search range for each food before the GA starts.
+     *
+     * Input: pantry foods plus user kcal/protein limits.
+     * Output: one integer gene interval per food.
+     *
+     * Important: the serving step is intentionally unchanged here. For now,
+     * g/ml foods still use 100g/ml per gene and "un" foods use 1 item per
+     * gene. Future portion-fraction work should change only geneStep.
+     */
+    const computeSuggestionBounds = () => {
+      const fallbackGeneCap = food => food.unit === 'un' ? 100 : 20; // 100 units or 2000g/ml.
+      const safeInt = (value, fallback) => {
+        const n = Number(value);
+        return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : fallback;
+      };
+
+      return foods.map(food => {
+        const manual = gaLimits[food.id] || {};
+        const userMax = safeInt(manual.max ?? gaGlobalMax, 5);
+        const userMin = safeInt(manual.min ?? 0, 0);
+        const kcalPerGene = Number(food.kcal100) || 0;
+        const protPerGene = Number(food.protein100) || 0;
+        const maxCandidates = [userMax];
+        let usedVariableCap = false;
+
+        const kcalCeiling = hasKcalMax ? kcalMaxLimit : kcalBudget;
+        if (Number.isFinite(kcalCeiling) && kcalCeiling >= 0 && kcalPerGene > 0) {
+          maxCandidates.push(Math.floor(kcalCeiling / kcalPerGene));
+          usedVariableCap = true;
+        }
+
+        const protCeiling = hasProtMax ? protMaxLimit : (gaUseProtTol ? protBudget : null);
+        if (protCeiling !== null && Number.isFinite(protCeiling) && protCeiling >= 0 && protPerGene > 0) {
+          maxCandidates.push(Math.floor(protCeiling / protPerGene));
+          usedVariableCap = true;
+        }
+
+        if (!usedVariableCap) {
+          maxCandidates.push(fallbackGeneCap(food));
+        }
+
+        const max = Math.max(0, Math.min(...maxCandidates.filter(Number.isFinite)));
+        const min = Math.min(userMin, max);
+        return { min, max };
+      });
+    };
+
+    const bounds = computeSuggestionBounds();
+
+    // Per-food gene bounds. Gene unit: "un" = 1 item; g/ml = 100g/ml.
+    const geneMax = i => bounds[i]?.max ?? 0;
+    const geneMin = i => bounds[i]?.min ?? 0;
+    const safeRound = value => {
+      const n = Number(value);
+      return Number.isFinite(n) ? Math.round(n) : 0;
+    };
+    const clampGene = (value, i) => Math.max(geneMin(i), Math.min(geneMax(i), safeRound(value)));
+    const randGene = i => {
+      const min = geneMin(i);
+      const max = geneMax(i);
+      if (max <= min) return min;
+      return min + Math.floor(Math.random() * (max - min + 1));
+    };
 
     // Totals from gene array
     const totals = genes => {
       let p=0,k=0,c=0,f=0;
       genes.forEach((g,i)=>{
-        // protein100/kcal100 is per 100g for g/ml, per unit for un
-        // gene=1 means 100g (g/ml) or 1 unit (un) ? multiply by gene ? total
-        p += (foods[i].protein1000)*g;
-        k += (foods[i].kcal1000)*g;
-        c += (foods[i].carbs1000)*g;
-        f += (foods[i].fat1000)*g;
+        // Pantry macros are stored as protein100/kcal100/etc.
+        // For g/ml foods, one gene is 100g/ml; for unit foods, one gene is one unit.
+        p += (Number(foods[i].protein100) || 0) * g;
+        k += (Number(foods[i].kcal100) || 0) * g;
+        c += (Number(foods[i].carbs100) || 0) * g;
+        f += (Number(foods[i].fat100) || 0) * g;
       });
       return {protein:p, kcal:k, carbs:c, fat:f};
     };
@@ -3069,10 +3134,6 @@ function NutritionTracker({
     const kcalLo = hasKcalMin ? kcalMinLimit : 0;
     const kcalHi = hasKcalMax ? kcalMaxLimit : kcalBudget;
 
-    // Protein budget from tolerance (if enabled)
-    const protBudget = gaUseProtTol
-      ? targetProt * (1 + gaProtTolerance/100)
-      : Infinity;
     const protLo = hasProtMin ? protMinLimit : 0;
     const protHi = hasProtMax ? protMaxLimit : Infinity;
 
@@ -3142,6 +3203,26 @@ function NutritionTracker({
     let bestFit=Infinity, bestInd=null;
 
     const solKey = g => g.join(',');
+    const isSolutionAllowed = genes => {
+      if (!genes.some(g => g > 0)) return false;
+      const t = totals(genes);
+      if (hasKcalMin && t.kcal < kcalMinLimit) return false;
+      if (hasKcalMax && t.kcal > kcalMaxLimit) return false;
+      if (hasProtMin && t.protein < protMinLimit) return false;
+      if (hasProtMax && t.protein > protMaxLimit) return false;
+      if (gaUseProtTol && Number.isFinite(protBudget) && t.protein > protBudget) return false;
+      return genes.every((g, i) => g >= geneMin(i) && g <= geneMax(i));
+    };
+
+    const makeSolution = ind => {
+      const t = totals(ind.genes);
+      return {
+        genes:ind.genes, fit:ind.fit,
+        protein:Math.round(t.protein), kcal:Math.round(t.kcal),
+        carbs:Math.round(t.carbs), fat:Math.round(t.fat),
+        items: foods.map((f,i)=>({food:f, gene:ind.genes[i]})).filter(x=>x.gene>0)
+      };
+    };
 
     const select = p => {
       p.sort((a,b)=>a.fit-b.fit);
@@ -3150,7 +3231,7 @@ function NutritionTracker({
 
     const cross = (a,b) => {
       const pt = Math.floor(Math.random()*a.genes.length);
-      const g = [...a.genes.slice(0,pt), ...b.genes.slice(pt)];
+      const g = [...a.genes.slice(0,pt), ...b.genes.slice(pt)].map((gene, i) => clampGene(gene, i));
       return {genes:g, fit:fitness(g)};
     };
 
@@ -3168,7 +3249,7 @@ function NutritionTracker({
         for(let k=0;k<ch;k++){
           const j=Math.floor(Math.random()*g.length);
           const x=randGene(j);
-          g[j]=Math.max(geneMin(j), Math.min(geneMax(j), Math.abs(g[j]-x)));
+          g[j]=clampGene(Math.abs(g[j]-x), j);
         }
       }
       return {genes:g, fit:fitness(g)};
@@ -3217,15 +3298,9 @@ function NutritionTracker({
         for(const ind of parents){
           if(ind.fit < STOP_FIT){
             const k=solKey(ind.genes);
-            if(!solKeys.has(k) && ind.genes.some(g=>g>0)){
+            if(!solKeys.has(k) && isSolutionAllowed(ind.genes)){
               solKeys.add(k);
-              const t=totals(ind.genes);
-              solutions.push({
-                genes:ind.genes, fit:ind.fit,
-                protein:Math.round(t.protein), kcal:Math.round(t.kcal),
-                carbs:Math.round(t.carbs), fat:Math.round(t.fat),
-                items: foods.map((f,i)=>({food:f, gene:ind.genes[i]})).filter(x=>x.gene>0)
-              });
+              solutions.push(makeSolution(ind));
               solutions.sort((a,b)=>a.fit-b.fit);
               setGAResults([...solutions].slice(0,N_SOLS));
             }
@@ -3253,15 +3328,14 @@ function NutritionTracker({
     }
 
     // Fallback: show best attempt if no solution met STOP_FIT
-    if(solutions.length===0 && bestInd){
-      const t=totals(bestInd.genes);
-      solutions.push({
-        genes:bestInd.genes, fit:bestInd.fit,
-        protein:Math.round(t.protein), kcal:Math.round(t.kcal),
-        carbs:Math.round(t.carbs), fat:Math.round(t.fat),
-        items:foods.map((f,i)=>({food:f,gene:bestInd.genes[i]})).filter(x=>x.gene>0)
-      });
+    if(solutions.length===0 && bestInd && isSolutionAllowed(bestInd.genes)){
+      solutions.push(makeSolution(bestInd));
       setGAResults(solutions);
+    }
+    if(solutions.length===0){
+      notify(lang === 'en'
+        ? "No valid combination was found with the selected limits."
+        : "Nenhuma combinacao valida foi encontrada com os limites definidos.");
     }
 
     setGAProgress(100);
@@ -3285,6 +3359,7 @@ function NutritionTracker({
       return;
     }
     setGAResults([]);
+    setGAHasSearched(false);
     setGAProgress(0);
     setGATargetMeal(MEALS[1] || MEALS[0]);
     setShowGA(true);
@@ -5510,6 +5585,180 @@ function NutritionTracker({
     );
   }
 
+  /**
+   * Renders one genetic-algorithm meal suggestion with decision metrics.
+   * Input: a GA result containing macro totals and food/gene pairs.
+   * Output: a React card showing ranking, item macros, and how the meal changes today's goals.
+   */
+  function renderGAResultCard(result, index) {
+    const currentEntries = Object.values(activeLog).flat();
+    const eatenProtein = currentEntries.reduce((sum, entry) => sum + (Number(entry.protein) || 0), 0);
+    const eatenKcal = currentEntries.reduce((sum, entry) => sum + (Number(entry.kcal) || 0), 0);
+    const proteinGoal = Number(goals.protein) || 0;
+    const kcalGoal = Number(goals.kcal) || 0;
+    const afterProtein = eatenProtein + (Number(result.protein) || 0);
+    const afterKcal = eatenKcal + (Number(result.kcal) || 0);
+    const proteinRemaining = Math.max(0, proteinGoal - eatenProtein);
+    const kcalRemaining = Math.max(0, kcalGoal - eatenKcal);
+    const proteinOver = Math.max(0, afterProtein - proteinGoal);
+    const kcalOver = Math.max(0, afterKcal - kcalGoal);
+    const proteinPercent = proteinGoal ? Math.round(afterProtein / proteinGoal * 100) : 0;
+    const kcalPercent = kcalGoal ? Math.round(afterKcal / kcalGoal * 100) : 0;
+    const optionLabel = index === 0
+      ? (lang === 'en' ? "Best option" : "Melhor opção")
+      : (lang === 'en' ? "Strong option" : "Uma das melhores");
+    const fitLabel = Number.isFinite(result.fit)
+      ? (lang === 'en' ? "fit " : "ajuste ") + Math.round(result.fit * 100) / 100
+      : "";
+    const metricChip = (label, value, color) => React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "4px 7px",
+        borderRadius: 999,
+        background: "var(--surface)",
+        border: "1px solid var(--border2)",
+        color,
+        fontSize: 12,
+        fontWeight: 700,
+        whiteSpace: "nowrap"
+      }
+    }, label, " ", value);
+
+    return React.createElement("div", {
+      key: index,
+      style: {
+        background: "var(--surface3)",
+        border: "1px solid var(--border3)",
+        borderRadius: 10,
+        padding: isMobileView ? 10 : 12
+      }
+    },
+      React.createElement("div", {
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 10,
+          marginBottom: 8
+        }
+      },
+        React.createElement("div", null,
+          React.createElement("div", {
+            style: {
+              color: "var(--text2)",
+              fontWeight: 800,
+              fontSize: 15
+            }
+          }, (lang === 'en' ? "Option " : "Opção ") + (index + 1)),
+          React.createElement("div", {
+            style: {
+              marginTop: 3,
+              color: index === 0 ? "var(--btn-ok-text)" : "var(--muted)",
+              fontSize: 12,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: 0.8
+            }
+          }, optionLabel, fitLabel ? " · " + fitLabel : "")
+        ),
+        React.createElement("div", {
+          style: {
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+            gap: 6
+          }
+        },
+          metricChip("kcal", Math.round(result.kcal || 0), "#8ec8c8"),
+          metricChip(lang === 'en' ? "prot" : "prot", Math.round(result.protein || 0) + "g", "#c8a24f")
+        )
+      ),
+      React.createElement("div", {
+        style: {
+          display: "grid",
+          gridTemplateColumns: isMobileView ? "1fr" : "repeat(2, minmax(0, 1fr))",
+          gap: 8,
+          marginBottom: 10
+        }
+      },
+        React.createElement("div", {
+          style: {
+            background: "var(--surface)",
+            border: "1px solid var(--border2)",
+            borderRadius: 8,
+            padding: 8,
+            color: "var(--text3)",
+            fontSize: 12,
+            lineHeight: 1.45
+          }
+        },
+          React.createElement("b", {
+            style: { color: "var(--text2)" }
+          }, lang === 'en' ? "Impact today" : "Impacto no dia"),
+          React.createElement("div", null, lang === 'en' ? "Protein after: " : "Proteína depois: ", Math.round(afterProtein), " / ", Math.round(proteinGoal), "g (", proteinPercent, "%)", proteinOver ? " +" + Math.round(proteinOver) + "g" : ""),
+          React.createElement("div", null, lang === 'en' ? "Calories after: " : "Calorias depois: ", Math.round(afterKcal), " / ", Math.round(kcalGoal), "kcal (", kcalPercent, "%)", kcalOver ? " +" + Math.round(kcalOver) + "kcal" : "")
+        ),
+        React.createElement("div", {
+          style: {
+            background: "var(--surface)",
+            border: "1px solid var(--border2)",
+            borderRadius: 8,
+            padding: 8,
+            color: "var(--text3)",
+            fontSize: 12,
+            lineHeight: 1.45
+          }
+        },
+          React.createElement("b", {
+            style: { color: "var(--text2)" }
+          }, lang === 'en' ? "Uses from remaining" : "Usa do restante"),
+          React.createElement("div", null, lang === 'en' ? "Protein: " : "Proteína: ", proteinRemaining ? Math.round((result.protein || 0) / proteinRemaining * 100) : 100, "%"),
+          React.createElement("div", null, lang === 'en' ? "Calories: " : "Calorias: ", kcalRemaining ? Math.round((result.kcal || 0) / kcalRemaining * 100) : 100, "%")
+        )
+      ),
+      React.createElement("div", {
+        style: {
+          display: "grid",
+          gap: 5,
+          marginBottom: 10
+        }
+      }, result.items.map((item, itemIndex) => {
+        const qty = item.food.unit === "un" ? item.gene : item.gene * 100;
+        const itemProtein = (Number(item.food.protein100) || 0) * item.gene;
+        const itemKcal = (Number(item.food.kcal100) || 0) * item.gene;
+        return React.createElement("div", {
+          key: itemIndex,
+          style: {
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
+            gap: 8,
+            color: "var(--text3)",
+            fontSize: 13,
+            padding: "3px 0",
+            borderBottom: itemIndex === result.items.length - 1 ? "none" : "1px solid var(--border3)"
+          }
+        },
+          React.createElement("span", null, "• ", item.food.name, ": ", qty, item.food.unit === "un" ? " un" : "g"),
+          React.createElement("span", {
+            style: {
+              color: "var(--muted)",
+              whiteSpace: "nowrap"
+            }
+          }, Math.round(itemKcal), " kcal · ", Math.round(itemProtein), "g")
+        );
+      })),
+      React.createElement("button", {
+        onClick: () => addGAResultToDiary(result),
+        style: {
+          ...sBtn("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)"),
+          marginTop: 4
+        }
+      }, lang === 'en' ? "Add to diary" : "Adicionar ao diário")
+    );
+  }
+
   if (!loaded) {
     return /*#__PURE__*/React.createElement("div", {
       style: {
@@ -6147,44 +6396,18 @@ function NutritionTracker({
       display: "grid",
       gap: 10
     }
-  }, gaResults.map((r, ri) => /*#__PURE__*/React.createElement("div", {
-    key: ri,
+  }, gaResults.map(renderGAResultCard)), gaHasSearched && !gaRunning && gaResults.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "var(--surface3)",
-      border: "1px solid var(--border3)",
+      marginTop: 12,
+      padding: 10,
+      border: "1px solid var(--border2)",
       borderRadius: 8,
-      padding: 10
+      background: "var(--surface2)",
+      color: "var(--muted)",
+      fontSize: 13,
+      lineHeight: 1.4
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      gap: 10,
-      marginBottom: 6,
-      color: "var(--text2)",
-      fontWeight: 700
-    }
-  }, /*#__PURE__*/React.createElement("span", null, (lang === 'en' ? "Option " : "Opção ") + (ri + 1)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#8ec8c8"
-    }
-  }, Math.round(r.kcal), " kcal · ", Math.round(r.protein), "g")), r.items.map((item, ii) => {
-    const qty = item.food.unit === "un" ? item.gene : item.gene * 100;
-    return /*#__PURE__*/React.createElement("div", {
-      key: ii,
-      style: {
-        color: "var(--text3)",
-        fontSize: 13,
-        padding: "2px 0"
-      }
-    }, "• ", item.food.name, ": ", qty, item.food.unit === "un" ? " un" : "g");
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => addGAResultToDiary(r),
-    style: {
-      ...sBtn("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)"),
-      marginTop: 8
-    }
-  }, lang === 'en' ? "Add to diary" : "Adicionar ao diário")))))), /*#__PURE__*/React.createElement("div", {
+  }, lang === 'en' ? "No combination matched these criteria. Try relaxing the limits or using more pantry foods." : "Nenhuma combinação encontrou esses critérios. Tente flexibilizar os limites ou usar mais alimentos da despensa.")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)",
@@ -12238,7 +12461,7 @@ function NutritionTracker({
       padding: "8px 10px"
     }
   }, barcodeMessage))),
-  null))))));
+  null)))))));
 }
 const inp = {
   width: "100%",
