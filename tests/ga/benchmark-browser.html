@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GA Meal Suggestion Benchmark</title>
+  <style>
+    :root {
+      --bg: #f2f0ec;
+      --surface: #fffdfa;
+      --border: #d8d2c8;
+      --text: #2f2d2a;
+      --muted: #77716a;
+      --green: #2f7d39;
+      --red: #b44d62;
+      --blue: #2f9ba5;
+      --gold: #c79a3d;
+    }
+
+    body {
+      margin: 0;
+      padding: 28px;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      letter-spacing: 0.08em;
+      font-size: 24px;
+      text-transform: uppercase;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      margin: 18px 0;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    input,
+    select,
+    button {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font: inherit;
+      background: white;
+      color: var(--text);
+    }
+
+    button {
+      cursor: pointer;
+      background: #e8f3e9;
+      border-color: #9acfa2;
+      color: var(--green);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    button.secondary {
+      background: #eef5f6;
+      border-color: #9ed4d8;
+      color: var(--blue);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .ok { color: var(--green); font-weight: 700; }
+    .bad { color: var(--red); font-weight: 700; }
+    .warn { color: var(--gold); font-weight: 700; }
+    .muted { color: var(--muted); }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  </style>
+</head>
+<body>
+  <h1>GA Meal Suggestion Benchmark</h1>
+  <p class="muted">Ambiente isolado para comparar algoritmos sem mexer no app.</p>
+
+  <section class="panel controls">
+    <label>
+      Execucoes por cenario
+      <input id="runs" type="number" min="1" max="1000" value="3">
+    </label>
+    <label>
+      Cenario
+      <select id="scenario">
+        <option value="">Todos</option>
+      </select>
+    </label>
+    <label>
+      Algoritmo
+      <select id="algorithm">
+        <option value="">Todos</option>
+        <option value="baseline">baseline</option>
+        <option value="capped-ga">capped-ga</option>
+        <option value="beam-search">beam-search</option>
+      </select>
+    </label>
+    <button id="run">Rodar testes</button>
+  </section>
+
+  <section class="panel">
+    <div class="actions">
+      <button class="secondary" id="downloadJson" disabled>Baixar JSON</button>
+      <button class="secondary" id="downloadCsv" disabled>Baixar CSV</button>
+    </div>
+    <p id="status" class="muted">Pronto. Para rodadas grandes, filtre por cenario ou algoritmo.</p>
+  </section>
+
+  <div id="summary"></div>
+
+  <script src="./algorithms.js"></script>
+  <script src="./scenarios.js"></script>
+  <script>
+    (function initBenchmarkPage() {
+      const status = document.getElementById("status");
+
+      function showError(error) {
+        const message = error && error.message ? error.message : String(error);
+        status.textContent = "Erro: " + message;
+        status.className = "bad";
+        console.error(error);
+      }
+
+      try {
+        if (!window.GAAlgorithms || !window.GAScenarios) {
+          throw new Error("Arquivos algorithms.js ou scenarios.js nao foram carregados.");
+        }
+
+        const algorithmsApi = window.GAAlgorithms;
+        const scenariosApi = window.GAScenarios;
+        const algorithms = {
+          "baseline": algorithmsApi.runBaselineGA,
+          "capped-ga": algorithmsApi.runCappedGA,
+          "beam-search": algorithmsApi.runBeamSearch
+        };
+        const scenarios = scenariosApi.scenarios || [];
+        let lastRows = [];
+        let lastSummary = [];
+        let isRunning = false;
+
+        const scenarioSelect = document.getElementById("scenario");
+        scenarios.forEach(scenario => {
+          const option = document.createElement("option");
+          option.value = scenario.id;
+          option.textContent = scenario.id;
+          scenarioSelect.appendChild(option);
+        });
+
+        function mean(values) {
+          return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+        }
+
+        function percentile(values, p) {
+          if (!values.length) return 0;
+          const sorted = values.slice().sort((a, b) => a - b);
+          const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
+          return sorted[index];
+        }
+
+        function csvEscape(value) {
+          const text = String(value === undefined || value === null ? "" : value);
+          return /[",\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+        }
+
+        function summarize(rows) {
+          const groups = new Map();
+          rows.forEach(row => {
+            const key = row.scenarioId + "::" + row.algorithmId;
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(row);
+          });
+
+          return Array.from(groups.entries()).map(([key, group]) => {
+            const parts = key.split("::");
+            const validRows = group.filter(row => row.valid);
+            const absurdRows = group.filter(row => row.reason === "portion-too-large" || row.reason === "kcal-too-high");
+            const noSolutionRows = group.filter(row => row.reason === "no-solution");
+
+            return {
+              scenarioId: parts[0],
+              algorithmId: parts[1],
+              runs: group.length,
+              successRate: validRows.length / group.length,
+              absurdRate: absurdRows.length / group.length,
+              noSolutionRate: noSolutionRows.length / group.length,
+              avgTimeMs: mean(group.map(row => row.timeMs)),
+              p95TimeMs: percentile(group.map(row => row.timeMs), 95),
+              avgAbsKcalError: mean(validRows.map(row => Math.abs(row.kcalError))),
+              avgAbsProteinError: mean(validRows.map(row => Math.abs(row.proteinError))),
+              worstKcal: Math.max.apply(null, group.map(row => row.kcal || 0)),
+              worstProtein: Math.max.apply(null, group.map(row => row.protein || 0)),
+              sampleBest: validRows[0] ? validRows[0].items : (group[0] ? group[0].items : "")
+            };
+          });
+        }
+
+        function renderSummary(summary) {
+          const rowsHtml = summary.map(row => {
+            const successClass = row.successRate >= 0.9 ? "ok" : row.successRate >= 0.5 ? "warn" : "bad";
+            const absurdClass = row.absurdRate > 0 ? "bad" : "ok";
+            return [
+              "<tr>",
+              "<td>", row.scenarioId, "</td>",
+              "<td><strong>", row.algorithmId, "</strong></td>",
+              '<td class="', successClass, '">', Math.round(row.successRate * 100), "%</td>",
+              '<td class="', absurdClass, '">', Math.round(row.absurdRate * 100), "%</td>",
+              "<td>", Math.round(row.noSolutionRate * 100), "%</td>",
+              "<td>", Math.round(row.avgTimeMs), "ms</td>",
+              "<td>", Math.round(row.avgAbsKcalError), "</td>",
+              "<td>", Math.round(row.avgAbsProteinError), "g</td>",
+              "<td>", row.worstKcal, "</td>",
+              "<td>", row.sampleBest, "</td>",
+              "</tr>"
+            ].join("");
+          }).join("");
+
+          document.getElementById("summary").innerHTML = [
+            "<table>",
+            "<thead><tr>",
+            "<th>Cenario</th>",
+            "<th>Algoritmo</th>",
+            "<th>Sucesso</th>",
+            "<th>Absurdo</th>",
+            "<th>Sem solucao</th>",
+            "<th>Tempo medio</th>",
+            "<th>Erro kcal</th>",
+            "<th>Erro prot.</th>",
+            "<th>Pior kcal</th>",
+            "<th>Exemplo</th>",
+            "</tr></thead>",
+            "<tbody>", rowsHtml, "</tbody>",
+            "</table>"
+          ].join("");
+        }
+
+        function toCsv(summary) {
+          const headers = [
+            "scenarioId",
+            "algorithmId",
+            "runs",
+            "successRate",
+            "absurdRate",
+            "noSolutionRate",
+            "avgTimeMs",
+            "p95TimeMs",
+            "avgAbsKcalError",
+            "avgAbsProteinError",
+            "worstKcal",
+            "worstProtein",
+            "sampleBest"
+          ];
+
+          return [
+            headers.join(","),
+            ...summary.map(row => headers.map(header => {
+              const value = typeof row[header] === "number" ? Number(row[header].toFixed(4)) : row[header];
+              return csvEscape(value);
+            }).join(","))
+          ].join("\n");
+        }
+
+        function download(filename, text, type) {
+          const blob = new Blob([text], { type });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = filename;
+          link.style.display = "none";
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            URL.revokeObjectURL(url);
+            link.remove();
+          }, 250);
+        }
+
+        document.getElementById("run").addEventListener("click", async () => {
+          if (isRunning) return;
+
+          const runButton = document.getElementById("run");
+          const jsonButton = document.getElementById("downloadJson");
+          const csvButton = document.getElementById("downloadCsv");
+          const runs = Math.max(1, Math.min(1000, Number(document.getElementById("runs").value) || 3));
+          const scenarioFilter = document.getElementById("scenario").value;
+          const algorithmFilter = document.getElementById("algorithm").value;
+          const selectedScenarios = scenarioFilter ? scenarios.filter(s => s.id === scenarioFilter) : scenarios;
+          const selectedAlgorithms = algorithmFilter
+            ? [[algorithmFilter, algorithms[algorithmFilter]]]
+            : Object.entries(algorithms);
+          const totalRuns = selectedScenarios.length * selectedAlgorithms.length * runs;
+          const rows = [];
+          let completedRuns = 0;
+
+          isRunning = true;
+          runButton.disabled = true;
+          jsonButton.disabled = true;
+          csvButton.disabled = true;
+          status.className = "muted";
+          status.textContent = "Rodando...";
+
+          try {
+            await new Promise(resolve => setTimeout(resolve, 20));
+
+            for (const scenario of selectedScenarios) {
+              for (const [algorithmId, runAlgorithm] of selectedAlgorithms) {
+                for (let runIndex = 0; runIndex < runs; runIndex += 1) {
+                  status.textContent = "Rodando " + (completedRuns + 1) + "/" + totalRuns + ": " + scenario.id + " / " + algorithmId;
+                  await new Promise(resolve => setTimeout(resolve, 0));
+
+                  const start = performance.now();
+                  const result = runAlgorithm(scenario.input, { seed: 12345 + runIndex, solutionCount: 5 });
+                  const timeMs = performance.now() - start;
+                  const best = result.suggestions[0] || null;
+                  const evaluation = algorithmsApi.evaluateSuggestion(best, result.meta.inputs || scenario.input);
+
+                  rows.push({
+                    scenarioId: scenario.id,
+                    algorithmId,
+                    runIndex,
+                    timeMs,
+                    valid: evaluation.valid,
+                    reason: evaluation.reason,
+                    fit: best && best.fit !== undefined ? best.fit : null,
+                    kcal: best && best.kcal !== undefined ? best.kcal : 0,
+                    protein: best && best.protein !== undefined ? best.protein : 0,
+                    kcalError: evaluation.kcalError || 0,
+                    proteinError: evaluation.proteinError || 0,
+                    items: best && best.items
+                      ? best.items.map(item => item.food.name + ":" + item.quantity + (item.food.unit === "un" ? "un" : "g")).join("; ")
+                      : ""
+                  });
+
+                  completedRuns += 1;
+                }
+              }
+            }
+
+            lastRows = rows;
+            lastSummary = summarize(rows);
+            renderSummary(lastSummary);
+            status.textContent = "Concluido: " + rows.length + " execucoes.";
+            jsonButton.disabled = false;
+            csvButton.disabled = false;
+          } catch (error) {
+            showError(error);
+          } finally {
+            isRunning = false;
+            runButton.disabled = false;
+          }
+        });
+
+        document.getElementById("downloadJson").addEventListener("click", () => {
+          download("ga-benchmark-results.json", JSON.stringify({ summary: lastSummary, rows: lastRows }, null, 2), "application/json");
+        });
+
+        document.getElementById("downloadCsv").addEventListener("click", () => {
+          download("ga-benchmark-summary.csv", toCsv(lastSummary), "text/csv;charset=utf-8");
+        });
+      } catch (error) {
+        showError(error);
+      }
+    })();
+  </script>
+</body>
+</html>
