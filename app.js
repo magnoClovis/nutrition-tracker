@@ -4917,7 +4917,7 @@ function NutritionTracker({
       }
     }, config.title), /*#__PURE__*/React.createElement(ResponsiveContainer, {
       width: "100%",
-      height: 150
+      height: isMobileView ? 190 : 150
     }, /*#__PURE__*/React.createElement(LineChart, {
       data: config.data
     }, /*#__PURE__*/React.createElement(XAxis, {
@@ -5779,35 +5779,15 @@ function NutritionTracker({
     );
   }
 
+  useEffect(() => {
+    if (!loaded || typeof window.hideInitialLoading !== "function") return;
+    window.hideInitialLoading();
+  }, [loaded]);
+
   if (!loaded) {
-    return /*#__PURE__*/React.createElement("div", {
-      style: {
-        minHeight: "100vh",
-        background: THEME["--bg"],
-        color: THEME["--text2"],
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 12,
-        fontFamily: "system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",
-        letterSpacing: 2
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "app-loading-spinner",
-      style: {
-        width: 28,
-        height: 28,
-        border: "3px solid var(--border2)",
-        borderTopColor: THEME["--accent"],
-        borderRadius: "50%"
-      }
-    }), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 16,
-        color: THEME["--text2"]
-      }
-    }, t('loading')));
+    // Keep the static HTML loading layer visible until this component finishes
+    // loading user data. This avoids the old intermediate blank/dark screens.
+    return null;
   }
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -6666,10 +6646,10 @@ function NutritionTracker({
   }), /*#__PURE__*/React.createElement("div", {
     key: tab,
     style: {
-      padding: tab === "adicionar" ? (isMobileView ? "18px 18px calc(22px + env(safe-area-inset-bottom,0px))" : "22px 24px 26px") : "20px clamp(18px, 3vw, 34px) 32px",
+      padding: tab === "adicionar" ? (isMobileView ? "18px 18px calc(22px + env(safe-area-inset-bottom,0px))" : "22px 24px 26px") : (tab === "metricas" && isMobileView ? "14px 10px calc(90px + env(safe-area-inset-bottom,0px))" : "20px clamp(18px, 3vw, 34px) 32px"),
       boxSizing: "border-box",
       width: tab === "adicionar" ? (isMobileView ? "100%" : 720) : "100%",
-      maxWidth: tab === "adicionar" ? (isMobileView ? "100%" : "calc(100vw - 48px)") : 1180,
+      maxWidth: tab === "adicionar" ? (isMobileView ? "100%" : "calc(100vw - 48px)") : (tab === "metricas" && isMobileView ? "100%" : 1180),
       margin: tab === "adicionar" ? (isMobileView ? 0 : "0 auto") : "0 auto",
       position: tab === "adicionar" ? "fixed" : "relative",
       left: tab === "adicionar" ? (isMobileView ? 0 : 24) : "auto",
@@ -10716,7 +10696,7 @@ function NutritionTracker({
     }
   }, lang === 'en' ? "\uD83D\uDCBE Save to today's notes" : "\uD83D\uDCBE Salvar nas notas de hoje"))))), tab === "metricas" && /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "2px 16px 30px",
+      padding: isMobileView ? "0 0 calc(76px + env(safe-area-inset-bottom, 0px))" : "2px 16px 30px",
       boxSizing: "border-box",
       width: "100%"
     }
@@ -10725,7 +10705,7 @@ function NutritionTracker({
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
       gap: 8,
-      margin: "8px 0 16px"
+      margin: isMobileView ? "6px 0 12px" : "8px 0 16px"
     }
   }, [["tracking", lang === 'en' ? "Tracking" : "Acompanhamento"], ["goals", lang === 'en' ? "Goals" : "Metas"]].map(([key, label]) => /*#__PURE__*/React.createElement("button", {
     key,
@@ -10741,8 +10721,8 @@ function NutritionTracker({
       margin: "4px 0 18px",
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 8,
-      padding: "14px 16px"
+      borderRadius: isMobileView ? 12 : 8,
+      padding: isMobileView ? "12px" : "14px 16px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -11099,8 +11079,8 @@ function NutritionTracker({
       display: metricsSection === "tracking" ? "block" : "none",
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 8,
-      padding: "14px 16px",
+      borderRadius: isMobileView ? 12 : 8,
+      padding: isMobileView ? "12px" : "14px 16px",
       marginBottom: 14
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -11180,8 +11160,8 @@ function NutritionTracker({
       display: metricsSection === "tracking" ? "block" : "none",
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 8,
-      padding: "14px",
+      borderRadius: isMobileView ? 12 : 8,
+      padding: isMobileView ? "12px" : "14px",
       marginBottom: 14
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -11194,7 +11174,7 @@ function NutritionTracker({
     }
   }, lang === 'en' ? "Weight trend" : "Evolução do peso"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
     width: "100%",
-    height: 150
+    height: isMobileView ? 210 : 150
   }, /*#__PURE__*/React.createElement(LineChart, {
     data: weightChartData
   }, /*#__PURE__*/React.createElement(XAxis, {
@@ -11476,8 +11456,8 @@ function NutritionTracker({
       marginTop: 20,
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 8,
-      padding: "12px 14px"
+      borderRadius: isMobileView ? 12 : 8,
+      padding: isMobileView ? "12px" : "12px 14px"
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setBodyCompositionOpen(v => !v),
@@ -11614,7 +11594,7 @@ function NutritionTracker({
     ? "Add body-fat percentage and a target to unlock fat-mass estimates."
     : "Registre gordura corporal e uma meta para liberar estimativas de gordura."), bodyComposition.fatChartData.length > 1 && /*#__PURE__*/React.createElement("div", {
     style: {
-      height: 180,
+      height: isMobileView ? 230 : 180,
       border: "1px solid var(--border3)",
       borderRadius: 8,
       padding: "8px 8px 2px",
@@ -11625,7 +11605,7 @@ function NutritionTracker({
     style: { color: "var(--muted)", fontSize: 12, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }
   }, lang === 'en' ? "Body-fat evolution" : "Evolução da gordura corporal"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
     width: "100%",
-    height: 140
+    height: isMobileView ? 190 : 140
   }, /*#__PURE__*/React.createElement(LineChart, {
     data: bodyComposition.fatChartData
   }, /*#__PURE__*/React.createElement(XAxis, {
@@ -11672,8 +11652,8 @@ function NutritionTracker({
       marginTop: 20,
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 8,
-      padding: "12px 14px"
+      borderRadius: isMobileView ? 12 : 8,
+      padding: isMobileView ? "12px" : "12px 14px"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -14108,15 +14088,27 @@ function App() {
 
   // Removed: was auto-opening settings on every login
 
-  // Show loading indicator while checking auth
-  if (checking || profileChecking) return React.createElement('div', {style:{
-    position:'fixed',top:0,left:0,right:0,bottom:0,background:darkMode?'#111':'#f2f1ed',display:'flex',
-    flexDirection:'column',alignItems:'center',justifyContent:'center',
-    gap:16,color:darkMode?'#8a8a8a':'#6a6662',fontSize:12,letterSpacing:1,textTransform:'uppercase'
-  }},
-    React.createElement('div', {style:{width:30,height:30,borderRadius:'50%',border:'3px solid ' + (darkMode?'#2a3a2a':'#d8d4cc'),borderTopColor:darkMode?'#7ec87e':'#2a6a2a',animation:'spin 1.2s linear infinite'}}),
-    React.createElement('div', null, lang==='en'?'Signing in...':'Entrando...')
-  );
+  React.useEffect(() => {
+    if (checking || profileChecking) {
+      if (typeof window.setInitialLoadingText === "function") {
+        window.setInitialLoadingText(lang === "en" ? "Signing in..." : "Entrando...");
+      }
+      return;
+    }
+
+    // Login, verification and required-profile screens are ready at this level.
+    // Authenticated app content hides the initial loading layer from inside
+    // NutritionTracker after user data has finished loading.
+    if (!authed || pendingEmail || requiredProfile) {
+      const timer = setTimeout(() => {
+        if (typeof window.hideInitialLoading === "function") window.hideInitialLoading();
+      }, 80);
+      return () => clearTimeout(timer);
+    }
+  }, [checking, profileChecking, authed, pendingEmail, requiredProfile, lang]);
+
+  // Keep the static loading layer on screen while auth/profile checks run.
+  if (checking || profileChecking) return null;
   if (pendingEmail) return React.createElement(VerifyEmailScreen, {
     email: pendingEmail,
     name: pendingName,
@@ -14196,7 +14188,5 @@ function App() {
 
 const _root = ReactDOM.createRoot(document.getElementById('root'));
 _root.render(React.createElement(App));
-var _ldg = document.getElementById('loading');
-if (_ldg) _ldg.style.display = 'none';
 
 

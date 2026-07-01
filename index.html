@@ -49,7 +49,8 @@
         scroll-behavior: auto !important;
       }
     }
-    #loading{position:fixed;inset:0;background:#f2f1ed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#888;font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000}
+    #loading{position:fixed;inset:0;background:#f2f1ed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#888;font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000;opacity:1;transition:opacity .18s ease}
+    #loading.is-hidden{opacity:0;pointer-events:none}
     .dark-loading #loading{background:#f2f1ed;color:#888;}
     .dark-loading #loading div:first-child{border-color:#d8d4cc!important;border-top-color:#2a6a2a!important;}
     select option{background:#f5f3ef;color:#252220}
@@ -124,7 +125,7 @@
 <body>
   <div id="loading">
     <div style="width:30px;height:30px;border-radius:50%;border:3px solid #d8d4cc;border-top-color:#2a6a2a;animation:spin 1.2s linear infinite"></div>
-    <div style="animation:pulse 1.5s ease-in-out infinite">Carregando...</div>
+    <div id="initial-loading-text" style="animation:pulse 1.5s ease-in-out infinite">Carregando...</div>
   </div>
   <div id="root"></div>
   <footer id="app-version-footer" aria-label="Versão do aplicativo"></footer>
@@ -132,6 +133,20 @@
   window.APP_VERSION_LABEL = 'Diário Nutricional v0.7.5 Beta';
 
   document.getElementById('app-version-footer').textContent = window.APP_VERSION_LABEL;
+
+  window.setInitialLoadingText = function(text){
+    var label = document.getElementById('initial-loading-text');
+    if (label && text) label.textContent = text;
+  };
+
+  window.hideInitialLoading = function(){
+    var loading = document.getElementById('loading');
+    if (!loading) return;
+    loading.classList.add('is-hidden');
+    setTimeout(function(){
+      if (loading && loading.parentNode) loading.parentNode.removeChild(loading);
+    }, 220);
+  };
 
   // Applies the saved theme before React renders, so the loading screen does
   // not flash in the wrong mode while Firebase and the app scripts initialize.
