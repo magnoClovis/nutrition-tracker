@@ -1,0 +1,29 @@
+# Local Firebase/admin credentials. Never commit these files.
+serviceAccountKey.json
+*service-account*.json
+firebase-adminsdk-*.json
+
+# User/account exports and debug dumps can contain private nutrition data.
+backup*.json
+backup_*.json
+backup-completo*.json
+backup_completo*.json
+nutrition-debug-*.json
+nutrition-full-raw.json
+nutrition-audit-summary.json
+nutrition-orphan-cleanup-report.json
+firebase-auth-contacts*.csv
+firebase-auth-contacts*.json
+
+# Local runtime/cache artifacts.
+node_modules/
+.env
+.env.*
+*.log
+*.tmp
+
+# OS/editor noise.
+Thumbs.db
+.DS_Store
+.vscode/
+!.vscode/settings.json
