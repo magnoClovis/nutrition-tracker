@@ -142,35 +142,54 @@
   })();
 
   // Shows startup failures in the loading layer. This is intentionally small:
-  // once React renders, normal in-app error handling takes over.
-  window.addEventListener('unhandledrejection', function(e){
+  // once React renders, normal in-app error handling takes over. The DOM is
+  // built with textContent instead of innerHTML so unexpected error text cannot
+  // inject markup into the page.
+  function showStartupError(title, message, detail) {
     var el = document.getElementById('loading');
-    var msg = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+    if (!el || el.style.display === 'none') return;
 
-    if (el && el.style.display !== 'none') {
-      el.innerHTML =
-        '<div style="color:#c87e7e;padding:24px;text-align:center">' +
-        msg.slice(0, 200) +
-        '</div>';
+    var box = document.createElement('div');
+    box.style.color = '#c87e7e';
+    box.style.padding = '24px';
+    box.style.textAlign = 'center';
+    box.style.maxWidth = '400px';
+    box.style.lineHeight = '1.6';
+
+    if (title) {
+      var heading = document.createElement('div');
+      heading.style.fontSize = '18px';
+      heading.style.marginBottom = '12px';
+      heading.textContent = title;
+      box.appendChild(heading);
     }
+
+    var body = document.createElement('div');
+    body.style.fontSize = title ? '12px' : '14px';
+    body.style.wordBreak = 'break-word';
+    body.style.opacity = title ? '0.8' : '1';
+    body.textContent = String(message || '').slice(0, title ? 300 : 200);
+    box.appendChild(body);
+
+    if (detail) {
+      var meta = document.createElement('div');
+      meta.style.fontSize = '10px';
+      meta.style.marginTop = '8px';
+      meta.style.opacity = '0.4';
+      meta.textContent = detail;
+      box.appendChild(meta);
+    }
+
+    el.replaceChildren(box);
+  }
+
+  window.addEventListener('unhandledrejection', function(e){
+    var msg = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+    showStartupError('', msg, '');
   });
 
   window.onerror = function(msg, src, line, col){
-    var el=document.getElementById('loading');
-
-    if (el) {
-      el.innerHTML =
-        '<div style="color:#c87e7e;padding:24px;text-align:center;max-width:400px;line-height:1.6">' +
-          '<div style="font-size:18px;margin-bottom:12px">Erro</div>' +
-          '<div style="font-size:12px;word-break:break-word;opacity:0.8">' +
-            String(msg).slice(0, 300) +
-          '</div>' +
-          '<div style="font-size:10px;margin-top:8px;opacity:0.4">' +
-            line + ':' + col +
-          '</div>' +
-        '</div>';
-    }
-
+    showStartupError('Erro', msg, line + ':' + col);
     return false;
   };
   </script>

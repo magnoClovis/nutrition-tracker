@@ -887,6 +887,7 @@ window.cleanupLegacyNutritionDocs = cleanupLegacyNutritionDocsV3;
 window.deleteCurrentUserFirestoreData = deleteCurrentUserFirestoreData3;
 window.exportFullAccountBackup = exportFullAccountBackup3;
 window.importFullAccountBackup = importFullAccountBackup3;
+window.validateFullAccountBackup = validateFullAccountBackup3;
 async function _ensureStorageMigration3() {
   if (!_migrationPromise3) _migrationPromise3 = migrateStorageToFirestoreV3({cleanup: true}).catch(error => ({error: error?.message || String(error)}));
   await _migrationPromise3;
@@ -1034,6 +1035,57 @@ function _normalizeBackupPayload3(rawBackup) {
   return {};
 }
 
+/**
+ * Validates a full-account backup before any write is attempted.
+ *
+ * The importer accepts both the current account-backup schema and older flat
+ * JSON exports. This validation intentionally stays conservative: it rejects
+ * empty/non-object files and impossible schema versions, but still allows old
+ * backups that can be normalized into storage keys.
+ */
+function validateFullAccountBackup3(rawBackup) {
+  const backup = rawBackup || {};
+  const errors = [];
+
+  if (!backup || typeof backup !== "object" || Array.isArray(backup)) {
+    return {
+      ok: false,
+      errors: ["Backup file must be a JSON object."],
+      counts: {root: 0, data: 0, legacy: 0, importable: 0}
+    };
+  }
+
+  if (backup.schema && backup.schema !== ACCOUNT_BACKUP_SCHEMA) {
+    errors.push("Unsupported backup schema: " + backup.schema);
+  }
+
+  if (backup.schema === ACCOUNT_BACKUP_SCHEMA) {
+    const version = Number(backup.version || 0);
+    if (!Number.isFinite(version) || version < 1 || version > ACCOUNT_BACKUP_VERSION) {
+      errors.push("Unsupported backup version: " + backup.version);
+    }
+  }
+
+  const flat = _normalizeBackupPayload3(backup);
+  const importableKeys = Object.keys(flat).filter(key => !_shouldSkipBackupImportKey3(key));
+  if (!importableKeys.length) {
+    errors.push("Backup has no importable account data.");
+  }
+
+  const counts = {
+    root: backup.root && typeof backup.root === "object" && !Array.isArray(backup.root) ? Object.keys(backup.root).length : 0,
+    data: backup.data && typeof backup.data === "object" && !Array.isArray(backup.data) ? Object.keys(backup.data).length : 0,
+    legacy: backup.legacy && typeof backup.legacy === "object" && !Array.isArray(backup.legacy) ? Object.keys(backup.legacy).length : 0,
+    importable: importableKeys.length
+  };
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    counts
+  };
+}
+
 function _shouldSkipBackupImportKey3(key) {
   // Migration/cache metadata belongs to the previous account state. The target
   // account receives fresh migration flags after user data is restored.
@@ -1049,6 +1101,11 @@ function _shouldSkipBackupImportKey3(key) {
  */
 async function importFullAccountBackup3(rawBackup) {
   if (!_uid) throw new Error("No authenticated user");
+
+  const validation = validateFullAccountBackup3(rawBackup);
+  if (!validation.ok) {
+    throw new Error("Invalid backup: " + validation.errors.join(" "));
+  }
 
   const flat = _normalizeBackupPayload3(rawBackup);
   const keys = Object.keys(flat).filter(key => !_shouldSkipBackupImportKey3(key));
