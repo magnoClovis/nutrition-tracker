@@ -1722,9 +1722,11 @@ function NutritionTracker({
       setHistoryNote(n ? n.value || "" : "");
     }
   }
-  function dayGoalForDate(date) {
+  // Calculates the goal snapshot for one date and one explicit day type.
+  // This is used both for read-only historical views and for intentional
+  // retroactive edits, such as changing a past day from training to rest.
+  function computeDayGoalSnapshot(date, dayIsTraining) {
     const we = getWeightForDate(weightHistory, date);
-    const dayIsTraining = trainingByDate[date] ?? true;
     const rawGoal = computeGoals(we?.weight || currentWeight, dayIsTraining, {
       height: we?.height || currentHeight,
       birthDate: profileData.birthDate,
@@ -1740,6 +1742,10 @@ function NutritionTracker({
       fiber: customGoals.fiber || rawGoal.fiber,
       salt: customGoals.salt || rawGoal.salt
     };
+  }
+  function dayGoalForDate(date) {
+    const dayIsTraining = trainingByDate[date] ?? true;
+    const computedGoal = computeDayGoalSnapshot(date, dayIsTraining);
     return date !== TODAY && goalHistory[date] ? {...computedGoal, ...goalHistory[date]} : computedGoal;
   }
   useEffect(() => {
@@ -1755,7 +1761,7 @@ function NutritionTracker({
       loadWeekData();
     }
     if (tab === "adicionar" && loaded) loadRecentMeals();
-  }, [tab, loaded, log]);
+  }, [tab, loaded, log, trainingByDate, goalHistory, weightHistory, customGoals, nutritionPrefs]);
   async function loadWeekData() {
     const days = [];
     // Week charts intentionally use 7 completed days plus today.
@@ -5171,6 +5177,19 @@ function NutritionTracker({
   const tabNavItems = [["diario", t('tabDiary')], ["despensa", t('tabPantry')], ["semana", t('tabWeek')], ["metricas", t('tabMetrics')]];
   const proteinColor = "var(--protein)";
   const caloriesColor = "var(--calories)";
+  // Toggles the visible day type and, for past dates, refreshes only that
+  // day's frozen target snapshot. Future preference changes still cannot
+  // rewrite old days unless the user edits that day intentionally.
+  function toggleDayType() {
+    const nextIsTraining = !isTraining;
+    setTrainingByDate(prev => ({...prev, [viewDate]: nextIsTraining}));
+    if (viewDate !== TODAY) {
+      setGoalHistory(prev => ({
+        ...prev,
+        [viewDate]: computeDayGoalSnapshot(viewDate, nextIsTraining)
+      }));
+    }
+  }
   const aiButtonStyle = {
     background: "var(--ai-bg)",
     border: "1px solid var(--ai-border)",
@@ -5193,6 +5212,7 @@ function NutritionTracker({
     unit: t('kcalUnit'),
     color: caloriesColor
   }];
+  const latestWeekPoint = weekData.length ? weekData[weekData.length - 1] : null;
   const renderMiniProgress = item => {
     const pct = Math.max(0, Math.min(100, item.goal ? item.value / item.goal * 100 : 0));
     return /*#__PURE__*/React.createElement("div", {
@@ -6025,7 +6045,7 @@ function NutritionTracker({
   }, t('dayOf')),
   /*#__PURE__*/React.createElement("button", {
     "data-tutorial": "day-type",
-    onClick: () => setTrainingByDate(prev => ({ ...prev, [viewDate]: !isTraining })),
+    onClick: toggleDayType,
     style: {
       display: "flex", alignItems: "center", gap: 6,
       background: "none", border: "none", cursor: "pointer",
@@ -6818,12 +6838,7 @@ function NutritionTracker({
       fontSize: 14,
       color: isToday ? "#c8a96e" : "#c9bfb0"
     }
-  }, dateLabel(viewDate, lang)), !isToday && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: "var(--muted)"
-    }
-  }, viewDate)), /*#__PURE__*/React.createElement("button", {
+  }, dateLabel(viewDate, lang))), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       if (viewDate < TODAY) changeViewDate(addDays(viewDate, 1));
     },
@@ -10220,13 +10235,13 @@ function NutritionTracker({
       color: "#c8a96e"
     },
     formatter: v => [`${v}g`, t('protein')]
-  }), weekData[0] && /*#__PURE__*/React.createElement(ReferenceLine, {
-    y: weekData[0].proteinGoal,
+  }), latestWeekPoint && /*#__PURE__*/React.createElement(ReferenceLine, {
+    y: latestWeekPoint.proteinGoal,
     stroke: "#c8a96e",
     strokeDasharray: "3 3",
     strokeOpacity: 0.65,
     label: {
-      value: (lang === 'en' ? "goal " : "meta ") + weekData[0].proteinGoal + "g",
+      value: (lang === 'en' ? "goal " : "meta ") + latestWeekPoint.proteinGoal + "g",
       fill: CT.label,
       fontSize: 11,
       position: "insideTopRight",
@@ -10314,13 +10329,13 @@ function NutritionTracker({
       color: "#8ec8c8"
     },
     formatter: v => [`${v} kcal`, t('calories')]
-  }), weekData[0] && /*#__PURE__*/React.createElement(ReferenceLine, {
-    y: weekData[0].kcalGoal,
+  }), latestWeekPoint && /*#__PURE__*/React.createElement(ReferenceLine, {
+    y: latestWeekPoint.kcalGoal,
     stroke: "#8ec8c8",
     strokeDasharray: "3 3",
     strokeOpacity: 0.65,
     label: {
-      value: (lang === 'en' ? "goal " : "meta ") + weekData[0].kcalGoal + " kcal",
+      value: (lang === 'en' ? "goal " : "meta ") + latestWeekPoint.kcalGoal + " kcal",
       fill: CT.label,
       fontSize: 11,
       position: "insideTopRight",
