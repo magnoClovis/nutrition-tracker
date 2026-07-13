@@ -888,6 +888,7 @@ window.deleteCurrentUserFirestoreData = deleteCurrentUserFirestoreData3;
 window.exportFullAccountBackup = exportFullAccountBackup3;
 window.importFullAccountBackup = importFullAccountBackup3;
 window.validateFullAccountBackup = validateFullAccountBackup3;
+window.previewFullAccountBackupImport = previewFullAccountBackupImport3;
 async function _ensureStorageMigration3() {
   if (!_migrationPromise3) _migrationPromise3 = migrateStorageToFirestoreV3({cleanup: true}).catch(error => ({error: error?.message || String(error)}));
   await _migrationPromise3;
@@ -959,6 +960,116 @@ async function fbList3(p) {
 
 const ACCOUNT_BACKUP_SCHEMA = "nutrition-tracker-account-backup";
 const ACCOUNT_BACKUP_VERSION = 3;
+const BACKUP_IMPORTABLE_PROFILE_KEYS = new Set([
+  "height",
+  "activityLevel",
+  "goalType",
+  "goalKg",
+  "goalWeeks",
+  "manualCalorieAdjustment",
+  "proteinMultiplier",
+  "bodyFatGoal"
+]);
+const BACKUP_ALWAYS_SKIP_KEYS = new Set([
+  "uid",
+  "userName",
+  "birthDate",
+  "gender",
+  "language",
+  "tutorialSeen",
+  "tutorial_most_recent_version_seen",
+  "lastLoginAt",
+  "lastActivityAt"
+]);
+const BACKUP_CATEGORY_ORDER = [
+  "profile",
+  "nutritionGoals",
+  "pantry",
+  "mealTemplates",
+  "supplements",
+  "diary",
+  "dayTypes",
+  "water",
+  "notes",
+  "supplementLog",
+  "bodyMetrics"
+];
+
+function _backupCategoryForKey3(key) {
+  if (!key || key.startsWith("_") || BACKUP_ALWAYS_SKIP_KEYS.has(key) || key.indexOf("tutorialSeen") === 0) return null;
+  if (BACKUP_IMPORTABLE_PROFILE_KEYS.has(key)) return "profile";
+  if (key === "customGoals" || key === "goalHistory" || key === "waterGoal" || key === "waterCustomPreset") return "nutritionGoals";
+  if (key === "pantry_v2" || key === "pantry") return "pantry";
+  if (key === "mealTemplates") return "mealTemplates";
+  if (key === "suppPantry") return "supplements";
+  if (key === "trainingByDate") return "dayTypes";
+  if (key === "weightHistory") return "bodyMetrics";
+  if (/^log_v2_\d{4}-\d{2}-\d{2}$/.test(key)) return "diary";
+  if (/^notes_\d{4}-\d{2}-\d{2}$/.test(key)) return "notes";
+  if (/^waterIntake_\d{4}-\d{2}-\d{2}$/.test(key)) return "water";
+  if (/^suppLog_\d{4}-\d{2}-\d{2}$/.test(key)) return "supplementLog";
+  return null;
+}
+
+function _canonicalBackupKey3(key) {
+  return key === "pantry" ? "pantry_v2" : key;
+}
+
+function _backupImportableEntries3(flat) {
+  return Object.entries(flat || {}).reduce((entries, [key, value]) => {
+    const category = _backupCategoryForKey3(key);
+    if (!category || value === undefined || value === null) return entries;
+    entries.push({key, targetKey: _canonicalBackupKey3(key), category, value});
+    return entries;
+  }, []);
+}
+
+function _backupParsedValue3(value) {
+  return _parseStorageJson3(value);
+}
+
+function _backupItemCount3(key, value) {
+  const parsed = _backupParsedValue3(value);
+  if (/^(log_v2|notes|waterIntake|suppLog)_\d{4}-\d{2}-\d{2}$/.test(key)) return 1;
+  if (Array.isArray(parsed)) return parsed.length;
+  if (parsed && typeof parsed === "object") return Object.keys(parsed).length;
+  return parsed === undefined || parsed === null || parsed === "" ? 0 : 1;
+}
+
+function _backupNewItemCount3(key, incomingValue, currentValue) {
+  const incoming = _backupParsedValue3(incomingValue);
+  const current = _backupParsedValue3(currentValue);
+  if (/^(log_v2|notes|waterIntake|suppLog)_\d{4}-\d{2}-\d{2}$/.test(key)) {
+    return currentValue === undefined || currentValue === null ? 1 : 0;
+  }
+  if (Array.isArray(incoming)) {
+    const currentIds = new Set((Array.isArray(current) ? current : []).map(_normalizedIdentity3));
+    return incoming.filter(item => !currentIds.has(_normalizedIdentity3(item))).length;
+  }
+  if (incoming && typeof incoming === "object") {
+    const currentObj = current && typeof current === "object" && !Array.isArray(current) ? current : {};
+    return Object.keys(incoming).filter(itemKey => currentObj[itemKey] === undefined).length;
+  }
+  return currentValue === undefined || currentValue === null || currentValue !== incomingValue ? 1 : 0;
+}
+
+function _mergeBackupValues3(targetKey, currentValue, incomingValue) {
+  const incoming = _backupParsedValue3(incomingValue);
+  const current = _backupParsedValue3(currentValue);
+  if (/^(log_v2|notes|waterIntake|suppLog)_\d{4}-\d{2}-\d{2}$/.test(targetKey)) {
+    return currentValue === undefined || currentValue === null ? incomingValue : currentValue;
+  }
+  if (Array.isArray(incoming)) {
+    return _mergeArrayValues3([Array.isArray(current) ? current : [], incoming]);
+  }
+  if (incoming && typeof incoming === "object") {
+    return _mergeObjectValues3([
+      current && typeof current === "object" && !Array.isArray(current) ? current : {},
+      incoming
+    ]);
+  }
+  return currentValue === undefined || currentValue === null ? incomingValue : currentValue;
+}
 
 /**
  * Builds a complete account backup from every storage shape the app can read.
@@ -978,14 +1089,14 @@ async function exportFullAccountBackup3() {
 
   const root = {};
   Object.entries(rootFields || {}).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) root[key] = _storageValue2(value);
+    if (_backupCategoryForKey3(key) && value !== undefined && value !== null) root[key] = _storageValue2(value);
   });
 
   const data = {};
   for (let i = 0; i < dataKeys.length; i += 20) {
     await Promise.all(dataKeys.slice(i, i + 20).map(async key => {
       const doc = await _getDataDoc3(key).catch(() => null);
-      if (doc && doc.value !== undefined && doc.value !== null) data[key] = doc.value;
+      if (_backupCategoryForKey3(key) && doc && doc.value !== undefined && doc.value !== null) data[key] = doc.value;
     }));
   }
 
@@ -993,7 +1104,7 @@ async function exportFullAccountBackup3() {
   for (let i = 0; i < legacyKeys.length; i += 20) {
     await Promise.all(legacyKeys.slice(i, i + 20).map(async key => {
       const doc = await _legacyGet2(key).catch(() => null);
-      if (doc && doc.value !== undefined && doc.value !== null) legacy[key] = doc.value;
+      if (_backupCategoryForKey3(key) && doc && doc.value !== undefined && doc.value !== null) legacy[key] = doc.value;
     }));
   }
 
@@ -1001,7 +1112,6 @@ async function exportFullAccountBackup3() {
     schema: ACCOUNT_BACKUP_SCHEMA,
     version: ACCOUNT_BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
-    uid: _uid,
     root,
     data,
     legacy,
@@ -1067,8 +1177,8 @@ function validateFullAccountBackup3(rawBackup) {
   }
 
   const flat = _normalizeBackupPayload3(backup);
-  const importableKeys = Object.keys(flat).filter(key => !_shouldSkipBackupImportKey3(key));
-  if (!importableKeys.length) {
+  const importableEntries = _backupImportableEntries3(flat);
+  if (!importableEntries.length) {
     errors.push("Backup has no importable account data.");
   }
 
@@ -1076,7 +1186,7 @@ function validateFullAccountBackup3(rawBackup) {
     root: backup.root && typeof backup.root === "object" && !Array.isArray(backup.root) ? Object.keys(backup.root).length : 0,
     data: backup.data && typeof backup.data === "object" && !Array.isArray(backup.data) ? Object.keys(backup.data).length : 0,
     legacy: backup.legacy && typeof backup.legacy === "object" && !Array.isArray(backup.legacy) ? Object.keys(backup.legacy).length : 0,
-    importable: importableKeys.length
+    importable: importableEntries.length
   };
 
   return {
@@ -1089,7 +1199,81 @@ function validateFullAccountBackup3(rawBackup) {
 function _shouldSkipBackupImportKey3(key) {
   // Migration/cache metadata belongs to the previous account state. The target
   // account receives fresh migration flags after user data is restored.
-  return !key || key.startsWith("_") || key === "uid";
+  return !_backupCategoryForKey3(key);
+}
+
+/**
+ * Builds a read-only import preview for complete-account backups.
+ *
+ * Input: parsed JSON backup from the user.
+ * Output: validation status, import counts, and examples of keys that would
+ * overwrite existing data. This function never writes to Firestore; it is used
+ * by the UI as a dry-run before the user confirms the import.
+ */
+async function previewFullAccountBackupImport3(rawBackup) {
+  if (!_uid) throw new Error("No authenticated user");
+
+  const validation = validateFullAccountBackup3(rawBackup);
+  const flat = _normalizeBackupPayload3(rawBackup);
+  const entries = _backupImportableEntries3(flat);
+  const grouped = {};
+  BACKUP_CATEGORY_ORDER.forEach(category => {
+    grouped[category] = {
+      id: category,
+      keys: [],
+      total: 0,
+      newItems: 0,
+      existingItems: 0,
+      existingKeys: 0,
+      newKeys: 0
+    };
+  });
+
+  for (let i = 0; i < entries.length; i += 20) {
+    const batch = entries.slice(i, i + 20);
+    const rows = await Promise.all(batch.map(async entry => {
+      const current = await fbGet3(entry.targetKey).catch(() => null);
+      const currentValue = current && current.value !== undefined && current.value !== null ? current.value : null;
+      const total = _backupItemCount3(entry.key, entry.value);
+      const newItems = _backupNewItemCount3(entry.targetKey, entry.value, currentValue);
+      return {
+        ...entry,
+        exists: currentValue !== null,
+        total,
+        newItems,
+        existingItems: Math.max(0, total - newItems)
+      };
+    }));
+
+    rows.forEach(row => {
+      const bucket = grouped[row.category];
+      if (!bucket) return;
+      bucket.keys.push(row.targetKey);
+      bucket.total += row.total;
+      bucket.newItems += row.newItems;
+      bucket.existingItems += row.existingItems;
+      if (row.exists) bucket.existingKeys += 1;
+      else bucket.newKeys += 1;
+    });
+  }
+
+  const categories = BACKUP_CATEGORY_ORDER
+    .map(category => grouped[category])
+    .filter(category => category && category.keys.length);
+
+  return {
+    ok: validation.ok,
+    errors: validation.errors,
+    counts: validation.counts,
+    importable: entries.length,
+    skipped: Object.keys(flat).length - entries.length,
+    conflicts: categories.reduce((sum, category) => sum + category.existingKeys, 0),
+    newKeys: categories.reduce((sum, category) => sum + category.newKeys, 0),
+    categories,
+    exportedAt: rawBackup && rawBackup.exportedAt ? String(rawBackup.exportedAt) : null,
+    schema: rawBackup && rawBackup.schema ? String(rawBackup.schema) : null,
+    version: rawBackup && rawBackup.version !== undefined ? rawBackup.version : null
+  };
 }
 
 /**
@@ -1099,7 +1283,7 @@ function _shouldSkipBackupImportKey3(key) {
  * means a backup from an old account is restored directly into the current
  * nutrition/{uid} + nutrition/{uid}/data/{key} structure.
  */
-async function importFullAccountBackup3(rawBackup) {
+async function importFullAccountBackup3(rawBackup, options) {
   if (!_uid) throw new Error("No authenticated user");
 
   const validation = validateFullAccountBackup3(rawBackup);
@@ -1108,12 +1292,40 @@ async function importFullAccountBackup3(rawBackup) {
   }
 
   const flat = _normalizeBackupPayload3(rawBackup);
-  const keys = Object.keys(flat).filter(key => !_shouldSkipBackupImportKey3(key));
+  const entries = _backupImportableEntries3(flat);
+  const selected = options && options.categories && typeof options.categories === "object"
+    ? options.categories
+    : {};
+  const selectedCategories = Object.keys(selected).filter(category => selected[category]);
+  if (!selectedCategories.length) {
+    throw new Error("Choose at least one backup category to import.");
+  }
+  selectedCategories.forEach(category => {
+    if (selected[category] !== "append" && selected[category] !== "replace") {
+      throw new Error("Choose append or replace for every selected backup category.");
+    }
+  });
+  const selectedEntries = entries.filter(entry => selected[entry.category]);
   let imported = 0;
+  let skipped = Object.keys(flat).length - entries.length;
 
-  for (let i = 0; i < keys.length; i += 15) {
-    await Promise.all(keys.slice(i, i + 15).map(async key => {
-      await fbSet3(key, flat[key]);
+  for (let i = 0; i < selectedEntries.length; i += 15) {
+    await Promise.all(selectedEntries.slice(i, i + 15).map(async entry => {
+      const strategy = selected[entry.category];
+      if (strategy === "replace") {
+        await fbSet3(entry.targetKey, entry.value);
+        imported++;
+        return;
+      }
+
+      const current = await fbGet3(entry.targetKey).catch(() => null);
+      const hasCurrent = !!(current && current.value !== undefined && current.value !== null);
+      if (/^(log_v2|notes|waterIntake|suppLog)_\d{4}-\d{2}-\d{2}$/.test(entry.targetKey) && hasCurrent) {
+        skipped++;
+        return;
+      }
+      const merged = _mergeBackupValues3(entry.targetKey, hasCurrent ? current.value : null, entry.value);
+      await fbSet3(entry.targetKey, merged);
       imported++;
     }));
   }
@@ -1127,7 +1339,7 @@ async function importFullAccountBackup3(rawBackup) {
 
   return {
     imported,
-    skipped: Object.keys(flat).length - keys.length
+    skipped
   };
 }
 
