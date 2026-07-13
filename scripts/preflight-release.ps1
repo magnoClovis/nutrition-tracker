@@ -59,13 +59,22 @@ try {
   # Syntax check is best-effort: Node is not required to use the app, but when
   # available it catches the fast, annoying parse errors before opening a browser.
   $node = Get-Command node -ErrorAction SilentlyContinue
-  if ($node) {
-    & node --check $app | Out-Null
+  $nodeExe = if ($node) { $node.Source } elseif (Test-Path -LiteralPath "C:\Program Files\nodejs\node.exe") { "C:\Program Files\nodejs\node.exe" } else { $null }
+  if ($nodeExe) {
+    & $nodeExe --check $app | Out-Null
     Add-Ok "app.js syntax check passed"
-    & node --check $jsx | Out-Null
-    Add-Ok "nutrition-tracker.jsx syntax check passed"
+    $jsxSyntaxCopy = Join-Path ([System.IO.Path]::GetTempPath()) "nutrition-tracker-jsx-syntax-check.js"
+    Copy-Item -LiteralPath $jsx -Destination $jsxSyntaxCopy -Force
+    try {
+      & $nodeExe --check $jsxSyntaxCopy | Out-Null
+      Add-Ok "nutrition-tracker.jsx syntax check passed"
+    } finally {
+      Remove-Item -LiteralPath $jsxSyntaxCopy -Force -ErrorAction SilentlyContinue
+    }
+    & $nodeExe (Join-Path $PSScriptRoot "audit-i18n.js") | Out-Host
+    Add-Ok "i18n audit passed"
   } else {
-    Add-Warning "Node was not found; skipped JavaScript syntax check"
+    Add-Warning "Node was not found; skipped JavaScript syntax and i18n checks"
   }
 
   $tracked = @()

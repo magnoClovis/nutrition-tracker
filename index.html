@@ -105,6 +105,19 @@
       color: var(--btn-ok-text) !important;
       font-weight: 600;
     }
+    [data-diary-meal-card="true"] {
+      display: block !important;
+      width: 100% !important;
+    }
+    [data-diary-meal-header="true"],
+    [data-diary-meal-items="true"] {
+      width: 100% !important;
+      box-sizing: border-box;
+    }
+    [data-diary-meal-items="true"] {
+      display: block !important;
+      clear: both;
+    }
 #app-version-footer {
   width: 100%;
   padding: 34px 16px 40px;
@@ -130,7 +143,7 @@
   <div id="root"></div>
   <footer id="app-version-footer" aria-label="Versão do aplicativo"></footer>
   <script>
-  window.APP_VERSION_LABEL = 'Diário Nutricional v0.7.5 Beta';
+  window.APP_VERSION_LABEL = 'Diário Nutricional v0.8.0 Beta';
 
   document.getElementById('app-version-footer').textContent = window.APP_VERSION_LABEL;
 
@@ -216,7 +229,8 @@
 
   <!-- App scripts are split by responsibility: persistence adapter first, UI/application second. -->
   <script src="firebase-storage.js?v=0.7.5-beta-20260619-13"></script>
-  <script src="app.js?v=0.7.5-beta-20260630-encoding-fix"></script>
+  <script src="meal-score.js?v=0.8.0-beta-20260713"></script>
+<script src="app.js?v=0.8.0-beta-20260713-2"></script>
 </body>
 </html>
 

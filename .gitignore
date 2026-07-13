@@ -17,10 +17,22 @@ firebase-auth-contacts*.json
 
 # Local runtime/cache artifacts.
 node_modules/
+playwright-report/
+test-results/
 .env
 .env.*
 *.log
 *.tmp
+
+# One-off local investigation and release-tracking artifacts.
+__*_debug.js
+*.encoding-backup-*.bak
+Hardening_*_Checklist.xlsx
+FEEDBACK_SYSTEM_OPTIONS*.md
+
+# Local administration helpers and redundant generated documentation.
+export_firebase_auth_contacts.py
+SMOKE_TESTS_GUIDE.txt
 
 # OS/editor noise.
 Thumbs.db
