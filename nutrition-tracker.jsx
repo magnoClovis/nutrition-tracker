@@ -5612,7 +5612,48 @@ Formato obrigatório:
     kcal: staged.items.reduce((s, e) => s + (e.kcal ?? 0), 0),
     carbs: staged.items.reduce((s, e) => s + (e.carbs ?? 0), 0)
   };
-  const hasMicros = MICRO_FIELDS.some(f => allEntries.some(e => e[f.key.replace("100", "")]));
+  const dailyMicros = MICRO_FIELDS.map(field => ({
+    ...field,
+    value: allEntries.reduce((sum, entry) => sum + (Number(entry[field.key.replace("100", "")]) || 0), 0)
+  }));
+  const hasMicros = dailyMicros.some(field => field.value !== 0);
+
+  function renderDailyMicros() {
+    if (!hasMicros) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      "data-diary-micros": "true",
+      style: {
+        marginTop: 16,
+        paddingTop: 14,
+        borderTop: "1px solid var(--border3)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      "data-tutorial": "microLabel",
+      style: {
+        color: "var(--muted)",
+        fontSize: 13,
+        fontWeight: 500,
+        marginBottom: 8
+      }
+    }, text('microLabel')), dailyMicros.map(field => {
+      if (field.value === 0) return null;
+      return /*#__PURE__*/React.createElement("div", {
+        key: field.key,
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: "5px 0",
+          borderBottom: "1px solid var(--border3)",
+          fontSize: 12
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: { color: "var(--muted)" }
+      }, field.label), /*#__PURE__*/React.createElement("span", {
+        style: { color: "var(--muted2)" }
+      }, field.value % 1 === 0 ? field.value : field.value.toFixed(2), " ", field.unit));
+    }));
+  }
   const selectedFood = addEntry.foodId ? pantry.find(f => f.id === addEntry.foodId) : null;
   const filteredPantry = pantrySearch ? pantry.filter(f => f.name.toLowerCase().includes(pantrySearch.toLowerCase())) : pantry;
   const sortedPantry = [...filteredPantry].sort((a, b) => (a.name || "").localeCompare(b.name || "", sortLocaleForLang(lang), { sensitivity: "base" }));
@@ -8101,6 +8142,7 @@ Formato obrigatório:
     "Ninguna combinación coincidió con estos criterios. Prueba flexibilizar los límites o usar más alimentos de la despensa."
   )))), /*#__PURE__*/React.createElement("div", {
     "data-diary-nutrients": "true",
+    "data-expanded": expandMicros ? "true" : "false",
     style: {
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)",
@@ -8169,56 +8211,7 @@ Formato obrigatório:
     color: "#888",
     label: text('salt'),
     unit: "g"
-  }))), tab === "diario" && expandMicros && hasMicros && /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "var(--surface3)",
-      borderBottom: "1px solid var(--border3)",
-      order: 7,
-      animation: "softIn 220ms ease-out both"
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    "data-tutorial": "microLabel",
-    onClick: () => setExpandMicros(e => !e),
-    style: {
-      width: "100%",
-      background: "none",
-      border: "none",
-      color: "var(--muted)",
-      padding: "8px 20px",
-      fontSize: 14,
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      cursor: "pointer",
-      textAlign: "left",
-      display: "flex",
-      justifyContent: "space-between"
-    }
-  }, /*#__PURE__*/React.createElement("span", null, text('microLabel')), /*#__PURE__*/React.createElement("span", null, expandMicros ? "v" : ">")), expandMicros && /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "0 20px 12px"
-    }
-  }, MICRO_FIELDS.map(f => {
-    const val = allEntries.reduce((s, e) => s + (e[f.key.replace("100", "")] ?? 0), 0);
-    if (!val) return null;
-    return /*#__PURE__*/React.createElement("div", {
-      key: f.key,
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        padding: "4px 0",
-        borderBottom: "1px solid var(--border3)",
-        fontSize: 12
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "var(--muted)"
-      }
-    }, f.label), /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "var(--muted2)"
-      }
-    }, val % 1 === 0 ? val : val.toFixed(2), " ", f.unit));
-  }))), goalToast && (() => {
+  }), renderDailyMicros())), goalToast && (() => {
     const isWarning = goalToast.tone === "warning";
     return /*#__PURE__*/React.createElement("div", {
       style: {
