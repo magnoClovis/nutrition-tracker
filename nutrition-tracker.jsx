@@ -6499,10 +6499,10 @@ Formato obrigatório:
 
   useEffect(() => {
     clearTimeout(tickerAutoTimerRef.current);
-    if (!loaded || tab !== "diario" || tickerSlides.length < 2) return;
+    if (!loaded || tab !== "diario" || tickerSlides.length < 2 || tickerPhase !== "idle") return;
     tickerAutoTimerRef.current = setTimeout(() => moveTicker(1), 5000);
     return () => clearTimeout(tickerAutoTimerRef.current);
-  }, [loaded, tab, tickerIndex, tickerTimerReset, tickerSlides.length]);
+  }, [loaded, tab, tickerIndex, tickerTimerReset, tickerSlides.length, tickerPhase]);
 
   useEffect(() => () => {
     clearTimeout(tickerAutoTimerRef.current);
