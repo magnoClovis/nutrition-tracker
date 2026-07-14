@@ -7,6 +7,19 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="theme-color" content="#111111"/>
+  <script>
+    // Apply the saved theme before styles or body content can be painted.
+    (function(){
+      try {
+        var savedDarkMode=localStorage.getItem('appDarkMode');
+        var initialTheme=savedDarkMode==='true'?'dark':'light';
+        document.documentElement.dataset.theme=initialTheme;
+        document.documentElement.classList.toggle('dark-loading',initialTheme==='dark');
+      } catch (error) {
+        document.documentElement.dataset.theme='light';
+      }
+    })();
+  </script>
   <title>Diário Nutricional</title>
   <link rel="icon" type="image/png" href="icone.png"/>
   <link rel="apple-touch-icon" href="icone.png"/>
@@ -50,10 +63,10 @@
         scroll-behavior: auto !important;
       }
     }
-    #loading{position:fixed;inset:0;background:#f2f1ed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#888;font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000;opacity:1;transition:opacity .18s ease}
+    #loading{position:fixed;inset:0;background:var(--surface-page,#f2f1ed);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--text-secondary,#888);font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000;opacity:1;transition:opacity .18s ease}
     #loading.is-hidden{opacity:0;pointer-events:none}
-    .dark-loading #loading{background:#f2f1ed;color:#888;}
-    .dark-loading #loading div:first-child{border-color:#d8d4cc!important;border-top-color:#2a6a2a!important;}
+    html[data-theme="dark"] #loading{background:var(--surface-page,#0e0e0d);color:var(--text-secondary,#a8a69e);}
+    html[data-theme="dark"] #loading div:first-child{border-color:#343431!important;border-top-color:var(--accent-action-fill,#78ab3c)!important;}
     select option{background:#f5f3ef;color:#252220}
     ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg,#f2f1ed)}::-webkit-scrollbar-thumb{background:var(--border2,#b8b4ac);border-radius:2px}
     input[type=date]{color-scheme:dark}
@@ -161,18 +174,6 @@
       if (loading && loading.parentNode) loading.parentNode.removeChild(loading);
     }, 220);
   };
-
-  // Applies the saved theme before React renders, so the loading screen does
-  // not flash in the wrong mode while Firebase and the app scripts initialize.
-  (function(){
-    var savedDarkMode=localStorage.getItem('appDarkMode');
-    if(savedDarkMode==='true'){
-      document.documentElement.dataset.theme='dark';
-      document.documentElement.classList.add('dark-loading');
-    }else if(savedDarkMode==='false'){
-      document.documentElement.dataset.theme='light';
-    }
-  })();
 
   // Shows startup failures in the loading layer. This is intentionally small:
   // once React renders, normal in-app error handling takes over. The DOM is
