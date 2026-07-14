@@ -296,7 +296,6 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 }
 
 [data-diary-meal-card="true"] {
-  margin-bottom: 14px !important;
   padding: 18px !important;
   background: var(--focus-surface) !important;
   -webkit-backdrop-filter: blur(6px);
@@ -310,7 +309,6 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   display: block !important;
   width: 100% !important;
   box-sizing: border-box;
-  margin-bottom: 14px !important;
   background: var(--focus-surface) !important;
   border-radius: var(--radius-block) !important;
   -webkit-backdrop-filter: blur(6px);
@@ -799,8 +797,7 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   [data-screen="diario"] {
     display: grid !important;
     grid-template-columns: 340px minmax(0, 1fr);
-    column-gap: 24px;
-    row-gap: 16px;
+    gap: 16px 24px;
   }
 
   [data-screen="diario"]::before {
@@ -815,7 +812,7 @@ body:has([data-one-ui-root][data-theme="dark"]) {
     grid-row: 2;
   }
 
-  [data-screen="diario"] > * {
+  [data-screen="diario"] > :not([data-diary-meal-card="true"]) {
     grid-column: 1;
     margin-bottom: 0 !important;
   }
@@ -860,6 +857,13 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   [data-screen="metricas"] > [data-tutorial="weight-chart"],
   [data-screen="metricas"] > [data-tutorial="bmr-chart"] {
     grid-column: 2;
+  }
+}
+
+@media (max-width: 1023px) {
+  [data-diary-meal-card="true"],
+  .meal-section-card {
+    margin-bottom: 14px !important;
   }
 }
 
