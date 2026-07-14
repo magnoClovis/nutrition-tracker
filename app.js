@@ -2277,6 +2277,7 @@ function NutritionTracker({
       fiber: customGoals.fiber || rawGoal.fiber,
       salt: customGoals.salt || rawGoal.salt
     };
+    return computedGoal;
   }
   function dayGoalForDate(date) {
     const dayIsTraining = trainingByDate[date] ?? true;
@@ -4440,26 +4441,31 @@ Formato obrigatório:
     let cancelled = false;
     async function loadCalendarMonth() {
       setCalendarLoading(true);
-      const nextData = {};
-      const dates = monthDays(calendarMonth).filter(Boolean).filter(date => date <= TODAY);
-      await Promise.all(dates.map(async date => {
-        let dayLog = date === TODAY ? log : {};
-        if (date !== TODAY) {
-          const saved = await storage.get("log_v2_" + date).catch(() => null);
-          if (saved?.value) {
-            try {
-              const parsed = typeof saved.value === "string" ? JSON.parse(saved.value) : saved.value;
-              dayLog = normalizeMealKeys(parsed || {});
-            } catch (error) {
-              console.warn("Registro diário inválido no calendário:", date, error);
+      try {
+        const nextData = {};
+        const dates = monthDays(calendarMonth).filter(Boolean).filter(date => date <= TODAY);
+        await Promise.all(dates.map(async date => {
+          let dayLog = date === TODAY ? log : {};
+          if (date !== TODAY) {
+            const saved = await storage.get("log_v2_" + date).catch(() => null);
+            if (saved?.value) {
+              try {
+                const parsed = typeof saved.value === "string" ? JSON.parse(saved.value) : saved.value;
+                dayLog = normalizeMealKeys(parsed || {});
+              } catch (error) {
+                console.warn("Registro diário inválido no calendário:", date, error);
+              }
             }
           }
+          nextData[date] = calendarMarkerFor(dayLog, dayGoalForDate(date));
+        }));
+        if (!cancelled) {
+          setCalendarData(prev => ({...prev, [calendarMonth]: nextData}));
         }
-        nextData[date] = calendarMarkerFor(dayLog, dayGoalForDate(date));
-      }));
-      if (!cancelled) {
-        setCalendarData(prev => ({...prev, [calendarMonth]: nextData}));
-        setCalendarLoading(false);
+      } catch (error) {
+        console.error("Falha ao carregar dados do calendário mensal:", calendarMonth, error);
+      } finally {
+        if (!cancelled) setCalendarLoading(false);
       }
     }
     loadCalendarMonth();
