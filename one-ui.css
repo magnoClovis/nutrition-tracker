@@ -423,6 +423,11 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   padding: 0 !important;
 }
 
+[data-diary-nutrients="true"][data-expanded="false"] {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
 /* Individual diary cards must reveal the page gradient, not an opaque group wrapper. */
 [data-diary-content-stack="true"] {
   background: transparent !important;
