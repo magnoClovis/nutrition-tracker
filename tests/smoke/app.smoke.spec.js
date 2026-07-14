@@ -146,18 +146,27 @@ test.describe('public boot and login screen', () => {
     await expectNoCriticalErrors(errors);
   });
 
-  test('saved theme remains active after reload', async ({ page }) => {
+  test('migrates once to dark and then preserves the saved theme after reload', async ({ page }) => {
     const errors = await openApp(page);
 
-    await page.evaluate(() => localStorage.setItem('appDarkMode', 'true'));
+    await page.evaluate(() => {
+      localStorage.setItem('appDarkMode', 'false');
+      localStorage.removeItem('appThemeDefaultDarkV1');
+    });
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('appThemeDefaultDarkV1'))).toBe('1');
 
     await page.evaluate(() => localStorage.setItem('appDarkMode', 'false'));
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+    await page.evaluate(() => localStorage.setItem('appDarkMode', 'true'));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
     await expectNoCriticalErrors(errors);
   });

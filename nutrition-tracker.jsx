@@ -9,6 +9,26 @@ const MOST_RECENT_TUTORIAL_KEY = "tutorial_most_recent_version_seen";
 const CURRENT_RELEASE_TUTORIAL_VERSION = "0.8.0-beta";
 const RELEASE_TUTORIAL_TYPE = "release080";
 const tutorialSeenKey = type => "tutorialSeen_" + type;
+const DARK_THEME_DEFAULT_MIGRATION_KEY = "appThemeDefaultDarkV1";
+
+/**
+ * Makes dark mode the default once for every browser after this release.
+ * After the migration marker is stored, the user's explicit light/dark choice
+ * remains authoritative on every subsequent app load and login.
+ */
+function readPreferredDarkMode() {
+  try {
+    if (localStorage.getItem(DARK_THEME_DEFAULT_MIGRATION_KEY) !== "1") {
+      localStorage.setItem("appDarkMode", "true");
+      localStorage.setItem(DARK_THEME_DEFAULT_MIGRATION_KEY, "1");
+      return true;
+    }
+    const saved = localStorage.getItem("appDarkMode");
+    return saved !== null ? saved === "true" : true;
+  } catch (_) {
+    return true;
+  }
+}
 
 /**
  * Reads tutorial flags safely across legacy/string and current/boolean values.
@@ -15070,10 +15090,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
   const [regName, setRegName] = React.useState('');
   const [regBirthDate, setRegBirthDate] = React.useState('');
   const [regGender, setRegGender] = React.useState('');
-  const [loginDark, setLoginDark] = React.useState(() => {
-    const saved = localStorage.getItem('appDarkMode');
-    return saved !== null ? saved === 'true' : false;
-  });
+  const [loginDark, setLoginDark] = React.useState(readPreferredDarkMode);
   React.useEffect(() => {
     document.documentElement.dataset.theme = loginDark ? 'dark' : 'light';
   }, [loginDark]);
@@ -15509,10 +15526,7 @@ function App() {
   const [profileChecking, setProfileChecking] = React.useState(fbIsLoggedIn());
   const [lang, setLang]         = React.useState(()=>normalizeLanguage(localStorage.getItem('appLang')||'pt'));
   const [showReleaseNotice, setShowReleaseNotice] = React.useState(false);
-  const [darkMode, setDarkMode] = React.useState(() => {
-    const saved = localStorage.getItem('appDarkMode');
-    return saved !== null ? saved === 'true' : false; // padrão: modo claro
-  });
+  const [darkMode, setDarkMode] = React.useState(readPreferredDarkMode);
   React.useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
   }, [darkMode]);

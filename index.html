@@ -8,15 +8,21 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="theme-color" content="#111111"/>
   <script>
-    // Apply the saved theme before styles or body content can be painted.
+    // Apply the migrated or saved theme before styles or body content can be painted.
     (function(){
       try {
+        var darkDefaultMigrationKey='appThemeDefaultDarkV1';
+        if(localStorage.getItem(darkDefaultMigrationKey)!=='1'){
+          localStorage.setItem('appDarkMode','true');
+          localStorage.setItem(darkDefaultMigrationKey,'1');
+        }
         var savedDarkMode=localStorage.getItem('appDarkMode');
-        var initialTheme=savedDarkMode==='true'?'dark':'light';
+        var initialTheme=savedDarkMode==='false'?'light':'dark';
         document.documentElement.dataset.theme=initialTheme;
         document.documentElement.classList.toggle('dark-loading',initialTheme==='dark');
       } catch (error) {
-        document.documentElement.dataset.theme='light';
+        document.documentElement.dataset.theme='dark';
+        document.documentElement.classList.add('dark-loading');
       }
     })();
   </script>
@@ -236,7 +242,7 @@
   <!-- App scripts are split by responsibility: persistence adapter first, UI/application second. -->
   <script src="firebase-storage.js?v=0.7.5-beta-20260619-13"></script>
   <script src="meal-score.js?v=0.8.0-beta-20260713"></script>
-<script src="app.js?v=0.8.0-beta-20260714-calendar-history-1"></script>
+<script src="app.js?v=0.8.0-beta-20260714-dark-default-1"></script>
 </body>
 </html>
 
