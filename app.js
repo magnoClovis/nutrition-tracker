@@ -13350,7 +13350,7 @@ Formato obrigatório:
       cursor: "pointer",
       whiteSpace: "nowrap"
     }
-  }, pickLang(lang, "Mais info", "More info", "Más info"))), /*#__PURE__*/React.createElement("div", {
+  }, pickLang(lang, "Mais info", "More info", "Más info")))), /*#__PURE__*/React.createElement("div", {
     "data-progress-grid": "true",
     style: {
       marginTop: 12,
@@ -13479,7 +13479,7 @@ Formato obrigatório:
       ? pickLang(lang, "No ritmo atual do peso, a mudança planejada levaria cerca de " + (Math.round(weightTrend.weeksRemaining * 10) / 10) + " semanas.", "At the current weight trend, the planned change would take about " + (Math.round(weightTrend.weeksRemaining * 10) / 10) + " weeks.", "Con la tendencia actual del peso, el cambio planificado tardaría cerca de " + (Math.round(weightTrend.weeksRemaining * 10) / 10) + " semanas.")
       : pickLang(lang, "Ainda não há tendência alinhada suficiente para estimar uma data de chegada.", "There is not enough aligned trend yet to estimate an arrival date.", "Todavía no hay una tendencia suficientemente alineada para estimar una fecha de llegada."), weightTrend.avg14 && /*#__PURE__*/React.createElement("div", {
       style: { marginTop: 8, color: "var(--muted)" }
-  }, pickLang(lang, "Média 14 registros: ", "14-entry average: ", "Media de 14 registros: "), Math.round(weightTrend.avg14 * 10) / 10, " kg")))), renderReportsCard()))))))));
+  }, pickLang(lang, "Média 14 registros: ", "14-entry average: ", "Media de 14 registros: "), Math.round(weightTrend.avg14 * 10) / 10, " kg"))), renderReportsCard()))))))));
 }
 const inp = {
   width: "100%",
