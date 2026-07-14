@@ -25,8 +25,8 @@
   --accent-insight-text: #5f347d;
   --accent-insight-fill: #8b5bb5;
   --page-gradient: radial-gradient(circle at 20% 0%, #d9ede0 0%, var(--surface-page) 55%);
-  --focus-surface: color-mix(in srgb, var(--surface-block) 94%, transparent);
-  --focus-surface-alt: color-mix(in srgb, var(--surface-block-alt) 94%, transparent);
+  --focus-surface: color-mix(in srgb, var(--surface-block) 50%, transparent);
+  --focus-surface-alt: color-mix(in srgb, var(--surface-block-alt) 50%, transparent);
   --focus-protein: color-mix(in srgb, var(--accent-protein-bg) 94%, transparent);
   --focus-kcal: color-mix(in srgb, var(--accent-kcal-bg) 94%, transparent);
   --focus-water: color-mix(in srgb, var(--accent-water-bg) 94%, transparent);
