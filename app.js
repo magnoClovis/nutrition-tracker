@@ -7907,16 +7907,11 @@ Formato obrigatório:
   }, "·"), /*#__PURE__*/React.createElement("span", null, dayKcalPct, "% kcal"))), /*#__PURE__*/React.createElement("div", {
     "data-diary-suggestion-block": "true",
     style: {
-      display: tab === "diario" ? "block" : "none",
-      order: 6
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
       background: "var(--surface3)",
       borderBottom: "1px solid var(--border3)",
       padding: "7px 20px",
       display: tab === "diario" ? "block" : "none",
-      order: 6
+      order: 7
     }
   }, /*#__PURE__*/React.createElement("button", {
     "data-tutorial": "suggest-meal-button",
@@ -8078,14 +8073,14 @@ Formato obrigatório:
     "Nenhuma combinação encontrou esses critérios. Tente flexibilizar os limites ou usar mais alimentos da despensa.",
     "No combination matched these criteria. Try relaxing the limits or using more pantry foods.",
     "Ninguna combinación coincidió con estos criterios. Prueba flexibilizar los límites o usar más alimentos de la despensa."
-  ))), /*#__PURE__*/React.createElement("div", {
+  )))), /*#__PURE__*/React.createElement("div", {
     "data-diary-nutrients": "true",
     style: {
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)",
       padding: "12px 20px",
       display: tab === "diario" ? "block" : "none",
-      order: 7
+      order: 6
     }
   }, /*#__PURE__*/React.createElement("button", {
     "data-tutorial": "microLabel",
@@ -8148,7 +8143,7 @@ Formato obrigatório:
     color: "#888",
     label: text('salt'),
     unit: "g"
-  })))), tab === "diario" && expandMicros && hasMicros && /*#__PURE__*/React.createElement("div", {
+  }))), tab === "diario" && expandMicros && hasMicros && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface3)",
       borderBottom: "1px solid var(--border3)",
@@ -8197,7 +8192,7 @@ Formato obrigatório:
         color: "var(--muted2)"
       }
     }, val % 1 === 0 ? val : val.toFixed(2), " ", f.unit));
-  })))), goalToast && (() => {
+  }))), goalToast && (() => {
     const isWarning = goalToast.tone === "warning";
     return /*#__PURE__*/React.createElement("div", {
       style: {
