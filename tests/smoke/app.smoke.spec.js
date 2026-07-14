@@ -146,6 +146,22 @@ test.describe('public boot and login screen', () => {
     await expectNoCriticalErrors(errors);
   });
 
+  test('saved theme remains active after reload', async ({ page }) => {
+    const errors = await openApp(page);
+
+    await page.evaluate(() => localStorage.setItem('appDarkMode', 'true'));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+    await page.evaluate(() => localStorage.setItem('appDarkMode', 'false'));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+    await expectNoCriticalErrors(errors);
+  });
+
   test('password recovery validates an empty email instead of failing silently', async ({ page }) => {
     const errors = await openApp(page);
 

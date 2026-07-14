@@ -165,8 +165,12 @@
   // Applies the saved theme before React renders, so the loading screen does
   // not flash in the wrong mode while Firebase and the app scripts initialize.
   (function(){
-    if(localStorage.getItem('appDarkMode')==='true'){
+    var savedDarkMode=localStorage.getItem('appDarkMode');
+    if(savedDarkMode==='true'){
+      document.documentElement.dataset.theme='dark';
       document.documentElement.classList.add('dark-loading');
+    }else if(savedDarkMode==='false'){
+      document.documentElement.dataset.theme='light';
     }
   })();
 
@@ -231,7 +235,7 @@
   <!-- App scripts are split by responsibility: persistence adapter first, UI/application second. -->
   <script src="firebase-storage.js?v=0.7.5-beta-20260619-13"></script>
   <script src="meal-score.js?v=0.8.0-beta-20260713"></script>
-<script src="app.js?v=0.8.0-beta-20260714-ui-fixes-3"></script>
+<script src="app.js?v=0.8.0-beta-20260714-ui-fixes-4"></script>
 </body>
 </html>
 
