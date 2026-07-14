@@ -275,6 +275,12 @@ function getGreetingPeriod(hour = new Date().getHours()) {
   return "night";
 }
 
+function getGreetingEmoji(period) {
+  if (period === "morning") return "☀️";
+  if (period === "afternoon") return "🌤️";
+  return "🌙";
+}
+
 function getLocalDateKey(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -308,6 +314,58 @@ function getDailyGreetingPhrase(lang, period) {
   const phrase = pool[hashString(storageKey) % pool.length] || "";
   localStorage.setItem(storageKey, phrase);
   return phrase;
+}
+
+function formatTickerAmount(value, unit, lang) {
+  const numeric = Number(value) || 0;
+  const decimals = unit === "g" && Math.abs(numeric) < 10 && numeric % 1 !== 0 ? 1 : 0;
+  const formatted = new Intl.NumberFormat(localeForLang(lang), {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }).format(numeric);
+  return formatted + (unit === "kcal" ? " kcal" : unit);
+}
+
+/**
+ * Converts one nutrient total and target into ticker copy and a semantic tone.
+ * Group "gain" rewards reaching or exceeding the goal; group "limit" warns
+ * only after the configured ceiling is exceeded.
+ */
+function buildNutrientTickerSlide({key, label, value, target, unit, group, lang}) {
+  const consumed = Number(value) || 0;
+  const goal = Number(target) || 0;
+  if (!goal || consumed <= 0) return null;
+  const difference = Math.abs(consumed - goal);
+  const consumedText = formatTickerAmount(consumed, unit, lang);
+  const differenceText = formatTickerAmount(difference, unit, lang);
+  const lowerLabel = label.toLocaleLowerCase(localeForLang(lang));
+  const exact = Math.abs(consumed - goal) < 0.001;
+  const icons = {protein: "🥩", kcal: "⚡", carbs: "🌾", fat: "🫒", satfat: "🧈", fiber: "🌿", salt: "🧂", water: "💧"};
+  let tone = "neutral";
+  let message = "";
+
+  if (consumed < goal) {
+    message = pickLang(
+      lang,
+      "Faltam " + differenceText + " de " + lowerLabel + " para bater a meta.",
+      differenceText + " of " + lowerLabel + " left to reach the goal.",
+      "Faltan " + differenceText + " de " + lowerLabel + " para alcanzar la meta."
+    );
+  } else if (group === "gain") {
+    tone = "success";
+    message = exact
+      ? pickLang(lang, "Meta de " + lowerLabel + " batida! " + consumedText + " consumidos.", "Goal reached for " + lowerLabel + "! " + consumedText + " consumed.", "¡Meta de " + lowerLabel + " alcanzada! " + consumedText + " consumidos.")
+      : pickLang(lang, "Meta de " + lowerLabel + " superada! " + consumedText + " consumidos — " + differenceText + " além do objetivo.", "Goal exceeded for " + lowerLabel + "! " + consumedText + " consumed — " + differenceText + " above target.", "¡Meta de " + lowerLabel + " superada! " + consumedText + " consumidos — " + differenceText + " por encima del objetivo.");
+  } else if (exact) {
+    tone = "success";
+    message = pickLang(lang, label + " na meta certinha hoje.", label + " exactly on target today.", label + " justo en la meta de hoy.");
+  } else {
+    tone = "alert";
+    const verb = key === "satfat" || key === "salt" ? " passou" : " passaram";
+    message = pickLang(lang, label + verb + " da meta em " + differenceText + ".", label + " exceeded the target by " + differenceText + ".", label + " superó la meta por " + differenceText + ".");
+  }
+
+  return {key, icon: icons[key] || "•", text: message, tone};
 }
 
 // Translations
@@ -1918,6 +1976,15 @@ function NutritionTracker({
   const [metricsProgressOpen, setMetricsProgressOpen] = useState(false);
   const [metricsProgressInfoOpen, setMetricsProgressInfoOpen] = useState(false);
   const [bodyCompositionOpen, setBodyCompositionOpen] = useState(false);
+  const [tickerIndex, setTickerIndex] = useState(0);
+  const [tickerPhase, setTickerPhase] = useState("idle");
+  const [tickerDirection, setTickerDirection] = useState(1);
+  const [tickerDragOffset, setTickerDragOffset] = useState(0);
+  const [tickerTimerReset, setTickerTimerReset] = useState(0);
+  const tickerPointerRef = useRef({active: false, pointerId: null, startX: 0});
+  const tickerAutoTimerRef = useRef(null);
+  const tickerSwapTimerRef = useRef(null);
+  const tickerEnterTimerRef = useRef(null);
   const [metricsSection, setMetricsSection] = useState("tracking");
   const [nutritionPrefs, setNutritionPrefs] = useState({
     activityLevel: "",
@@ -6359,6 +6426,89 @@ Formato obrigatório:
   const greetingFirstName = userName.trim().split(/\s+/).filter(Boolean)[0] || "";
   const greetingText = text(greetingKey) + (greetingFirstName ? ", " + greetingFirstName : "") + "!";
   const greetingLine = getDailyGreetingPhrase(lang, greetingPeriod);
+  const greetingEmoji = getGreetingEmoji(greetingPeriod);
+  const tickerMetrics = [
+    {key: "protein", label: text('protein'), value: tot.protein, target: goals.protein, unit: "g", group: "gain"},
+    {key: "kcal", label: text('calories'), value: tot.kcal, target: goals.kcal, unit: "kcal", group: "limit"},
+    {key: "carbs", label: text('carbs'), value: tot.carbs, target: goals.carbs, unit: "g", group: "limit"},
+    {key: "fat", label: text('fat'), value: tot.fat, target: goals.fat, unit: "g", group: "limit"},
+    {key: "satfat", label: text('satfat'), value: tot.satfat, target: customGoals.satfat || goals.satfat, unit: "g", group: "limit"},
+    {key: "fiber", label: text('fiber'), value: tot.fiber, target: goals.fiber, unit: "g", group: "gain"},
+    {key: "salt", label: text('salt'), value: tot.salt, target: goals.salt, unit: "g", group: "limit"},
+    {key: "water", label: text('water'), value: totalWater, target: goals.water, unit: "ml", group: "gain"}
+  ];
+  const tickerSlides = [{
+    key: "greeting",
+    icon: greetingEmoji,
+    text: greetingText + " " + greetingLine,
+    tone: "neutral"
+  }, ...tickerMetrics.map(metric => buildNutrientTickerSlide({...metric, lang})).filter(Boolean)];
+  const safeTickerIndex = tickerSlides.length ? tickerIndex % tickerSlides.length : 0;
+  const activeTickerSlide = tickerSlides[safeTickerIndex] || tickerSlides[0];
+  const tickerToneColor = activeTickerSlide?.tone === "success"
+    ? "var(--accent-action-text)"
+    : activeTickerSlide?.tone === "alert"
+      ? "var(--ticker-alert-text)"
+      : "var(--text-secondary)";
+
+  function moveTicker(direction, manual = false) {
+    if (tickerSlides.length < 2 || tickerPhase === "exit" || tickerPhase === "prepare") return;
+    if (manual) setTickerTimerReset(value => value + 1);
+    clearTimeout(tickerSwapTimerRef.current);
+    clearTimeout(tickerEnterTimerRef.current);
+    setTickerDirection(direction);
+    setTickerDragOffset(0);
+    setTickerPhase("exit");
+    tickerSwapTimerRef.current = setTimeout(() => {
+      setTickerIndex(current => (current + direction + tickerSlides.length) % tickerSlides.length);
+      setTickerPhase("prepare");
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        setTickerPhase("enter");
+        tickerEnterTimerRef.current = setTimeout(() => setTickerPhase("idle"), 320);
+      }));
+    }, 150);
+  }
+
+  function handleTickerPointerDown(event) {
+    setTickerTimerReset(value => value + 1);
+    if (tickerSlides.length < 2) return;
+    tickerPointerRef.current = {active: true, pointerId: event.pointerId, startX: event.clientX};
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }
+
+  function handleTickerPointerMove(event) {
+    if (!tickerPointerRef.current.active || tickerPointerRef.current.pointerId !== event.pointerId) return;
+    const delta = Math.max(-54, Math.min(54, event.clientX - tickerPointerRef.current.startX));
+    setTickerDragOffset(delta);
+  }
+
+  function finishTickerPointer(event) {
+    if (!tickerPointerRef.current.active || tickerPointerRef.current.pointerId !== event.pointerId) return;
+    const delta = event.clientX - tickerPointerRef.current.startX;
+    tickerPointerRef.current.active = false;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    setTickerDragOffset(0);
+    if (delta <= -30) moveTicker(1);
+    else if (delta >= 30) moveTicker(-1);
+  }
+
+  useEffect(() => {
+    if (tickerIndex < tickerSlides.length) return;
+    setTickerIndex(0);
+  }, [tickerIndex, tickerSlides.length]);
+
+  useEffect(() => {
+    clearTimeout(tickerAutoTimerRef.current);
+    if (!loaded || tab !== "diario" || tickerSlides.length < 2) return;
+    tickerAutoTimerRef.current = setTimeout(() => moveTicker(1), 5000);
+    return () => clearTimeout(tickerAutoTimerRef.current);
+  }, [loaded, tab, tickerIndex, tickerTimerReset, tickerSlides.length]);
+
+  useEffect(() => () => {
+    clearTimeout(tickerAutoTimerRef.current);
+    clearTimeout(tickerSwapTimerRef.current);
+    clearTimeout(tickerEnterTimerRef.current);
+  }, []);
   const tabNavItems = [["diario", text('tabDiary')], ["despensa", text('tabPantry')], ["semana", text('tabWeek')], ["metricas", text('tabMetrics')]];
   const proteinColor = "var(--protein)";
   const caloriesColor = "var(--calories)";
@@ -7158,15 +7308,16 @@ Formato obrigatório:
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 14,
-      letterSpacing: 1,
-      color: "var(--muted)",
-      textTransform: "uppercase",
+      fontSize: 17,
+      fontWeight: 600,
+      letterSpacing: 0,
+      color: "var(--text)",
+      textTransform: "none",
       marginBottom: 2
     }
   }, text('appTitle')), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 15,
+      fontSize: 12.5,
       color: "var(--text3)",
       fontStyle: "italic"
     }
@@ -7178,24 +7329,6 @@ Formato obrigatório:
       gap: 6
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: loadAll,
-    style: {
-      display: "flex",
-      alignItems: "center",
-      background: "none",
-      border: "1px solid var(--border2)",
-      color: syncing ? "var(--btn-ok-text)" : "var(--muted)",
-      borderRadius: 6,
-      padding: "6px 9px",
-      fontSize: 14,
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-block",
-      animation: syncing ? "spin 1s linear infinite" : "none"
-    }
-  }, "\u21BB")), /*#__PURE__*/React.createElement("button", {
     onClick: () => setMenuOpen(m => !m),
     style: {
       background: menuOpen ? "var(--input)" : "none",
@@ -7440,14 +7573,79 @@ Formato obrigatório:
   }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\u23FB"),
     /*#__PURE__*/React.createElement("span", null, uiText("Sair da conta", "Sign out", "Cerrar sesión"))
   )))))), /*#__PURE__*/React.createElement("div", {
+    "data-header-status-chip": "true",
     style: {
       display: "flex",
       alignItems: "center",
+      flexWrap: "wrap",
       gap: 10,
       marginTop: 10,
       order: 1
     }
+  }, /*#__PURE__*/React.createElement("div", {
+    "data-header-ticker": "true",
+    "data-ticker-phase": tickerPhase,
+    "data-ticker-direction": tickerDirection > 0 ? "forward" : "backward",
+    "data-ticker-index": safeTickerIndex,
+    "data-ticker-tone": activeTickerSlide?.tone || "neutral",
+    "data-ticker-timer-reset": tickerTimerReset,
+    onPointerDown: handleTickerPointerDown,
+    onPointerMove: handleTickerPointerMove,
+    onPointerUp: finishTickerPointer,
+    onPointerCancel: finishTickerPointer,
+    style: {
+      flex: "0 0 100%",
+      minWidth: 0,
+      overflow: "hidden",
+      touchAction: "pan-y",
+      cursor: "grab",
+      userSelect: "none"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "data-ticker-content": "true",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      minHeight: 24,
+      color: tickerToneColor,
+      fontWeight: activeTickerSlide?.tone === "alert" ? 600 : 500,
+      opacity: tickerPhase === "exit" || tickerPhase === "prepare" ? 0 : tickerDragOffset ? 1 - Math.min(Math.abs(tickerDragOffset) / 160, 0.25) : 1,
+      transform: tickerDragOffset ? `translateX(${tickerDragOffset}px)` : tickerPhase === "exit" ? `translateX(${-tickerDirection * 22}px)` : tickerPhase === "prepare" ? `translateX(${tickerDirection * 22}px)` : "translateX(0px)",
+      transition: tickerDragOffset || tickerPhase === "prepare" ? "none" : tickerPhase === "exit" ? "transform 150ms ease, opacity 150ms ease" : "transform 300ms var(--ease-spring), opacity 220ms ease"
+    }
   }, /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true",
+    style: {fontSize: 15, flexShrink: 0}
+  }, activeTickerSlide?.icon || "\u2726"), /*#__PURE__*/React.createElement("span", {
+    style: {minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13}
+  }, activeTickerSlide?.text || "")), tickerSlides.length > 1 && /*#__PURE__*/React.createElement("div", {
+    "data-ticker-dots": "true",
+    style: {display: "flex", justifyContent: "center", gap: 5, marginTop: 7}
+  }, tickerSlides.map((slide, index) => /*#__PURE__*/React.createElement("button", {
+    key: slide.key,
+    type: "button",
+    "aria-label": uiText(`Ir para indicador ${index + 1}`, `Go to indicator ${index + 1}`, `Ir al indicador ${index + 1}`),
+    onClick: () => {
+      if (index === safeTickerIndex) {
+        setTickerTimerReset(value => value + 1);
+        return;
+      }
+      moveTicker(index > safeTickerIndex ? 1 : -1, true);
+    },
+    style: {
+      width: index === safeTickerIndex ? 14 : 6,
+      height: 6,
+      minHeight: 0,
+      padding: 0,
+      border: 0,
+      borderRadius: 999,
+      background: index === safeTickerIndex ? tickerToneColor : "var(--text-muted)",
+      opacity: index === safeTickerIndex ? 0.72 : 0.35,
+      transition: "width 300ms var(--ease-spring), background 200ms ease",
+      cursor: "pointer"
+    }
+  })))), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14,
       color: "var(--muted)"

@@ -21,6 +21,7 @@
   --accent-danger-bg: #f9e9e7;
   --accent-danger-text: #8c2f24;
   --accent-danger-fill: #b94a3b;
+  --ticker-alert-text: #c94f38;
   --accent-insight-bg: #f1e8f8;
   --accent-insight-text: #5f347d;
   --accent-insight-fill: #8b5bb5;
@@ -61,6 +62,7 @@ html[data-theme="dark"] {
   --accent-danger-bg: #411d19;
   --accent-danger-text: #f2aaa1;
   --accent-danger-fill: #d66c5f;
+  --ticker-alert-text: #f08a72;
   --accent-insight-bg: #301d3d;
   --accent-insight-text: #e3bcf7;
   --accent-insight-fill: #9a65c4;
@@ -210,10 +212,48 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 
 [data-app-header] > div:first-child > div:first-child > div:first-child {
   color: var(--text-primary) !important;
-  font-size: 21px !important;
-  font-weight: 500 !important;
+  font-size: 17px !important;
+  font-weight: 600 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
+}
+
+[data-app-header] > div:first-child > div:first-child > div:nth-child(2) {
+  font-size: 12.5px !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-header-status-chip="true"] {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px 14px !important;
+  row-gap: 9px !important;
+  column-gap: 10px !important;
+  background: var(--focus-surface) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border: 0 !important;
+  border-radius: var(--radius-block) !important;
+  overflow: hidden;
+}
+
+[data-header-ticker="true"] {
+  position: relative;
+  cursor: grab;
+}
+
+[data-header-ticker="true"]:active {
+  cursor: grabbing;
+}
+
+[data-ticker-dots="true"] button {
+  min-height: 0 !important;
+  border-radius: var(--radius-pill) !important;
+}
+
+/* The live ticker replaces the former standalone greeting block. */
+[data-diary-greeting="true"] {
+  display: none !important;
 }
 
 [data-app-nav] {
@@ -792,7 +832,11 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   }
 
   [data-app-header] > div:first-child > div:first-child > div:first-child {
-    font-size: 25px !important;
+    font-size: 17px !important;
+  }
+
+  [data-header-status-chip="true"]:hover {
+    background: color-mix(in srgb, var(--surface-block) 58%, transparent) !important;
   }
 
   [data-app-nav] {
