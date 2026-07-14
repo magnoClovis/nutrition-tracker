@@ -269,6 +269,8 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 
 /* Content focus blocks: near-solid glass so the page gradient only whispers through. */
 [data-diary-meal-card="true"],
+[data-diary-greeting="true"],
+[data-diary-nutrients="true"],
 [data-water-block="true"],
 [data-tutorial="pantry-saved-foods"],
 [data-tutorial="pantry-meal-templates"],
@@ -293,6 +295,18 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   border-radius: var(--radius-block) !important;
   box-shadow: 0 1px 2px rgba(0,0,0,.035) !important;
   overflow: hidden;
+}
+
+[data-diary-nutrients="true"] {
+  margin: 14px 0 !important;
+  padding: 14px 18px !important;
+  border-bottom: 0 !important;
+  border-radius: var(--radius-block) !important;
+}
+
+[data-diary-nutrients="true"] > button:first-child {
+  min-height: 44px;
+  padding: 0 !important;
 }
 
 [data-diary-meal-card="true"] {
