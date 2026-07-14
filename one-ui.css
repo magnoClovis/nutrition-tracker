@@ -309,6 +309,11 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   padding: 0 !important;
 }
 
+/* Individual diary cards must reveal the page gradient, not an opaque group wrapper. */
+[data-diary-content-stack="true"] {
+  background: transparent !important;
+}
+
 [data-diary-meal-card="true"] {
   padding: 18px !important;
   background: var(--focus-surface) !important;
