@@ -7287,6 +7287,7 @@ Formato obrigatório:
     }
   }, /*#__PURE__*/React.createElement("div", {
     "data-app-header": "true",
+    "data-active-tab": tab,
     style: {
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)",
@@ -7605,9 +7606,10 @@ Formato obrigatório:
     "data-ticker-content": "true",
     style: {
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       gap: 8,
-      minHeight: 24,
+      width: "100%",
+      minHeight: 34,
       color: tickerToneColor,
       fontWeight: activeTickerSlide?.tone === "alert" ? 600 : 500,
       opacity: tickerPhase === "exit" || tickerPhase === "prepare" ? 0 : tickerDragOffset ? 1 - Math.min(Math.abs(tickerDragOffset) / 160, 0.25) : 1,
@@ -7616,9 +7618,20 @@ Formato obrigatório:
     }
   }, /*#__PURE__*/React.createElement("span", {
     "aria-hidden": "true",
-    style: {fontSize: 15, flexShrink: 0}
+    "data-ticker-icon": "true",
+    style: {fontSize: 15, flexShrink: 0, lineHeight: 1.4}
   }, activeTickerSlide?.icon || "\u2726"), /*#__PURE__*/React.createElement("span", {
-    style: {minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13}
+    "data-ticker-text": "true",
+    style: {
+      flex: 1,
+      minWidth: 0,
+      overflow: "visible",
+      textOverflow: "clip",
+      whiteSpace: "normal",
+      overflowWrap: "anywhere",
+      fontSize: 12.5,
+      lineHeight: 1.4
+    }
   }, activeTickerSlide?.text || "")), tickerSlides.length > 1 && /*#__PURE__*/React.createElement("div", {
     "data-ticker-dots": "true",
     style: {display: "flex", justifyContent: "center", gap: 5, marginTop: 7}
