@@ -131,6 +131,11 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
+[data-one-ui-root]:has(> [data-app-header][data-active-tab="diario"]) {
+  display: flex;
+  flex-direction: column;
+}
+
 [data-one-ui-root] *,
 [data-one-ui-root] *::before,
 [data-one-ui-root] *::after {
