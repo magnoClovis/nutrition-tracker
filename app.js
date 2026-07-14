@@ -1676,7 +1676,8 @@ function NutritionTracker({
   onOpenBackup,
   externalLang,
   externalDarkMode,
-  onLanguageChange
+  onLanguageChange,
+  onDarkModeChange
 }) {
   const [lang, setLang] = useState(() => normalizeLanguage(externalLang || localStorage.getItem('appLang') || 'pt'));
   const [menuOpen, setMenuOpen] = useState(false);
@@ -7313,7 +7314,15 @@ Formato obrigatório:
     }
   }), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
-      setDarkMode(d => !d);
+      if (onDarkModeChange) {
+        onDarkModeChange();
+      } else {
+        setDarkMode(d => {
+          const next = !d;
+          localStorage.setItem('appDarkMode', String(next));
+          return next;
+        });
+      }
       setMenuOpen(false);
     },
     style: {
@@ -15464,6 +15473,7 @@ function App() {
         externalLang: lang,
         externalDarkMode: darkMode,
         onLanguageChange: toggleLang,
+        onDarkModeChange: toggleDark,
       }),
       showPrivacy ? React.createElement(PrivacyPanel, {
         lang,
