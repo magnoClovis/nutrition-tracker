@@ -7552,6 +7552,7 @@ Formato obrigatório:
       order: 3
     }
   }, miniProgressItems.map(renderMiniProgress)), /*#__PURE__*/React.createElement("div", {
+    "data-diary-greeting": "true",
     style: {
       padding: isMobileView ? "10px 20px 12px" : "10px 28px 14px",
       background: "var(--surface)",
@@ -7859,6 +7860,7 @@ Formato obrigatório:
     "No combination matched these criteria. Try relaxing the limits or using more pantry foods.",
     "Ninguna combinación coincidió con estos criterios. Prueba flexibilizar los límites o usar más alimentos de la despensa."
   ))), /*#__PURE__*/React.createElement("div", {
+    "data-diary-nutrients": "true",
     style: {
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)",
