@@ -7308,6 +7308,7 @@ Formato obrigatório:
       order: 0
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    "data-header-title": "true",
     style: {
       fontSize: 17,
       fontWeight: 600,
@@ -7638,6 +7639,7 @@ Formato obrigatório:
   }, tickerSlides.map((slide, index) => /*#__PURE__*/React.createElement("button", {
     key: slide.key,
     type: "button",
+    "data-ticker-dot-active": index === safeTickerIndex ? "true" : "false",
     "aria-label": uiText(`Ir para indicador ${index + 1}`, `Go to indicator ${index + 1}`, `Ir al indicador ${index + 1}`),
     onClick: () => {
       if (index === safeTickerIndex) {
@@ -7653,8 +7655,8 @@ Formato obrigatório:
       padding: 0,
       border: 0,
       borderRadius: 999,
-      background: index === safeTickerIndex ? tickerToneColor : "var(--text-muted)",
-      opacity: index === safeTickerIndex ? 0.72 : 0.35,
+      background: index === safeTickerIndex ? "var(--accent-kcal-fill)" : "var(--text-muted)",
+      opacity: index === safeTickerIndex ? 0.9 : 0.35,
       transition: "width 300ms var(--ease-spring), background 200ms ease",
       cursor: "pointer"
     }
@@ -7903,6 +7905,12 @@ Formato obrigatório:
   }, /*#__PURE__*/React.createElement("span", null, dayProteinPct, "% ", uiText("proteína", "protein", "proteína")), /*#__PURE__*/React.createElement("span", {
     "aria-hidden": "true"
   }, "·"), /*#__PURE__*/React.createElement("span", null, dayKcalPct, "% kcal"))), /*#__PURE__*/React.createElement("div", {
+    "data-diary-suggestion-block": "true",
+    style: {
+      display: tab === "diario" ? "block" : "none",
+      order: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface3)",
       borderBottom: "1px solid var(--border3)",
@@ -8140,7 +8148,7 @@ Formato obrigatório:
     color: "#888",
     label: text('salt'),
     unit: "g"
-  }))), tab === "diario" && expandMicros && hasMicros && /*#__PURE__*/React.createElement("div", {
+  })))), tab === "diario" && expandMicros && hasMicros && /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface3)",
       borderBottom: "1px solid var(--border3)",
