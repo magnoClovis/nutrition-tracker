@@ -1,0 +1,880 @@
+/* One UI 8 presentation layer. Business logic and application state stay in app.js. */
+:root {
+  --surface-page: #f1efe8;
+  --surface-block: #ffffff;
+  --surface-block-alt: #f7f6f2;
+  --text-primary: #1c1c1a;
+  --text-secondary: #6b6a64;
+  --text-muted: #9a9890;
+  --accent-protein-bg: #faeeda;
+  --accent-protein-text: #854f0b;
+  --accent-protein-fill: #ba7517;
+  --accent-kcal-bg: #e1f5ee;
+  --accent-kcal-text: #085041;
+  --accent-kcal-fill: #0f6e56;
+  --accent-water-bg: #e6f1fb;
+  --accent-water-text: #0c447c;
+  --accent-water-fill: #185fa5;
+  --accent-action-bg: #eaf3de;
+  --accent-action-text: #27500a;
+  --accent-action-fill: #639922;
+  --accent-danger-bg: #f9e9e7;
+  --accent-danger-text: #8c2f24;
+  --accent-danger-fill: #b94a3b;
+  --accent-insight-bg: #f1e8f8;
+  --accent-insight-text: #5f347d;
+  --accent-insight-fill: #8b5bb5;
+  --page-gradient: radial-gradient(circle at 20% 0%, #d9ede0 0%, var(--surface-page) 55%);
+  --focus-surface: color-mix(in srgb, var(--surface-block) 94%, transparent);
+  --focus-surface-alt: color-mix(in srgb, var(--surface-block-alt) 94%, transparent);
+  --focus-protein: color-mix(in srgb, var(--accent-protein-bg) 94%, transparent);
+  --focus-kcal: color-mix(in srgb, var(--accent-kcal-bg) 94%, transparent);
+  --focus-water: color-mix(in srgb, var(--accent-water-bg) 94%, transparent);
+  --radius-pill: 999px;
+  --radius-block: 22px;
+  --radius-control: 14px;
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+  --dur-fast: 200ms;
+  --dur-base: 300ms;
+}
+
+[data-one-ui-root][data-theme="dark"],
+html[data-theme="dark"] {
+  --surface-page: #0e0e0d;
+  --surface-block: #1c1c1a;
+  --surface-block-alt: #262624;
+  --text-primary: #f1efe8;
+  --text-secondary: #a8a69e;
+  --text-muted: #6b6a64;
+  --accent-protein-bg: #633806;
+  --accent-protein-text: #fac775;
+  --accent-protein-fill: #d99a3b;
+  --accent-kcal-bg: #04342c;
+  --accent-kcal-text: #9fe1cb;
+  --accent-kcal-fill: #2aa985;
+  --accent-water-bg: #042c53;
+  --accent-water-text: #85b7eb;
+  --accent-water-fill: #4d91cf;
+  --accent-action-bg: #173404;
+  --accent-action-text: #97c459;
+  --accent-action-fill: #78ab3c;
+  --accent-danger-bg: #411d19;
+  --accent-danger-text: #f2aaa1;
+  --accent-danger-fill: #d66c5f;
+  --accent-insight-bg: #301d3d;
+  --accent-insight-text: #e3bcf7;
+  --accent-insight-fill: #9a65c4;
+  --page-gradient: radial-gradient(circle at 20% 0%, #0d2b26 0%, var(--surface-page) 55%);
+}
+
+html,
+body {
+  background-color: var(--surface-page) !important;
+  background-image: var(--page-gradient) !important;
+  background-attachment: fixed !important;
+  background-repeat: no-repeat !important;
+  background-size: cover !important;
+  color: var(--text-primary);
+  font-family: Inter, "SF Pro Rounded", "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body:has([data-one-ui-root][data-theme="dark"]) {
+  background-color: var(--surface-page) !important;
+  background-image: var(--page-gradient) !important;
+  background-attachment: fixed !important;
+}
+
+[data-one-ui-root] {
+  --bg: var(--surface-page) !important;
+  --surface: var(--surface-block) !important;
+  --surface2: var(--surface-block-alt) !important;
+  --surface3: var(--surface-block-alt) !important;
+  --card: var(--surface-block) !important;
+  --input: var(--surface-block-alt) !important;
+  --row: var(--surface-block-alt) !important;
+  --track: color-mix(in srgb, var(--text-muted) 22%, transparent) !important;
+  --border: color-mix(in srgb, var(--text-primary) 6%, transparent) !important;
+  --border2: color-mix(in srgb, var(--text-primary) 13%, transparent) !important;
+  --border3: color-mix(in srgb, var(--text-primary) 7%, transparent) !important;
+  --text: var(--text-primary) !important;
+  --text1: var(--text-primary) !important;
+  --text2: var(--text-primary) !important;
+  --text3: var(--text-secondary) !important;
+  --muted: var(--text-secondary) !important;
+  --muted2: var(--text-secondary) !important;
+  --dim: var(--text-muted) !important;
+  --faint: var(--text-muted) !important;
+  --btn-ok: var(--accent-action-bg) !important;
+  --btn-ok-border: transparent !important;
+  --btn-ok-text: var(--accent-action-text) !important;
+  --btn-teal: var(--accent-water-bg) !important;
+  --btn-teal-border: transparent !important;
+  --btn-teal-text: var(--accent-water-text) !important;
+  --btn-info: var(--surface-block-alt) !important;
+  --btn-info-border: color-mix(in srgb, var(--text-secondary) 40%, transparent) !important;
+  --btn-info-text: var(--text-secondary) !important;
+  --btn-warn: var(--accent-danger-bg) !important;
+  --btn-warn-border: transparent !important;
+  --btn-warn-text: var(--accent-danger-text) !important;
+  --btn-inactive: var(--surface-block-alt) !important;
+  --btn-inactive-border: transparent !important;
+  --protein: var(--accent-protein-fill) !important;
+  --calories: var(--accent-kcal-fill) !important;
+  --tab-active: var(--surface-block) !important;
+  min-height: 100vh;
+  background: var(--page-gradient) fixed !important;
+  color: var(--text-primary) !important;
+  font-family: inherit !important;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+[data-one-ui-root] *,
+[data-one-ui-root] *::before,
+[data-one-ui-root] *::after {
+  font-family: inherit;
+}
+
+[data-one-ui-root] :is(button, input, select, textarea) {
+  font: inherit;
+  transition: background-color var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring), opacity var(--dur-fast) var(--ease-spring), transform var(--dur-base) var(--ease-spring) !important;
+}
+
+[data-one-ui-root] :is(button, [role="button"]) {
+  min-height: 44px;
+  border-radius: var(--radius-pill) !important;
+}
+
+[data-one-ui-root] button:active {
+  transform: scale(.97) !important;
+}
+
+[data-action-insight="true"] {
+  background: var(--accent-insight-fill) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+[data-one-ui-root] :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  min-height: 44px;
+  border: 1px solid transparent !important;
+  border-radius: var(--radius-control) !important;
+  background: var(--surface-block-alt) !important;
+  color: var(--text-primary) !important;
+  outline: none;
+}
+
+[data-one-ui-root] :is(input, select, textarea):focus {
+  border-color: var(--accent-action-fill) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-action-fill) 16%, transparent) !important;
+}
+
+[data-one-ui-root] [style*="text-transform: uppercase"],
+[data-one-ui-root] [style*="textTransform: uppercase"] {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+/* Floating surfaces only: sticky header, navigation, menus, sheets and modals. */
+[data-app-header],
+[data-app-nav],
+[data-app-main="adicionar"] {
+  background: color-mix(in srgb, var(--surface-block) 88%, transparent) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  backdrop-filter: blur(12px) saturate(130%);
+  border-color: color-mix(in srgb, var(--text-primary) 5%, transparent) !important;
+}
+
+[data-theme="dark"] :is([data-app-header], [data-app-nav], [data-app-main="adicionar"]) {
+  background: color-mix(in srgb, var(--surface-block) 92%, transparent) !important;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --focus-surface: var(--surface-block);
+    --focus-surface-alt: var(--surface-block-alt);
+    --focus-protein: var(--accent-protein-bg);
+    --focus-kcal: var(--accent-kcal-bg);
+    --focus-water: var(--accent-water-bg);
+  }
+
+  [data-app-header], [data-app-nav], [data-app-main="adicionar"] {
+    background: var(--surface-block) !important;
+  }
+}
+
+[data-app-header] {
+  padding: 12px 20px 10px !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-app-header] > div:first-child > div:first-child > div:first-child {
+  color: var(--text-primary) !important;
+  font-size: 21px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+[data-app-nav] {
+  position: fixed !important;
+  left: 12px;
+  right: 12px;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  z-index: 800;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px !important;
+  width: auto;
+  margin: 0 !important;
+  padding: 6px !important;
+  overflow: visible !important;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 5%, transparent) !important;
+  border-radius: var(--radius-pill) !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,.08) !important;
+  isolation: isolate;
+}
+
+[data-app-nav] button {
+  min-width: 0 !important;
+  min-height: 48px;
+  padding: 8px 6px !important;
+  border: 0 !important;
+  border-radius: var(--radius-pill) !important;
+  color: var(--text-secondary) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+[data-app-nav] button[style*="var(--tab-active)"] {
+  background: var(--surface-block-alt) !important;
+  color: var(--text-primary) !important;
+  font-weight: 500 !important;
+}
+
+[data-app-main]:not([data-app-main="adicionar"]) {
+  width: 100% !important;
+  max-width: 1080px !important;
+  margin: 0 auto !important;
+  padding: 20px !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+[data-screen] {
+  color: var(--text-primary);
+}
+
+/* Content focus blocks: near-solid glass so the page gradient only whispers through. */
+[data-diary-meal-card="true"],
+[data-water-block="true"],
+[data-tutorial="pantry-saved-foods"],
+[data-tutorial="pantry-meal-templates"],
+[data-tutorial="pantry-supplements"],
+[data-tutorial="week-summary"],
+[data-tutorial="week-days"],
+[data-tutorial="week-protein-chart"],
+[data-tutorial="week-calories-chart"],
+[data-tutorial="week-meal-averages"],
+[data-tutorial="nutrition-profile"],
+[data-tutorial="metrics-target-summary"],
+[data-tutorial="metrics-measures"],
+[data-tutorial="metrics-current"],
+[data-tutorial="weight-chart"],
+[data-tutorial="bmr-chart"],
+[data-tutorial="body-composition"],
+[data-tutorial="metrics-progress"] {
+  background: var(--focus-surface) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border: 0 !important;
+  border-radius: var(--radius-block) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.035) !important;
+  overflow: hidden;
+}
+
+[data-diary-meal-card="true"] {
+  margin-bottom: 14px !important;
+  padding: 18px !important;
+  background: var(--focus-surface) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border-radius: var(--radius-block) !important;
+  overflow: hidden !important;
+  isolation: isolate;
+}
+
+.meal-section-card {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  margin-bottom: 14px !important;
+  background: var(--focus-surface) !important;
+  border-radius: var(--radius-block) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  overflow: hidden !important;
+}
+
+.meal-section-card[style*="z-index: 500"] {
+  overflow: visible !important;
+}
+
+[data-diary-meal-card="true"] + [data-diary-meal-card="true"] {
+  margin-top: 0 !important;
+}
+
+[data-diary-meal-card="true"]:last-child {
+  margin-bottom: 0 !important;
+}
+
+[data-diary-meal-card="true"][style*="z-index: 500"] {
+  overflow: visible !important;
+}
+
+[data-calendar-indicator] {
+  display: block !important;
+  width: 7px !important;
+  height: 7px !important;
+  flex: 0 0 7px;
+}
+
+[data-water-block="true"] {
+  padding: 18px !important;
+  background: var(--focus-water) !important;
+  border: 0 !important;
+  border-radius: var(--radius-block) !important;
+}
+
+[data-water-block="true"] > div:first-child > span:first-child,
+[data-water-block="true"] button {
+  color: var(--accent-water-text) !important;
+}
+
+[data-diary-meal-header="true"] {
+  align-items: flex-start !important;
+  border-bottom-color: color-mix(in srgb, var(--text-muted) 15%, transparent) !important;
+}
+
+[data-diary-meal-header="true"] [style*="textTransform"] {
+  color: var(--text-primary) !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+[data-diary-meal-items="true"] > div > div {
+  border-bottom-color: color-mix(in srgb, var(--text-muted) 15%, transparent) !important;
+}
+
+[data-tutorial="open-log-sheet"] {
+  min-height: 36px !important;
+  padding: 7px 13px !important;
+  background: var(--accent-action-fill) !important;
+  color: #fff !important;
+  border: 0 !important;
+  font-weight: 500 !important;
+}
+
+/* Diary summary cards and live progress bars. */
+[data-diary-metrics] {
+  flex-wrap: wrap;
+  gap: 12px !important;
+  margin-top: 18px !important;
+  padding: 0 20px 14px !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+[data-diary-metrics] > [data-metric-category] {
+  min-width: 0;
+  align-items: flex-start !important;
+  justify-content: space-between;
+  padding: 18px !important;
+  border: 0 !important;
+  border-radius: var(--radius-block) !important;
+  text-align: left !important;
+}
+
+[data-metric-category="protein"] {
+  background: var(--focus-protein) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+[data-metric-category="kcal"] {
+  background: var(--focus-kcal) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+[data-diary-metrics] > .focus-block--no-transparency[data-metric-category="protein"] {
+  background: var(--accent-protein-bg) !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+[data-diary-metrics] > .focus-block--no-transparency[data-metric-category="kcal"] {
+  background: var(--accent-kcal-bg) !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+[data-day-progress-top="true"] {
+  min-height: 0 !important;
+  margin-top: 0;
+  background: var(--focus-surface-alt);
+  border-radius: var(--radius-control);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+[data-metric-category="protein"] [data-metric-ring] span:first-of-type { color: var(--accent-protein-text) !important; }
+[data-metric-category="kcal"] [data-metric-ring] span:first-of-type { color: var(--accent-kcal-text) !important; }
+
+[data-metric-ring] {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+[data-metric-ring] > svg { display: none !important; }
+[data-metric-ring] > div {
+  position: static !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: baseline !important;
+  justify-content: flex-start !important;
+  gap: 4px;
+}
+
+[data-metric-ring] span:first-child {
+  font-size: 26px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+}
+
+[data-metric-ring] span:last-child {
+  color: currentColor !important;
+  font-size: 12px !important;
+}
+
+[data-metric-category] > div:nth-child(2) {
+  text-align: left !important;
+}
+
+[data-metric-category] > div:nth-child(2) > div:first-child {
+  color: var(--text-primary) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+[data-metric-progress] { margin-top: auto; }
+
+[data-day-progress-summary] {
+  border: 0 !important;
+  border-radius: var(--radius-control) !important;
+  background: var(--focus-surface-alt) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+[data-day-progress-summary="progress"] {
+  display: flex !important;
+  justify-content: center !important;
+  min-height: 0 !important;
+  padding: 8px 12px !important;
+}
+
+[data-day-progress-summary="progress"] > div:first-child {
+  display: none !important;
+}
+
+[data-day-progress-summary="progress"] > div:last-child {
+  width: 100%;
+  justify-content: space-evenly !important;
+  color: var(--text-secondary) !important;
+  font-size: 12px !important;
+}
+
+/* The water block is the diary block immediately before the supplement/meal area. */
+[data-screen="diario"] > div:not([data-diary-meal-card]) {
+  border-radius: var(--radius-block) !important;
+}
+
+[data-screen="diario"] button[title*="medida" i],
+[data-screen="diario"] button[title*="amount" i],
+[data-screen="diario"] button[title*="medida" i] ~ button {
+  border-radius: var(--radius-pill) !important;
+}
+
+/* Library */
+[data-screen="despensa"] {
+  width: 100%;
+}
+
+[data-screen="despensa"] > div {
+  max-width: 640px;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+[data-tutorial="pantry-saved-foods"],
+[data-tutorial="pantry-meal-templates"],
+[data-tutorial="pantry-supplements"] {
+  padding: 18px !important;
+  margin-top: 14px !important;
+}
+
+[data-pantry-food="true"] {
+  margin-bottom: 10px;
+  background: var(--focus-surface-alt);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+
+[data-pantry-food="true"]:last-child { margin-bottom: 0; }
+
+[data-pantry-expanded-nutrients="true"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Weekly overview */
+[data-screen="semana"] {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+[data-screen="semana"] > * { margin: 0 !important; }
+
+[data-tutorial="week-summary"] {
+  gap: 10px !important;
+  padding: 10px !important;
+  overflow: visible !important;
+}
+
+[data-tutorial="week-summary"] > div {
+  min-width: 0;
+  padding: 14px 10px !important;
+  border: 0 !important;
+  border-radius: var(--radius-control);
+  background: var(--focus-surface-alt);
+}
+
+[data-tutorial="week-summary"] > div:nth-child(1),
+[data-tutorial="week-summary"] > div:nth-child(3) {
+  background: var(--focus-protein) !important;
+}
+
+[data-tutorial="week-summary"] > div:nth-child(2),
+[data-tutorial="week-summary"] > div:nth-child(4) {
+  background: var(--focus-kcal) !important;
+}
+
+[data-pantry-food="true"],
+[data-history-card="true"] {
+  border-radius: var(--radius-control);
+}
+
+[data-history-card="true"] {
+  margin-bottom: 6px !important;
+  background: var(--focus-surface-alt) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+}
+
+[data-history-row="true"] {
+  min-height: 44px !important;
+  border-radius: 0 !important;
+  font-size: 13px !important;
+}
+
+[data-history-details="true"] {
+  border-top: 1px solid color-mix(in srgb, var(--text-muted) 12%, transparent);
+}
+
+[data-tutorial="body-composition"] div:has(> [data-body-composition-card]:nth-child(3):last-child) {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+[data-tutorial="metrics-progress"] > div,
+[data-progress-heading="true"] {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+[data-progress-heading="true"] {
+  display: flex !important;
+}
+
+[data-progress-grid="true"] {
+  width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+  align-items: stretch;
+}
+
+[data-progress-grid="true"] > * {
+  min-width: 120px;
+  grid-column: auto !important;
+  overflow: visible;
+}
+
+[data-progress-grid="true"] > * > div:first-child {
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: normal;
+}
+
+[data-meal-review-modal="true"] {
+  --bg: var(--surface-page);
+  --surface: var(--surface-block);
+  --surface3: var(--surface-block-alt);
+  --text: var(--text-primary);
+  --text2: var(--text-primary);
+  --text3: var(--text-secondary);
+  --muted: var(--text-secondary);
+  --dim: var(--text-muted);
+  --border: color-mix(in srgb, var(--text-primary) 8%, transparent);
+  --border2: color-mix(in srgb, var(--text-primary) 14%, transparent);
+  --border3: color-mix(in srgb, var(--text-primary) 7%, transparent);
+  --btn-ok: var(--accent-action-bg);
+  --btn-ok-border: transparent;
+  --btn-ok-text: var(--accent-action-text);
+  --btn-info: var(--surface-block-alt);
+  --btn-info-border: color-mix(in srgb, var(--text-secondary) 35%, transparent);
+  --btn-info-text: var(--text-secondary);
+  --ai-bg: var(--accent-insight-bg);
+  --ai-border: color-mix(in srgb, var(--accent-insight-fill) 45%, transparent);
+  --ai-text: var(--accent-insight-text);
+  color: var(--text-primary);
+}
+
+[data-meal-review-panel="true"] {
+  background: var(--surface-block) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-pantry-food="true"] > button:first-child {
+  transition: background-color var(--dur-fast) var(--ease-spring) !important;
+}
+
+[data-tutorial="week-protein-chart"],
+[data-tutorial="week-calories-chart"],
+[data-tutorial="week-meal-averages"],
+[data-tutorial="week-days"] {
+  padding: 18px !important;
+}
+
+/* Metrics */
+[data-screen="metricas"] {
+  padding: 0 0 90px !important;
+}
+
+[data-screen="metricas"] > div:first-child {
+  padding: 5px !important;
+  border-radius: var(--radius-pill);
+  background: var(--surface-block-alt);
+}
+
+[data-screen="metricas"] > div:first-child button {
+  border: 0 !important;
+}
+
+[data-tutorial="nutrition-profile"],
+[data-tutorial="metrics-target-summary"],
+[data-tutorial="metrics-measures"],
+[data-tutorial="metrics-current"],
+[data-tutorial="weight-chart"],
+[data-tutorial="bmr-chart"],
+[data-tutorial="body-composition"],
+[data-tutorial="metrics-progress"] {
+  padding: 18px !important;
+  margin-top: 14px !important;
+}
+
+.nutrition-summary-cards > span {
+  border: 0 !important;
+  border-radius: var(--radius-control) !important;
+  background: var(--focus-surface-alt) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* Compact chart chrome; Recharts keeps all existing data and interactions. */
+[data-screen] .recharts-cartesian-grid line { stroke-opacity: .06; }
+[data-screen] .recharts-line-curve { stroke-width: 2.5; }
+[data-screen] .recharts-dot { stroke-width: 1.5; }
+
+#app-version-footer {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  border-top: 0 !important;
+  font-size: 12px !important;
+  letter-spacing: 0 !important;
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root { --radius-block: 17px; --radius-control: 11px; }
+  [data-app-main]:not([data-app-main="adicionar"]) { padding: 24px 28px !important; }
+  [data-screen="semana"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-screen="semana"] > :not([data-tutorial="week-protein-chart"]):not([data-tutorial="week-calories-chart"]) { grid-column: 1 / -1; }
+}
+
+@media (min-width: 1024px) {
+  :root { --radius-block: 16px; --radius-control: 10px; }
+
+  [data-one-ui-root] {
+    padding-bottom: 40px !important;
+  }
+
+  [data-one-ui-root] :is(button, [role="button"]) {
+    min-height: 36px;
+    cursor: pointer;
+  }
+
+  [data-one-ui-root] button:active { transform: none !important; }
+
+  [data-one-ui-root] :is(button, [role="button"], [data-diary-meal-items] > div > div):hover {
+    background-color: var(--surface-block-alt) !important;
+  }
+
+  [data-app-header] {
+    padding: 14px max(32px, calc((100vw - 1080px) / 2)) 10px !important;
+  }
+
+  [data-app-header] > div:first-child > div:first-child > div:first-child {
+    font-size: 25px !important;
+  }
+
+  [data-app-nav] {
+    position: static !important;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: min(620px, 100%);
+    align-self: flex-end;
+    margin-top: -42px !important;
+    margin-bottom: 2px !important;
+    padding: 4px !important;
+    box-shadow: none !important;
+  }
+
+  [data-app-nav] button {
+    min-height: 38px;
+    font-size: 13px !important;
+  }
+
+  [data-app-main]:not([data-app-main="adicionar"]) {
+    width: calc(100% - 64px) !important;
+    padding: 24px 0 40px !important;
+  }
+
+  [data-diary-metrics] {
+    position: absolute;
+    top: calc(100% + 24px);
+    left: max(32px, calc(50% - 540px));
+    width: 340px;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    max-width: 340px;
+    z-index: 2;
+  }
+
+  [data-diary-metrics] > [data-metric-category] {
+    padding: 16px !important;
+  }
+
+  [data-metric-ring] span:first-child { font-size: 32px !important; }
+
+  [data-screen="diario"] {
+    display: grid !important;
+    grid-template-columns: 340px minmax(0, 1fr);
+    column-gap: 24px;
+    row-gap: 16px;
+  }
+
+  [data-screen="diario"]::before {
+    content: "";
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 216px;
+  }
+
+  [data-screen="diario"] > [data-day-progress-summary] {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  [data-screen="diario"] > * {
+    grid-column: 1;
+    margin-bottom: 0 !important;
+  }
+
+  [data-screen="diario"] > [data-diary-meal-card="true"] {
+    grid-column: 2;
+  }
+
+  [data-diary-meal-card="true"] { padding: 16px !important; }
+
+  [data-screen="despensa"] { max-width: 640px; margin: 0 auto; }
+
+  [data-screen="semana"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 24px;
+  }
+
+  [data-screen="semana"] > :not([data-tutorial="week-protein-chart"]):not([data-tutorial="week-calories-chart"]) {
+    grid-column: 1 / -1;
+  }
+
+  [data-screen="metricas"] {
+    display: grid;
+    grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+    gap: 16px 24px;
+    padding: 0 0 30px !important;
+  }
+
+  [data-screen="metricas"] > div:first-child,
+  [data-screen="metricas"] > [data-tutorial="metrics-progress"] {
+    grid-column: 1 / -1;
+  }
+
+  [data-screen="metricas"] > [data-tutorial="nutrition-profile"],
+  [data-screen="metricas"] > [data-tutorial="metrics-measures"],
+  [data-screen="metricas"] > [data-tutorial="body-composition"] {
+    grid-column: 1;
+  }
+
+  [data-screen="metricas"] > [data-tutorial="metrics-target-summary"],
+  [data-screen="metricas"] > [data-tutorial="metrics-current"],
+  [data-screen="metricas"] > [data-tutorial="weight-chart"],
+  [data-screen="metricas"] > [data-tutorial="bmr-chart"] {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 767px) {
+  [data-app-main]:not([data-app-main="adicionar"]) { padding: 14px 20px 24px !important; }
+  [data-diary-metrics] { padding-left: 20px !important; padding-right: 20px !important; }
+  [data-diary-metrics] > [data-metric-category] { padding: 16px !important; }
+  [data-screen="diario"] { display: flex !important; flex-direction: column; gap: 0; }
+  [data-progress-grid="true"] { grid-template-columns: repeat(2, minmax(120px, 1fr)) !important; }
+  [data-progress-grid="true"] > :last-child:nth-child(odd) { grid-column: 1 / -1 !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-one-ui-root] *, [data-one-ui-root] *::before, [data-one-ui-root] *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}

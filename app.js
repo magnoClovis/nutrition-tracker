@@ -318,8 +318,8 @@ const STRINGS = {
     langBtn: "English",
     // Header
     dayOf: "Dia de",
-    trainDay: "TREINO",
-    restDay: "DESCANSO",
+    trainDay: "Treino",
+    restDay: "Descanso",
     syncDone: "sync",
     syncing: "sync...",
     lightMode: "",
@@ -439,7 +439,7 @@ const STRINGS = {
     copyManual: "Selecione o texto acima e copie manualmente.",
     // Diary
     noFoodToday: "Nenhum alimento registrado hoje.",
-    microLabel: "MICRONUTRIENTES",
+    microLabel: "Micronutrientes",
     notesPlaceholder: "Observações, contexto do dia, como te sentiste...",
     notesTitle: "Notas do dia",
     // History banner
@@ -590,8 +590,8 @@ const STRINGS = {
     langBtn: "Português",
     // Header
     dayOf: "Day type",
-    trainDay: "TRAINING",
-    restDay: "REST",
+    trainDay: "Training",
+    restDay: "Rest",
     syncDone: "sync",
     syncing: "syncing...",
     lightMode: "",
@@ -863,8 +863,8 @@ STRINGS.es = {
   appTitle: "Diario Nutricional",
   langBtn: "Idioma",
   dayOf: "Día de",
-  trainDay: "ENTRENO",
-  restDay: "DESCANSO",
+  trainDay: "Entreno",
+  restDay: "Descanso",
   syncDone: "sincronizado",
   syncing: "sincronizando...",
   settings: "Configuración",
@@ -964,7 +964,7 @@ STRINGS.es = {
   copyJson: "Copia este JSON:",
   copyManual: "Selecciona el texto anterior y cópialo manualmente.",
   noFoodToday: "Ningún alimento registrado hoy.",
-  microLabel: "MICRONUTRIENTES",
+  microLabel: "Micronutrientes",
   notesPlaceholder: "Observaciones, contexto del día, cómo te sentiste...",
   notesTitle: "Notas del día",
   proteinUnit: "g proteína",
@@ -1764,6 +1764,9 @@ function NutritionTracker({
   useEffect(() => {
     if (externalDarkMode !== undefined) setDarkMode(externalDarkMode);
   }, [externalDarkMode]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = darkMode ? "dark" : "light";
+  }, [darkMode]);
   const [pantry, setPantry] = useState([]);
   const [log, setLog] = useState({});
   const [tab, setTab] = useState("diario");
@@ -1787,6 +1790,20 @@ function NutritionTracker({
     }
   }, [tab, pantry.length]);
   function selectAddMode(mode) {
+    if (mode === "saved") {
+      if (!mealTemplates.length) {
+        notify(uiText(
+          "Nenhuma refeição salva ainda.",
+          "No saved meals yet.",
+          "Todavía no hay comidas guardadas."
+        ));
+        return;
+      }
+      setDescribeMode(false);
+      setBatchMode(true);
+      setAddTemplatesOpen(true);
+      return;
+    }
     if (mode !== "describe" && pantry.length === 0) {
       notify(uiText(
         "Cadastre alimentos na despensa primeiro, ou use Descrever prato.",
@@ -1798,9 +1815,11 @@ function NutritionTracker({
       return;
     }
     if (mode === "describe") {
+      setAddTemplatesOpen(false);
       setDescribeMode(true);
       setBatchMode(false);
     } else {
+      setAddTemplatesOpen(false);
       setDescribeMode(false);
       setBatchMode(true);
     }
@@ -1979,6 +1998,8 @@ function NutritionTracker({
   const [addTemplatesOpen, setAddTemplatesOpen] = useState(false);
   const [addTemplateSearch, setAddTemplateSearch] = useState("");
   const [expandedTemplateIds, setExpandedTemplateIds] = useState({});
+  const [expandedPantryIds, setExpandedPantryIds] = useState({});
+  const [expandedWeightHistoryIds, setExpandedWeightHistoryIds] = useState({});
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(TODAY.slice(0, 7));
   const [calendarData, setCalendarData] = useState({});
@@ -2086,7 +2107,7 @@ function NutritionTracker({
   }, [nutritionPrefs.bodyFatGoal, nutritionPrefs.goalWeeks]);
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const updateMobileView = () => setIsMobileView(window.innerWidth <= 520);
+    const updateMobileView = () => setIsMobileView(window.innerWidth < 1024);
     updateMobileView();
     window.addEventListener("resize", updateMobileView);
     return () => window.removeEventListener("resize", updateMobileView);
@@ -4347,9 +4368,9 @@ Formato obrigatório:
     const kcal = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
     return {
       hasData: entries.length > 0,
-      proteinMet: protein >= targetGoals.protein,
-      kcalGood: kcal >= targetGoals.kcal * 0.85 && kcal <= targetGoals.kcal * 1.15,
-      kcalOver: kcal > targetGoals.kcal * 1.15,
+      proteinMet: entries.length > 0 && protein >= targetGoals.protein,
+      kcalGood: entries.length > 0 && kcal >= targetGoals.kcal * 0.85 && kcal <= targetGoals.kcal * 1.15,
+      kcalOver: entries.length > 0 && kcal > targetGoals.kcal * 1.15,
       protein: Math.round(protein),
       kcal: Math.round(kcal)
     };
@@ -4361,14 +4382,21 @@ Formato obrigatório:
       setCalendarLoading(true);
       const nextData = {};
       const dates = monthDays(calendarMonth).filter(Boolean).filter(date => date <= TODAY);
-      for (const date of dates) {
+      await Promise.all(dates.map(async date => {
         let dayLog = date === TODAY ? log : {};
         if (date !== TODAY) {
           const saved = await storage.get("log_v2_" + date).catch(() => null);
-          if (saved) dayLog = normalizeMealKeys(JSON.parse(saved.value));
+          if (saved?.value) {
+            try {
+              const parsed = typeof saved.value === "string" ? JSON.parse(saved.value) : saved.value;
+              dayLog = normalizeMealKeys(parsed || {});
+            } catch (error) {
+              console.warn("Registro diário inválido no calendário:", date, error);
+            }
+          }
         }
         nextData[date] = calendarMarkerFor(dayLog, dayGoalForDate(date));
-      }
+      }));
       if (!cancelled) {
         setCalendarData(prev => ({...prev, [calendarMonth]: nextData}));
         setCalendarLoading(false);
@@ -5512,9 +5540,9 @@ Formato obrigatório:
       tone: "muted",
       title: uiText("Nenhuma refeição registrada ainda", "No meals logged yet", "Aún no hay comidas registradas"),
       text: uiText(
-        "Comece registrando uma refeição ou peça uma sugestão com base na despensa.",
-        "Start with a meal or ask for a suggestion based on your pantry.",
-        "Empieza registrando una comida o pide una sugerencia basada en tu despensa."
+        "Registre sua primeira refeição do dia.",
+        "Log your first meal of the day.",
+        "Registra tu primera comida del día."
       )
     };
     if (dayKcalPct > 115) return {
@@ -5892,7 +5920,14 @@ Formato obrigatório:
     const avgProteinMonth = registered ? Math.round(markers.reduce((s, m) => s + (m.protein || 0), 0) / registered) : 0;
     return {registered, proteinDays, kcalOverDays, avgKcalMonth, avgProteinMonth};
   }
-  const weightChartData = weightHistory.map(e => ({
+  const normalizedWeightEntries = normalizeWeightHistory(weightHistory);
+  const historyFieldAvailability = {
+    bmi: normalizedWeightEntries.some(e => Number(e.weight) > 0 && Number(e.height) > 0),
+    bodyFatPct: normalizedWeightEntries.some(e => Number(e.bodyFatPct) > 0),
+    muscleMassKg: normalizedWeightEntries.some(e => Number(e.muscleMassKg) > 0),
+    waistCm: normalizedWeightEntries.some(e => Number(e.waistCm) > 0)
+  };
+  const weightChartData = normalizedWeightEntries.map(e => ({
     date: formatDateDM(e.date),
     weight: e.weight
   }));
@@ -7007,12 +7042,15 @@ Formato obrigatório:
       setMealReviewHelpOpen(false);
     };
     return React.createElement("div", {
+      "data-meal-review-modal": "true",
+      "data-theme": darkMode ? "dark" : "light",
       onClick: closeMealReview,
       style: {
         position: "fixed", inset: 0, zIndex: 10020, background: "rgba(0,0,0,0.72)",
         display: "flex", alignItems: "center", justifyContent: "center", padding: 16
       }
     }, React.createElement("div", {
+      "data-meal-review-panel": "true",
       onClick: event => event.stopPropagation(),
       style: {
         width: "100%", maxWidth: 720, maxHeight: "90vh", overflowY: "auto",
@@ -7093,6 +7131,8 @@ Formato obrigatório:
     return null;
   }
   return /*#__PURE__*/React.createElement(React.Fragment, null, renderMealReviewModal(), /*#__PURE__*/React.createElement("div", {
+    "data-one-ui-root": "true",
+    "data-theme": darkMode ? "dark" : "light",
     style: {
       background: "var(--bg)",
       color: "#ffffff",
@@ -7103,6 +7143,7 @@ Formato obrigatório:
       ...THEME
     }
   }, /*#__PURE__*/React.createElement("div", {
+    "data-app-header": "true",
     style: {
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)",
@@ -7462,6 +7503,7 @@ Formato obrigatório:
       padding: 0
     }
   }, currentWeight, "kg", bmi ? ` · ${text('bmi')} ${bmi}` : ""))), tab === "diario" && /*#__PURE__*/React.createElement("div", {
+    "data-app-nav": "true",
     style: {
       display: "flex",
       gap: isMobileView ? 8 : 0,
@@ -7497,17 +7539,7 @@ Formato obrigatório:
       whiteSpace: "nowrap",
       cursor: "pointer"
     }
-  }, label))), tab === "diario" && isMobileView && /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "var(--surface)",
-      color: "var(--faint)",
-      fontSize: 11,
-      textAlign: "center",
-      padding: "4px 0 0",
-      letterSpacing: 1,
-      textTransform: "uppercase"
-    }
-  }, uiText("Deslize as abas para os lados", "Swipe tabs sideways", "Desliza las pestañas hacia los lados")), /*#__PURE__*/React.createElement("div", {
+  }, label))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: tab === "diario" ? "none" : "flex",
       gap: isMobileView ? 10 : 18,
@@ -7542,6 +7574,7 @@ Formato obrigatório:
       lineHeight: 1.35
     }
   }, greetingLine)), /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    "data-diary-metrics": "true",
     style: {
       display: tab === "diario" ? "flex" : "none",
       background: "var(--surface)",
@@ -7568,6 +7601,8 @@ Formato obrigatório:
     unit
   }) => /*#__PURE__*/React.createElement("div", {
     key: label,
+    "data-metric-category": label === text('protein') ? "protein" : "kcal",
+    className: "focus-block--no-transparency",
     style: {
       flex: 1,
       padding: "14px 8px",
@@ -7578,6 +7613,7 @@ Formato obrigatório:
       borderRight: "1px solid var(--border)"
     }
   }, /*#__PURE__*/React.createElement("div", {
+    "data-metric-ring": "true",
     style: {
       position: "relative",
       width: 76,
@@ -7635,7 +7671,25 @@ Formato obrigatório:
       fontSize: 13,
       color: caloriesColor
     }
-  }, uiText("Faltam ", "Missing ", "Faltan "), /*#__PURE__*/React.createElement("b", null, remainKcal), " kcal"))))), /*#__PURE__*/React.createElement("div", {
+  }, uiText("Faltam ", "Missing ", "Faltan "), /*#__PURE__*/React.createElement("b", null, remainKcal), " kcal")), /*#__PURE__*/React.createElement("div", {
+    "data-metric-progress": "true",
+    style: { width: "100%", height: 7, borderRadius: 8, overflow: "hidden", background: "color-mix(in srgb, " + color + " 18%, transparent)" }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { width: Math.min(100, goal > 0 ? val / goal * 100 : 0) + "%", height: "100%", borderRadius: 8, background: color, transition: "width var(--dur-base) var(--ease-spring)" }
+  })))), allEntries.length > 0 && /*#__PURE__*/React.createElement("div", {
+    "data-day-progress-top": "true",
+    style: {
+      flex: "1 0 100%",
+      display: "flex",
+      justifyContent: "center",
+      gap: 8,
+      padding: "8px 12px",
+      color: "var(--muted)",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", null, dayProteinPct, "% ", uiText("proteína", "protein", "proteína")), /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true"
+  }, "·"), /*#__PURE__*/React.createElement("span", null, dayKcalPct, "% kcal"))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "var(--surface3)",
       borderBottom: "1px solid var(--border3)",
@@ -7829,7 +7883,7 @@ Formato obrigatório:
       justifyContent: "space-between",
       fontFamily: "inherit"
     }
-  }, /*#__PURE__*/React.createElement("span", null, uiText("NUTRIENTES", "NUTRIENTS", "NUTRIENTES")), /*#__PURE__*/React.createElement("span", null, expandMicros ? "\u25B2" : "\u25BC")), expandMicros && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", null, uiText("Nutrientes", "Nutrients", "Nutrientes")), /*#__PURE__*/React.createElement("span", null, expandMicros ? "\u25B2" : "\u25BC")), expandMicros && /*#__PURE__*/React.createElement("div", {
     style: {
       overflow: "hidden",
       animation: "softIn 220ms ease-out both"
@@ -7984,6 +8038,7 @@ Formato obrigatório:
       }
     }, notification);
   })(), tab !== "diario" && /*#__PURE__*/React.createElement("div", {
+    "data-app-nav": "true",
     style: {
       display: "flex",
       gap: isMobileView ? 8 : 0,
@@ -8017,19 +8072,7 @@ Formato obrigatório:
       whiteSpace: "nowrap",
       cursor: "pointer"
     }
-  }, label))), tab !== "diario" && isMobileView && /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "var(--surface)",
-      color: "var(--faint)",
-      fontSize: 11,
-      textAlign: "center",
-      padding: "4px 0 6px",
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      borderBottom: "1px solid var(--border3)",
-      order: 2
-    }
-   }, uiText("Deslize as abas para os lados", "Swipe tabs sideways", "Desliza las pestañas hacia los lados")), /*#__PURE__*/React.createElement("div", {
+  }, label))), /*#__PURE__*/React.createElement("div", {
     onClick: () => openTab("diario"),
     style: {
       display: tab === "adicionar" ? "block" : "none",
@@ -8042,6 +8085,7 @@ Formato obrigatório:
     }
   }), /*#__PURE__*/React.createElement("div", {
     key: tab,
+    "data-app-main": tab,
     style: {
       padding: tab === "adicionar" ? (isMobileView ? "18px 18px calc(22px + env(safe-area-inset-bottom,0px))" : "22px 24px 26px") : (tab === "metricas" && isMobileView ? "14px 10px calc(90px + env(safe-area-inset-bottom,0px))" : "20px clamp(18px, 3vw, 34px) 32px"),
       order: 9,
@@ -8136,11 +8180,13 @@ Formato obrigatório:
       boxShadow: "0 1px 4px rgba(0,0,0,0.04)"
     }
   }, isMobileView ? "i" : uiText("i Ajuda", "i Help", "i Ayuda"))), tab === "diario" && /*#__PURE__*/React.createElement("div", {
+    "data-screen": "diario",
     style: {
       display: "flex",
       flexDirection: "column"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, allEntries.length === 0 && /*#__PURE__*/React.createElement("div", {
+    "data-day-progress-summary": allEntries.length ? "progress" : "empty",
     style: {
       marginBottom: 14,
       order: -1,
@@ -8315,19 +8361,23 @@ Formato obrigatório:
         marginTop: 4,
         minHeight: 5
       }
-    }, marker?.hasData && /*#__PURE__*/React.createElement("span", {
+    }, marker && /*#__PURE__*/React.createElement("span", {
+      "data-calendar-indicator": "protein",
       style: {
+        display: "inline-block",
         width: 5,
         height: 5,
         borderRadius: "50%",
-        background: marker.proteinMet ? "#c8a96e" : "var(--border3)"
+        background: marker.proteinMet ? "var(--accent-protein-fill)" : "var(--text-muted)"
       }
-    }), marker?.hasData && /*#__PURE__*/React.createElement("span", {
+    }), marker && /*#__PURE__*/React.createElement("span", {
+      "data-calendar-indicator": "kcal",
       style: {
+        display: "inline-block",
         width: 5,
         height: 5,
         borderRadius: "50%",
-        background: marker.kcalOver ? "#cf6679" : marker.kcalGood ? "#66c2c2" : "var(--border3)"
+        background: marker.kcalOver ? "var(--accent-danger-fill)" : marker.kcalGood ? "var(--accent-kcal-fill)" : "var(--text-muted)"
       }
     }))) : "");
   })), (() => {
@@ -8352,7 +8402,7 @@ Formato obrigatório:
         color: "var(--muted)",
         marginBottom: 10
       }
-    }, legendItem("#c8a96e", uiText("Proteína batida", "Protein hit", "Proteína alcanzada")), legendItem("#66c2c2", uiText("Calorias na faixa", "Calories in range", "Calorías en rango")), legendItem("#cf6679", uiText("Excesso calórico", "High calorie excess", "Exceso calórico")), legendItem("var(--border3)", uiText("Não batido / sem registro", "Not hit / no record", "No alcanzado / sin registro"))), /*#__PURE__*/React.createElement("div", {
+    }, legendItem("var(--accent-protein-fill)", uiText("Proteína batida", "Protein hit", "Proteína alcanzada")), legendItem("var(--accent-kcal-fill)", uiText("Calorias na faixa", "Calories in range", "Calorías en rango")), legendItem("var(--accent-danger-fill)", uiText("Excesso calórico", "High calorie excess", "Exceso calórico")), legendItem("var(--text-muted)", uiText("Não batido / sem registro", "Not hit / no record", "No alcanzado / sin registro"))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "grid",
         gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
@@ -8417,6 +8467,7 @@ Formato obrigatório:
       }
     }, Math.round(k), " kcal"));
   })(), isToday && /*#__PURE__*/React.createElement("div", {
+    "data-water-block": "true",
     style: {
       display: "block",
       background: "var(--surface)",
@@ -8691,6 +8742,7 @@ Formato obrigatório:
     return /*#__PURE__*/React.createElement("div", {
       key: meal,
       "data-diary-meal-card": "true",
+      className: "meal-section-card",
       style: {
         display: "block",
         width: "100%",
@@ -9058,6 +9110,7 @@ Formato obrigatório:
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => generateFeedback("day"),
+    "data-action-insight": "true",
     disabled: feedbackLoading && feedbackPeriod === "day",
     style: {
       width: "100%",
@@ -9431,6 +9484,7 @@ Formato obrigatório:
       cursor: "pointer"
     }
   }, "\xD7"))))), tab === "adicionar" && /*#__PURE__*/React.createElement("div", null, mealTemplates.length > 0 && /*#__PURE__*/React.createElement("div", {
+    "data-add-saved-meals": "true",
     style: {
       marginBottom: 16,
       background: "var(--surface)",
@@ -9626,9 +9680,9 @@ Formato obrigatório:
       border: "1px solid var(--border3)",
       borderRadius: 999
     }
-  }, [["batch", text('modeBatch')], ["describe", text('modeDescribe')]].map(([m, l]) => {
-    const active = m === "describe" ? describeMode : !describeMode;
-    const unavailable = pantry.length === 0 && m !== "describe";
+  }, [["batch", text('modeBatch')], ["describe", text('modeDescribe')], ["saved", isMobileView ? uiText("Salvas", "Saved", "Guardadas") : uiText("Refeições salvas", "Saved meals", "Comidas guardadas")]].map(([m, l]) => {
+    const active = m === "saved" ? addTemplatesOpen : m === "describe" ? describeMode : !describeMode && !addTemplatesOpen;
+    const unavailable = m === "saved" ? mealTemplates.length === 0 : pantry.length === 0 && m !== "describe";
     return /*#__PURE__*/React.createElement("button", {
       key: m,
       onClick: () => selectAddMode(m),
@@ -9646,7 +9700,7 @@ Formato obrigatório:
         whiteSpace: "nowrap",
         opacity: unavailable ? 0.55 : 1
       }
-    }, m === "describe" ? "\u2726 " + l : l);
+    }, m === "describe" ? "\u2726 " + l : m === "saved" ? "\u2630 " + l : l);
   })), describeMode && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 8
@@ -9800,6 +9854,7 @@ Formato obrigatório:
     }
   }, uiText('Registrar', 'Log meal', 'Registrar')), /*#__PURE__*/React.createElement("button", {
     onClick: evaluateDescribedMeal,
+    "data-action-insight": "true",
     style: {
       ...btn,
       marginTop: 0,
@@ -10130,6 +10185,7 @@ Formato obrigatório:
     }
   }, uiText("Registrar", "Log meal", "Registrar")), /*#__PURE__*/React.createElement("button", {
     onClick: evaluateStagedMeal,
+    "data-action-insight": "true",
     style: {
       ...btn,
       marginTop: 0,
@@ -10642,6 +10698,7 @@ Formato obrigatório:
       color: "var(--muted)"
     }
   }, exportResult.filename))))))))), tab === "despensa" && /*#__PURE__*/React.createElement("div", {
+    "data-screen": "despensa",
     style: {
       padding: "2px 16px 28px",
       boxSizing: "border-box",
@@ -11087,33 +11144,7 @@ Formato obrigatório:
       color: "var(--dim)",
       textTransform: "uppercase"
     }
-  }, pantryItemsOpen ? "▼ " : "▶ ", text('pantryTitle'), " (", pantry.length, ")")), /*#__PURE__*/React.createElement("div", {    style: {
-      display: "flex",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    title: uiText("Importar alimentos", "Import foods", "Importar alimentos"),
-    style: sBtnLbl("var(--btn-info)", "var(--btn-info-border)", "#7e7ec8", isMobileView ? {
-      padding: "5px 7px",
-      fontSize: 10,
-      letterSpacing: 0.5
-    } : {})
-  }, isMobileView ? "\u2191" : uiText("\u2191 Importar", "\u2191 Import", "\u2191 Importar"), /*#__PURE__*/React.createElement("input", {
-    type: "file",
-    accept: ".csv",
-    onChange: importCSV,
-    style: {
-      display: "none"
-    }
-  })), pantry.length > 0 && /*#__PURE__*/React.createElement("button", {
-    onClick: exportCSV,
-    title: uiText("Exportar alimentos", "Export foods", "Exportar alimentos"),
-    style: sBtn("var(--btn-teal)", "var(--btn-teal-border)", "#7ec8c8", isMobileView ? {
-      padding: "5px 7px",
-      fontSize: 10,
-      letterSpacing: 0.5
-    } : {})
-  }, isMobileView ? "\u2193" : uiText("\u2193 Exportar", "\u2193 Export", "\u2193 Exportar")))), pantryItemsOpen && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
+  }, pantryItemsOpen ? "▼ " : "▶ ", text('pantryTitle'), " (", pantry.length, ")"))), pantryItemsOpen && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
     value: pantrySearch,
     onChange: e => setPantrySearch(e.target.value),
     placeholder: text('pantrySearch'),
@@ -11260,6 +11291,7 @@ Formato obrigatório:
       cursor: "pointer"
     }
   }, "Cancelar"))) : /*#__PURE__*/React.createElement("div", {
+    "data-pantry-food": "true",
     style: {
       padding: "9px 0",
       display: "flex",
@@ -11268,10 +11300,17 @@ Formato obrigatório:
       alignItems: "flex-start",
       flexWrap: isMobileView ? "wrap" : "nowrap"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setExpandedPantryIds(current => ({...current, [f.id]: !current[f.id]})),
+    "aria-expanded": !!expandedPantryIds[f.id],
     style: {
       flex: "1 1 260px",
-      minWidth: 0
+      minWidth: 0,
+      background: "none",
+      border: "none",
+      padding: 0,
+      textAlign: "left",
+      cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -11286,7 +11325,27 @@ Formato obrigatório:
       flexWrap: "wrap",
       lineHeight: 1.45
     }
-  }, ALL_FIELDS.filter(ff => f[ff.key] != null).map(ff => /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {fontSize: 13, color: "var(--accent-protein-text)"}
+  }, f.protein100 || 0, "g ", uiText("proteína", "protein", "proteína")), /*#__PURE__*/React.createElement("span", {
+    style: {fontSize: 13, color: "var(--accent-kcal-text)"}
+  }, f.kcal100 || 0, " kcal"), /*#__PURE__*/React.createElement("span", {
+    style: {fontSize: 12, color: "var(--dim)", marginLeft: "auto"}
+  }, expandedPantryIds[f.id] ? "▲" : "▼")), /*#__PURE__*/React.createElement("div", {
+    "data-pantry-expanded-nutrients": "true",
+    style: {
+      maxHeight: expandedPantryIds[f.id] ? 420 : 0,
+      opacity: expandedPantryIds[f.id] ? 1 : 0,
+      overflow: "hidden",
+      display: "flex",
+      gap: "12px 14px",
+      flexWrap: "wrap",
+      lineHeight: 1.45,
+      marginTop: expandedPantryIds[f.id] ? 8 : 0,
+      padding: expandedPantryIds[f.id] ? "12px 17px 14px" : "0 17px",
+      transition: "max-height var(--dur-base) var(--ease-spring), opacity var(--dur-base) var(--ease-spring), margin-top var(--dur-base) var(--ease-spring), padding var(--dur-base) var(--ease-spring)"
+    }
+  }, ALL_FIELDS.filter(ff => ff.key !== "protein100" && ff.key !== "kcal100" && f[ff.key] != null).map(ff => /*#__PURE__*/React.createElement("span", {
     key: ff.key,
     style: {
       fontSize: 14,
@@ -11305,7 +11364,7 @@ Formato obrigatório:
       marginLeft: isMobileView ? 0 : 8
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => startEdit(f),
+    onClick: event => { event.stopPropagation(); startEdit(f); },
     style: {
       background: "none",
       border: "1px solid var(--border2)",
@@ -11316,7 +11375,7 @@ Formato obrigatório:
       cursor: "pointer"
     }
   }, text('editItem')), /*#__PURE__*/React.createElement("button", {
-    onClick: () => removeFood(f.id),
+    onClick: event => { event.stopPropagation(); removeFood(f.id); },
     style: {
       background: "none",
       border: "1px solid var(--border3)",
@@ -11588,7 +11647,9 @@ Formato obrigatório:
       fontSize: 14,
       cursor: "pointer"
     }
-  }, "\xD7"))))), tab === "semana" && /*#__PURE__*/React.createElement("div", null, weekData.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, "\xD7"))))), tab === "semana" && /*#__PURE__*/React.createElement("div", {
+    "data-screen": "semana"
+  }, weekData.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       color: "var(--faint)",
@@ -11600,7 +11661,7 @@ Formato obrigatório:
     "data-tutorial": "week-summary",
     style: {
       display: "grid",
-      gridTemplateColumns: isMobileView ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))",
+      gridTemplateColumns: calorieBankDays.length ? (isMobileView ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))") : "repeat(3, minmax(0, 1fr))",
       gap: 0,
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -11611,26 +11672,31 @@ Formato obrigatório:
   }, [{
     l: text('avgProtein'),
     v: `${avgProtein}g`,
-    c: "#c8a96e"
+    c: "var(--accent-protein-text)",
+    bg: "var(--accent-protein-bg)"
   }, {
     l: text('avgCalories'),
     v: String(avgKcal),
-    c: "#8ec8c8"
+    c: "var(--accent-kcal-text)",
+    bg: "var(--accent-kcal-bg)"
   }, {
     l: text('daysProtGoal'),
     v: `${daysMetProtein}/${daysWithData.length}`,
-    c: "var(--btn-ok-text)"
+    c: "var(--accent-protein-text)",
+    bg: "var(--accent-protein-bg)"
   }, {
     l: uiText("Banco de calorias", "Calorie bank", "Banco de calorías"),
     v: calorieBankDays.length ? `${calorieBank > 0 ? "+" : ""}${calorieBank} kcal` : "—",
-    c: calorieBank >= 0 ? "var(--btn-ok-text)" : "#c86e8e",
+    c: calorieBank >= 0 ? "var(--accent-kcal-text)" : "var(--accent-danger-text)",
+    bg: "var(--accent-kcal-bg)",
     detail: `${calorieBankDays.length}/7 ${uiText("dias registrados", "logged days", "días registrados")}`
-  }].map((x, i) => /*#__PURE__*/React.createElement("div", {
+  }].filter(x => x.v !== "—").map((x, i) => /*#__PURE__*/React.createElement("div", {
     key: x.l,
     style: {
       flex: 1,
       padding: "12px 8px",
       textAlign: "center",
+      background: x.bg,
       borderRight: !isMobileView && i < 3 ? "1px solid var(--border)" : i % 2 === 0 ? "1px solid var(--border)" : "none",
       borderBottom: isMobileView && i < 2 ? "1px solid var(--border)" : "none"
     }
@@ -12132,6 +12198,7 @@ Formato obrigatório:
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: generateFoodPatterns,
+    "data-action-insight": "true",
     disabled: patternsLoading,
     style: {
       width: "100%",
@@ -12197,6 +12264,7 @@ Formato obrigatório:
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => generateFeedback("week"),
+    "data-action-insight": "true",
     disabled: feedbackLoading && feedbackPeriod === "week",
     style: {
       width: "100%",
@@ -12257,6 +12325,7 @@ Formato obrigatório:
       letterSpacing: 1
     }
   }, pickLang(lang, "Salvar nas notas de hoje", "Save to today's notes", "Guardar en las notas de hoy"))))))), tab === "metricas" && /*#__PURE__*/React.createElement("div", {
+    "data-screen": "metricas",
     style: {
       padding: isMobileView ? "0 0 calc(76px + env(safe-area-inset-bottom, 0px))" : "2px 16px 30px",
       boxSizing: "border-box",
@@ -12656,7 +12725,7 @@ Formato obrigatório:
   }, uiText("Métricas atuais", "Current metrics", "Métricas actuales")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: isMobileView ? "1fr 1fr" : "repeat(3, minmax(140px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))",
       gap: 10
     }
   }, [{
@@ -12671,6 +12740,7 @@ Formato obrigatório:
   }, {
     l: "IMC",
     v: bmi || "—",
+    sub: bmiNum < 18.5 ? text('bmiUnderweight') : bmiNum < 25 ? text('bmiNormal') : bmiNum < 30 ? text('bmiOverweight') : text('bmiObese'),
     c: bmiNum < 18.5 ? "#c86e8e" : bmiNum < 25 ? "#6ec8a9" : bmiNum < 30 ? "#c8a96e" : "#c86e8e"
   }, {
     l: "TMB",
@@ -12696,7 +12766,7 @@ Formato obrigatório:
     hide: true,
     v: String(computeGoals(currentWeight, false, {height: currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs}).kcal),
     c: "#8ec8a9"
-  }].filter(x => !x.hide).map(x => /*#__PURE__*/React.createElement("div", {
+  }].filter(x => !x.hide && x.v !== "—").map(x => /*#__PURE__*/React.createElement("div", {
     key: x.l,
     style: {background: "var(--bg)", border: "1px solid var(--border3)", borderRadius: 8, padding: "10px 12px"}
   }, /*#__PURE__*/React.createElement("div", {
@@ -12705,23 +12775,15 @@ Formato obrigatório:
       color: "var(--muted)",
       letterSpacing: 1
     }
-  }, x.l.toUpperCase()), /*#__PURE__*/React.createElement("div", {
+  }, x.l), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 16,
       color: x.c,
       marginTop: 2
     }
-  }, x.v)))), bmi && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10,
-      fontSize: 14,
-      color: "var(--muted)"
-    }
-  }, text('bmi')+' ', bmi, " \u2014 ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: bmiNum < 18.5 ? "#c86e8e" : bmiNum < 25 ? "#6ec8a9" : bmiNum < 30 ? "#c8a96e" : "#c86e8e"
-    }
-  }, bmiNum < 18.5 ? text('bmiUnderweight') : bmiNum < 25 ? text('bmiNormal') : bmiNum < 30 ? text('bmiOverweight') : text('bmiObese')))), weightChartData.length > 1 && /*#__PURE__*/React.createElement("div", {
+  }, x.v), x.sub && /*#__PURE__*/React.createElement("div", {
+    style: {fontSize: 12, color: "var(--text-secondary)", marginTop: 4}
+  }, x.sub))))), weightChartData.length > 1 && /*#__PURE__*/React.createElement("div", {
     "data-tutorial": "weight-chart",
     style: {
       display: metricsSection === "tracking" ? "block" : "none",
@@ -12840,7 +12902,7 @@ Formato obrigatório:
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "grid",
+      display: "none",
       gridTemplateColumns: isMobileView ? "92px 82px 72px 84px 86px 96px 84px 104px" : "1fr 1fr 1fr 1fr 1fr 1fr 1fr 120px",
       gap: 10,
       minWidth: isMobileView ? 740 : 0,
@@ -12858,14 +12920,16 @@ Formato obrigatório:
     }
   }, [uiText("Data", "Date", "Fecha"), uiText("Peso", "Weight", "Peso"), text('bmi'), uiText("Gordura", "Fat", "Grasa"), uiText("Músculo", "Muscle", "Músculo"), uiText("Cintura", "Waist", "Cintura"), uiText("Proteína", "Protein", "Proteína"), ""].map(label => /*#__PURE__*/React.createElement("span", {
     key: label || "actions"
-  }, label))), [...normalizeWeightHistory(weightHistory)].reverse().map(e => {
+  }, label))), [...normalizedWeightEntries].reverse().map(e => {
     const bE = e.height ? (e.weight / (e.height / 100) ** 2).toFixed(1) : null;
     const isEd = editingWeightId === e.date;
     return /*#__PURE__*/React.createElement("div", {
       key: e.date,
+      "data-history-card": "true",
       style: {
-        borderBottom: "1px solid var(--border3)",
-        padding: "0 6px"
+        borderBottom: "none",
+        padding: "0",
+        marginBottom: 8
       }
     }, isEd ? /*#__PURE__*/React.createElement("div", {
       style: {
@@ -12970,69 +13034,60 @@ Formato obrigatório:
         cursor: "pointer"
       }
     }, uiText("Cancelar", "Cancel", "Cancelar")))) : /*#__PURE__*/React.createElement("div", {
+      "data-history-entry": "true",
+      "aria-expanded": !!expandedWeightHistoryIds[e.date]
+    }, /*#__PURE__*/React.createElement("button", {
+      type: "button",
+      "data-history-row": "true",
+      onClick: () => setExpandedWeightHistoryIds(current => ({...current, [e.date]: !current[e.date]})),
+      "aria-expanded": !!expandedWeightHistoryIds[e.date],
       style: {
-        display: "grid",
-        gridTemplateColumns: isMobileView ? "92px 82px 72px 84px 86px 96px 84px 104px" : "1fr 1fr 1fr 1fr 1fr 1fr 1fr 120px",
-        gap: 10,
-        minWidth: isMobileView ? 740 : 0,
+        width: "100%",
+        display: "flex",
+        gap: 8,
         alignItems: "center",
-        padding: "7px 0",
-        fontSize: 12
+        padding: "10px 12px",
+        background: "transparent",
+        border: "none",
+        color: "var(--text-primary)",
+        cursor: "pointer",
+        textAlign: "left"
       }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "var(--muted)"
-      }
-    }, formatDateDMY(e.date)), /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "#c8a96e"
-      }
+    }, /*#__PURE__*/React.createElement("span", null, formatDateDMY(e.date)), /*#__PURE__*/React.createElement("span", {
+      "aria-hidden": "true",
+      style: { color: "var(--text-muted)" }
+    }, "—"), /*#__PURE__*/React.createElement("strong", {
+      style: { fontWeight: 600 }
     }, e.weight, " kg"), /*#__PURE__*/React.createElement("span", {
+      "aria-hidden": "true",
+      style: { marginLeft: "auto", color: "var(--text-muted)" }
+    }, expandedWeightHistoryIds[e.date] ? "▲" : "▼")), /*#__PURE__*/React.createElement("div", {
+      "data-history-details": "true",
       style: {
-        color: "var(--muted)"
+        maxHeight: expandedWeightHistoryIds[e.date] ? 180 : 0,
+        opacity: expandedWeightHistoryIds[e.date] ? 1 : 0,
+        overflow: "hidden",
+        transition: "max-height var(--dur-base) var(--ease-spring), opacity var(--dur-fast) var(--ease-spring)"
       }
-    }, bE || "—"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "#c86e8e"
-      }
-    }, e.bodyFatPct ? e.bodyFatPct + "%" : "—"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "var(--muted)"
-      }
-    }, e.muscleMassKg ? e.muscleMassKg + " kg" : "—"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "var(--muted)"
-      }
-    }, e.waistCm ? e.waistCm + " cm" : "—"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "var(--muted)"
-      }
-    }, computeGoals(e.weight, true, {height: e.height || currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs}).protein, " g"), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
-        gap: 5
+        flexWrap: "wrap",
+        gap: "8px 16px",
+        padding: "4px 12px 12px",
+        color: "var(--text-secondary)",
+        fontSize: 12
       }
+    }, historyFieldAvailability.bmi && bE && /*#__PURE__*/React.createElement("span", null, "IMC: ", bE), historyFieldAvailability.bodyFatPct && e.bodyFatPct && /*#__PURE__*/React.createElement("span", null, uiText("Gordura: ", "Fat: ", "Grasa: "), e.bodyFatPct, "%"), historyFieldAvailability.muscleMassKg && e.muscleMassKg && /*#__PURE__*/React.createElement("span", null, uiText("Músculo: ", "Muscle: ", "Músculo: "), e.muscleMassKg, " kg"), historyFieldAvailability.waistCm && e.waistCm && /*#__PURE__*/React.createElement("span", null, uiText("Cintura: ", "Waist: ", "Cintura: "), e.waistCm, " cm"), /*#__PURE__*/React.createElement("div", {
+      style: { display: "flex", gap: 6, flexBasis: "100%", marginTop: 2 }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: () => startEditWeight(e),
-      style: {
-        background: "none",
-        border: "1px solid var(--border2)",
-        color: "var(--muted)",
-        borderRadius: 4,
-        padding: "2px 7px",
-        fontSize: 14,
-        cursor: "pointer"
-      }
+      style: { background: "transparent", border: "1px solid var(--text-muted)", color: "var(--text-secondary)", padding: "5px 10px", cursor: "pointer" }
     }, text('editItem')), /*#__PURE__*/React.createElement("button", {
       onClick: () => setWeightHistory(h => h.filter(x => x.date !== e.date)),
-      style: {
-        background: "none",
-        border: "none",
-        color: "var(--faint)",
-        cursor: "pointer",
-        fontSize: 14
-      }
-    }, "\xD7"))));
+      "aria-label": uiText("Excluir registro", "Delete entry", "Eliminar registro"),
+      style: { background: "transparent", border: "none", color: "var(--text-muted)", padding: "5px 10px", cursor: "pointer" }
+    }, "\xD7"))))));
   }))), weightHistory.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       color: "var(--faint)",
@@ -13074,7 +13129,7 @@ Formato obrigatório:
     style: {
       marginTop: 12,
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))",
       gap: 8
     }
   }, [{
@@ -13093,7 +13148,8 @@ Formato obrigatório:
     l: uiText("Peso alvo estimado", "Target weight", "Peso objetivo estimado"),
     v: bodyComposition.weightTarget ? (Math.round(bodyComposition.weightTarget * 10) / 10) + " kg" : "—",
     c: "#8ec8c8"
-  }].map(card => /*#__PURE__*/React.createElement("div", {
+  }].filter(card => card.v !== "—").map(card => /*#__PURE__*/React.createElement("div", {
+    "data-body-composition-card": "true",
     key: card.l,
     style: {
       border: "1px solid var(--border3)",
@@ -13243,6 +13299,7 @@ Formato obrigatório:
     }
   }, /*#__PURE__*/React.createElement("div", {
     onClick: () => setMetricsProgressOpen(v => !v),
+    "data-progress-heading": "true",
     role: "button",
     tabIndex: 0,
     style: {
@@ -13299,10 +13356,11 @@ Formato obrigatório:
       whiteSpace: "nowrap"
     }
   }, pickLang(lang, "Mais info", "More info", "Más info"))), /*#__PURE__*/React.createElement("div", {
+    "data-progress-grid": "true",
     style: {
       marginTop: 12,
       display: "grid",
-      gridTemplateColumns: isMobileView ? "1fr" : "repeat(5, minmax(130px, 1fr))",
+      gridTemplateColumns: isMobileView ? "1fr" : "repeat(auto-fit, minmax(130px, 1fr))",
       gap: 8
     }
   }, [{
@@ -13325,7 +13383,7 @@ Formato obrigatório:
     l: pickLang(lang, "Tendência", "Trend", "Tendencia"),
     v: weightTrend.hasEnough ? (weightTrend.weeklyRate > 0 ? "+" : "") + (Math.round(weightTrend.weeklyRate * 100) / 100) + pickLang(lang, " kg/sem", " kg/wk", " kg/sem") : "—",
     c: weightTrend.weeklyRate < 0 ? "#6ec8a9" : weightTrend.weeklyRate > 0 ? "#c86e8e" : "var(--muted)"
-  }].map(card => /*#__PURE__*/React.createElement("div", {
+  }].filter(card => card.v !== "—").map(card => /*#__PURE__*/React.createElement("div", {
     key: card.l,
     style: {
       border: "1px solid var(--border3)",
@@ -13841,7 +13899,7 @@ function BackupModal({ lang, darkMode, onClose }) {
     { key:'month',  icon:'', title:L('Último mês (30 dias)', 'Last 30 days', 'Último mes (30 días)'), desc:L('Histórico do mês com totais diários', 'Monthly history with daily totals', 'Historial mensual con totales diarios') },
     { key:'pantry', icon:'', title:L('Alimentos', 'Pantry', 'Alimentos'), desc:L('Todos os alimentos cadastrados', 'All registered foods', 'Todos los alimentos registrados') },
     { key:'weight', icon:'', title:L('Histórico de peso', 'Weight history', 'Historial de peso'), desc:L('Peso e altura registrados', 'Logged weight and height data', 'Peso y altura registrados') },
-    { key:'all',    icon:'', title:L('Backup completo', 'Full backup', 'Backup completo'), desc:L('Tudo: diário, despensa, peso, metas, água', 'Everything: diary, pantry, weight, goals, water', 'Todo: diario, despensa, peso, metas, agua'), highlight:true },
+    { key:'all',    icon:'', title:L('Exportar dados', 'Export data', 'Exportar datos'), desc:L('Backup completo: diário, alimentos, peso, metas e água', 'Full backup: diary, foods, weight, goals, and water', 'Backup completo: diario, alimentos, peso, metas y agua'), highlight:true },
   ];
 
   async function doExport(key) {
@@ -14070,7 +14128,7 @@ function BackupModal({ lang, darkMode, onClose }) {
             disabled: loading === opt.key,
             style:{
               display:'flex', alignItems:'center', gap:14,
-              padding:'14px 16px', borderRadius:12, cursor:'pointer',
+              padding:'14px 16px', borderRadius:opt.highlight ? 999 : 12, cursor:'pointer',
               fontFamily:'inherit', textAlign:'left',
               background: opt.highlight ? 'var(--btn-ok)' : 'var(--surface)',
               border: '1px solid ' + (opt.highlight ? 'var(--btn-ok-border)' : 'var(--border2)'),
@@ -14110,13 +14168,13 @@ function BackupModal({ lang, darkMode, onClose }) {
       }}, L('Importar', 'Import', 'Importar')),
       React.createElement('label', {style:{
         display:'flex', alignItems:'center', gap:14,
-        padding:'14px 16px', borderRadius:12, cursor:'pointer',
+        padding:'14px 16px', borderRadius:999, cursor:'pointer',
         background:'var(--surface)', border:'1px dashed var(--border2)'
       }},
         React.createElement('span', {style:{fontSize:24}}, '\uD83D\uDCC2'),
         React.createElement('div', {style:{flex:1}},
           React.createElement('div', {style:{fontSize:14, fontWeight:500, color:'var(--text)'}},
-            L('Selecionar arquivo .json', 'Select .json file', 'Seleccionar archivo .json')),
+            L('Importar dados', 'Import data', 'Importar datos')),
           React.createElement('div', {style:{fontSize:12, color:'var(--muted)', marginTop:2}},
             L('Restaura dados de um backup anterior', 'Restore data from a previous backup', 'Restaura datos de un backup anterior'))
         ),
@@ -14801,6 +14859,9 @@ function LoginScreen({onLogin, onPendingVerification}) {
     const saved = localStorage.getItem('appDarkMode');
     return saved !== null ? saved === 'true' : false;
   });
+  React.useEffect(() => {
+    document.documentElement.dataset.theme = loginDark ? 'dark' : 'light';
+  }, [loginDark]);
 
   const normalizedLoginLang = normalizeLanguage(loginLang);
   const loginCopy = {
@@ -15237,6 +15298,9 @@ function App() {
     const saved = localStorage.getItem('appDarkMode');
     return saved !== null ? saved === 'true' : false; // padrão: modo claro
   });
+  React.useEffect(() => {
+    document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
+  }, [darkMode]);
 
   function toggleLang(nextLang) {
     const fallback = lang === 'pt' ? 'en' : lang === 'en' ? 'es' : 'pt';
