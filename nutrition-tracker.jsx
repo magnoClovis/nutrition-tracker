@@ -1791,14 +1791,6 @@ function NutritionTracker({
   }, [tab, pantry.length]);
   function selectAddMode(mode) {
     if (mode === "saved") {
-      if (!mealTemplates.length) {
-        notify(uiText(
-          "Nenhuma refeição salva ainda.",
-          "No saved meals yet.",
-          "Todavía no hay comidas guardadas."
-        ));
-        return;
-      }
       setDescribeMode(false);
       setBatchMode(true);
       setAddTemplatesOpen(true);
@@ -9483,57 +9475,7 @@ Formato obrigatório:
       fontSize: 14,
       cursor: "pointer"
     }
-  }, "\xD7"))))), tab === "adicionar" && /*#__PURE__*/React.createElement("div", null, mealTemplates.length > 0 && /*#__PURE__*/React.createElement("div", {
-    "data-add-saved-meals": "true",
-    style: {
-      marginBottom: 16,
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 8,
-      padding: "12px 14px"
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setAddTemplatesOpen(v => !v),
-    style: {
-      width: "100%",
-      background: "none",
-      border: "none",
-      padding: 0,
-      textAlign: "left",
-      cursor: "pointer",
-      fontFamily: "inherit"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      letterSpacing: 1,
-      color: "var(--muted)",
-      textTransform: "uppercase"
-    }
-  }, addTemplatesOpen ? "\u25BE " : "\u25B8 ", uiText("Refeições salvas", "Saved meals", "Comidas guardadas"), " (", mealTemplates.length, ")")), addTemplatesOpen && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10,
-      display: "flex",
-      flexDirection: "column",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: addTemplateSearch,
-    onChange: e => setAddTemplateSearch(e.target.value),
-    placeholder: uiText("Pesquisar refeição salva...", "Search saved meal...", "Buscar comida guardada..."),
-    style: {
-      ...inp,
-      marginTop: 0
-    }
-  }), mealTemplates.filter(tmpl => tmpl.name.toLowerCase().includes(addTemplateSearch.trim().toLowerCase())).length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: "var(--faint)",
-      fontSize: 14,
-      fontStyle: "italic",
-      textAlign: "center",
-      padding: "10px 0"
-    }
-  }, uiText("Nenhuma refeição salva encontrada.", "No saved meals found.", "No se encontraron comidas guardadas.")) : mealTemplates.filter(tmpl => tmpl.name.toLowerCase().includes(addTemplateSearch.trim().toLowerCase())).map(tmpl => renderSavedMealCard(tmpl, "add"))))), tab === "adicionar" && /*#__PURE__*/React.createElement("div", {
+  }, "\xD7"))))), tab === "adicionar" && /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 14
     }
@@ -9682,7 +9624,7 @@ Formato obrigatório:
     }
   }, [["batch", text('modeBatch')], ["describe", text('modeDescribe')], ["saved", isMobileView ? uiText("Salvas", "Saved", "Guardadas") : uiText("Refeições salvas", "Saved meals", "Comidas guardadas")]].map(([m, l]) => {
     const active = m === "saved" ? addTemplatesOpen : m === "describe" ? describeMode : !describeMode && !addTemplatesOpen;
-    const unavailable = m === "saved" ? mealTemplates.length === 0 : pantry.length === 0 && m !== "describe";
+    const unavailable = m !== "saved" && pantry.length === 0 && m !== "describe";
     return /*#__PURE__*/React.createElement("button", {
       key: m,
       onClick: () => selectAddMode(m),
@@ -9701,7 +9643,47 @@ Formato obrigatório:
         opacity: unavailable ? 0.55 : 1
       }
     }, m === "describe" ? "\u2726 " + l : m === "saved" ? "\u2630 " + l : l);
-  })), describeMode && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  })), addTemplatesOpen && /*#__PURE__*/React.createElement("div", {
+    "data-add-saved-meals": "true",
+    style: {
+      marginTop: -4,
+      marginBottom: 16,
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 8,
+      padding: "12px 14px"
+    }
+  }, mealTemplates.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--faint)",
+      fontSize: 14,
+      textAlign: "center",
+      padding: "10px 0"
+    }
+  }, uiText("Nenhuma refeição salva ainda.", "No saved meals yet.", "Todavía no hay comidas guardadas.")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
+    value: addTemplateSearch,
+    onChange: e => setAddTemplateSearch(e.target.value),
+    placeholder: uiText("Pesquisar refeição salva...", "Search saved meal...", "Buscar comida guardada..."),
+    style: {
+      ...inp,
+      marginTop: 0,
+      marginBottom: 10
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, mealTemplates.filter(tmpl => tmpl.name.toLowerCase().includes(addTemplateSearch.trim().toLowerCase())).length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--faint)",
+      fontSize: 14,
+      fontStyle: "italic",
+      textAlign: "center",
+      padding: "10px 0"
+    }
+  }, uiText("Nenhuma refeição salva encontrada.", "No saved meals found.", "No se encontraron comidas guardadas.")) : mealTemplates.filter(tmpl => tmpl.name.toLowerCase().includes(addTemplateSearch.trim().toLowerCase())).map(tmpl => renderSavedMealCard(tmpl, "add"))))), describeMode && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 8
     }
@@ -11293,7 +11275,7 @@ Formato obrigatório:
   }, "Cancelar"))) : /*#__PURE__*/React.createElement("div", {
     "data-pantry-food": "true",
     style: {
-      padding: "9px 0",
+      padding: "9px 17px",
       display: "flex",
       gap: 10,
       justifyContent: "space-between",
@@ -11337,12 +11319,13 @@ Formato obrigatório:
       maxHeight: expandedPantryIds[f.id] ? 420 : 0,
       opacity: expandedPantryIds[f.id] ? 1 : 0,
       overflow: "hidden",
-      display: "flex",
-      gap: "12px 14px",
-      flexWrap: "wrap",
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+      columnGap: 14,
+      rowGap: 12,
       lineHeight: 1.45,
       marginTop: expandedPantryIds[f.id] ? 8 : 0,
-      padding: expandedPantryIds[f.id] ? "12px 17px 14px" : "0 17px",
+      padding: expandedPantryIds[f.id] ? "12px 0 14px" : 0,
       transition: "max-height var(--dur-base) var(--ease-spring), opacity var(--dur-base) var(--ease-spring), margin-top var(--dur-base) var(--ease-spring), padding var(--dur-base) var(--ease-spring)"
     }
   }, ALL_FIELDS.filter(ff => ff.key !== "protein100" && ff.key !== "kcal100" && f[ff.key] != null).map(ff => /*#__PURE__*/React.createElement("span", {
