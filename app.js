@@ -8225,6 +8225,7 @@ Formato obrigatório:
       color: "var(--muted)"
     }
   }, /*#__PURE__*/React.createElement("span", null, dayProteinPct, "% ", uiText("proteína", "protein", "proteína")), /*#__PURE__*/React.createElement("span", null, dayKcalPct, "% kcal"))), /*#__PURE__*/React.createElement("div", {
+    "data-diary-content-stack": "true",
     style: {
       marginBottom: 14,
       order: -2,
