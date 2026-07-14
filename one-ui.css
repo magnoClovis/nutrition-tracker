@@ -28,6 +28,7 @@
   --page-gradient: radial-gradient(circle at 20% 0%, #d9ede0 0%, var(--surface-page) 55%);
   --focus-surface: color-mix(in srgb, var(--surface-block) 50%, transparent);
   --focus-surface-alt: color-mix(in srgb, var(--surface-block-alt) 50%, transparent);
+  --focus-sheen: linear-gradient(rgba(255, 255, 255, .055), rgba(255, 255, 255, .055));
   --focus-protein: color-mix(in srgb, var(--accent-protein-bg) 94%, transparent);
   --focus-kcal: color-mix(in srgb, var(--accent-kcal-bg) 94%, transparent);
   --focus-water: color-mix(in srgb, var(--accent-water-bg) 94%, transparent);
@@ -238,12 +239,19 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   row-gap: 9px !important;
   column-gap: 10px !important;
   background: var(--focus-surface) !important;
+  background-image: var(--focus-sheen) !important;
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   border: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent) !important;
   border-radius: var(--radius-block) !important;
   box-shadow: 0 1px 2px rgba(0,0,0,.035) !important;
   overflow: hidden;
+}
+
+[data-header-title="true"] {
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
 }
 
 [data-header-ticker="true"] {
@@ -281,6 +289,16 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 [data-ticker-dots="true"] button {
   min-height: 0 !important;
   border-radius: var(--radius-pill) !important;
+}
+
+[data-ticker-dot-active="true"] {
+  background: var(--accent-kcal-fill) !important;
+  opacity: .9 !important;
+}
+
+[data-ticker-dot-active="false"] {
+  background: color-mix(in srgb, var(--text-muted) 35%, transparent) !important;
+  opacity: 1 !important;
 }
 
 /* The live ticker replaces the former standalone greeting block. */
@@ -342,7 +360,6 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 /* Content focus blocks: near-solid glass so the page gradient only whispers through. */
 [data-diary-meal-card="true"],
 [data-diary-greeting="true"],
-[data-diary-nutrients="true"],
 [data-water-block="true"],
 [data-tutorial="pantry-saved-foods"],
 [data-tutorial="pantry-meal-templates"],
@@ -361,6 +378,7 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 [data-tutorial="body-composition"],
 [data-tutorial="metrics-progress"] {
   background: var(--focus-surface) !important;
+  background-image: var(--focus-sheen) !important;
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   border: 0 !important;
@@ -369,11 +387,33 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   overflow: hidden;
 }
 
-[data-diary-nutrients="true"] {
+[data-diary-suggestion-block="true"] {
   margin: 14px 0 !important;
-  padding: 14px 18px !important;
-  border-bottom: 0 !important;
+  padding: 12px 14px !important;
+  background: var(--focus-surface) !important;
+  background-image: var(--focus-sheen) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent) !important;
   border-radius: var(--radius-block) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.035) !important;
+  overflow: hidden;
+}
+
+[data-diary-suggestion-block="true"] > div:first-child {
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+[data-diary-suggestion-block="true"] [data-diary-nutrients="true"] {
+  margin: 10px 0 0 !important;
+  padding: 10px 4px 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 1px solid color-mix(in srgb, var(--text-primary) 7%, transparent) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 [data-diary-nutrients="true"] > button:first-child {
@@ -389,6 +429,7 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 [data-diary-meal-card="true"] {
   padding: 18px !important;
   background: var(--focus-surface) !important;
+  background-image: var(--focus-sheen) !important;
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   border-radius: var(--radius-block) !important;
@@ -401,6 +442,7 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   width: 100% !important;
   box-sizing: border-box;
   background: var(--focus-surface) !important;
+  background-image: var(--focus-sheen) !important;
   border-radius: var(--radius-block) !important;
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
