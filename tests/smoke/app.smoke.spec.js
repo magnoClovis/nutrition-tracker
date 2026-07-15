@@ -133,7 +133,7 @@ test.describe('public boot and login screen', () => {
   test('language toggle updates login copy and persists after reload', async ({ page }) => {
     const errors = await openApp(page);
 
-    const englishButton = page.getByRole('button', { name: /EN-US/i });
+    const englishButton = page.getByRole('button', { name: /^en$/i });
     await expect(englishButton).toBeVisible();
     await englishButton.click();
     await expect(page.getByRole('button', { name: /Forgot password/i })).toBeVisible();
@@ -141,7 +141,7 @@ test.describe('public boot and login screen', () => {
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
     await expect(page.getByRole('button', { name: /Forgot password/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /EN-US/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^en$/i })).toBeVisible();
 
     await expectNoCriticalErrors(errors);
   });
@@ -178,6 +178,45 @@ test.describe('public boot and login screen', () => {
 
     await expect(page.getByText(/Digite seu e-mail|Enter your email/i)).toBeVisible();
 
+    await expectNoCriticalErrors(errors);
+  });
+
+  test('blocks login while the account email is unverified', async ({ page }) => {
+    const errors = await openApp(page);
+
+    await page.evaluate(() => {
+      window.fbSignIn = async (email) => localStorage.setItem('fb_email', email);
+      window.fbCheckEmailVerified = async () => false;
+    });
+    await page.locator('input[type="email"]').fill('pending@example.com');
+    await page.locator('input[type="password"]').fill('secret123');
+    await page.getByRole('button', { name: /Entrar|Sign in/i }).last().click();
+
+    await expect(page.getByText(/Verifique seu email|Verify your email/i).first()).toBeVisible();
+    await expect(page.locator('input[type="email"]')).toHaveCount(0);
+    await expectNoCriticalErrors(errors);
+  });
+
+  test('does not claim verification email delivery when Firebase rejects it', async ({ page }) => {
+    const errors = await openApp(page);
+
+    await page.evaluate(() => {
+      window.fbSignUp = async () => {};
+      window.fbUpdateProfile = async () => {};
+      window.fbSet = async () => {};
+      window.fbSendVerificationEmail = async () => { throw new Error('EMAIL_DELIVERY_FAILED'); };
+    });
+    await page.getByRole('button', { name: /Criar conta|Create account/i }).first().click();
+    await page.locator('input[type="email"]').fill('new@example.com');
+    await page.locator('input[type="password"]').nth(0).fill('secret123');
+    await page.locator('input[type="password"]').nth(1).fill('secret123');
+    await page.locator('input[autocomplete="name"]').fill('New User');
+    await page.locator('input[type="date"]').fill('1990-01-01');
+    await page.locator('select').selectOption('female');
+    await page.getByRole('button', { name: /Criar conta|Create account/i }).last().click();
+
+    await expect(page.getByText(/EMAIL_DELIVERY_FAILED/)).toBeVisible();
+    await expect(page.getByText(/Enviamos um link|We sent a verification link/i)).toHaveCount(0);
     await expectNoCriticalErrors(errors);
   });
 });

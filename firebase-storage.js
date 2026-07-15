@@ -8,7 +8,26 @@ const FB_KEY     = "AIzaSyCFRIi8LToXFRqO3vwoaL0EEqzrK3TUgGE";
 const FB_BASE    = "https://firestore.googleapis.com/v1/projects/" + FB_PROJECT + "/databases/(default)/documents/nutrition";
 const AUTH_BASE  = "https://identitytoolkit.googleapis.com/v1/accounts";
 const TOKEN_BASE = "https://securetoken.googleapis.com/v1/token";
-const REPORT_SERVER_URL = "http://192.168.1.82:8000";
+// TODO: configurar uma URL HTTPS antes de habilitar relatórios em produção.
+// A hospedagem pode definir, antes deste script:
+// window.NUTRITION_TRACKER_CONFIG = { reportServerUrl: "https://..." };
+const REPORT_SERVER_URL = (() => {
+  const configuredUrl = window.NUTRITION_TRACKER_CONFIG?.reportServerUrl;
+  if (typeof configuredUrl !== "string" || !configuredUrl.trim()) return "";
+
+  try {
+    const parsedUrl = new URL(configuredUrl.trim());
+    if (parsedUrl.protocol !== "https:") {
+      console.warn("Advanced reports require an HTTPS server URL and remain disabled.");
+      return "";
+    }
+    return parsedUrl.href.replace(/\/$/, "");
+  } catch {
+    console.warn("Advanced reports received an invalid server URL and remain disabled.");
+    return "";
+  }
+})();
+const REPORTS_ENABLED = Boolean(REPORT_SERVER_URL);
 
 // ── Auth state ───────────────────────────────────────────────
 let _idToken      = null;
@@ -50,18 +69,24 @@ async function fbSignUp(email, password) {
 
 async function fbUpdateProfile(displayName) {
   const token = await fbToken();
-  await fetch(AUTH_BASE + ":update?key=" + FB_KEY, {
+  const r = await fetch(AUTH_BASE + ":update?key=" + FB_KEY, {
     method: "POST", headers: {"Content-Type": "application/json"},
     body: JSON.stringify({idToken: token, displayName, returnSecureToken: false})
   });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error?.message || "Profile update failed");
+  return d;
 }
 
 async function fbSendVerificationEmail() {
   const token = await fbToken();
-  await fetch(AUTH_BASE + ":sendOobCode?key=" + FB_KEY, {
+  const r = await fetch(AUTH_BASE + ":sendOobCode?key=" + FB_KEY, {
     method: "POST", headers: {"Content-Type": "application/json"},
     body: JSON.stringify({requestType: "VERIFY_EMAIL", idToken: token})
   });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error?.message || "Verification email failed");
+  return d;
 }
 
 /**
@@ -90,7 +115,9 @@ async function fbCheckEmailVerified() {
     method: "POST", headers: {"Content-Type": "application/json"},
     body: JSON.stringify({idToken: token})
   });
-  const d = await r.json();
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error?.message || "Email verification check failed");
+  if (!Array.isArray(d.users) || !d.users[0]) throw new Error("Account lookup returned no user");
   return d?.users?.[0]?.emailVerified === true;
 }
 
