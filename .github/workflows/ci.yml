@@ -39,7 +39,8 @@ jobs:
       - name: Run preflight
         id: preflight
         continue-on-error: true
-        run: npm run preflight
+        shell: pwsh
+        run: pwsh -NoProfile -File scripts/preflight-release.ps1
 
       - name: Run unit tests
         id: unit
@@ -55,6 +56,7 @@ jobs:
         env:
           NUTRITION_TEST_EMAIL: ${{ secrets.NUTRITION_TEST_EMAIL }}
           NUTRITION_TEST_PASSWORD: ${{ secrets.NUTRITION_TEST_PASSWORD }}
+          SMOKE_SERVER_IDLE_MS: 120000
         run: npm run test:smoke
 
       - name: Write test summary

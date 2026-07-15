@@ -63,7 +63,7 @@ async function clickFirstButtonMatching(page, pattern) {
 
 async function clickByTutorialKeyOrText(page, tutorialKey, fallbackPattern) {
   await dismissTutorialIfVisible(page);
-  const tutorialTarget = page.locator(`[data-tutorial="${tutorialKey}"]`).first();
+  const tutorialTarget = page.locator(`[data-tutorial="${tutorialKey}"]:visible`).first();
 
   if (await tutorialTarget.isVisible({ timeout: 1000 }).catch(() => false)) {
     await tutorialTarget.click({ timeout: 5000 });
