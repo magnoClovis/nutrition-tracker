@@ -181,6 +181,26 @@ test.describe('public boot and login screen', () => {
     await expectNoCriticalErrors(errors);
   });
 
+  test('toggles password visibility without changing the entered value', async ({ page }) => {
+    const errors = await openApp(page);
+    const passwordInput = page.locator('input[autocomplete="current-password"]');
+    const visibilityButton = page.getByTestId('password-visibility');
+
+    await passwordInput.fill('Secret123!');
+    await expect(passwordInput).toHaveAttribute('type', 'password');
+    await expect(visibilityButton).toHaveAttribute('aria-label', 'Mostrar senha');
+
+    await visibilityButton.click();
+    await expect(passwordInput).toHaveAttribute('type', 'text');
+    await expect(passwordInput).toHaveValue('Secret123!');
+    await expect(visibilityButton).toHaveAttribute('aria-label', 'Ocultar senha');
+
+    await visibilityButton.click();
+    await expect(passwordInput).toHaveAttribute('type', 'password');
+    await expect(passwordInput).toHaveValue('Secret123!');
+    await expectNoCriticalErrors(errors);
+  });
+
   test('blocks login while the account email is unverified', async ({ page }) => {
     const errors = await openApp(page);
 

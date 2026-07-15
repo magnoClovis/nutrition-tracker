@@ -15071,6 +15071,8 @@ function LoginScreen({onLogin, onPendingVerification}) {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [password2, setPassword2] = React.useState('');
+  const [passwordVisible, setPasswordVisible] = React.useState(false);
+  const [password2Visible, setPassword2Visible] = React.useState(false);
   const [error, setError] = React.useState('');
   const [resetMessage, setResetMessage] = React.useState('');
   const [loading, setLoading] = React.useState(false);
@@ -15092,6 +15094,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
       title: 'Di\u00e1rio Nutricional', login: 'Entrar', register: 'Criar conta',
       subtitle: 'Acompanhe sua nutri\u00e7\u00e3o di\u00e1ria e alcance seus objetivos.',
       email: 'Email', password: 'Senha', confirm: 'Confirmar senha',
+      showPassword: 'Mostrar senha', hidePassword: 'Ocultar senha',
       loginBtn: 'Entrar', registerBtn: 'Criar conta', processing: 'Processando...',
       forgotPassword: 'Esqueci minha senha', resetSending: 'Enviando...',
       resetSent: 'Se existir uma conta com esse e-mail, enviaremos as instru\u00e7\u00f5es de recupera\u00e7\u00e3o.',
@@ -15110,6 +15113,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
       title: 'Nutrition Tracker', login: 'Sign in', register: 'Create account',
       subtitle: 'Track your daily nutrition and reach your goals.',
       email: 'Email', password: 'Password', confirm: 'Confirm password',
+      showPassword: 'Show password', hidePassword: 'Hide password',
       loginBtn: 'Sign in', registerBtn: 'Create account', processing: 'Processing...',
       forgotPassword: 'Forgot password?', resetSending: 'Sending...',
       resetSent: 'If an account exists for this email, password recovery instructions will be sent.',
@@ -15127,6 +15131,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
       title: 'Diario Nutricional', login: 'Iniciar sesi\u00f3n', register: 'Crear cuenta',
       subtitle: 'Registra tu nutrici\u00f3n diaria y avanza hacia tus objetivos.',
       email: 'Email', password: 'Contrase\u00f1a', confirm: 'Confirmar contrase\u00f1a',
+      showPassword: 'Mostrar contrase\u00f1a', hidePassword: 'Ocultar contrase\u00f1a',
       loginBtn: 'Entrar', registerBtn: 'Crear cuenta', processing: 'Procesando...',
       forgotPassword: 'Olvid\u00e9 mi contrase\u00f1a', resetSending: 'Enviando...',
       resetSent: 'Si existe una cuenta con este email, enviaremos las instrucciones de recuperaci\u00f3n.',
@@ -15237,9 +15242,31 @@ function LoginScreen({onLogin, onPendingVerification}) {
     setResetMessage('');
     setPassword('');
     setPassword2('');
+    setPasswordVisible(false);
+    setPassword2Visible(false);
   }
 
   const inp = {width:'100%',background:'var(--input)',border:'1px solid var(--border2)',color:'var(--text)',padding:'12px 14px',borderRadius:8,fontSize:15,fontFamily:'inherit',boxSizing:'border-box',outline:'none',marginBottom:12};
+  function renderPasswordInput({value, onChange, placeholder, visible, onToggle, autoComplete, marginBottom, testId}) {
+    const visibilityLabel = visible ? S.hidePassword : S.showPassword;
+    return React.createElement('div', {style:{position:'relative',marginBottom}},
+      React.createElement('input', {
+        type:visible?'text':'password', value, onChange, placeholder, required:true,
+        style:{...inp,marginBottom:0,paddingRight:48}, autoComplete
+      }),
+      React.createElement('button', {
+        type:'button', onClick:onToggle, 'aria-label':visibilityLabel, title:visibilityLabel,
+        'aria-pressed':visible, 'data-testid':testId,
+        style:{position:'absolute',right:3,top:3,bottom:3,width:40,display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',color:'var(--muted)',borderRadius:6,cursor:'pointer',padding:0}
+      }, React.createElement('svg', {
+        width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round','aria-hidden':'true'
+      },
+        React.createElement('path', {d:'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z'}),
+        React.createElement('circle', {cx:12,cy:12,r:3}),
+        visible ? React.createElement('path', {d:'M4 4l16 16'}) : null
+      ))
+    );
+  }
   const tabStyle = active => ({flex:1,padding:'10px',background:'none',border:'none',borderBottom:active?'2px solid var(--btn-ok-text,#4a9a4a)':'2px solid var(--border2)',color:active?'var(--btn-ok-text,#4a9a4a)':'var(--muted)',fontSize:11,letterSpacing:1,textTransform:'uppercase',cursor:'pointer',fontFamily:'inherit',transition:'all 0.2s'});
   const loginTheme = loginDark
     ? {'--bg':'#111','--surface':'#161616','--input':'#1e1e1e','--border2':'#2a2a2a','--text':'#e8e0d5','--text3':'#c9bfb0','--muted':'#8a8a8a','--btn-ok':'#1e2e1e','--btn-ok-border':'#3a5a3a','--btn-ok-text':'#7ec87e','--btn-info':'#1a1e2a','--btn-info-border':'#3a3a6a','--btn-info-text':'#8a9ec8','--btn-inactive':'#191919','--btn-warn-text':'#c87e7e'}
@@ -15269,9 +15296,9 @@ function LoginScreen({onLogin, onPendingVerification}) {
       ),
       React.createElement('form', {onSubmit:handleSubmit},
         React.createElement('input', {type:'email',value:email,onChange:e=>setEmail(e.target.value),placeholder:S.email,required:true,style:inp,autoComplete:'email'}),
-        React.createElement('input', {type:'password',value:password,onChange:e=>setPassword(e.target.value),placeholder:S.password,required:true,style:{...inp,marginBottom:mode==='register'?12:error?8:20},autoComplete:mode==='login'?'current-password':'new-password'}),
+        renderPasswordInput({value:password,onChange:e=>setPassword(e.target.value),placeholder:S.password,visible:passwordVisible,onToggle:()=>setPasswordVisible(visible=>!visible),autoComplete:mode==='login'?'current-password':'new-password',marginBottom:mode==='register'?12:error?8:20,testId:'password-visibility'}),
         mode === 'login' && React.createElement('button', {type:'button',onClick:handlePasswordReset,disabled:resetLoading || loading,style:{width:'100%',background:'none',border:'none',color:'var(--btn-info-text)',cursor:(resetLoading||loading)?'default':'pointer',fontSize:12,fontFamily:'inherit',textAlign:'right',padding:'0 2px 14px',opacity:(resetLoading||loading)?0.65:1}}, resetLoading ? S.resetSending : S.forgotPassword),
-        mode === 'register' && React.createElement('input', {type:'password',value:password2,onChange:e=>setPassword2(e.target.value),placeholder:S.confirm,required:true,style:{...inp,marginBottom:12},autoComplete:'new-password'}),
+        mode === 'register' && renderPasswordInput({value:password2,onChange:e=>setPassword2(e.target.value),placeholder:S.confirm,visible:password2Visible,onToggle:()=>setPassword2Visible(visible=>!visible),autoComplete:'new-password',marginBottom:12,testId:'password-confirmation-visibility'}),
         mode === 'register' && React.createElement('input', {type:'text',value:regName,onChange:e=>setRegName(e.target.value),placeholder:S.name,style:{...inp,marginBottom:12},autoComplete:'name'}),
         mode === 'register' && React.createElement('input', {type:'date',value:regBirthDate,onChange:e=>setRegBirthDate(e.target.value),required:true,max:new Date().toISOString().split('T')[0],min:'1900-01-01',title:S.birthTitle,style:{...inp,marginBottom:12},autoComplete:'bday'}),
         mode === 'register' && React.createElement('select', {value:regGender,onChange:e=>setRegGender(e.target.value),required:true,style:{...inp,marginBottom:12}},
