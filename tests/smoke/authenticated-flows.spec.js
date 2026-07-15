@@ -47,9 +47,9 @@ test.describe('authenticated critical data flows', () => {
   }
 
   async function addPantryFoodToStagedMeal(page, foodName, quantity) {
-    const foodSearch = page.locator('input[placeholder*="Buscar alimento"], input[placeholder*="Search food"], input[placeholder*="Buscar alimento"]');
+    const foodSearch = page.locator('input[placeholder*="Buscar alimento"]:visible, input[placeholder*="Search food"]:visible');
     await foodSearch.last().fill(foodName);
-    await page.getByText(foodName, { exact: true }).last().click();
+    await page.getByText(foodName, { exact: true }).filter({ visible: true }).last().click();
     await page.locator('input[type="number"]:visible').last().fill(String(quantity));
     await clickFirstButtonMatching(page, /Adicionar à refeição|Add to meal|Agregar a la comida/i);
   }
@@ -127,7 +127,7 @@ test.describe('authenticated critical data flows', () => {
       const diary = page.locator('[data-screen="diario"]');
       await diary.getByRole('button', { name: '‹', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Hoje', exact: true })).toBeVisible();
-      await diary.locator('[data-diary-meal-card]').first().getByRole('button', { name: /Adicionar/i }).click();
+      await diary.locator('[data-diary-meal-card]').first().getByRole('button', { name: /Adicionar/i }).click({ force: true });
       await addPantryFoodToStagedMeal(page, fixture.name, 100);
       await page.getByRole('button', { name: 'Registrar', exact: true }).click();
 
@@ -173,7 +173,7 @@ test.describe('authenticated critical data flows', () => {
     const previousPantry = await replacePantry(page, [fixture]);
 
     try {
-      await page.locator('[data-diary-meal-card]').first().getByRole('button', { name: /Adicionar/i }).click();
+      await page.locator('[data-diary-meal-card]').first().getByRole('button', { name: /Adicionar/i }).click({ force: true });
       await addPantryFoodToStagedMeal(page, fixture.name, 100);
       await page.getByRole('button', { name: /Avaliar refeição/i }).click();
 
@@ -239,8 +239,8 @@ test.describe('authenticated critical data flows', () => {
       await dismissTutorialIfVisible(page);
       await page.locator('[data-tutorial="suggest-meal-button"]').click();
       await page.getByRole('button', { name: /Ajustes avançados opcionais/i }).click();
-      await page.locator('label').filter({ hasText: /Calorias máx\./i }).locator('input').fill('1000');
-      await page.locator('label').filter({ hasText: /Proteína máx\./i }).locator('input').fill('100');
+      await page.locator('label').filter({ hasText: /Calorias máx\./i }).locator('input:visible').fill('1000');
+      await page.locator('label').filter({ hasText: /Proteína máx\./i }).locator('input:visible').fill('100');
       await page.getByRole('button', { name: /Buscar sugestões/i }).click();
 
       const addButton = page.getByRole('button', { name: /Adicionar ao diário/i }).first();

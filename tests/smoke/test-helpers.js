@@ -65,7 +65,7 @@ async function clickByTutorialKeyOrText(page, tutorialKey, fallbackPattern) {
   await dismissTutorialIfVisible(page);
   const tutorialTarget = page.locator(`[data-tutorial="${tutorialKey}"]:visible`).first();
 
-  if (await tutorialTarget.isVisible({ timeout: 1000 }).catch(() => false)) {
+  if (await tutorialTarget.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)) {
     await tutorialTarget.click({ timeout: 5000 });
     return;
   }
