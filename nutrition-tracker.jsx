@@ -46,9 +46,9 @@ function rnd(value) {
 }
 
 const LANGUAGE_OPTIONS = [
-  { code: "pt", flag: "🇧🇷", label: "Português (Brasil)", short: "PT-BR" },
-  { code: "en", flag: "🇺🇸", label: "English (US)", short: "EN-US" },
-  { code: "es", flag: "🇪🇸", label: "Español (España)", short: "ES" }
+  { code: "pt", label: "Português", short: "pt" },
+  { code: "en", label: "English", short: "en" },
+  { code: "es", label: "Español", short: "es" }
 ];
 
 function normalizeLanguage(lang) {
@@ -3521,23 +3521,15 @@ Formato obrigatório:
     setReportLoading(true);
     setReportMessage("");
     try {
-      const serverUrl = REPORT_SERVER_URL.replace(/\/$/, "");
-      if (window.location.protocol === "https:" && serverUrl.startsWith("http://")) {
+      if (!REPORTS_ENABLED) {
         throw new Error(pickLang(
           lang,
-          "O app está aberto em HTTPS, mas o servidor de relatórios está em HTTP. O navegador bloqueia essa conexão. Use o app localmente/em HTTP ou exponha o servidor de relatórios com HTTPS.",
-          "The app is open over HTTPS, but the report server is HTTP. Browsers block this request. Use the local file/app over HTTP, or expose the report server with HTTPS.",
-          "La app está abierta por HTTPS, pero el servidor de informes está en HTTP. El navegador bloquea esta conexión. Usa la app localmente/en HTTP o expón el servidor de informes con HTTPS."
+          "Recurso em manutenção. Os relatórios avançados voltarão quando um servidor seguro estiver configurado.",
+          "Feature under maintenance. Advanced reports will return when a secure server is configured.",
+          "Recurso en mantenimiento. Los informes avanzados volverán cuando haya un servidor seguro configurado."
         ));
       }
-      if (/^http:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(serverUrl) && window.location.protocol !== "file:" && !["localhost", "127.0.0.1"].includes(window.location.hostname)) {
-        throw new Error(pickLang(
-          lang,
-          "O servidor de relatórios está como localhost/127.0.0.1. Em outro dispositivo isso aponta para o próprio dispositivo, não para o PC servidor. Use o IP local do PC servidor no código.",
-          "The report server is set to localhost/127.0.0.1. On another device this points to that device itself, not to the server PC. Use the server PC LAN IP in the code.",
-          "El servidor de informes está configurado como localhost/127.0.0.1. En otro dispositivo eso apunta al propio dispositivo, no al PC servidor. Usa la IP local del PC servidor en el código."
-        ));
-      }
+      const serverUrl = REPORT_SERVER_URL;
       const payload = await buildAdvancedReportPayload(reportType, reportFormat);
       const response = await fetch(serverUrl + "/reports/from-body", {
         method: "POST",
@@ -3554,9 +3546,9 @@ Formato obrigatório:
       if (/NetworkError|Failed to fetch|Network request failed/i.test(msg)) {
         msg = pickLang(
           lang,
-          "Não foi possível acessar o servidor de relatórios. Confira se o servidor está ligado, se o IP/porta estão acessíveis por este dispositivo e se uma página HTTPS não está tentando chamar um servidor HTTP.",
-          "Could not reach the report server. Check that the server is running, that the IP/port are reachable from this device, and that HTTPS pages are not trying to call an HTTP server.",
-          "No se pudo acceder al servidor de informes. Comprueba que el servidor esté encendido, que la IP/puerto sean accesibles desde este dispositivo y que una página HTTPS no esté intentando llamar a un servidor HTTP."
+          "Não foi possível acessar o servidor seguro de relatórios. Tente novamente mais tarde.",
+          "Could not reach the secure report server. Please try again later.",
+          "No se pudo acceder al servidor seguro de informes. Inténtalo de nuevo más tarde."
         );
       }
       setReportMessage(msg);
@@ -6691,6 +6683,7 @@ Formato obrigatório:
    * the nutrition-goal form, and should remain easy to move between layouts.
    */
   function renderReportsCard() {
+    const reportsUnavailable = !REPORTS_ENABLED;
     return /*#__PURE__*/React.createElement("div", {
       "data-tutorial": "advanced-reports",
       style: {
@@ -6719,13 +6712,18 @@ Formato obrigatório:
         color: "var(--dim)",
         lineHeight: 1.45
       }
-    }, uiText("Gere relatórios em HTML ou PDF com gráficos e análise do período.", "Generate HTML or PDF reports with charts and period analysis.", "Genera informes en HTML o PDF con gráficos y análisis del período."))), /*#__PURE__*/React.createElement("button", {
+    }, reportsUnavailable ? uiText("Recurso em manutenção. Os relatórios avançados voltarão quando um servidor seguro estiver configurado.", "Feature under maintenance. Advanced reports will return when a secure server is configured.", "Recurso en mantenimiento. Los informes avanzados volverán cuando haya un servidor seguro configurado.") : uiText("Gere relatórios em HTML ou PDF com gráficos e análise do período.", "Generate HTML or PDF reports with charts and period analysis.", "Genera informes en HTML o PDF con gráficos y análisis del período."))), /*#__PURE__*/React.createElement("button", {
+      disabled: reportsUnavailable,
       onClick: () => {
         setReportMessage("");
         setReportModalOpen(true);
       },
-      style: sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)")
-    }, uiText("Gerar relatório", "Generate report", "Generar informe")));
+      style: {
+        ...sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)"),
+        opacity: reportsUnavailable ? 0.55 : 1,
+        cursor: reportsUnavailable ? "not-allowed" : "pointer"
+      }
+    }, reportsUnavailable ? uiText("Em manutenção", "Under maintenance", "En mantenimiento") : uiText("Gerar relatório", "Generate report", "Generar informe")));
   }
 
   /**
@@ -7507,7 +7505,7 @@ Formato obrigatório:
         fontSize: 13,
         textAlign: "left"
       }
-    }, /*#__PURE__*/React.createElement("span", null, option.flag + " " + option.label), isCurrentLanguage ? /*#__PURE__*/React.createElement("span", null, "\u2713") : null);
+    }, /*#__PURE__*/React.createElement("span", null, option.label + " (" + option.short + ")"), isCurrentLanguage ? /*#__PURE__*/React.createElement("span", null, "\u2713") : null);
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       height: "1px",
@@ -14613,7 +14611,7 @@ function TutorialOverlay({ lang, type = 'main', onDone }) {
       { title: 'Alimentos', text: 'Consulte alimentos salvos, crie novos itens, leia códigos de barras, organize refeições salvas e acompanhe suplementos.', highlight: 'tab-despensa' },
       { title: 'Semana', text: 'Veja tendências recentes, o banco de calorias, gráficos e médias por refeição.', highlight: 'tab-semana' },
       { title: 'Métricas', text: 'Registre medidas, acompanhe peso, IMC e TMB, ajuste metas e gere relatórios.', highlight: 'tab-metricas' },
-      { title: 'Configurações e idiomas', text: 'Na engrenagem você pode escolher PT-BR, inglês ou espanhol. Nas Configurações também ficam backup, privacidade, recursos de IA e o envio de feedback.', highlight: 'menu-settings' },
+      { title: 'Configurações e idiomas', text: 'Na engrenagem você pode escolher português, inglês ou espanhol. Nas Configurações também ficam backup, privacidade, recursos de IA e o envio de feedback.', highlight: 'menu-settings' },
       { title: 'Ajuda por aba', text: 'Em cada aba há um botão discreto com "i". Toque nele para rever o tutorial daquela área.', highlight: null }
     ],
     diario: [
@@ -14668,7 +14666,7 @@ function TutorialOverlay({ lang, type = 'main', onDone }) {
       { title: 'Foods', text: 'Search saved foods, create new items, scan barcodes, organize saved meals, and track supplements.', highlight: 'tab-despensa' },
       { title: 'Week', text: 'Review recent trends, the calorie bank, charts, and meal averages.', highlight: 'tab-semana' },
       { title: 'Metrics', text: 'Log measurements, follow weight, BMI, and BMR, adjust goals, and generate reports.', highlight: 'tab-metricas' },
-      { title: 'Settings and languages', text: 'Use the gear to choose Brazilian Portuguese, English, or Spanish. Settings also contains backup, privacy, AI features, and feedback.', highlight: 'menu-settings' },
+      { title: 'Settings and languages', text: 'Use the gear to choose Portuguese, English, or Spanish. Settings also contains backup, privacy, AI features, and feedback.', highlight: 'menu-settings' },
       { title: 'Help by tab', text: 'Each tab has a discreet "i" button. Tap it to reopen that tab tutorial.', highlight: null }
     ],
     diario: [
@@ -14724,7 +14722,7 @@ function TutorialOverlay({ lang, type = 'main', onDone }) {
       { title: 'Alimentos', text: 'Consulta alimentos guardados, crea nuevos, escanea c\u00f3digos de barras, organiza comidas guardadas y registra suplementos.', highlight: 'tab-despensa' },
       { title: 'Semana', text: 'Revisa tendencias recientes, el banco de calor\u00edas, gr\u00e1ficos y promedios por comida.', highlight: 'tab-semana' },
       { title: 'M\u00e9tricas', text: 'Registra medidas, sigue peso, IMC y TMB, ajusta metas y genera informes.', highlight: 'tab-metricas' },
-      { title: 'Configuraci\u00f3n e idiomas', text: 'Usa el engranaje para elegir portugu\u00e9s de Brasil, ingl\u00e9s o espa\u00f1ol. En Configuraci\u00f3n tambi\u00e9n est\u00e1n la copia de seguridad, privacidad, funciones de IA y comentarios.', highlight: 'menu-settings' },
+      { title: 'Configuraci\u00f3n e idiomas', text: 'Usa el engranaje para elegir portugu\u00e9s, ingl\u00e9s o espa\u00f1ol. En Configuraci\u00f3n tambi\u00e9n est\u00e1n la copia de seguridad, privacidad, funciones de IA y comentarios.', highlight: 'menu-settings' },
       { title: 'Ayuda por pesta\u00f1a', text: 'En cada pesta\u00f1a hay un bot\u00f3n discreto con "i". T\u00f3calo para volver a ver el tutorial de esa zona.', highlight: null }
     ],
     diario: [
@@ -15179,7 +15177,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
     try {
       if (mode === 'login') {
         await fbSignIn(email, password);
-        const verified = await fbCheckEmailVerified().catch(()=>true);
+        const verified = await fbCheckEmailVerified();
         if (!verified) { onPendingVerification(email); return; }
         onLogin(false);
       } else {
@@ -15203,7 +15201,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
         await fbSet('birthDate', regBirthDate).catch(()=>{});
         await fbSet('gender', regGender).catch(()=>{});
         await fbSet('language', normalizedLoginLang).catch(()=>{});
-        await fbSendVerificationEmail().catch(()=>{});
+        await fbSendVerificationEmail();
         onPendingVerification(email, regName.trim());
       }
     } catch(err) {
@@ -15257,7 +15255,7 @@ function LoginScreen({onLogin, onPendingVerification}) {
             key: option.code,
             onClick:()=>setLoginLanguage(option.code),
             style:{background:option.code===normalizedLoginLang?'var(--btn-info)':'none',border:'1px solid var(--border2)',color:option.code===normalizedLoginLang?'var(--btn-info-text)':'var(--muted)',borderRadius:6,padding:'5px 8px',fontSize:11,cursor:'pointer',fontFamily:'inherit'}
-          }, option.flag + ' ' + option.short))
+          }, option.short))
         )
       ),
       React.createElement('div', {style:{textAlign:'center',marginBottom:32}},
@@ -15401,7 +15399,6 @@ function SettingsPanel({onClose, onLogout, onOpenBackup, onOpenPrivacy, lang, da
       onClick:()=>setLanguageMenuOpen(open=>!open),
       style:{width:'100%',display:'flex',alignItems:'center',gap:12,background:'none',border:'none',color:'var(--text2)',padding:'15px 0 8px',fontSize:14,cursor:'pointer',fontFamily:'inherit',textAlign:'left'}
     },
-      React.createElement('span', {style:{fontSize:18,width:24,textAlign:'center'}}, currentLanguage.flag),
       React.createElement('span', {style:{flex:1}},
         React.createElement('span', null, S.languageTitle + ': ' + currentLanguage.label),
         React.createElement('span', {style:{display:'block',fontSize:12,color:'var(--muted)',marginTop:4,lineHeight:1.35}}, S.languageHint)
@@ -15417,7 +15414,7 @@ function SettingsPanel({onClose, onLogout, onOpenBackup, onOpenPrivacy, lang, da
         onClick:()=>chooseLanguage(option.code),
         style:{width:'100%',display:'flex',alignItems:'center',gap:10,justifyContent:'space-between',background:option.code===normalizedLang?'var(--btn-ok)':'transparent',border:'none',borderTop:'1px solid var(--border2)',color:option.code===normalizedLang?'var(--btn-ok-text)':'var(--text2)',padding:'11px 12px',cursor:'pointer',fontFamily:'inherit',fontSize:13,textAlign:'left'}
       },
-        React.createElement('span', null, option.flag + ' ' + option.label),
+        React.createElement('span', null, option.label + ' (' + option.short + ')'),
         option.code === normalizedLang ? React.createElement('span', null, '\u2713') : null
       ))
     )
@@ -15622,6 +15619,14 @@ function App() {
     fbRefreshToken()
       .then(async () => {
         clearTimeout(timeout);
+        const verified = await fbCheckEmailVerified();
+        if (!verified) {
+          setAuthed(false);
+          setPendingEmail(localStorage.getItem('fb_email') || '');
+          setChecking(false);
+          setProfileChecking(false);
+          return;
+        }
         await normalizeStorageAfterLogin();
         const savedLang = await storage.get('language').catch(()=>null);
         const normalizedSavedLang = normalizeLanguage(savedLang?.value || localStorage.getItem('appLang') || 'pt');
