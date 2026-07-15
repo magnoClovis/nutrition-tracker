@@ -30,6 +30,17 @@ test.describe('authenticated critical data flows', () => {
     await page.evaluate(([storageKey, storageValue]) => window.storage.set(storageKey, storageValue), [key, value]);
   }
 
+  async function replaceStorage(page, key, value) {
+    // Let the app's hydration save finish before replacing shared Firestore data.
+    // Otherwise that delayed save can restore the previous value after this write.
+    await page.waitForTimeout(1000);
+    await writeStorage(page, key, value);
+    await expect.poll(async () => {
+      const current = await readStorage(page, key);
+      return current.exists ? current.value : null;
+    }, { timeout: 30000 }).toBe(value);
+  }
+
   async function restoreStorage(page, key, snapshot) {
     await page.waitForTimeout(900);
     await page.evaluate(async ([storageKey, previous]) => {
@@ -143,7 +154,7 @@ test.describe('authenticated critical data flows', () => {
     });
     const logKey = `log_v2_${yesterday}`;
     const previousLog = await readStorage(page, logKey);
-    await writeStorage(page, logKey, JSON.stringify({}));
+    await replaceStorage(page, logKey, JSON.stringify({}));
     const previousPantry = await replacePantry(page, [fixture]);
 
     try {
@@ -157,7 +168,7 @@ test.describe('authenticated critical data flows', () => {
       await expect.poll(async () => {
         const current = await readStorage(page, logKey);
         return current.value || '';
-      }, { timeout: 15000 }).toContain(fixture.name);
+      }, { timeout: 30000 }).toContain(fixture.name);
       await closeStagedMeal(page);
       await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
       await clickByTutorialKeyOrText(page, 'tab-semana', /Semana/i);
@@ -194,7 +205,7 @@ test.describe('authenticated critical data flows', () => {
       fiber100: 4,
       salt100: 0.3
     };
-    await writeStorage(page, logKey, JSON.stringify({}));
+    await replaceStorage(page, logKey, JSON.stringify({}));
     const previousPantry = await replacePantry(page, [fixture]);
 
     try {
@@ -223,7 +234,7 @@ test.describe('authenticated critical data flows', () => {
       await expect.poll(async () => {
         const current = await readStorage(page, logKey);
         return current.value || '';
-      }).toContain(fixture.name);
+      }, { timeout: 30000 }).toContain(fixture.name);
       const storedLog = JSON.parse((await readStorage(page, logKey)).value || '{}');
       const storedEntry = Object.values(storedLog).flat().find(item => item.name === fixture.name);
       expect(storedEntry.qty).toBe(200);
@@ -256,7 +267,7 @@ test.describe('authenticated critical data flows', () => {
       fiber100: 2,
       salt100: 0.1
     };
-    await writeStorage(page, logKey, JSON.stringify({}));
+    await replaceStorage(page, logKey, JSON.stringify({}));
     const previousPantry = await replacePantry(page, [fixture]);
 
     try {
@@ -282,7 +293,7 @@ test.describe('authenticated critical data flows', () => {
         if (!current.value) return null;
         const parsed = JSON.parse(current.value);
         return Object.values(parsed).flat().find(item => item.name === fixture.name) || null;
-      }, { timeout: 15000 }).not.toBeNull();
+      }, { timeout: 30000 }).not.toBeNull();
       void entry;
 
       const savedEntry = await page.evaluate(async ([key, name]) => {
