@@ -46,9 +46,9 @@ function rnd(value) {
 }
 
 const LANGUAGE_OPTIONS = [
-  { code: "pt", flag: "🇧🇷", label: "Português", short: "pt" },
-  { code: "en", flag: "🇺🇸", label: "English", short: "en" },
-  { code: "es", flag: "🇪🇸", label: "Español", short: "es" }
+  { code: "pt", flag: "🇧🇷", label: "Português", short: "PT" },
+  { code: "en", flag: "🇺🇸", label: "English", short: "EN" },
+  { code: "es", flag: "🇪🇸", label: "Español", short: "ES" }
 ];
 
 function normalizeLanguage(lang) {
@@ -7505,7 +7505,7 @@ Formato obrigatório:
         fontSize: 13,
         textAlign: "left"
       }
-    }, /*#__PURE__*/React.createElement("span", null, option.flag + " " + option.label + " (" + option.short + ")"), isCurrentLanguage ? /*#__PURE__*/React.createElement("span", null, "\u2713") : null);
+    }, /*#__PURE__*/React.createElement("span", null, option.flag + " " + option.label), isCurrentLanguage ? /*#__PURE__*/React.createElement("span", null, "\u2713") : null);
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       height: "1px",
@@ -15415,7 +15415,7 @@ function SettingsPanel({onClose, onLogout, onOpenBackup, onOpenPrivacy, lang, da
         onClick:()=>chooseLanguage(option.code),
         style:{width:'100%',display:'flex',alignItems:'center',gap:10,justifyContent:'space-between',background:option.code===normalizedLang?'var(--btn-ok)':'transparent',border:'none',borderTop:'1px solid var(--border2)',color:option.code===normalizedLang?'var(--btn-ok-text)':'var(--text2)',padding:'11px 12px',cursor:'pointer',fontFamily:'inherit',fontSize:13,textAlign:'left'}
       },
-        React.createElement('span', null, option.flag + ' ' + option.label + ' (' + option.short + ')'),
+        React.createElement('span', null, option.flag + ' ' + option.label),
         option.code === normalizedLang ? React.createElement('span', null, '\u2713') : null
       ))
     )

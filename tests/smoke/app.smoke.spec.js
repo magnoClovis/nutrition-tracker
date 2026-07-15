@@ -133,7 +133,7 @@ test.describe('public boot and login screen', () => {
   test('language toggle updates login copy and persists after reload', async ({ page }) => {
     const errors = await openApp(page);
 
-    const englishButton = page.getByRole('button', { name: /🇺🇸\s+en$/i });
+    const englishButton = page.getByRole('button', { name: /🇺🇸\s+EN$/ });
     await expect(englishButton).toBeVisible();
     await englishButton.click();
     await expect(page.getByRole('button', { name: /Forgot password/i })).toBeVisible();
@@ -141,7 +141,7 @@ test.describe('public boot and login screen', () => {
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
     await expect(page.getByRole('button', { name: /Forgot password/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /🇺🇸\s+en$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /🇺🇸\s+EN$/ })).toBeVisible();
 
     await expectNoCriticalErrors(errors);
   });
