@@ -4515,11 +4515,9 @@ Formato obrigatório:
     if (isToday) {
       setLog(newLog);
     } else {
-      setHistoryLog(previous => {
-        const resolvedLog = typeof newLog === "function" ? newLog(previous) : newLog;
-        scheduleSave("log_v2_" + viewDate, resolvedLog);
-        return resolvedLog;
-      });
+      const resolvedLog = typeof newLog === "function" ? newLog(historyLog) : newLog;
+      setHistoryLog(resolvedLog);
+      scheduleSave("log_v2_" + viewDate, resolvedLog);
     }
   }
 
