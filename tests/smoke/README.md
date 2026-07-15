@@ -34,16 +34,35 @@ npm.cmd test
 
 ## Run authenticated smoke tests
 
-Authenticated tests are skipped unless these temporary environment variables
-are set. Use a disposable test account, not a personal account.
+Use a disposable Firebase test account, never a personal account. Fill the
+ignored local file `tests/test-user.local.json` manually:
 
-```powershell
-$env:NUTRITION_TEST_EMAIL = "test@example.com"
-$env:NUTRITION_TEST_PASSWORD = "test-password"
-npm.cmd run test:smoke
-Remove-Item Env:\NUTRITION_TEST_EMAIL
-Remove-Item Env:\NUTRITION_TEST_PASSWORD
+```json
+{
+  "email": "",
+  "password": ""
+}
 ```
+
+Keep the fields empty until the disposable account is available. The file and
+the generated `playwright/.auth/user.json` session are ignored by Git. After the
+first successful login, Playwright reuses that storage state instead of logging
+in before every authenticated test.
+
+For future CI runs, set `NUTRITION_TEST_EMAIL` and
+`NUTRITION_TEST_PASSWORD` through GitHub Secrets. Environment variables take
+priority over the local JSON file.
+
+When neither source has complete credentials, authenticated tests are skipped
+with this message:
+
+```text
+credenciais de teste não configuradas — preencha tests/test-user.local.json ou defina NUTRITION_TEST_EMAIL/NUTRITION_TEST_PASSWORD
+```
+
+Firebase Auth and Firestore are the only real remote integrations used by the
+authenticated suite. Groq, Open Food Facts, and the advanced-report server are
+always intercepted; the tests never send real requests to those services.
 
 The test runner starts the app locally at `http://127.0.0.1:8765/index.html`.
 That local server is implemented in Node at `tests/smoke/serve-static.js`, so

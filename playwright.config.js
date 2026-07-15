@@ -5,7 +5,8 @@ const { defineConfig, devices } = require('@playwright/test');
  *
  * The app is served through a local HTTP server so browser APIs behave closer
  * to production than they would from a raw file:// URL. Authenticated tests are
- * opt-in through environment variables and never store credentials in the repo.
+ * opt-in through environment variables or tests/test-user.local.json. The
+ * ignored playwright/.auth/user.json state avoids logging in before every test.
  */
 module.exports = defineConfig({
   testDir: './tests/smoke',
@@ -30,11 +31,20 @@ module.exports = defineConfig({
   },
   projects: [
     {
+      name: 'auth-setup',
+      testMatch: /auth\.setup\.js/,
+      use: { ...devices['Desktop Chrome'] }
+    },
+    {
       name: 'desktop-chromium',
+      testIgnore: /auth\.setup\.js/,
+      dependencies: ['auth-setup'],
       use: { ...devices['Desktop Chrome'] }
     },
     {
       name: 'mobile-chromium',
+      testIgnore: /auth\.setup\.js/,
+      dependencies: ['auth-setup'],
       use: { ...devices['Pixel 5'] }
     }
   ]

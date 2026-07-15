@@ -1,119 +1,18 @@
 const { test, expect } = require('@playwright/test');
-
-const TEST_EMAIL = process.env.NUTRITION_TEST_EMAIL || '';
-const TEST_PASSWORD = process.env.NUTRITION_TEST_PASSWORD || '';
-const HAS_AUTH_CREDENTIALS = Boolean(TEST_EMAIL && TEST_PASSWORD);
-
-/**
- * Captures runtime errors that usually mean the app failed to boot.
- *
- * The console filter deliberately ignores only browser/resource noise that does
- * not include useful app context. Thrown page errors still fail immediately, so
- * syntax errors, missing globals, and broken render paths stay visible.
- */
-function collectCriticalErrors(page) {
-  const errors = [];
-
-  page.on('console', (message) => {
-    if (message.type() !== 'error') return;
-
-    const text = message.text();
-    if (isIgnorableConsoleError(text)) return;
-
-    errors.push(text);
-  });
-
-  page.on('pageerror', (error) => {
-    errors.push(error.message);
-  });
-
-  return errors;
-}
-
-function isIgnorableConsoleError(text) {
-  return /favicon/i.test(text)
-    || /Failed to load resource: the server responded with a status of 404 \(\)/i.test(text);
-}
-
-async function openApp(page) {
-  const errors = collectCriticalErrors(page);
-
-  await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('#root')).toBeVisible();
-  await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
-
-  return errors;
-}
-
-async function expectNoCriticalErrors(errors) {
-  expect(errors, `critical browser errors:\n${errors.join('\n')}`).toEqual([]);
-}
-
-async function login(page) {
-  await page.locator('input[type="email"]').fill(TEST_EMAIL);
-  await page.locator('input[type="password"]').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: /Entrar|Sign in/i }).last().click();
-
-  await expect(
-    page.locator('button').filter({
-      hasText: /Di.rio|Diary|Alimentos|Foods|Semana|Week|M.tricas|Metrics/i
-    }).first()
-  ).toBeVisible({ timeout: 20000 });
-
-  await dismissTutorialIfVisible(page);
-}
-
-/**
- * Clears onboarding overlays that may appear after login or when opening a tab.
- *
- * New accounts can show a multi-step tutorial, while migrated accounts may only
- * show a single release note. Smoke tests are not validating tutorial content,
- * so they walk through or skip visible tutorial controls until normal app
- * clicks are no longer blocked.
- */
-async function dismissTutorialIfVisible(page) {
-  const closePattern = /Pular|Skip|Fechar|Close|Concluir|Finish/i;
-  const nextPattern = /Pr[oó]ximo|Next|Ir ao tutorial|Go to tutorial/i;
-
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    const closeButton = page.getByRole('button', { name: closePattern }).first();
-    if (await closeButton.isVisible({ timeout: 300 }).catch(() => false)) {
-      await closeButton.click({ force: true });
-      await page.waitForTimeout(150);
-      continue;
-    }
-
-    const nextButton = page.getByRole('button', { name: nextPattern }).first();
-    if (await nextButton.isVisible({ timeout: 300 }).catch(() => false)) {
-      await nextButton.click({ force: true });
-      await page.waitForTimeout(150);
-      continue;
-    }
-
-    await page.keyboard.press('Escape').catch(() => {});
-    await page.waitForTimeout(100);
-    break;
-  }
-}
-
-async function clickFirstButtonMatching(page, pattern) {
-  const button = page.locator('button').filter({ hasText: pattern }).first();
-  await expect(button).toBeVisible();
-  await button.click();
-}
-
-async function clickByTutorialKeyOrText(page, tutorialKey, fallbackPattern) {
-  await dismissTutorialIfVisible(page);
-
-  const tutorialTarget = page.locator(`[data-tutorial="${tutorialKey}"]`).first();
-
-  if (await tutorialTarget.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await tutorialTarget.click({ timeout: 5000 });
-    return;
-  }
-
-  await clickFirstButtonMatching(page, fallbackPattern);
-}
+const {
+  clickByTutorialKeyOrText,
+  clickFirstButtonMatching,
+  dismissTutorialIfVisible,
+  expectNoCriticalErrors,
+  interceptOptionalExternalApis,
+  openApp,
+  setAppLanguage
+} = require('./test-helpers');
+const {
+  AUTH_STATE_PATH,
+  hasCredentials,
+  missingCredentialsMessage
+} = require('./test-credentials');
 
 test.afterEach(async ({ request }) => {
   await request.get('/index.html').catch(() => {});
@@ -130,21 +29,29 @@ test.describe('public boot and login screen', () => {
     await expectNoCriticalErrors(errors);
   });
 
-  test('language toggle updates login copy and persists after reload', async ({ page }) => {
-    const errors = await openApp(page);
+  const loginLanguages = [
+    { code: 'PT', button: /🇧🇷\s+PT$/, forgot: /Esqueci minha senha/i },
+    { code: 'EN', button: /🇺🇸\s+EN$/, forgot: /Forgot password/i },
+    { code: 'ES', button: /🇪🇸\s+ES$/, forgot: /Olvidé mi contraseña/i }
+  ];
 
-    const englishButton = page.getByRole('button', { name: /🇺🇸\s+EN$/ });
-    await expect(englishButton).toBeVisible();
-    await englishButton.click();
-    await expect(page.getByRole('button', { name: /Forgot password/i })).toBeVisible();
+  for (const language of loginLanguages) {
+    test(`language toggle persists ${language.code} login copy after reload`, async ({ page }) => {
+      const errors = await openApp(page);
+      const languageButton = page.getByRole('button', { name: language.button });
 
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
-    await expect(page.getByRole('button', { name: /Forgot password/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /🇺🇸\s+EN$/ })).toBeVisible();
+      await expect(languageButton).toBeVisible();
+      await languageButton.click();
+      await expect(page.getByRole('button', { name: language.forgot })).toBeVisible();
 
-    await expectNoCriticalErrors(errors);
-  });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
+      await expect(page.getByRole('button', { name: language.forgot })).toBeVisible();
+      await expect(page.getByRole('button', { name: language.button })).toBeVisible();
+
+      await expectNoCriticalErrors(errors);
+    });
+  }
 
   test('migrates once to dark and then preserves the saved theme after reload', async ({ page }) => {
     const errors = await openApp(page);
@@ -243,49 +150,61 @@ test.describe('public boot and login screen', () => {
 
 test.describe('authenticated app smoke tests', () => {
   test.skip(
-    !HAS_AUTH_CREDENTIALS,
-    'set NUTRITION_TEST_EMAIL and NUTRITION_TEST_PASSWORD to run authenticated smoke tests'
+    !hasCredentials,
+    missingCredentialsMessage
   );
+  test.use({ storageState: AUTH_STATE_PATH });
+  test.beforeEach(async ({ page }) => interceptOptionalExternalApis(page));
 
-  test('opens the main tabs without rendering blank sections', async ({ page }) => {
+  test('opens the critical tabs in Portuguese, English, and Spanish', async ({ page }) => {
     const errors = await openApp(page);
-    await login(page);
-
-    const tabs = [
-      {
-        tutorialKey: 'tab-diario',
-        label: /Di.rio|Diary/i,
-        expectedContent: /Prote.na|Protein|Calorias|Calories|Nutrientes|Nutrients/i
-      },
-      {
-        tutorialKey: 'tab-despensa',
-        label: /Alimentos|Foods|Pantry/i,
-        expectedContent: /Salvos|Saved|Suplementos|Supplements|Novo alimento|New food/i
-      },
-      {
-        tutorialKey: 'tab-semana',
-        label: /Semana|Week/i,
-        expectedContent: /ltimos 7 dias|Last 7 days|M.dia|Average|Prote.na|Protein|Calorias|Calories/i
-      },
-      {
-        tutorialKey: 'tab-metricas',
-        label: /M.tricas|Metrics/i,
-        expectedContent: /Acompanhamento|Tracking|Metas|Goals|Hist.rico|History/i
-      }
+    const languages = [
+      { code: 'pt', diary: /Di.rio/i, pantry: /Alimentos/i, week: /Semana/i, metrics: /M.tricas/i, metricText: /Acompanhamento/ },
+      { code: 'en', diary: /Diary/i, pantry: /Foods|Pantry/i, week: /Week/i, metrics: /Metrics/i, metricText: /Tracking/ },
+      { code: 'es', diary: /Diario/i, pantry: /Alimentos/i, week: /Semana/i, metrics: /M.tricas/i, metricText: /Seguimiento/ }
     ];
 
-    for (const tab of tabs) {
-      await clickByTutorialKeyOrText(page, tab.tutorialKey, tab.label);
-      await dismissTutorialIfVisible(page);
-      await expect(page.locator('#root')).toContainText(tab.expectedContent, { timeout: 10000 });
+    for (const language of languages) {
+      await setAppLanguage(page, language.code);
+      for (const tab of [
+        ['tab-diario', language.diary, '[data-screen="diario"]'],
+        ['tab-despensa', language.pantry, '[data-screen="despensa"]'],
+        ['tab-semana', language.week, '[data-screen="semana"]'],
+        ['tab-metricas', language.metrics, '[data-screen="metricas"]']
+      ]) {
+        await clickByTutorialKeyOrText(page, tab[0], tab[1]);
+        await dismissTutorialIfVisible(page);
+        await expect(page.locator(tab[2])).toBeVisible({ timeout: 10000 });
+      }
+      await expect(page.locator('[data-screen="metricas"]')).toContainText(language.metricText);
     }
+
+    await expectNoCriticalErrors(errors);
+  });
+
+  test('validates each Metrics section independently', async ({ page }) => {
+    const errors = await openApp(page);
+    await setAppLanguage(page, 'pt');
+    await clickByTutorialKeyOrText(page, 'tab-metricas', /M.tricas/i);
+
+    await expect(page.getByRole('button', { name: 'Acompanhamento' })).toBeVisible();
+    await expect(page.locator('[data-tutorial="metrics-measures"]')).toBeVisible();
+    await expect(page.locator('[data-tutorial="metrics-current"]')).toBeVisible();
+    await expect(page.locator('[data-tutorial="weight-chart"]')).toBeVisible();
+    await expect(page.locator('[data-tutorial="bmr-chart"]')).toBeVisible();
+    await expect(page.locator('[data-tutorial="body-composition"]')).toBeVisible();
+    await expect(page.locator('[data-tutorial="metrics-progress"]')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Metas', exact: true }).click();
+    await expect(page.locator('[data-tutorial="nutrition-profile"]')).toBeVisible();
+    await expect(page.locator('[data-tutorial="metrics-target-summary"]')).toBeVisible();
+    await expect(page.locator('[data-tutorial="metrics-measures"]')).toBeHidden();
 
     await expectNoCriticalErrors(errors);
   });
 
   test('opens settings and backup modal', async ({ page }) => {
     const errors = await openApp(page);
-    await login(page);
 
     await clickByTutorialKeyOrText(page, 'menu-settings', /Settings|Configura/i);
     await clickFirstButtonMatching(page, /Backup e restaurar|Backup & restore/i);
@@ -297,7 +216,6 @@ test.describe('authenticated app smoke tests', () => {
 
   test('signs out and returns to the login screen', async ({ page }) => {
     const errors = await openApp(page);
-    await login(page);
 
     await clickByTutorialKeyOrText(page, 'menu-settings', /Settings|Configura/i);
     await clickFirstButtonMatching(page, /Sair|Sign out|Log out/i);
