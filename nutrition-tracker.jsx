@@ -4515,8 +4515,11 @@ Formato obrigatório:
     if (isToday) {
       setLog(newLog);
     } else {
-      setHistoryLog(newLog);
-      scheduleSave("log_v2_" + viewDate, newLog);
+      setHistoryLog(previous => {
+        const resolvedLog = typeof newLog === "function" ? newLog(previous) : newLog;
+        scheduleSave("log_v2_" + viewDate, resolvedLog);
+        return resolvedLog;
+      });
     }
   }
 
@@ -8307,6 +8310,7 @@ Formato obrigatório:
       cursor: "pointer"
     }
   }, label))), /*#__PURE__*/React.createElement("div", {
+    "data-add-meal-backdrop": "true",
     onClick: () => openTab("diario"),
     style: {
       display: tab === "adicionar" ? "block" : "none",

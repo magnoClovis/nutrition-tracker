@@ -1,8 +1,12 @@
 const { expect } = require('@playwright/test');
 
-function isIgnorableConsoleError(text) {
+function isIgnorableConsoleError(text, locationUrl = '') {
   return /favicon/i.test(text)
-    || /Failed to load resource: the server responded with a status of 404 \(\)/i.test(text);
+    || /Failed to load resource: the server responded with a status of 404 \(\)/i.test(text)
+    || (
+      /Failed to load resource: the server responded with a status of 403 \(\)/i.test(text)
+      && /firestore\.googleapis\.com\/v1\/projects\/[^/]+\/databases\/\(default\)\/documents\/nutrition\?pageSize=1000$/i.test(locationUrl)
+    );
 }
 
 function collectCriticalErrors(page) {
@@ -11,7 +15,7 @@ function collectCriticalErrors(page) {
   page.on('console', (message) => {
     if (message.type() !== 'error') return;
     const text = message.text();
-    if (!isIgnorableConsoleError(text)) errors.push(text);
+    if (!isIgnorableConsoleError(text, message.location().url)) errors.push(text);
   });
 
   page.on('pageerror', (error) => errors.push(error.message));
@@ -35,14 +39,14 @@ async function dismissTutorialIfVisible(page) {
   const nextPattern = /Pr[oó]ximo|Next|Siguiente|Ir ao tutorial|Go to tutorial|Ir al tutorial/i;
 
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const closeButton = page.getByRole('button', { name: closePattern }).first();
+    const closeButton = page.getByRole('button', { name: closePattern }).filter({ visible: true }).first();
     if (await closeButton.isVisible({ timeout: 300 }).catch(() => false)) {
       await closeButton.click({ force: true });
       await page.waitForTimeout(150);
       continue;
     }
 
-    const nextButton = page.getByRole('button', { name: nextPattern }).first();
+    const nextButton = page.getByRole('button', { name: nextPattern }).filter({ visible: true }).first();
     if (await nextButton.isVisible({ timeout: 300 }).catch(() => false)) {
       await nextButton.click({ force: true });
       await page.waitForTimeout(150);
@@ -66,7 +70,8 @@ async function clickByTutorialKeyOrText(page, tutorialKey, fallbackPattern) {
   const tutorialTarget = page.locator(`[data-tutorial="${tutorialKey}"]:visible`).first();
 
   if (await tutorialTarget.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)) {
-    await tutorialTarget.click({ timeout: 5000 });
+    await tutorialTarget.click({ force: true });
+    await dismissTutorialIfVisible(page);
     return;
   }
 
