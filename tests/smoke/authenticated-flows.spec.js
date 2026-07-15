@@ -143,6 +143,7 @@ test.describe('authenticated critical data flows', () => {
     });
     const logKey = `log_v2_${yesterday}`;
     const previousLog = await readStorage(page, logKey);
+    await writeStorage(page, logKey, JSON.stringify({}));
     const previousPantry = await replacePantry(page, [fixture]);
 
     try {
@@ -193,6 +194,7 @@ test.describe('authenticated critical data flows', () => {
       fiber100: 4,
       salt100: 0.3
     };
+    await writeStorage(page, logKey, JSON.stringify({}));
     const previousPantry = await replacePantry(page, [fixture]);
 
     try {
@@ -254,10 +256,10 @@ test.describe('authenticated critical data flows', () => {
       fiber100: 2,
       salt100: 0.1
     };
+    await writeStorage(page, logKey, JSON.stringify({}));
     const previousPantry = await replacePantry(page, [fixture]);
 
     try {
-      await writeStorage(page, logKey, '{}');
       await page.reload({ waitUntil: 'domcontentloaded' });
       await dismissTutorialIfVisible(page);
       await page.locator('[data-tutorial="suggest-meal-button"]').click();
