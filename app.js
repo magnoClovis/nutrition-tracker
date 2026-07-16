@@ -95,6 +95,12 @@ const {
   hasRequiredProfileData
 } = window.ProfileValidation.createProfileValidation({ storage, activityLevels: ACTIVITY_LEVELS });
 
+const {
+  Ring,
+  Bar,
+  ErrorBoundary
+} = window.UiPrimitives.createUiPrimitives({ React });
+
 /**
  * Release notices use an explicit version marker. Legacy boolean values mean
  * that an older release was acknowledged, so existing users still receive the
@@ -441,96 +447,6 @@ function dateLabel(date, lang) {
   return formatDateDMY(date);
 }
 
-function Ring({
-  value,
-  max,
-  color,
-  size = 76,
-  stroke = 7
-}) {
-  const r = (size - stroke) / 2,
-    circ = 2 * Math.PI * r,
-    offset = circ * (1 - Math.min(value / max, 1));
-  return /*#__PURE__*/React.createElement("svg", {
-    width: size,
-    height: size,
-    style: {
-      transform: "rotate(-90deg)"
-    }
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: size / 2,
-    cy: size / 2,
-    r: r,
-    fill: "none",
-    stroke: "var(--track)",
-    strokeWidth: stroke
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: size / 2,
-    cy: size / 2,
-    r: r,
-    fill: "none",
-    stroke: value > max ? "#ff4d4d" : color,
-    strokeWidth: stroke,
-    strokeDasharray: circ,
-    strokeDashoffset: offset,
-    strokeLinecap: "round",
-    style: {
-      transition: "stroke-dashoffset 0.5s ease"
-    }
-  }));
-}
-function Bar({
-  value,
-  max,
-  color,
-  label,
-  unit,
-  sub
-}) {
-  if (!max) return null;
-  const over = value > max;
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: sub ? 4 : 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: 3
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: sub ? 10 : 11,
-      color: sub ? "#555" : "#777",
-      paddingLeft: sub ? 10 : 0
-    }
-  }, sub ? "\u21B3 " : "", label), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      color: over ? "#ff4d4d" : color
-    }
-  }, value % 1 === 0 ? value : value.toFixed(1), unit, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--dim)",
-      fontSize: 10
-    }
-  }, " / ", max, unit))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: sub ? 3 : 5,
-      background: "var(--track)",
-      borderRadius: 4
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: "100%",
-      width: Math.min(value / max * 100, 100) + "%",
-      borderRadius: 4,
-      background: over ? "#ff4d4d" : color,
-      transition: "width 0.4s ease"
-    }
-  })));
-}
 function NutritionTracker({
   onOpenSettings,
   onLogout,
@@ -14218,33 +14134,6 @@ function SettingsPanel({onClose, onLogout, onOpenBackup, onOpenPrivacy, lang, da
     ) : null
   );
 }
-// Error Boundary
-class ErrorBoundary extends React.Component {
-  constructor(props) { super(props); this.state = {error: null}; }
-  static getDerivedStateFromError(e) { return {error: e}; }
-  componentDidCatch(e, info) { console.error('App crash:', e, info); }
-  render() {
-    if (this.state.error) {
-      return React.createElement('div', {style:{
-        position:'fixed',top:0,left:0,right:0,bottom:0,background:'var(--surface)',
-        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-        gap:12,padding:20,textAlign:'center'
-      }},
-        React.createElement('div', {style:{color:'#c87e7e',fontSize:13,letterSpacing:2}}, 'ERRO'),
-        React.createElement('div', {style:{color:'#c87e7e',fontSize:11,maxWidth:360}},
-          (this.state.error.message||String(this.state.error)).toUpperCase()
-        ),
-        React.createElement('button', {
-          onClick:()=>this.setState({error:null}),
-          style:{marginTop:20,background:'none',border:'1px solid #333',color:'#555',
-            borderRadius:6,padding:'8px 16px',fontSize:11,cursor:'pointer'}
-        }, 'RETRY / TENTAR')
-      );
-    }
-    return this.props.children;
-  }
-}
-
 // Root App
 function App() {
   const [authed,  setAuthed]    = React.useState(fbIsLoggedIn());
