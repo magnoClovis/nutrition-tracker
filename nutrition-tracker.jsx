@@ -86,6 +86,15 @@ const {
   computeGoals
 } = window.GoalCalculator.createGoalCalculator();
 
+const {
+  isValidBirthDate,
+  isValidGender,
+  isValidActivityLevel,
+  isValidGoalProfile,
+  getRequiredProfileData,
+  hasRequiredProfileData
+} = window.ProfileValidation.createProfileValidation({ storage, activityLevels: ACTIVITY_LEVELS });
+
 /**
  * Release notices use an explicit version marker. Legacy boolean values mean
  * that an older release was acknowledged, so existing users still receive the
@@ -13689,55 +13698,6 @@ function TutorialOverlay({ lang, type = 'main', onDone }) {
       )
     )
   );
-}
-
-function isValidBirthDate(value) {
-  if (!value) return false;
-  const d = new Date(value + 'T00:00:00');
-  if (Number.isNaN(d.getTime())) return false;
-  const today = new Date();
-  const min = new Date('1900-01-01T00:00:00');
-  return d <= today && d >= min;
-}
-
-function isValidGender(value) {
-  return value === 'male' || value === 'female';
-}
-
-function isValidActivityLevel(value) {
-  return !!ACTIVITY_LEVELS[value];
-}
-
-function isValidGoalProfile(profile) {
-  if (!profile || !['maintenance','loss','gain'].includes(profile.goalType)) return false;
-  if (!isValidActivityLevel(profile.activityLevel)) return false;
-  if (profile.goalType === 'maintenance') return true;
-  return Number(profile.goalKg) > 0 && Number(profile.goalWeeks) > 0;
-}
-
-async function getRequiredProfileData() {
-  const [birthDate, gender, activityLevel, goalType, goalKg, goalWeeks, manualAdjustment] = await Promise.all([
-    storage.get('birthDate').catch(()=>null),
-    storage.get('gender').catch(()=>null),
-    storage.get('activityLevel').catch(()=>null),
-    storage.get('goalType').catch(()=>null),
-    storage.get('goalKg').catch(()=>null),
-    storage.get('goalWeeks').catch(()=>null),
-    storage.get('manualCalorieAdjustment').catch(()=>null)
-  ]);
-  return {
-    birthDate: birthDate && birthDate.value ? birthDate.value : '',
-    gender: gender && gender.value ? gender.value : '',
-    activityLevel: activityLevel && activityLevel.value ? activityLevel.value : '',
-    goalType: goalType && goalType.value ? goalType.value : '',
-    goalKg: goalKg && goalKg.value ? goalKg.value : '',
-    goalWeeks: goalWeeks && goalWeeks.value ? goalWeeks.value : '',
-    manualAdjustment: manualAdjustment && manualAdjustment.value ? manualAdjustment.value : ''
-  };
-}
-
-function hasRequiredProfileData(profile) {
-  return !!profile && isValidBirthDate(profile.birthDate) && isValidGender(profile.gender) && isValidGoalProfile(profile);
 }
 
 function RequiredProfileModal({lang, profile, onComplete}) {
