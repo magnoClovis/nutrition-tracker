@@ -90,6 +90,21 @@ const {
 });
 
 const {
+  VerifyEmailScreen
+} = window.VerifyEmailScreenModule.createVerifyEmailScreen({
+  React,
+  authService: {
+    checkEmailVerified: fbCheckEmailVerified,
+    sendVerificationEmail: fbSendVerificationEmail
+  },
+  localStorage,
+  timers: {
+    setInterval: window.setInterval.bind(window),
+    clearInterval: window.clearInterval.bind(window)
+  }
+});
+
+const {
   getGreetingPeriod,
   getGreetingEmoji,
   formatTickerAmount,
@@ -12459,134 +12474,6 @@ function sBtnLbl(bg, border, color, extra = {}) {
 // Login / Register Screen
 
 
-
-// Email Verification Screen
-function VerifyEmailScreen({ email, name, lang, onVerified, onBack }) {
-  const isPt = (lang || localStorage.getItem('appLang') || 'pt') !== 'en';
-  const [status, setStatus] = React.useState(''); // '', 'resent', 'error'
-  const [checking, setChecking] = React.useState(false);
-  const isNew = !!name; // name only passed on new registrations
-
-  // Poll every 5s to check if email was verified
-  React.useEffect(() => {
-    let active = true;
-    const interval = setInterval(async () => {
-      try {
-        const verified = await fbCheckEmailVerified();
-        if (verified && active) {
-          clearInterval(interval);
-          onVerified(isNew);
-        }
-      } catch(e) {}
-    }, 5000);
-    return () => { active = false; clearInterval(interval); };
-  }, []);
-
-  async function resend() {
-    setStatus('');
-    try {
-      await fbSendVerificationEmail();
-      setStatus('resent');
-    } catch(e) {
-      setStatus('error');
-    }
-  }
-
-  const inp = {
-    width:'100%', background:'var(--input,#1e1e1e)',
-    border:'1px solid var(--border2,#333)', color:'var(--text1,#fff)',
-    padding:'11px 14px', borderRadius:10, fontSize:14,
-    fontFamily:'inherit', boxSizing:'border-box'
-  };
-
-  return React.createElement('div', {
-    style: {
-      minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
-      background:'var(--bg,#111)', padding:20
-    }
-  },
-    React.createElement('div', {
-      style: {
-        background:'var(--surface,#fff)', borderRadius:20, padding:'36px 28px',
-        width:'100%', maxWidth:420, textAlign:'center',
-        boxShadow:'0 8px 40px rgba(0,0,0,0.5)',
-        border:'1px solid var(--border2,#333)'
-      }
-    },
-      // Icon
-      React.createElement('div', {style:{fontSize:52, marginBottom:16}}, '\uD83D\uDCE7'),
-
-      // Title
-      React.createElement('h2', {
-        style:{margin:'0 0 8px', fontSize:20, color:'var(--text1,#fff)', fontWeight: 600}
-      }, isPt
-        ? (name ? 'Ol\xe1, ' + name + '! Verifique seu email \uD83D\uDC4B' : 'Verifique seu email')
-        : (name ? 'Hi, ' + name + '! Verify your email \uD83D\uDC4B' : 'Verify your email')
-      ),
-
-      // Subtitle
-      React.createElement('p', {
-        style:{margin:'0 0 24px', fontSize:13, color:'var(--text2,#aaa)', lineHeight:1.6}
-      }, isPt
-        ? 'Env\xe1mos um link de verifica\xe7\xe3o para '
-        : 'We sent a verification link to '
-      ,
-        React.createElement('strong', {style:{color:'var(--accent,#7ec87e)'}}, email),
-        isPt
-          ? '. Clique no link para ativar sua conta. Se n\xe3o encontrar o email, verifique a pasta de spam ou lixo eletr\xf4nico. Esta p\xe1gina atualiza automaticamente.'
-          : '. Click the link to activate your account. If you don\'t see it, check your spam or junk folder. This page updates automatically.'
-      ),
-
-      // Spinner / waiting indicator
-      React.createElement('div', {
-        style:{
-          display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-          marginBottom:24, color:'var(--text2,#aaa)', fontSize:12
-        }
-      },
-        React.createElement('div', {
-          style:{
-            width:14, height:14, borderRadius:'50%',
-            border:'2px solid var(--accent,#7ec87e)',
-            borderTopColor:'transparent',
-            animation:'spin 1s linear infinite'
-          }
-        }),
-        isPt ? 'Aguardando verifica\xe7\xe3o...' : 'Waiting for verification...'
-      ),
-
-      // Status message
-      status === 'resent' && React.createElement('p', {
-        style:{color:'var(--accent,#7ec87e)', fontSize:12, marginBottom:12}
-      }, isPt ? '\u2713 Email reenviado!' : '\u2713 Email resent!'),
-      status === 'error' && React.createElement('p', {
-        style:{color:'#c87e7e', fontSize:12, marginBottom:12}
-      }, isPt ? 'Erro ao reenviar. Tente novamente.' : 'Error resending. Please try again.'),
-
-      // Resend button
-      React.createElement('button', {
-        onClick: resend,
-        style:{
-          width:'100%', padding:'12px', borderRadius:10, marginBottom:12,
-          background:'var(--accent,#7ec87e)', border:'none',
-          color:'#111', fontSize:13, fontWeight: 600,
-          cursor:'pointer', fontFamily:'inherit', letterSpacing:0.5
-        }
-      }, isPt ? 'Reenviar email de verifica\xe7\xe3o' : 'Resend verification email'),
-
-      // Back button
-      React.createElement('button', {
-        onClick: onBack,
-        style:{
-          width:'100%', padding:'11px', borderRadius:10,
-          background:'none', border:'1px solid var(--border2,#333)',
-          color:'var(--text2,#aaa)', fontSize:13,
-          cursor:'pointer', fontFamily:'inherit'
-        }
-      }, isPt ? '\u2190 Voltar para o login' : '\u2190 Back to login')
-    )
-  );
-}
 
 // Privacy & Security Panel
 function PrivacyPanel({ lang, onClose, onLogout }) {
