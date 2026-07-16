@@ -39,6 +39,21 @@ const context = {
           buildNutrientTickerSlide: noop
         };
       }
+    },
+    DateUtils: {
+      createDateUtils() {
+        return {
+          rnd: noop,
+          quickQtys: noop,
+          divisor: noop,
+          portionLabel: noop,
+          formatDateDMY: noop,
+          formatDateDM: noop,
+          formatHeaderDate: noop,
+          capitalizeFirst: noop,
+          addDays: noop
+        };
+      }
     }
   },
   Intl,

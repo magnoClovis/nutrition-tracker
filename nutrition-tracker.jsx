@@ -40,11 +40,6 @@ function hasSeenTutorial(record) {
 }
 
 const TODAY = new Date().toISOString().split("T")[0];
-function rnd(value) {
-  const n = Number(value) || 0;
-  return Math.round(n * 10) / 10;
-}
-
 const LANGUAGE_OPTIONS = [
   { code: "pt", flag: "🇧🇷", label: "Português", short: "PT" },
   { code: "en", flag: "🇺🇸", label: "English", short: "EN" },
@@ -129,6 +124,18 @@ const {
   formatTickerAmount,
   buildNutrientTickerSlide
 } = window.DiaryTicker.createDiaryTicker({ localeForLang, pickLang });
+
+const {
+  rnd,
+  quickQtys,
+  divisor,
+  portionLabel,
+  formatDateDMY,
+  formatDateDM,
+  formatHeaderDate,
+  capitalizeFirst,
+  addDays
+} = window.DateUtils.createDateUtils({ normalizeLanguage, pickLang, localeForLang });
 
 /**
  * Release notices use an explicit version marker. Legacy boolean values mean
@@ -1540,20 +1547,6 @@ function downloadFile(content, filename, mime) {
 function downloadText(content, filename, type) {
   downloadFile(content, filename, type);
 }
-function quickQtys(unit) {
-  if (unit === "ml") return [100, 150, 200, 250, 300, 500];
-  if (unit === "un") return [1, 2, 3, 4];
-  return [50, 100, 150, 200, 250, 300];
-}
-function divisor(unit) {
-  return unit === "un" ? 1 : 100;
-}
-function portionLabel(unit, lang) {
-  const currentLang = normalizeLanguage(lang);
-  return unit === "un"
-    ? pickLang(currentLang, "por 1 unidade", "per unit", "por unidad")
-    : pickLang(currentLang, "por 100" + unit, "per 100" + unit, "por 100" + unit);
-}
 function dateLabel(date, lang) {
   const s = STRINGS[lang || 'pt'];
   if (date === TODAY) return `${s.today} ${formatDateDMY(date)}`;
@@ -1564,41 +1557,6 @@ function dateLabel(date, lang) {
   return formatDateDMY(date);
 }
 
-// Formats stored ISO dates for human-readable history rows. Storage keeps
-// YYYY-MM-DD because it sorts correctly; the UI shows DD-MM-YYYY as requested.
-function formatDateDMY(date) {
-  if (!date || typeof date !== "string") return "—";
-  const [year, month, day] = date.split("-");
-  return year && month && day ? `${day}-${month}-${year}` : date;
-}
-
-function formatDateDM(date) {
-  if (!date || typeof date !== "string") return "—";
-  const [year, month, day] = date.split("-");
-  return year && month && day ? `${day}-${month}` : date;
-}
-
-function capitalizeFirst(text) {
-  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
-}
-
-function formatHeaderDate(date, lang) {
-  if (!date || typeof date !== "string") return "—";
-  const locale = localeForLang(lang);
-  const d = new Date(date + "T12:00:00");
-  const formatted = d.toLocaleDateString(locale, {
-    weekday: "long",
-    day: "numeric",
-    month: "long"
-  });
-  return capitalizeFirst(formatted);
-}
-
-function addDays(date, n) {
-  const d = new Date(date + "T12:00:00");
-  d.setDate(d.getDate() + n);
-  return d.toISOString().split("T")[0];
-}
 function Ring({
   value,
   max,
