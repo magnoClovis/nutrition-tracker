@@ -1,3 +1,14 @@
+/**
+ * Nutritional-goal calculation from profile, activity, and body-weight data.
+ *
+ * The UMD module exposes a `createGoalCalculator` factory and requires no
+ * injected dependencies; it uses JavaScript `Date`, `Math`, and `Number`
+ * built-ins. The returned API accepts plain profile/preference objects and
+ * primitive weight or day-type values and returns ages, factors, adjustments,
+ * multipliers, or plain nutritional-goal objects.
+ *
+ * @module GoalCalculator
+ */
 (function (root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
@@ -5,6 +16,11 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
+  /**
+   * Creates the goal-calculation API and its activity descriptors.
+   *
+   * @returns {Object} Activity descriptors and nutritional-goal calculation helpers.
+   */
   function createGoalCalculator() {
     const ACTIVITY_LEVELS = {
       sedentary: {
@@ -60,6 +76,13 @@
       very: 1.45,
       extreme: 1.55
     };
+    /**
+     * Calculates age using local calendar fields at an optional reference date.
+     *
+     * @param {string} birthDate Birth date in `YYYY-MM-DD` format.
+     * @param {Date} [refDate=new Date()] Reference date whose local fields are used.
+     * @returns {number|null} Positive age in completed years, or `null` when unavailable.
+     */
     function calculateAge(birthDate, refDate = new Date()) {
       if (!birthDate) return null;
       const d = new Date(birthDate + "T00:00:00");
@@ -69,6 +92,12 @@
       if (m < 0 || (m === 0 && refDate.getDate() < d.getDate())) age--;
       return age > 0 ? age : null;
     }
+    /**
+     * Resolves the daily calorie adjustment from manual or goal-duration preferences.
+     *
+     * @param {Object} prefs Nutrition-goal preferences.
+     * @returns {number} Rounded daily calorie adjustment.
+     */
     function getGoalAdjustment(prefs) {
       const manual = prefs && prefs.manualAdjustment !== "" && prefs.manualAdjustment != null ? Number(prefs.manualAdjustment) : null;
       if (Number.isFinite(manual)) return Math.round(manual);
@@ -80,13 +109,38 @@
       const daily = Math.round(kg * 7700 / (weeks * 7));
       return type === "loss" ? -daily : daily;
     }
+    /**
+     * Returns the default protein multiplier for a nutritional goal type.
+     *
+     * @param {string} goalType Goal type such as maintenance, loss, or gain.
+     * @returns {number} Protein grams per kilogram multiplier.
+     */
     function defaultProteinMultiplier(goalType) {
       return goalType === "loss" ? 2.0 : goalType === "gain" ? 2.2 : 1.6;
     }
+    /**
+     * Resolves the protein multiplier from manual or goal-specific preferences.
+     *
+     * @param {Object} prefs Nutrition-goal preferences.
+     * @returns {number} Protein grams per kilogram multiplier.
+     */
     function getProteinMultiplier(prefs) {
       const manual = prefs && prefs.proteinMultiplier !== "" && prefs.proteinMultiplier != null ? Number(prefs.proteinMultiplier) : null;
       return Number.isFinite(manual) && manual > 0 ? manual : defaultProteinMultiplier(prefs?.goalType);
     }
+    /**
+     * Computes daily nutritional goals for a weight, day type, and optional profile.
+     *
+     * @param {number|string} weight Body weight in kilograms.
+     * @param {boolean} train Whether the day is a training day.
+     * @param {Object} [profile={}] Profile data used for personalized calculations.
+     * @param {number|string} [profile.height] Height in centimeters.
+     * @param {string} [profile.birthDate] Birth date in `YYYY-MM-DD` format.
+     * @param {string} [profile.gender] Profile gender used by the BMR formula.
+     * @param {string} [profile.referenceDate] Goal reference date in `YYYY-MM-DD` format.
+     * @param {Object} [profile.prefs] Nutrition and activity preferences.
+     * @returns {Object} Daily nutrient goals and, when available, calculation metadata.
+     */
     function computeGoals(weight, train, profile = {}) {
       const height = Number(profile.height);
       const referenceDate = profile.referenceDate ? new Date(profile.referenceDate + "T12:00:00") : new Date();

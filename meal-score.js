@@ -1,3 +1,13 @@
+/**
+ * Meal suitability scoring for the remaining nutritional budget of a day.
+ *
+ * The UMD module has no injected dependencies and uses only JavaScript built-ins
+ * such as `Date`, `Math`, and `Number`. It accepts plain meal-entry arrays,
+ * nutritional goals, optional scoring configuration, and time inputs, and
+ * returns plain objects containing the score, coverage, and component details.
+ *
+ * @module MealScore
+ */
 (function (root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
@@ -20,6 +30,12 @@
     return Number.isFinite(number) ? number : null;
   }
 
+  /**
+   * Calculates the fractional hours remaining until local midnight.
+   *
+   * @param {Date|string|number} [now=Date.now()] Date or date-like value to evaluate.
+   * @returns {number} Non-negative number of hours until local midnight.
+   */
   function hoursUntilLocalMidnight(now) {
     const current = now instanceof Date ? now : new Date(now || Date.now());
     const midnight = new Date(current);
@@ -27,6 +43,13 @@
     return Math.max(0, (midnight.getTime() - current.getTime()) / 3600000);
   }
 
+  /**
+   * Converts the remaining time and scoring window into a bounded quota share.
+   *
+   * @param {number|string} hoursLeft Hours remaining in the day.
+   * @param {number|string} windowHours Size of the scoring window in hours.
+   * @returns {number} Quota share between zero and one.
+   */
   function timeShare(hoursLeft, windowHours) {
     const hours = Math.max(0.25, finiteNumber(hoursLeft) ?? 0.25);
     const window = Math.max(0.25, finiteNumber(windowHours) ?? DEFAULT_WINDOW_HOURS);
@@ -58,11 +81,27 @@
     };
   }
 
+  /**
+   * Scores a nutrient whose desired behavior is to reach or exceed its quota.
+   *
+   * @param {number} amount Nutrient amount supplied by the candidate meal.
+   * @param {number} quota Nutrient quota assigned to the candidate meal.
+   * @returns {number} Component score between zero and one.
+   */
   function maximizeScore(amount, quota) {
     if (quota <= 0) return 1;
     return Math.max(0, Math.min(1, amount / quota));
   }
 
+  /**
+   * Scores a nutrient that should remain within a quota.
+   *
+   * @param {number} amount Nutrient amount supplied by the candidate meal.
+   * @param {number} quota Nutrient quota assigned to the candidate meal.
+   * @param {number} decay Exponential penalty applied above the quota.
+   * @param {string} underBudget Scoring mode used while the amount is within budget.
+   * @returns {number} Component score between zero and one.
+   */
   function budgetScore(amount, quota, decay, underBudget) {
     if (quota <= 0) return amount > 0 ? 0 : 1;
     const ratio = Math.max(0, amount / quota);
@@ -72,6 +111,19 @@
     return Math.exp(-Math.max(0, decay || 0) * (ratio - 1));
   }
 
+  /**
+   * Calculates the weighted nutritional score for a candidate meal.
+   *
+   * @param {Object} [input={}] Scoring input.
+   * @param {Array<Object>} [input.candidateEntries=[]] Entries in the candidate meal.
+   * @param {Array<Object>} [input.consumedEntries=[]] Entries already consumed that day.
+   * @param {Object} [input.goals={}] Daily nutrient targets keyed by nutrient name.
+   * @param {Array<Object>} [input.config] Optional scoring component configuration.
+   * @param {Date|string|number} [input.now=Date.now()] Evaluation date and time.
+   * @param {number|string} [input.hoursLeft] Explicit remaining hours override.
+   * @param {number|string} [input.windowHours] Explicit scoring-window override.
+   * @returns {Object} Score result with validity, coverage, components, missing fields, and timing details.
+   */
   function calculateMealScore(input) {
     const options = input || {};
     const candidateEntries = Array.isArray(options.candidateEntries) ? options.candidateEntries : [];
