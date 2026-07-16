@@ -54,6 +54,19 @@ const context = {
           addDays: noop
         };
       }
+    },
+    GoalCalculator: {
+      createGoalCalculator() {
+        return {
+          ACTIVITY_LEVELS: {},
+          REST_FACTORS: {},
+          calculateAge: noop,
+          getGoalAdjustment: noop,
+          defaultProteinMultiplier: noop,
+          getProteinMultiplier: noop,
+          computeGoals: noop
+        };
+      }
     }
   },
   Intl,
