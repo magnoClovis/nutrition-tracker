@@ -4,6 +4,7 @@ const crypto = require("crypto");
 
 const APP_FILE = "app.js";
 const JSX_FILE = "nutrition-tracker.jsx";
+const I18N_FILE = "i18n.js";
 const EXPECTED_LANGUAGES = ["pt", "en", "es"];
 
 /**
@@ -166,6 +167,7 @@ function findMojibake(source) {
 function main() {
   const appSource = readUtf8(APP_FILE);
   const jsxSource = readUtf8(JSX_FILE);
+  const i18nSource = readUtf8(I18N_FILE);
   const issues = [];
 
   if (hashFile(APP_FILE) !== hashFile(JSX_FILE)) {
@@ -176,20 +178,20 @@ function main() {
     issues.push("Disabled legacy React blocks are still present and should be removed before i18n QA.");
   }
 
-  const mojibake = findMojibake(`${appSource}\n${jsxSource}`);
+  const mojibake = findMojibake(`${appSource}\n${jsxSource}\n${i18nSource}`);
   for (const finding of mojibake) {
     issues.push(
       `Possible mojibake at line ${finding.line} (${finding.label}): ${finding.preview}`
     );
   }
 
-  const stringsSource = extractConstObject(appSource, "STRINGS");
-  const esAssignmentIndex = appSource.indexOf("STRINGS.es =");
+  const stringsSource = extractConstObject(i18nSource, "STRINGS");
+  const esAssignmentIndex = i18nSource.indexOf("STRINGS.es =");
   const strings = vm.runInNewContext(`
     const STRINGS = (${stringsSource});
     ${
       esAssignmentIndex >= 0
-        ? `STRINGS.es = (${extractObjectAfterAssignment(appSource.slice(esAssignmentIndex), "STRINGS.es =")});`
+        ? `STRINGS.es = (${extractObjectAfterAssignment(i18nSource.slice(esAssignmentIndex), "STRINGS.es =")});`
         : ""
     }
     STRINGS;
