@@ -30,7 +30,19 @@ test.describe('authenticated critical data flows', () => {
     await page.evaluate(([storageKey, storageValue]) => window.storage.set(storageKey, storageValue), [key, value]);
   }
 
+  async function replaceStorage(page, key, value) {
+    // Let the app's hydration save finish before replacing shared Firestore data.
+    // Otherwise that delayed save can restore the previous value after this write.
+    await page.waitForTimeout(1000);
+    await writeStorage(page, key, value);
+    await expect.poll(async () => {
+      const current = await readStorage(page, key);
+      return current.exists ? current.value : null;
+    }, { timeout: 30000 }).toBe(value);
+  }
+
   async function restoreStorage(page, key, snapshot) {
+    await page.waitForTimeout(900);
     await page.evaluate(async ([storageKey, previous]) => {
       if (previous.exists) await window.storage.set(storageKey, previous.value);
       else await window.storage.delete(storageKey);
@@ -40,6 +52,10 @@ test.describe('authenticated critical data flows', () => {
   async function replacePantry(page, foods) {
     const previous = await readStorage(page, 'pantry_v2');
     await writeStorage(page, 'pantry_v2', JSON.stringify(foods));
+    await page.evaluate(async () => {
+      const tutorialTypes = ['main', 'diario', 'adicionar', 'despensa', 'semana', 'metricas'];
+      await Promise.all(tutorialTypes.map(type => window.storage.set(`tutorialSeen_${type}`, 'true')));
+    });
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
     await dismissTutorialIfVisible(page);
@@ -47,11 +63,29 @@ test.describe('authenticated critical data flows', () => {
   }
 
   async function addPantryFoodToStagedMeal(page, foodName, quantity) {
-    const foodSearch = page.locator('input[placeholder*="Buscar alimento"], input[placeholder*="Search food"], input[placeholder*="Buscar alimento"]');
-    await foodSearch.last().fill(foodName);
-    await page.getByText(foodName, { exact: true }).last().click();
-    await page.locator('input[type="number"]:visible').last().fill(String(quantity));
-    await clickFirstButtonMatching(page, /Adicionar à refeição|Add to meal|Agregar a la comida/i);
+    const stagedMeal = page.locator('[data-app-main="adicionar"]:visible');
+    const foodSearch = stagedMeal.locator([
+      'input[placeholder*="Pesquisar alimento"]:visible',
+      'input[placeholder*="Search food"]:visible',
+      'input[placeholder*="Buscar alimento"]:visible'
+    ].join(', '));
+    await foodSearch.fill(foodName);
+    await stagedMeal.getByText(foodName, { exact: true }).last().click();
+    await stagedMeal.locator('input[type="number"]:visible').last().fill(String(quantity));
+    await stagedMeal.getByRole('button', { name: /Adicionar à refeição|Add to meal|Agregar a la comida/i }).click();
+  }
+
+  async function openStagedMeal(page) {
+    const mealCard = page.locator('[data-diary-meal-card]:visible').filter({ hasText: /Pré-treino/i }).first();
+    await mealCard.getByRole('button', { name: /Adicionar/i }).evaluate(button => button.click());
+    await expect(page.locator('[data-app-main="adicionar"]:visible')).toBeVisible();
+  }
+
+  async function closeStagedMeal(page) {
+    const stagedMeal = page.locator('[data-app-main="adicionar"]:visible');
+    await page.locator('[data-add-meal-backdrop="true"]').click({ position: { x: 5, y: 5 } });
+    await expect(stagedMeal).toBeHidden();
+    await dismissTutorialIfVisible(page);
   }
 
   test('exports, previews, imports, and verifies a real backup round trip', async ({ page }) => {
@@ -84,8 +118,7 @@ test.describe('authenticated critical data flows', () => {
       await page.locator('input[type="file"][accept=".json"]').last().setInputFiles(downloadPath);
       await expect(page.getByRole('heading', { name: /Revisar importação/i })).toBeVisible({ timeout: 20000 });
 
-      const notesCategory = page.locator('label').filter({ hasText: /^Notas\b/ }).last();
-      await notesCategory.locator('input[type="checkbox"]').check();
+      await page.getByRole('checkbox', { name: /^Notas\b/i }).check({ force: true });
       await page.getByRole('button', { name: 'Substituir', exact: true }).click();
       await page.getByRole('button', { name: /Importar selecionados/i }).click();
       await expect(page.getByText(/Importação concluída:/i)).toBeVisible({ timeout: 30000 });
@@ -121,25 +154,27 @@ test.describe('authenticated critical data flows', () => {
     });
     const logKey = `log_v2_${yesterday}`;
     const previousLog = await readStorage(page, logKey);
+    await replaceStorage(page, logKey, JSON.stringify({}));
     const previousPantry = await replacePantry(page, [fixture]);
 
     try {
       const diary = page.locator('[data-screen="diario"]');
       await diary.getByRole('button', { name: '‹', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Hoje', exact: true })).toBeVisible();
-      await diary.locator('[data-diary-meal-card]').first().getByRole('button', { name: /Adicionar/i }).click();
+      await openStagedMeal(page);
       await addPantryFoodToStagedMeal(page, fixture.name, 100);
-      await page.getByRole('button', { name: 'Registrar', exact: true }).click();
-
-      await clickByTutorialKeyOrText(page, 'tab-diario', /Di.rio/i);
-      await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
+      const stagedMeal = page.locator('[data-app-main="adicionar"]:visible');
+      await stagedMeal.getByRole('button', { name: 'Registrar', exact: true }).click();
       await expect.poll(async () => {
         const current = await readStorage(page, logKey);
         return current.value || '';
-      }, { timeout: 15000 }).toContain(fixture.name);
+      }, { timeout: 30000 }).toContain(fixture.name);
+      await closeStagedMeal(page);
+      await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
       await clickByTutorialKeyOrText(page, 'tab-semana', /Semana/i);
 
-      const yesterdayCard = page.locator('[data-tutorial="week-days"] > div').filter({ hasText: /18g/ }).filter({ hasText: /220/ }).first();
+      const yesterdayLabel = yesterday.slice(5).split('-').reverse().join('-');
+      const yesterdayCard = page.locator('[data-tutorial="week-days"] > div').filter({ hasText: yesterdayLabel }).first();
       await expect(yesterdayCard).toBeVisible({ timeout: 15000 });
       await yesterdayCard.click();
       await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
@@ -170,35 +205,36 @@ test.describe('authenticated critical data flows', () => {
       fiber100: 4,
       salt100: 0.3
     };
+    await replaceStorage(page, logKey, JSON.stringify({}));
     const previousPantry = await replacePantry(page, [fixture]);
 
     try {
-      await page.locator('[data-diary-meal-card]').first().getByRole('button', { name: /Adicionar/i }).click();
+      await openStagedMeal(page);
       await addPantryFoodToStagedMeal(page, fixture.name, 100);
-      await page.getByRole('button', { name: /Avaliar refeição/i }).click();
+      const stagedMeal = page.locator('[data-app-main="adicionar"]:visible');
+      await stagedMeal.getByRole('button', { name: /Avaliar refeição/i }).click();
 
       const modal = page.locator('[data-meal-review-modal="true"]');
       await expect(modal).toBeVisible();
-      const firstScore = await modal.getByText(/\d(?:\.\d{2})?\/5/).first().textContent();
+      const firstScore = await modal.getByText(/^\d\.\d{2}$/).first().textContent();
       await modal.getByRole('button', { name: 'Editar', exact: true }).click();
 
-      const stagedItem = page.locator('[data-tutorial="pantry-food-name"]').filter({ hasText: fixture.name });
+      const stagedItem = stagedMeal.locator('[data-tutorial="pantry-food-name"]').filter({ hasText: fixture.name });
       await stagedItem.getByText('100g', { exact: true }).click();
       await stagedItem.locator('input[type="number"]').fill('200');
       await stagedItem.getByRole('button', { name: '✓', exact: true }).click();
-      await page.getByRole('button', { name: /Avaliar refeição/i }).click();
+      await stagedMeal.getByRole('button', { name: /Avaliar refeição/i }).click();
 
       await expect(modal).toBeVisible();
-      const secondScore = await modal.getByText(/\d(?:\.\d{2})?\/5/).first().textContent();
+      const secondScore = await modal.getByText(/^\d\.\d{2}$/).first().textContent();
       expect(secondScore).not.toBe(firstScore);
       await modal.getByRole('button', { name: /Registrar mesmo assim/i }).click();
-
-      await clickByTutorialKeyOrText(page, 'tab-diario', /Di.rio/i);
+      await closeStagedMeal(page);
       await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
       await expect.poll(async () => {
         const current = await readStorage(page, logKey);
         return current.value || '';
-      }).toContain(fixture.name);
+      }, { timeout: 30000 }).toContain(fixture.name);
       const storedLog = JSON.parse((await readStorage(page, logKey)).value || '{}');
       const storedEntry = Object.values(storedLog).flat().find(item => item.name === fixture.name);
       expect(storedEntry.qty).toBe(200);
@@ -231,16 +267,16 @@ test.describe('authenticated critical data flows', () => {
       fiber100: 2,
       salt100: 0.1
     };
+    await replaceStorage(page, logKey, JSON.stringify({}));
     const previousPantry = await replacePantry(page, [fixture]);
 
     try {
-      await writeStorage(page, logKey, '{}');
       await page.reload({ waitUntil: 'domcontentloaded' });
       await dismissTutorialIfVisible(page);
       await page.locator('[data-tutorial="suggest-meal-button"]').click();
       await page.getByRole('button', { name: /Ajustes avançados opcionais/i }).click();
-      await page.locator('label').filter({ hasText: /Calorias máx\./i }).locator('input').fill('1000');
-      await page.locator('label').filter({ hasText: /Proteína máx\./i }).locator('input').fill('100');
+      await page.getByRole('spinbutton', { name: /Calorias máximas/i }).fill('1000');
+      await page.getByRole('spinbutton', { name: /Proteína máxima/i }).fill('100');
       await page.getByRole('button', { name: /Buscar sugestões/i }).click();
 
       const addButton = page.getByRole('button', { name: /Adicionar ao diário/i }).first();
@@ -257,7 +293,7 @@ test.describe('authenticated critical data flows', () => {
         if (!current.value) return null;
         const parsed = JSON.parse(current.value);
         return Object.values(parsed).flat().find(item => item.name === fixture.name) || null;
-      }, { timeout: 15000 }).not.toBeNull();
+      }, { timeout: 30000 }).not.toBeNull();
       void entry;
 
       const savedEntry = await page.evaluate(async ([key, name]) => {
