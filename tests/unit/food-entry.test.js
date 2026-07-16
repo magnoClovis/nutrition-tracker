@@ -1,22 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const { createI18n } = require("../../i18n.js");
 const { createDateUtils } = require("../../date-utils.js");
 const { createFoodEntry } = require("../../food-entry.js");
 
-function normalizeLanguage(lang) {
-  return lang === "en" || lang === "es" ? lang : "pt";
-}
-
-function pickLang(lang, pt, en, es) {
-  const normalized = normalizeLanguage(lang);
-  return normalized === "en" ? en : normalized === "es" ? es : pt;
-}
-
-function localeForLang(lang) {
-  const normalized = normalizeLanguage(lang);
-  return normalized === "en" ? "en-US" : normalized === "es" ? "es-ES" : "pt-BR";
-}
-
+const { normalizeLanguage, pickLang, localeForLang } = createI18n();
 const { divisor, rnd } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
 let pantry = [];
 let nextId = 0;
