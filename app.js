@@ -4,10 +4,11 @@
 // calculation helpers documented where inputs/outputs are not immediately obvious.
 const {useState,useEffect,useRef}=React;
 const {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,ReferenceLine}=Recharts;
-const APP_VERSION_LABEL = window.APP_VERSION_LABEL || "Diário Nutricional v0.8.0 Beta";
+const APP_VERSION_LABEL = window.APP_VERSION_LABEL || "Diário Nutricional v0.8.1 Beta";
 const MOST_RECENT_TUTORIAL_KEY = "tutorial_most_recent_version_seen";
 const CURRENT_RELEASE_TUTORIAL_VERSION = "0.8.0-beta";
 const RELEASE_TUTORIAL_TYPE = "release080";
+const VISUAL_UPDATE_NOTICE_KEY = "seenVisualUpdateNotice_0.8.1";
 const tutorialSeenKey = type => "tutorialSeen_" + type;
 const DARK_THEME_DEFAULT_MIGRATION_KEY = "appThemeDefaultDarkV1";
 
@@ -14499,6 +14500,53 @@ function ReleaseNoticeModal({ lang, onStartTutorial }) {
   }, text.btn)));
 }
 
+function VisualUpdateNotice({ lang, onDismiss }) {
+  const normalizedLang = normalizeLanguage(lang);
+  const message = pickLang(
+    normalizedLang,
+    "A interface do app mudou! Explore o novo visual.",
+    "The app interface has changed! Explore the new look.",
+    "¡La interfaz de la app ha cambiado! Explora el nuevo diseño."
+  );
+  const dismissLabel = pickLang(normalizedLang, "Dispensar aviso", "Dismiss notice", "Cerrar aviso");
+  return React.createElement("div", {
+    role: "status",
+    style: {
+      position: "fixed",
+      top: 14,
+      left: "50%",
+      transform: "translateX(-50%)",
+      zIndex: 99998,
+      width: "min(520px, calc(100% - 28px))",
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: "12px 14px",
+      background: "var(--surface,#fffdf8)",
+      border: "1px solid var(--border2,#d0ccc4)",
+      borderRadius: 12,
+      boxShadow: "0 12px 36px rgba(0,0,0,0.18)",
+      color: "var(--text2,#252220)"
+    }
+  }, React.createElement("span", {
+    style: {flex: 1, fontSize: 14, lineHeight: 1.4}
+  }, message), React.createElement("button", {
+    type: "button",
+    onClick: onDismiss,
+    "aria-label": dismissLabel,
+    title: dismissLabel,
+    style: {
+      border: "none",
+      background: "transparent",
+      color: "var(--muted,#6a6662)",
+      fontSize: 20,
+      lineHeight: 1,
+      padding: 4,
+      cursor: "pointer"
+    }
+  }, "×"));
+}
+
 function TutorialOverlay({ lang, type = 'main', onDone }) {
   const normalizedLang = normalizeLanguage(lang);
   const isPt = normalizedLang === 'pt';
@@ -15447,6 +15495,7 @@ function App() {
   const [profileChecking, setProfileChecking] = React.useState(fbIsLoggedIn());
   const [lang, setLang]         = React.useState(()=>normalizeLanguage(localStorage.getItem('appLang')||'pt'));
   const [showReleaseNotice, setShowReleaseNotice] = React.useState(false);
+  const [showVisualUpdateNotice, setShowVisualUpdateNotice] = React.useState(false);
   const [darkMode, setDarkMode] = React.useState(readPreferredDarkMode);
   React.useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
@@ -15474,6 +15523,7 @@ function App() {
     setShowBackup(false);
     setShowTutorial(false);
     setShowReleaseNotice(false);
+    setShowVisualUpdateNotice(false);
   }
   async function checkRequiredProfile() {
     setProfileChecking(true);
@@ -15515,6 +15565,13 @@ function App() {
     }
   }
 
+  async function checkVisualUpdateNotice(isNew) {
+    const seen = await storage.get(VISUAL_UPDATE_NOTICE_KEY).catch(()=>null);
+    if (seen?.value === 'true') return;
+    await storage.set(VISUAL_UPDATE_NOTICE_KEY, 'true').catch(()=>{});
+    if (!isNew) setShowVisualUpdateNotice(true);
+  }
+
   async function afterAuthenticated(isNew) {
     setAuthed(true);
     await normalizeStorageAfterLogin();
@@ -15527,6 +15584,7 @@ function App() {
       storage.set('language', normalizedSavedLang).catch(()=>{});
     }
     await checkRequiredProfile();
+    await checkVisualUpdateNotice(isNew);
     const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(()=>null);
     if (isNew) {
       await markCurrentReleaseSeen();
@@ -15567,6 +15625,7 @@ function App() {
           storage.set('language', normalizedSavedLang).catch(()=>{});
         }
         storage.set('lastLoginAt', new Date().toISOString()).catch(()=>{});
+        await checkVisualUpdateNotice(false);
         const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(()=>null);
         if (!hasSeenCurrentRelease(tutorialVersion)) {
           await markCurrentReleaseSeen();
@@ -15658,6 +15717,10 @@ function App() {
           setTutorialType(RELEASE_TUTORIAL_TYPE);
           setShowTutorial(true);
         }
+      }) : null,
+      showVisualUpdateNotice && !requiredProfile ? React.createElement(VisualUpdateNotice, {
+        lang,
+        onDismiss: () => setShowVisualUpdateNotice(false)
       }) : null,
       showTutorial && !requiredProfile ? React.createElement(TutorialOverlay, {
         lang,
