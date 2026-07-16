@@ -31,7 +31,7 @@
       { code: "en", flag: "🇺🇸", label: "English", short: "EN" },
       { code: "es", flag: "🇪🇸", label: "Español", short: "ES" }
     ];
-    
+
     /**
      * Normalizes an app language code against the persisted-language allowlist.
      *
@@ -41,7 +41,7 @@
     function normalizeLanguage(lang) {
       return LANGUAGE_OPTIONS.some(option => option.code === lang) ? lang : "pt";
     }
-    
+
     /**
      * Returns the UI metadata for a normalized language.
      *
@@ -52,7 +52,7 @@
       const normalized = normalizeLanguage(lang);
       return LANGUAGE_OPTIONS.find(option => option.code === normalized) || LANGUAGE_OPTIONS[0];
     }
-    
+
     /**
      * Selects one of three language variants with Portuguese fallback.
      *
@@ -68,7 +68,7 @@
       if (normalized === "es") return es !== undefined ? es : pt;
       return pt;
     }
-    
+
     /**
      * Reads a nested translation value by dot path.
      *
@@ -82,7 +82,7 @@
       if (!root) return undefined;
       return String(key).split(".").reduce((value, part) => value == null ? undefined : value[part], root);
     }
-    
+
     /**
      * Applies simple token interpolation to a localized string.
      *
@@ -97,7 +97,7 @@
         return params[name] == null ? "" : String(params[name]);
       });
     }
-    
+
     /**
      * Creates a translation reader with Portuguese and key-name fallbacks.
      *
@@ -112,9 +112,9 @@
           getLocalizedValue(dictionary, "pt", key) ??
           key;
         return formatLocalizedText(value, params);
-      };
+        };
     }
-    
+
     /**
      * Selects the browser locale used by dates and number formatting.
      *
@@ -127,7 +127,7 @@
       if (normalized === "es") return "es-ES";
       return "pt-BR";
     }
-    
+
     /**
      * Selects the compact locale used for language-aware sorting.
      *
@@ -687,7 +687,7 @@
         noDataPatterns: "Not enough data to analyze."
       }
     };
-    
+
     STRINGS.es = {
       ...STRINGS.pt,
       appTitle: "Diario Nutricional",
@@ -924,10 +924,10 @@
       confirmDelete: "¿Eliminar?",
       noDataPatterns: "No hay datos suficientes para analizar."
     };
-    
+
     // Fixed Portuguese storage-schema keys. Do not reorder or translate without migration.
     const MEAL_KEYS = ["Café da manhã", "Pré-treino", "Pós-treino", "Almoço", "Café da tarde", "Jantar", "Ceia", "Outro"];
-    
+
     /**
      * Returns positional display labels without changing the stable storage keys.
      *
@@ -939,7 +939,7 @@
       const labels = STRINGS[normalized] && STRINGS[normalized].meals;
       return Array.isArray(labels) ? labels : MEAL_KEYS;
     }
-    
+
     /**
      * Normalizes translated tab aliases to stable navigation and tutorial IDs.
      *
