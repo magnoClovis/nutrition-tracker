@@ -4,10 +4,11 @@
 // calculation helpers documented where inputs/outputs are not immediately obvious.
 const {useState,useEffect,useRef}=React;
 const {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,ReferenceLine}=Recharts;
-const APP_VERSION_LABEL = window.APP_VERSION_LABEL || "Diário Nutricional v0.8.0 Beta";
+const APP_VERSION_LABEL = window.APP_VERSION_LABEL || "Diário Nutricional v0.8.1 Beta";
 const MOST_RECENT_TUTORIAL_KEY = "tutorial_most_recent_version_seen";
 const CURRENT_RELEASE_TUTORIAL_VERSION = "0.8.0-beta";
 const RELEASE_TUTORIAL_TYPE = "release080";
+const VISUAL_UPDATE_NOTICE_KEY = "seenVisualUpdateNotice_0.8.1";
 const tutorialSeenKey = type => "tutorialSeen_" + type;
 const DARK_THEME_DEFAULT_MIGRATION_KEY = "appThemeDefaultDarkV1";
 
@@ -136,6 +137,16 @@ const {
   capitalizeFirst,
   addDays
 } = window.DateUtils.createDateUtils({ normalizeLanguage, pickLang, localeForLang });
+
+const {
+  ACTIVITY_LEVELS,
+  REST_FACTORS,
+  calculateAge,
+  getGoalAdjustment,
+  defaultProteinMultiplier,
+  getProteinMultiplier,
+  computeGoals
+} = window.GoalCalculator.createGoalCalculator();
 
 /**
  * Release notices use an explicit version marker. Legacy boolean values mean
@@ -1259,147 +1270,6 @@ const MICRO_FIELDS_BASE = [{
   unit: "mg"
 }];
 const ALL_FIELDS_KEYS = [...MACRO_FIELDS_BASE, ...MICRO_FIELDS_BASE]; // keys only, no labels
-
-const ACTIVITY_LEVELS = {
-  sedentary: {
-    factor: 1.2,
-    pt: "Sedentario",
-    en: "Sedentary",
-    es: "Sedentario",
-    descPt: "Pouco ou nenhum exercicio estruturado",
-    descEn: "Little or no structured exercise",
-    descEs: "Poco o ningún ejercicio estructurado"
-  },
-  light: {
-    factor: 1.375,
-    pt: "Levemente ativo",
-    en: "Lightly active",
-    es: "Ligeramente activo",
-    descPt: "Exercicios leves 1 a 3 vezes por semana",
-    descEn: "Light exercise 1 to 3 times per week",
-    descEs: "Ejercicio ligero 1 a 3 veces por semana"
-  },
-  moderate: {
-    factor: 1.55,
-    pt: "Moderadamente ativo",
-    en: "Moderately active",
-    es: "Moderadamente activo",
-    descPt: "Exercicios moderados 3 a 5 vezes por semana",
-    descEn: "Moderate exercise 3 to 5 times per week",
-    descEs: "Ejercicio moderado 3 a 5 veces por semana"
-  },
-  very: {
-    factor: 1.725,
-    pt: "Muito ativo",
-    en: "Very active",
-    es: "Muy activo",
-    descPt: "Exercicios intensos 6 a 7 vezes por semana ou trabalho fisico exigente",
-    descEn: "Intense exercise 6 to 7 times per week or demanding physical work",
-    descEs: "Ejercicio intenso 6 a 7 veces por semana o trabajo físico exigente"
-  },
-  extreme: {
-    factor: 1.9,
-    pt: "Extremamente ativo",
-    en: "Extremely active",
-    es: "Extremadamente activo",
-    descPt: "Atletas ou rotina extremamente ativa",
-    descEn: "Athletes or extremely active routines",
-    descEs: "Atletas o rutina extremadamente activa"
-  }
-};
-const REST_FACTORS = {
-  sedentary: 1.05,
-  light: 1.25,
-  moderate: 1.35,
-  very: 1.45,
-  extreme: 1.55
-};
-function calculateAge(birthDate, refDate = new Date()) {
-  if (!birthDate) return null;
-  const d = new Date(birthDate + "T00:00:00");
-  if (Number.isNaN(d.getTime())) return null;
-  let age = refDate.getFullYear() - d.getFullYear();
-  const m = refDate.getMonth() - d.getMonth();
-  if (m < 0 || (m === 0 && refDate.getDate() < d.getDate())) age--;
-  return age > 0 ? age : null;
-}
-function getGoalAdjustment(prefs) {
-  const manual = prefs && prefs.manualAdjustment !== "" && prefs.manualAdjustment != null ? Number(prefs.manualAdjustment) : null;
-  if (Number.isFinite(manual)) return Math.round(manual);
-  const type = prefs?.goalType || "maintenance";
-  if (type === "maintenance") return 0;
-  const kg = Number(prefs?.goalKg);
-  const weeks = Number(prefs?.goalWeeks);
-  if (!kg || !weeks || kg <= 0 || weeks <= 0) return 0;
-  const daily = Math.round(kg * 7700 / (weeks * 7));
-  return type === "loss" ? -daily : daily;
-}
-function defaultProteinMultiplier(goalType) {
-  return goalType === "loss" ? 2.0 : goalType === "gain" ? 2.2 : 1.6;
-}
-function getProteinMultiplier(prefs) {
-  const manual = prefs && prefs.proteinMultiplier !== "" && prefs.proteinMultiplier != null ? Number(prefs.proteinMultiplier) : null;
-  return Number.isFinite(manual) && manual > 0 ? manual : defaultProteinMultiplier(prefs?.goalType);
-}
-function computeGoals(weight, train, profile = {}) {
-  const height = Number(profile.height);
-  const referenceDate = profile.referenceDate ? new Date(profile.referenceDate + "T12:00:00") : new Date();
-  const age = calculateAge(profile.birthDate, referenceDate);
-  const gender = profile.gender;
-  const prefs = profile.prefs || {};
-  const activityLevel = prefs.activityLevel || "moderate";
-  if (weight && height && age && (gender === "male" || gender === "female")) {
-    const bmr = 10 * weight + 6.25 * height - 5 * age + (gender === "male" ? 5 : -161);
-    const fa = train ? (ACTIVITY_LEVELS[activityLevel]?.factor || 1.55) : (REST_FACTORS[activityLevel] || 1.35);
-    const baseCalories = Math.round(bmr * fa);
-    const adjustment = getGoalAdjustment(prefs);
-    const kcal = Math.max(1200, Math.round(baseCalories + adjustment));
-    const proteinFactor = getProteinMultiplier(prefs);
-    return {
-      protein: Math.round(weight * proteinFactor),
-      kcal,
-      bmr: Math.round(bmr),
-      fa,
-      baseCalories,
-      adjustment,
-      proteinMultiplier: proteinFactor,
-      carbs: Math.round(weight * (train ? 4.0 : 3.0)),
-      fat: Math.round(weight * 0.9),
-      fiber: 30,
-      salt: 5
-    };
-  }
-  if (!weight) return train ? {
-    protein: 160,
-    kcal: 3100,
-    carbs: 330,
-    fat: 75,
-    fiber: 30,
-    salt: 5
-  } : {
-    protein: 130,
-    kcal: 2700,
-    carbs: 230,
-    fat: 65,
-    fiber: 30,
-    salt: 5
-  };
-  return train ? {
-    protein: Math.round(weight * 2.2),
-    kcal: Math.round(weight * 42),
-    carbs: Math.round(weight * 4.5),
-    fat: Math.round(weight * 1.0),
-    fiber: 30,
-    salt: 5
-  } : {
-    protein: Math.round(weight * 1.8),
-    kcal: Math.round(weight * 37),
-    carbs: Math.round(weight * 3.1),
-    fat: Math.round(weight * 0.9),
-    fiber: 30,
-    salt: 5
-  };
-}
 
 // Goal toast copy is intentionally centralized so future tone changes do not
 // require touching the milestone detection logic.
@@ -14499,6 +14369,53 @@ function ReleaseNoticeModal({ lang, onStartTutorial }) {
   }, text.btn)));
 }
 
+function VisualUpdateNotice({ lang, onDismiss }) {
+  const normalizedLang = normalizeLanguage(lang);
+  const message = pickLang(
+    normalizedLang,
+    "A interface do app mudou! Explore o novo visual.",
+    "The app interface has changed! Explore the new look.",
+    "¡La interfaz de la app ha cambiado! Explora el nuevo diseño."
+  );
+  const dismissLabel = pickLang(normalizedLang, "Dispensar aviso", "Dismiss notice", "Cerrar aviso");
+  return React.createElement("div", {
+    role: "status",
+    style: {
+      position: "fixed",
+      top: 14,
+      left: "50%",
+      transform: "translateX(-50%)",
+      zIndex: 99998,
+      width: "min(520px, calc(100% - 28px))",
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      padding: "12px 14px",
+      background: "var(--surface,#fffdf8)",
+      border: "1px solid var(--border2,#d0ccc4)",
+      borderRadius: 12,
+      boxShadow: "0 12px 36px rgba(0,0,0,0.18)",
+      color: "var(--text2,#252220)"
+    }
+  }, React.createElement("span", {
+    style: {flex: 1, fontSize: 14, lineHeight: 1.4}
+  }, message), React.createElement("button", {
+    type: "button",
+    onClick: onDismiss,
+    "aria-label": dismissLabel,
+    title: dismissLabel,
+    style: {
+      border: "none",
+      background: "transparent",
+      color: "var(--muted,#6a6662)",
+      fontSize: 20,
+      lineHeight: 1,
+      padding: 4,
+      cursor: "pointer"
+    }
+  }, "×"));
+}
+
 function TutorialOverlay({ lang, type = 'main', onDone }) {
   const normalizedLang = normalizeLanguage(lang);
   const isPt = normalizedLang === 'pt';
@@ -15447,6 +15364,7 @@ function App() {
   const [profileChecking, setProfileChecking] = React.useState(fbIsLoggedIn());
   const [lang, setLang]         = React.useState(()=>normalizeLanguage(localStorage.getItem('appLang')||'pt'));
   const [showReleaseNotice, setShowReleaseNotice] = React.useState(false);
+  const [showVisualUpdateNotice, setShowVisualUpdateNotice] = React.useState(false);
   const [darkMode, setDarkMode] = React.useState(readPreferredDarkMode);
   React.useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
@@ -15474,6 +15392,7 @@ function App() {
     setShowBackup(false);
     setShowTutorial(false);
     setShowReleaseNotice(false);
+    setShowVisualUpdateNotice(false);
   }
   async function checkRequiredProfile() {
     setProfileChecking(true);
@@ -15515,6 +15434,13 @@ function App() {
     }
   }
 
+  async function checkVisualUpdateNotice(isNew) {
+    const seen = await storage.get(VISUAL_UPDATE_NOTICE_KEY).catch(()=>null);
+    if (seen?.value === 'true') return;
+    await storage.set(VISUAL_UPDATE_NOTICE_KEY, 'true').catch(()=>{});
+    if (!isNew) setShowVisualUpdateNotice(true);
+  }
+
   async function afterAuthenticated(isNew) {
     setAuthed(true);
     await normalizeStorageAfterLogin();
@@ -15527,6 +15453,7 @@ function App() {
       storage.set('language', normalizedSavedLang).catch(()=>{});
     }
     await checkRequiredProfile();
+    await checkVisualUpdateNotice(isNew);
     const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(()=>null);
     if (isNew) {
       await markCurrentReleaseSeen();
@@ -15567,6 +15494,7 @@ function App() {
           storage.set('language', normalizedSavedLang).catch(()=>{});
         }
         storage.set('lastLoginAt', new Date().toISOString()).catch(()=>{});
+        await checkVisualUpdateNotice(false);
         const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(()=>null);
         if (!hasSeenCurrentRelease(tutorialVersion)) {
           await markCurrentReleaseSeen();
@@ -15658,6 +15586,10 @@ function App() {
           setTutorialType(RELEASE_TUTORIAL_TYPE);
           setShowTutorial(true);
         }
+      }) : null,
+      showVisualUpdateNotice && !requiredProfile ? React.createElement(VisualUpdateNotice, {
+        lang,
+        onDismiss: () => setShowVisualUpdateNotice(false)
       }) : null,
       showTutorial && !requiredProfile ? React.createElement(TutorialOverlay, {
         lang,
