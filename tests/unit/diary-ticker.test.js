@@ -1,88 +1,16 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
-const vm = require("node:vm");
+const { createI18n } = require("../../i18n.js");
 const { createDiaryTicker } = require("../../diary-ticker.js");
 
-const appSource = fs.readFileSync(path.resolve(__dirname, "../../app.js"), "utf8");
-let injectedDependencies = null;
-const noop = () => null;
-const context = {
-  React: {
-    useState: noop,
-    useEffect: noop,
-    useRef: noop,
-    createElement: noop,
-    Component: class Component {}
-  },
-  Recharts: {
-    LineChart: noop,
-    Line: noop,
-    XAxis: noop,
-    YAxis: noop,
-    Tooltip: noop,
-    ResponsiveContainer: noop,
-    ReferenceLine: noop
-  },
-  ReactDOM: { createRoot: () => ({ render: noop }) },
-  document: { getElementById: () => ({}) },
-  window: {
-    APP_VERSION_LABEL: "Diário Nutricional v0.8.1 Beta",
-    DiaryTicker: {
-      createDiaryTicker(dependencies) {
-        injectedDependencies = dependencies;
-        return {
-          getGreetingPeriod: noop,
-          getGreetingEmoji: noop,
-          formatTickerAmount: noop,
-          buildNutrientTickerSlide: noop
-        };
-      }
-    },
-    DateUtils: {
-      createDateUtils() {
-        return {
-          rnd: noop,
-          quickQtys: noop,
-          divisor: noop,
-          portionLabel: noop,
-          formatDateDMY: noop,
-          formatDateDM: noop,
-          formatHeaderDate: noop,
-          capitalizeFirst: noop,
-          addDays: noop
-        };
-      }
-    },
-    GoalCalculator: {
-      createGoalCalculator() {
-        return {
-          ACTIVITY_LEVELS: {},
-          REST_FACTORS: {},
-          calculateAge: noop,
-          getGoalAdjustment: noop,
-          defaultProteinMultiplier: noop,
-          getProteinMultiplier: noop,
-          computeGoals: noop
-        };
-      }
-    }
-  },
-  Intl,
-  Date,
-  console
-};
-vm.runInNewContext(appSource, context);
-assert.equal(typeof injectedDependencies?.localeForLang, "function");
-assert.equal(typeof injectedDependencies?.pickLang, "function");
+const { localeForLang, pickLang } = createI18n();
 
 const {
   getGreetingPeriod,
   getGreetingEmoji,
   formatTickerAmount,
   buildNutrientTickerSlide: build
-} = createDiaryTicker(injectedDependencies);
+} = createDiaryTicker({ localeForLang, pickLang });
 
 test("formats ticker amounts with the injected production locales", () => {
   assert.equal(formatTickerAmount(6.5, "g", "pt"), "6,5g");
