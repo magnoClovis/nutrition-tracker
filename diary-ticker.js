@@ -1,3 +1,13 @@
+/**
+ * Greeting-period and nutritional-ticker presentation helpers.
+ *
+ * The UMD module exposes a `createDiaryTicker` factory. The host application
+ * injects `localeForLang` and `pickLang` from its language helpers. The returned
+ * API accepts primitive greeting values or plain nutrient metric objects and
+ * returns greeting metadata, localized strings, or ticker-slide objects.
+ *
+ * @module DiaryTicker
+ */
 (function (root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
@@ -5,23 +15,51 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
+  /**
+   * Creates the diary-ticker API with language helpers supplied by the host.
+   *
+   * @param {Object} dependencies Injected language dependencies.
+   * @param {function(string): string} dependencies.localeForLang Returns the Intl locale for an app language.
+   * @param {function(string, string, string, string): string} dependencies.pickLang Selects PT, EN, or ES copy.
+   * @returns {Object} Greeting and nutritional-ticker formatting helpers.
+   */
   function createDiaryTicker({ localeForLang, pickLang }) {
     if (typeof localeForLang !== "function" || typeof pickLang !== "function") {
       throw new TypeError("DiaryTicker requires localeForLang and pickLang functions");
     }
 
+    /**
+     * Maps an hour of the day to the greeting period used by the diary header.
+     *
+     * @param {number} [hour=new Date().getHours()] Local hour in 24-hour format.
+     * @returns {"morning"|"afternoon"|"night"} Greeting-period identifier.
+     */
     function getGreetingPeriod(hour = new Date().getHours()) {
       if (hour >= 6 && hour < 12) return "morning";
       if (hour >= 12 && hour < 19) return "afternoon";
       return "night";
     }
 
+    /**
+     * Selects the emoji associated with a greeting period.
+     *
+     * @param {string} period Greeting-period identifier.
+     * @returns {string} Emoji displayed in the diary header.
+     */
     function getGreetingEmoji(period) {
       if (period === "morning") return "☀️";
       if (period === "afternoon") return "🌤️";
       return "🌙";
     }
 
+    /**
+     * Formats a nutrient amount using the locale and precision rules of the ticker.
+     *
+     * @param {number|string} value Nutrient amount to format.
+     * @param {string} unit Nutrient unit, such as `g` or `kcal`.
+     * @param {string} lang Active app language.
+     * @returns {string} Localized amount followed by its unit.
+     */
     function formatTickerAmount(value, unit, lang) {
       const numeric = Number(value) || 0;
       const decimals = unit === "g" && Math.abs(numeric) < 10 && numeric % 1 !== 0 ? 1 : 0;
@@ -34,8 +72,16 @@
 
     /**
      * Converts one nutrient total and target into ticker copy and a semantic tone.
-     * Group "gain" rewards reaching or exceeding the goal; group "limit" warns
-     * only after the configured ceiling is exceeded.
+     *
+     * @param {Object} metric Nutrient metric to present.
+     * @param {string} metric.key Nutrient key used to select icon and grammar.
+     * @param {string} metric.label Localized nutrient label.
+     * @param {number|string} metric.value Consumed nutrient amount.
+     * @param {number|string} metric.target Nutrient target or limit.
+     * @param {string} metric.unit Nutrient unit.
+     * @param {string} metric.group Goal behavior, normally `gain` or `limit`.
+     * @param {string} metric.lang Active app language.
+     * @returns {Object|null} Ticker slide with icon, text, and tone, or `null` when it should be omitted.
      */
     function buildNutrientTickerSlide({key, label, value, target, unit, group, lang}) {
       const consumed = Number(value) || 0;
