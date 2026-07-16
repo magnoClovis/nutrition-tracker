@@ -28,7 +28,7 @@ const context = {
   ReactDOM: { createRoot: () => ({ render: noop }) },
   document: { getElementById: () => ({}) },
   window: {
-    APP_VERSION_LABEL: "Diário Nutricional v0.8.0 Beta",
+    APP_VERSION_LABEL: "Diário Nutricional v0.8.1 Beta",
     DiaryTicker: {
       createDiaryTicker(dependencies) {
         injectedDependencies = dependencies;
