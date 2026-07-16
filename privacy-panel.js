@@ -13,11 +13,12 @@
  * API-key configuration value, and timers. The component accepts `lang`,
  * `onClose`, and `onLogout` and returns a React element tree.
  *
- * CRITICAL PRE-EXISTING RISKS DELIBERATELY PRESERVED: the Auth deletion response
- * is not checked for HTTP success; Firestore listing failures can behave like
- * empty lists inside the external deletion bridge; and missing Firestore cleanup
- * skips directly to Auth deletion. Partial deletion has no transaction or
- * rollback. Spanish and every non-`pt` language continue to use English copy.
+ * CRITICAL PRE-EXISTING RISKS DELIBERATELY PRESERVED: Firestore listing failures
+ * can behave like empty lists inside the external deletion bridge, and missing
+ * Firestore cleanup skips directly to Auth deletion. Partial deletion has no
+ * transaction or rollback. Spanish and every non-`pt` language continue to use
+ * English copy except for the account-deletion failure message added explicitly
+ * in all three supported languages.
  *
  * @module PrivacyPanel
  */
@@ -96,6 +97,18 @@
       const [delPwd,  setDelPwd]  = React.useState('');
       const [delConf, setDelConf] = React.useState('');
 
+      const accountDeletionFailureMessage = (firestoreDataRemoved) => {
+        if (lang === 'pt') return firestoreDataRemoved
+          ? 'Falha ao excluir a conta. Seus dados do Firestore j\u00e1 foram removidos, mas a conta n\u00e3o foi exclu\u00edda. Tente novamente ou entre em contato com o suporte.'
+          : 'Falha ao excluir a conta. A conta n\u00e3o foi exclu\u00edda. Tente novamente ou entre em contato com o suporte.';
+        if (lang === 'es') return firestoreDataRemoved
+          ? 'No se pudo eliminar la cuenta. Tus datos de Firestore ya se eliminaron, pero la cuenta no. Int\u00e9ntalo de nuevo o contacta con soporte.'
+          : 'No se pudo eliminar la cuenta. La cuenta no se elimin\u00f3. Int\u00e9ntalo de nuevo o contacta con soporte.';
+        return firestoreDataRemoved
+          ? 'Account deletion failed. Your Firestore data has already been removed, but your account was not deleted. Try again or contact support.'
+          : 'Account deletion failed. Your account was not deleted. Try again or contact support.';
+      };
+
       const overlay = {
         position:'fixed', inset:0, zIndex:99998,
         background:'rgba(0,0,0,0.75)', backdropFilter:'blur(3px)',
@@ -152,6 +165,7 @@
         setErr(''); setStatus('');
         if (!delPwd) { setErr(isPt?'Digite sua senha para confirmar.':'Enter your password to confirm.'); return; }
         if (delConf !== (isPt?'APAGAR':'DELETE')) { setErr(isPt?'Digite APAGAR para confirmar.':'Type DELETE to confirm.'); return; }
+        let firestoreDataRemoved = false;
         try {
           const email = localStorage.getItem('fb_email') || '';
           await fbSignIn(email, delPwd); // throws if wrong password
@@ -159,13 +173,24 @@
           // not cascade-delete user documents after accounts:delete.
           if (typeof window.deleteCurrentUserFirestoreData === 'function') {
             await window.deleteCurrentUserFirestoreData();
+            firestoreDataRemoved = true;
           }
           // Delete account via REST
           const token = await fbToken();
-          await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_KEY, {
-            method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({idToken: token})
-          });
+          let response;
+          try {
+            response = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_KEY, {
+              method: 'POST', headers: {'Content-Type':'application/json'},
+              body: JSON.stringify({idToken: token})
+            });
+          } catch(e) {
+            setErr(accountDeletionFailureMessage(firestoreDataRemoved));
+            return;
+          }
+          if (!response.ok) {
+            setErr(accountDeletionFailureMessage(firestoreDataRemoved));
+            return;
+          }
           fbSignOut();
           onLogout();
         } catch(e) {
