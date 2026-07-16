@@ -149,7 +149,8 @@ function fillChangePassword(fixture, current = "current123", next = "newpass123"
 
 function openDeleteAccount(fixture) {
   fixture.harness.render();
-  findButton(fixture.harness.tree, "Delete account").props.onClick();
+  const button = findButton(fixture.harness.tree, "Delete account") || findButton(fixture.harness.tree, "Apagar conta");
+  button.props.onClick();
   fixture.harness.render();
 }
 
@@ -257,7 +258,7 @@ test("stops after a Firestore deletion failure without Auth deletion or logout",
   assert.match(elementText(fixture.harness.tree), /Incorrect password or error deleting account\./);
 });
 
-test("preserves deleted Firestore data when the Auth request rejects and does not log out", async () => {
+test("reports a network failure after Firestore deletion, keeps the panel open, and does not log out", async () => {
   const fixture = createFixture({
     fetchBehavior: async operation => {
       assert.equal(operation, "delete");
@@ -275,21 +276,59 @@ test("preserves deleted Firestore data when the Auth request rejects and does no
     "getToken",
     "fetch:delete"
   ]);
-  assert.match(elementText(fixture.harness.tree), /Incorrect password or error deleting account\./);
+  const text = elementText(fixture.harness.tree);
+  assert.match(text, /Firestore data has already been removed/);
+  assert.match(text, /account was not deleted/);
+  assert.ok(findButton(fixture.harness.tree, "Delete account permanently"));
 });
 
-test("deliberately ignores an Auth HTTP error response and still logs out", async () => {
-  const fixture = createFixture({
-    fetchBehavior: async operation => {
-      assert.equal(operation, "delete");
-      return { ok: false, status: 500, async json() { return { error: { message: "SERVER_ERROR" } }; } };
-    }
-  });
-  openDeleteAccount(fixture);
-  fillDeleteConfirmation(fixture);
-  await findButton(fixture.harness.tree, "Delete account permanently").props.onClick();
+for (const status of [400, 401, 500]) {
+  test(`blocks logout and keeps the panel open when Auth deletion returns HTTP ${status}`, async () => {
+    const fixture = createFixture({
+      fetchBehavior: async operation => {
+        assert.equal(operation, "delete");
+        return { ok: false, status, async json() { return { error: { message: "AUTH_DELETE_FAILED" } }; } };
+      }
+    });
+    openDeleteAccount(fixture);
+    fillDeleteConfirmation(fixture);
+    await findButton(fixture.harness.tree, "Delete account permanently").props.onClick();
+    fixture.harness.render();
 
-  assert.deepEqual(fixture.events.slice(-3), ["fetch:delete", "signOut", "onLogout"]);
+    assert.deepEqual(fixture.events.slice(-2), ["getToken", "fetch:delete"]);
+    assert.equal(fixture.events.includes("signOut"), false);
+    assert.equal(fixture.events.includes("onLogout"), false);
+    const text = elementText(fixture.harness.tree);
+    assert.match(text, /Firestore data has already been removed/);
+    assert.match(text, /account was not deleted/);
+    assert.ok(findButton(fixture.harness.tree, "Delete account permanently"));
+  });
+}
+
+test("shows the Auth deletion failure message in Portuguese, English, and Spanish", async () => {
+  const cases = [
+    { lang: "pt", phrase: "APAGAR", expected: /Seus dados do Firestore j\u00e1 foram removidos, mas a conta n\u00e3o foi exclu\u00edda/ },
+    { lang: "en", phrase: "DELETE", expected: /Your Firestore data has already been removed, but your account was not deleted/ },
+    { lang: "es", phrase: "DELETE", expected: /Tus datos de Firestore ya se eliminaron, pero la cuenta no/ }
+  ];
+
+  for (const { lang, phrase, expected } of cases) {
+    const fixture = createFixture({
+      lang,
+      fetchBehavior: async operation => {
+        assert.equal(operation, "delete");
+        return { ok: false, status: 500, async json() { return {}; } };
+      }
+    });
+    openDeleteAccount(fixture);
+    fillDeleteConfirmation(fixture, "current123", phrase);
+    await findButton(fixture.harness.tree, lang === "pt" ? "Apagar conta permanentemente" : "Delete account permanently").props.onClick();
+    fixture.harness.render();
+
+    assert.match(elementText(fixture.harness.tree), expected);
+    assert.equal(fixture.events.includes("signOut"), false);
+    assert.equal(fixture.events.includes("onLogout"), false);
+  }
 });
 
 test("deliberately skips missing Firestore cleanup and continues Auth deletion", async () => {
@@ -305,6 +344,26 @@ test("deliberately skips missing Firestore cleanup and continues Auth deletion",
     "signOut",
     "onLogout"
   ]);
+});
+
+test("does not claim Firestore removal when optional cleanup was missing and Auth deletion fails", async () => {
+  const fixture = createFixture({
+    deleteData: null,
+    fetchBehavior: async operation => {
+      assert.equal(operation, "delete");
+      return { ok: false, status: 500, async json() { return {}; } };
+    }
+  });
+  openDeleteAccount(fixture);
+  fillDeleteConfirmation(fixture);
+  await findButton(fixture.harness.tree, "Delete account permanently").props.onClick();
+  fixture.harness.render();
+
+  const text = elementText(fixture.harness.tree);
+  assert.match(text, /Your account was not deleted/);
+  assert.doesNotMatch(text, /Firestore data has already been removed/);
+  assert.equal(fixture.events.includes("signOut"), false);
+  assert.equal(fixture.events.includes("onLogout"), false);
 });
 
 test("keeps Spanish on the English path with the DELETE confirmation phrase", async () => {
