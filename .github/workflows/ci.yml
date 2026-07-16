@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Preflight, unit and Playwright
+    runs-on: windows-2022
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+
+      - name: Prepare result directory
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force .ci-results | Out-Null
+
+      - name: Run preflight
+        id: preflight
+        continue-on-error: true
+        shell: pwsh
+        run: pwsh -NoProfile -File scripts/preflight-release.ps1
+
+      - name: Run unit tests
+        id: unit
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          npm run test:unit 2>&1 | Tee-Object -FilePath .ci-results/unit-output.txt
+          exit $LASTEXITCODE
+
+      - name: Run Playwright smoke tests
+        id: smoke
+        continue-on-error: true
+        env:
+          NUTRITION_TEST_EMAIL: ${{ secrets.NUTRITION_TEST_EMAIL }}
+          NUTRITION_TEST_PASSWORD: ${{ secrets.NUTRITION_TEST_PASSWORD }}
+          SMOKE_SERVER_IDLE_MS: 120000
+        run: npm run test:smoke
+
+      - name: Write test summary
+        if: always()
+        env:
+          PREFLIGHT_OUTCOME: ${{ steps.preflight.outcome }}
+          UNIT_OUTCOME: ${{ steps.unit.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+        run: node scripts/write-ci-summary.js
+
+      - name: Upload failure diagnostics
+        if: ${{ always() && (steps.preflight.outcome == 'failure' || steps.unit.outcome == 'failure' || steps.smoke.outcome == 'failure') }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+            .ci-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Fail job when a verification failed
+        if: always()
+        shell: pwsh
+        run: |
+          $failed = @(
+            '${{ steps.preflight.outcome }}',
+            '${{ steps.unit.outcome }}',
+            '${{ steps.smoke.outcome }}'
+          ) -contains 'failure'
+
+          if ($failed) {
+            throw 'Uma ou mais verificações falharam. Consulte o resumo e os artifacts desta execução.'
+          }
