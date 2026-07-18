@@ -882,6 +882,34 @@ function NutritionTracker({
   const barcodeReaderRef = useRef(null);
   const barcodeControlsRef = useRef(null);
   const barcodeScanRef = useRef(false);
+  const {
+    stopBarcodeScanner,
+    startBarcodeScanner
+  } = window.BarcodeScanner.createBarcodeScanner({
+    windowObject: window,
+    navigatorObject: navigator,
+    documentObject: document,
+    setTimeoutFn: (callback, delay) => setTimeout(callback, delay),
+    requestAnimationFrameFn: callback => requestAnimationFrame(callback),
+    refs: {
+      videoRef,
+      streamRef: barcodeStreamRef,
+      readerRef: barcodeReaderRef,
+      controlsRef: barcodeControlsRef,
+      scanRef: barcodeScanRef
+    },
+    setScanning: setBarcodeScanning,
+    setMessage: setBarcodeMessage,
+    setInput: setBarcodeInput,
+    lookupBarcode: code => fetchBarcodeProduct(code),
+    messages: {
+      loadingCompatible: pickLang(lang, "Carregando leitor compatível...", "Loading compatible barcode scanner...", "Cargando lector compatible..."),
+      pointCamera: pickLang(lang, "Aponte a câmera para o código de barras.", "Point the camera at the barcode.", "Apunta la cámara al código de barras."),
+      fallbackFailed: pickLang(lang, "O leitor compatível pela câmera falhou. Digite o código manualmente abaixo.", "Compatible camera scanner failed. Type the barcode manually below.", "El lector compatible por cámara falló. Introduce el código manualmente abajo."),
+      cameraUnavailable: pickLang(lang, "O acesso à câmera não está disponível. Use a digitação manual abaixo.", "Camera access is not available. Use manual entry below.", "El acceso a la cámara no está disponible. Usa la entrada manual abajo."),
+      startFailed: pickLang(lang, "A permissão da câmera foi negada, não está disponível ou não é compatível. Use a digitação manual abaixo.", "Camera permission was denied, unavailable, or unsupported. Use manual entry below.", "El permiso de cámara fue denegado, no está disponible o no es compatible. Usa la entrada manual abajo.")
+    }
+  });
   const [notification, setNotification] = useState("");
   const [goalToast, setGoalToast] = useState(null);
   const goalToastQueueRef = useRef([]);
@@ -1565,21 +1593,6 @@ function NutritionTracker({
     setForm(formValue => mapOpenFoodFactsProductToForm(product, formValue));
     notify(pickLang(lang, "Valores importados do Open Food Facts. Revise antes de salvar.", "Values imported from Open Food Facts. Please review before saving.", "Valores importados de Open Food Facts. Revisa antes de guardar."), 6000);
   }
-  function stopBarcodeScanner() {
-    barcodeScanRef.current = false;
-    if (barcodeControlsRef.current && typeof barcodeControlsRef.current.stop === "function") {
-      try { barcodeControlsRef.current.stop(); } catch (_) {}
-      barcodeControlsRef.current = null;
-    }
-    if (barcodeReaderRef.current && typeof barcodeReaderRef.current.reset === "function") {
-      try { barcodeReaderRef.current.reset(); } catch (_) {}
-    }
-    if (barcodeStreamRef.current) {
-      barcodeStreamRef.current.getTracks().forEach(track => track.stop());
-      barcodeStreamRef.current = null;
-    }
-    setBarcodeScanning(false);
-  }
   function closeBarcodeModal() {
     stopBarcodeScanner();
     setBarcodeModalOpen(false);
@@ -1607,123 +1620,6 @@ function NutritionTracker({
       setBarcodeMessage(pickLang(lang, "Não foi possível buscar este código agora.", "Could not search this barcode right now.", "No se pudo buscar este código ahora."));
     } finally {
       setBarcodeLoading(false);
-    }
-  }
-  let barcodeLibPromise = null;
-  function loadBarcodeFallbackLibrary() {
-    const getLoaded = () => {
-      const lib = window.ZXingBrowser || window.ZXing;
-      if (lib && (lib.BrowserMultiFormatReader || lib.BrowserBarcodeReader)) return lib;
-      return null;
-    };
-    const loaded = getLoaded();
-    if (loaded) return Promise.resolve(loaded);
-    if (barcodeLibPromise) return barcodeLibPromise;
-    const urls = [
-      "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js",
-      "https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js",
-      "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js",
-      "https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"
-    ];
-    barcodeLibPromise = new Promise((resolve, reject) => {
-      let idx = 0;
-      const tryNext = () => {
-        const current = getLoaded();
-        if (current) return resolve(current);
-        if (idx >= urls.length) return reject(new Error("ZXing unavailable"));
-        const script = document.createElement("script");
-        script.src = urls[idx++];
-        script.async = true;
-        script.onload = () => {
-          const lib = getLoaded();
-          lib ? resolve(lib) : tryNext();
-        };
-        script.onerror = tryNext;
-        document.head.appendChild(script);
-      };
-      tryNext();
-    });
-    return barcodeLibPromise;
-  }
-  async function startNativeBarcodeScanner() {
-    const detector = new BarcodeDetector({formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"]});
-    const stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}, audio: false});
-    barcodeStreamRef.current = stream;
-    barcodeScanRef.current = true;
-    setBarcodeScanning(true);
-    setTimeout(async () => {
-      if (!videoRef.current) return;
-      videoRef.current.srcObject = stream;
-      try { await videoRef.current.play(); } catch (_) {}
-      const scan = async () => {
-        if (!barcodeScanRef.current || !videoRef.current) return;
-        try {
-          const codes = await detector.detect(videoRef.current);
-          if (codes && codes.length) {
-            const code = codes[0].rawValue;
-            setBarcodeInput(code);
-            await fetchBarcodeProduct(code);
-            return;
-          }
-        } catch (_) {}
-        if (barcodeScanRef.current) requestAnimationFrame(scan);
-      };
-      scan();
-    }, 0);
-  }
-  async function startFallbackBarcodeScanner() {
-    setBarcodeMessage(pickLang(lang, "Carregando leitor compatível...", "Loading compatible barcode scanner...", "Cargando lector compatible..."));
-    const lib = await loadBarcodeFallbackLibrary();
-    const Reader = lib.BrowserMultiFormatReader || lib.BrowserBarcodeReader;
-    if (!Reader) throw new Error("ZXing reader unavailable");
-    const reader = new Reader();
-    barcodeReaderRef.current = reader;
-    barcodeScanRef.current = true;
-    setBarcodeScanning(true);
-    setBarcodeMessage(pickLang(lang, "Aponte a câmera para o código de barras.", "Point the camera at the barcode.", "Apunta la cámara al código de barras."));
-    setTimeout(async () => {
-      if (!videoRef.current || !barcodeScanRef.current) return;
-      try {
-        if (typeof reader.decodeFromVideoDevice === "function") {
-          const maybeControls = await reader.decodeFromVideoDevice(null, videoRef.current, async (result, err, controls) => {
-            if (controls && !barcodeControlsRef.current) barcodeControlsRef.current = controls;
-            if (!result || !barcodeScanRef.current) return;
-            const code = typeof result.getText === "function" ? result.getText() : (result.text || result.rawValue || String(result));
-            if (!code) return;
-            setBarcodeInput(code);
-            if (controls && typeof controls.stop === "function") {
-              try { controls.stop(); } catch (_) {}
-            }
-            await fetchBarcodeProduct(code);
-          });
-          if (maybeControls && typeof maybeControls.stop === "function") barcodeControlsRef.current = maybeControls;
-        } else if (typeof reader.decodeOnceFromVideoDevice === "function") {
-          const result = await reader.decodeOnceFromVideoDevice(null, videoRef.current);
-          const code = typeof result.getText === "function" ? result.getText() : (result.text || result.rawValue || String(result));
-          setBarcodeInput(code);
-          await fetchBarcodeProduct(code);
-        } else {
-          throw new Error("ZXing video API unavailable");
-        }
-      } catch (e) {
-        stopBarcodeScanner();
-        setBarcodeMessage(pickLang(lang, "O leitor compatível pela câmera falhou. Digite o código manualmente abaixo.", "Compatible camera scanner failed. Type the barcode manually below.", "El lector compatible por cámara falló. Introduce el código manualmente abajo."));
-      }
-    }, 0);
-  }
-  async function startBarcodeScanner() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setBarcodeMessage(pickLang(lang, "O acesso à câmera não está disponível. Use a digitação manual abaixo.", "Camera access is not available. Use manual entry below.", "El acceso a la cámara no está disponible. Usa la entrada manual abajo."));
-      return;
-    }
-    stopBarcodeScanner();
-    setBarcodeMessage(pickLang(lang, "Aponte a câmera para o código de barras.", "Point the camera at the barcode.", "Apunta la cámara al código de barras."));
-    try {
-      if ("BarcodeDetector" in window) await startNativeBarcodeScanner();
-      else await startFallbackBarcodeScanner();
-    } catch (e) {
-      stopBarcodeScanner();
-      setBarcodeMessage(pickLang(lang, "A permissão da câmera foi negada, não está disponível ou não é compatível. Use a digitação manual abaixo.", "Camera permission was denied, unavailable, or unsupported. Use manual entry below.", "El permiso de cámara fue denegado, no está disponible o no es compatible. Usa la entrada manual abajo."));
     }
   }
   async function searchFoodDatabase() {
