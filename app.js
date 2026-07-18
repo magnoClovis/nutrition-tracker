@@ -631,6 +631,15 @@ function NutritionTracker({
     pickLang,
     getEvaluationCount: mealScoreEvaluationCount
   });
+  const {
+    requestFoodAutofill,
+    applyFoodAutofillResult
+  } = window.FoodAutofillAI.createFoodAutofillAI({
+    callAI,
+    normalizeLanguage,
+    pickLang,
+    getAiLanguageInstruction: aiLang
+  });
   function toggleLang(nextLang) {
     const fallback = lang === 'pt' ? 'en' : lang === 'en' ? 'es' : 'pt';
     const nl = normalizeLanguage(nextLang || fallback);
@@ -1717,50 +1726,19 @@ function NutritionTracker({
     setAutoFillLoading(true);
     const unit = form.unit;
     const foodName = form.name.trim();
-    const normalizedLang = normalizeLanguage(lang);
-    const _basePrompt = normalizedLang === "en"
-      ? (unit === "un" ? "Check whether the food \"" + foodName + "\" exists and whether it makes sense to measure it as individual units.\n\nIMPORTANT: Because the unit is \"un\", you must:\n1. Check whether this food makes sense as an individual unit (1 egg, 1 banana, 1 strawberry, etc.).\n2. If yes, provide nutrition values per 100g AND the average gram weight of one typical unit.\n   Final per-unit values will be calculated as: value_per_100g x unit_weight / 100\n3. If it does not make sense (for example milk, olive oil, flour), reject it and explain.\n\nRespond ONLY with JSON, no markdown:\n- If valid: {\"ok\":true,\"per100\":{\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X},\"unitWeightG\":X}\n- If invalid: {\"ok\":false,\"reason\":\"brief explanation\"}" : "The user wants to log \"" + foodName + "\" with unit \"" + unit + "\".\n\nCheck whether the unit \"" + unit + "\" makes sense for this food.\nIf yes, provide values per 100" + unit + " based on reliable nutrition reference tables (USDA, TACO, INSA, and European nutrition tables).\nIf not (for example tuna in ml, milk in units), reject it and explain.\n\nRespond ONLY with JSON, no markdown:\n- If valid: {\"ok\":true,\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X}\n- If invalid: {\"ok\":false,\"reason\":\"brief explanation\"}\nUse null for unknown fields.")
-      : normalizedLang === "es"
-        ? (unit === "un" ? "Verifica si existe el alimento \"" + foodName + "\" y si tiene sentido medirlo en unidades individuales.\n\nIMPORTANTE: Como la unidad es \"un\", debes:\n1. Verificar si este alimento tiene sentido como unidad individual (1 huevo, 1 banana, 1 fresa, etc.).\n2. Si sí, entregar valores nutricionales por 100g Y el peso medio en gramos de una unidad típica.\n   Los valores finales por unidad se calcularán como: valor_100g x peso_unidad / 100\n3. Si no tiene sentido (por ejemplo leche, aceite de oliva, harina), recházalo y explica brevemente.\n\nResponde SOLO con JSON, sin markdown:\n- Si es válido: {\"ok\":true,\"per100\":{\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X},\"unitWeightG\":X}\n- Si no es válido: {\"ok\":false,\"reason\":\"explicación breve\"}" : "El usuario quiere registrar \"" + foodName + "\" con unidad \"" + unit + "\".\n\nVerifica si la unidad \"" + unit + "\" tiene sentido para este alimento.\nSi sí, entrega valores por 100" + unit + " basados en tablas nutricionales confiables (USDA, TACO, INSA y tablas europeas).\nSi no (por ejemplo atún en ml, leche en unidades), recházalo y explica brevemente.\n\nResponde SOLO con JSON, sin markdown:\n- Si es válido: {\"ok\":true,\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X}\n- Si no es válido: {\"ok\":false,\"reason\":\"explicación breve\"}\nUsa null para campos desconocidos.")
-        : (unit === "un" ? "Verifique se existe o alimento \"" + foodName + "\" e se faz sentido medir em unidades individuais.\n\nIMPORTANTE: Como a unidade é \"un\", você deve:\n1. Verificar se faz sentido medir este alimento por unidade individual (1 ovo, 1 banana, 1 morango, etc.).\n2. Se sim, fornecer os valores nutricionais por 100g E o peso médio em gramas de 1 unidade típica.\n   Os valores finais por unidade serão calculados como: valor_100g x peso_unidade / 100\n3. Se não fizer sentido (ex: leite, azeite, farinha), recuse e explique.\n\nResponda APENAS com JSON sem markdown:\n- Se válido: {\"ok\":true,\"per100\":{\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X},\"unitWeightG\":X}\n- Se inválido: {\"ok\":false,\"reason\":\"explicação breve\"}" : "O usuário quer registrar \"" + foodName + "\" com unidade \"" + unit + "\".\n\nVerifique se a unidade \"" + unit + "\" faz sentido para este alimento.\nSe sim, forneça valores por 100" + unit + " baseados em tabelas nutricionais de referência (TACO, USDA, INSA, tabelas nutricionais brasileiras, americanas e europeias).\nSe não (ex: atum em ml, leite em un), recuse e explique.\n\nResponda APENAS com JSON sem markdown:\n- Se válido: {\"ok\":true,\"protein100\":X,\"kcal100\":X,\"carbs100\":X,\"sugars100\":X,\"fat100\":X,\"satfat100\":X,\"fiber100\":X,\"salt100\":X}\n- Se inválido: {\"ok\":false,\"reason\":\"explicação breve\"}\nUse null para campos desconhecidos.");
-    const prompt = aiLang() + _basePrompt;
+    const autofillRequest = requestFoodAutofill({ foodName, unit, lang });
     try {
-      const text = await callAI(prompt, 600);
-      const clean = text.replace(/```json|```/g, "").trim();
-      const vals = JSON.parse(clean);
-      if (!vals.ok) {
-        notify(`${pickLang(lang, "Aviso", "Warning", "Aviso")}: ${vals.reason}`, 7000);
-      } else if (unit === "un" && vals.per100 && vals.unitWeightG) {
-        // Calculate per-unit values proportionally from 100g values
-        const w = vals.unitWeightG;
-        const p = vals.per100;
-        const scale = v => v != null ? Math.round(v * w / 100 * 100) / 100 : null;
-        setForm(f => ({
-          ...f,
-          protein100: scale(p.protein100) != null ? String(scale(p.protein100)) : f.protein100,
-          kcal100: scale(p.kcal100) != null ? String(scale(p.kcal100)) : f.kcal100,
-          carbs100: scale(p.carbs100) != null ? String(scale(p.carbs100)) : f.carbs100,
-          sugars100: scale(p.sugars100) != null ? String(scale(p.sugars100)) : f.sugars100,
-          fat100: scale(p.fat100) != null ? String(scale(p.fat100)) : f.fat100,
-          satfat100: scale(p.satfat100) != null ? String(scale(p.satfat100)) : f.satfat100,
-          fiber100: scale(p.fiber100) != null ? String(scale(p.fiber100)) : f.fiber100,
-          salt100: scale(p.salt100) != null ? String(scale(p.salt100)) : f.salt100,
-          unitWeightG: ""
-        }));
-        notify(pickLang(lang, `Campos preenchidos com base em ${w}g por unidade. Verifique se o peso está correto.`, `Fields filled based on ${w}g per unit. Check whether the weight looks right.`, `Campos completados con base en ${w}g por unidad. Verifica si el peso está correcto.`));
-      } else {
-        setForm(f => ({
-          ...f,
-          protein100: vals.protein100 != null ? String(vals.protein100) : f.protein100,
-          kcal100: vals.kcal100 != null ? String(vals.kcal100) : f.kcal100,
-          carbs100: vals.carbs100 != null ? String(vals.carbs100) : f.carbs100,
-          sugars100: vals.sugars100 != null ? String(vals.sugars100) : f.sugars100,
-          fat100: vals.fat100 != null ? String(vals.fat100) : f.fat100,
-          satfat100: vals.satfat100 != null ? String(vals.satfat100) : f.satfat100,
-          fiber100: vals.fiber100 != null ? String(vals.fiber100) : f.fiber100,
-          salt100: vals.salt100 != null ? String(vals.salt100) : f.salt100
-        }));
-        notify(text('notifFilled'));
+      const result = await autofillRequest;
+      if (result.status === "rejected") {
+        notify(`${pickLang(lang, "Aviso", "Warning", "Aviso")}: ${result.reason}`, 7000);
+      } else if (result.status === "success") {
+        setForm(currentForm => applyFoodAutofillResult(currentForm, result));
+        if (result.mode === "unit") {
+          const w = result.unitWeightG;
+          notify(pickLang(lang, `Campos preenchidos com base em ${w}g por unidade. Verifique se o peso está correto.`, `Fields filled based on ${w}g per unit. Check whether the weight looks right.`, `Campos completados con base en ${w}g por unidad. Verifica si el peso está correcto.`));
+        } else {
+          notify(text('notifFilled'));
+        }
       }
     } catch (_) {
       notify(pickLang(lang, "Erro: ", "Error: ", "Error: ") + (_.message || pickLang(lang, "Não foi possível obter os valores.", "Could not get the values.", "No fue posible obtener los valores.")), 8000);
