@@ -14,124 +14,32 @@ const {
 } = window.FirebaseConfigInternal.createFirebaseConfig();
 
 // ── Auth state ───────────────────────────────────────────────
-let _idToken      = null;
-let _uid          = localStorage.getItem("fb_uid") || null;
-let _refreshToken = localStorage.getItem("fb_refresh") || null;
-let _tokenExpiry  = 0;
+// TEMPORARY bridge: persistence still reads `_uid` directly. Sub-slice 3 will
+// move UID ownership behind the extracted persistence/authentication contract.
+let _uid = localStorage.getItem("fb_uid") || null;
+const _firebaseAuth = window.FirebaseAuthInternal.createFirebaseAuth({
+  apiKey: FB_KEY,
+  authBase: AUTH_BASE,
+  tokenBase: TOKEN_BASE,
+  fetchRequest: (...args) => fetch(...args),
+  localStorage,
+  resetStorageCaches: () => _resetFirestoreCaches(),
+  getCurrentUid: () => _uid,
+  setCurrentUid: value => { _uid = value; }
+});
 
-window._saveSession = function _saveSession(d) {
-  _idToken      = d.idToken || d.id_token;
-  _refreshToken = d.refreshToken || d.refresh_token;
-  _uid          = d.localId || d.user_id || _uid;
-  _resetFirestoreCaches();
-  _tokenExpiry  = Date.now() + (+( d.expiresIn || d.expires_in) - 60) * 1000;
-  localStorage.setItem("fb_refresh", _refreshToken);
-  if (_uid) localStorage.setItem("fb_uid", _uid);
-}
+window._saveSession = _firebaseAuth._saveSession;
 
-async function fbSignIn(email, password) {
-  const r = await fetch(AUTH_BASE + ":signInWithPassword?key=" + FB_KEY, {
-    method: "POST", headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({email, password, returnSecureToken: true})
-  });
-  const d = await r.json();
-  if (!r.ok) throw new Error(d.error?.message || "Login falhou");
-  _saveSession(d);
-  localStorage.setItem('fb_email', email);
-  return d;
-}
-
-async function fbSignUp(email, password) {
-  const r = await fetch(AUTH_BASE + ":signUp?key=" + FB_KEY, {
-    method: "POST", headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({email, password, returnSecureToken: true})
-  });
-  const d = await r.json();
-  if (!r.ok) throw new Error(d.error?.message || "Registro falhou");
-  _saveSession(d); return d;
-}
-
-async function fbUpdateProfile(displayName) {
-  const token = await fbToken();
-  const r = await fetch(AUTH_BASE + ":update?key=" + FB_KEY, {
-    method: "POST", headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({idToken: token, displayName, returnSecureToken: false})
-  });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error?.message || "Profile update failed");
-  return d;
-}
-
-async function fbSendVerificationEmail() {
-  const token = await fbToken();
-  const r = await fetch(AUTH_BASE + ":sendOobCode?key=" + FB_KEY, {
-    method: "POST", headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({requestType: "VERIFY_EMAIL", idToken: token})
-  });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error?.message || "Verification email failed");
-  return d;
-}
-
-/**
- * Sends Firebase's native password-reset email to the provided address.
- * Input: account email. Output: resolves when Firebase accepts the request.
- * The UI intentionally shows a neutral message so account existence is not
- * exposed through the login screen.
- */
-async function fbSendPasswordResetEmail(email) {
-  const r = await fetch(AUTH_BASE + ":sendOobCode?key=" + FB_KEY, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      requestType: "PASSWORD_RESET",
-      email: String(email || "").trim()
-    })
-  });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error?.message || "Password reset failed");
-  return d;
-}
-
-async function fbCheckEmailVerified() {
-  const token = await fbToken();
-  const r = await fetch(AUTH_BASE + ":lookup?key=" + FB_KEY, {
-    method: "POST", headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({idToken: token})
-  });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error?.message || "Email verification check failed");
-  if (!Array.isArray(d.users) || !d.users[0]) throw new Error("Account lookup returned no user");
-  return d?.users?.[0]?.emailVerified === true;
-}
-
-async function fbRefreshToken() {
-  if (!_refreshToken) throw new Error("Sem sessão");
-  const r = await fetch(TOKEN_BASE + "?key=" + FB_KEY, {
-    method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"},
-    body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(_refreshToken)
-  });
-  const d = await r.json();
-  if (!r.ok) { _refreshToken = null; localStorage.removeItem("fb_refresh"); localStorage.removeItem("fb_uid"); throw new Error("Sessão expirada"); }
-  _saveSession(d);
-}
-
-async function fbToken() {
-  if (_idToken && Date.now() < _tokenExpiry) return _idToken;
-  await fbRefreshToken();
-  return _idToken;
-}
-
-function fbSignOut() {
-  _idToken = _refreshToken = _uid = null;
-  _tokenExpiry = 0;
-  _resetFirestoreCaches();
-  localStorage.removeItem("fb_refresh");
-  localStorage.removeItem("fb_uid");
-  localStorage.removeItem("fb_email");
-}
-
-function fbIsLoggedIn() { return !!_refreshToken; }
+async function fbSignIn(email, password) { return _firebaseAuth.fbSignIn(email, password); }
+async function fbSignUp(email, password) { return _firebaseAuth.fbSignUp(email, password); }
+async function fbUpdateProfile(displayName) { return _firebaseAuth.fbUpdateProfile(displayName); }
+async function fbSendVerificationEmail() { return _firebaseAuth.fbSendVerificationEmail(); }
+async function fbSendPasswordResetEmail(email) { return _firebaseAuth.fbSendPasswordResetEmail(email); }
+async function fbCheckEmailVerified() { return _firebaseAuth.fbCheckEmailVerified(); }
+async function fbRefreshToken() { return _firebaseAuth.fbRefreshToken(); }
+async function fbToken() { return _firebaseAuth.fbToken(); }
+function fbSignOut() { return _firebaseAuth.fbSignOut(); }
+function fbIsLoggedIn() { return _firebaseAuth.fbIsLoggedIn(); }
 
 // ── Key namespacing (each user gets their own data) ───────────
 // All keys are prefixed with the user's UID internally.
@@ -140,8 +48,7 @@ function fbIsLoggedIn() { return !!_refreshToken; }
 
 // ── Firestore helpers (authenticated + namespaced) ────────────
 async function fbHeaders() {
-  const token = await fbToken();
-  return {"Content-Type": "application/json", "Authorization": "Bearer " + token};
+  return _firebaseAuth.fbHeaders();
 }
 
 async function fbGetLegacyInactive(k) {
