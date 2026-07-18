@@ -658,6 +658,14 @@ function NutritionTracker({
     activityLevels: ACTIVITY_LEVELS,
     calculateAge
   });
+  const {
+    generateEatingPatterns
+  } = window.EatingPatternsAI.createEatingPatternsAI({
+    callAI,
+    pickLang,
+    computeGoals,
+    getWeightForDate
+  });
   function toggleLang(nextLang) {
     const fallback = lang === 'pt' ? 'en' : lang === 'en' ? 'es' : 'pt';
     const nl = normalizeLanguage(nextLang || fallback);
@@ -1938,8 +1946,7 @@ function NutritionTracker({
     setPatternsText("");
     setPatternsSaved(false);
     try {
-      const acc = {};
-      const dayData = [];
+      const days = [];
       for (let i = 1; i <= 30; i++) {
         const d = new Date();
         d.setDate(d.getDate() - i);
@@ -1947,59 +1954,42 @@ function NutritionTracker({
         const l = await storage.get("log_v2_" + date).catch(() => null);
         if (!l) continue;
         const dayLog = JSON.parse(l.value);
-        const entries = Object.values(dayLog).flat();
-        if (!entries.length) continue;
-        const p = Math.round(entries.reduce((s, e) => s + (e.protein ?? 0), 0));
-        const k = Math.round(entries.reduce((s, e) => s + (e.kcal ?? 0), 0));
-        const c = Math.round(entries.reduce((s, e) => s + (e.carbs ?? 0), 0));
-        const f = Math.round(entries.reduce((s, e) => s + (e.fiber ?? 0), 0));
-        const isTrain = trainingByDate[date] ?? true;
-        const wE = getWeightForDate(weightHistory, date);
-        const rawGoal = computeGoals(wE?.weight || currentWeight, isTrain, {height: wE?.height || currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs});
-        const computedGoal = {...rawGoal, protein: customGoals.protein || rawGoal.protein, kcal: customGoals.kcal || rawGoal.kcal, carbs: customGoals.carbs || rawGoal.carbs, fat: customGoals.fat || rawGoal.fat, fiber: customGoals.fiber || rawGoal.fiber, salt: customGoals.salt || rawGoal.salt};
-        const g = date !== TODAY && goalHistory[date] ? {...computedGoal, ...goalHistory[date]} : computedGoal;
-        dayData.push({
-          date,
-          protein: p,
-          kcal: k,
-          carbs: c,
-          fiber: f,
-          isTraining: isTrain,
-          metProtein: p >= g.protein,
-          metKcal: k >= g.kcal * 0.85 && k <= g.kcal * 1.15
-        });
-        MEALS.forEach(meal => {
-          const items = dayLog[meal] || [];
-          if (!items.length) return;
-          if (!acc[meal]) acc[meal] = {
-            count: 0,
-            protein: 0,
-            kcal: 0
-          };
-          acc[meal].count++;
-          acc[meal].protein += entries.filter(e => dayLog[meal]?.find(m => m.id === e.id)).reduce((s, e) => s + (e.protein ?? 0), 0);
-        });
+        days.push({ date, log: dayLog });
       }
-      if (!dayData.length) {
+      const snapshot = {
+        lang,
+        today: TODAY,
+        days,
+        trainingByDate: { ...trainingByDate },
+        weightHistory: weightHistory.map(entry => ({ ...entry })),
+        currentWeight,
+        currentHeight,
+        profile: {
+          birthDate: profileData.birthDate,
+          gender: profileData.gender
+        },
+        nutritionPrefs: { ...nutritionPrefs },
+        customGoals: {
+          protein: customGoals.protein,
+          kcal: customGoals.kcal,
+          carbs: customGoals.carbs,
+          fat: customGoals.fat,
+          fiber: customGoals.fiber,
+          salt: customGoals.salt
+        },
+        goalHistory: Object.fromEntries(Object.entries(goalHistory).map(([date, goal]) => [
+          date,
+          goal && typeof goal === "object" ? { ...goal } : goal
+        ])),
+        mealKeys: [...MEALS]
+      };
+      const result = await generateEatingPatterns(snapshot);
+      if (result.status === "no-data") {
         notify(text('noDataPatterns'));
         setPatternsLoading(false);
         return;
       }
-      const avgProt = Math.round(dayData.reduce((s, d) => s + d.protein, 0) / dayData.length);
-      const avgKcal = Math.round(dayData.reduce((s, d) => s + d.kcal, 0) / dayData.length);
-      const daysMetProt = dayData.filter(d => d.metProtein).length;
-      const trainDays = dayData.filter(d => d.isTraining);
-      const restDays = dayData.filter(d => !d.isTraining);
-      const trainSummary = trainDays.length ? pickLang(lang, "Dias de treino", "Training days", "Días de entrenamiento") + " (" + trainDays.length + "): " + pickLang(lang, "média ", "average ", "media ") + Math.round(trainDays.reduce((s, d) => s + d.protein, 0) / trainDays.length) + "g " + pickLang(lang, "proteína", "protein", "proteína") + ", " + Math.round(trainDays.reduce((s, d) => s + d.kcal, 0) / trainDays.length) + " kcal\n" : "";
-      const restSummary = restDays.length ? pickLang(lang, "Dias de descanso", "Rest days", "Días de descanso") + " (" + restDays.length + "): " + pickLang(lang, "média ", "average ", "media ") + Math.round(restDays.reduce((s, d) => s + d.protein, 0) / restDays.length) + "g " + pickLang(lang, "proteína", "protein", "proteína") + ", " + Math.round(restDays.reduce((s, d) => s + d.kcal, 0) / restDays.length) + " kcal\n" : "";
-      const prompt = pickLang(
-        lang,
-        "Analise os padrões alimentares dos últimos 30 dias e forneça insights detalhados em português brasileiro.\n\nDADOS (" + dayData.length + " dias registrados de 30):\nMédia diária: " + avgProt + "g proteína, " + avgKcal + " kcal\nDias que atingiram meta de proteína: " + daysMetProt + "/" + dayData.length + "\n" + trainSummary + restSummary + "Variação de proteína: mín " + Math.min(...dayData.map(d => d.protein)) + "g, máx " + Math.max(...dayData.map(d => d.protein)) + "g\n\n" + (currentWeight ? "Peso atual: " + currentWeight + "kg\n\n" : "") + "Identifique padrões concretos como:\n- Diferença entre dias de treino e descanso\n- Consistência ou inconsistência ao longo do tempo\n- Tendências preocupantes ou positivas\n- áreas de melhoria com sugestões específicas\n\nEstruture com seções claras: Padrões positivos, Padrões a melhorar, Tendências identificadas, Recomendações.",
-        "Analyze the user's eating patterns over the last 30 days and provide detailed insights in American English.\n\nDATA (" + dayData.length + " logged days out of 30):\nDaily average: " + avgProt + "g protein, " + avgKcal + " kcal\nDays that hit the protein target: " + daysMetProt + "/" + dayData.length + "\n" + trainSummary + restSummary + "Protein range: min " + Math.min(...dayData.map(d => d.protein)) + "g, max " + Math.max(...dayData.map(d => d.protein)) + "g\n\n" + (currentWeight ? "Current weight: " + currentWeight + "kg\n\n" : "") + "Identify concrete patterns such as:\n- Difference between training and rest days\n- Consistency or inconsistency over time\n- Positive or concerning trends\n- Improvement areas with specific suggestions\n\nStructure with clear sections: Positive Patterns, Patterns to Improve, Identified Trends, Recommendations.",
-        "Analiza los patrones alimentarios del usuario durante los últimos 30 días y entrega conclusiones detalladas en español.\n\nDATOS (" + dayData.length + " días registrados de 30):\nMedia diaria: " + avgProt + "g de proteína, " + avgKcal + " kcal\nDías que alcanzaron la meta de proteína: " + daysMetProt + "/" + dayData.length + "\n" + trainSummary + restSummary + "Rango de proteína: mín " + Math.min(...dayData.map(d => d.protein)) + "g, máx " + Math.max(...dayData.map(d => d.protein)) + "g\n\n" + (currentWeight ? "Peso actual: " + currentWeight + "kg\n\n" : "") + "Identifica patrones concretos como:\n- Diferencias entre días de entrenamiento y descanso\n- Consistencia o inconsistencia a lo largo del tiempo\n- Tendencias positivas o preocupantes\n- Áreas de mejora con sugerencias específicas\n\nEstructura con secciones claras: Patrones positivos, Patrones a mejorar, Tendencias identificadas, Recomendaciones."
-      );
-      const _pText = await callAI(prompt, 1200);
-      setPatternsText(_pText);
+      setPatternsText(result.text);
     } catch (_) {
       notify(pickLang(lang, "Erro: ", "Error: ", "Error: ") + (_.message || pickLang(lang, "Não foi possível analisar.", "Could not analyze.", "No se pudo analizar.")), 8000);
     }
