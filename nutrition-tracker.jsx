@@ -624,6 +624,13 @@ function NutritionTracker({
   // Temporary bridge for inline strings that are not yet in STRINGS.
   // Input: pt/en/es variants. Output: the variant for the active app language.
   const uiText = (pt, en, es) => pickLang(lang, pt, en, es);
+  const {
+    requestMealReviewExplanation
+  } = window.MealReviewAI.createMealReviewAI({
+    callAI,
+    pickLang,
+    getEvaluationCount: mealScoreEvaluationCount
+  });
   function toggleLang(nextLang) {
     const fallback = lang === 'pt' ? 'en' : lang === 'en' ? 'es' : 'pt';
     const nl = normalizeLanguage(nextLang || fallback);
@@ -3947,23 +3954,9 @@ Formato obrigatório:
   async function generateMealReviewExplanation(review) {
     setMealReviewAiText("");
     setMealReviewAiLoading(true);
-    const payload = {
-      algorithmVersion: review.result.algorithmVersion,
-      finalScore: Math.round(review.result.score * 100) / 100,
-      coverage: Math.round(review.result.coverage * 100),
-      evaluatedNutrients: mealScoreEvaluationCount(review.result),
-      hoursUntilMidnight: Math.round(review.result.hoursLeft * 100) / 100,
-      nutrients: review.result.components,
-      missingNutrients: review.result.missing,
-      foods: review.items.map(item => ({name: item.name, quantity: item.qty, unit: item.unit}))
-    };
-    const prompt = uiText(
-      "Explique brevemente a avaliação nutricional abaixo em português do Brasil. A nota foi calculada pelo aplicativo e é definitiva: não recalcule, não altere e não proponha outra nota. Em no máximo 120 palavras, apresente pontos positivos, principal excesso ou carência, impacto nas metas do dia e até duas alterações práticas. Não critique nutrientes ausentes e diferencie problemas desta refeição de excessos acumulados anteriormente.\n\nDADOS:\n",
-      "Briefly explain the nutrition assessment below in American English. The app calculated the final score: do not recalculate, change, or suggest another score. In no more than 120 words, cover strengths, the main excess or shortfall, impact on today's targets, and up to two practical changes. Do not criticize missing nutrients, and distinguish this meal from excess accumulated earlier.\n\nDATA:\n",
-      "Explica brevemente en español la evaluación nutricional siguiente. La nota final fue calculada por la app: no la recalcules, cambies ni propongas otra. En un máximo de 120 palabras, indica puntos positivos, el principal exceso o carencia, impacto en las metas del día y hasta dos cambios prácticos. No critiques nutrientes ausentes y diferencia esta comida de excesos acumulados anteriormente.\n\nDATOS:\n"
-    ) + JSON.stringify(payload, null, 2);
+    const explanationRequest = requestMealReviewExplanation(review, lang);
     try {
-      const explanation = await callAI(prompt, 350);
+      const explanation = await explanationRequest;
       setMealReviewAiText(explanation);
     } catch (_) {
       setMealReviewAiText("");
