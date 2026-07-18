@@ -58,6 +58,14 @@ const {
 } = window.I18n.createI18n();
 
 const {
+  searchProducts: searchOpenFoodFactsProducts,
+  getProductByBarcode: getOpenFoodFactsProductByBarcode,
+  mapProductToForm: mapOpenFoodFactsProductToForm
+} = window.OpenFoodFacts.createOpenFoodFacts({
+  fetchRequest: (...args) => window.fetch(...args)
+});
+
+const {
   SettingsPanel
 } = window.SettingsPanelModule.createSettingsPanel({
   React,
@@ -1504,38 +1512,7 @@ function NutritionTracker({
     return `${rnd(value)}${unit} / ${rnd(target)}${unit} (${pct}%)`;
   }
   function applyFoodDbProduct(product) {
-    const n = product.nutriments || {};
-    const val = (...keys) => {
-      for (const key of keys) {
-        const v = n[key];
-        if (v !== undefined && v !== null && v !== "") return Number(v);
-      }
-      return null;
-    };
-    const kcal = val("energy-kcal_100g", "energy-kcal", "energy_100g");
-    const mapped = {
-      protein100: val("proteins_100g", "proteins"),
-      kcal100: kcal && kcal > 1000 ? Math.round(kcal / 4.184) : kcal,
-      carbs100: val("carbohydrates_100g", "carbohydrates"),
-      sugars100: val("sugars_100g", "sugars"),
-      fat100: val("fat_100g", "fat"),
-      satfat100: val("saturated-fat_100g", "saturated-fat"),
-      fiber100: val("fiber_100g", "fiber"),
-      salt100: val("salt_100g", "salt")
-    };
-    setForm(f => {
-      const next = {
-        ...f,
-        name: product.product_name || product.generic_name || product.brands || f.name,
-        unit: f.unit === "un" ? "g" : f.unit,
-        portionSize: "100",
-        unitWeightG: ""
-      };
-      Object.entries(mapped).forEach(([key, value]) => {
-        if (Number.isFinite(value)) next[key] = String(Math.round(value * 10) / 10);
-      });
-      return next;
-    });
+    setForm(formValue => mapOpenFoodFactsProductToForm(product, formValue));
     notify(pickLang(lang, "Valores importados do Open Food Facts. Revise antes de salvar.", "Values imported from Open Food Facts. Please review before saving.", "Valores importados de Open Food Facts. Revisa antes de guardar."), 6000);
   }
   function stopBarcodeScanner() {
@@ -1566,15 +1543,12 @@ function NutritionTracker({
     setBarcodeLoading(true);
     setBarcodeMessage("");
     try {
-      const url = "https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(barcode) + ".json?fields=product_name,generic_name,brands,nutriments,quantity";
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Open Food Facts");
-      const data = await res.json();
-      if (!data || data.status !== 1 || !data.product) {
+      const product = await getOpenFoodFactsProductByBarcode(barcode);
+      if (!product) {
         setBarcodeMessage(pickLang(lang, "Produto não encontrado. Você pode preencher os dados manualmente.", "Product not found. You can enter the data manually.", "Producto no encontrado. Puedes completar los datos manualmente."));
         return;
       }
-      applyFoodDbProduct(data.product);
+      applyFoodDbProduct(product);
       setBarcodeInput(barcode);
       setBarcodeMessage(pickLang(lang, "Produto encontrado. Revise os valores antes de salvar.", "Product found. Review the values before saving.", "Producto encontrado. Revisa los valores antes de guardar."));
       stopBarcodeScanner();
@@ -1711,11 +1685,7 @@ function NutritionTracker({
     setFoodDbLoading(true);
     setFoodDbResults([]);
     try {
-      const url = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + encodeURIComponent(query) + "&search_simple=1&action=process&json=1&page_size=8&fields=product_name,generic_name,brands,nutriments,quantity";
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Open Food Facts");
-      const data = await res.json();
-      const products = (data.products || []).filter(p => p.nutriments && (p.nutriments["energy-kcal_100g"] || p.nutriments["proteins_100g"]));
+      const products = await searchOpenFoodFactsProducts(query);
       setFoodDbResults(products);
       if (!products.length) notify(pickLang(lang, "Nenhum alimento correspondente encontrado no Open Food Facts.", "No matching food found in Open Food Facts.", "No se encontró ningún alimento correspondiente en Open Food Facts."), 5000);
       else applyFoodDbProduct(products[0]);
