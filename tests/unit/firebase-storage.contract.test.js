@@ -6,6 +6,7 @@ const vm = require("node:vm");
 
 const CONFIG_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-config-internal.js"), "utf8");
 const AUTH_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-auth-internal.js"), "utf8");
+const FIRESTORE_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-firestore-internal.js"), "utf8");
 const SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-storage.js"), "utf8");
 const FB_BASE = "https://firestore.googleapis.com/v1/projects/nutrition-tracker-780b3/databases/(default)/documents/nutrition";
 
@@ -185,6 +186,7 @@ function loadFirebaseStorage({ local = {}, reportConfig, fetchRequest } = {}) {
   vm.createContext(context);
   vm.runInContext(CONFIG_SOURCE, context, { filename: "firebase-config-internal.js" });
   vm.runInContext(AUTH_SOURCE, context, { filename: "firebase-auth-internal.js" });
+  vm.runInContext(FIRESTORE_SOURCE, context, { filename: "firebase-firestore-internal.js" });
   vm.runInContext(SOURCE, context, { filename: "firebase-storage.js" });
 
   return {
@@ -204,7 +206,7 @@ function loadFirebaseStorage({ local = {}, reportConfig, fetchRequest } = {}) {
       });
     },
     suppressAutomaticMigration() {
-      vm.runInContext("_migrationPromise3 = Promise.resolve({ skipped: 1 })", context);
+      vm.runInContext("_firebaseFirestore.support.setStorageMigrationPromiseForTesting(Promise.resolve({ skipped: 1 }))", context);
     }
   };
 }
@@ -376,7 +378,7 @@ test("refreshes expired sessions and preserves the current refresh-failure clean
   assert.equal(failedFixture.localStorage.getItem("fb_refresh"), null);
   assert.equal(failedFixture.localStorage.getItem("fb_uid"), null);
   assert.equal(failedFixture.localStorage.getItem("fb_email"), "person@example.test");
-  assert.equal(failedFixture.evaluate("_uid"), "user-1");
+  assert.equal(failedFixture.evaluate("_firebaseAuth.getUid()"), "user-1");
 });
 
 test("preserves authentication HTTP errors, malformed JSON propagation and lookup-without-user errors", async t => {
