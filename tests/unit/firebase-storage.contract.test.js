@@ -5,6 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const CONFIG_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-config-internal.js"), "utf8");
+const AUTH_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-auth-internal.js"), "utf8");
 const SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-storage.js"), "utf8");
 const FB_BASE = "https://firestore.googleapis.com/v1/projects/nutrition-tracker-780b3/databases/(default)/documents/nutrition";
 
@@ -183,6 +184,7 @@ function loadFirebaseStorage({ local = {}, reportConfig, fetchRequest } = {}) {
   context.globalThis = context;
   vm.createContext(context);
   vm.runInContext(CONFIG_SOURCE, context, { filename: "firebase-config-internal.js" });
+  vm.runInContext(AUTH_SOURCE, context, { filename: "firebase-auth-internal.js" });
   vm.runInContext(SOURCE, context, { filename: "firebase-storage.js" });
 
   return {
@@ -350,13 +352,11 @@ test("preserves successful signup, profile, email verification, lookup and passw
 });
 
 test("refreshes expired sessions and preserves the current refresh-failure cleanup contract", async () => {
-  let mode = "success";
   const fixture = loadFirebaseStorage({
     local: { fb_refresh: "old-refresh", fb_uid: "user-1", fb_email: "person@example.test" },
     fetchRequest: async (url, options) => {
       assert.match(String(url), /securetoken\.googleapis\.com\/v1\/token\?key=/);
       assert.equal(options.body, "grant_type=refresh_token&refresh_token=old-refresh");
-      if (mode === "failure") return response({}, { ok: false, status: 401 });
       return response({ id_token: "refreshed-token", refresh_token: "new-refresh", user_id: "user-1", expires_in: "3600" });
     }
   });
@@ -364,15 +364,19 @@ test("refreshes expired sessions and preserves the current refresh-failure clean
   assert.equal(await fixture.context.fbToken(), "refreshed-token");
   assert.equal(fixture.localStorage.getItem("fb_refresh"), "new-refresh");
 
-  fixture.localStorage.setItem("fb_refresh", "old-refresh");
-  fixture.localStorage.setItem("fb_uid", "user-1");
-  fixture.evaluate('_refreshToken = "old-refresh"; _uid = "user-1"; _idToken = null; _tokenExpiry = 0');
-  mode = "failure";
-  await assert.rejects(fixture.context.fbRefreshToken(), /Sessão expirada/);
-  assert.equal(fixture.localStorage.getItem("fb_refresh"), null);
-  assert.equal(fixture.localStorage.getItem("fb_uid"), null);
-  assert.equal(fixture.localStorage.getItem("fb_email"), "person@example.test");
-  assert.equal(fixture.evaluate("_uid"), "user-1");
+  const failedFixture = loadFirebaseStorage({
+    local: { fb_refresh: "old-refresh", fb_uid: "user-1", fb_email: "person@example.test" },
+    fetchRequest: async (url, options) => {
+      assert.match(String(url), /securetoken\.googleapis\.com\/v1\/token\?key=/);
+      assert.equal(options.body, "grant_type=refresh_token&refresh_token=old-refresh");
+      return response({}, { ok: false, status: 401 });
+    }
+  });
+  await assert.rejects(failedFixture.context.fbRefreshToken(), /Sessão expirada/);
+  assert.equal(failedFixture.localStorage.getItem("fb_refresh"), null);
+  assert.equal(failedFixture.localStorage.getItem("fb_uid"), null);
+  assert.equal(failedFixture.localStorage.getItem("fb_email"), "person@example.test");
+  assert.equal(failedFixture.evaluate("_uid"), "user-1");
 });
 
 test("preserves authentication HTTP errors, malformed JSON propagation and lookup-without-user errors", async t => {
