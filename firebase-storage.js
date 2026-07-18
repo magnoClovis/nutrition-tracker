@@ -15,6 +15,7 @@ const {
 
 // ── Auth state ───────────────────────────────────────────────
 let _firebaseFirestore = null;
+let _firebaseMigration = null;
 const _firebaseAuth = window.FirebaseAuthInternal.createFirebaseAuth({
   apiKey: FB_KEY,
   authBase: AUTH_BASE,
@@ -69,8 +70,8 @@ _firebaseFirestore = window.FirebaseFirestoreInternal.createFirebaseFirestore({
   getAuthHeaders: () => _firebaseAuth.fbHeaders(),
   fetchRequest: (...args) => fetch(...args),
   localStorage,
-  runLegacyMigration: (...args) => migrateLegacyNutritionDocs(...args),
-  runStorageMigration: (...args) => migrateStorageToFirestoreV3(...args)
+  runLegacyMigration: (...args) => _firebaseMigration.migrateLegacyNutritionDocsV2(...args),
+  runStorageMigration: (...args) => _firebaseMigration.migrateStorageToFirestoreV3(...args)
 });
 
 const {
@@ -98,322 +99,26 @@ const {
   legacyDelete3: _legacyDelete3
 } = _firebaseFirestore.support;
 
-async function migrateLegacyNutritionDocs(options) {
-  const uid = _getUid();
-  if (!uid) return {migrated: 0, skipped: 0};
-  const onlyIfMissing = !options || options.onlyIfMissing !== false;
-  try {
-    const headers = await fbHeaders();
-    const [listRes, currentFields] = await Promise.all([
-      fetch(FB_BASE + "?pageSize=1000", {headers}),
-      _fetchUserDocFields2().catch(() => ({}))
-    ]);
-    if (!listRes.ok) return {migrated: 0, skipped: 0};
-    const data = await listRes.json();
-    const prefix = uid + "_";
-    const updates = {};
-    let skipped = 0;
-    (data.documents || []).forEach(doc => {
-      const rawId = decodeURIComponent((doc.name || "").split("/").pop() || "");
-      if (!rawId.startsWith(prefix)) return;
-      const key = _stripLegacyUid2(rawId);
-      if (!key || key === rawId) return;
-      if (onlyIfMissing && currentFields[key] !== undefined && currentFields[key] !== null) {
-        skipped++;
-        return;
-      }
-      const value = _decodeFsValue2(doc.fields?.value);
-      if (value !== undefined && value !== null) updates[key] = value;
-    });
-    const keys = Object.keys(updates);
-    if (keys.length) await _patchUserFields2(updates, []);
-    _mergeUserDocCache2(currentFields, updates);
-    return {migrated: keys.length, skipped};
-  } catch(e) {
-    return {migrated: 0, skipped: 0, error: e.message || String(e)};
-  }
-}
+_firebaseMigration = window.FirebaseMigrationInternal.createFirebaseMigration({
+  firestoreBase: FB_BASE,
+  getUid: _getUid,
+  getAuthHeaders: () => _firebaseAuth.fbHeaders(),
+  fetchRequest: (...args) => fetch(...args),
+  firestoreSupport: _firebaseFirestore.support
+});
+
+const {
+  migrateLegacyNutritionDocsV2: migrateLegacyNutritionDocs,
+  migrateStorageToFirestoreV3,
+  cleanupLegacyNutritionDocsV3
+} = _firebaseMigration;
+
 window.migrateLegacyNutritionDocs = migrateLegacyNutritionDocs;
 
 async function fbGet(k) { return _firebaseFirestore.fbGetV2(k); }
 async function fbSet(k, v) { return _firebaseFirestore.fbSetV2(k, v); }
 async function fbDel(k) { return _firebaseFirestore.fbDelV2(k); }
 async function fbList(p) { return _firebaseFirestore.fbListV2(p); }
-
-// Firestore v3 algorithms remain in this facade; storage primitives and caches
-// live in firebase-firestore-internal.js and are consumed through `support`.
-function _knownMigrationKeys3() {
-  const base = [
-    "pantry", "pantry_v2", "suppPantry", "waterGoal", "waterCustomPreset", "customGoals", "goalHistory",
-    "mealTemplates", "weightHistory", "trainingByDate", "birthDate", "gender",
-    "activityLevel", "goalType", "goalKg", "goalWeeks", "manualCalorieAdjustment",
-    "proteinMultiplier", "bodyFatGoal", "userName", "tutorialSeen",
-    "userBirth", "userGender", "userActivity", "userGoal",
-    "language", "lastLoginAt", "lastActivityAt", "tutorial_most_recent_version_seen",
-    "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
-    "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
-  ];
-  const dateKeys = [];
-  for (let i = 0; i < 120; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const date = d.toISOString().split("T")[0];
-    dateKeys.push("log_v2_" + date, "notes_" + date, "waterIntake_" + date, "suppLog_" + date);
-  }
-  return Array.from(new Set([...base, ...dateKeys]));
-}
-
-function _normalizedIdentity3(item) {
-  if (!item || typeof item !== "object") return JSON.stringify(item);
-  if (item.date) return "date:" + item.date;
-  if (item.id) return "id:" + item.id;
-  if (item.name) return "name:" + String(item.name).trim().toLowerCase();
-  return JSON.stringify(item);
-}
-
-function _richnessScore3(value) {
-  if (value === null || value === undefined) return 0;
-  if (Array.isArray(value)) return value.length * 10 + value.reduce((s, item) => s + _richnessScore3(item), 0);
-  if (typeof value === "object") return Object.keys(value).length + Object.values(value).reduce((s, item) => s + _richnessScore3(item), 0);
-  return String(value).trim() ? 1 : 0;
-}
-
-function _mergeArrayValues3(values) {
-  const byKey = new Map();
-  values.flat().forEach(item => {
-    if (item === null || item === undefined) return;
-    const identity = _normalizedIdentity3(item);
-    const current = byKey.get(identity);
-    if (!current || _richnessScore3(item) >= _richnessScore3(current)) byKey.set(identity, item);
-  });
-  const merged = Array.from(byKey.values());
-  if (merged.every(item => item && typeof item === "object" && item.date)) {
-    return merged.sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  }
-  if (merged.every(item => item && typeof item === "object" && item.name)) {
-    return merged.sort((a, b) => String(a.name).localeCompare(String(b.name), "pt"));
-  }
-  return merged;
-}
-
-function _mergeObjectValues3(values) {
-  const out = {};
-  values.forEach(value => {
-    Object.entries(value || {}).forEach(([key, nextValue]) => {
-      const currentValue = out[key];
-      if (currentValue && typeof currentValue === "object" && nextValue && typeof nextValue === "object" && !Array.isArray(currentValue) && !Array.isArray(nextValue)) {
-        out[key] = _richnessScore3(nextValue) >= _richnessScore3(currentValue) ? {...currentValue, ...nextValue} : {...nextValue, ...currentValue};
-      } else if (currentValue === undefined || _richnessScore3(nextValue) >= _richnessScore3(currentValue)) {
-        out[key] = nextValue;
-      }
-    });
-  });
-  return out;
-}
-
-function _mergeStoredValues3(candidates) {
-  const parsedValues = candidates
-    .filter(candidate => candidate && !_isEmptyStoredValue3(candidate.value))
-    .map(candidate => _parseStorageJson3(candidate.value))
-    .filter(value => value !== null && value !== undefined);
-
-  if (!parsedValues.length) return null;
-  if (parsedValues.some(Array.isArray)) return _storageValue2(_mergeArrayValues3(parsedValues.filter(Array.isArray)));
-  if (parsedValues.some(value => value && typeof value === "object")) {
-    return _storageValue2(_mergeObjectValues3(parsedValues.filter(value => value && typeof value === "object" && !Array.isArray(value))));
-  }
-  parsedValues.sort((a, b) => _richnessScore3(b) - _richnessScore3(a));
-  return _storageValue2(parsedValues[0]);
-}
-
-function _legacyAliasesForKey3(key) {
-  const aliases = {
-    pantry_v2: ["pantry"],
-    birthDate: ["userBirth"],
-    gender: ["userGender"],
-    activityLevel: ["userActivity"]
-  };
-  return aliases[key] || [];
-}
-
-function _extractProfileFromLegacyUserGoal3(rawUserGoal) {
-  const userGoal = _parseStorageJson3(rawUserGoal);
-  if (!userGoal || typeof userGoal !== "object") return {};
-  const out = {};
-  if (userGoal.type && !out.goalType) out.goalType = _normalizeProfileValue3("goalType", userGoal.type);
-  if (userGoal.goalType && !out.goalType) out.goalType = _normalizeProfileValue3("goalType", userGoal.goalType);
-  if (userGoal.kg !== undefined && userGoal.kg !== null) out.goalKg = String(userGoal.kg);
-  if (userGoal.goalKg !== undefined && userGoal.goalKg !== null) out.goalKg = String(userGoal.goalKg);
-  if (userGoal.weeks !== undefined && userGoal.weeks !== null) out.goalWeeks = String(userGoal.weeks);
-  if (userGoal.goalWeeks !== undefined && userGoal.goalWeeks !== null) out.goalWeeks = String(userGoal.goalWeeks);
-  return out;
-}
-
-/**
- * Temporary account-normalization migration.
- *
- * Purpose: users created during earlier beta builds may have data split across
- * nutrition/{uid}, nutrition/{uid}/data/{key}, legacy nutrition/{uid}_{key}
- * documents, and sometimes browser localStorage. This routine runs after login,
- * copies the richest available data into the final structure, and deletes only
- * the authenticated user's legacy documents/old root fields after a successful
- * write. Once active users have naturally logged in and normalized, this block
- * can be removed together with the temporary legacy-delete Firestore rule.
- */
-async function migrateStorageToFirestoreV3(options) {
-  if (!_getUid()) return {migrated: 0, cleaned: 0, skipped: 0};
-  const cleanup = !options || options.cleanup !== false;
-  const now = new Date().toISOString();
-  const rootFields = await _loadRootFields3();
-
-  if (rootFields._storageSchemaVerified === true || rootFields._storageSchemaVerified === "true") {
-    return {migrated: 0, cleaned: 0, skipped: 1};
-  }
-
-  const dataKeys = new Set(await _listDataKeys3().catch(() => []));
-  const legacyKeys = await _listLegacyKeys3().catch(() => new Set());
-  const rootDeletes = new Set();
-  const dataDeletes = new Set();
-  const legacyDeletes = new Set();
-  const rootUpdates = {};
-  let migrated = 0;
-  let cleaned = 0;
-  let cleanupFailures = 0;
-
-  const finalKeys = _knownMigrationKeys3().filter(key => !["pantry", "userBirth", "userGender", "userActivity", "userGoal"].includes(key));
-  const legacyUserGoal = legacyKeys.has("userGoal") ? await _legacyGet2("userGoal").catch(() => null) : null;
-  Object.assign(rootUpdates, _extractProfileFromLegacyUserGoal3(legacyUserGoal?.value));
-  if (legacyUserGoal) legacyDeletes.add("userGoal");
-
-  for (const key of finalKeys) {
-    const aliases = _legacyAliasesForKey3(key);
-    const data = dataKeys.has(key) ? await _getDataDoc3(key).catch(() => null) : null;
-    const root = rootFields[key] !== undefined && rootFields[key] !== null ? {value: _storageValue2(rootFields[key])} : null;
-    const legacyCandidates = [];
-    for (const legacyKey of [key, ...aliases]) {
-      if (!legacyKeys.has(legacyKey)) continue;
-      const legacy = await _legacyGet2(legacyKey).catch(() => null);
-      if (legacy) {
-        legacyCandidates.push({...legacy, legacyKey});
-        legacyDeletes.add(legacyKey);
-      }
-    }
-    const local = _localFallbackGet3(key);
-    const mergedValue = _mergeStoredValues3([data, root, local, ...legacyCandidates]);
-    if (!mergedValue) continue;
-
-    if (_isProfileKey3(key)) {
-      const normalizedValue = _normalizeProfileValue3(key, mergedValue);
-      const currentValue = root ? _normalizeProfileValue3(key, root.value) : null;
-      if (currentValue !== normalizedValue) {
-        rootUpdates[key] = normalizedValue;
-        migrated++;
-      }
-      if (data) dataDeletes.add(key);
-    } else {
-      if (!data || data.value !== mergedValue) {
-        await _setDataDoc3(key, mergedValue);
-        dataKeys.add(key);
-        migrated++;
-      }
-      if (root) rootDeletes.add(key);
-    }
-  }
-
-  if (Object.keys(rootUpdates).length || migrated || cleaned) {
-    await _patchRootFields3({
-      ...rootUpdates,
-      _schemaVersion: 4,
-      _storageSchemaVerified: true,
-      _storageSchemaVerifiedAt: now,
-      _schemaMigratedAt: rootFields._schemaMigratedAt || now,
-      _schemaNormalizedAt: now
-    }, []);
-  } else {
-    await _patchRootFields3({
-      _storageSchemaVerified: true,
-      _storageSchemaVerifiedAt: now
-    }, []);
-  }
-
-  if (cleanup) {
-    for (const key of rootDeletes) {
-      try {
-        await _patchRootFields3({}, [key]);
-        cleaned++;
-      } catch (_) {
-        cleanupFailures++;
-      }
-    }
-    for (const key of dataDeletes) {
-      try {
-        await _deleteDataDoc3(key);
-        cleaned++;
-      } catch (_) {
-        cleanupFailures++;
-      }
-    }
-    for (const key of legacyDeletes) {
-      try {
-        await _legacyDelete3(key);
-        cleaned++;
-      } catch (_) {
-        cleanupFailures++;
-      }
-    }
-    if (cleanupFailures) {
-      await _patchRootFields3({_legacyCleanupErrorAt: now}, []);
-    } else {
-      await _patchRootFields3({_legacyCleanupAt: now}, []);
-    }
-  }
-
-  return {migrated, cleaned, cleanupFailures, skipped: 0};
-}
-
-/**
- * Temporary legacy cleanup for top-level nutrition/{uid}_{key} documents.
- *
- * This is intentionally separate from the normalizer: after a user account has
- * been copied into the current structure, this can keep retrying lightweight
- * deletes in the background without re-running the whole migration. Remove this
- * function after all beta users have been normalized and old docs are gone.
- */
-async function cleanupLegacyNutritionDocsV3() {
-  if (!_getUid()) return {cleaned: 0, failed: 0, skipped: 1};
-  const now = new Date().toISOString();
-  const rootFields = await _loadRootFields3();
-  if (rootFields._legacyCleanupDone === true || rootFields._legacyCleanupDone === "true") {
-    return {cleaned: 0, failed: 0, skipped: 1};
-  }
-
-  const legacyKeys = Array.from(await _listLegacyKeys3().catch(() => new Set()));
-  if (!legacyKeys.length) {
-    await _patchRootFields3({
-      _legacyCleanupDone: true,
-      _legacyCleanupAt: now
-    }, ["_legacyCleanupErrorAt"]);
-    return {cleaned: 0, failed: 0, skipped: 0};
-  }
-
-  const results = await Promise.allSettled(legacyKeys.map(key => _legacyDelete3(key)));
-  const failed = results.filter(result => result.status === "rejected").length;
-  const cleaned = results.length - failed;
-
-  if (failed) {
-    await _patchRootFields3({
-      _legacyCleanupDone: false,
-      _legacyCleanupErrorAt: now
-    }, []);
-  } else {
-    await _patchRootFields3({
-      _legacyCleanupDone: true,
-      _legacyCleanupAt: now
-    }, ["_legacyCleanupErrorAt"]);
-  }
-
-  return {cleaned, failed, skipped: 0};
-}
 
 /**
  * Deletes all Firestore data owned by the currently authenticated user.
@@ -482,9 +187,9 @@ const _firebaseBackup = window.FirebaseBackupInternal.createFirebaseBackup({
   getDataDoc3: _getDataDoc3,
   legacyGet2: _legacyGet2,
   patchRootFields3: _patchRootFields3,
-  normalizedIdentity: _normalizedIdentity3,
-  mergeArrayValues: _mergeArrayValues3,
-  mergeObjectValues: _mergeObjectValues3
+  normalizedIdentity: _firebaseMigration.mergeHelpers.normalizedIdentity3,
+  mergeArrayValues: _firebaseMigration.mergeHelpers.mergeArrayValues3,
+  mergeObjectValues: _firebaseMigration.mergeHelpers.mergeObjectValues3
 });
 
 const {
