@@ -9,6 +9,7 @@ const AUTH_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-a
 const FIRESTORE_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-firestore-internal.js"), "utf8");
 const MIGRATION_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-migration-internal.js"), "utf8");
 const BACKUP_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-backup-internal.js"), "utf8");
+const ACCOUNT_DATA_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-account-data-internal.js"), "utf8");
 const SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-storage.js"), "utf8");
 const FB_BASE = "https://firestore.googleapis.com/v1/projects/nutrition-tracker-780b3/databases/(default)/documents/nutrition";
 
@@ -191,6 +192,7 @@ function loadFirebaseStorage({ local = {}, reportConfig, fetchRequest } = {}) {
   vm.runInContext(FIRESTORE_SOURCE, context, { filename: "firebase-firestore-internal.js" });
   vm.runInContext(MIGRATION_SOURCE, context, { filename: "firebase-migration-internal.js" });
   vm.runInContext(BACKUP_SOURCE, context, { filename: "firebase-backup-internal.js" });
+  vm.runInContext(ACCOUNT_DATA_SOURCE, context, { filename: "firebase-account-data-internal.js" });
   vm.runInContext(SOURCE, context, { filename: "firebase-storage.js" });
 
   return {
