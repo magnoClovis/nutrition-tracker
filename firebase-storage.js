@@ -120,50 +120,21 @@ async function fbSet(k, v) { return _firebaseFirestore.fbSetV2(k, v); }
 async function fbDel(k) { return _firebaseFirestore.fbDelV2(k); }
 async function fbList(p) { return _firebaseFirestore.fbListV2(p); }
 
-/**
- * Deletes all Firestore data owned by the currently authenticated user.
- *
- * Firebase Authentication does not cascade-delete Firestore documents. Account
- * deletion must therefore call this before accounts:delete, while the user's
- * token still exists. It removes the current schema first
- * (nutrition/{uid}/data/*, then nutrition/{uid}) and then the temporary legacy
- * nutrition/{uid}_{key} documents used by older beta builds.
- */
-async function deleteCurrentUserFirestoreData3() {
-  if (!_getUid()) throw new Error("No authenticated user");
-
-  const dataKeys = await _listDataKeys3().catch(() => []);
-  const legacyKeys = Array.from(await _listLegacyKeys3().catch(() => new Set()));
-  let deleted = 0;
-  let failed = 0;
-
-  for (let i = 0; i < dataKeys.length; i += 20) {
-    const results = await Promise.allSettled(dataKeys.slice(i, i + 20).map(key => _deleteDataDoc3(key)));
-    deleted += results.filter(result => result.status === "fulfilled").length;
-    failed += results.filter(result => result.status === "rejected").length;
+const _firebaseAccountData = window.FirebaseAccountDataInternal.createFirebaseAccountData({
+  getUid: _getUid,
+  getAuthHeaders: () => _firebaseAuth.fbHeaders(),
+  resetStorageCaches: () => _firebaseFirestore.resetStorageCaches(),
+  fetchRequest: (...args) => fetch(...args),
+  firestorePort: {
+    listDataKeys3: _listDataKeys3,
+    listLegacyKeys3: _listLegacyKeys3,
+    deleteDataDoc3: _deleteDataDoc3,
+    legacyDelete3: _legacyDelete3,
+    getUserDocumentUrl: _userDocUrl2
   }
+});
 
-  for (let i = 0; i < legacyKeys.length; i += 20) {
-    const results = await Promise.allSettled(legacyKeys.slice(i, i + 20).map(key => _legacyDelete3(key)));
-    deleted += results.filter(result => result.status === "fulfilled").length;
-    failed += results.filter(result => result.status === "rejected").length;
-  }
-
-  const rootDelete = await fetch(_userDocUrl2(), {
-    method: "DELETE",
-    headers: await fbHeaders()
-  });
-  if (rootDelete.ok || rootDelete.status === 404) {
-    deleted++;
-  } else {
-    failed++;
-  }
-
-  _firebaseFirestore.resetStorageCaches();
-
-  if (failed) throw new Error("Some account data could not be deleted");
-  return {deleted, failed};
-}
+const {deleteCurrentUserFirestoreData3} = _firebaseAccountData;
 
 window.migrateStorageToFirestoreV3 = migrateStorageToFirestoreV3;
 window.migrateLegacyNutritionDocs = migrateStorageToFirestoreV3;
