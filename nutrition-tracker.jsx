@@ -593,6 +593,17 @@ function NutritionTracker({
     getPantry: () => pantry,
     buildDayTotals
   });
+  const {
+    getAutomaticMealSuggestionLimits: calculateAutomaticMealSuggestionLimits,
+    runGA: runMealGA,
+    addGAResultToDiary: applyGAResultToDiary
+  } = window.MealGA.createMealGA({
+    mealScore: window.MealScore,
+    buildEntry,
+    updateActiveLog: updater => setActiveLog(updater),
+    random: Math.random,
+    setTimeout: window.setTimeout.bind(window)
+  });
 
   // Temporary bridge for inline strings that are not yet in STRINGS.
   // Input: pt/en/es variants. Output: the variant for the active app language.
@@ -2779,26 +2790,12 @@ Formato obrigatório:
   }
   // Genetic Algorithm Meal Suggester
   function getAutomaticMealSuggestionLimits(now = new Date()) {
-    const entries = Object.values(activeLog).flat();
-    const eatenProtein = entries.reduce((sum, entry) => sum + (Number(entry.protein) || 0), 0);
-    const eatenKcal = entries.reduce((sum, entry) => sum + (Number(entry.kcal) || 0), 0);
-    const remainingProtein = Math.max(0, (Number(goals.protein) || 150) - eatenProtein);
-    const remainingKcal = Math.max(0, (Number(goals.kcal) || 2000) - eatenKcal);
-    const hoursLeft = window.MealScore && typeof window.MealScore.hoursUntilLocalMidnight === "function"
-      ? window.MealScore.hoursUntilLocalMidnight(now)
-      : Math.max(0.25, (new Date(now).setHours(24, 0, 0, 0) - new Date(now).getTime()) / 3600000);
-    const timeShare = window.MealScore && typeof window.MealScore.timeShare === "function"
-      ? window.MealScore.timeShare(hoursLeft, 3)
-      : Math.min(1, 3 / Math.max(0.25, hoursLeft));
-    const sizeMultiplier = Math.max(0.2, 1 + gaTolerance / 100);
-    return {
-      remainingProtein,
-      remainingKcal,
-      hoursLeft,
-      timeShare,
-      proteinMax: Math.max(5, Math.round(remainingProtein * timeShare * sizeMultiplier)),
-      kcalMax: Math.max(50, Math.round(remainingKcal * timeShare * sizeMultiplier))
-    };
+    return calculateAutomaticMealSuggestionLimits({
+      activeLog,
+      goals,
+      tolerance: gaTolerance,
+      now
+    });
   }
 
   async function runGA() {
@@ -2807,331 +2804,36 @@ Formato obrigatório:
     setGAResults([]);
     setGAHasSearched(true);
 
-    // Build food list
-    const foods = pantry.filter(f =>
-      gaUseAll ? true : gaSelIds[f.id]
-    ).filter(f => (f.protein100 ?? 0) > 0 || (f.kcal100 ?? 0) > 0);
+    const outcome = await runMealGA({
+      pantry,
+      activeLog,
+      goals,
+      useAll: gaUseAll,
+      selectedIds: gaSelIds,
+      limits: gaLimits,
+      globalMax: gaGlobalMax,
+      tolerance: gaTolerance,
+      useProteinTolerance: gaUseProtTol,
+      proteinTolerance: gaProtTolerance,
+      kcalMin: gaKcalMin,
+      kcalMax: gaKcalMax,
+      proteinMin: gaProtMin,
+      proteinMax: gaProtMax,
+      onProgress: setGAProgress,
+      onResults: setGAResults
+    });
 
-    if (foods.length === 0) {
-      notify(uiText("Adicione alimentos à despensa primeiro.", "Add foods to the pantry first.", "Añade alimentos a la despensa primero."));
-      setGARunning(false); return;
+    if (outcome.status === "empty-pantry") {
+      notify(uiText("Adicione alimentos \u00e0 despensa primeiro.", "Add foods to the pantry first.", "A\u00f1ade alimentos a la despensa primero."));
+      setGARunning(false);
+      return;
     }
 
-    // Remaining nutritional budget for the day
-    const automaticLimits = getAutomaticMealSuggestionLimits();
-    const readLimit = v => {
-      if (v === "" || v === null || v === undefined) return null;
-      const n = Number(v);
-      return Number.isFinite(n) ? n : null;
-    };
-    const kcalMinLimit = readLimit(gaKcalMin);
-    const kcalMaxLimit = readLimit(gaKcalMax);
-    const protMinLimit = readLimit(gaProtMin);
-    const protMaxLimit = readLimit(gaProtMax);
-    const hasKcalMin = kcalMinLimit !== null;
-    const hasKcalMax = kcalMaxLimit !== null;
-    const hasProtMin = protMinLimit !== null;
-    const hasProtMax = protMaxLimit !== null;
-    const kcalBudget = hasKcalMax ? kcalMaxLimit : automaticLimits.kcalMax;
-    const targetProt = hasProtMax ? protMaxLimit : automaticLimits.proteinMax;
-    const effectiveProtMax = targetProt;
-    const protBudget = effectiveProtMax;
-
-    /**
-     * Computes a safe search range for each food before the GA starts.
-     *
-     * Input: pantry foods plus user kcal/protein limits.
-     * Output: one integer gene interval per food.
-     *
-     * Important: the serving step is intentionally unchanged here. For now,
-     * g/ml foods still use 100g/ml per gene and "un" foods use 1 item per
-     * gene. Future portion-fraction work should change only geneStep.
-     */
-    const computeSuggestionBounds = () => {
-      const fallbackGeneCap = food => food.unit === 'un' ? 100 : 20; // 100 units or 2000g/ml.
-      const safeInt = (value, fallback) => {
-        const n = Number(value);
-        return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : fallback;
-      };
-
-      return foods.map(food => {
-        const manual = gaLimits[food.id] || {};
-        const userMax = safeInt(manual.max ?? gaGlobalMax, 5);
-        const userMin = safeInt(manual.min ?? 0, 0);
-        const kcalPerGene = Number(food.kcal100) || 0;
-        const protPerGene = Number(food.protein100) || 0;
-        const maxCandidates = [userMax];
-        let usedVariableCap = false;
-
-        const kcalCeiling = kcalBudget;
-        if (Number.isFinite(kcalCeiling) && kcalCeiling >= 0 && kcalPerGene > 0) {
-          maxCandidates.push(Math.floor(kcalCeiling / kcalPerGene));
-          usedVariableCap = true;
-        }
-
-        const protCeiling = effectiveProtMax;
-        if (protCeiling !== null && Number.isFinite(protCeiling) && protCeiling >= 0 && protPerGene > 0) {
-          maxCandidates.push(Math.floor(protCeiling / protPerGene));
-          usedVariableCap = true;
-        }
-
-        if (!usedVariableCap) {
-          maxCandidates.push(fallbackGeneCap(food));
-        }
-
-        const max = Math.max(0, Math.min(...maxCandidates.filter(Number.isFinite)));
-        const min = Math.min(userMin, max);
-        return { min, max };
-      });
-    };
-
-    const bounds = computeSuggestionBounds();
-
-    // Per-food gene bounds. Gene unit: "un" = 1 item; g/ml = 100g/ml.
-    const geneMax = i => bounds[i]?.max ?? 0;
-    const geneMin = i => bounds[i]?.min ?? 0;
-    const safeRound = value => {
-      const n = Number(value);
-      return Number.isFinite(n) ? Math.round(n) : 0;
-    };
-    const clampGene = (value, i) => Math.max(geneMin(i), Math.min(geneMax(i), safeRound(value)));
-    const randGene = i => {
-      const min = geneMin(i);
-      const max = geneMax(i);
-      if (max <= min) return min;
-      return min + Math.floor(Math.random() * (max - min + 1));
-    };
-
-    // Totals from gene array
-    const totals = genes => {
-      let p=0,k=0,c=0,f=0;
-      genes.forEach((g,i)=>{
-        // Pantry macros are stored as protein100/kcal100/etc.
-        // For g/ml foods, one gene is 100g/ml; for unit foods, one gene is one unit.
-        p += (Number(foods[i].protein100) || 0) * g;
-        k += (Number(foods[i].kcal100) || 0) * g;
-        c += (Number(foods[i].carbs100) || 0) * g;
-        f += (Number(foods[i].fat100) || 0) * g;
-      });
-      return {protein:p, kcal:k, carbs:c, fat:f};
-    };
-
-    // Fitness functions
-    // Helper: penalty for being outside [lo, hi] interval
-    // Inside ? 0; outside ? grows proportionally
-    const intervalPen = (val, lo, hi, hardness) => {
-      if (val < lo) return hardness * (lo - val) / Math.max(lo, 1);
-      if (val > hi) return hardness * (val - hi) / Math.max(hi, 1);
-      return 0;
-    };
-
-    // Determine effective kcal interval
-    // Tolerance slider now ranges -40% to +40%, allowing deficit targets
-    const kcalLo = hasKcalMin ? kcalMinLimit : 0;
-    const kcalHi = kcalBudget;
-
-    const protLo = hasProtMin ? protMinLimit : 0;
-    const protHi = effectiveProtMax;
-
-    // Decide which fitness variant to use
-    const hasAbsLimits = hasKcalMin || hasKcalMax || hasProtMin || hasProtMax;
-
-    const fitness = genes => {
-      const t = totals(genes);
-      if (genes.every(g=>g===0)) return 999;
-
-      if (hasAbsLimits) {
-        // Fitness B: interval-based
-        // Penalize being outside user-defined [min, max] ranges
-        // Inside the interval ? small reward for being centered
-        const kPen = intervalPen(t.kcal,
-          hasKcalMin ? kcalLo : Math.max(0, kcalHi*0.2),
-          hasKcalMax ? kcalHi : kcalBudget,
-          8);
-        const pPen = intervalPen(t.protein,
-          hasProtMin ? protLo : (gaUseProtTol ? 0 : targetProt*0.5),
-          protHi,
-          8);
-        // Soft centering bonus (pulls solution toward middle of interval)
-        const kMid = ((hasKcalMin?kcalLo:kcalHi*0.2) + (hasKcalMax?kcalHi:kcalBudget)) / 2;
-        const pMid = ((hasProtMin?protLo:targetProt*0.5) + protHi) / 2;
-        const kCenter = 0.1 * Math.abs(t.kcal - kMid) / Math.max(kMid, 1);
-        const pCenter = 0.1 * Math.abs(t.protein - pMid) / Math.max(pMid, 1);
-        return kPen + pPen + kCenter + pCenter;
-
-      } else {
-        // Fitness A: target-based
-        const protDev = gaUseProtTol
-          ? (t.protein > protBudget
-              ? 10*(t.protein-protBudget)/Math.max(protBudget,1)
-              : Math.abs(t.protein-targetProt)/Math.max(targetProt,1))
-          : Math.abs(t.protein - targetProt) / Math.max(targetProt,1);
-        const kcalPen = t.kcal > kcalBudget
-          ? 10*(t.kcal-kcalBudget)/Math.max(kcalBudget,1)
-          : 0.3*(1 - t.kcal/Math.max(kcalBudget,1));
-        return protDev + kcalPen;
-      }
-    };
-
-    // GA params - adaptive to N (number of foods)
-    const N = foods.length;
-
-    // Population: grows gently with N, capped for browser performance
-    const POP = Math.min(200, Math.max(80, N * 7));
-
-    // Stagnation threshold: how many generations without bestFit improvement
-    // before triggering a restart. More genes = more patience.
-    const STAG_LIMIT = Math.max(150, N * 20);
-
-    // Max generations per restart ? generous since stagnation is the real brake
-    const GENS_PER_RESTART = Math.max(600, N * 60);
-
-    // Number of full restarts before giving up
-    const MAX_RESTARTS = N <= 10 ? 3 : N <= 20 ? 4 : 5;
-
-    // Fitness target: relaxes slightly as N grows (harder to nail exactly)
-    const STOP_FIT = Math.min(0.18, 0.06 + N * 0.004);
-
-    const MUT_RATE = 0.15;
-    const N_SOLS = 5;
-
-    const solutions=[], solKeys=new Set();
-    let bestFit=Infinity, bestInd=null;
-
-    const solKey = g => g.join(',');
-    const isSolutionAllowed = genes => {
-      if (!genes.some(g => g > 0)) return false;
-      const t = totals(genes);
-      if (hasKcalMin && t.kcal < kcalMinLimit) return false;
-      if (t.kcal > kcalBudget) return false;
-      if (hasProtMin && t.protein < protMinLimit) return false;
-      if (t.protein > effectiveProtMax) return false;
-      return genes.every((g, i) => g >= geneMin(i) && g <= geneMax(i));
-    };
-
-    const makeSolution = ind => {
-      const t = totals(ind.genes);
-      return {
-        genes:ind.genes, fit:ind.fit,
-        protein:Math.round(t.protein), kcal:Math.round(t.kcal),
-        carbs:Math.round(t.carbs), fat:Math.round(t.fat),
-        items: foods.map((f,i)=>({food:f, gene:ind.genes[i]})).filter(x=>x.gene>0)
-      };
-    };
-
-    const select = p => {
-      p.sort((a,b)=>a.fit-b.fit);
-      return p.slice(0, Math.floor(p.length/2));
-    };
-
-    const cross = (a,b) => {
-      const pt = Math.floor(Math.random()*a.genes.length);
-      const g = [...a.genes.slice(0,pt), ...b.genes.slice(pt)].map((gene, i) => clampGene(gene, i));
-      return {genes:g, fit:fitness(g)};
-    };
-
-    const mutate = ind => {
-      const g = [...ind.genes];
-      if (Math.random()>0.5) {
-        const sw = Math.max(1, Math.floor(g.length*0.1));
-        for(let k=0;k<sw;k++){
-          const a=Math.floor(Math.random()*g.length);
-          const b=Math.floor(Math.random()*g.length);
-          [g[a],g[b]]=[g[b],g[a]];
-        }
-      } else {
-        const ch = Math.floor(Math.random()*Math.ceil(g.length/2))+1;
-        for(let k=0;k<ch;k++){
-          const j=Math.floor(Math.random()*g.length);
-          const x=randGene(j);
-          g[j]=clampGene(Math.abs(g[j]-x), j);
-        }
-      }
-      return {genes:g, fit:fitness(g)};
-    };
-
-    // Multi-restart loop with stagnation detection
-    let totalGens = 0;
-    const totalGensEstimate = MAX_RESTARTS * GENS_PER_RESTART;
-
-    for(let restart=0; restart<MAX_RESTARTS; restart++){
-      // Fresh population, but seed with best known individual if we have one
-      let pop = Array.from({length:POP}, (_,pi) => {
-        if(pi===0 && bestInd) return bestInd;
-        const g = foods.map((_,i)=>randGene(i));
-        return {genes:g, fit:fitness(g)};
-      });
-
-      let stagCount = 0;
-      let restartBestFit = bestFit;
-
-      for(let gen=0; gen<GENS_PER_RESTART; gen++){
-        totalGens++;
-
-        if(totalGens % 20 === 0){
-          setGAProgress(Math.min(99, Math.round(totalGens/totalGensEstimate*100)));
-          await new Promise(r=>setTimeout(r,0));
-        }
-
-        const parents = select([...pop]);
-        const genBest = parents[0].fit;
-
-        if(genBest < bestFit){
-          bestFit = genBest;
-          bestInd = parents[0];
-        }
-
-        // Stagnation detection
-        if(genBest < restartBestFit - 0.001){
-          restartBestFit = genBest;
-          stagCount = 0;
-        } else {
-          stagCount++;
-        }
-
-        // Collect valid solutions
-        for(const ind of parents){
-          if(ind.fit < STOP_FIT){
-            const k=solKey(ind.genes);
-            if(!solKeys.has(k) && isSolutionAllowed(ind.genes)){
-              solKeys.add(k);
-              solutions.push(makeSolution(ind));
-              solutions.sort((a,b)=>a.fit-b.fit);
-              setGAResults([...solutions].slice(0,N_SOLS));
-            }
-          }
-        }
-
-        // Early exit: enough good solutions found
-        if(solutions.length>=N_SOLS && bestFit<STOP_FIT) break;
-
-        // Stagnation ? end this restart early
-        if(stagCount >= STAG_LIMIT) break;
-
-        // Crossover + mutation
-        const sons = parents.map(()=>{
-          const xi=Math.floor(Math.random()*parents.length);
-          let yi; do{yi=Math.floor(Math.random()*parents.length);}while(yi===xi&&parents.length>1);
-          const son=cross(parents[xi],parents[yi]);
-          return Math.random()<MUT_RATE ? mutate(son) : son;
-        });
-        pop=[...parents,...sons];
-      }
-
-      // Stop all restarts if we have enough solutions
-      if(solutions.length>=N_SOLS && bestFit<STOP_FIT) break;
-    }
-
-    // Fallback: show best attempt if no solution met STOP_FIT
-    if(solutions.length===0 && bestInd && isSolutionAllowed(bestInd.genes)){
-      solutions.push(makeSolution(bestInd));
-      setGAResults(solutions);
-    }
-    if(solutions.length===0){
+    if (outcome.status === "no-solution") {
       notify(uiText(
-        "Nenhuma combinação válida foi encontrada com os limites definidos.",
+        "Nenhuma combina\u00e7\u00e3o v\u00e1lida foi encontrada com os limites definidos.",
         "No valid combination was found with the selected limits.",
-        "No se encontró ninguna combinación válida con los límites definidos."
+        "No se encontr\u00f3 ninguna combinaci\u00f3n v\u00e1lida con los l\u00edmites definidos."
       ));
     }
 
@@ -3147,7 +2849,7 @@ Formato obrigatório:
       setGAProgress(0);
       setGAResults([]);
       notify(uiText(
-        "Não foi possível gerar sugestões de refeição: ",
+        "N\u00e3o foi poss\u00edvel gerar sugest\u00f5es de refei\u00e7\u00e3o: ",
         "Could not generate meal suggestions: ",
         "No se pudieron generar sugerencias de comida: "
       ) + (err?.message || err), 8000);
@@ -3156,7 +2858,7 @@ Formato obrigatório:
 
   function openMealSuggestions() {
     if (!pantry.length) {
-      notify(uiText("Adicione alimentos à despensa primeiro.", "Add foods to the pantry first.", "Añade alimentos a la despensa primero."));
+      notify(uiText("Adicione alimentos \u00e0 despensa primeiro.", "Add foods to the pantry first.", "A\u00f1ade alimentos a la despensa primero."));
       return;
     }
     setGAResults([]);
@@ -3167,17 +2869,12 @@ Formato obrigatório:
   }
 
   function addGAResultToDiary(result) {
-    const meal = gaTargetMeal || MEALS[1]; // default almo?o
-    result.items.forEach(({food, gene}) => {
-      // Convert gene back to real qty
-      const qty = food.unit === 'un' ? gene : gene * 100;
-      const entry = buildEntry(food, qty);
-      setActiveLog(prev => ({
-        ...prev,
-        [meal]: [...(prev[meal]||[]), entry]
-      }));
+    const meal = applyGAResultToDiary({
+      result,
+      targetMeal: gaTargetMeal,
+      meals: MEALS
     });
-    notify(uiText("Refeição adicionada ao diário (", "Meal added to diary (", "Comida añadida al diario (") + mealLabel(meal) + ")!");
+    notify(uiText("Refei\u00e7\u00e3o adicionada ao di\u00e1rio (", "Meal added to diary (", "Comida a\u00f1adida al diario (") + mealLabel(meal) + ")!");
     setShowGA(false);
   }
 
