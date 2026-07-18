@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
+const CONFIG_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-config-internal.js"), "utf8");
 const SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-storage.js"), "utf8");
 const FB_BASE = "https://firestore.googleapis.com/v1/projects/nutrition-tracker-780b3/databases/(default)/documents/nutrition";
 
@@ -181,6 +182,7 @@ function loadFirebaseStorage({ local = {}, reportConfig, fetchRequest } = {}) {
   context.window = context;
   context.globalThis = context;
   vm.createContext(context);
+  vm.runInContext(CONFIG_SOURCE, context, { filename: "firebase-config-internal.js" });
   vm.runInContext(SOURCE, context, { filename: "firebase-storage.js" });
 
   return {
