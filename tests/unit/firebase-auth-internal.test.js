@@ -34,7 +34,6 @@ function loadAuth({ local = {}, fetchRequest = async () => response({}) } = {}) 
   vm.runInContext(SOURCE, context, { filename: "firebase-auth-internal.js" });
 
   const localStorage = createLocalStorage(local);
-  let uid = localStorage.getItem("fb_uid") || null;
   let resetCount = 0;
   const auth = context.FirebaseAuthInternal.createFirebaseAuth({
     apiKey: "test-key",
@@ -42,15 +41,13 @@ function loadAuth({ local = {}, fetchRequest = async () => response({}) } = {}) 
     tokenBase: "https://token.example.test/token",
     fetchRequest,
     localStorage,
-    resetStorageCaches() { resetCount++; },
-    getCurrentUid() { return uid; },
-    setCurrentUid(value) { uid = value; }
+    resetStorageCaches() { resetCount++; }
   });
 
   return {
     auth,
     localStorage,
-    getUid: () => uid,
+    getUid: auth.getUid,
     getResetCount: () => resetCount
   };
 }
@@ -59,6 +56,7 @@ test("publishes a namespaced UMD authentication factory", () => {
   const fixture = loadAuth();
   assert.equal(typeof fixture.auth.fbSignIn, "function");
   assert.equal(typeof fixture.auth.fbToken, "function");
+  assert.equal(typeof fixture.auth.getUid, "function");
   assert.equal(typeof fixture.auth._saveSession, "function");
 });
 
@@ -139,7 +137,7 @@ test("preserves concurrent fbToken refreshes without Promise deduplication", asy
   assert.equal(fixture.getResetCount(), 2);
 });
 
-test("preserves refresh-failure cleanup without resetting caches or the bridged UID", async () => {
+test("preserves refresh-failure cleanup without resetting caches or the authentication-owned UID", async () => {
   const fixture = loadAuth({
     local: { fb_refresh: "expired", fb_uid: "user-1", fb_email: "person@example.test" },
     fetchRequest: async () => response({}, { ok: false })

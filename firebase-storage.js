@@ -14,18 +14,16 @@ const {
 } = window.FirebaseConfigInternal.createFirebaseConfig();
 
 // ── Auth state ───────────────────────────────────────────────
-// TEMPORARY bridge: persistence still reads `_uid` directly. Sub-slice 3 will
-// move UID ownership behind the extracted persistence/authentication contract.
-let _uid = localStorage.getItem("fb_uid") || null;
+let _firebaseFirestore = null;
 const _firebaseAuth = window.FirebaseAuthInternal.createFirebaseAuth({
   apiKey: FB_KEY,
   authBase: AUTH_BASE,
   tokenBase: TOKEN_BASE,
   fetchRequest: (...args) => fetch(...args),
   localStorage,
-  resetStorageCaches: () => _resetFirestoreCaches(),
-  getCurrentUid: () => _uid,
-  setCurrentUid: value => { _uid = value; }
+  resetStorageCaches: () => {
+    if (_firebaseFirestore) _firebaseFirestore.resetStorageCaches();
+  }
 });
 
 window._saveSession = _firebaseAuth._saveSession;
@@ -65,154 +63,44 @@ async function fbListLegacyInactive(p) {
   return {keys: []};
 }
 
-function _legacyKey2(k) { return _uid ? _uid + "_" + k : k; }
-function _stripLegacyUid2(k) { return (_uid && k.startsWith(_uid + "_")) ? k.slice(_uid.length + 1) : k; }
-function _userDocUrl2() { return FB_BASE + "/" + encodeURIComponent(_uid); }
-function _legacyDocUrl2(k) { return FB_BASE + "/" + encodeURIComponent(_legacyKey2(k)); }
-function _fieldPath2(k) {
-  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(k) ? k : "`" + String(k).replace(/\\/g, "\\\\").replace(/`/g, "\\`") + "`";
-}
-function _decodeFsValue2(v) {
-  if (!v) return undefined;
-  if ("stringValue" in v) return v.stringValue;
-  if ("integerValue" in v) return Number(v.integerValue);
-  if ("doubleValue" in v) return Number(v.doubleValue);
-  if ("booleanValue" in v) return !!v.booleanValue;
-  if ("nullValue" in v) return null;
-  if ("arrayValue" in v) return (v.arrayValue.values || []).map(_decodeFsValue2);
-  if ("mapValue" in v) {
-    const out = {};
-    Object.entries(v.mapValue.fields || {}).forEach(([k, val]) => out[k] = _decodeFsValue2(val));
-    return out;
-  }
-  return undefined;
-}
-function _encodeFsValue2(v) {
-  if (v === null || v === undefined) return {nullValue: null};
-  if (typeof v === "boolean") return {booleanValue: v};
-  if (typeof v === "number" && Number.isFinite(v)) return Number.isInteger(v) ? {integerValue: String(v)} : {doubleValue: v};
-  if (Array.isArray(v)) return {arrayValue: {values: v.map(_encodeFsValue2)}};
-  if (typeof v === "object") {
-    const fields = {};
-    Object.entries(v).forEach(([k, val]) => fields[k] = _encodeFsValue2(val));
-    return {mapValue: {fields}};
-  }
-  return {stringValue: String(v)};
-}
-function _storageValue2(v) { return typeof v === "string" ? v : JSON.stringify(v); }
-let _userDocCache = null;
-let _userDocLoaded = false;
-let _migrationPromise = null;
+_firebaseFirestore = window.FirebaseFirestoreInternal.createFirebaseFirestore({
+  firestoreBase: FB_BASE,
+  getUid: _firebaseAuth.getUid,
+  getAuthHeaders: () => _firebaseAuth.fbHeaders(),
+  fetchRequest: (...args) => fetch(...args),
+  localStorage,
+  runLegacyMigration: (...args) => migrateLegacyNutritionDocs(...args),
+  runStorageMigration: (...args) => migrateStorageToFirestoreV3(...args)
+});
 
-/**
- * Clears every Firestore cache used by the persistence adapter.
- * This is called whenever auth state changes so profile fields and data
- * subcollection keys are always loaded for the currently authenticated user.
- */
-function _resetFirestoreCaches() {
-  _userDocCache = null;
-  _userDocLoaded = false;
-  _migrationPromise = null;
-  if (typeof _rootDocCache3 !== "undefined") _rootDocCache3 = null;
-  if (typeof _rootDocLoaded3 !== "undefined") _rootDocLoaded3 = false;
-  if (typeof _dataKeyCache3 !== "undefined") _dataKeyCache3 = null;
-  if (typeof _migrationPromise3 !== "undefined") _migrationPromise3 = null;
-}
-
-async function _fetchUserDocFields2() {
-  if (!_uid) return {};
-  const r = await fetch(_userDocUrl2(), {headers: await fbHeaders()});
-  if (!r.ok) return {};
-  const d = await r.json();
-  const out = {};
-  Object.entries(d.fields || {}).forEach(([k, v]) => out[k] = _decodeFsValue2(v));
-  return out;
-}
-
-async function _patchUserFields2(fields, deleteKeys) {
-  if (!_uid) return;
-  const setFields = fields || {};
-  const deletes = deleteKeys || [];
-  const params = new URLSearchParams();
-  [...Object.keys(setFields), ...deletes].forEach(k => params.append("updateMask.fieldPaths", _fieldPath2(k)));
-  const bodyFields = {};
-  Object.entries(setFields).forEach(([k, v]) => bodyFields[k] = _encodeFsValue2(v));
-  const r = await fetch(_userDocUrl2() + (params.toString() ? "?" + params.toString() : ""), {
-    method: "PATCH",
-    headers: await fbHeaders(),
-    body: JSON.stringify({fields: bodyFields})
-  });
-  if (!r.ok) throw new Error("Firestore write failed");
-  _userDocCache = {...(_userDocCache || {}), ...setFields};
-  deletes.forEach(k => { if (_userDocCache) delete _userDocCache[k]; });
-  _userDocLoaded = true;
-}
-
-async function _legacyGet2(k) {
-  try {
-    const r = await fetch(_legacyDocUrl2(k), {headers: await fbHeaders()});
-    if (!r.ok) return null;
-    const d = await r.json();
-    const v = _decodeFsValue2(d?.fields?.value);
-    return v !== undefined && v !== null ? {value: _storageValue2(v)} : null;
-  } catch(e) { return null; }
-}
-
-/**
- * Last-resort local fallback used during schema transitions.
- * Older app versions sometimes kept a browser-local copy using either the
- * plain key or the uid-prefixed key. When found, the caller promotes it back to
- * Firestore so the next load uses the normal cloud path again.
- */
-function _localFallbackGet3(k) {
-  try {
-    const candidates = _uid ? [_legacyKey2(k), k] : [k];
-    for (const key of candidates) {
-      const value = localStorage.getItem(key);
-      if (value !== null && value !== undefined && value !== "undefined") {
-        return {value};
-      }
-    }
-  } catch (_) {}
-  return null;
-}
-
-function _isCriticalStorageKey3(k) {
-  return [
-    "pantry_v2",
-    "suppPantry",
-    "weightHistory",
-    "goalHistory",
-    "mealTemplates",
-    "customGoals",
-    "trainingByDate"
-  ].includes(k);
-}
-
-function _isEmptyStoredValue3(value) {
-  if (value === null || value === undefined) return true;
-  const text = String(value).trim();
-  return text === "" || text === "[]" || text === "{}" || text === "null";
-}
-
-function _storedValueScore3(value) {
-  if (_isEmptyStoredValue3(value)) return 0;
-  try {
-    const parsed = JSON.parse(String(value));
-    if (Array.isArray(parsed)) return parsed.length;
-    if (parsed && typeof parsed === "object") return Object.keys(parsed).length;
-  } catch (_) {}
-  return 1;
-}
-
-function _bestStorageCandidate3(candidates) {
-  return candidates
-    .filter(candidate => candidate && candidate.value !== undefined && candidate.value !== null)
-    .sort((a, b) => _storedValueScore3(b.value) - _storedValueScore3(a.value))[0] || null;
-}
+const {
+  getUid: _getUid,
+  stripLegacyUid2: _stripLegacyUid2,
+  userDocUrl2: _userDocUrl2,
+  decodeFsValue2: _decodeFsValue2,
+  storageValue2: _storageValue2,
+  fetchUserDocFields2: _fetchUserDocFields2,
+  patchUserFields2: _patchUserFields2,
+  mergeUserDocCache2: _mergeUserDocCache2,
+  legacyGet2: _legacyGet2,
+  localFallbackGet3: _localFallbackGet3,
+  isEmptyStoredValue3: _isEmptyStoredValue3,
+  loadRootFields3: _loadRootFields3,
+  patchRootFields3: _patchRootFields3,
+  getDataDoc3: _getDataDoc3,
+  setDataDoc3: _setDataDoc3,
+  deleteDataDoc3: _deleteDataDoc3,
+  listDataKeys3: _listDataKeys3,
+  listLegacyKeys3: _listLegacyKeys3,
+  parseStorageJson3: _parseStorageJson3,
+  isProfileKey3: _isProfileKey3,
+  normalizeProfileValue3: _normalizeProfileValue3,
+  legacyDelete3: _legacyDelete3
+} = _firebaseFirestore.support;
 
 async function migrateLegacyNutritionDocs(options) {
-  if (!_uid) return {migrated: 0, skipped: 0};
+  const uid = _getUid();
+  if (!uid) return {migrated: 0, skipped: 0};
   const onlyIfMissing = !options || options.onlyIfMissing !== false;
   try {
     const headers = await fbHeaders();
@@ -222,7 +110,7 @@ async function migrateLegacyNutritionDocs(options) {
     ]);
     if (!listRes.ok) return {migrated: 0, skipped: 0};
     const data = await listRes.json();
-    const prefix = _uid + "_";
+    const prefix = uid + "_";
     const updates = {};
     let skipped = 0;
     (data.documents || []).forEach(doc => {
@@ -239,8 +127,7 @@ async function migrateLegacyNutritionDocs(options) {
     });
     const keys = Object.keys(updates);
     if (keys.length) await _patchUserFields2(updates, []);
-    _userDocCache = {...currentFields, ...updates, ...(_userDocCache || {})};
-    _userDocLoaded = true;
+    _mergeUserDocCache2(currentFields, updates);
     return {migrated: keys.length, skipped};
   } catch(e) {
     return {migrated: 0, skipped: 0, error: e.message || String(e)};
@@ -248,225 +135,13 @@ async function migrateLegacyNutritionDocs(options) {
 }
 window.migrateLegacyNutritionDocs = migrateLegacyNutritionDocs;
 
-async function _loadUserDoc2() {
-  if (!_uid) return {};
-  if (!_userDocLoaded) {
-    _userDocCache = await _fetchUserDocFields2().catch(() => ({}));
-    _userDocLoaded = true;
-  }
-  if (!_migrationPromise) {
-    _migrationPromise = migrateLegacyNutritionDocs({onlyIfMissing: true});
-    await _migrationPromise;
-  }
-  return _userDocCache || {};
-}
+async function fbGet(k) { return _firebaseFirestore.fbGetV2(k); }
+async function fbSet(k, v) { return _firebaseFirestore.fbSetV2(k, v); }
+async function fbDel(k) { return _firebaseFirestore.fbDelV2(k); }
+async function fbList(p) { return _firebaseFirestore.fbListV2(p); }
 
-async function fbGet(k) {
-  const fields = await _loadUserDoc2();
-  if (fields[k] !== undefined && fields[k] !== null) return {value: _storageValue2(fields[k])};
-  const legacy = await _legacyGet2(k);
-  if (legacy) fbSet(k, legacy.value).catch(() => {});
-  return legacy;
-}
-
-async function fbSet(k, v) {
-  try {
-    await _patchUserFields2({[k]: typeof v === "string" ? v : JSON.stringify(v)}, []);
-  } catch(e) {}
-}
-
-async function fbDel(k) {
-  try {
-    await _patchUserFields2({}, [k]);
-  } catch(e) {}
-}
-
-async function fbList(p) {
-  try {
-    const fields = await _loadUserDoc2();
-    const newKeys = Object.keys(fields).filter(k => fields[k] !== undefined && fields[k] !== null);
-    const r = await fetch(FB_BASE + "?pageSize=1000", {headers: await fbHeaders()});
-    if (!r.ok) return {keys: p ? newKeys.filter(k => k.indexOf(p) === 0) : newKeys};
-    const d = await r.json();
-    const prefix = _uid ? _uid + "_" : "";
-    const legacyKeys = (d.documents||[])
-      .map(doc => decodeURIComponent(doc.name.split("/").pop()))
-      .filter(k => !_uid || k.startsWith(prefix))
-      .map(k => _stripLegacyUid2(k));
-    const keys = Array.from(new Set([...newKeys, ...legacyKeys]));
-    return {keys: p ? keys.filter(k => k.indexOf(p) === 0) : keys};
-  } catch(e) { return {keys:[]}; }
-}
-
-// Firestore v3 storage:
-// - nutrition/{uid}: small profile/preferences fields.
-// - nutrition/{uid}/data/{key}: app data that can grow over time.
-// Legacy root fields and nutrition/{uid}_{key} docs remain readable as fallback.
-const PROFILE_FIELD_KEYS = new Set([
-  "birthDate", "gender", "height", "activityLevel", "goalType", "goalKg", "goalWeeks",
-  "manualCalorieAdjustment", "proteinMultiplier", "bodyFatGoal", "userName", "tutorialSeen",
-  "language", "lastLoginAt", "lastActivityAt", "tutorial_most_recent_version_seen",
-  "_storageSchemaVerified", "_storageSchemaVerifiedAt", "_legacyCleanupDone",
-  "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
-  "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
-]);
-let _rootDocCache3 = null;
-let _rootDocLoaded3 = false;
-let _dataKeyCache3 = null;
-let _migrationPromise3 = null;
-function _dataDocUrl3(k) {
-  return _userDocUrl2() + "/data/" + encodeURIComponent(k);
-}
-function _isProfileKey3(k) {
-  return PROFILE_FIELD_KEYS.has(k);
-}
-
-/**
- * Normalizes scalar profile fields that may have been saved by older beta
- * builds with legacy names or as JSON-encoded strings. Keeping this inside the
- * persistence adapter prevents UI/profile validation code from knowing about
- * temporary migration formats.
- */
-function _normalizeProfileValue3(key, value) {
-  let parsed = _parseStorageJson3(value);
-  if (parsed === null || parsed === undefined) return parsed;
-
-  if (key === "goalType") {
-    const text = String(parsed);
-    if (["lose", "loss", "lose_weight", "weight_loss"].includes(text)) return "loss";
-    if (["gain", "gain_weight", "weight_gain"].includes(text)) return "gain";
-    if (["maintain", "maintenance", "keep"].includes(text)) return "maintenance";
-    return text;
-  }
-
-  if (key === "gender") {
-    const text = String(parsed).toLowerCase();
-    if (["masculino", "male", "m"].includes(text)) return "male";
-    if (["feminino", "female", "f"].includes(text)) return "female";
-    return text;
-  }
-
-  if (key === "activityLevel") {
-    const text = String(parsed);
-    const aliases = {
-      sedentario: "sedentary",
-      sedentary: "sedentary",
-      light: "light",
-      leve: "light",
-      moderate: "moderate",
-      moderado: "moderate",
-      very: "very",
-      muito: "very",
-      extreme: "extreme",
-      extremo: "extreme"
-    };
-    return aliases[text] || text;
-  }
-
-  return parsed;
-}
-
-function _storageRecord3(key, value) {
-  const normalized = _isProfileKey3(key) ? _normalizeProfileValue3(key, value) : _parseStorageJson3(value);
-  return normalized !== undefined && normalized !== null ? {value: _storageValue2(normalized)} : null;
-}
-async function _fetchRootFields3() {
-  if (!_uid) return {};
-  const r = await fetch(_userDocUrl2(), {headers: await fbHeaders()});
-  if (!r.ok) {
-    console.warn("Firestore root read failed", {uid: _uid, status: r.status});
-    return {};
-  }
-  const d = await r.json();
-  const out = {};
-  Object.entries(d.fields || {}).forEach(([k, v]) => out[k] = _decodeFsValue2(v));
-  return out;
-}
-async function _loadRootFields3() {
-  if (!_rootDocLoaded3) {
-    _rootDocCache3 = await _fetchRootFields3().catch(() => ({}));
-    _rootDocLoaded3 = true;
-  }
-  return _rootDocCache3 || {};
-}
-async function _patchRootFields3(fields, deleteKeys) {
-  await _patchUserFields2(fields, deleteKeys);
-  _rootDocCache3 = {...(_rootDocCache3 || {}), ...(fields || {})};
-  (deleteKeys || []).forEach(k => { if (_rootDocCache3) delete _rootDocCache3[k]; });
-  _rootDocLoaded3 = true;
-}
-async function _getDataDoc3(k) {
-  try {
-    const r = await fetch(_dataDocUrl3(k), {headers: await fbHeaders()});
-    if (!r.ok) {
-      if (r.status !== 404 && _isCriticalStorageKey3(k)) {
-        console.warn("Firestore data read failed", {uid: _uid, key: k, status: r.status});
-      }
-      return null;
-    }
-    const d = await r.json();
-    const value = _decodeFsValue2(d?.fields?.value);
-    return value !== undefined && value !== null ? {value: _storageValue2(value)} : null;
-  } catch (error) {
-    if (_isCriticalStorageKey3(k)) {
-      console.warn("Firestore data read failed", {uid: _uid, key: k, error: error?.message || String(error)});
-    }
-    return null;
-  }
-}
-async function _setDataDoc3(k, v) {
-  const r = await fetch(_dataDocUrl3(k), {
-    method: "PATCH",
-    headers: await fbHeaders(),
-    body: JSON.stringify({fields: {value: _encodeFsValue2(typeof v === "string" ? v : JSON.stringify(v))}})
-  });
-  if (!r.ok) throw new Error("Firestore data write failed");
-  if (_dataKeyCache3) _dataKeyCache3.add(k);
-}
-async function _deleteDataDoc3(k) {
-  const r = await fetch(_dataDocUrl3(k), {method: "DELETE", headers: await fbHeaders()});
-  if (!r.ok && r.status !== 404) throw new Error("Firestore data delete failed");
-  if (_dataKeyCache3) _dataKeyCache3.delete(k);
-}
-async function _listDataKeys3() {
-  if (_dataKeyCache3) return Array.from(_dataKeyCache3);
-  const keys = new Set();
-  let pageToken = "";
-  do {
-    const url = _userDocUrl2() + "/data?pageSize=1000" + (pageToken ? "&pageToken=" + encodeURIComponent(pageToken) : "");
-    const r = await fetch(url, {headers: await fbHeaders()});
-    if (!r.ok) break;
-    const d = await r.json();
-    (d.documents || []).forEach(doc => keys.add(decodeURIComponent((doc.name || "").split("/").pop() || "")));
-    pageToken = d.nextPageToken || "";
-  } while (pageToken);
-  _dataKeyCache3 = keys;
-  return Array.from(keys);
-}
-
-/**
- * Lists only legacy nutrition/{uid}_{key} documents that really exist.
- * This keeps the temporary migration from doing hundreds of slow 404 reads
- * during login while it searches for old beta data layouts.
- */
-async function _listLegacyKeys3() {
-  if (!_uid) return new Set();
-  const keys = new Set();
-  let pageToken = "";
-  do {
-    const url = FB_BASE + "?pageSize=1000" + (pageToken ? "&pageToken=" + encodeURIComponent(pageToken) : "");
-    const r = await fetch(url, {headers: await fbHeaders()});
-    if (!r.ok) break;
-    const d = await r.json();
-    (d.documents || [])
-      .map(doc => decodeURIComponent(doc.name.split("/").pop()))
-      .filter(id => id.startsWith(_uid + "_"))
-      .map(id => id.slice(_uid.length + 1))
-      .forEach(key => keys.add(key));
-    pageToken = d.nextPageToken || "";
-  } while (pageToken);
-  return keys;
-}
+// Firestore v3 algorithms remain in this facade; storage primitives and caches
+// live in firebase-firestore-internal.js and are consumed through `support`.
 function _knownMigrationKeys3() {
   const base = [
     "pantry", "pantry_v2", "suppPantry", "waterGoal", "waterCustomPreset", "customGoals", "goalHistory",
@@ -486,14 +161,6 @@ function _knownMigrationKeys3() {
     dateKeys.push("log_v2_" + date, "notes_" + date, "waterIntake_" + date, "suppLog_" + date);
   }
   return Array.from(new Set([...base, ...dateKeys]));
-}
-
-function _parseStorageJson3(value) {
-  if (value === null || value === undefined) return null;
-  if (typeof value !== "string") return value;
-  const text = value.trim();
-  if (!text) return null;
-  try { return JSON.parse(text); } catch (_) { return value; }
 }
 
 function _normalizedIdentity3(item) {
@@ -559,11 +226,6 @@ function _mergeStoredValues3(candidates) {
   return _storageValue2(parsedValues[0]);
 }
 
-async function _legacyDelete3(k) {
-  const r = await fetch(_legacyDocUrl2(k), {method: "DELETE", headers: await fbHeaders()});
-  if (!r.ok && r.status !== 404) throw new Error("Legacy delete failed");
-}
-
 function _legacyAliasesForKey3(key) {
   const aliases = {
     pantry_v2: ["pantry"],
@@ -599,7 +261,7 @@ function _extractProfileFromLegacyUserGoal3(rawUserGoal) {
  * can be removed together with the temporary legacy-delete Firestore rule.
  */
 async function migrateStorageToFirestoreV3(options) {
-  if (!_uid) return {migrated: 0, cleaned: 0, skipped: 0};
+  if (!_getUid()) return {migrated: 0, cleaned: 0, skipped: 0};
   const cleanup = !options || options.cleanup !== false;
   const now = new Date().toISOString();
   const rootFields = await _loadRootFields3();
@@ -718,7 +380,7 @@ async function migrateStorageToFirestoreV3(options) {
  * function after all beta users have been normalized and old docs are gone.
  */
 async function cleanupLegacyNutritionDocsV3() {
-  if (!_uid) return {cleaned: 0, failed: 0, skipped: 1};
+  if (!_getUid()) return {cleaned: 0, failed: 0, skipped: 1};
   const now = new Date().toISOString();
   const rootFields = await _loadRootFields3();
   if (rootFields._legacyCleanupDone === true || rootFields._legacyCleanupDone === "true") {
@@ -763,7 +425,7 @@ async function cleanupLegacyNutritionDocsV3() {
  * nutrition/{uid}_{key} documents used by older beta builds.
  */
 async function deleteCurrentUserFirestoreData3() {
-  if (!_uid) throw new Error("No authenticated user");
+  if (!_getUid()) throw new Error("No authenticated user");
 
   const dataKeys = await _listDataKeys3().catch(() => []);
   const legacyKeys = Array.from(await _listLegacyKeys3().catch(() => new Set()));
@@ -792,7 +454,7 @@ async function deleteCurrentUserFirestoreData3() {
     failed++;
   }
 
-  _resetFirestoreCaches();
+  _firebaseFirestore.resetStorageCaches();
 
   if (failed) throw new Error("Some account data could not be deleted");
   return {deleted, failed};
@@ -807,74 +469,10 @@ window.exportFullAccountBackup = exportFullAccountBackup3;
 window.importFullAccountBackup = importFullAccountBackup3;
 window.validateFullAccountBackup = validateFullAccountBackup3;
 window.previewFullAccountBackupImport = previewFullAccountBackupImport3;
-async function _ensureStorageMigration3() {
-  if (!_migrationPromise3) _migrationPromise3 = migrateStorageToFirestoreV3({cleanup: true}).catch(error => ({error: error?.message || String(error)}));
-  await _migrationPromise3;
-}
-async function fbGet3(k) {
-  if (!_uid) return null;
-  if (!_migrationPromise3) _ensureStorageMigration3();
-  if (_isProfileKey3(k)) {
-    const fields = await _loadRootFields3();
-    if (fields[k] !== undefined && fields[k] !== null) {
-      const normalized = _normalizeProfileValue3(k, fields[k]);
-      if (normalized !== fields[k]) _patchRootFields3({[k]: normalized}, []).catch(() => {});
-      return _storageRecord3(k, normalized);
-    }
-    const misplacedData = await _getDataDoc3(k).catch(() => null);
-    if (misplacedData) {
-      const normalized = _normalizeProfileValue3(k, misplacedData.value);
-      _patchRootFields3({[k]: normalized}, []).catch(() => {});
-      return _storageRecord3(k, normalized);
-    }
-  } else {
-    const data = await _getDataDoc3(k).catch(() => null);
-    const fields = await _loadRootFields3();
-    const root = fields[k] !== undefined && fields[k] !== null ? {value: _storageValue2(fields[k])} : null;
-    const legacy = await _legacyGet2(k).catch(() => null);
-    const local = _localFallbackGet3(k);
-    const best = _isCriticalStorageKey3(k)
-      ? _bestStorageCandidate3([data, root, legacy, local])
-      : data || root || legacy || local;
-
-    if (best) {
-      if (!_isEmptyStoredValue3(best.value)) _setDataDoc3(k, best.value).catch(() => {});
-      return best;
-    }
-    return null;
-  }
-  const legacy = await _legacyGet2(k).catch(() => null);
-  if (legacy && !(_isCriticalStorageKey3(k) && _isEmptyStoredValue3(legacy.value))) {
-    fbSet3(k, legacy.value).catch(() => {});
-  }
-  if (legacy && !(_isCriticalStorageKey3(k) && _isEmptyStoredValue3(legacy.value))) {
-    return _storageRecord3(k, legacy.value);
-  }
-  const local = _localFallbackGet3(k);
-  if (local && !(_isCriticalStorageKey3(k) && _isEmptyStoredValue3(local.value))) {
-    fbSet3(k, local.value).catch(() => {});
-    return _storageRecord3(k, local.value);
-  }
-  return local ? _storageRecord3(k, local.value) : null;
-}
-async function fbSet3(k, v) {
-  if (!_uid) return;
-  const value = typeof v === "string" ? v : JSON.stringify(v);
-  if (_isProfileKey3(k)) await _patchRootFields3({[k]: _normalizeProfileValue3(k, value)}, []);
-  else await _setDataDoc3(k, value);
-}
-async function fbDel3(k) {
-  if (!_uid) return;
-  if (_isProfileKey3(k)) await _patchRootFields3({}, [k]);
-  else await _deleteDataDoc3(k);
-}
-async function fbList3(p) {
-  const rootFields = await _loadRootFields3().catch(() => ({}));
-  const rootKeys = Object.keys(rootFields).filter(k => !k.startsWith("_") && rootFields[k] !== undefined && rootFields[k] !== null);
-  const dataKeys = await _listDataKeys3().catch(() => []);
-  const keys = Array.from(new Set([...rootKeys, ...dataKeys]));
-  return {keys: p ? keys.filter(k => k.indexOf(p) === 0) : keys};
-}
+async function fbGet3(k) { return _firebaseFirestore.fbGet3(k); }
+async function fbSet3(k, v) { return _firebaseFirestore.fbSet3(k, v); }
+async function fbDel3(k) { return _firebaseFirestore.fbDel3(k); }
+async function fbList3(p) { return _firebaseFirestore.fbList3(p); }
 
 const ACCOUNT_BACKUP_SCHEMA = "nutrition-tracker-account-backup";
 const ACCOUNT_BACKUP_VERSION = 3;
@@ -999,7 +597,7 @@ function _mergeBackupValues3(targetKey, currentValue, incomingValue) {
  * them without changing numeric precision or object schemas.
  */
 async function exportFullAccountBackup3() {
-  if (!_uid) throw new Error("No authenticated user");
+  if (!_getUid()) throw new Error("No authenticated user");
 
   const rootFields = await _loadRootFields3().catch(() => ({}));
   const dataKeys = await _listDataKeys3().catch(() => []);
@@ -1129,7 +727,7 @@ function _shouldSkipBackupImportKey3(key) {
  * by the UI as a dry-run before the user confirms the import.
  */
 async function previewFullAccountBackupImport3(rawBackup) {
-  if (!_uid) throw new Error("No authenticated user");
+  if (!_getUid()) throw new Error("No authenticated user");
 
   const validation = validateFullAccountBackup3(rawBackup);
   const flat = _normalizeBackupPayload3(rawBackup);
@@ -1202,7 +800,7 @@ async function previewFullAccountBackupImport3(rawBackup) {
  * nutrition/{uid} + nutrition/{uid}/data/{key} structure.
  */
 async function importFullAccountBackup3(rawBackup, options) {
-  if (!_uid) throw new Error("No authenticated user");
+  if (!_getUid()) throw new Error("No authenticated user");
 
   const validation = validateFullAccountBackup3(rawBackup);
   if (!validation.ok) {
@@ -1279,7 +877,7 @@ window.debugNutritionStorage = async function debugNutritionStorage(keys) {
   const rootFields = await _loadRootFields3().catch(() => ({}));
   const dataKeys = new Set(await _listDataKeys3().catch(() => []));
   const result = {
-    uid: _uid,
+    uid: _getUid(),
     rootKeys: Object.keys(rootFields).filter(k => !k.startsWith("_")),
     dataKeys: Array.from(dataKeys),
     keys: {}
