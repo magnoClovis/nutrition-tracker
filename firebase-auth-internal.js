@@ -5,10 +5,9 @@
  * `firebase-storage.js`. The facade remains the sole public contract and injects
  * Firebase endpoints, fetch, localStorage, and the current Firestore cache reset.
  *
- * TEMPORARY COUPLING: persistence still reads `_uid` directly in the facade.
- * Until persistence is extracted in sub-slice 3, `getCurrentUid` and
- * `setCurrentUid` bridge that facade-owned value. The bridge must be removed
- * when persistence starts consuming an authentication-owned UID getter.
+ * The module owns the authenticated UID together with the token state. Its
+ * internal `getUid` getter is passed by the public facade to the Firestore
+ * persistence module; no application-side consumer receives that getter.
  *
  * `resetStorageCaches` is called by every successful session save (including
  * sign-in, sign-up, token refresh, and external `_saveSession` calls) and by
@@ -33,9 +32,7 @@
    * @param {Function} dependencies.fetchRequest Fetch-compatible HTTP function.
    * @param {Storage} dependencies.localStorage Browser storage for session persistence.
    * @param {Function} dependencies.resetStorageCaches Current inline Firestore cache reset callback.
-   * @param {Function} dependencies.getCurrentUid Temporary getter for the facade-owned `_uid` value.
-   * @param {Function} dependencies.setCurrentUid Temporary setter for the facade-owned `_uid` value.
-   * @returns {{fbSignIn: Function, fbSignUp: Function, fbUpdateProfile: Function, fbSendVerificationEmail: Function, fbSendPasswordResetEmail: Function, fbCheckEmailVerified: Function, fbRefreshToken: Function, fbToken: Function, fbSignOut: Function, fbIsLoggedIn: Function, fbHeaders: Function, _saveSession: Function}} Authentication and session operations consumed by the public facade.
+   * @returns {{fbSignIn: Function, fbSignUp: Function, fbUpdateProfile: Function, fbSendVerificationEmail: Function, fbSendPasswordResetEmail: Function, fbCheckEmailVerified: Function, fbRefreshToken: Function, fbToken: Function, fbSignOut: Function, fbIsLoggedIn: Function, fbHeaders: Function, getUid: Function, _saveSession: Function}} Authentication and session operations consumed by the public facade.
    */
   function createFirebaseAuth({
     apiKey,
@@ -43,11 +40,10 @@
     tokenBase,
     fetchRequest,
     localStorage,
-    resetStorageCaches,
-    getCurrentUid,
-    setCurrentUid
+    resetStorageCaches
   }) {
     let _idToken = null;
+    let _uid = localStorage.getItem("fb_uid") || null;
     let _refreshToken = localStorage.getItem("fb_refresh") || null;
     let _tokenExpiry = 0;
 
@@ -60,11 +56,11 @@
     function _saveSession(d) {
       _idToken = d.idToken || d.id_token;
       _refreshToken = d.refreshToken || d.refresh_token;
-      setCurrentUid(d.localId || d.user_id || getCurrentUid());
+      _uid = d.localId || d.user_id || _uid;
       resetStorageCaches();
       _tokenExpiry = Date.now() + (+(d.expiresIn || d.expires_in) - 60) * 1000;
       localStorage.setItem("fb_refresh", _refreshToken);
-      if (getCurrentUid()) localStorage.setItem("fb_uid", getCurrentUid());
+      if (_uid) localStorage.setItem("fb_uid", _uid);
     }
 
     /**
@@ -206,8 +202,7 @@
      * @returns {void}
      */
     function fbSignOut() {
-      _idToken = _refreshToken = null;
-      setCurrentUid(null);
+      _idToken = _refreshToken = _uid = null;
       _tokenExpiry = 0;
       resetStorageCaches();
       localStorage.removeItem("fb_refresh");
@@ -221,6 +216,13 @@
      * @returns {boolean} True when a refresh token is present.
      */
     function fbIsLoggedIn() { return !!_refreshToken; }
+
+    /**
+     * Returns the current authenticated UID for internal persistence composition.
+     *
+     * @returns {string|null} Current Firebase user ID, if a session owns one.
+     */
+    function getUid() { return _uid; }
 
     /**
      * Builds authenticated Firestore headers using the current token.
@@ -244,6 +246,7 @@
       fbSignOut,
       fbIsLoggedIn,
       fbHeaders,
+      getUid,
       _saveSession
     };
   }
