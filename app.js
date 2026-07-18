@@ -66,6 +66,14 @@ const {
 });
 
 const {
+  callAI: requestGroqCompletion
+} = window.GroqClient.createGroqClient({
+  fetchRequest: (...args) => window.fetch(...args),
+  getApiKey: () => localStorage.getItem("groq_key") || ""
+});
+const { GroqClientError } = window.GroqClient;
+
+const {
   SettingsPanel
 } = window.SettingsPanelModule.createSettingsPanel({
   React,
@@ -3454,28 +3462,21 @@ Formato obrigatório:
   // Export/Import
   // Gemini AI helper
   async function callAI(prompt, maxTokens) {
-    const key = localStorage.getItem('groq_key') || '';
-  if (!key) throw new Error(uiText(
-    "Chave API Groq não configurada. Abra as Configurações.",
-    "Groq API key is not configured. Open Settings.",
-    "La clave API de Groq no está configurada. Abre Configuración."
-  ));
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + key
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: maxTokens || 800,
-        temperature: 0
-      })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || uiText('Erro na API Groq', 'Groq API error', 'Error en la API de Groq'));
-    return data.choices?.[0]?.message?.content || '';
+    try {
+      return await requestGroqCompletion(prompt, maxTokens);
+    } catch (error) {
+      if (error instanceof GroqClientError && error.code === "missing-api-key") {
+        throw new Error(uiText(
+          "Chave API Groq não configurada. Abra as Configurações.",
+          "Groq API key is not configured. Open Settings.",
+          "La clave API de Groq no está configurada. Abre Configuración."
+        ));
+      }
+      if (error instanceof GroqClientError && error.code === "api-error") {
+        throw new Error(error.providerMessage || uiText("Erro na API Groq", "Groq API error", "Error en la API de Groq"));
+      }
+      throw error;
+    }
   }
   function aiLang() {
     const normalizedLang = normalizeLanguage(lang);
