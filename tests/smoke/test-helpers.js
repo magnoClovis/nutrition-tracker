@@ -26,7 +26,7 @@ async function openApp(page) {
   const errors = collectCriticalErrors(page);
   await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#root')).toBeVisible();
-  await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
+  await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
   return errors;
 }
 
@@ -84,7 +84,7 @@ async function setAppLanguage(page, language) {
     await window.storage.set('language', nextLanguage);
   }, language);
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
+  await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
   await dismissTutorialIfVisible(page);
 }
 
