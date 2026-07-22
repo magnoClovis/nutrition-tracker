@@ -748,6 +748,22 @@ function NutritionTracker({
     }
     return normalized;
   }
+  const {
+    loadHistoricalDate,
+    loadWeekRows,
+    loadMealAnalysisData,
+    loadCalendarMonthData
+  } = window.HistoryLoaders.createHistoryLoaders({
+    storage,
+    normalizeMealKeys,
+    aggregateWeekRows,
+    aggregateMealAverages,
+    monthDays,
+    calendarMarkerFor,
+    resolveHistoricalGoals,
+    createDate: () => new Date(),
+    warn: (...args) => console.warn(...args)
+  });
   // Maps storage key -> display name
   const mealDisplay = key => {
     const i = MEAL_KEYS.indexOf(key);
@@ -1233,9 +1249,9 @@ function NutritionTracker({
     setEditEntryId(null);
     setDetailFood(null);
     if (date !== TODAY) {
-      const [l, n] = await Promise.all([storage.get("log_v2_" + date).catch(() => null), storage.get("notes_" + date).catch(() => null)]);
-      setHistoryLog(l ? normalizeMealKeys(JSON.parse(l.value)) : {});
-      setHistoryNote(n ? n.value || "" : "");
+      const result = await loadHistoricalDate({ date, today: TODAY });
+      setHistoryLog(result.historyLog);
+      setHistoryNote(result.historyNote);
     }
   }
   // Calculates the goal snapshot for one date and one explicit day type.
@@ -1285,27 +1301,9 @@ function NutritionTracker({
     if (tab === "adicionar" && loaded) loadRecentMeals();
   }, [tab, loaded, log, trainingByDate, goalHistory, weightHistory, customGoals, nutritionPrefs]);
   async function loadWeekData() {
-    const dayDescriptors = [];
-    const logsByDate = {};
-    // Week charts intentionally use 7 completed days plus today.
-    // Today's value is projected and drawn as an in-progress segment, so the
-    // chart does not look like nutrition suddenly collapsed before the day ends.
-    for (let i = 7; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const date = d.toISOString().split("T")[0];
-      let dayLog = date === TODAY ? log : {};
-      if (date !== TODAY) {
-        const l = await storage.get("log_v2_" + date).catch(() => null);
-        if (l) dayLog = normalizeMealKeys(JSON.parse(l.value));
-      }
-      dayDescriptors.push({ date, day: d.getDate() });
-      logsByDate[date] = dayLog;
-    }
-    const days = aggregateWeekRows({
-      dayDescriptors,
-      logsByDate,
+    const days = await loadWeekRows({
       today: TODAY,
+      todayLog: log,
       trainingByDate,
       goalContext: {
         weightHistory,
@@ -1320,17 +1318,7 @@ function NutritionTracker({
     setWeekData(days);
   }
   async function loadMealAnalysis() {
-    const dailyLogs = [];
-    for (let i = 1; i <= 30; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const date = d.toISOString().split("T")[0];
-      const l = await storage.get("log_v2_" + date).catch(() => null);
-      if (!l) continue;
-      const dayLog = JSON.parse(l.value);
-      dailyLogs.push(dayLog);
-    }
-    const avgs = aggregateMealAverages({ dailyLogs, mealKeys: MEALS });
+    const avgs = await loadMealAnalysisData({ mealKeys: MEALS });
     setMealAverages(avgs);
   }
   async function loadRecentMeals() {
@@ -2431,23 +2419,21 @@ function NutritionTracker({
     async function loadCalendarMonth() {
       setCalendarLoading(true);
       try {
-        const nextData = {};
-        const dates = monthDays(calendarMonth).filter(Boolean).filter(date => date <= TODAY);
-        await Promise.all(dates.map(async date => {
-          let dayLog = date === TODAY ? log : {};
-          if (date !== TODAY) {
-            const saved = await storage.get("log_v2_" + date).catch(() => null);
-            if (saved?.value) {
-              try {
-                const parsed = typeof saved.value === "string" ? JSON.parse(saved.value) : saved.value;
-                dayLog = normalizeMealKeys(parsed || {});
-              } catch (error) {
-                console.warn("Registro diário inválido no calendário:", date, error);
-              }
-            }
+        const nextData = await loadCalendarMonthData({
+          calendarMonth,
+          today: TODAY,
+          todayLog: log,
+          trainingByDate,
+          goalContext: {
+            weightHistory,
+            currentWeight,
+            currentHeight,
+            profileData,
+            nutritionPrefs,
+            customGoals,
+            goalHistory
           }
-          nextData[date] = calendarMarkerFor(dayLog, dayGoalForDate(date));
-        }));
+        });
         if (!cancelled) {
           setCalendarData(prev => ({...prev, [calendarMonth]: nextData}));
         }
