@@ -139,6 +139,8 @@ const {
   addDays
 } = window.DateUtils.createDateUtils({ normalizeLanguage, pickLang, localeForLang });
 
+const { canPersistHydratedKey } = window.HydrationGuard;
+
 const {
   monthDays,
   shiftMonth,
@@ -1065,6 +1067,13 @@ function NutritionTracker({
   const [editEntryId, setEditEntryId] = useState(null);
   const [editEntryQty, setEditEntryQty] = useState("");
   const saveTimeout = useRef({});
+  const { scheduleSave } = window.AutosaveScheduler.createAutosaveScheduler({
+    storage,
+    setTimer: (callback, delay) => setTimeout(callback, delay),
+    clearTimer: handle => clearTimeout(handle),
+    timersByKey: saveTimeout.current,
+    onPersisted: key => hydratedStorageKeysRef.current.add(key)
+  });
   useEffect(() => {
     if (tab === "despensa") {
       setPantryItemsOpen(false);
@@ -1177,44 +1186,24 @@ function NutritionTracker({
       if (goalToastTimerRef.current) clearTimeout(goalToastTimerRef.current);
     };
   }, []);
-  /**
-   * Returns whether a key is safe to persist after startup.
-   * If a large data key was not hydrated, saving its default empty state could
-   * overwrite real Firestore data after a transient read failure.
-   */
-  function canPersistHydratedKey(key, value) {
-    if (hydratedStorageKeysRef.current.has(key)) return true;
-    if (Array.isArray(value)) return value.length > 0;
-    if (value && typeof value === "object") return Object.keys(value).length > 0;
-    return typeof value === "string" ? value.length > 0 : value !== null && value !== undefined;
-  }
-
-  function scheduleSave(key, value, delay = 800) {
-    if (saveTimeout.current[key]) clearTimeout(saveTimeout.current[key]);
-    saveTimeout.current[key] = setTimeout(() => {
-      storage.set(key, typeof value === "string" ? value : JSON.stringify(value))
-        .then(() => hydratedStorageKeysRef.current.add(key))
-        .catch(() => {});
-    }, delay);
-  }
   useEffect(() => {
-    if (loaded && canPersistHydratedKey("pantry_v2", pantry)) scheduleSave("pantry_v2", pantry);
+    if (loaded && canPersistHydratedKey("pantry_v2", pantry, hydratedStorageKeysRef.current)) scheduleSave("pantry_v2", pantry);
   }, [pantry, loaded]);
   useEffect(() => {
     if (loaded) scheduleSave("log_v2_" + TODAY, log);
   }, [log, loaded]);
   useEffect(() => {
-    if (loaded && canPersistHydratedKey("trainingByDate", trainingByDate)) scheduleSave("trainingByDate", trainingByDate);
+    if (loaded && canPersistHydratedKey("trainingByDate", trainingByDate, hydratedStorageKeysRef.current)) scheduleSave("trainingByDate", trainingByDate);
   }, [trainingByDate, loaded]);
   useEffect(() => {
-    if (loaded && canPersistHydratedKey("weightHistory", weightHistory)) scheduleSave("weightHistory", weightHistory);
+    if (loaded && canPersistHydratedKey("weightHistory", weightHistory, hydratedStorageKeysRef.current)) scheduleSave("weightHistory", weightHistory);
   }, [weightHistory, loaded]);
   // Update function refs on every render (data refs set later, after activeLog is declared)
   window._exportFullBackup = exportFullBackup;
   window._importFullBackup = importFullBackup;
   window._exportAndDownload = exportAndDownload;
   useEffect(() => {
-    if (loaded && canPersistHydratedKey("mealTemplates", mealTemplates)) scheduleSave("mealTemplates", mealTemplates);
+    if (loaded && canPersistHydratedKey("mealTemplates", mealTemplates, hydratedStorageKeysRef.current)) scheduleSave("mealTemplates", mealTemplates);
   }, [mealTemplates, loaded]);
   useEffect(() => {
     if (loaded) scheduleSave("notes_" + TODAY, todayNote, 1500);
@@ -1223,7 +1212,7 @@ function NutritionTracker({
     if (loaded && viewDate !== TODAY) scheduleSave("notes_" + viewDate, historyNote, 1500);
   }, [historyNote, loaded]);
   useEffect(() => {
-    if (loaded && canPersistHydratedKey("waterGoal", waterGoal)) scheduleSave("waterGoal", waterGoal);
+    if (loaded && canPersistHydratedKey("waterGoal", waterGoal, hydratedStorageKeysRef.current)) scheduleSave("waterGoal", waterGoal);
   }, [waterGoal, loaded]);
   useEffect(() => {
     if (loaded && waterCustomPreset) scheduleSave("waterCustomPreset", waterCustomPreset);
@@ -1232,16 +1221,16 @@ function NutritionTracker({
     if (loaded) scheduleSave("waterIntake_" + TODAY, waterIntake);
   }, [waterIntake, loaded]);
   useEffect(() => {
-    if (loaded && canPersistHydratedKey("suppPantry", suppPantry)) scheduleSave("suppPantry", suppPantry);
+    if (loaded && canPersistHydratedKey("suppPantry", suppPantry, hydratedStorageKeysRef.current)) scheduleSave("suppPantry", suppPantry);
   }, [suppPantry, loaded]);
   useEffect(() => {
     if (loaded) scheduleSave("suppLog_" + TODAY, suppLog);
   }, [suppLog, loaded]);
   useEffect(() => {
-    if (loaded && canPersistHydratedKey("customGoals", customGoals)) scheduleSave("customGoals", customGoals);
+    if (loaded && canPersistHydratedKey("customGoals", customGoals, hydratedStorageKeysRef.current)) scheduleSave("customGoals", customGoals);
   }, [customGoals, loaded]);
   useEffect(() => {
-    if (loaded && canPersistHydratedKey("goalHistory", goalHistory)) scheduleSave("goalHistory", goalHistory);
+    if (loaded && canPersistHydratedKey("goalHistory", goalHistory, hydratedStorageKeysRef.current)) scheduleSave("goalHistory", goalHistory);
   }, [goalHistory, loaded]);
   async function changeViewDate(date) {
     setViewDate(date);
