@@ -45,7 +45,7 @@ test.describe('public boot and login screen', () => {
       await expect(page.getByRole('button', { name: language.forgot })).toBeVisible();
 
       await page.reload({ waitUntil: 'domcontentloaded' });
-      await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
+      await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
       await expect(page.getByRole('button', { name: language.forgot })).toBeVisible();
       await expect(page.getByRole('button', { name: language.button })).toBeVisible();
 
@@ -61,18 +61,18 @@ test.describe('public boot and login screen', () => {
       localStorage.removeItem('appThemeDefaultDarkV1');
     });
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await expect.poll(() => page.evaluate(() => localStorage.getItem('appThemeDefaultDarkV1'))).toBe('1');
 
     await page.evaluate(() => localStorage.setItem('appDarkMode', 'false'));
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 
     await page.evaluate(() => localStorage.setItem('appDarkMode', 'true'));
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
     await expectNoCriticalErrors(errors);

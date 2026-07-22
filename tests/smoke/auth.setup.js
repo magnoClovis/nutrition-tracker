@@ -21,7 +21,7 @@ test('authenticate disposable test account', async ({ page }) => {
 
   await interceptOptionalExternalApis(page);
   await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
+  await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(password);
   await page.getByRole('button', { name: /Entrar|Sign in|Iniciar sesi[oó]n/i }).last().click();

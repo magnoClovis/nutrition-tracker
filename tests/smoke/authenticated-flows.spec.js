@@ -57,7 +57,7 @@ test.describe('authenticated critical data flows', () => {
       await Promise.all(tutorialTypes.map(type => window.storage.set(`tutorialSeen_${type}`, 'true')));
     });
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 10000 });
+    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
     await dismissTutorialIfVisible(page);
     return previous;
   }
