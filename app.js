@@ -157,6 +157,19 @@ const {
 } = window.GoalCalculator.createGoalCalculator();
 
 const {
+  getWeightForDate,
+  optionalNumber,
+  upsertWeightEntry,
+  normalizeWeightHistory,
+  calculateBmrForMeasurement,
+  buildBodyMetricsModel
+} = window.BodyMetricsModel.createBodyMetricsModel({
+  computeGoals,
+  formatDateDM,
+  createMeasurementId: () => Date.now().toString()
+});
+
+const {
   isValidBirthDate,
   isValidGender,
   isValidActivityLevel,
@@ -545,9 +558,6 @@ const GOAL_TOAST_COPY = {
   }
 };
 
-function getWeightForDate(history, date) {
-  return [...history].filter(e => e.date <= date).sort((a, b) => b.date.localeCompare(a.date))[0] || null;
-}
 function downloadFile(content, filename, mime) {
   try {
     const url = "data:" + mime + ";charset=utf-8," + encodeURIComponent(content);
@@ -2395,6 +2405,12 @@ function NutritionTracker({
   const currentWeight = currentEntry?.weight || null;
   const profileHeight = profileData.height ? Number(profileData.height) : null;
   const currentHeight = profileHeight || currentEntry?.height || null;
+  const bmrMeasurementContext = {
+    profileData,
+    currentHeight,
+    nutritionPrefs,
+    today: TODAY
+  };
   const isTraining = trainingByDate[viewDate] ?? true;
   const viewEntry = getWeightForDate(weightHistory, viewDate);
   const viewWeight = viewEntry?.weight || currentWeight;
@@ -2824,55 +2840,6 @@ function NutritionTracker({
     setEditStagedIdx(null);
   }
 
-  // Converts optional numeric inputs to either a number or null. Empty fields
-  // mean "not measured"; they should not become zero because zero is a real
-  // value in chart calculations.
-  function optionalNumber(value) {
-    if (value === "" || value == null) return null;
-    const parsed = parseFloat(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  // Upserts one measurement by date. Firestore stores weightHistory as one
-  // array, so this helper keeps the invariant "one record per date" and avoids
-  // accidental loss when editing historical entries.
-  function upsertWeightEntry(history, entry, previousDate) {
-    const byDate = new Map();
-
-    history.forEach(item => {
-      if (!previousDate || item.date !== previousDate) {
-        byDate.set(item.date, item);
-      }
-    });
-
-    const existingForDate = byDate.get(entry.date);
-    byDate.set(entry.date, {
-      ...existingForDate,
-      ...entry,
-      id: existingForDate?.id || entry.id || Date.now().toString()
-    });
-
-    return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
-  }
-
-  // Cleans older duplicated weight rows at render/save time. Some previous
-  // versions reused IDs, so date is the reliable identity for measurements.
-  function normalizeWeightHistory(history) {
-    return [...(history || [])].reduce((acc, item) => upsertWeightEntry(acc, item), []);
-  }
-
-  function calculateBmrForMeasurement(entry) {
-    if (!entry || !Number(entry.weight)) return null;
-    const goal = computeGoals(Number(entry.weight), true, {
-      height: Number(entry.height || profileData.height || currentHeight),
-      birthDate: profileData.birthDate,
-      gender: profileData.gender,
-      prefs: nutritionPrefs,
-      referenceDate: entry.date || TODAY
-    });
-    return Number(goal.bmr) || null;
-  }
-
   // Backfills a dated BMR snapshot for existing weight measurements once the
   // required profile fields are available. Future edits keep it synchronized.
   useEffect(() => {
@@ -2880,7 +2847,7 @@ function NutritionTracker({
     setWeightHistory(history => {
       let changed = false;
       const next = normalizeWeightHistory(history).map(item => {
-        const bmr = calculateBmrForMeasurement(item);
+        const bmr = calculateBmrForMeasurement(item, bmrMeasurementContext);
         if (!bmr || Number(item.bmr) === bmr) return item;
         changed = true;
         return {...item, bmr};
@@ -2905,7 +2872,7 @@ function NutritionTracker({
       waistCm: optionalNumber(weightForm.waistCm) ?? existing?.waistCm ?? null,
       muscleMassKg: optionalNumber(weightForm.muscleMassKg) ?? existing?.muscleMassKg ?? null
     };
-    entry.bmr = calculateBmrForMeasurement(entry) ?? existing?.bmr ?? null;
+    entry.bmr = calculateBmrForMeasurement(entry, bmrMeasurementContext) ?? existing?.bmr ?? null;
     setWeightHistory(h => upsertWeightEntry(normalizeWeightHistory(h), entry));
     setWeightForm({
       weight: "",
@@ -2943,7 +2910,7 @@ function NutritionTracker({
       waistCm: optionalNumber(editWeightForm.waistCm),
       muscleMassKg: optionalNumber(editWeightForm.muscleMassKg)
     };
-    entry.bmr = calculateBmrForMeasurement(entry) ?? original.bmr ?? null;
+    entry.bmr = calculateBmrForMeasurement(entry, bmrMeasurementContext) ?? original.bmr ?? null;
 
     setWeightHistory(h => upsertWeightEntry(normalizeWeightHistory(h), entry, editingWeightId));
     setEditingWeightId(null);
@@ -3920,130 +3887,30 @@ function NutritionTracker({
       }
     }, cardHeader, editContent, detailsContent);
   }
-  const normalizedWeightEntries = normalizeWeightHistory(weightHistory);
-  const historyFieldAvailability = {
-    bmi: normalizedWeightEntries.some(e => Number(e.weight) > 0 && Number(e.height) > 0),
-    bodyFatPct: normalizedWeightEntries.some(e => Number(e.bodyFatPct) > 0),
-    muscleMassKg: normalizedWeightEntries.some(e => Number(e.muscleMassKg) > 0),
-    waistCm: normalizedWeightEntries.some(e => Number(e.waistCm) > 0)
-  };
-  const weightChartData = normalizedWeightEntries.map(e => ({
-    date: formatDateDM(e.date),
-    weight: e.weight
-  }));
-  const currentBmr = computeGoals(currentWeight, true, {
-    height: currentHeight,
-    birthDate: profileData.birthDate,
-    gender: profileData.gender,
-    prefs: nutritionPrefs,
-    referenceDate: TODAY
-  }).bmr || null;
-  const bmrChartData = normalizeWeightHistory(weightHistory).map(entry => ({
-    date: formatDateDM(entry.date),
-    bmr: Number(entry.bmr) || calculateBmrForMeasurement(entry)
-  })).filter(entry => Number(entry.bmr) > 0);
-  const daysWithData = weekData.filter(d => d.hasData);
-  const avgProtein = daysWithData.length ? Math.round(daysWithData.reduce((s, d) => s + d.protein, 0) / daysWithData.length) : 0;
-  const avgKcal = daysWithData.length ? Math.round(daysWithData.reduce((s, d) => s + d.kcal, 0) / daysWithData.length) : 0;
-  const daysMetProtein = daysWithData.filter(d => d.metProtein).length;
-  const completedWeekDays = weekData.filter(d => d.hasData && !d.isToday);
-  const calorieBankDays = weekData.filter(d => !d.isToday).slice(-7).filter(d => d.hasData);
-  const calorieBankTarget = calorieBankDays.reduce((sum, day) => sum + (Number(day.kcalGoal) || 0), 0);
-  const calorieBankConsumed = calorieBankDays.reduce((sum, day) => sum + (Number(day.kcal) || 0), 0);
-  const calorieBank = Math.round(calorieBankTarget - calorieBankConsumed);
-  const weeklyProgress = (() => {
-    const deficit = completedWeekDays.reduce((s, d) => s + Math.max(0, (d.baseCalories || d.kcalGoal || 0) - d.kcal), 0);
-    const surplus = completedWeekDays.reduce((s, d) => s + Math.max(0, d.kcal - (d.baseCalories || d.kcalGoal || 0)), 0);
-    const plannedDaily = Math.abs(calorieAdjustment || 0);
-    const plannedWeek = plannedDaily * 7;
-    const relevant = nutritionPrefs.goalType === "gain" ? surplus : nutritionPrefs.goalType === "loss" ? deficit : Math.abs(surplus - deficit);
-    const adherence = plannedWeek ? Math.round(Math.min(999, relevant / plannedWeek * 100)) : 0;
-    const avgDaily = completedWeekDays.length ? Math.round((nutritionPrefs.goalType === "gain" ? surplus : deficit) / completedWeekDays.length) : 0;
-    return {
-      days: completedWeekDays.length,
-      deficit: Math.round(deficit),
-      surplus: Math.round(surplus),
-      plannedWeek: Math.round(plannedWeek),
-      avgDaily,
-      adherence
-    };
-  })();
-  const weightTrend = (() => {
-    const sorted = [...weightHistory].filter(e => Number(e.weight) > 0).sort((a, b) => a.date.localeCompare(b.date));
-    const avg = arr => arr.length ? arr.reduce((s, e) => s + Number(e.weight || 0), 0) / arr.length : null;
-    const avg7 = avg(sorted.slice(-7));
-    const avg14 = avg(sorted.slice(-14));
-    const recent = sorted.slice(-14);
-    let weeklyRate = 0;
-    if (recent.length >= 2) {
-      const first = recent[0];
-      const last = recent[recent.length - 1];
-      const days = Math.max(1, (new Date(last.date + "T12:00:00") - new Date(first.date + "T12:00:00")) / 86400000);
-      weeklyRate = (Number(last.weight) - Number(first.weight)) / days * 7;
-    }
-    const goalKg = Number(nutritionPrefs.goalKg || 0);
-    const directionOk = nutritionPrefs.goalType === "loss" ? weeklyRate < -0.05 : nutritionPrefs.goalType === "gain" ? weeklyRate > 0.05 : false;
-    const weeksRemaining = directionOk && goalKg > 0 ? goalKg / Math.abs(weeklyRate) : null;
-    return {
-      avg7,
-      avg14,
-      weeklyRate,
-      weeksRemaining,
-      hasEnough: recent.length >= 2
-    };
-  })();
-  // Body-composition model. These calculations are estimates: body-fat scales
-  // and bioimpedance can be noisy, so the UI treats them as trend signals. If a
-  // target body-fat percentage exists, weightTarget assumes lean mass is stable.
-  const bodyComposition = (() => {
-    const sorted = [...weightHistory].filter(e => Number(e.weight) > 0).sort((a, b) => a.date.localeCompare(b.date));
-    const measured = sorted.filter(e => Number(e.bodyFatPct) > 0 || Number(e.waistCm) > 0 || Number(e.muscleMassKg) > 0);
-    const latest = [...measured].reverse()[0] || null;
-    const currentFatPct = latest && Number(latest.bodyFatPct) > 0 ? Number(latest.bodyFatPct) : null;
-    const currentWeightForBody = latest?.weight || currentWeight || null;
-    const fatKg = currentFatPct && currentWeightForBody ? currentWeightForBody * currentFatPct / 100 : null;
-    const leanMassKg = fatKg && currentWeightForBody ? currentWeightForBody - fatKg : null;
-    const targetPct = Number(nutritionPrefs.bodyFatGoal || 0);
-    const weightTarget = leanMassKg && targetPct > 0 && targetPct < 60 ? leanMassKg / (1 - targetPct / 100) : null;
-    const fatToLose = weightTarget && currentWeightForBody ? Math.max(0, currentWeightForBody - weightTarget) : null;
-    const fatEntries = sorted.filter(e => Number(e.bodyFatPct) > 0 && Number(e.weight) > 0).map(e => ({
-      ...e,
-      fatKg: Number(e.weight) * Number(e.bodyFatPct) / 100
-    }));
-    const recentFat = fatEntries.slice(-6);
-    let fatWeeklyRate = 0;
-    if (recentFat.length >= 3) {
-      const first = recentFat[0];
-      const last = recentFat[recentFat.length - 1];
-      const days = Math.max(1, (new Date(last.date + "T12:00:00") - new Date(first.date + "T12:00:00")) / 86400000);
-      fatWeeklyRate = (last.fatKg - first.fatKg) / days * 7;
-    }
-    const weeksRemaining = fatToLose && fatWeeklyRate < -0.03 ? fatToLose / Math.abs(fatWeeklyRate) : null;
-    const fatChartData = fatEntries.map(e => ({
-      date: e.date,
-      label: formatDateDM(e.date),
-      bodyFatPct: Number(e.bodyFatPct),
-      fatKg: Math.round(e.fatKg * 10) / 10
-    }));
-    return {
-      latest,
-      measured,
-      fatEntries,
-      fatChartData,
-      currentFatPct,
-      fatKg,
-      leanMassKg,
-      targetPct,
-      weightTarget,
-      fatToLose,
-      fatWeeklyRate,
-      weeksRemaining,
-      hasEnoughFatTrend: recentFat.length >= 3
-    };
-  })();
-  const bodyFatGoalAutoKg = bodyComposition.fatToLose
-    ? Math.round(bodyComposition.fatToLose * 10) / 10
-    : "";
+  const bodyMetrics = buildBodyMetricsModel({
+    weekData,
+    weightHistory,
+    currentWeight,
+    currentHeight,
+    profileData,
+    nutritionPrefs,
+    calorieAdjustment,
+    today: TODAY
+  });
+  const {
+    normalizedWeightEntries,
+    weeklyProgress,
+    weightTrend,
+    bodyComposition,
+    fieldAvailability: historyFieldAvailability,
+    currentBmr,
+    bodyFatGoalAutoKg
+  } = bodyMetrics;
+  const { daysWithData, avgProtein, avgKcal, daysMetProtein } = bodyMetrics.weeklyAverages;
+  const calorieBankDays = bodyMetrics.calorieBank.days;
+  const calorieBank = bodyMetrics.calorieBank.balance;
+  const weightChartData = bodyMetrics.chartSeries.weight;
+  const bmrChartData = bodyMetrics.chartSeries.bmr;
 
   /**
    * Chart configs for optional body metrics.
@@ -4075,12 +3942,7 @@ function NutritionTracker({
     }
   ].map(config => ({
     ...config,
-    data: normalizeWeightHistory(weightHistory)
-      .filter(entry => Number(entry[config.key]) > 0)
-      .map(entry => ({
-        date: formatDateDM(entry.date),
-        value: Number(entry[config.key])
-      }))
+    data: bodyMetrics.chartSeries[config.key]
   })).filter(config => config.data.length > 0);
 
   /**
@@ -10989,7 +10851,7 @@ function NutritionTracker({
       gap: 12,
       marginBottom: 14
     }
-  }, bodyMetricChartConfigs.map(renderBodyMetricChart)), normalizeWeightHistory(weightHistory).length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, bodyMetricChartConfigs.map(renderBodyMetricChart)), bodyMetrics.hasWeightHistory && /*#__PURE__*/React.createElement("div", {
     style: {
       display: metricsSection === "tracking" ? "block" : "none"
     }
