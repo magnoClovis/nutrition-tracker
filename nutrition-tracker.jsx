@@ -140,6 +140,13 @@ const {
 } = window.DateUtils.createDateUtils({ normalizeLanguage, pickLang, localeForLang });
 
 const {
+  monthDays,
+  shiftMonth,
+  calendarMarkerFor,
+  calendarMonthStats
+} = window.CalendarModel.createCalendarModel();
+
+const {
   ACTIVITY_LEVELS,
   REST_FACTORS,
   calculateAge,
@@ -2439,36 +2446,6 @@ function NutritionTracker({
   const isToday = viewDate === TODAY;
   const frozenGoals = goalHistory[viewDate];
   const goals = !isToday && frozenGoals ? {...calculatedGoals, ...frozenGoals} : calculatedGoals;
-  function monthDays(monthKey) {
-    const [year, month] = monthKey.split("-").map(Number);
-    const first = new Date(year, month - 1, 1, 12);
-    const startOffset = first.getDay();
-    const lastDay = new Date(year, month, 0, 12).getDate();
-    const cells = Array.from({length: startOffset}, () => null);
-    for (let day = 1; day <= lastDay; day++) {
-      cells.push(`${monthKey}-${String(day).padStart(2, "0")}`);
-    }
-    while (cells.length % 7 !== 0) cells.push(null);
-    return cells;
-  }
-  function shiftMonth(monthKey, delta) {
-    const [year, month] = monthKey.split("-").map(Number);
-    const d = new Date(year, month - 1 + delta, 1, 12);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  }
-  function calendarMarkerFor(logForDay, targetGoals) {
-    const entries = Object.values(logForDay || {}).flat();
-    const protein = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
-    const kcal = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
-    return {
-      hasData: entries.length > 0,
-      proteinMet: entries.length > 0 && protein >= targetGoals.protein,
-      kcalGood: entries.length > 0 && kcal >= targetGoals.kcal * 0.85 && kcal <= targetGoals.kcal * 1.15,
-      kcalOver: entries.length > 0 && kcal > targetGoals.kcal * 1.15,
-      protein: Math.round(protein),
-      kcal: Math.round(kcal)
-    };
-  }
   useEffect(() => {
     if (!loaded || !calendarOpen) return;
     let cancelled = false;
@@ -3942,15 +3919,6 @@ function NutritionTracker({
         background: "var(--surface2, var(--surface))"
       }
     }, cardHeader, editContent, detailsContent);
-  }
-  function calendarMonthStats() {
-    const markers = Object.values(calendarData[calendarMonth] || {}).filter(m => m && m.hasData);
-    const registered = markers.length;
-    const proteinDays = markers.filter(m => m.proteinMet).length;
-    const kcalOverDays = markers.filter(m => m.kcalOver).length;
-    const avgKcalMonth = registered ? Math.round(markers.reduce((s, m) => s + (m.kcal || 0), 0) / registered) : 0;
-    const avgProteinMonth = registered ? Math.round(markers.reduce((s, m) => s + (m.protein || 0), 0) / registered) : 0;
-    return {registered, proteinDays, kcalOverDays, avgKcalMonth, avgProteinMonth};
   }
   const normalizedWeightEntries = normalizeWeightHistory(weightHistory);
   const historyFieldAvailability = {
@@ -6530,7 +6498,7 @@ function NutritionTracker({
       }
     }))) : "");
   })), (() => {
-    const ms = calendarMonthStats();
+    const ms = calendarMonthStats(calendarData[calendarMonth] || {});
     const legendItem = (color, label) => /*#__PURE__*/React.createElement("span", {
       style: { display: "inline-flex", alignItems: "center", gap: 5 }
     }, /*#__PURE__*/React.createElement("span", {
