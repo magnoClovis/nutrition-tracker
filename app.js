@@ -177,6 +177,14 @@ const {
 });
 
 const {
+  aggregateWeekRows,
+  aggregateMealAverages
+} = window.WeekAggregator.createWeekAggregator({
+  resolveHistoricalGoals,
+  formatDateDM
+});
+
+const {
   isValidBirthDate,
   isValidGender,
   isValidActivityLevel,
@@ -1277,7 +1285,8 @@ function NutritionTracker({
     if (tab === "adicionar" && loaded) loadRecentMeals();
   }, [tab, loaded, log, trainingByDate, goalHistory, weightHistory, customGoals, nutritionPrefs]);
   async function loadWeekData() {
-    const days = [];
+    const dayDescriptors = [];
+    const logsByDate = {};
     // Week charts intentionally use 7 completed days plus today.
     // Today's value is projected and drawn as an in-progress segment, so the
     // chart does not look like nutrition suddenly collapsed before the day ends.
@@ -1290,70 +1299,28 @@ function NutritionTracker({
         const l = await storage.get("log_v2_" + date).catch(() => null);
         if (l) dayLog = normalizeMealKeys(JSON.parse(l.value));
       }
-      const entries = Object.values(dayLog).flat();
-      const dayIsTraining = trainingByDate[date] ?? true;
-      const { rawGoal, effectiveGoal: g } = resolveHistoricalGoals({
-        date,
-        today: TODAY,
-        dayIsTraining,
+      dayDescriptors.push({ date, day: d.getDate() });
+      logsByDate[date] = dayLog;
+    }
+    const days = aggregateWeekRows({
+      dayDescriptors,
+      logsByDate,
+      today: TODAY,
+      trainingByDate,
+      goalContext: {
         weightHistory,
         currentWeight,
         currentHeight,
         profileData,
         nutritionPrefs,
         customGoals,
-        frozenGoal: goalHistory[date]
-      });
-      const protein = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
-      const kcal = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
-      const isTodayEntry = date === TODAY;
-      const proteinTrend = Math.round(protein);
-      const kcalTrend = Math.round(kcal);
-      const carbs = entries.reduce((s, e) => s + (e.carbs ?? 0), 0);
-      const fat = entries.reduce((s, e) => s + (e.fat ?? 0), 0);
-      const fiber = entries.reduce((s, e) => s + (e.fiber ?? 0), 0);
-      const salt = entries.reduce((s, e) => s + (e.salt ?? 0), 0);
-      days.push({
-        date,
-        label: formatDateDM(date),
-        day: d.getDate(),
-        protein: Math.round(protein),
-        proteinTrend,
-        proteinPastLine: isTodayEntry ? null : proteinTrend,
-        proteinTodayLine: null,
-        kcal: Math.round(kcal),
-        kcalTrend,
-        kcalPastLine: isTodayEntry ? null : kcalTrend,
-        kcalTodayLine: null,
-        carbs: Math.round(carbs),
-        fat: Math.round(fat),
-        fiber: Math.round(fiber),
-        salt: Math.round(salt * 10) / 10,
-        carbsGoal: g.carbs,
-        fatGoal: g.fat,
-        fiberGoal: g.fiber,
-        saltGoal: g.salt,
-        proteinGoal: g.protein,
-        kcalGoal: g.kcal,
-        baseCalories: rawGoal.baseCalories || g.kcal,
-        adjustment: rawGoal.adjustment || 0,
-        metProtein: protein >= g.protein,
-        metKcal: kcal >= g.kcal * 0.85 && kcal <= g.kcal * 1.15,
-        hasData: entries.length > 0,
-        isToday: isTodayEntry
-      });
-    }
-    const todayIdx = days.findIndex(d => d.isToday);
-    if (todayIdx > 0) {
-      days[todayIdx - 1].proteinTodayLine = days[todayIdx - 1].proteinTrend;
-      days[todayIdx].proteinTodayLine = days[todayIdx].proteinTrend;
-      days[todayIdx - 1].kcalTodayLine = days[todayIdx - 1].kcalTrend;
-      days[todayIdx].kcalTodayLine = days[todayIdx].kcalTrend;
-    }
+        goalHistory
+      }
+    });
     setWeekData(days);
   }
   async function loadMealAnalysis() {
-    const acc = {};
+    const dailyLogs = [];
     for (let i = 1; i <= 30; i++) {
       const d = new Date();
       d.setDate(d.getDate() - i);
@@ -1361,30 +1328,9 @@ function NutritionTracker({
       const l = await storage.get("log_v2_" + date).catch(() => null);
       if (!l) continue;
       const dayLog = JSON.parse(l.value);
-      MEALS.forEach(meal => {
-        const entries = dayLog[meal] || [];
-        if (!entries.length) return;
-        if (!acc[meal]) acc[meal] = {
-          count: 0,
-          protein: 0,
-          kcal: 0,
-          carbs: 0
-        };
-        acc[meal].count++;
-        acc[meal].protein += entries.reduce((s, e) => s + (e.protein ?? 0), 0);
-        acc[meal].kcal += entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
-        acc[meal].carbs += entries.reduce((s, e) => s + (e.carbs ?? 0), 0);
-      });
+      dailyLogs.push(dayLog);
     }
-    const avgs = {};
-    Object.entries(acc).forEach(([meal, d]) => {
-      avgs[meal] = {
-        count: d.count,
-        avgProtein: Math.round(d.protein / d.count),
-        avgKcal: Math.round(d.kcal / d.count),
-        avgCarbs: Math.round(d.carbs / d.count)
-      };
-    });
+    const avgs = aggregateMealAverages({ dailyLogs, mealKeys: MEALS });
     setMealAverages(avgs);
   }
   async function loadRecentMeals() {
