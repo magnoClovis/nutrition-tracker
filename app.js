@@ -170,6 +170,13 @@ const {
 });
 
 const {
+  resolveHistoricalGoals
+} = window.HistoricalGoalsModel.createHistoricalGoalsModel({
+  computeGoals,
+  getWeightForDate
+});
+
+const {
   isValidBirthDate,
   isValidGender,
   isValidActivityLevel,
@@ -1227,28 +1234,33 @@ function NutritionTracker({
   // This is used both for read-only historical views and for intentional
   // retroactive edits, such as changing a past day from training to rest.
   function computeDayGoalSnapshot(date, dayIsTraining) {
-    const we = getWeightForDate(weightHistory, date);
-    const rawGoal = computeGoals(we?.weight || currentWeight, dayIsTraining, {
-      height: we?.height || currentHeight,
-      birthDate: profileData.birthDate,
-      gender: profileData.gender,
-      prefs: nutritionPrefs
-    });
-    const computedGoal = {
-      ...rawGoal,
-      protein: customGoals.protein || rawGoal.protein,
-      kcal: customGoals.kcal || rawGoal.kcal,
-      carbs: customGoals.carbs || rawGoal.carbs,
-      fat: customGoals.fat || rawGoal.fat,
-      fiber: customGoals.fiber || rawGoal.fiber,
-      salt: customGoals.salt || rawGoal.salt
-    };
-    return computedGoal;
+    return resolveHistoricalGoals({
+      date,
+      today: TODAY,
+      dayIsTraining,
+      weightHistory,
+      currentWeight,
+      currentHeight,
+      profileData,
+      nutritionPrefs,
+      customGoals,
+      frozenGoal: null
+    }).computedGoal;
   }
   function dayGoalForDate(date) {
     const dayIsTraining = trainingByDate[date] ?? true;
-    const computedGoal = computeDayGoalSnapshot(date, dayIsTraining);
-    return date !== TODAY && goalHistory[date] ? {...computedGoal, ...goalHistory[date]} : computedGoal;
+    return resolveHistoricalGoals({
+      date,
+      today: TODAY,
+      dayIsTraining,
+      weightHistory,
+      currentWeight,
+      currentHeight,
+      profileData,
+      nutritionPrefs,
+      customGoals,
+      frozenGoal: goalHistory[date]
+    }).effectiveGoal;
   }
   useEffect(() => {
     // Scroll to top when changing tabs
@@ -1279,11 +1291,19 @@ function NutritionTracker({
         if (l) dayLog = normalizeMealKeys(JSON.parse(l.value));
       }
       const entries = Object.values(dayLog).flat();
-      const we = getWeightForDate(weightHistory, date);
       const dayIsTraining = trainingByDate[date] ?? true;
-      const rawGoal = computeGoals(we?.weight || currentWeight, dayIsTraining, {height: we?.height || currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs});
-      const computedGoal = {...rawGoal, protein: customGoals.protein || rawGoal.protein, kcal: customGoals.kcal || rawGoal.kcal, carbs: customGoals.carbs || rawGoal.carbs, fat: customGoals.fat || rawGoal.fat, fiber: customGoals.fiber || rawGoal.fiber, salt: customGoals.salt || rawGoal.salt};
-      const g = date !== TODAY && goalHistory[date] ? {...computedGoal, ...goalHistory[date]} : computedGoal;
+      const { rawGoal, effectiveGoal: g } = resolveHistoricalGoals({
+        date,
+        today: TODAY,
+        dayIsTraining,
+        weightHistory,
+        currentWeight,
+        currentHeight,
+        profileData,
+        nutritionPrefs,
+        customGoals,
+        frozenGoal: goalHistory[date]
+      });
       const protein = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
       const kcal = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
       const isTodayEntry = date === TODAY;
@@ -2172,10 +2192,7 @@ function NutritionTracker({
           if (l) dayLog = normalizeMealKeys(JSON.parse(l.value));
         }
         const totals = buildDayTotals(dayLog);
-        const wEntry = getWeightForDate(weightHistory, date);
-        const rawGoal = computeGoals(wEntry?.weight || currentWeight, trainingByDate[date] ?? true, {height: wEntry?.height || currentHeight, birthDate: profileData.birthDate, gender: profileData.gender, prefs: nutritionPrefs});
-        const computedGoal = {...rawGoal, protein: customGoals.protein || rawGoal.protein, kcal: customGoals.kcal || rawGoal.kcal, carbs: customGoals.carbs || rawGoal.carbs, fat: customGoals.fat || rawGoal.fat, fiber: customGoals.fiber || rawGoal.fiber, salt: customGoals.salt || rawGoal.salt};
-        const g = date !== TODAY && goalHistory[date] ? {...computedGoal, ...goalHistory[date]} : computedGoal;
+        const g = dayGoalForDate(date);
         days.push({
           date,
           isTraining: trainingByDate[date] ?? true,
