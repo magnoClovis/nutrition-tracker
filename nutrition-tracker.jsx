@@ -282,6 +282,25 @@ const {
   TutorialOverlay
 } = window.TutorialOverlay.createTutorialOverlay({ React, normalizeLanguage });
 
+const {
+  VisualUpdateNotice
+} = window.VisualUpdateNoticeModule.createVisualUpdateNotice({ React, normalizeLanguage, pickLang });
+
+const {
+  MealReviewModal
+} = window.MealReviewModalModule.createMealReviewModal({ React, pickLang });
+
+const {
+  GaResultCard
+} = window.GaResultCardModule.createGaResultCard({ React, pickLang });
+
+const {
+  BodyMetricChart,
+  WeightTrendChart,
+  BmrTrendChart,
+  BodyFatTrendChart
+} = window.BodyMetricsCharts.createBodyMetricsCharts({ React, Recharts, pickLang });
+
 /**
  * Release notices use an explicit version marker. Legacy boolean values mean
  * that an older release was acknowledged, so existing users still receive the
@@ -658,6 +677,15 @@ function NutritionTracker({
     getEntryTime: () => new Date().toTimeString().slice(0,5),
     getPantry: () => pantry,
     buildDayTotals
+  });
+  const {
+    SavedMealCard
+  } = window.SavedMealCardModule.createSavedMealCard({
+    React,
+    pickLang,
+    templateEntries,
+    templateTotals,
+    templateItemEntry
   });
   const {
     getAutomaticMealSuggestionLimits: calculateAutomaticMealSuggestionLimits,
@@ -3593,207 +3621,31 @@ function NutritionTracker({
     notify(uiText("Refeição salva atualizada.", "Saved meal updated.", "Comida guardada actualizada."));
   }
   function renderSavedMealCard(tmpl, context) {
-    const entries = templateEntries(tmpl);
-    const totals = templateTotals(tmpl);
-    const expanded = !!expandedTemplateIds[tmpl.id];
-    const isEditingTemplate = context === "pantry" && editingTemplateId === tmpl.id && templateEditDraft;
-    const proteinPct = pctOf(totals.protein, goals.protein);
-    const kcalPct = pctOf(totals.kcal, goals.kcal);
-    const cardHeader = /*#__PURE__*/React.createElement("div", {
-      style: {display: "flex", alignItems: "center", gap: 8}
-    }, /*#__PURE__*/React.createElement("button", {
-      onClick: () => toggleTemplateExpanded(tmpl.id),
-      title: expanded ? uiText("Recolher", "Collapse", "Contraer") : uiText("Expandir", "Expand", "Expandir"),
-      style: {
-        background: "none",
-        border: "1px solid var(--border3)",
-        color: "var(--muted)",
-        borderRadius: 6,
-        width: 28,
-        height: 28,
-        cursor: "pointer",
-        flexShrink: 0
-      }
-    }, expanded ? "-" : "+"), /*#__PURE__*/React.createElement("div", {
-      style: {flex: 1, minWidth: 0}
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14,
-        color: "var(--text2)",
-        marginBottom: 4,
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis"
-      }
-    }, tmpl.name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "6px 10px",
-        fontSize: 12,
-        color: "var(--muted)"
-      }
-    }, /*#__PURE__*/React.createElement("span", null, Math.round(totals.kcal), " kcal · ", kcalPct, "%"), /*#__PURE__*/React.createElement("span", null, Math.round(totals.protein), "g ", uiText("proteína", "protein", "proteína"), " · ", proteinPct, "%"), /*#__PURE__*/React.createElement("span", null, (tmpl.items || []).length, " item", (tmpl.items || []).length !== 1 ? "s" : ""))), /*#__PURE__*/React.createElement("div", {
-      style: {display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end"}
-    }, context === "add" && /*#__PURE__*/React.createElement("button", {
-      onClick: () => appendTemplateToStaged(tmpl),
-      style: sBtn("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)")
-    }, uiText("Adicionar", "Add", "Añadir")), /*#__PURE__*/React.createElement("button", {
-      onClick: () => context === "pantry" ? beginTemplateEdit(tmpl) : loadTemplate(tmpl),
-      style: sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)")
-    }, uiText("Editar", "Edit", "Editar")), context === "pantry" && /*#__PURE__*/React.createElement("button", {
-      onClick: () => deleteTemplate(tmpl.id),
-      title: uiText("Apagar", "Delete", "Eliminar"),
-      style: {
-        background: "none",
-        border: "1px solid var(--border3)",
-        color: "var(--dim)",
-        borderRadius: 6,
-        padding: "4px 8px",
-        fontSize: 14,
-        cursor: "pointer"
-      }
-    }, "\u00D7")));
-
-    const templateEditRows = isEditingTemplate && templateEditDraft.items.length === 0
-      ? /*#__PURE__*/React.createElement("div", {
-          style: {color: "var(--faint)", fontSize: 13, fontStyle: "italic", padding: "8px 0"}
-        }, uiText("Sem ingredientes neste modelo.", "No ingredients in this template.", "Sin ingredientes en este modelo."))
-      : isEditingTemplate && templateEditDraft.items.map((item, idx) => {
-          const refreshed = templateItemEntry(item);
-          return /*#__PURE__*/React.createElement("div", {
-            key: (item.foodId || item.name || "item") + idx,
-            style: {
-              display: "grid",
-              gridTemplateColumns: isMobileView ? "1fr" : "minmax(150px, 1fr) 96px 34px",
-              gap: 8,
-              alignItems: "end",
-              marginBottom: 8
-            }
-          }, /*#__PURE__*/React.createElement("div", {
-            style: {color: "var(--text2)", fontSize: 14, minWidth: 0}
-          }, item.name, /*#__PURE__*/React.createElement("div", {
-            style: {color: "var(--muted)", fontSize: 12, marginTop: 2}
-          }, Math.round(refreshed.kcal || 0), " kcal · ", Math.round(refreshed.protein || 0), "g ", uiText("proteína", "protein", "proteína"))), /*#__PURE__*/React.createElement("input", {
-            type: "number",
-            value: item.qty,
-            onChange: e => updateTemplateDraftItem(idx, {qty: e.target.value}),
-            style: {...inp, marginTop: 0}
-          }), /*#__PURE__*/React.createElement("button", {
-            onClick: () => removeTemplateDraftItem(idx),
-            title: uiText("Remover ingrediente", "Remove ingredient", "Eliminar ingrediente"),
-            style: {
-              height: 36,
-              background: "none",
-              border: "1px solid var(--border3)",
-              color: "var(--dim)",
-              borderRadius: 6,
-              cursor: "pointer",
-              fontSize: 16
-            }
-          }, "\u00D7"));
-        });
-
-    const editContent = isEditingTemplate && /*#__PURE__*/React.createElement("div", {
-      style: {marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border3)"}
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: isMobileView ? "1fr" : "minmax(180px, 1fr) minmax(160px, 220px)",
-        gap: 8,
-        marginBottom: 10
-      }
-    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-      style: lbl
-    }, uiText("Nome da refeição", "Template name", "Nombre de la comida")), /*#__PURE__*/React.createElement("input", {
-      value: templateEditDraft.name,
-      onChange: e => setTemplateEditDraft(d => ({...d, name: e.target.value})),
-      style: inp
-    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-      style: lbl
-    }, uiText("Refeição padrão", "Default meal", "Comida predeterminada")), /*#__PURE__*/React.createElement("select", {
-      value: templateEditDraft.meal,
-      onChange: e => setTemplateEditDraft(d => ({...d, meal: e.target.value})),
-      style: inp
-    }, MEALS.map(m => /*#__PURE__*/React.createElement("option", {key: m, value: m}, mealLabel(m)))))), templateEditRows, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: isMobileView ? "1fr" : "minmax(180px, 1fr) 96px auto",
-        gap: 8,
-        alignItems: "end",
-        marginTop: 10,
-        paddingTop: 10,
-        borderTop: "1px solid var(--border3)"
-      }
-    }, /*#__PURE__*/React.createElement("select", {
-      value: templateEditDraft.addFoodId,
-      onChange: e => setTemplateEditDraft(d => ({...d, addFoodId: e.target.value})),
-      style: inp
-    }, /*#__PURE__*/React.createElement("option", {value: ""}, uiText("Adicionar ingrediente...", "Add ingredient...", "Añadir ingrediente...")), sortedAllPantry.map(f => /*#__PURE__*/React.createElement("option", {key: f.id, value: f.id}, f.name))), /*#__PURE__*/React.createElement("input", {
-      type: "number",
-      value: templateEditDraft.addQty,
-      onChange: e => setTemplateEditDraft(d => ({...d, addQty: e.target.value})),
-      placeholder: uiText("Qtd", "Qty", "Cant."),
-      style: inp
-    }), /*#__PURE__*/React.createElement("button", {
-      onClick: addTemplateDraftItem,
-      disabled: !templateEditDraft.addFoodId || !templateEditDraft.addQty,
-      style: {
-        ...sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)"),
-        height: 36,
-        opacity: templateEditDraft.addFoodId && templateEditDraft.addQty ? 1 : 0.45
-      }
-    }, uiText("Adicionar", "Add", "Añadir"))), /*#__PURE__*/React.createElement("div", {
-      style: {display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12}
-    }, /*#__PURE__*/React.createElement("button", {
-      onClick: cancelTemplateEdit,
-      style: sBtn("transparent", "var(--border2)", "var(--muted)")
-    }, uiText("Cancelar", "Cancel", "Cancelar")), /*#__PURE__*/React.createElement("button", {
-      onClick: saveTemplateEdit,
-      disabled: !templateEditDraft.name.trim() || !templateEditDraft.items.length,
-      style: {
-        ...sBtn("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)"),
-        opacity: templateEditDraft.name.trim() && templateEditDraft.items.length ? 1 : 0.45
-      }
-    }, uiText("Salvar alterações", "Save changes", "Guardar cambios"))));
-
-    const detailsContent = expanded && !isEditingTemplate && /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 10,
-        paddingTop: 10,
-        borderTop: "1px solid var(--border3)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 8
-      }
-    }, entries.length === 0 ? /*#__PURE__*/React.createElement("div", {
-      style: {fontSize: 12, color: "var(--faint)", fontStyle: "italic"}
-    }, uiText("Sem ingredientes salvos.", "No ingredients saved.", "Sin ingredientes guardados.")) : entries.map((item, idx) => /*#__PURE__*/React.createElement("div", {
-      key: item.foodId || item.name || idx,
-      style: {
-        display: "grid",
-        gridTemplateColumns: "minmax(120px, 1fr) auto",
-        gap: 10,
-        alignItems: "start",
-        fontSize: 13
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {color: "var(--text2)", minWidth: 0}
-    }, item.name, /*#__PURE__*/React.createElement("div", {
-      style: {color: "var(--muted)", fontSize: 12, marginTop: 2}
-    }, item.qty, item.unit)), /*#__PURE__*/React.createElement("div", {
-      style: {color: "var(--muted2)", fontSize: 12, textAlign: "right", lineHeight: 1.45}
-    }, Math.round(item.kcal || 0), " kcal · ", Math.round(item.protein || 0), "g prot", /*#__PURE__*/React.createElement("br", null), Math.round(item.carbs || 0), "g carb · ", Math.round(item.fat || 0), "g gord"))));
-
-    return /*#__PURE__*/React.createElement("div", {
+    return React.createElement(SavedMealCard, {
       key: tmpl.id,
-      style: {
-        border: "1px solid var(--border3)",
-        borderRadius: 8,
-        padding: "10px 12px",
-        background: "var(--surface2, var(--surface))"
-      }
-    }, cardHeader, editContent, detailsContent);
+      template: tmpl,
+      context,
+      goals,
+      lang,
+      expanded: !!expandedTemplateIds[tmpl.id],
+      isMobileView,
+      isEditing: editingTemplateId === tmpl.id,
+      editDraft: templateEditDraft,
+      mealOptions: MEALS,
+      pantryFoods: sortedAllPantry,
+      getMealLabel: mealLabel,
+      onToggleExpanded: toggleTemplateExpanded,
+      onAppend: appendTemplateToStaged,
+      onEdit: beginTemplateEdit,
+      onLoad: loadTemplate,
+      onDelete: deleteTemplate,
+      onEditDraftChange: setTemplateEditDraft,
+      onUpdateItem: updateTemplateDraftItem,
+      onRemoveItem: removeTemplateDraftItem,
+      onAddItem: addTemplateDraftItem,
+      onCancelEdit: cancelTemplateEdit,
+      onSaveEdit: saveTemplateEdit
+    });
   }
   const bodyMetrics = buildBodyMetricsModel({
     weekData,
@@ -3857,72 +3709,6 @@ function NutritionTracker({
    * Renders a compact Recharts line chart for optional body measurements.
    * Input: bodyMetricChartConfigs item. Output: React element.
    */
-  function renderBodyMetricChart(config) {
-    return /*#__PURE__*/React.createElement("div", {
-      key: config.key,
-      style: {
-        background: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: 8,
-        padding: "14px",
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14,
-        letterSpacing: 1,
-        color: "var(--muted)",
-        textTransform: "uppercase",
-        marginBottom: 12
-      }
-    }, config.title), /*#__PURE__*/React.createElement(ResponsiveContainer, {
-      width: "100%",
-      height: isMobileView ? 190 : 150
-    }, /*#__PURE__*/React.createElement(LineChart, {
-      data: config.data
-    }, /*#__PURE__*/React.createElement(XAxis, {
-      dataKey: "date",
-      tick: { fontSize: 12, fill: CT.tick },
-      axisLine: false,
-      tickLine: false
-    }), /*#__PURE__*/React.createElement(YAxis, {
-      tick: { fontSize: 12, fill: CT.tick },
-      axisLine: false,
-      tickLine: false,
-      domain: ["auto", "auto"],
-      width: 38
-    }), /*#__PURE__*/React.createElement(Tooltip, {
-      contentStyle: {
-        background: CT.bg,
-        border: "1px solid " + CT.border,
-        borderRadius: 4,
-        fontSize: 14,
-        color: CT.label
-      },
-      labelStyle: { color: CT.label },
-      formatter: value => [
-        Math.round(Number(value) * 10) / 10 + config.unit,
-        config.label
-      ]
-    }), config.target ? /*#__PURE__*/React.createElement(ReferenceLine, {
-      y: config.target,
-      stroke: "#8ec8c8",
-      strokeDasharray: "4 4",
-      label: {
-        value: uiText("Meta ", "Target ", "Meta ") + config.target + config.unit,
-        fill: CT.tick,
-        fontSize: 11
-      }
-    }) : null, /*#__PURE__*/React.createElement(Line, {
-      type: "monotone",
-      dataKey: "value",
-      stroke: config.color,
-      strokeWidth: 2,
-      dot: { fill: config.color, r: 3 },
-      activeDot: { r: 5 }
-    }))));
-  }
-
   function getSuggestedBodyGoalWeeks() {
     const currentFatPct = Number(bodyGoalForm.currentFatPct || bodyComposition.currentFatPct || 0);
     const targetPct = Number(bodyGoalForm.targetFatPct || nutritionPrefs.bodyFatGoal || 0);
@@ -4701,282 +4487,43 @@ function NutritionTracker({
    * Output: a React card showing ranking, item macros, and how the meal changes today's goals.
    */
   function renderGAResultCard(result, index) {
-    const currentEntries = Object.values(activeLog).flat();
-    const scoreEntries = result.items.map(({food, gene}) => ({
-      protein: food.protein100 == null ? null : Number(food.protein100) * gene,
-      kcal: food.kcal100 == null ? null : Number(food.kcal100) * gene,
-      fiber: food.fiber100 == null ? null : Number(food.fiber100) * gene,
-      satfat: food.satfat100 == null ? null : Number(food.satfat100) * gene,
-      salt: food.salt100 == null ? null : Number(food.salt100) * gene
-    }));
-    const mealQuality = evaluateMealItems(scoreEntries);
-    const eatenProtein = currentEntries.reduce((sum, entry) => sum + (Number(entry.protein) || 0), 0);
-    const eatenKcal = currentEntries.reduce((sum, entry) => sum + (Number(entry.kcal) || 0), 0);
-    const proteinGoal = Number(goals.protein) || 0;
-    const kcalGoal = Number(goals.kcal) || 0;
-    const afterProtein = eatenProtein + (Number(result.protein) || 0);
-    const afterKcal = eatenKcal + (Number(result.kcal) || 0);
-    const proteinRemaining = Math.max(0, proteinGoal - eatenProtein);
-    const kcalRemaining = Math.max(0, kcalGoal - eatenKcal);
-    const proteinOver = Math.max(0, afterProtein - proteinGoal);
-    const kcalOver = Math.max(0, afterKcal - kcalGoal);
-    const proteinPercent = proteinGoal ? Math.round(afterProtein / proteinGoal * 100) : 0;
-    const kcalPercent = kcalGoal ? Math.round(afterKcal / kcalGoal * 100) : 0;
-    const optionLabel = index === 0
-      ? uiText("Melhor opção", "Best option", "Mejor opción")
-      : uiText("Uma das melhores", "Strong option", "Una de las mejores");
-    const fitLabel = Number.isFinite(result.fit)
-      ? uiText("ajuste ", "fit ", "ajuste ") + Math.round(result.fit * 100) / 100
-      : "";
-    const metricChip = (label, value, color) => React.createElement("span", {
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        padding: "4px 7px",
-        borderRadius: 999,
-        background: "var(--surface)",
-        border: "1px solid var(--border2)",
-        color,
-        fontSize: 12,
-        fontWeight: 700,
-        whiteSpace: "nowrap"
-      }
-    }, label, " ", value);
-
-    return React.createElement("div", {
+    return React.createElement(GaResultCard, {
       key: index,
-      style: {
-        background: "var(--surface3)",
-        border: "1px solid var(--border3)",
-        borderRadius: 10,
-        padding: isMobileView ? 10 : 12
-      }
-    },
-      React.createElement("div", {
-        style: {
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 10,
-          marginBottom: 8
-        }
-      },
-        React.createElement("div", null,
-          React.createElement("div", {
-            style: {
-              color: "var(--text2)",
-              fontWeight: 800,
-              fontSize: 15
-            }
-          }, uiText("Opção ", "Option ", "Opción ") + (index + 1)),
-          React.createElement("div", {
-            style: {
-              marginTop: 3,
-              color: index === 0 ? "var(--btn-ok-text)" : "var(--muted)",
-              fontSize: 12,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: 0.8
-            }
-          }, optionLabel, fitLabel ? " · " + fitLabel : "")
-        ),
-        React.createElement("div", {
-          style: {
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "flex-end",
-            gap: 6
-          }
-        },
-          metricChip("kcal", Math.round(result.kcal || 0), "#8ec8c8"),
-          metricChip("prot", Math.round(result.protein || 0) + "g", "#c8a24f")
-        )
-      ),
-      React.createElement("div", {
-        style: {
-          display: "grid",
-          gridTemplateColumns: isMobileView ? "1fr" : "repeat(2, minmax(0, 1fr))",
-          gap: 8,
-          marginBottom: 10
-        }
-      },
-        React.createElement("div", {
-          style: {
-            background: "var(--surface)",
-            border: "1px solid var(--border2)",
-            borderRadius: 8,
-            padding: 8,
-            color: "var(--text3)",
-            fontSize: 12,
-            lineHeight: 1.45
-          }
-        },
-          React.createElement("b", {
-            style: { color: "var(--text2)" }
-          }, uiText("Impacto no dia", "Impact today", "Impacto en el día")),
-          React.createElement("div", null, uiText("Proteína depois: ", "Protein after: ", "Proteína después: "), Math.round(afterProtein), " / ", Math.round(proteinGoal), "g (", proteinPercent, "%)", proteinOver ? " +" + Math.round(proteinOver) + "g" : ""),
-          React.createElement("div", null, uiText("Calorias depois: ", "Calories after: ", "Calorías después: "), Math.round(afterKcal), " / ", Math.round(kcalGoal), "kcal (", kcalPercent, "%)", kcalOver ? " +" + Math.round(kcalOver) + "kcal" : "")
-        ),
-        React.createElement("div", {
-          style: {
-            background: "var(--surface)",
-            border: "1px solid var(--border2)",
-            borderRadius: 8,
-            padding: 8,
-            color: "var(--text3)",
-            fontSize: 12,
-            lineHeight: 1.45
-          }
-        },
-          React.createElement("b", {
-            style: { color: "var(--text2)" }
-          }, uiText("Parcela do que faltava no dia", "Share of what was left today", "Parte de lo que faltaba hoy")),
-          React.createElement("div", null, uiText("Usa ", "Uses ", "Usa "), proteinRemaining ? Math.round((result.protein || 0) / proteinRemaining * 100) : 100, uiText("% da proteína restante", "% of remaining protein", "% de la proteína restante")),
-          React.createElement("div", null, uiText("Usa ", "Uses ", "Usa "), kcalRemaining ? Math.round((result.kcal || 0) / kcalRemaining * 100) : 100, uiText("% das calorias restantes", "% of remaining calories", "% de las calorías restantes"))
-        )
-      ),
-      mealQuality && mealQuality.valid && React.createElement("div", {
-        style: {
-          background: "var(--bg)", border: "1px solid var(--border2)", borderRadius: 8,
-          padding: 9, marginBottom: 10, fontSize: 12, color: "var(--text3)", lineHeight: 1.45
-        }
-      },
-        React.createElement("div", {style: {display: "flex", justifyContent: "flex-start", flexWrap: "wrap", gap: 8, alignItems: "baseline", marginBottom: 4}},
-          React.createElement("b", {style: {color: "var(--text2)"}}, uiText("Nota da refeição", "Meal score", "Nota de la comida")),
-          React.createElement("span", {style: {fontSize: 17, fontWeight: 800, color: mealQuality.score >= 4 ? "var(--btn-ok-text)" : mealQuality.score >= 3 ? "#c8a96e" : "#c86e8e"}}, mealQuality.score.toFixed(2), "/5")
-        ),
-        React.createElement("div", null, mealScoreBrief(mealQuality)),
-        React.createElement("div", {style: {color: "var(--dim)", marginTop: 3}}, mealScoreEvaluationText(mealQuality))
-      ),
-      React.createElement("div", {
-        style: {
-          display: "grid",
-          gap: 5,
-          marginBottom: 10
-        }
-      }, result.items.map((item, itemIndex) => {
-        const qty = item.food.unit === "un" ? item.gene : item.gene * 100;
-        const itemProtein = (Number(item.food.protein100) || 0) * item.gene;
-        const itemKcal = (Number(item.food.kcal100) || 0) * item.gene;
-        return React.createElement("div", {
-          key: itemIndex,
-          style: {
-            display: "flex",
-            alignItems: "baseline",
-            flexWrap: "wrap",
-            gap: "3px 10px",
-            color: "var(--text3)",
-            fontSize: 13,
-            padding: "3px 0",
-            borderBottom: itemIndex === result.items.length - 1 ? "none" : "1px solid var(--border3)"
-          }
-        },
-          React.createElement("span", null, "• ", item.food.name, ": ", qty, item.food.unit === "un" ? " un" : "g"),
-          React.createElement("span", {
-            style: {
-              color: "var(--muted)",
-              whiteSpace: "nowrap"
-            }
-          }, Math.round(itemKcal), " kcal · ", Math.round(itemProtein), "g")
-        );
-      })),
-      React.createElement("button", {
-        onClick: () => addGAResultToDiary(result),
-        style: {
-          ...sBtn("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)"),
-          marginTop: 4
-        }
-      }, uiText("Adicionar ao diário", "Add to diary", "Añadir al diario"))
-    );
+      result,
+      index,
+      activeLog,
+      goals,
+      lang,
+      isMobileView,
+      evaluateMealItems,
+      getMealScoreBrief: mealScoreBrief,
+      getMealScoreEvaluationText: mealScoreEvaluationText,
+      onAdd: addGAResultToDiary
+    });
   }
 
   function renderMealReviewModal() {
-    if (!mealReview) return null;
-    const result = mealReview.result;
-    const availableComponents = Object.values(result.components).filter(component => component.available);
-    const scoreColor = result.score >= 4 ? "var(--btn-ok-text)" : result.score >= 3 ? "#c8a96e" : "#c86e8e";
     const closeMealReview = () => {
       setMealReview(null);
       setMealReviewHelpOpen(false);
     };
-    return React.createElement("div", {
-      "data-meal-review-modal": "true",
-      "data-theme": darkMode ? "dark" : "light",
-      onClick: closeMealReview,
-      style: {
-        position: "fixed", inset: 0, zIndex: 10020, background: "rgba(0,0,0,0.72)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 16
-      }
-    }, React.createElement("div", {
-      "data-meal-review-panel": "true",
-      onClick: event => event.stopPropagation(),
-      style: {
-        width: "100%", maxWidth: 720, maxHeight: "90vh", overflowY: "auto",
-        background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
-        padding: isMobileView ? 14 : 20, boxShadow: "0 18px 60px rgba(0,0,0,0.4)"
-      }
-    },
-      React.createElement("div", {style: {display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 14}},
-        React.createElement("div", null,
-          React.createElement("div", {style: {fontSize: 14, textTransform: "uppercase", letterSpacing: 1.2, color: "var(--muted)"}}, uiText("Avaliação da refeição", "Meal assessment", "Evaluación de la comida")),
-          React.createElement("div", {style: {fontSize: 12, color: "var(--dim)", marginTop: 4}}, mealLabel(mealReview.meal), " · ", Math.round(result.hoursLeft * 10) / 10, "h ", uiText("até meia-noite", "until midnight", "hasta medianoche"))
-        ),
-        React.createElement("button", {onClick: closeMealReview, style: {background: "none", border: "none", color: "var(--muted)", fontSize: 22, cursor: "pointer"}}, "×")
-      ),
-      React.createElement("div", {style: {display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "160px 1fr", gap: 12, marginBottom: 14}},
-        React.createElement("div", {style: {background: "var(--bg)", border: "1px solid var(--border3)", borderRadius: 10, padding: 14, textAlign: "center"}},
-          React.createElement("div", {style: {fontSize: 34, fontWeight: 800, color: scoreColor}}, result.score.toFixed(2)),
-          React.createElement("div", {style: {fontSize: 12, color: "var(--muted)", marginTop: 3}}, uiText("de 5,00", "out of 5.00", "de 5,00")),
-          React.createElement("div", {style: {fontSize: 11, color: "var(--dim)", marginTop: 8}}, mealScoreEvaluationText(result))
-        ),
-        React.createElement("div", {style: {background: "var(--bg)", border: "1px solid var(--border3)", borderRadius: 10, padding: 12, color: "var(--text3)", fontSize: 13, lineHeight: 1.5}}, mealScoreBrief(result), result.missing.length ? React.createElement("div", {style: {color: "var(--dim)", marginTop: 7}}, uiText("Não avaliados: ", "Not evaluated: ", "No evaluados: "), result.missing.map(mealScoreLabel).join(", "), ".") : null)
-      ),
-      React.createElement("button", {
-        type: "button",
-        onClick: () => setMealReviewHelpOpen(open => !open),
-        style: {
-          background: "var(--btn-info)", border: "1px solid var(--btn-info-border)", color: "var(--btn-info-text)",
-          borderRadius: 999, padding: "7px 11px", margin: "0 0 8px", cursor: "pointer",
-          fontFamily: "inherit", fontSize: 12, fontWeight: 700
-        }
-      }, "ⓘ ", uiText("O que estou vendo?", "What am I seeing?", "¿Qué estoy viendo?")),
-      React.createElement("div", {
-        style: {fontSize: 12, color: "var(--dim)", lineHeight: 1.45, marginBottom: 12}
-      }, uiText(
-        "“Referência para agora” é a quantidade sugerida para uma refeição neste momento, calculada pelo que ainda falta nas metas e pelo tempo até meia-noite.",
-        "“Reference for now” is the suggested amount for one meal at this moment, calculated from what remains in your targets and the time until midnight.",
-        "“Referencia para ahora” es la cantidad sugerida para una comida en este momento, calculada según lo que falta en tus metas y el tiempo hasta medianoche."
-      )),
-      mealReviewHelpOpen && React.createElement("div", {
-        style: {
-          background: "var(--ai-bg)", border: "1px solid var(--ai-border)", borderRadius: 8,
-          padding: 10, marginBottom: 12, color: "var(--text3)", fontSize: 12, lineHeight: 1.5
-        }
-      },
-        React.createElement("div", null, React.createElement("b", null, uiText("Nota: ", "Score: ", "Nota: ")), uiText("mede de 0 a 5 o alinhamento desta refeição com o restante das metas de hoje.", "measures from 0 to 5 how well this meal fits the rest of today's targets.", "mide de 0 a 5 cuánto encaja esta comida con el resto de las metas de hoy.")),
-        React.createElement("div", {style: {marginTop: 5}}, React.createElement("b", null, uiText("Nutrientes avaliados: ", "Nutrients evaluated: ", "Nutrientes evaluados: ")), uiText("indica quantos nutrientes tinham dados suficientes. Um nutriente opcional ausente é excluído da conta, nunca tratado como zero.", "shows how many nutrients had enough data. A missing optional nutrient is excluded, never treated as zero.", "indica cuántos nutrientes tenían datos suficientes. Un nutriente opcional ausente se excluye, nunca se trata como cero.")),
-        React.createElement("div", {style: {marginTop: 5}}, React.createElement("b", null, uiText("Referência para agora: ", "Reference for now: ", "Referencia para ahora: ")), uiText("é a parcela do que ainda falta no dia ajustada pelas horas até meia-noite; não é um limite diário nem uma cota fixa por refeição.", "is the share of what remains today adjusted by the hours until midnight; it is neither a daily limit nor a fixed per-meal quota.", "es la parte de lo que falta hoy ajustada por las horas hasta medianoche; no es un límite diario ni una cuota fija por comida."))
-      ),
-      React.createElement("div", {style: {display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginBottom: 14}}, availableComponents.map(component => React.createElement("div", {key: component.key, style: {background: "var(--surface3)", border: "1px solid var(--border3)", borderRadius: 8, padding: "9px 10px"}},
-        React.createElement("div", {style: {fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.8}}, mealScoreLabel(component.key)),
-        React.createElement("div", {style: {fontSize: 18, color: component.score >= 0.85 ? "var(--btn-ok-text)" : component.score >= 0.6 ? "#c8a96e" : "#c86e8e", fontWeight: 750, marginTop: 3}}, (component.score * 5).toFixed(2)),
-        React.createElement("div", {style: {fontSize: 11, color: "var(--dim)", marginTop: 4}},
-          Math.round(component.mealAmount * 10) / 10, component.key === "kcal" ? " kcal" : "g",
-          " · ", uiText("referência para agora ", "reference for now ", "referencia para ahora "), Math.round(component.quota * 10) / 10, component.key === "kcal" ? " kcal" : "g",
-          component.candidateComplete === false ? " · " + uiText("dados de ", "data from ", "datos de ") + component.candidateKnownCount + "/" + component.candidateItemCount + uiText(" itens", " items", " ítems") : ""
-        )
-      ))),
-      React.createElement("div", {style: {background: "var(--ai-bg)", border: "1px solid var(--ai-border)", borderRadius: 10, padding: 12, marginBottom: 14}},
-        React.createElement("div", {style: {fontSize: 12, color: "var(--ai-text)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6}}, "✦ ", uiText("Explicação", "Explanation", "Explicación")),
-        React.createElement("div", {style: {fontSize: 13, color: "var(--text3)", lineHeight: 1.55, whiteSpace: "pre-wrap"}}, mealReviewAiLoading ? uiText("Analisando...", "Analyzing...", "Analizando...") : mealReviewAiText || uiText("A nota foi calculada localmente. Configure a chave de IA para receber uma explicação personalizada.", "The score was calculated locally. Configure the AI key for a personalized explanation.", "La nota fue calculada localmente. Configura la clave de IA para recibir una explicación personalizada."))
-      ),
-      React.createElement("div", {style: {display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "1fr 1fr 1.3fr", gap: 8}},
-        React.createElement("button", {onClick: closeMealReview, style: sBtn("transparent", "var(--border2)", "var(--text2)")}, uiText("Editar", "Edit", "Editar")),
-        React.createElement("button", {onClick: () => openMealReview(mealReview.meal, mealReview.items, mealReview.source), style: sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)")}, uiText("Reavaliar", "Re-evaluate", "Reevaluar")),
-        React.createElement("button", {onClick: confirmMealReview, style: sBtn("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)")}, uiText("Registrar mesmo assim", "Log anyway", "Registrar igualmente"))
-      )
-    ));
+    return React.createElement(MealReviewModal, {
+      review: mealReview,
+      lang,
+      darkMode,
+      isMobileView,
+      helpOpen: mealReviewHelpOpen,
+      aiLoading: mealReviewAiLoading,
+      aiText: mealReviewAiText,
+      getMealLabel: mealLabel,
+      getEvaluationText: mealScoreEvaluationText,
+      getBrief: mealScoreBrief,
+      getScoreLabel: mealScoreLabel,
+      onClose: closeMealReview,
+      onToggleHelp: () => setMealReviewHelpOpen(open => !open),
+      onReevaluate: () => openMealReview(mealReview.meal, mealReview.items, mealReview.source),
+      onConfirm: confirmMealReview
+    });
   }
 
   useEffect(() => {
@@ -10661,105 +10208,32 @@ function NutritionTracker({
     }
   }, x.v), x.sub && /*#__PURE__*/React.createElement("div", {
     style: {fontSize: 12, color: "var(--text-secondary)", marginTop: 4}
-  }, x.sub))))), weightChartData.length > 1 && /*#__PURE__*/React.createElement("div", {
-    "data-tutorial": "weight-chart",
-    style: {
-      display: metricsSection === "tracking" ? "block" : "none",
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: isMobileView ? 12 : 8,
-      padding: isMobileView ? "12px" : "14px",
-      marginBottom: 14
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      letterSpacing: 1,
-      color: "var(--muted)",
-      textTransform: "uppercase",
-      marginBottom: 12
-    }
-  }, uiText("Evolução do peso", "Weight trend", "Evolución del peso")), /*#__PURE__*/React.createElement(ResponsiveContainer, {
-    width: "100%",
-    height: isMobileView ? 210 : 150
-  }, /*#__PURE__*/React.createElement(LineChart, {
-    data: weightChartData
-  }, /*#__PURE__*/React.createElement(XAxis, {
-    dataKey: "date",
-    tick: {
-      fontSize: 14,
-      fill: CT.tick
-    },
-    axisLine: false,
-    tickLine: false
-  }), /*#__PURE__*/React.createElement(YAxis, {
-    tick: {
-      fontSize: 14,
-      fill: CT.tick
-    },
-    axisLine: false,
-    tickLine: false,
-    domain: ["auto", "auto"],
-    width: 32
-  }), /*#__PURE__*/React.createElement(Tooltip, {
-    contentStyle: {
-      background: CT.bg,
-      border: "1px solid " + CT.border,
-      borderRadius: 4,
-      fontSize: 14,
-      color: CT.label
-    },
-    labelStyle: {
-      color: CT.label
-    },
-    itemStyle: {
-      color: "#c8a96e"
-    }
-  }), /*#__PURE__*/React.createElement(Line, {
-    type: "monotone",
-    dataKey: "weight",
-    stroke: "#c8a96e",
-    strokeWidth: 2,
-    dot: {
-      fill: "#c8a96e",
-      r: 3
-    },
-    activeDot: {
-      r: 5
-    }
-  })))), bmrChartData.length > 1 && /*#__PURE__*/React.createElement("div", {
-    "data-tutorial": "bmr-chart",
-    style: {
-      display: metricsSection === "tracking" ? "block" : "none",
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: isMobileView ? 12 : 8,
-      padding: isMobileView ? "12px" : "14px",
-      marginBottom: 14
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {fontSize: 14, letterSpacing: 1, color: "var(--muted)", textTransform: "uppercase", marginBottom: 12}
-  }, uiText("Evolução da TMB", "BMR trend", "Evolución de la TMB")), /*#__PURE__*/React.createElement(ResponsiveContainer, {
-    width: "100%",
-    height: isMobileView ? 210 : 150
-  }, /*#__PURE__*/React.createElement(LineChart, {data: bmrChartData}, /*#__PURE__*/React.createElement(XAxis, {
-    dataKey: "date", tick: {fontSize: 14, fill: CT.tick}, axisLine: false, tickLine: false
-  }), /*#__PURE__*/React.createElement(YAxis, {
-    tick: {fontSize: 14, fill: CT.tick}, axisLine: false, tickLine: false, domain: ["auto", "auto"], width: 42
-  }), /*#__PURE__*/React.createElement(Tooltip, {
-    contentStyle: {background: CT.bg, border: "1px solid " + CT.border, borderRadius: 4, fontSize: 14, color: CT.label},
-    labelStyle: {color: CT.label}, itemStyle: {color: "#8ec8c8"}, formatter: value => [value + " kcal", "TMB"]
-  }), /*#__PURE__*/React.createElement(Line, {
-    type: "monotone", dataKey: "bmr", stroke: "#8ec8c8", strokeWidth: 2,
-    dot: {fill: "#8ec8c8", r: 3}, activeDot: {r: 5}
-  })))), bodyMetricChartConfigs.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, x.sub))))), /*#__PURE__*/React.createElement(WeightTrendChart, {
+    data: weightChartData,
+    title: uiText("Evolu\u00e7\u00e3o do peso", "Weight trend", "Evoluci\u00f3n del peso"),
+    visible: metricsSection === "tracking",
+    isMobileView,
+    chartTheme: CT
+  }), /*#__PURE__*/React.createElement(BmrTrendChart, {
+    data: bmrChartData,
+    title: uiText("Evolu\u00e7\u00e3o da TMB", "BMR trend", "Evoluci\u00f3n de la TMB"),
+    visible: metricsSection === "tracking",
+    isMobileView,
+    chartTheme: CT
+  }), bodyMetricChartConfigs.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       display: metricsSection === "tracking" ? "grid" : "none",
       gridTemplateColumns: isMobileView ? "1fr" : "repeat(auto-fit, minmax(260px, 1fr))",
       gap: 12,
       marginBottom: 14
     }
-  }, bodyMetricChartConfigs.map(renderBodyMetricChart)), bodyMetrics.hasWeightHistory && /*#__PURE__*/React.createElement("div", {
+  }, bodyMetricChartConfigs.map(config => /*#__PURE__*/React.createElement(BodyMetricChart, {
+    key: config.key,
+    config,
+    isMobileView,
+    chartTheme: CT,
+    targetLabel: uiText("Meta ", "Target ", "Meta ")
+  }))), bodyMetrics.hasWeightHistory && /*#__PURE__*/React.createElement("div", {
     style: {
       display: metricsSection === "tracking" ? "block" : "none"
     }
@@ -11108,47 +10582,12 @@ function NutritionTracker({
     style: { marginTop: 6, color: "var(--muted)" }
   }, bodyComposition.weeksRemaining
     ? uiText("Pela tendência recente de gordura, isso levaria cerca de ", "At the recent fat-mass trend, this would take about ", "Con la tendencia reciente de grasa, esto tomaría cerca de ") + (Math.round(bodyComposition.weeksRemaining * 10) / 10) + uiText(" semanas.", " weeks.", " semanas.")
-    : uiText("Ainda não há tendência de gordura alinhada suficiente para estimar uma data.", "There is not enough aligned body-fat trend yet for a date estimate.", "Todavía no hay una tendencia de grasa corporal suficiente para estimar una fecha."))) : uiText("Registre gordura corporal e uma meta para liberar estimativas de gordura.", "Add body-fat percentage and a target to unlock fat-mass estimates.", "Registra grasa corporal y una meta para activar estimaciones de grasa."), bodyComposition.fatChartData.length > 1 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: isMobileView ? 230 : 180,
-      border: "1px solid var(--border3)",
-      borderRadius: 8,
-      padding: "8px 8px 2px",
-      background: "var(--bg)",
-      marginTop: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: { color: "var(--muted)", fontSize: 12, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }
-  }, uiText("Evolução da gordura corporal", "Body-fat evolution", "Evolución de la grasa corporal")), /*#__PURE__*/React.createElement(ResponsiveContainer, {
-    width: "100%",
-    height: isMobileView ? 190 : 140
-  }, /*#__PURE__*/React.createElement(LineChart, {
-    data: bodyComposition.fatChartData
-  }, /*#__PURE__*/React.createElement(XAxis, {
-    dataKey: "label",
-    stroke: "var(--muted)",
-    tick: { fill: "var(--muted)", fontSize: 11 }
-  }), /*#__PURE__*/React.createElement(YAxis, {
-    stroke: "var(--muted)",
-    tick: { fill: "var(--muted)", fontSize: 11 },
-    domain: ["auto", "auto"],
-    unit: "%"
-  }), /*#__PURE__*/React.createElement(Tooltip, {
-    contentStyle: { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" },
-    formatter: v => [Math.round(v * 10) / 10 + "%", pickLang(lang, "Gordura corporal", "Body fat", "Grasa corporal")]
-  }), bodyComposition.targetPct ? /*#__PURE__*/React.createElement(ReferenceLine, {
-    y: bodyComposition.targetPct,
-    stroke: "#8ec8c8",
-    strokeDasharray: "4 4",
-    label: { value: pickLang(lang, "Meta", "Target", "Meta"), fill: "var(--muted)", fontSize: 11 }
-  }) : null, /*#__PURE__*/React.createElement(Line, {
-    type: "monotone",
-    dataKey: "bodyFatPct",
-    stroke: "#c86e8e",
-    strokeWidth: 2,
-    dot: { r: 3 },
-    activeDot: { r: 5 }
-  }))))), bodyCompositionOpen && bodyComposition.measured.length > 0 && /*#__PURE__*/React.createElement("div", {
+    : uiText("Ainda não há tendência de gordura alinhada suficiente para estimar uma data.", "There is not enough aligned body-fat trend yet for a date estimate.", "Todavía no hay una tendencia de grasa corporal suficiente para estimar una fecha."))) : uiText("Registre gordura corporal e uma meta para liberar estimativas de gordura.", "Add body-fat percentage and a target to unlock fat-mass estimates.", "Registra grasa corporal y una meta para activar estimaciones de grasa."), /*#__PURE__*/React.createElement(BodyFatTrendChart, {
+    data: bodyComposition.fatChartData,
+    targetPct: bodyComposition.targetPct,
+    lang,
+    isMobileView
+  })), bodyCompositionOpen && bodyComposition.measured.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: { marginTop: 10, display: "grid", gap: 6 }
   }, bodyComposition.measured.slice(-6).reverse().map(e => /*#__PURE__*/React.createElement("div", {
     key: "body-" + e.id,
@@ -11424,52 +10863,6 @@ function sBtnLbl(bg, border, color, extra = {}) {
 
 
 // Privacy & Security Panel
-function VisualUpdateNotice({ lang, onDismiss }) {
-  const normalizedLang = normalizeLanguage(lang);
-  const message = pickLang(
-    normalizedLang,
-    "A interface do app mudou! Explore o novo visual.",
-    "The app interface has changed! Explore the new look.",
-    "¡La interfaz de la app ha cambiado! Explora el nuevo diseño."
-  );
-  const dismissLabel = pickLang(normalizedLang, "Dispensar aviso", "Dismiss notice", "Cerrar aviso");
-  return React.createElement("div", {
-    role: "status",
-    style: {
-      position: "fixed",
-      top: 14,
-      left: "50%",
-      transform: "translateX(-50%)",
-      zIndex: 99998,
-      width: "min(520px, calc(100% - 28px))",
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      padding: "12px 14px",
-      background: "var(--surface,#fffdf8)",
-      border: "1px solid var(--border2,#d0ccc4)",
-      borderRadius: 12,
-      boxShadow: "0 12px 36px rgba(0,0,0,0.18)",
-      color: "var(--text2,#252220)"
-    }
-  }, React.createElement("span", {
-    style: {flex: 1, fontSize: 14, lineHeight: 1.4}
-  }, message), React.createElement("button", {
-    type: "button",
-    onClick: onDismiss,
-    "aria-label": dismissLabel,
-    title: dismissLabel,
-    style: {
-      border: "none",
-      background: "transparent",
-      color: "var(--muted,#6a6662)",
-      fontSize: 20,
-      lineHeight: 1,
-      padding: 4,
-      cursor: "pointer"
-    }
-  }, "×"));
-}
 // Root App
 function App() {
   const [authed,  setAuthed]    = React.useState(fbIsLoggedIn());
