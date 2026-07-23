@@ -159,6 +159,22 @@ const {
 } = window.GoalCalculator.createGoalCalculator();
 
 const {
+  buildDayTotals,
+  buildActiveLogTotals,
+  buildDailyGoalModel,
+  classifyDiaryStatus,
+  getReachedGoalMetrics
+} = window.DailyNutritionModel.createDailyNutritionModel({
+  rnd,
+  getGoalAdjustment,
+  getProteinMultiplier
+});
+
+const {
+  aggregateRecentMeals
+} = window.RecentMealsModel.createRecentMealsModel();
+
+const {
   getWeightForDate,
   optionalNumber,
   upsertWeightEntry,
@@ -1311,7 +1327,7 @@ function NutritionTracker({
     setMealAverages(avgs);
   }
   async function loadRecentMeals() {
-    const results = [];
+    const dailyLogs = [];
     for (let i = 0; i <= 14; i++) {
       const d = new Date();
       d.setDate(d.getDate() - i);
@@ -1325,21 +1341,9 @@ function NutritionTracker({
         if (!l) continue;
         parsed = JSON.parse(l.value);
       }
-      MEALS.forEach(meal => {
-        const entries = parsed[meal] || [];
-        if (!entries.length) return;
-        const protein = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
-        const kcal = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
-        results.push({
-          date,
-          meal,
-          entries,
-          protein: Math.round(protein),
-          kcal: Math.round(kcal)
-        });
-      });
+      dailyLogs.push({date, log: parsed});
     }
-    setRecentMeals(results.slice(0, 30));
+    setRecentMeals(aggregateRecentMeals({dailyLogs, mealKeys: MEALS}));
   }
   function notify(msg, duration = 3000) {
     setNotification(msg);
@@ -1911,17 +1915,6 @@ function NutritionTracker({
     openTab("adicionar");
     notify(pickLang(lang, "\"" + sugg.name + "\" carregada. Ajuste e registre.", "\"" + sugg.name + "\" loaded. Adjust and log it.", "\"" + sugg.name + "\" cargada. Ajusta y registra."));
   }
-  function buildDayTotals(log) {
-    const entries = Object.values(log).flat();
-    return {
-      protein: rnd(entries.reduce((s, e) => s + (e.protein ?? 0), 0)),
-      kcal: rnd(entries.reduce((s, e) => s + (e.kcal ?? 0), 0)),
-      carbs: rnd(entries.reduce((s, e) => s + (e.carbs ?? 0), 0)),
-      fat: rnd(entries.reduce((s, e) => s + (e.fat ?? 0), 0)),
-      fiber: rnd(entries.reduce((s, e) => s + (e.fiber ?? 0), 0)),
-      salt: rnd(entries.reduce((s, e) => s + (e.salt ?? 0), 0))
-    };
-  }
   function reportDateShift(date, days) {
     const d = new Date(date + "T12:00:00");
     d.setDate(d.getDate() + days);
@@ -2361,44 +2354,40 @@ function NutritionTracker({
     gender: profileData.gender,
     prefs: nutritionPrefs
   };
-  const baseWaterGoal = viewWeight ? Math.round(viewWeight * (isTraining ? 40 : 35) / 50) * 50 : 2500;
   const baseGoals = computeGoals(viewWeight, isTraining, goalProfile);
-  const calorieBase = baseGoals.baseCalories || (baseGoals.kcal - getGoalAdjustment(nutritionPrefs));
-  const calorieAdjustment = baseGoals.adjustment ?? getGoalAdjustment(nutritionPrefs);
-  const proteinMultiplier = baseGoals.proteinMultiplier || getProteinMultiplier(nutritionPrefs);
-  const adjustmentPct = calorieBase ? Math.round(Math.abs(calorieAdjustment) / calorieBase * 100) : 0;
-  const aggressiveAdjustment = adjustmentPct >= 25;
-  const calculatedGoals = {
-    protein: customGoals.protein || baseGoals.protein,
-    kcal: customGoals.kcal || baseGoals.kcal,
-    carbs: customGoals.carbs || baseGoals.carbs,
-    fat: customGoals.fat || baseGoals.fat,
-    fiber: customGoals.fiber || baseGoals.fiber,
-    salt: customGoals.salt || baseGoals.salt,
-    water: customGoals.water || baseWaterGoal
-  };
-  const extremeAdjustment = Math.abs(calorieAdjustment) >= 750 || adjustmentPct >= 35 || calculatedGoals.kcal < 1200;
-  const calorieAdjustmentWarning = extremeAdjustment
+  const dailyGoalModel = buildDailyGoalModel({
+    baseGoals,
+    customGoals,
+    nutritionPrefs,
+    viewWeight,
+    isTraining
+  });
+  const {
+    calorieBase,
+    calorieAdjustment,
+    proteinMultiplier,
+    calculatedGoals
+  } = dailyGoalModel;
+  const calorieAdjustmentWarning = dailyGoalModel.adjustmentWarningLevel === "extreme"
     ? uiText(
       "Este ajuste calórico parece muito agressivo. Metas muito baixas ou déficits/superávits grandes podem ser pouco saudáveis e difíceis de sustentar; considere um ajuste menor ou um prazo mais longo.",
       "This calorie adjustment looks very aggressive. Very low targets or large deficits/surpluses can be unhealthy and hard to sustain; consider a smaller adjustment or a longer timeline.",
       "Este ajuste calórico parece muy agresivo. Metas muy bajas o déficits/superávits grandes pueden ser poco saludables y difíciles de mantener; considera un ajuste menor o un plazo más largo."
     )
-    : aggressiveAdjustment
+    : dailyGoalModel.adjustmentWarningLevel === "high"
       ? uiText(
         "Este é um ajuste alto. Revise o prazo ou use um ajuste manual menor se a meta parecer extrema.",
         "This is a high adjustment. Review the timeline or use a smaller manual adjustment if the target feels too extreme.",
         "Este es un ajuste alto. Revisa el plazo o usa un ajuste manual menor si la meta parece extrema."
       )
       : "";
-  const weeklyGoalRate = Number(nutritionPrefs.goalKg) && Number(nutritionPrefs.goalWeeks) ? Number(nutritionPrefs.goalKg) / Number(nutritionPrefs.goalWeeks) : 0;
-  const healthGuardrails = [
-    calculatedGoals.kcal < 1200 && uiText("Meta final abaixo de 1200 kcal/dia: normalmente é baixa demais sem acompanhamento profissional.", "Final target below 1200 kcal/day: this is usually too low without professional supervision.", "Meta final por debajo de 1200 kcal/día: normalmente es demasiado baja sin supervisión profesional."),
-    Math.abs(calorieAdjustment) >= 750 && uiText("Ajuste acima de 750 kcal/dia: considere um prazo maior para proteger aderência e recuperação.", "Adjustment above 750 kcal/day: consider a longer timeline to protect adherence and recovery.", "Ajuste superior a 750 kcal/día: considera un plazo mayor para proteger adherencia y recuperación."),
-    adjustmentPct >= 35 && uiText("Ajuste acima de 35% da base do dia: é uma mudança extrema em relação à manutenção estimada.", "Adjustment above 35% of your day base: this is an extreme change compared with your estimated maintenance.", "Ajuste superior al 35% de la base del día: es un cambio extremo frente al mantenimiento estimado."),
-    nutritionPrefs.goalType === "loss" && weeklyGoalRate > 1 && uiText("Perda planejada acima de 1 kg/semana: pode aumentar fome, fadiga e risco de perda muscular.", "Planned loss above 1 kg/week: this may increase hunger, fatigue, and muscle-loss risk.", "Pérdida planificada por encima de 1 kg/semana: puede aumentar hambre, fatiga y riesgo de pérdida muscular."),
-    nutritionPrefs.goalType === "gain" && weeklyGoalRate > 0.5 && uiText("Ganho planejado acima de 0,5 kg/semana: um superávit grande pode aumentar ganho de gordura desnecessário.", "Planned gain above 0.5 kg/week: a large surplus may add unnecessary fat gain.", "Ganancia planificada por encima de 0,5 kg/semana: un superávit grande puede aumentar ganancia de grasa innecesaria.")
-  ].filter(Boolean);
+  const healthGuardrails = dailyGoalModel.healthGuardrailCodes.map(code => {
+    if (code === "low-calories") return uiText("Meta final abaixo de 1200 kcal/dia: normalmente é baixa demais sem acompanhamento profissional.", "Final target below 1200 kcal/day: this is usually too low without professional supervision.", "Meta final por debajo de 1200 kcal/día: normalmente es demasiado baja sin supervisión profesional.");
+    if (code === "large-adjustment") return uiText("Ajuste acima de 750 kcal/dia: considere um prazo maior para proteger aderência e recuperação.", "Adjustment above 750 kcal/day: consider a longer timeline to protect adherence and recovery.", "Ajuste superior a 750 kcal/día: considera un plazo mayor para proteger adherencia y recuperación.");
+    if (code === "large-adjustment-percent") return uiText("Ajuste acima de 35% da base do dia: é uma mudança extrema em relação à manutenção estimada.", "Adjustment above 35% of your day base: this is an extreme change compared with your estimated maintenance.", "Ajuste superior al 35% de la base del día: es un cambio extremo frente al mantenimiento estimado.");
+    if (code === "fast-loss") return uiText("Perda planejada acima de 1 kg/semana: pode aumentar fome, fadiga e risco de perda muscular.", "Planned loss above 1 kg/week: this may increase hunger, fatigue, and muscle-loss risk.", "Pérdida planificada por encima de 1 kg/semana: puede aumentar hambre, fatiga y riesgo de pérdida muscular.");
+    return uiText("Ganho planejado acima de 0,5 kg/semana: um superávit grande pode aumentar ganho de gordura desnecessário.", "Planned gain above 0.5 kg/week: a large surplus may add unnecessary fat gain.", "Ganancia planificada por encima de 0,5 kg/semana: un superávit grande puede aumentar ganancia de grasa innecesaria.");
+  });
   const isToday = viewDate === TODAY;
   const frozenGoals = goalHistory[viewDate];
   const goals = !isToday && frozenGoals ? {...calculatedGoals, ...frozenGoals} : calculatedGoals;
@@ -3261,20 +3250,7 @@ function NutritionTracker({
     e.target.value = "";
   }
   const allEntries = Object.values(activeLog).flat();
-  function total(key) {
-    const k = key.replace("100", "");
-    return allEntries.reduce((s, e) => s + (e[k] ?? 0), 0);
-  }
-  const tot = {
-    protein: total("protein"),
-    kcal: total(text('kcalUnit')),
-    carbs: total("carbs"),
-    fat: total("fat"),
-    fiber: total("fiber"),
-    salt: total("salt"),
-    sugars: total("sugars"),
-    satfat: total("satfat")
-  };
+  const tot = buildActiveLogTotals(activeLog, text('kcalUnit'));
   function mealScoreGoals() {
     return {
       protein: Number(goals.protein) || 0,
@@ -3449,8 +3425,13 @@ function NutritionTracker({
   const remainKcal = Math.max(0, Math.round(goals.kcal - tot.kcal));
   const dayProteinPct = goals.protein ? Math.round(tot.protein / goals.protein * 100) : 0;
   const dayKcalPct = goals.kcal ? Math.round(tot.kcal / goals.kcal * 100) : 0;
+  const diaryStatusCode = classifyDiaryStatus({
+    entryCount: allEntries.length,
+    proteinPercent: dayProteinPct,
+    kcalPercent: dayKcalPct
+  });
   const diaryStatus = (() => {
-    if (!allEntries.length) return {
+    if (diaryStatusCode === "empty") return {
       tone: "muted",
       title: uiText("Nenhuma refeição registrada ainda", "No meals logged yet", "Aún no hay comidas registradas"),
       text: uiText(
@@ -3459,7 +3440,7 @@ function NutritionTracker({
         "Registra tu primera comida del día."
       )
     };
-    if (dayKcalPct > 115) return {
+    if (diaryStatusCode === "calories-high") return {
       tone: "warn",
       title: uiText("Calorias acima do ideal", "Calories are running high", "Calorías por encima de lo ideal"),
       text: uiText(
@@ -3468,7 +3449,7 @@ function NutritionTracker({
         "Ya pasaste la zona cómoda de hoy. Prioriza opciones más ligeras y con buena proteína."
       )
     };
-    if (dayProteinPct < 60 && dayKcalPct > 60) return {
+    if (diaryStatusCode === "protein-lagging") return {
       tone: "warn",
       title: uiText("Proteína está ficando para trás", "Protein is lagging behind", "La proteína se está quedando atrás"),
     text: uiText(
@@ -3477,7 +3458,7 @@ function NutritionTracker({
       "Las calorías avanzan más rápido que la proteína. Una opción proteica magra puede equilibrar el día."
     )
     };
-    if (dayProteinPct >= 100 && dayKcalPct <= 115) return {
+    if (diaryStatusCode === "on-target") return {
       tone: "ok",
       title: uiText("Bom caminho para hoje", "Good path for today", "Buen camino para hoy"),
       text: uiText(
@@ -3498,19 +3479,8 @@ function NutritionTracker({
   })();
   useEffect(() => {
     if (!loaded || !goals) return;
-    const metrics = [
-      {key: "protein", value: tot.protein, target: goals.protein, unit: "g", tone: "success"},
-      {key: "kcal", value: tot.kcal, target: goals.kcal, unit: "kcal", tone: "success"},
-      {key: "carbs", value: tot.carbs, target: goals.carbs, unit: "g", tone: "success"},
-      {key: "fat", value: tot.fat, target: goals.fat, unit: "g", tone: "success"},
-      {key: "fiber", value: tot.fiber, target: goals.fiber, unit: "g", tone: "success"},
-      {key: "salt", value: tot.salt, target: goals.salt, unit: "g", tone: "warning"}
-    ];
-    if (isToday) {
-      metrics.push({key: "water", value: totalWater, target: goals.water, unit: "ml", tone: "success"});
-    }
+    const metrics = getReachedGoalMetrics({tot, goals, isToday, totalWater});
     metrics.forEach(metric => {
-      if (!metric.target || metric.value < metric.target) return;
       const storageKey = `nutrition_goal_toast_seen_${viewDate}_${metric.key}`;
       if (typeof window !== "undefined" && window.localStorage.getItem(storageKey)) return;
       if (typeof window !== "undefined") window.localStorage.setItem(storageKey, "1");
