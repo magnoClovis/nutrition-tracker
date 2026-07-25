@@ -340,6 +340,9 @@ const {
   Bar,
   GaResultCard
 });
+const {
+  AppHeaderNavigation
+} = window.AppHeaderNavigationModule.createAppHeaderNavigation({ React });
 
 /**
  * Release notices use an explicit version marker. Legacy boolean values mean
@@ -4064,54 +4067,6 @@ function NutritionTracker({
     color: caloriesColor
   }];
   const latestWeekPoint = weekData.length ? weekData[weekData.length - 1] : null;
-  const renderMiniProgress = item => {
-    const pct = Math.max(0, Math.min(100, item.goal ? item.value / item.goal * 100 : 0));
-    return /*#__PURE__*/React.createElement("div", {
-      key: item.label,
-      style: {
-        minWidth: isMobileView ? 120 : 180,
-        flex: "1 1 180px",
-        padding: "0 4px"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 10,
-        alignItems: "baseline",
-        marginBottom: 4
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: "var(--muted)",
-        fontSize: 11,
-        letterSpacing: 1,
-        textTransform: "uppercase"
-      }
-    }, item.label), /*#__PURE__*/React.createElement("span", {
-      style: {
-        color: item.value > item.goal ? "var(--btn-warn-text)" : item.color,
-        fontSize: 12,
-        fontVariantNumeric: "tabular-nums",
-        whiteSpace: "nowrap"
-      }
-    }, Math.round(item.value), " / ", item.goal, item.unit)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        height: 5,
-        borderRadius: 999,
-        background: "var(--track)",
-        overflow: "hidden"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: pct + "%",
-        height: "100%",
-        borderRadius: 999,
-        background: item.value > item.goal ? "var(--btn-warn-text)" : item.color
-      }
-    })));
-  };
-
   /**
    * Renders the app version as normal page content.
    * It is intentionally not fixed: the footer should only appear after the
@@ -4391,170 +4346,33 @@ function NutritionTracker({
       overflowX: "hidden",
       ...THEME
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    "data-app-header": "true",
-    "data-active-tab": tab,
-    style: {
-      background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
-      padding: isMobileView ? "10px 14px 8px" : "12px 20px 10px",
-      position: "sticky",
-      top: 0,
-      zIndex: 80,
-      boxShadow: "0 2px 14px rgba(0,0,0,0.06)",
-      transition: "padding 240ms ease, box-shadow 240ms ease, background-color 240ms ease",
-      display: "flex",
-      flexDirection: "column"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      order: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    "data-header-title": "true",
-    style: {
-      fontSize: 17,
-      fontWeight: 600,
-      letterSpacing: 0,
-      color: "var(--text)",
-      textTransform: "none",
-      marginBottom: 2
-    }
-  }, text('appTitle')), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "var(--text3)",
-      fontStyle: "italic"
-    }
-  }, dateStr)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "relative",
-      display: "flex",
-      alignItems: "center",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setMenuOpen(m => !m),
-    style: {
-      background: menuOpen ? "var(--input)" : "none",
-      border: "1px solid var(--border2)",
-      color: "var(--muted)",
-      borderRadius: 6,
-      padding: "6px 10px",
-      fontSize: 14,
-      cursor: "pointer",
-      lineHeight: 1
-    }
-  , "data-tutorial": "menu-settings"}, "\u2699"), menuOpen && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    onClick: () => {
+  }, /*#__PURE__*/React.createElement(AppHeaderNavigation, {
+    activeTab: tab,
+    isMobileView,
+    title: text('appTitle'),
+    dateText: dateStr,
+    menuOpen,
+    languageMenuOpen: headerLanguageMenuOpen,
+    onToggleMenu: () => setMenuOpen(m => !m),
+    onCloseMenu: () => {
       setMenuOpen(false);
       setHeaderLanguageMenuOpen(false);
     },
-    style: {
-      position: "fixed",
-      inset: 0,
-      zIndex: 99
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      top: "calc(100% + 8px)",
-      right: 0,
-      zIndex: 100,
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 10,
-      padding: "6px",
-      minWidth: 200,
-      boxShadow: "0 8px 24px rgba(0,0,0,0.5)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "4px 6px",
-      borderRadius: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setHeaderLanguageMenuOpen(open => !open),
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      width: "100%",
-      background: "none",
-      border: "none",
-      color: "var(--text2)",
-      padding: "10px 12px",
-      borderRadius: 6,
-      fontSize: 14,
-      cursor: "pointer",
-      textAlign: "left",
-      fontFamily: "inherit"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 16,
-      width: 22,
-      textAlign: "center"
-    }
-  }, getLanguageOption(lang).flag), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, uiText("Idioma", "Language", "Idioma")), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "var(--muted)",
-      transform: headerLanguageMenuOpen ? "rotate(180deg)" : "rotate(0deg)",
-      transition: "transform 160ms ease"
-    }
-  }, "\u25BE")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      overflow: "hidden",
-      maxHeight: headerLanguageMenuOpen ? 180 : 0,
-      opacity: headerLanguageMenuOpen ? 1 : 0,
-      transform: headerLanguageMenuOpen ? "translateY(0)" : "translateY(-4px)",
-      transition: "max-height 180ms ease, opacity 160ms ease, transform 160ms ease",
-      border: headerLanguageMenuOpen ? "1px solid var(--border2)" : "1px solid transparent",
-      borderRadius: 8,
-      background: "var(--bg)",
-      marginTop: 4
-    }
-  }, LANGUAGE_OPTIONS.map(option => {
-    const isCurrentLanguage = option.code === normalizeLanguage(lang);
-    return /*#__PURE__*/React.createElement("button", {
-      key: option.code,
-      onClick: () => {
-        toggleLang(option.code);
-        setHeaderLanguageMenuOpen(false);
-      },
-      style: {
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 10,
-        background: isCurrentLanguage ? "var(--btn-ok)" : "transparent",
-        border: "none",
-        borderTop: "1px solid var(--border2)",
-        color: isCurrentLanguage ? "var(--btn-ok-text)" : "var(--text2)",
-        padding: "10px 12px",
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 13,
-        textAlign: "left"
-      }
-    }, /*#__PURE__*/React.createElement("span", null, option.flag + " " + option.label), isCurrentLanguage ? /*#__PURE__*/React.createElement("span", null, "\u2713") : null);
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: "1px",
-      background: "var(--border3)",
-      margin: "2px 6px"
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
+    onToggleLanguageMenu: () => setHeaderLanguageMenuOpen(open => !open),
+    languageFlag: getLanguageOption(lang).flag,
+    languageLabel: uiText("Idioma", "Language", "Idioma"),
+    languageOptions: LANGUAGE_OPTIONS.map(option => ({
+      ...option,
+      isCurrent: option.code === normalizeLanguage(lang)
+    })),
+    onSelectLanguage: code => {
+      toggleLang(code);
+      setHeaderLanguageMenuOpen(false);
+    },
+    darkModeLabel: darkMode
+      ? uiText("Modo claro", "Light mode", "Modo claro")
+      : uiText("Modo escuro", "Dark mode", "Modo oscuro"),
+    onToggleDarkMode: () => {
       if (onDarkModeChange) {
         onDarkModeChange();
       } else {
@@ -4566,332 +4384,75 @@ function NutritionTracker({
       }
       setMenuOpen(false);
     },
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      width: "100%",
-      background: "none",
-      border: "none",
-      color: "var(--text2)",
-      padding: "10px 12px",
-      borderRadius: 6,
-      fontSize: 14,
-      cursor: "pointer",
-      textAlign: "left",
-      fontFamily: "inherit"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 16
-    }
-  }, darkMode ? "" : ""), /*#__PURE__*/React.createElement("span", null, darkMode
-    ? uiText("Modo claro", "Light mode", "Modo claro")
-    : uiText("Modo escuro", "Dark mode", "Modo oscuro"))), onOpenSettings && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => { onOpenSettings(); setMenuOpen(false); },
-    style: {
-      display: "flex", alignItems: "center", gap: 10,
-      width: "100%", background: "none", border: "none",
-      color: "var(--text2)", padding: "10px 12px",
-      borderRadius: 6, fontSize: 14, cursor: "pointer",
-      textAlign: "left", fontFamily: "inherit"
-    }
-  }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83D\uDD11"),
-    /*#__PURE__*/React.createElement("span", null, uiText("IA / Chave de API", "AI / API key", "IA / Clave de API"))
-  ), /*#__PURE__*/React.createElement("div", {
-    style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
-  }), onOpenBackup && /*#__PURE__*/React.createElement("button", {
-    onClick: () => { onOpenBackup(); setMenuOpen(false); },
-    style: {
-      display: "flex", alignItems: "center", gap: 10,
-      width: "100%", background: "none", border: "none",
-      color: "var(--text2)", padding: "10px 12px",
-      borderRadius: 6, fontSize: 14, cursor: "pointer",
-      textAlign: "left", fontFamily: "inherit"
-    }
-  }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83D\uDCBE"),
-    /*#__PURE__*/React.createElement("span", null, uiText("Backup e restaurar", "Backup & restore", "Copia y restauración"))
-  ), /*#__PURE__*/React.createElement("div", {
-    style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
-  }), onOpenPrivacy && /*#__PURE__*/React.createElement("button", {
-    onClick: () => { onOpenPrivacy(); setMenuOpen(false); },
-    style: {
-      display: "flex", alignItems: "center", gap: 10,
-      width: "100%", background: "none", border: "none",
-      color: "var(--text2)", padding: "10px 12px",
-      borderRadius: 6, fontSize: 14, cursor: "pointer",
-      textAlign: "left", fontFamily: "inherit"
-    }
-  }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83D\uDD12"),
-    /*#__PURE__*/React.createElement("span", null, uiText("Privacidade e segurança", "Privacy & security", "Privacidad y seguridad"))
-  ), /*#__PURE__*/React.createElement("div", {
-    style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
-  }), onStartTutorial && /*#__PURE__*/React.createElement("button", {
-    onClick: () => { onStartTutorial(); setMenuOpen(false); },
-    style: {
-      display: "flex", alignItems: "center", gap: 10,
-      width: "100%", background: "none", border: "none",
-      color: "var(--text2)", padding: "10px 12px",
-      borderRadius: 6, fontSize: 14, cursor: "pointer",
-      textAlign: "left", fontFamily: "inherit"
-    }
-  }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83C\uDF93"),
-    /*#__PURE__*/React.createElement("span", null, uiText("Ajuda rápida", "Quick help", "Ayuda rápida"))
-  ), /*#__PURE__*/React.createElement("div", {
-    style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      const shouldOpenFeedback = window.confirm(uiText(
-        "Você será redirecionado para um Google Forms em uma nova aba. Deseja continuar?",
-        "You will be redirected to a Google Forms page in a new tab. Continue?",
-        "Se abrirá Google Forms en una nueva pestaña. ¿Quieres continuar?"
-      ));
-      if (!shouldOpenFeedback) return;
-      window.open(
-        normalizeLanguage(lang) === "en" || normalizeLanguage(lang) === "es"
-          ? "https://forms.gle/4WUAXiWHAWd5vJ94A"
-          : "https://forms.gle/KYg6WKRDzgWkKC5U7",
-        "_blank",
-        "noopener,noreferrer"
-      );
-      setMenuOpen(false);
-    },
-    style: {
-      display: "flex", alignItems: "center", gap: 10,
-      width: "100%", background: "none", border: "none",
-      color: "var(--text2)", padding: "10px 12px",
-      borderRadius: 6, fontSize: 14, cursor: "pointer",
-      textAlign: "left", fontFamily: "inherit"
-    }
-  }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\uD83D\uDCAC"),
-    /*#__PURE__*/React.createElement("span", null, uiText("Enviar feedback", "Send feedback", "Enviar comentarios"))
-  ), /*#__PURE__*/React.createElement("div", {
-    style: { height: "1px", background: "var(--border3)", margin: "2px 6px" }
-  }), onLogout && /*#__PURE__*/React.createElement("button", {
-    onClick: () => { onLogout(); setMenuOpen(false); },
-    style: {
-      display: "flex", alignItems: "center", gap: 10,
-      width: "100%", background: "none", border: "none",
-      color: "#c87e7e", padding: "10px 12px",
-      borderRadius: 6, fontSize: 14, cursor: "pointer",
-      textAlign: "left", fontFamily: "inherit"
-    }
-  }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, "\u23FB"),
-    /*#__PURE__*/React.createElement("span", null, uiText("Sair da conta", "Sign out", "Cerrar sesión"))
-  )))))), /*#__PURE__*/React.createElement("div", {
-    "data-header-status-chip": "true",
-    style: {
-      display: "flex",
-      alignItems: "center",
-      flexWrap: "wrap",
-      gap: 10,
-      marginTop: 10,
-      order: 1
-    }
-  }, /*#__PURE__*/React.createElement(DiaryScreen, { ...diaryScreenProps, section: "ticker" }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      color: "var(--muted)"
-    }
-  }, text('dayOf')),
-  /*#__PURE__*/React.createElement("button", {
-    "data-tutorial": "day-type",
-    onClick: toggleDayType,
-    style: {
-      display: "flex", alignItems: "center", gap: 6,
-      background: "none", border: "none", cursor: "pointer",
-      padding: 0, fontFamily: "inherit"
-    }
-  },
-    /* Track ? One UI style */
-    /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 52, height: 28, borderRadius: 14,
-        background: isTraining ? "var(--toggle-train-border)" : "var(--toggle-rest-border)",
-        position: "relative", transition: "background 0.2s", flexShrink: 0,
-        boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.08)"
-      }
-    },
-      /* Thumb ? One UI: grande, quase enche o track */
-      /*#__PURE__*/React.createElement("div", {
-        style: {
-          position: "absolute", top: 3,
-          left: isTraining ? 27 : 3,
-          width: 22, height: 22, borderRadius: 11,
-          background: "#ffffff",
-          transition: "left 0.2s cubic-bezier(0.4,0,0.2,1)",
-          boxShadow: "none"
+    menuActions: onOpenSettings ? [{
+        key: "settings",
+        icon: "🔑",
+        label: uiText("IA / Chave de API", "AI / API key", "IA / Clave de API"),
+        onClick: () => { onOpenSettings(); setMenuOpen(false); }
+      }, ...(onOpenBackup ? [{
+        key: "backup",
+        icon: "💾",
+        label: uiText("Backup e restaurar", "Backup & restore", "Copia y restauración"),
+        onClick: () => { onOpenBackup(); setMenuOpen(false); }
+      }] : []), ...(onOpenPrivacy ? [{
+        key: "privacy",
+        icon: "🔒",
+        label: uiText("Privacidade e segurança", "Privacy & security", "Privacidad y seguridad"),
+        onClick: () => { onOpenPrivacy(); setMenuOpen(false); }
+      }] : []),
+      ...(onStartTutorial ? [{
+        key: "tutorial",
+        icon: "🎓",
+        label: uiText("Ajuda rápida", "Quick help", "Ayuda rápida"),
+        onClick: () => { onStartTutorial(); setMenuOpen(false); }
+      }] : []),
+      {
+        key: "feedback",
+        icon: "💬",
+        label: uiText("Enviar feedback", "Send feedback", "Enviar comentarios"),
+        onClick: () => {
+          const shouldOpenFeedback = window.confirm(uiText(
+            "Você será redirecionado para um Google Forms em uma nova aba. Deseja continuar?",
+            "You will be redirected to a Google Forms page in a new tab. Continue?",
+            "Se abrirá Google Forms en una nueva pestaña. ¿Quieres continuar?"
+          ));
+          if (!shouldOpenFeedback) return;
+          window.open(
+            normalizeLanguage(lang) === "en" || normalizeLanguage(lang) === "es"
+              ? "https://forms.gle/4WUAXiWHAWd5vJ94A"
+              : "https://forms.gle/KYg6WKRDzgWkKC5U7",
+            "_blank",
+            "noopener,noreferrer"
+          );
+          setMenuOpen(false);
         }
-      })
-    ),
-    /* Label */
-    /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 14, fontWeight: 600, letterSpacing: 1,
-        color: isTraining ? "var(--toggle-train-text)" : "var(--toggle-rest-text)"
-      }
-    }, isTraining ? text('trainDay') : text('restDay'))
-  ), currentWeight && /*#__PURE__*/React.createElement("button", {
-    onClick: () => openTab("metricas"),
-    title: uiText("Abrir métricas", "Open metrics", "Abrir métricas"),
-    style: {
-      background: "none",
-      border: "none",
-      fontSize: 14,
-      color: "var(--muted)",
-      marginLeft: "auto",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      padding: 0
-    }
-  }, currentWeight, "kg", bmi ? ` · ${text('bmi')} ${bmi}` : ""))), tab === "diario" && /*#__PURE__*/React.createElement("div", {
-    "data-app-nav": "true",
-    style: {
-      display: "flex",
-      gap: isMobileView ? 8 : 0,
-      borderTop: "1px solid var(--border3)",
-      borderBottom: "1px solid var(--border)",
-      marginTop: 10,
-      marginLeft: isMobileView ? -14 : -20,
-      marginRight: isMobileView ? -14 : -20,
-      overflowX: isMobileView ? "auto" : "visible",
-      overflowY: "hidden",
-      WebkitOverflowScrolling: "touch",
-      scrollbarWidth: isMobileView ? "none" : "auto",
-      padding: isMobileView ? "0 12px" : 0,
-      background: "var(--surface)",
-      animation: "softIn 220ms ease-out both"
-    }
-  }, tabNavItems.map(([t, label]) => /*#__PURE__*/React.createElement("button", {
-    "data-tutorial": "tab-" + t,
-    key: t,
-    onClick: () => openTab(t),
-    style: {
-      flex: isMobileView ? "0 0 auto" : 1,
-      minWidth: isMobileView ? 96 : 0,
-      padding: isMobileView ? "10px 14px" : "10px 0",
-      background: tab === t ? "var(--tab-active)" : "transparent",
-      border: "none",
-      borderBottom: tab === t ? "2px solid #c8a96e" : "2px solid transparent",
-      color: tab === t ? "#c8a96e" : "#444",
-      fontSize: 14,
-      fontWeight: 400,
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      whiteSpace: "nowrap",
-      cursor: "pointer"
-    }
-  }, label))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: tab === "diario" ? "none" : "flex",
-      gap: isMobileView ? 10 : 18,
-      alignItems: "center",
-      marginTop: 10,
-      padding: isMobileView ? "0 4px" : "0 8px",
-      boxSizing: "border-box",
-      animation: "softIn 240ms ease-out both",
-      order: 3
-    }
-  }, miniProgressItems.map(renderMiniProgress)), /*#__PURE__*/React.createElement(DiaryScreen, { ...diaryScreenProps, section: "summary" }), goalToast && (() => {
-    const isWarning = goalToast.tone === "warning";
-    return /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: "fixed",
-        top: isMobileView ? 10 : 14,
-        left: "50%",
-        zIndex: 10050,
-        width: isMobileView ? "calc(100% - 24px)" : "min(560px, calc(100% - 32px))",
-        transform: `translate(-50%, ${goalToast.visible ? "0" : "-120%"})`,
-        opacity: goalToast.visible ? 1 : 0,
-        transition: "transform 420ms ease, opacity 420ms ease",
-        pointerEvents: "none",
-        background: isWarning ? "#fff7df" : "#e7f5e8",
-        border: `1px solid ${isWarning ? "#d9bd6a" : "#91cf96"}`,
-        color: isWarning ? "#7a5b13" : "#1f6b2b",
-        borderRadius: 8,
-        boxShadow: "0 10px 26px rgba(0,0,0,0.12)",
-        padding: isMobileView ? "10px 12px" : "12px 16px",
-        display: "flex",
-        gap: 10,
-        alignItems: "center",
-        justifyContent: "space-between"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: isMobileView ? 13 : 14,
-        fontWeight: 700,
-        lineHeight: 1.25
-      }
-    }, goalToast.text), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: isMobileView ? 12 : 13,
-        color: isWarning ? "#8b6a1c" : "#2f7b39",
-        marginTop: 2
-      }
-    }, goalToast.detail)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: "0 0 auto",
-        fontSize: 18,
-        lineHeight: 1
-      }
-    }, isWarning ? "!" : "\u2713"));
-  })(), notification && (() => {
-    const isErr = notification.startsWith("Erro") || notification.startsWith("Error");
-    return /*#__PURE__*/React.createElement("div", {
-      style: {
-        margin: "8px 16px 0",
-        background: isErr ? "var(--notif-err-bg)" : "var(--notif-ok-bg)",
-        border: `1px solid ${isErr ? "var(--notif-err-border)" : "var(--notif-ok-border)"}`,
-        color: isErr ? "var(--notif-err-text)" : "var(--notif-ok-text)",
-        padding: "7px 14px",
-        borderRadius: 6,
-        fontSize: 14,
-        textAlign: "center",
-        order: 8
-      }
-    }, notification);
-  })(), tab !== "diario" && /*#__PURE__*/React.createElement("div", {
-    "data-app-nav": "true",
-    style: {
-      display: "flex",
-      gap: isMobileView ? 8 : 0,
-      borderBottom: "1px solid var(--border)",
-      marginTop: 0,
-      overflowX: isMobileView ? "auto" : "visible",
-      overflowY: "hidden",
-      WebkitOverflowScrolling: "touch",
-      scrollbarWidth: isMobileView ? "none" : "auto",
-      padding: isMobileView ? "0 12px" : 0,
-      background: "var(--surface)",
-      order: 2,
-      animation: "softIn 220ms ease-out both"
-    }
-  }, tabNavItems.map(([t, label]) => /*#__PURE__*/React.createElement("button", {
-    "data-tutorial": "tab-" + t,
-    key: t,
-    onClick: () => openTab(t),
-    style: {
-      flex: isMobileView ? "0 0 auto" : 1,
-      minWidth: isMobileView ? (t === "adicionar" ? 58 : 96) : 0,
-      padding: isMobileView ? "10px 14px" : "10px 0",
-      background: tab === t ? "var(--tab-active)" : "transparent",
-      border: "none",
-      borderBottom: tab === t ? "2px solid #c8a96e" : "2px solid transparent",
-      color: tab === t ? "#c8a96e" : "#444",
-      fontSize: 14,
-      fontWeight: 400,
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      whiteSpace: "nowrap",
-      cursor: "pointer"
-    }
-  }, label))), /*#__PURE__*/React.createElement("div", {
+      },
+      ...(onLogout ? [{
+        key: "logout",
+        icon: "⏻",
+        label: uiText("Sair da conta", "Sign out", "Cerrar sesión"),
+        tone: "danger",
+        onClick: () => { onLogout(); setMenuOpen(false); }
+      }] : [])
+    ] : [],
+    tickerNode: /*#__PURE__*/React.createElement(DiaryScreen, { ...diaryScreenProps, section: "ticker" }),
+    dayOfLabel: text('dayOf'),
+    isTraining,
+    onToggleDayType: toggleDayType,
+    trainingLabel: text('trainDay'),
+    restLabel: text('restDay'),
+    currentWeight,
+    bmi,
+    bmiLabel: text('bmi'),
+    metricsTitle: uiText("Abrir métricas", "Open metrics", "Abrir métricas"),
+    onOpenMetrics: () => openTab("metricas"),
+    navItems: tabNavItems.map(([key, label]) => ({ key, label })),
+    onOpenTab: openTab,
+    miniProgressItems,
+    summaryNode: /*#__PURE__*/React.createElement(DiaryScreen, { ...diaryScreenProps, section: "summary" }),
+    goalToast,
+    notification
+  }), /*#__PURE__*/React.createElement("div", {
     "data-add-meal-backdrop": "true",
     onClick: () => openTab("diario"),
     style: {
