@@ -2,10 +2,12 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
-const { createMealReviewModal } = require("../../meal-review-modal.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../meal-review-modal.js"))],
+  ["ESM", () => import("../../src/components/meal-review-modal.js")]
+];
 
 const { pickLang } = createI18n();
-const { MealReviewModal } = createMealReviewModal({ React, pickLang });
 
 function walk(node, visit) {
   if (node == null || typeof node === "boolean") return;
@@ -62,7 +64,17 @@ function baseProps(overrides = {}) {
   };
 }
 
-test("returns null without a review and renders the current assessment snapshot", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createMealReviewModal } = await load();
+      const { MealReviewModal } = createMealReviewModal({ React, pickLang });
+      return callback(MealReviewModal);
+    });
+  });
+}
+
+contractTest("returns null without a review and renders the current assessment snapshot", MealReviewModal => {
   assert.equal(MealReviewModal(baseProps({ review: null })), null);
   const modal = MealReviewModal(baseProps());
   const copy = textContent(modal);
@@ -72,7 +84,7 @@ test("returns null without a review and renders the current assessment snapshot"
   assert.match(copy, /Configure a chave de IA/);
 });
 
-test("renders loading/help states and delegates all four actions", () => {
+contractTest("renders loading/help states and delegates all four actions", MealReviewModal => {
   const calls = [];
   const modal = MealReviewModal(baseProps({
     helpOpen: true,

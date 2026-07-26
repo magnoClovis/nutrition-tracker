@@ -122,3 +122,14 @@ test('rejects the converted Firebase storage UMD file from the Vite artifact', (
     /file is outside the build allowlist: firebase-storage\.js/,
   );
 });
+
+test('rejects converted React component UMD files from the Vite artifact', (t) => {
+  const directory = createValidBuildFixture();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(directory, 'ui-primitives.js'), '');
+
+  assert.throws(
+    () => verifyBuildDirectory(directory),
+    /file is outside the build allowlist: ui-primitives\.js/,
+  );
+});
