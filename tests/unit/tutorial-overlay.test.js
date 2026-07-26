@@ -4,10 +4,12 @@ const fs = require("node:fs");
 const path = require("node:path");
 const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
-const { createTutorialOverlay } = require("../../tutorial-overlay.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../tutorial-overlay.js"))],
+  ["ESM", () => import("../../src/components/tutorial-overlay.js")]
+];
 
 const { normalizeLanguage } = createI18n();
-const { TutorialOverlay } = createTutorialOverlay({ React, normalizeLanguage });
 const currentDispatcher = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentDispatcher;
 
 function sameDeps(previous, next) {
@@ -145,7 +147,17 @@ function targetElement(rect = { top: 40, left: 60, width: 120, height: 30 }) {
   };
 }
 
-test("opens, calls onDone, and restores the previous body scroll value on close", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createTutorialOverlay } = await load();
+      const { TutorialOverlay } = createTutorialOverlay({ React, normalizeLanguage });
+      return callback(TutorialOverlay);
+    });
+  });
+}
+
+contractTest("opens, calls onDone, and restores the previous body scroll value on close", TutorialOverlay => {
   const env = createDomEnvironment();
   let doneCalls = 0;
   const harness = createHookHarness(TutorialOverlay, { lang: "pt", type: "main", onDone: () => { doneCalls += 1; } });
@@ -162,7 +174,7 @@ test("opens, calls onDone, and restores the previous body scroll value on close"
   }
 });
 
-test("navigates steps with the existing tab click, 80 ms measurement, and 180 ms global reset", () => {
+contractTest("navigates steps with the existing tab click, 80 ms measurement, and 180 ms global reset", TutorialOverlay => {
   const tab = targetElement();
   const dayType = targetElement({ top: 100, left: 140, width: 160, height: 36 });
   const env = createDomEnvironment({
@@ -195,7 +207,7 @@ test("navigates steps with the existing tab click, 80 ms measurement, and 180 ms
   }
 });
 
-test("keeps a missing tutorial target unhighlighted without retrying", () => {
+contractTest("keeps a missing tutorial target unhighlighted without retrying", TutorialOverlay => {
   const tab = targetElement();
   const env = createDomEnvironment({ '[data-tutorial="tab-diario"]': tab });
   const harness = createHookHarness(TutorialOverlay, { lang: "pt", type: "diario", onDone: () => {} });
@@ -219,7 +231,7 @@ test("keeps a missing tutorial target unhighlighted without retrying", () => {
   }
 });
 
-test("finishes before the existing zero-delay action click", () => {
+contractTest("finishes before the existing zero-delay action click", TutorialOverlay => {
   const settings = targetElement();
   const env = createDomEnvironment({ '[data-tutorial="menu-settings"]': settings });
   let doneCalls = 0;

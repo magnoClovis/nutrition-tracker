@@ -26,6 +26,10 @@ import * as PrivacyPanelModule from './components/privacy-panel.js';
 import * as WeekScreenModule from './components/week-screen.js';
 import * as MetricsScreenModule from './components/metrics-screen.js';
 import * as PantryScreenModule from './components/pantry-screen.js';
+import * as AddScreenModule from './components/add-screen.js';
+import * as DiaryScreenModule from './components/diary-screen.js';
+import * as TutorialOverlay from './components/tutorial-overlay.js';
+import * as AppHeaderNavigationModule from './components/app-header-navigation.js';
 import * as FirebaseConfigInternal from './leaf/firebase-config-internal.js';
 import * as FirebaseAuthInternal from './firebase/firebase-auth-internal.js';
 import * as FirebaseFirestoreInternal from './firebase/firebase-firestore-internal.js';
@@ -71,16 +75,14 @@ const Recharts = {
 };
 
 const legacyAppScripts = [
-  'tutorial-overlay.js?v=0.8.1-beta-20260716',
-  'add-screen.js?v=0.8.1-beta-20260723',
-  'diary-screen.js?v=0.8.1-beta-20260723',
-  'app-header-navigation.js?v=0.8.1-beta-20260725',
   'nutrition-tracker-controller.js?v=0.8.1-beta-20260725',
   'app.js?v=0.8.1-beta-20260725-nutrition-tracker-controller-1',
 ];
 
 function installNpmRuntime(target) {
   Object.assign(target, {
+    AddScreenModule,
+    AppHeaderNavigationModule,
     AutosaveScheduler,
     BackupModalModule,
     BarcodeScanner,
@@ -90,6 +92,7 @@ function installNpmRuntime(target) {
     DailyNutritionModel,
     DateUtils,
     DiaryTicker,
+    DiaryScreenModule,
     DishDescriptionAI,
     EatingPatternsAI,
     GaResultCardModule,
@@ -127,6 +130,7 @@ function installNpmRuntime(target) {
     ReleaseNotice,
     RequiredProfileModalModule,
     SettingsPanelModule,
+    TutorialOverlay,
     WeekAggregator,
     UiPrimitives,
     VisualUpdateNoticeModule,

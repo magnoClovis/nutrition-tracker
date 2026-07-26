@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
-const { createDiaryScreen } = require("../../diary-screen.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../diary-screen.js"))],
+  ["ESM", () => import("../../src/components/diary-screen.js")]
+];
 
 function Ring() {
   return React.createElement("span", { "data-test-ring": true });
@@ -17,30 +20,6 @@ function GaResultCard({ result, onAdd, evaluateMealItems }) {
     React.createElement("button", { onClick: () => evaluateMealItems(result.items) }, "Evaluate GA result")
   );
 }
-
-const { DiaryScreen } = createDiaryScreen({
-  React,
-  pickLang: (lang, pt, en, es) => lang === "en" ? en : lang === "es" ? es : pt,
-  sortLocaleForLang: () => "en",
-  localeForLang: () => "en-US",
-  addDays: (date, amount) => {
-    const value = new Date(date + "T12:00:00");
-    value.setDate(value.getDate() + amount);
-    return value.toISOString().slice(0, 10);
-  },
-  monthDays: () => [],
-  shiftMonth: value => value,
-  calendarMonthStats: () => ({
-    registered: 0,
-    proteinDays: 0,
-    avgKcalMonth: 0,
-    avgProteinMonth: 0,
-    kcalOverDays: 0
-  }),
-  Ring,
-  Bar,
-  GaResultCard
-});
 
 const labels = {
   water: "Water",
@@ -252,7 +231,39 @@ function baseProps(overrides = {}) {
   };
 }
 
-test("renders meals, water, supplements, notes, and the opaque legacy tail", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createDiaryScreen } = await load();
+      const { DiaryScreen } = createDiaryScreen({
+        React,
+        pickLang: (lang, pt, en, es) => lang === "en" ? en : lang === "es" ? es : pt,
+        sortLocaleForLang: () => "en",
+        localeForLang: () => "en-US",
+        addDays: (date, amount) => {
+          const value = new Date(date + "T12:00:00");
+          value.setDate(value.getDate() + amount);
+          return value.toISOString().slice(0, 10);
+        },
+        monthDays: () => [],
+        shiftMonth: value => value,
+        calendarMonthStats: () => ({
+          registered: 0,
+          proteinDays: 0,
+          avgKcalMonth: 0,
+          avgProteinMonth: 0,
+          kcalOverDays: 0
+        }),
+        Ring,
+        Bar,
+        GaResultCard
+      });
+      return callback(DiaryScreen);
+    });
+  });
+}
+
+contractTest("renders meals, water, supplements, notes, and the opaque legacy tail", DiaryScreen => {
   const view = DiaryScreen(baseProps());
   const content = textContent(view);
 
@@ -263,7 +274,7 @@ test("renders meals, water, supplements, notes, and the opaque legacy tail", () 
   assert.equal(findNodes(view, node => node.props && node.props["data-opaque-tail"]).length, 1);
 });
 
-test("historical navigation remains callback-driven and keeps current supplements visible", () => {
+contractTest("historical navigation remains callback-driven and keeps current supplements visible", DiaryScreen => {
   const dates = [];
   const view = DiaryScreen(baseProps({
     isToday: false,
@@ -283,7 +294,7 @@ test("historical navigation remains callback-driven and keeps current supplement
   assert.doesNotMatch(textContent(view), /500ml/);
 });
 
-test("active GA result delegates execution, evaluation, and diary insertion callbacks", () => {
+contractTest("active GA result delegates execution, evaluation, and diary insertion callbacks", DiaryScreen => {
   let opened = 0;
   let ran = 0;
   let added = null;
@@ -312,7 +323,7 @@ test("active GA result delegates execution, evaluation, and diary insertion call
   assert.equal(evaluated, 1);
 });
 
-test("daily feedback remains controlled and no meal-review modal is invented", () => {
+contractTest("daily feedback remains controlled and no meal-review modal is invented", DiaryScreen => {
   let generated = null;
   let saved = 0;
   const view = DiaryScreen(baseProps({
@@ -330,7 +341,7 @@ test("daily feedback remains controlled and no meal-review modal is invented", (
   assert.equal(findNodes(view, node => node.props && node.props["data-meal-review-modal"]).length, 0);
 });
 
-test("ticker delegates gestures without owning its timers", () => {
+contractTest("ticker delegates gestures without owning its timers", DiaryScreen => {
   let pointerDown = 0;
   const view = DiaryScreen(baseProps({
     section: "ticker",
