@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
-const { createVerifyEmailScreen } = require("../../verify-email-screen.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../verify-email-screen.js"))],
+  ["ESM", () => import("../../src/components/verify-email-screen.js")]
+];
 
 const currentDispatcher = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentDispatcher;
 
@@ -77,7 +80,7 @@ function findButton(tree, label) {
   return match;
 }
 
-function createFixture({ lang = "en", storedLang = "pt", name = "", checkResults = [] } = {}) {
+function createFixture(createVerifyEmailScreen, { lang = "en", storedLang = "pt", name = "", checkResults = [] } = {}) {
   const intervals = [];
   const events = [];
   let checkIndex = 0;
@@ -125,36 +128,45 @@ function createFixture({ lang = "en", storedLang = "pt", name = "", checkResults
   return { harness, intervals, events, verified, get sendCount() { return sendCount; } };
 }
 
-test("renders Portuguese and English, while Spanish intentionally follows Portuguese", () => {
-  const portuguese = createFixture({ lang: "pt" });
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createVerifyEmailScreen } = await load();
+      return callback(createVerifyEmailScreen);
+    });
+  });
+}
+
+contractTest("renders Portuguese and English, while Spanish intentionally follows Portuguese", createVerifyEmailScreen => {
+  const portuguese = createFixture(createVerifyEmailScreen, { lang: "pt" });
   assert.match(elementText(portuguese.harness.render()), /Verifique seu email/);
   assert.match(elementText(portuguese.harness.tree), /Aguardando verificação/);
   portuguese.harness.unmount();
 
-  const english = createFixture({ lang: "en" });
+  const english = createFixture(createVerifyEmailScreen, { lang: "en" });
   assert.match(elementText(english.harness.render()), /Verify your email/);
   assert.match(elementText(english.harness.tree), /Waiting for verification/);
   english.harness.unmount();
 
-  const spanish = createFixture({ lang: "es" });
+  const spanish = createFixture(createVerifyEmailScreen, { lang: "es" });
   assert.match(elementText(spanish.harness.render()), /Verifique seu email/);
   assert.match(elementText(spanish.harness.tree), /Aguardando verificação/);
   assert.doesNotMatch(elementText(spanish.harness.tree), /Verify your email/);
   spanish.harness.unmount();
 });
 
-test("gives a truthy lang prop precedence and uses appLang only as fallback", () => {
-  const propWins = createFixture({ lang: "en", storedLang: "pt" });
+contractTest("gives a truthy lang prop precedence and uses appLang only as fallback", createVerifyEmailScreen => {
+  const propWins = createFixture(createVerifyEmailScreen, { lang: "en", storedLang: "pt" });
   assert.match(elementText(propWins.harness.render()), /Verify your email/);
   propWins.harness.unmount();
 
-  const storageFallback = createFixture({ lang: "", storedLang: "en" });
+  const storageFallback = createFixture(createVerifyEmailScreen, { lang: "", storedLang: "en" });
   assert.match(elementText(storageFallback.harness.render()), /Verify your email/);
   storageFallback.harness.unmount();
 });
 
-test("polls every 5000 ms, clears the interval, then calls onVerified", async () => {
-  const fixture = createFixture({ name: "Ana", checkResults: [false, false, true] });
+contractTest("polls every 5000 ms, clears the interval, then calls onVerified", async createVerifyEmailScreen => {
+  const fixture = createFixture(createVerifyEmailScreen, { name: "Ana", checkResults: [false, false, true] });
   fixture.harness.render();
   assert.equal(fixture.intervals.length, 1);
   assert.equal(fixture.intervals[0].delay, 5000);
@@ -170,8 +182,8 @@ test("polls every 5000 ms, clears the interval, then calls onVerified", async ()
   fixture.harness.unmount();
 });
 
-test("resends the verification email through the injected service", async () => {
-  const fixture = createFixture({ lang: "en" });
+contractTest("resends the verification email through the injected service", async createVerifyEmailScreen => {
+  const fixture = createFixture(createVerifyEmailScreen, { lang: "en" });
   fixture.harness.render();
   const resend = findButton(fixture.harness.tree, "Resend verification email");
   assert.ok(resend);
@@ -184,8 +196,8 @@ test("resends the verification email through the injected service", async () => 
   fixture.harness.unmount();
 });
 
-test("clears polling on unmount and the active guard prevents late verification", async () => {
-  const fixture = createFixture({ checkResults: [true] });
+contractTest("clears polling on unmount and the active guard prevents late verification", async createVerifyEmailScreen => {
+  const fixture = createFixture(createVerifyEmailScreen, { checkResults: [true] });
   fixture.harness.render();
   const interval = fixture.intervals[0];
 

@@ -4,7 +4,10 @@ const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
 const { createGoalCalculator } = require("../../goal-calculator.js");
 const { createProfileValidation } = require("../../profile-validation.js");
-const { createLoginScreen } = require("../../login-screen.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../login-screen.js"))],
+  ["ESM", () => import("../../src/components/login-screen.js")]
+];
 
 const { LANGUAGE_OPTIONS, normalizeLanguage } = createI18n();
 const { ACTIVITY_LEVELS } = createGoalCalculator();
@@ -101,7 +104,7 @@ function fixedDateConstructor() {
   return FixedDate;
 }
 
-function createFixture({ stored = {}, auth = {}, initialDark = true } = {}) {
+function createFixture(createLoginScreen, { stored = {}, auth = {}, initialDark = true } = {}) {
   const values = new Map(Object.entries({ appLang: "en", ...stored }));
   const localWrites = [];
   const calls = [];
@@ -193,8 +196,17 @@ async function submit(fixture) {
   fixture.harness.render();
 }
 
-test("logs in through the named services and reports an existing verified account", async () => {
-  const fixture = createFixture();
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createLoginScreen } = await load();
+      return callback(createLoginScreen);
+    });
+  });
+}
+
+contractTest("logs in through the named services and reports an existing verified account", async createLoginScreen => {
+  const fixture = createFixture(createLoginScreen);
   fillLogin(fixture);
   await submit(fixture);
 
@@ -207,8 +219,8 @@ test("logs in through the named services and reports an existing verified accoun
   assert.deepEqual(fixture.pending, []);
 });
 
-test("maps invalid login credentials to the existing localized message", async () => {
-  const fixture = createFixture({
+contractTest("maps invalid login credentials to the existing localized message", async createLoginScreen => {
+  const fixture = createFixture(createLoginScreen, {
     auth: {
       async signIn() { throw new Error("INVALID_LOGIN_CREDENTIALS"); }
     }
@@ -220,8 +232,8 @@ test("maps invalid login credentials to the existing localized message", async (
   assert.equal(fixture.calls.some(call => call[0] === "checkEmailVerified"), false);
 });
 
-test("keeps loading active when login returns to pending verification", async () => {
-  const fixture = createFixture({
+contractTest("keeps loading active when login returns to pending verification", async createLoginScreen => {
+  const fixture = createFixture(createLoginScreen, {
     auth: {
       async checkEmailVerified() { fixture.calls.push(["checkEmailVerified"]); return false; }
     }
@@ -235,8 +247,8 @@ test("keeps loading active when login returns to pending verification", async ()
   assert.equal(elementText(submitButton), "Processing...");
 });
 
-test("preserves the lack of a synchronous double-submit guard", async () => {
-  const fixture = createFixture();
+contractTest("preserves the lack of a synchronous double-submit guard", async createLoginScreen => {
+  const fixture = createFixture(createLoginScreen);
   fillLogin(fixture);
   const form = elementsByType(fixture.harness.tree, "form")[0];
   await Promise.all([
@@ -247,8 +259,8 @@ test("preserves the lack of a synchronous double-submit guard", async () => {
   assert.equal(fixture.calls.filter(call => call[0] === "signIn").length, 2);
 });
 
-test("registers with real profile validators and writes the exact persistence keys in order", async () => {
-  const fixture = createFixture();
+contractTest("registers with real profile validators and writes the exact persistence keys in order", async createLoginScreen => {
+  const fixture = createFixture(createLoginScreen);
   switchToRegistration(fixture);
   fillRegistration(fixture);
   await submit(fixture);
@@ -277,15 +289,15 @@ test("registers with real profile validators and writes the exact persistence ke
   assert.deepEqual(fixture.pending, [["new@example.com", "New User"]]);
 });
 
-test("rejects invalid birth date and gender through the production validators", async () => {
-  const invalidBirth = createFixture();
+contractTest("rejects invalid birth date and gender through the production validators", async createLoginScreen => {
+  const invalidBirth = createFixture(createLoginScreen);
   switchToRegistration(invalidBirth);
   fillRegistration(invalidBirth, { birthDate: "2999-01-01" });
   await submit(invalidBirth);
   assert.match(elementText(invalidBirth.harness.tree), /Date of birth is required and must be valid\./);
   assert.equal(invalidBirth.calls.some(call => call[0] === "signUp"), false);
 
-  const invalidGender = createFixture();
+  const invalidGender = createFixture(createLoginScreen);
   switchToRegistration(invalidGender);
   fillRegistration(invalidGender, { gender: "other" });
   await submit(invalidGender);
@@ -293,8 +305,8 @@ test("rejects invalid birth date and gender through the production validators", 
   assert.equal(invalidGender.calls.some(call => call[0] === "signUp"), false);
 });
 
-test("reports an existing registration email without applying later writes", async () => {
-  const fixture = createFixture({
+contractTest("reports an existing registration email without applying later writes", async createLoginScreen => {
+  const fixture = createFixture(createLoginScreen, {
     auth: {
       async signUp() { throw new Error("EMAIL_EXISTS"); }
     }
@@ -308,8 +320,8 @@ test("reports an existing registration email without applying later writes", asy
   assert.equal(fixture.calls.some(call => call[0] === "sendVerificationEmail"), false);
 });
 
-test("continues registration without rollback when an initial profile write fails", async () => {
-  const fixture = createFixture({
+contractTest("continues registration without rollback when an initial profile write fails", async createLoginScreen => {
+  const fixture = createFixture(createLoginScreen, {
     auth: {
       async setValue(key, value) {
         fixture.calls.push(["setValue", key, value]);
@@ -326,8 +338,8 @@ test("continues registration without rollback when an initial profile write fail
   assert.deepEqual(fixture.pending, [["new@example.com", "New User"]]);
 });
 
-test("sends password recovery for the trimmed email and preserves the neutral response", async () => {
-  const fixture = createFixture();
+contractTest("sends password recovery for the trimmed email and preserves the neutral response", async createLoginScreen => {
+  const fixture = createFixture(createLoginScreen);
   fillLogin(fixture, "  person@example.com  ");
   const resetButton = findButton(fixture.harness.tree, "Forgot password?");
   await resetButton.props.onClick();
@@ -340,8 +352,8 @@ test("sends password recovery for the trimmed email and preserves the neutral re
   assert.match(elementText(fixture.harness.tree), /If an account exists for this email/);
 });
 
-test("persists language and theme locally and writes the document theme without synchronizing App", () => {
-  const fixture = createFixture({ stored: { appLang: "pt" }, initialDark: true });
+contractTest("persists language and theme locally and writes the document theme without synchronizing App", createLoginScreen => {
+  const fixture = createFixture(createLoginScreen, { stored: { appLang: "pt" }, initialDark: true });
   fixture.harness.render();
   assert.equal(fixture.documentElement.dataset.theme, "dark");
 

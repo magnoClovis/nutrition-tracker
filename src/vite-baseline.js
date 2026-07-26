@@ -20,6 +20,9 @@ import * as BodyMetricsCharts from './components/body-metrics-charts.js';
 import * as SettingsPanelModule from './components/settings-panel.js';
 import * as BackupModalModule from './components/backup-modal.js';
 import * as RequiredProfileModalModule from './components/required-profile-modal.js';
+import * as VerifyEmailScreenModule from './components/verify-email-screen.js';
+import * as LoginScreenModule from './components/login-screen.js';
+import * as PrivacyPanelModule from './components/privacy-panel.js';
 import * as FirebaseConfigInternal from './leaf/firebase-config-internal.js';
 import * as FirebaseAuthInternal from './firebase/firebase-auth-internal.js';
 import * as FirebaseFirestoreInternal from './firebase/firebase-firestore-internal.js';
@@ -65,9 +68,6 @@ const Recharts = {
 };
 
 const legacyAppScripts = [
-  'verify-email-screen.js?v=0.8.1-beta-20260716',
-  'login-screen.js?v=0.8.1-beta-20260716',
-  'privacy-panel.js?v=0.8.1-beta-20260716',
   'tutorial-overlay.js?v=0.8.1-beta-20260716',
   'week-screen.js?v=0.8.1-beta-20260723',
   'metrics-screen.js?v=0.8.1-beta-20260723',
@@ -107,6 +107,7 @@ function installNpmRuntime(target) {
     HistoryLoaders,
     HydrationGuard,
     I18n,
+    LoginScreenModule,
     MealGA,
     MealReviewModalModule,
     MealReviewAI,
@@ -114,6 +115,7 @@ function installNpmRuntime(target) {
     NutritionFeedbackAI,
     OpenFoodFacts,
     PropTypes,
+    PrivacyPanelModule,
     React,
     ReactDOM,
     RecentMealsModel,
@@ -126,6 +128,7 @@ function installNpmRuntime(target) {
     WeekAggregator,
     UiPrimitives,
     VisualUpdateNoticeModule,
+    VerifyEmailScreenModule,
   });
 }
 
