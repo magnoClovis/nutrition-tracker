@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="theme-color" content="#111111"/>
+  <script>
+    // Apply the migrated or saved theme before styles or body content can be painted.
+    (function(){
+      try {
+        var darkDefaultMigrationKey='appThemeDefaultDarkV1';
+        if(localStorage.getItem(darkDefaultMigrationKey)!=='1'){
+          localStorage.setItem('appDarkMode','true');
+          localStorage.setItem(darkDefaultMigrationKey,'1');
+        }
+        var savedDarkMode=localStorage.getItem('appDarkMode');
+        var initialTheme=savedDarkMode==='false'?'light':'dark';
+        document.documentElement.dataset.theme=initialTheme;
+        document.documentElement.classList.toggle('dark-loading',initialTheme==='dark');
+      } catch (error) {
+        document.documentElement.dataset.theme='dark';
+        document.documentElement.classList.add('dark-loading');
+      }
+    })();
+  </script>
+  <title>Diário Nutricional</title>
+  <link vite-ignore rel="manifest" href="manifest.json"/>
+  <link vite-ignore rel="icon" type="image/png" href="icone.png"/>
+  <link vite-ignore rel="apple-touch-icon" href="icone.png"/>
+  <link rel="stylesheet" href="one-ui.css?v=16"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;background:#f2f1ed;color:#252220;font-family:system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
+    #root{min-height:100vh}
+    :root {
+      --bg:#f2f1ed; --surface:#ffffff; --surface3:#f7f5f1; --input:#f5f3ef;
+      --track:#dedad2; --row:#fbfaf7; --border:#d8d3ca; --border2:#b8b4ac;
+      --border3:#e4dfd6; --text:#252220; --text2:#4f4b47; --text3:#6a6662;
+      --muted:#7a746e; --muted2:#8a8580; --dim:#9a948c; --faint:#b5aea5;
+      --btn-ok:#e8f4e8; --btn-ok-border:#9ad29a; --btn-ok-text:#2a6a2a;
+      --btn-info:#eef0f8; --btn-info-border:#aab2d8;
+      --btn-info-text:#5264a2; --btn-warn:#f9eeee; --btn-warn-border:#d8aaaa;
+      --btn-warn-text:#a25252; --btn-teal:#e7f5f5; --btn-teal-border:#9ed0d0;
+      --btn-teal-text:#2b8080; --btn-inactive:#f7f5f1;
+      --btn-inactive-border:#d8d3ca; --btn-inactive-text:#8a8580;
+      --tab-active:#ffffff; --tab-text-active:#c8a96e;
+    }
+    body { background: var(--bg); color: var(--text); }
+    button,input,select,textarea {
+      transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease, box-shadow 220ms ease, transform 180ms ease, opacity 220ms ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    @keyframes softIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes softScaleIn {
+      from { opacity: 0; transform: scale(.985); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *,*::before,*::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+    #loading{position:fixed;inset:0;background:var(--surface-page,#f2f1ed);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--text-secondary,#888);font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000;opacity:1;transition:opacity .18s ease}
+    #loading.is-hidden{opacity:0;pointer-events:none}
+    html[data-theme="dark"] #loading{background:var(--surface-page,#0e0e0d);color:var(--text-secondary,#a8a69e);}
+    html[data-theme="dark"] #loading div:first-child{border-color:#343431!important;border-top-color:var(--accent-action-fill,#78ab3c)!important;}
+    select option{background:#f5f3ef;color:#252220}
+    ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg,#f2f1ed)}::-webkit-scrollbar-thumb{background:var(--border2,#b8b4ac);border-radius:2px}
+    input[type=date]{color-scheme:dark}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{0%,100%{opacity:0.5}50%{opacity:1}}
+    .app-loading-spinner{animation:spin 1.2s linear infinite}
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    [data-tutorial-active] {
+      outline: 2px solid #7ec87e !important;
+      outline-offset: 3px;
+      border-radius: 6px;
+      animation: tutorialPulse 1.2s ease-in-out infinite;
+      position: relative;
+      z-index: 100002;
+    }
+    @keyframes tutorialPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(126,200,126,0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(126,200,126,0); }
+    }
+    .nutrition-summary-cards > span {
+      min-height: 76px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: var(--text2);
+      line-height: 1.35;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      flex-direction: column;
+    }
+    .nutrition-summary-cards > span:nth-child(1),
+    .nutrition-summary-cards > span:nth-child(5) {
+      color: #c8a96e;
+    }
+    .nutrition-summary-cards > span:nth-child(2) {
+      color: #8ec8c8;
+    }
+    .nutrition-summary-cards > span:nth-child(3) {
+      color: #c86e8e;
+    }
+    .nutrition-summary-cards > span:nth-child(4) {
+      border-color: var(--btn-ok-border);
+      background: var(--btn-ok);
+      color: var(--btn-ok-text) !important;
+      font-weight: 600;
+    }
+    [data-diary-meal-card="true"] {
+      display: block !important;
+      width: 100% !important;
+    }
+    [data-diary-meal-header="true"],
+    [data-diary-meal-items="true"] {
+      width: 100% !important;
+      box-sizing: border-box;
+    }
+    [data-diary-meal-items="true"] {
+      display: block !important;
+      clear: both;
+    }
+#app-version-footer {
+  width: 100%;
+  padding: 34px 16px 40px;
+  background: #ebe8e2;
+  color: #746f68;
+  border-top: 1px solid #d8d3ca;
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: .6px;
+}
+@media (max-width: 720px) {
+  #app-version-footer {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  }
+}
+</style>
+</head>
+<body>
+  <div id="loading">
+    <div style="width:30px;height:30px;border-radius:50%;border:3px solid #d8d4cc;border-top-color:#2a6a2a;animation:spin 1.2s linear infinite"></div>
+    <div id="initial-loading-text" style="animation:pulse 1.5s ease-in-out infinite">Carregando...</div>
+  </div>
+  <div id="root"></div>
+  <footer id="app-version-footer" aria-label="Versão do aplicativo"></footer>
+  <script>
+  window.APP_VERSION_LABEL = 'Diário Nutricional v0.8.1 Beta';
+
+  document.getElementById('app-version-footer').textContent = window.APP_VERSION_LABEL;
+
+  window.setInitialLoadingText = function(text){
+    var label = document.getElementById('initial-loading-text');
+    if (label && text) label.textContent = text;
+  };
+
+  window.hideInitialLoading = function(){
+    var loading = document.getElementById('loading');
+    if (!loading) return;
+    loading.classList.add('is-hidden');
+    setTimeout(function(){
+      if (loading && loading.parentNode) loading.parentNode.removeChild(loading);
+    }, 220);
+  };
+
+  // Shows startup failures in the loading layer. This is intentionally small:
+  // once React renders, normal in-app error handling takes over. The DOM is
+  // built with textContent instead of innerHTML so unexpected error text cannot
+  // inject markup into the page.
+  function showStartupError(title, message, detail) {
+    var el = document.getElementById('loading');
+    if (!el || el.style.display === 'none') return;
+
+    var box = document.createElement('div');
+    box.style.color = '#c87e7e';
+    box.style.padding = '24px';
+    box.style.textAlign = 'center';
+    box.style.maxWidth = '400px';
+    box.style.lineHeight = '1.6';
+
+    if (title) {
+      var heading = document.createElement('div');
+      heading.style.fontSize = '18px';
+      heading.style.marginBottom = '12px';
+      heading.textContent = title;
+      box.appendChild(heading);
+    }
+
+    var body = document.createElement('div');
+    body.style.fontSize = title ? '12px' : '14px';
+    body.style.wordBreak = 'break-word';
+    body.style.opacity = title ? '0.8' : '1';
+    body.textContent = String(message || '').slice(0, title ? 300 : 200);
+    box.appendChild(body);
+
+    if (detail) {
+      var meta = document.createElement('div');
+      meta.style.fontSize = '10px';
+      meta.style.marginTop = '8px';
+      meta.style.opacity = '0.4';
+      meta.textContent = detail;
+      box.appendChild(meta);
+    }
+
+    el.replaceChildren(box);
+  }
+
+  window.addEventListener('unhandledrejection', function(e){
+    var msg = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+    showStartupError('', msg, '');
+  });
+
+  window.onerror = function(msg, src, line, col){
+    showStartupError('Erro', msg, line + ':' + col);
+    return false;
+  };
+  </script>
+  <!-- Third-party bundles live in vendor/ so index.html stays readable; do not edit minified vendor files manually. -->
+  <script vite-ignore src="vendor/react.production.min.js"></script>
+  <script vite-ignore src="vendor/react-dom.production.min.js"></script>
+  <script vite-ignore src="vendor/prop-types.min.js"></script>
+  <script vite-ignore src="vendor/recharts.min.js"></script>
+
+  <!-- App scripts are split by responsibility: persistence adapter first, UI/application second. -->
+  <script vite-ignore src="firebase-config-internal.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="firebase-auth-internal.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="firebase-firestore-internal.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="firebase-migration-internal.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="firebase-backup-internal.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="firebase-account-data-internal.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="firebase-storage.js?v=0.8.1-beta-20260718-account-data-internal-1"></script>
+  <script vite-ignore src="meal-score.js?v=0.8.1-beta-20260713"></script>
+  <script vite-ignore src="i18n.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="settings-panel.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="backup-modal.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="verify-email-screen.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="open-food-facts.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="barcode-scanner.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="groq-client.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="meal-review-ai.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="food-autofill-ai.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="dish-description-ai.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="diary-ticker.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="date-utils.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="hydration-guard.js?v=0.8.1-beta-20260722"></script>
+  <script vite-ignore src="autosave-scheduler.js?v=0.8.1-beta-20260722"></script>
+  <script vite-ignore src="calendar-model.js?v=0.8.1-beta-20260722"></script>
+  <script vite-ignore src="food-entry.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="meal-ga.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="goal-calculator.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="daily-nutrition-model.js?v=0.8.1-beta-20260722"></script>
+  <script vite-ignore src="recent-meals-model.js?v=0.8.1-beta-20260722"></script>
+  <script vite-ignore src="body-metrics-model.js?v=0.8.1-beta-20260722"></script>
+  <script vite-ignore src="historical-goals-model.js?v=0.8.1-beta-20260722"></script>
+  <script vite-ignore src="week-aggregator.js?v=0.8.1-beta-20260722"></script>
+  <script vite-ignore src="history-loaders.js?v=0.8.1-beta-20260722"></script>
+  <script vite-ignore src="nutrition-feedback-ai.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="eating-patterns-ai.js?v=0.8.1-beta-20260718"></script>
+  <script vite-ignore src="profile-validation.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="login-screen.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="privacy-panel.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="required-profile-modal.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="ui-primitives.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="release-notice.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="tutorial-overlay.js?v=0.8.1-beta-20260716"></script>
+  <script vite-ignore src="visual-update-notice.js?v=0.8.1-beta-20260723"></script>
+  <script vite-ignore src="meal-review-modal.js?v=0.8.1-beta-20260723"></script>
+  <script vite-ignore src="ga-result-card.js?v=0.8.1-beta-20260723"></script>
+  <script vite-ignore src="saved-meal-card.js?v=0.8.1-beta-20260723"></script>
+  <script vite-ignore src="body-metrics-charts.js?v=0.8.1-beta-20260723"></script>
+  <script vite-ignore src="week-screen.js?v=0.8.1-beta-20260723"></script>
+  <script vite-ignore src="metrics-screen.js?v=0.8.1-beta-20260723"></script>
+  <script vite-ignore src="pantry-screen.js?v=0.8.1-beta-20260723"></script>
+  <script vite-ignore src="add-screen.js?v=0.8.1-beta-20260723"></script>
+  <script vite-ignore src="diary-screen.js?v=0.8.1-beta-20260723"></script>
+  <script vite-ignore src="app-header-navigation.js?v=0.8.1-beta-20260725"></script>
+  <script vite-ignore src="nutrition-tracker-controller.js?v=0.8.1-beta-20260725"></script>
+  <script vite-ignore src="app.js?v=0.8.1-beta-20260725-nutrition-tracker-controller-1"></script>
+  <script type="module" src="/src/vite-baseline.js"></script>
+</body>
+</html>

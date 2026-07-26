@@ -5,11 +5,15 @@
   "scripts": {
     "preflight": "powershell -ExecutionPolicy Bypass -File scripts/preflight-release.ps1",
     "audit:i18n": "node scripts/audit-i18n.js",
+    "dev:vite": "vite --config vite.config.js",
+    "build:vite": "vite build --config vite.config.js && node scripts/verify-vite-build.js dist-vite",
+    "preview:vite": "vite preview --config vite.config.js",
     "test:unit": "node --test tests/unit/*.test.js",
     "test:smoke": "playwright test",
     "test": "npm.cmd run preflight && npm.cmd run test:unit && npm.cmd run test:smoke"
   },
   "devDependencies": {
-    "@playwright/test": "latest"
+    "@playwright/test": "latest",
+    "vite": "7.3.6"
   }
 }
