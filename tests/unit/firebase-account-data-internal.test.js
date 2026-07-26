@@ -1,12 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const path = require("node:path");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../firebase-account-data-internal.js"))],
+  ["ESM", () => import("../../src/firebase/firebase-account-data-internal.js")]
+];
 
-const {
-  createFirebaseAccountData
-} = require(path.join(__dirname, "..", "..", "firebase-account-data-internal.js"));
-
-function createFixture({
+function createFixture(createFirebaseAccountData, {
   uid = "user-1",
   dataKeys = [],
   legacyKeys = [],
@@ -71,13 +70,25 @@ function createFixture({
   };
 }
 
-test("publishes the namespaced UMD factory and the destructive operation", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createFirebaseAccountData } = await load();
+      return callback({
+        createFirebaseAccountData,
+        createFixture: options => createFixture(createFirebaseAccountData, options)
+      });
+    });
+  });
+}
+
+contractTest("publishes the namespaced factory and the destructive operation", ({ createFirebaseAccountData, createFixture }) => {
   assert.equal(typeof createFirebaseAccountData, "function");
   const fixture = createFixture();
   assert.equal(typeof fixture.service.deleteCurrentUserFirestoreData3, "function");
 });
 
-test("deletes current, legacy, and root Firestore data in the preserved order", async () => {
+contractTest("deletes current, legacy, and root Firestore data in the preserved order", async ({ createFixture }) => {
   const fixture = createFixture({
     dataKeys: ["pantry_v2", "log_v2_2026-07-18"],
     legacyKeys: ["weightHistory", "notes_2026-07-18"]
@@ -105,7 +116,9 @@ test("deletes current, legacy, and root Firestore data in the preserved order", 
   });
 });
 
-test("keeps 20-item batches sequential while deleting within each batch concurrently", async () => {
+contractTest("keeps 20-item batches sequential while deleting within each batch concurrently", async ({
+  createFirebaseAccountData
+}) => {
   const dataKeys = Array.from({length: 21}, (_, index) => "key-" + index);
   const started = [];
   let releaseFirstBatch;
@@ -139,7 +152,7 @@ test("keeps 20-item batches sequential while deleting within each batch concurre
   assert.equal(resetCount, 1);
 });
 
-test("deletes the root and resets caches before throwing for partial child failures", async () => {
+contractTest("deletes the root and resets caches before throwing for partial child failures", async ({ createFixture }) => {
   const fixture = createFixture({
     dataKeys: ["kept", "failed-data"],
     legacyKeys: ["failed-legacy"],
@@ -156,7 +169,7 @@ test("deletes the root and resets caches before throwing for partial child failu
   assert.equal(fixture.events.at(-1), "reset");
 });
 
-test("preserves root HTTP failure aggregation and cache-reset ordering", async () => {
+contractTest("preserves root HTTP failure aggregation and cache-reset ordering", async ({ createFixture }) => {
   const fixture = createFixture({rootResponse: {ok: false, status: 500}});
 
   await assert.rejects(
@@ -167,7 +180,7 @@ test("preserves root HTTP failure aggregation and cache-reset ordering", async (
   assert.deepEqual(fixture.events.slice(-2), ["root", "reset"]);
 });
 
-test("propagates a root network failure before resetting caches", async () => {
+contractTest("propagates a root network failure before resetting caches", async ({ createFixture }) => {
   const networkError = new Error("network unavailable");
   const fixture = createFixture({rootError: networkError});
 
@@ -179,7 +192,7 @@ test("propagates a root network failure before resetting caches", async () => {
   assert.equal(fixture.events.includes("root"), true);
 });
 
-test("masks listing failures as empty and still deletes the root document", async () => {
+contractTest("masks listing failures as empty and still deletes the root document", async ({ createFixture }) => {
   const fixture = createFixture({
     dataListError: new Error("data listing failed"),
     legacyListError: new Error("legacy listing failed")
@@ -195,7 +208,7 @@ test("masks listing failures as empty and still deletes the root document", asyn
   assert.equal(fixture.resetCount, 1);
 });
 
-test("rejects without performing I/O when no authenticated UID exists", async () => {
+contractTest("rejects without performing I/O when no authenticated UID exists", async ({ createFixture }) => {
   const fixture = createFixture({uid: null});
   await assert.rejects(
     fixture.service.deleteCurrentUserFirestoreData3(),

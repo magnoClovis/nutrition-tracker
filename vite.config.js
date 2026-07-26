@@ -8,11 +8,6 @@ const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 const outputDirectory = resolve(projectRoot, 'dist-vite');
 
 const baselineRuntimeFiles = [
-  'firebase-auth-internal.js',
-  'firebase-firestore-internal.js',
-  'firebase-migration-internal.js',
-  'firebase-backup-internal.js',
-  'firebase-account-data-internal.js',
   'firebase-storage.js',
   'settings-panel.js',
   'backup-modal.js',

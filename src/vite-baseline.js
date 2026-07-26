@@ -10,6 +10,12 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import * as FirebaseConfigInternal from './leaf/firebase-config-internal.js';
+import * as FirebaseAuthInternal from './firebase/firebase-auth-internal.js';
+import * as FirebaseFirestoreInternal from './firebase/firebase-firestore-internal.js';
+import * as FirebaseMigrationInternal from './firebase/firebase-migration-internal.js';
+import * as FirebaseBackupInternal from './firebase/firebase-backup-internal.js';
+import * as FirebaseAccountDataInternal from './firebase/firebase-account-data-internal.js';
 import * as BarcodeScanner from './composite/barcode-scanner.js';
 import * as BodyMetricsModel from './composite/body-metrics-model.js';
 import * as DailyNutritionModel from './composite/daily-nutrition-model.js';
@@ -28,7 +34,6 @@ import * as ProfileValidation from './composite/profile-validation.js';
 import * as WeekAggregator from './composite/week-aggregator.js';
 import * as AutosaveScheduler from './leaf/autosave-scheduler.js';
 import * as CalendarModel from './leaf/calendar-model.js';
-import * as FirebaseConfigInternal from './leaf/firebase-config-internal.js';
 import * as GoalCalculator from './leaf/goal-calculator.js';
 import * as GroqClient from './leaf/groq-client.js';
 import * as HydrationGuard from './leaf/hydration-guard.js';
@@ -49,11 +54,6 @@ const Recharts = {
 };
 
 const legacyAppScripts = [
-  'firebase-auth-internal.js?v=0.8.1-beta-20260718',
-  'firebase-firestore-internal.js?v=0.8.1-beta-20260718',
-  'firebase-migration-internal.js?v=0.8.1-beta-20260718',
-  'firebase-backup-internal.js?v=0.8.1-beta-20260718',
-  'firebase-account-data-internal.js?v=0.8.1-beta-20260718',
   'firebase-storage.js?v=0.8.1-beta-20260718-account-data-internal-1',
   'settings-panel.js?v=0.8.1-beta-20260716',
   'backup-modal.js?v=0.8.1-beta-20260716',
@@ -91,6 +91,11 @@ function installNpmRuntime(target) {
     DishDescriptionAI,
     EatingPatternsAI,
     FirebaseConfigInternal,
+    FirebaseAuthInternal,
+    FirebaseFirestoreInternal,
+    FirebaseMigrationInternal,
+    FirebaseBackupInternal,
+    FirebaseAccountDataInternal,
     FoodAutofillAI,
     FoodEntry,
     GoalCalculator,

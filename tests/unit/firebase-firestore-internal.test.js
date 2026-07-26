@@ -1,10 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
-const vm = require("node:vm");
-
-const SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-firestore-internal.js"), "utf8");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../firebase-firestore-internal.js"))],
+  ["ESM", () => import("../../src/firebase/firebase-firestore-internal.js")]
+];
 const BASE = "https://firestore.example.test/nutrition";
 const UID = "user-1";
 const ROOT = `${BASE}/${UID}`;
@@ -73,23 +72,14 @@ function createBackend({ root = {}, data = {}, legacy = {}, failV2Writes = false
   return { fetchRequest, requests, getRootReads: () => rootReads };
 }
 
-function loadFirestore({
+function loadFirestore(createFirebaseFirestore, {
   uid = UID,
   local = {},
   fetchRequest = async () => response({}, { ok: false, status: 404 }),
   runLegacyMigration = async () => ({ skipped: 1 }),
   runStorageMigration = async () => ({ skipped: 1 })
-} = {}) {
-  const warnings = [];
-  const context = {
-    URLSearchParams,
-    console: { warn(...args) { warnings.push(args); } }
-  };
-  context.window = context;
-  context.globalThis = context;
-  vm.createContext(context);
-  vm.runInContext(SOURCE, context, { filename: "firebase-firestore-internal.js" });
-  const firestore = context.FirebaseFirestoreInternal.createFirebaseFirestore({
+} = {}, warnings = []) {
+  const firestore = createFirebaseFirestore({
     firestoreBase: BASE,
     getUid: () => uid,
     getAuthHeaders: async () => ({ Authorization: "Bearer test-token" }),
@@ -101,7 +91,23 @@ function loadFirestore({
   return { firestore, warnings };
 }
 
-test("publishes the namespaced UMD factory and keeps v2 infrastructure available", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createFirebaseFirestore } = await load();
+      const warnings = [];
+      const originalWarn = console.warn;
+      console.warn = (...args) => warnings.push(args);
+      try {
+        return await callback(options => loadFirestore(createFirebaseFirestore, options, warnings));
+      } finally {
+        console.warn = originalWarn;
+      }
+    });
+  });
+}
+
+contractTest("publishes the namespaced factory and keeps v2 infrastructure available", loadFirestore => {
   const { firestore } = loadFirestore();
   assert.equal(typeof firestore.fbGetV2, "function");
   assert.equal(typeof firestore.fbSetV2, "function");
@@ -110,7 +116,7 @@ test("publishes the namespaced UMD factory and keeps v2 infrastructure available
   assert.equal(typeof firestore.support.patchUserFields2, "function");
 });
 
-test("preserves data, root, legacy, and local fallback priority", async () => {
+contractTest("preserves data, root, legacy, and local fallback priority", async loadFirestore => {
   const backend = createBackend({
     root: { allSources: "root", rootOnly: "root-only" },
     data: { allSources: "data" },
@@ -132,7 +138,7 @@ test("preserves data, root, legacy, and local fallback priority", async () => {
   assert.equal((await firestore.fbGet3("localOnly")).value, "local-only");
 });
 
-test("chooses the richest critical candidate while preserving tie-order semantics", async () => {
+contractTest("chooses the richest critical candidate while preserving tie-order semantics", async loadFirestore => {
   const backend = createBackend({
     root: { pantry_v2: JSON.stringify([{ id: "root" }]) },
     data: { pantry_v2: "[]" },
@@ -143,7 +149,7 @@ test("chooses the richest critical candidate while preserving tie-order semantic
   assert.equal((await firestore.fbGet3("pantry_v2")).value, richest);
 });
 
-test("keeps profile root priority, normalization, and misplaced-data fallback", async () => {
+contractTest("keeps profile root priority, normalization, and misplaced-data fallback", async loadFirestore => {
   const rootedBackend = createBackend({ root: { goalType: "lose_weight" }, data: { goalType: "gain" } });
   const rooted = loadFirestore({ fetchRequest: rootedBackend.fetchRequest }).firestore;
   assert.deepEqual(JSON.parse(JSON.stringify(await rooted.fbGet3("goalType"))), { value: "loss" });
@@ -155,7 +161,7 @@ test("keeps profile root priority, normalization, and misplaced-data fallback", 
   assert.equal(misplacedBackend.requests.some(request => request.method === "PATCH" && request.url.startsWith(ROOT)), true);
 });
 
-test("starts storage migration once in the background without awaiting it", async () => {
+contractTest("starts storage migration once in the background without awaiting it", async loadFirestore => {
   let migrationCalls = 0;
   const neverFinishes = new Promise(() => {});
   const backend = createBackend({ data: { pantry: "ready" } });
@@ -169,7 +175,7 @@ test("starts storage migration once in the background without awaiting it", asyn
   assert.equal(migrationCalls, 1);
 });
 
-test("preserves silent read failures and sticky empty root cache", async () => {
+contractTest("preserves silent read failures and sticky empty root cache", async loadFirestore => {
   let rootReads = 0;
   const { firestore, warnings } = loadFirestore({
     fetchRequest: async urlValue => {
@@ -187,7 +193,7 @@ test("preserves silent read failures and sticky empty root cache", async () => {
   assert.equal(warnings.some(args => args[0] === "Firestore root read failed"), true);
 });
 
-test("keeps partial data-key cache and root/data underscore inconsistency", async () => {
+contractTest("keeps partial data-key cache and root/data underscore inconsistency", async loadFirestore => {
   let listRequests = 0;
   const { firestore } = loadFirestore({
     fetchRequest: async urlValue => {
@@ -207,14 +213,14 @@ test("keeps partial data-key cache and root/data underscore inconsistency", asyn
   assert.equal(listRequests, 2);
 });
 
-test("preserves swallowed v2 writes and propagated active-v3 writes", async () => {
+contractTest("preserves swallowed v2 writes and propagated active-v3 writes", async loadFirestore => {
   const backend = createBackend({ failV2Writes: true, failV3Writes: true });
   const { firestore } = loadFirestore({ fetchRequest: backend.fetchRequest });
   assert.equal(await firestore.fbSetV2("language", "pt"), undefined);
   await assert.rejects(firestore.fbSet3("pantry_v2", "[]"), /Firestore data write failed/);
 });
 
-test("preserves null/no-op behavior without an authenticated UID", async () => {
+contractTest("preserves null/no-op behavior without an authenticated UID", async loadFirestore => {
   const { firestore } = loadFirestore({ uid: null });
   assert.equal(await firestore.fbGet3("pantry_v2"), null);
   assert.equal(await firestore.fbSet3("pantry_v2", "[]"), undefined);
