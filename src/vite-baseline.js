@@ -16,6 +16,7 @@ import * as FirebaseFirestoreInternal from './firebase/firebase-firestore-intern
 import * as FirebaseMigrationInternal from './firebase/firebase-migration-internal.js';
 import * as FirebaseBackupInternal from './firebase/firebase-backup-internal.js';
 import * as FirebaseAccountDataInternal from './firebase/firebase-account-data-internal.js';
+import './firebase/firebase-storage.js';
 import * as BarcodeScanner from './composite/barcode-scanner.js';
 import * as BodyMetricsModel from './composite/body-metrics-model.js';
 import * as DailyNutritionModel from './composite/daily-nutrition-model.js';
@@ -54,7 +55,6 @@ const Recharts = {
 };
 
 const legacyAppScripts = [
-  'firebase-storage.js?v=0.8.1-beta-20260718-account-data-internal-1',
   'settings-panel.js?v=0.8.1-beta-20260716',
   'backup-modal.js?v=0.8.1-beta-20260716',
   'verify-email-screen.js?v=0.8.1-beta-20260716',
