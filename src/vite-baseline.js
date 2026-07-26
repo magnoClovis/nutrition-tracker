@@ -23,6 +23,9 @@ import * as RequiredProfileModalModule from './components/required-profile-modal
 import * as VerifyEmailScreenModule from './components/verify-email-screen.js';
 import * as LoginScreenModule from './components/login-screen.js';
 import * as PrivacyPanelModule from './components/privacy-panel.js';
+import * as WeekScreenModule from './components/week-screen.js';
+import * as MetricsScreenModule from './components/metrics-screen.js';
+import * as PantryScreenModule from './components/pantry-screen.js';
 import * as FirebaseConfigInternal from './leaf/firebase-config-internal.js';
 import * as FirebaseAuthInternal from './firebase/firebase-auth-internal.js';
 import * as FirebaseFirestoreInternal from './firebase/firebase-firestore-internal.js';
@@ -69,9 +72,6 @@ const Recharts = {
 
 const legacyAppScripts = [
   'tutorial-overlay.js?v=0.8.1-beta-20260716',
-  'week-screen.js?v=0.8.1-beta-20260723',
-  'metrics-screen.js?v=0.8.1-beta-20260723',
-  'pantry-screen.js?v=0.8.1-beta-20260723',
   'add-screen.js?v=0.8.1-beta-20260723',
   'diary-screen.js?v=0.8.1-beta-20260723',
   'app-header-navigation.js?v=0.8.1-beta-20260725',
@@ -112,8 +112,10 @@ function installNpmRuntime(target) {
     MealReviewModalModule,
     MealReviewAI,
     MealScore,
+    MetricsScreenModule,
     NutritionFeedbackAI,
     OpenFoodFacts,
+    PantryScreenModule,
     PropTypes,
     PrivacyPanelModule,
     React,
@@ -129,6 +131,7 @@ function installNpmRuntime(target) {
     UiPrimitives,
     VisualUpdateNoticeModule,
     VerifyEmailScreenModule,
+    WeekScreenModule,
   });
 }
 

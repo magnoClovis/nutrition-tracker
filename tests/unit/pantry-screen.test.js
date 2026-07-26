@@ -3,11 +3,13 @@ const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
 const { createDateUtils } = require("../../date-utils.js");
-const { createPantryScreen } = require("../../pantry-screen.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../pantry-screen.js"))],
+  ["ESM", () => import("../../src/components/pantry-screen.js")]
+];
 
 const { pickLang, normalizeLanguage, localeForLang } = createI18n();
 const { portionLabel } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
-const { PantryScreen } = createPantryScreen({ React, pickLang, portionLabel });
 
 const labels = {
   pantrySearch: "Search pantry",
@@ -164,7 +166,17 @@ function baseProps(overrides = {}) {
   };
 }
 
-test("renders empty and populated pantry states", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createPantryScreen } = await load();
+      const { PantryScreen } = createPantryScreen({ React, pickLang, portionLabel });
+      return callback(PantryScreen);
+    });
+  });
+}
+
+contractTest("renders empty and populated pantry states", PantryScreen => {
   const empty = PantryScreen(baseProps());
   assert.match(textContent(empty), /Pantry empty/);
 
@@ -185,7 +197,7 @@ test("renders empty and populated pantry states", () => {
   assert.match(textContent(populated), /13g protein/);
 });
 
-test("preserves search result and no-result presentation", () => {
+contractTest("preserves search result and no-result presentation", PantryScreen => {
   const withoutFoodDbResults = PantryScreen(baseProps({
     pantrySearch: "missing",
     foodDbResults: []
@@ -199,7 +211,7 @@ test("preserves search result and no-result presentation", () => {
   assert.doesNotMatch(textContent(withFoodDbResults), /unused-result/);
 });
 
-test("passes template edit state and callbacks to SavedMealCard", () => {
+contractTest("passes template edit state and callbacks to SavedMealCard", PantryScreen => {
   const editDraft = { name: "Edited meal", items: [] };
   const template = { id: "template-1", name: "Lunch", items: [] };
   const saveTemplateEdit = () => {};
@@ -218,7 +230,7 @@ test("passes template edit state and callbacks to SavedMealCard", () => {
   assert.equal(cards[0].props.onSaveEdit, saveTemplateEdit);
 });
 
-test("delegates scanner controls and places the controller-owned video element", () => {
+contractTest("delegates scanner controls and places the controller-owned video element", PantryScreen => {
   const calls = [];
   const scannerVideoElement = React.createElement("video", { "data-controller-video": true });
   const closeBarcodeModal = () => {
@@ -253,7 +265,7 @@ test("delegates scanner controls and places the controller-owned video element",
   assert.equal(findNodes(view, node => node.props && node.props["data-controller-video"]).length, 1);
 });
 
-test("preserves the hidden required supplement dose and orphan body-composition block", () => {
+contractTest("preserves the hidden required supplement dose and orphan body-composition block", PantryScreen => {
   const view = PantryScreen(baseProps({
     suppPantryOpen: true,
     showSuppForm: true

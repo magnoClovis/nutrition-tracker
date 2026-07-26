@@ -58,11 +58,11 @@ test('rejects known personal-data export names even inside assets', (t) => {
 test('rejects a build missing an explicitly required runtime', (t) => {
   const directory = createValidBuildFixture();
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
-  fs.rmSync(path.join(directory, 'tutorial-overlay.js'));
+  fs.rmSync(path.join(directory, 'add-screen.js'));
 
   assert.throws(
     () => verifyBuildDirectory(directory),
-    /missing required output: tutorial-overlay\.js/,
+    /missing required output: add-screen\.js/,
   );
 });
 
@@ -164,5 +164,16 @@ test('rejects converted React authentication UMD files from the Vite artifact', 
   assert.throws(
     () => verifyBuildDirectory(directory),
     /file is outside the build allowlist: privacy-panel\.js/,
+  );
+});
+
+test('rejects converted React screen UMD files from the Vite artifact', (t) => {
+  const directory = createValidBuildFixture();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(directory, 'pantry-screen.js'), '');
+
+  assert.throws(
+    () => verifyBuildDirectory(directory),
+    /file is outside the build allowlist: pantry-screen\.js/,
   );
 });

@@ -2,7 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
-const { createWeekScreen } = require("../../week-screen.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../week-screen.js"))],
+  ["ESM", () => import("../../src/components/week-screen.js")]
+];
 
 const Recharts = {
   LineChart: "LineChart",
@@ -14,7 +17,6 @@ const Recharts = {
   ReferenceLine: "ReferenceLine"
 };
 const { pickLang } = createI18n();
-const { WeekScreen } = createWeekScreen({ React, Recharts, pickLang });
 const chartTheme = { bg: "#fff", tick: "#555", border: "#ddd", label: "#777" };
 const labels = {
   loading: "Loading",
@@ -134,7 +136,17 @@ function baseProps(overrides = {}) {
   };
 }
 
-test("renders the complete weekly summary, charts, averages, and shared results", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createWeekScreen } = await load();
+      const { WeekScreen } = createWeekScreen({ React, Recharts, pickLang });
+      return callback(WeekScreen);
+    });
+  });
+}
+
+contractTest("renders the complete weekly summary, charts, averages, and shared results", WeekScreen => {
   const screen = WeekScreen(baseProps());
   const copy = textContent(screen);
   assert.equal(screen.props["data-screen"], "semana");
@@ -149,7 +161,7 @@ test("renders the complete weekly summary, charts, averages, and shared results"
   assert.equal(findNodes(screen, node => node.type === "ReferenceLine").length, 2);
 });
 
-test("preserves loading and empty-data rendering gates", () => {
+contractTest("preserves loading and empty-data rendering gates", WeekScreen => {
   const loading = WeekScreen(baseProps({ weekData: [], mealAverages: {}, latestWeekPoint: null }));
   assert.equal(textContent(loading), "Loading");
 
@@ -184,7 +196,7 @@ test("preserves loading and empty-data rendering gates", () => {
   assert.doesNotMatch(textContent(empty), /Analyze week|Escolha o formato/);
 });
 
-test("renders the existing independent AI loading states", () => {
+contractTest("renders the existing independent AI loading states", WeekScreen => {
   const screen = WeekScreen(baseProps({
     patternsLoading: true,
     patternsText: "",
@@ -197,7 +209,7 @@ test("renders the existing independent AI loading states", () => {
   assert.match(copy, /Analyzing feedback/);
 });
 
-test("delegates navigation, export, clipboard, patterns, and feedback actions", () => {
+contractTest("delegates navigation, export, clipboard, patterns, and feedback actions", WeekScreen => {
   const calls = [];
   const callbacks = {
     onOpenDay: date => calls.push(["day", date]),

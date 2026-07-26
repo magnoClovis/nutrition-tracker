@@ -3,7 +3,10 @@ const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
 const { createDateUtils } = require("../../date-utils.js");
-const { createMetricsScreen } = require("../../metrics-screen.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../metrics-screen.js"))],
+  ["ESM", () => import("../../src/components/metrics-screen.js")]
+];
 
 function BodyMetricChart() { return null; }
 function WeightTrendChart() { return null; }
@@ -12,15 +15,6 @@ function BodyFatTrendChart() { return null; }
 
 const { pickLang, normalizeLanguage, localeForLang } = createI18n();
 const { formatDateDMY } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
-const { MetricsScreen } = createMetricsScreen({
-  React,
-  pickLang,
-  formatDateDMY,
-  BodyMetricChart,
-  WeightTrendChart,
-  BmrTrendChart,
-  BodyFatTrendChart
-});
 
 const copy = {
   customGoals: "Custom goals",
@@ -200,7 +194,25 @@ function baseProps(overrides = {}) {
   };
 }
 
-test("renders complete goal profile and delegates profile decisions", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createMetricsScreen } = await load();
+      const { MetricsScreen } = createMetricsScreen({
+        React,
+        pickLang,
+        formatDateDMY,
+        BodyMetricChart,
+        WeightTrendChart,
+        BmrTrendChart,
+        BodyFatTrendChart
+      });
+      return callback(MetricsScreen);
+    });
+  });
+}
+
+contractTest("renders complete goal profile and delegates profile decisions", MetricsScreen => {
   const saved = [];
   let height;
   let fatTarget;
@@ -255,7 +267,7 @@ test("renders complete goal profile and delegates profile decisions", () => {
   assert.equal(fatTarget, "13");
 });
 
-test("renders and delegates the custom-goal and hidden body-goal editors", () => {
+contractTest("renders and delegates the custom-goal and hidden body-goal editors", MetricsScreen => {
   let goalPatch;
   let goalsSaved = 0;
   let bodyPatch;
@@ -296,7 +308,7 @@ test("renders and delegates the custom-goal and hidden body-goal editors", () =>
   assert.match(textContent(screen), /Suggested healthy pace: about 10 weeks/);
 });
 
-test("preserves absent tracking data and complete history/chart presentation", () => {
+contractTest("preserves absent tracking data and complete history/chart presentation", MetricsScreen => {
   const empty = MetricsScreen(baseProps());
   assert.match(textContent(empty), /No weight data/);
   assert.doesNotMatch(textContent(empty), /Current metrics/);
@@ -364,7 +376,7 @@ test("preserves absent tracking data and complete history/chart presentation", (
   assert.equal(findNodes(complete, node => node.type === BodyFatTrendChart).length, 1);
 });
 
-test("keeps the advanced-reports card disabled or callback-only without a modal", () => {
+contractTest("keeps the advanced-reports card disabled or callback-only without a modal", MetricsScreen => {
   let opened = 0;
   const disabled = MetricsScreen(baseProps({ reportsEnabled: false }));
   const disabledButton = findNodes(
