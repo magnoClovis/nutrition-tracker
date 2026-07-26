@@ -9,9 +9,6 @@ const outputDirectory = resolve(projectRoot, 'dist-vite');
 
 const baselineRuntimeFiles = [
   'tutorial-overlay.js',
-  'week-screen.js',
-  'metrics-screen.js',
-  'pantry-screen.js',
   'add-screen.js',
   'diary-screen.js',
   'app-header-navigation.js',

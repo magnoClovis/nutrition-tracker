@@ -5,9 +5,6 @@ const path = require('node:path');
 
 const BASELINE_RUNTIME_FILES = [
   'tutorial-overlay.js',
-  'week-screen.js',
-  'metrics-screen.js',
-  'pantry-screen.js',
   'add-screen.js',
   'diary-screen.js',
   'app-header-navigation.js',
