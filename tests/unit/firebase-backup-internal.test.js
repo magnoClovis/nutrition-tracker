@@ -1,10 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
-const vm = require("node:vm");
-
-const SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-backup-internal.js"), "utf8");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../firebase-backup-internal.js"))],
+  ["ESM", () => import("../../src/firebase/firebase-backup-internal.js")]
+];
 
 function plain(value) {
   return JSON.parse(JSON.stringify(value));
@@ -59,7 +58,7 @@ function mergeObjectValues(values) {
   return out;
 }
 
-function loadBackup({
+function loadBackup(createFirebaseBackup, {
   uid = "user-1",
   root = {},
   data = {},
@@ -67,16 +66,10 @@ function loadBackup({
   current = {},
   failures = {}
 } = {}) {
-  const context = {};
-  context.window = context;
-  context.globalThis = context;
-  vm.createContext(context);
-  vm.runInContext(SOURCE, context, { filename: "firebase-backup-internal.js" });
-
   const stored = new Map(Object.entries(current));
   const writes = [];
   const patches = [];
-  const service = context.FirebaseBackupInternal.createFirebaseBackup({
+  const service = createFirebaseBackup({
     getUid: () => uid,
     async fbGet3(key) {
       if (failures.currentRead === true || failures.currentRead === key) throw new Error("current read failed");
@@ -118,10 +111,19 @@ function loadBackup({
     mergeObjectValues
   });
 
-  return { context, service, stored, writes, patches };
+  return { service, stored, writes, patches };
 }
 
-test("publishes the namespaced UMD factory and four exact backup operations", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createFirebaseBackup } = await load();
+      return callback(options => loadBackup(createFirebaseBackup, options));
+    });
+  });
+}
+
+contractTest("publishes the namespaced factory and four exact backup operations", loadBackup => {
   const { service } = loadBackup();
   assert.equal(typeof service.exportFullAccountBackup3, "function");
   assert.equal(service.exportFullAccountBackup3.length, 0);
@@ -130,7 +132,7 @@ test("publishes the namespaced UMD factory and four exact backup operations", ()
   assert.equal(service.importFullAccountBackup3.length, 2);
 });
 
-test("exports root, data, and legacy shapes while preserving silent omissions", async () => {
+contractTest("exports root, data, and legacy shapes while preserving silent omissions", async loadBackup => {
   const fixture = loadBackup({
     root: {activityLevel: "moderate", userName: "Private", _schemaVersion: 4},
     data: {pantry_v2: '[{"id":"food"}]', "notes_2026-07-18": "note"},
@@ -155,7 +157,7 @@ test("exports root, data, and legacy shapes while preserving silent omissions", 
   assert.deepEqual(plain(incomplete.counts), {root: 0, data: 0, legacy: 0});
 });
 
-test("accepts legacy-flat backups and preserves legacy-root-data collision order", async () => {
+contractTest("accepts legacy-flat backups and preserves legacy-root-data collision order", async loadBackup => {
   const { service } = loadBackup();
   assert.deepEqual(plain(service.validateFullAccountBackup3({pantry_v2: "[]"})), {
     ok: true,
@@ -173,7 +175,7 @@ test("accepts legacy-flat backups and preserves legacy-root-data collision order
   assert.equal(preview.categories[0].total, 3);
 });
 
-test("preview returns existingItems and treats read failures as new data", async () => {
+contractTest("preview returns existingItems and treats read failures as new data", async loadBackup => {
   const incoming = {pantry_v2: '[{"id":"existing"},{"id":"new"}]'};
   const existing = loadBackup({current: {pantry_v2: '[{"id":"existing"}]'}});
   const existingPreview = await existing.service.previewFullAccountBackupImport3(incoming);
@@ -197,7 +199,7 @@ test("preview returns existingItems and treats read failures as new data", async
   assert.equal(failedPreview.categories[0].newKeys, 1);
 });
 
-test("preserves append merges, existing daily records, replace writes, and schema flags", async () => {
+contractTest("preserves append merges, existing daily records, replace writes, and schema flags", async loadBackup => {
   const dayKey = "log_v2_2026-07-18";
   const append = loadBackup({
     current: {
@@ -230,7 +232,7 @@ test("preserves append merges, existing daily records, replace writes, and schem
   assert.equal(replace.stored.get(dayKey), "new");
 });
 
-test("imports a legacy pantry alias into pantry_v2", async () => {
+contractTest("imports a legacy pantry alias into pantry_v2", async loadBackup => {
   const fixture = loadBackup();
   const result = await fixture.service.importFullAccountBackup3(
     {pantry: '[{"id":"legacy-food"}]'},
@@ -240,7 +242,7 @@ test("imports a legacy pantry alias into pantry_v2", async () => {
   assert.equal(fixture.writes[0].key, "pantry_v2");
 });
 
-test("preserves prior batches without rollback when a later write fails", async () => {
+contractTest("preserves prior batches without rollback when a later write fails", async loadBackup => {
   const incoming = {};
   for (let day = 1; day <= 16; day++) {
     const key = `notes_2026-07-${String(day).padStart(2, "0")}`;

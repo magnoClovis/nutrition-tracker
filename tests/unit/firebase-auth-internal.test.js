@@ -1,10 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
-const vm = require("node:vm");
-
-const SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-auth-internal.js"), "utf8");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../firebase-auth-internal.js"))],
+  ["ESM", () => import("../../src/firebase/firebase-auth-internal.js")]
+];
 
 function response(body, { ok = true, jsonError } = {}) {
   return {
@@ -26,16 +25,10 @@ function createLocalStorage(initial = {}) {
   };
 }
 
-function loadAuth({ local = {}, fetchRequest = async () => response({}) } = {}) {
-  const context = { console };
-  context.window = context;
-  context.globalThis = context;
-  vm.createContext(context);
-  vm.runInContext(SOURCE, context, { filename: "firebase-auth-internal.js" });
-
+function loadAuth(createFirebaseAuth, { local = {}, fetchRequest = async () => response({}) } = {}) {
   const localStorage = createLocalStorage(local);
   let resetCount = 0;
-  const auth = context.FirebaseAuthInternal.createFirebaseAuth({
+  const auth = createFirebaseAuth({
     apiKey: "test-key",
     authBase: "https://identity.example.test/accounts",
     tokenBase: "https://token.example.test/token",
@@ -52,7 +45,16 @@ function loadAuth({ local = {}, fetchRequest = async () => response({}) } = {}) 
   };
 }
 
-test("publishes a namespaced UMD authentication factory", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async t => {
+      const { createFirebaseAuth } = await load();
+      return callback(options => loadAuth(createFirebaseAuth, options), t);
+    });
+  });
+}
+
+contractTest("publishes a namespaced authentication factory", loadAuth => {
   const fixture = loadAuth();
   assert.equal(typeof fixture.auth.fbSignIn, "function");
   assert.equal(typeof fixture.auth.fbToken, "function");
@@ -60,7 +62,7 @@ test("publishes a namespaced UMD authentication factory", () => {
   assert.equal(typeof fixture.auth._saveSession, "function");
 });
 
-test("preserves successful sign-in and sign-up session behavior", async () => {
+contractTest("preserves successful sign-in and sign-up session behavior", async loadAuth => {
   const requests = [];
   const fixture = loadAuth({
     fetchRequest: async (url, options) => {
@@ -84,7 +86,7 @@ test("preserves successful sign-in and sign-up session behavior", async () => {
   assert.equal(requests.length, 2);
 });
 
-test("preserves sign-in and sign-up provider errors and malformed JSON propagation", async t => {
+contractTest("preserves sign-in and sign-up provider errors and malformed JSON propagation", async (loadAuth, t) => {
   await t.test("sign-in provider error", async () => {
     const fixture = loadAuth({ fetchRequest: async () => response({ error: { message: "INVALID_LOGIN_CREDENTIALS" } }, { ok: false }) });
     await assert.rejects(fixture.auth.fbSignIn("bad@example.test", "bad"), /INVALID_LOGIN_CREDENTIALS/);
@@ -104,7 +106,7 @@ test("preserves sign-in and sign-up provider errors and malformed JSON propagati
   });
 });
 
-test("preserves missing expiresIn as an immediately non-cacheable token", async () => {
+contractTest("preserves missing expiresIn as an immediately non-cacheable token", async loadAuth => {
   let requests = 0;
   const fixture = loadAuth({
     local: { fb_refresh: "old-refresh", fb_uid: "user-1" },
@@ -120,7 +122,7 @@ test("preserves missing expiresIn as an immediately non-cacheable token", async 
   assert.equal(fixture.getResetCount(), 2);
 });
 
-test("preserves concurrent fbToken refreshes without Promise deduplication", async () => {
+contractTest("preserves concurrent fbToken refreshes without Promise deduplication", async loadAuth => {
   let requests = 0;
   const fixture = loadAuth({
     local: { fb_refresh: "shared-refresh", fb_uid: "user-1" },
@@ -137,7 +139,7 @@ test("preserves concurrent fbToken refreshes without Promise deduplication", asy
   assert.equal(fixture.getResetCount(), 2);
 });
 
-test("preserves refresh-failure cleanup without resetting caches or the authentication-owned UID", async () => {
+contractTest("preserves refresh-failure cleanup without resetting caches or the authentication-owned UID", async loadAuth => {
   const fixture = loadAuth({
     local: { fb_refresh: "expired", fb_uid: "user-1", fb_email: "person@example.test" },
     fetchRequest: async () => response({}, { ok: false })
@@ -151,7 +153,7 @@ test("preserves refresh-failure cleanup without resetting caches or the authenti
   assert.equal(fixture.getResetCount(), 0);
 });
 
-test("resets caches on external session save, successful refresh, and sign-out only", async () => {
+contractTest("resets caches on external session save, successful refresh, and sign-out only", async loadAuth => {
   const fixture = loadAuth({
     local: { fb_refresh: "initial-refresh", fb_uid: "initial-user", fb_email: "person@example.test" },
     fetchRequest: async () => response({ id_token: "refreshed-id", refresh_token: "refreshed-token", user_id: "initial-user", expires_in: "3600" })

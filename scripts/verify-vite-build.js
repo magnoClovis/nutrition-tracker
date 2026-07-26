@@ -4,11 +4,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const BASELINE_RUNTIME_FILES = [
-  'firebase-auth-internal.js',
-  'firebase-firestore-internal.js',
-  'firebase-migration-internal.js',
-  'firebase-backup-internal.js',
-  'firebase-account-data-internal.js',
   'firebase-storage.js',
   'settings-panel.js',
   'backup-modal.js',

@@ -100,3 +100,14 @@ test('rejects converted composite UMD files from the Vite artifact', (t) => {
     /file is outside the build allowlist: barcode-scanner\.js/,
   );
 });
+
+test('rejects converted Firebase-internal UMD files from the Vite artifact', (t) => {
+  const directory = createValidBuildFixture();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(directory, 'firebase-migration-internal.js'), '');
+
+  assert.throws(
+    () => verifyBuildDirectory(directory),
+    /file is outside the build allowlist: firebase-migration-internal\.js/,
+  );
+});

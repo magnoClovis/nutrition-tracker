@@ -1,10 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
-const vm = require("node:vm");
-
-const SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-migration-internal.js"), "utf8");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../firebase-migration-internal.js"))],
+  ["ESM", () => import("../../src/firebase/firebase-migration-internal.js")]
+];
 
 function plain(value) {
   return JSON.parse(JSON.stringify(value));
@@ -36,7 +35,7 @@ function normalizeProfile(key, value) {
   return parsed;
 }
 
-function loadMigration({
+function loadMigration(createFirebaseMigration, {
   uid = "user-1",
   root = {},
   data = {},
@@ -46,12 +45,6 @@ function loadMigration({
   failures = {},
   legacyListOverride
 } = {}) {
-  const context = {};
-  context.window = context;
-  context.globalThis = context;
-  vm.createContext(context);
-  vm.runInContext(SOURCE, context, {filename: "firebase-migration-internal.js"});
-
   const rootFields = {...root};
   const dataDocs = new Map(Object.entries(data));
   const legacyDocs = new Map(Object.entries(legacy));
@@ -141,7 +134,7 @@ function loadMigration({
     }
   };
 
-  const service = context.FirebaseMigrationInternal.createFirebaseMigration({
+  const service = createFirebaseMigration({
     firestoreBase: "https://firestore.example.test/nutrition",
     getUid: () => uid,
     getAuthHeaders: async () => ({Authorization: "Bearer token"}),
@@ -153,7 +146,6 @@ function loadMigration({
   });
 
   return {
-    context,
     service,
     rootFields,
     dataDocs,
@@ -167,7 +159,16 @@ function loadMigration({
   };
 }
 
-test("publishes migration operations and all five shared merge helpers", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createFirebaseMigration } = await load();
+      return callback(options => loadMigration(createFirebaseMigration, options));
+    });
+  });
+}
+
+contractTest("publishes migration operations and all five shared merge helpers", loadMigration => {
   const {service} = loadMigration();
   assert.equal(typeof service.migrateLegacyNutritionDocsV2, "function");
   assert.equal(typeof service.migrateStorageToFirestoreV3, "function");
@@ -181,7 +182,7 @@ test("publishes migration operations and all five shared merge helpers", () => {
   ]);
 });
 
-test("generates exactly four historical keys for each of 120 calculated dates", () => {
+contractTest("generates exactly four historical keys for each of 120 calculated dates", loadMigration => {
   const {service} = loadMigration();
   const keys = service.support.knownMigrationKeys3();
   const historical = keys.filter(key => /^(log_v2|notes|waterIntake|suppLog)_\d{4}-\d{2}-\d{2}$/.test(key));
@@ -192,7 +193,7 @@ test("generates exactly four historical keys for each of 120 calculated dates", 
   }
 });
 
-test("preserves richness selection, later tie wins, and array reordering", () => {
+contractTest("preserves richness selection, later tie wins, and array reordering", loadMigration => {
   const {service} = loadMigration();
   const helpers = service.mergeHelpers;
   assert.equal(helpers.richnessScore3([{id: "one"}]), 12);
@@ -214,7 +215,7 @@ test("preserves richness selection, later tie wins, and array reordering", () =>
   );
 });
 
-test("preserves the active v2 migration into root fields and swallowed result contract", async () => {
+contractTest("preserves the active v2 migration into root fields and swallowed result contract", async loadMigration => {
   const fixture = loadMigration({
     root: {language: "pt"},
     v2Documents: [
@@ -227,7 +228,7 @@ test("preserves the active v2 migration into root fields and swallowed result co
   assert.deepEqual(plain(fixture.v2Patches[0].fields), {pantry: "[]"});
 });
 
-test("migrates legacy aliases and userGoal into the active v3 structure", async () => {
+contractTest("migrates legacy aliases and userGoal into the active v3 structure", async loadMigration => {
   const fixture = loadMigration({
     data: {pantry_v2: "[]"},
     legacy: {
@@ -246,7 +247,7 @@ test("migrates legacy aliases and userGoal into the active v3 structure", async 
   assert.deepEqual(fixture.legacyDeletes.sort(), ["pantry", "userGoal"]);
 });
 
-test("preserves verified-schema early return without listing or retrying migration", async () => {
+contractTest("preserves verified-schema early return without listing or retrying migration", async loadMigration => {
   const fixture = loadMigration({root: {_storageSchemaVerified: true}, legacy: {pantry: "[]"}});
   assert.deepEqual(
     plain(await fixture.service.migrateStorageToFirestoreV3({cleanup: true})),
@@ -257,7 +258,7 @@ test("preserves verified-schema early return without listing or retrying migrati
   assert.equal(fixture.legacyDocs.has("pantry"), true);
 });
 
-test("documents the preserved data-loss risk by deleting an unpromoted record older than 120 days", async () => {
+contractTest("documents the preserved data-loss risk by deleting an unpromoted record older than 120 days", async loadMigration => {
   const oldKey = "log_v2_2000-01-01";
   const fixture = loadMigration({legacy: {[oldKey]: '{"meals":{"Almoço":[]}}'}});
   assert.equal(fixture.service.support.knownMigrationKeys3().includes(oldKey), false);
@@ -271,7 +272,7 @@ test("documents the preserved data-loss risk by deleting an unpromoted record ol
   assert.equal(fixture.rootFields._legacyCleanupDone, true);
 });
 
-test("preserves a masked empty legacy listing as completed cleanup", async () => {
+contractTest("preserves a masked empty legacy listing as completed cleanup", async loadMigration => {
   const fixture = loadMigration({
     legacy: {"log_v2_2000-01-01": "old"},
     legacyListOverride: []
@@ -284,7 +285,7 @@ test("preserves a masked empty legacy listing as completed cleanup", async () =>
   assert.equal(fixture.rootFields._legacyCleanupDone, true);
 });
 
-test("preserves completed earlier writes when a later migration write fails", async () => {
+contractTest("preserves completed earlier writes when a later migration write fails", async loadMigration => {
   const fixture = loadMigration({
     legacy: {
       pantry_v2: '[{"id":"food"}]',
