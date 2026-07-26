@@ -4,7 +4,10 @@ const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
 const { createGoalCalculator } = require("../../goal-calculator.js");
 const { createProfileValidation } = require("../../profile-validation.js");
-const { createRequiredProfileModal } = require("../../required-profile-modal.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../required-profile-modal.js"))],
+  ["ESM", () => import("../../src/components/required-profile-modal.js")]
+];
 
 const { normalizeLanguage, pickLang } = createI18n();
 const { ACTIVITY_LEVELS } = createGoalCalculator();
@@ -53,7 +56,7 @@ function elementsByType(tree, type) {
   return matches;
 }
 
-function createFixture(profile = {}, persisted = {}) {
+function createFixture(createRequiredProfileModal, profile = {}, persisted = {}) {
   const values = { ...persisted };
   const writes = [];
   const completed = [];
@@ -95,19 +98,28 @@ async function submit(fixture) {
   return fixture.harness.render();
 }
 
-test("renders empty, partial, and complete persisted profile values", () => {
-  const empty = createFixture();
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async t => {
+      const { createRequiredProfileModal } = await load();
+      return callback(createRequiredProfileModal, t);
+    });
+  });
+}
+
+contractTest("renders empty, partial, and complete persisted profile values", createRequiredProfileModal => {
+  const empty = createFixture(createRequiredProfileModal);
   let tree = empty.harness.render();
   assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), [""]);
   assert.deepEqual(elementsByType(tree, "select").map(select => select.props.value), ["", "", ""]);
   assert.equal(elementsByType(tree, "input")[0].props.max, new Date().toISOString().split("T")[0]);
 
-  const partial = createFixture({ birthDate: "1990-06-15", gender: "female" });
+  const partial = createFixture(createRequiredProfileModal, { birthDate: "1990-06-15", gender: "female" });
   tree = partial.harness.render();
   assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), ["1990-06-15"]);
   assert.deepEqual(elementsByType(tree, "select").map(select => select.props.value), ["female", "", ""]);
 
-  const complete = createFixture({
+  const complete = createFixture(createRequiredProfileModal, {
     birthDate: "1990-06-15",
     gender: "male",
     activityLevel: "moderate",
@@ -120,7 +132,7 @@ test("renders empty, partial, and complete persisted profile values", () => {
   assert.deepEqual(elementsByType(tree, "select").map(select => select.props.value), ["male", "moderate", "loss"]);
 });
 
-test("rejects invalid birth date, gender, activity level, and goal combination", async t => {
+contractTest("rejects invalid birth date, gender, activity level, and goal combination", async (createRequiredProfileModal, t) => {
   const valid = {
     birthDate: "1990-06-15",
     gender: "female",
@@ -138,7 +150,7 @@ test("rejects invalid birth date, gender, activity level, and goal combination",
 
   for (const [name, override] of cases) {
     await t.test(name, async () => {
-      const fixture = createFixture({ ...valid, ...override });
+      const fixture = createFixture(createRequiredProfileModal, { ...valid, ...override });
       const tree = await submit(fixture);
       assert.deepEqual(fixture.writes, []);
       assert.deepEqual(fixture.completed, []);
@@ -147,8 +159,8 @@ test("rejects invalid birth date, gender, activity level, and goal combination",
   }
 });
 
-test("writes the six exact storage keys and calls onComplete only after a valid reread", async () => {
-  const fixture = createFixture({
+contractTest("writes the six exact storage keys and calls onComplete only after a valid reread", async createRequiredProfileModal => {
+  const fixture = createFixture(createRequiredProfileModal, {
     birthDate: "1988-02-29",
     gender: "female",
     activityLevel: "very",
@@ -178,8 +190,8 @@ test("writes the six exact storage keys and calls onComplete only after a valid 
   }]);
 });
 
-test("preserves maintenance storage semantics by clearing goalKg and goalWeeks", async () => {
-  const fixture = createFixture({
+contractTest("preserves maintenance storage semantics by clearing goalKg and goalWeeks", async createRequiredProfileModal => {
+  const fixture = createFixture(createRequiredProfileModal, {
     birthDate: "1995-01-01",
     gender: "male",
     activityLevel: "light",
