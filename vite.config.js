@@ -8,9 +8,6 @@ const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 const outputDirectory = resolve(projectRoot, 'dist-vite');
 
 const baselineRuntimeFiles = [
-  'verify-email-screen.js',
-  'login-screen.js',
-  'privacy-panel.js',
   'tutorial-overlay.js',
   'week-screen.js',
   'metrics-screen.js',
