@@ -5,6 +5,7 @@ const path = require('node:path');
 const HOST = '127.0.0.1';
 const PORT = Number(process.argv[3] || 8765);
 const ROOT_DIR = path.resolve(__dirname, '..', '..', process.argv[2] || '.');
+const ENTRY_FILE = String(process.argv[4] || 'index.html').replaceAll('\\', '/').replace(/^\/+/, '');
 const IDLE_TIMEOUT_MS = Number(process.env.SMOKE_SERVER_IDLE_MS || 60000);
 
 const MIME_TYPES = {
@@ -29,7 +30,9 @@ const MIME_TYPES = {
 function resolveRequestPath(requestUrl) {
   const parsedUrl = new URL(requestUrl, `http://${HOST}:${PORT}`);
   const pathname = decodeURIComponent(parsedUrl.pathname);
-  const requestedPath = pathname === '/' ? '/index.html' : pathname;
+  const requestedPath = pathname === '/' || pathname === '/index.html'
+    ? `/${ENTRY_FILE}`
+    : pathname;
   const absolutePath = path.resolve(ROOT_DIR, `.${requestedPath}`);
   const relativePath = path.relative(ROOT_DIR, absolutePath);
 
@@ -76,7 +79,7 @@ const server = http.createServer((request, response) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`Smoke test server running at http://${HOST}:${PORT}/index.html`);
+  console.log(`Smoke test server running at http://${HOST}:${PORT}/index.html (${ENTRY_FILE})`);
   scheduleIdleShutdown();
 });
 

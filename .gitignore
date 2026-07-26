@@ -18,6 +18,7 @@ firebase-auth-contacts*.json
 # Local runtime/cache artifacts.
 node_modules/
 dist-vite/
+dist/
 playwright-report/
 test-results/
 .ci-results/

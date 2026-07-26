@@ -8,7 +8,11 @@ const test = require('node:test');
 const repositoryRoot = path.resolve(__dirname, '..', '..');
 const appSource = fs.readFileSync(path.join(repositoryRoot, 'src', 'App.jsx'), 'utf8');
 const mainSource = fs.readFileSync(path.join(repositoryRoot, 'src', 'main.jsx'), 'utf8');
-const viteHtmlSource = fs.readFileSync(path.join(repositoryRoot, 'index.vite.html'), 'utf8');
+const productionHtmlSource = fs.readFileSync(path.join(repositoryRoot, 'index.html'), 'utf8');
+const legacyHtmlSource = fs.readFileSync(
+  path.join(repositoryRoot, 'tests', 'fixtures', 'index.legacy.html'),
+  'utf8',
+);
 const viteConfigSource = fs.readFileSync(path.join(repositoryRoot, 'vite.config.js'), 'utf8');
 
 function matches(pattern, source = appSource) {
@@ -80,7 +84,16 @@ test('uses a single JSX bootstrap without StrictMode or createElement', () => {
   assert.doesNotMatch(mainSource, /React\.createElement|StrictMode/);
   assert.match(mainSource, /createRoot\(document\.getElementById\('root'\)\)/);
   assert.match(mainSource, /root\.render\(<App \/>\);/);
-  assert.match(viteHtmlSource, /<script type="module" src="\/src\/main\.jsx"><\/script>/);
-  assert.doesNotMatch(viteHtmlSource, /vite-baseline\.js|app\.js/);
+  assert.match(productionHtmlSource, /<script type="module" src="\/src\/main\.jsx"><\/script>/);
+  assert.doesNotMatch(productionHtmlSource, /vite-baseline\.js|app\.js|\?v=/);
   assert.match(viteConfigSource, /react\(\{ jsxRuntime: 'classic' \}\)/);
+});
+
+test('keeps one production ESM entry and a separate frozen legacy loader', () => {
+  assert.equal((productionHtmlSource.match(/<script\b/g) || []).length, 3);
+  assert.equal((productionHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 1);
+  assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 60);
+  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 58);
+  assert.match(legacyHtmlSource, /src="vendor\/react\.production\.min\.js"/);
+  assert.match(legacyHtmlSource, /src="app\.js\?v=/);
 });

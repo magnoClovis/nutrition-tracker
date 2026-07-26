@@ -17,7 +17,12 @@ function createValidBuildFixture() {
   for (const relativePath of REQUIRED_OUTPUT_FILES) {
     const absolutePath = path.join(directory, relativePath);
     fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-    fs.writeFileSync(absolutePath, '');
+    fs.writeFileSync(
+      absolutePath,
+      relativePath === 'index.html'
+        ? '<link rel="stylesheet" href="./assets/style-abc123.css"><style>body{color:black}</style><script type="module" src="./assets/baseline-abc123.js"></script>'
+        : '',
+    );
   }
 
   fs.mkdirSync(path.join(directory, 'assets'), { recursive: true });
@@ -208,5 +213,51 @@ test('rejects the converted application composition-root UMD file from the Vite 
   assert.throws(
     () => verifyBuildDirectory(directory),
     /file is outside the build allowlist: app\.js/,
+  );
+});
+
+test('rejects source entries, legacy runtimes, and manual cache busting in built HTML', (t) => {
+  const cases = [
+    ['/src/main.jsx', /source Vite entry detected/],
+    ['./app.js', /legacy runtime reference detected/],
+    ['./assets/baseline-abc123.js?v=1', /manual cache-busting query detected/],
+  ];
+
+  for (const [scriptSource, expectedError] of cases) {
+    const directory = createValidBuildFixture();
+    t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+    fs.writeFileSync(
+      path.join(directory, 'index.html'),
+      `<script type="module" src="${scriptSource}"></script><link rel="stylesheet" href="./assets/style-abc123.css">`,
+    );
+    assert.throws(() => verifyBuildDirectory(directory), expectedError);
+  }
+});
+
+test('rejects non-relative or unhashed generated asset references', (t) => {
+  const directory = createValidBuildFixture();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  fs.writeFileSync(
+    path.join(directory, 'index.html'),
+    '<script type="module" src="/assets/baseline.js"></script><link rel="stylesheet" href="/assets/style.css">',
+  );
+
+  assert.throws(
+    () => verifyBuildDirectory(directory),
+    /missing a relative hashed JavaScript asset[\s\S]*missing a relative hashed CSS asset/,
+  );
+});
+
+test('rejects generated CSS injected after the inline legacy styles', (t) => {
+  const directory = createValidBuildFixture();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  fs.writeFileSync(
+    path.join(directory, 'index.html'),
+    '<style>body{color:black}</style><link rel="stylesheet" href="./assets/style-abc123.css"><script type="module" src="./assets/baseline-abc123.js"></script>',
+  );
+
+  assert.throws(
+    () => verifyBuildDirectory(directory),
+    /generated CSS asset appears after inline styles and changes the legacy cascade/,
   );
 });
