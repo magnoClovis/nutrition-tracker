@@ -1,9 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
-const { createUiPrimitives } = require("../../ui-primitives.js");
-
-const { Ring, Bar, ErrorBoundary } = createUiPrimitives({ React });
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../ui-primitives.js"))],
+  ["ESM", () => import("../../src/components/ui-primitives.js")]
+];
 
 function foregroundCircle(ring) {
   return React.Children.toArray(ring.props.children)[1];
@@ -14,7 +15,16 @@ function progressFill(bar) {
   return React.Children.toArray(rows[1].props.children)[0];
 }
 
-test("renders Ring offsets for normal, above-maximum, and zero values", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createUiPrimitives } = await load();
+      return callback(createUiPrimitives({ React }));
+    });
+  });
+}
+
+contractTest("renders Ring offsets for normal, above-maximum, and zero values", ({ Ring }) => {
   const radius = (76 - 7) / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -32,7 +42,7 @@ test("renders Ring offsets for normal, above-maximum, and zero values", () => {
   assert.equal(zero.props.strokeDashoffset, circumference);
 });
 
-test("renders Bar values and width with the existing formatting", () => {
+contractTest("renders Bar values and width with the existing formatting", ({ Bar }) => {
   const bar = Bar({ value: 12.34, max: 20, color: "#654321", label: "Fiber", unit: "g" });
   const rows = React.Children.toArray(bar.props.children);
   const valueRow = React.Children.toArray(rows[0].props.children)[1];
@@ -45,11 +55,11 @@ test("renders Bar values and width with the existing formatting", () => {
   assert.equal(progressFill(bar).props.style.background, "#654321");
 });
 
-test("returns null when Bar max is zero", () => {
+contractTest("returns null when Bar max is zero", ({ Bar }) => {
   assert.equal(Bar({ value: 5, max: 0, color: "#654321", label: "Sugar", unit: "g" }), null);
 });
 
-test("ErrorBoundary catches a child error and renders the existing fallback", () => {
+contractTest("ErrorBoundary catches a child error and renders the existing fallback", ({ ErrorBoundary }) => {
   function BrokenChild() {
     throw new Error("child failed");
   }

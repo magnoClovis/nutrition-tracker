@@ -2,10 +2,12 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
-const { createGaResultCard } = require("../../ga-result-card.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../ga-result-card.js"))],
+  ["ESM", () => import("../../src/components/ga-result-card.js")]
+];
 
 const { pickLang } = createI18n();
-const { GaResultCard } = createGaResultCard({ React, pickLang });
 
 function textContent(node) {
   const parts = [];
@@ -45,7 +47,17 @@ const result = {
   }]
 };
 
-test("preserves current-day projections, ranking, and item quantities", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createGaResultCard } = await load();
+      const { GaResultCard } = createGaResultCard({ React, pickLang });
+      return callback(GaResultCard);
+    });
+  });
+}
+
+contractTest("preserves current-day projections, ranking, and item quantities", GaResultCard => {
   let evaluated;
   const card = GaResultCard({
     result,
@@ -72,7 +84,7 @@ test("preserves current-day projections, ranking, and item quantities", () => {
   assert.match(copy, /Aveia: 150g/);
 });
 
-test("preserves zero-goal fallbacks, absent fit, and delegates add", () => {
+contractTest("preserves zero-goal fallbacks, absent fit, and delegates add", GaResultCard => {
   let added;
   const card = GaResultCard({
     result: { ...result, fit: undefined, protein: 0, kcal: 0, items: [] },

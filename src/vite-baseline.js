@@ -10,6 +10,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import * as UiPrimitives from './components/ui-primitives.js';
+import * as ReleaseNotice from './components/release-notice.js';
+import * as VisualUpdateNoticeModule from './components/visual-update-notice.js';
+import * as MealReviewModalModule from './components/meal-review-modal.js';
+import * as GaResultCardModule from './components/ga-result-card.js';
 import * as FirebaseConfigInternal from './leaf/firebase-config-internal.js';
 import * as FirebaseAuthInternal from './firebase/firebase-auth-internal.js';
 import * as FirebaseFirestoreInternal from './firebase/firebase-firestore-internal.js';
@@ -61,12 +66,7 @@ const legacyAppScripts = [
   'login-screen.js?v=0.8.1-beta-20260716',
   'privacy-panel.js?v=0.8.1-beta-20260716',
   'required-profile-modal.js?v=0.8.1-beta-20260716',
-  'ui-primitives.js?v=0.8.1-beta-20260716',
-  'release-notice.js?v=0.8.1-beta-20260716',
   'tutorial-overlay.js?v=0.8.1-beta-20260716',
-  'visual-update-notice.js?v=0.8.1-beta-20260723',
-  'meal-review-modal.js?v=0.8.1-beta-20260723',
-  'ga-result-card.js?v=0.8.1-beta-20260723',
   'saved-meal-card.js?v=0.8.1-beta-20260723',
   'body-metrics-charts.js?v=0.8.1-beta-20260723',
   'week-screen.js?v=0.8.1-beta-20260723',
@@ -90,6 +90,7 @@ function installNpmRuntime(target) {
     DiaryTicker,
     DishDescriptionAI,
     EatingPatternsAI,
+    GaResultCardModule,
     FirebaseConfigInternal,
     FirebaseAuthInternal,
     FirebaseFirestoreInternal,
@@ -105,6 +106,7 @@ function installNpmRuntime(target) {
     HydrationGuard,
     I18n,
     MealGA,
+    MealReviewModalModule,
     MealReviewAI,
     MealScore,
     NutritionFeedbackAI,
@@ -115,7 +117,10 @@ function installNpmRuntime(target) {
     RecentMealsModel,
     Recharts,
     ProfileValidation,
+    ReleaseNotice,
     WeekAggregator,
+    UiPrimitives,
+    VisualUpdateNoticeModule,
   });
 }
 
