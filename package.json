@@ -9,7 +9,9 @@
     "build:vite": "vite build --config vite.config.js && node scripts/verify-vite-build.js dist-vite",
     "preview:vite": "vite preview --config vite.config.js",
     "test:unit": "node --test tests/unit/*.test.js",
-    "test:smoke": "playwright test",
+    "test:smoke:legacy": "playwright test",
+    "test:smoke:vite": "npm.cmd run build:vite && playwright test --config=playwright.vite.config.js",
+    "test:smoke": "npm.cmd run test:smoke:legacy && npm.cmd run test:smoke:vite",
     "test": "npm.cmd run preflight && npm.cmd run test:unit && npm.cmd run test:smoke"
   },
   "dependencies": {

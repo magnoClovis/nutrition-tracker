@@ -7,9 +7,7 @@ import { defineConfig } from 'vite';
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 const outputDirectory = resolve(projectRoot, 'dist-vite');
 
-const baselineRuntimeFiles = [
-  'app.js',
-];
+const baselineRuntimeFiles = [];
 
 const baselineStaticFiles = [
   'manifest.json',
@@ -39,7 +37,7 @@ function preserveExplicitBaselineRuntime() {
 
 export default defineConfig({
   base: './',
-  plugins: [react(), preserveExplicitBaselineRuntime()],
+  plugins: [react({ jsxRuntime: 'classic' }), preserveExplicitBaselineRuntime()],
   build: {
     outDir: outputDirectory,
     emptyOutDir: true,
