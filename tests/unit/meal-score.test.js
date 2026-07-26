@@ -1,11 +1,20 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const MealScore = require("../../meal-score.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../meal-score.js"))],
+  ["ESM", () => import("../../src/leaf/meal-score.js")]
+];
 
 const goals = { protein: 150, kcal: 2000, fiber: 30, salt: 5 };
 const atEightPm = new Date("2026-07-13T20:00:00");
 
-test("returns a deterministic score inside the 0-5 range", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => callback(await load()));
+  });
+}
+
+contractTest("returns a deterministic score inside the 0-5 range", (MealScore) => {
   const input = {
     goals,
     now: atEightPm,
@@ -19,7 +28,7 @@ test("returns a deterministic score inside the 0-5 range", () => {
   assert.equal(first.coverage, 1);
 });
 
-test("excludes missing optional nutrients and renormalizes available weights", () => {
+contractTest("excludes missing optional nutrients and renormalizes available weights", (MealScore) => {
   const result = MealScore.calculateMealScore({
     goals,
     now: atEightPm,
@@ -32,7 +41,7 @@ test("excludes missing optional nutrients and renormalizes available weights", (
   assert.deepEqual(result.missing.sort(), ["fiber", "salt"]);
 });
 
-test("sums known optional values instead of discarding the whole nutrient", () => {
+contractTest("sums known optional values instead of discarding the whole nutrient", (MealScore) => {
   const result = MealScore.calculateMealScore({
     goals,
     now: atEightPm,
@@ -54,7 +63,7 @@ test("sums known optional values instead of discarding the whole nutrient", () =
   assert.equal(result.components.fiber.candidateComplete, false);
 });
 
-test("requires calories and protein", () => {
+contractTest("requires calories and protein", (MealScore) => {
   const result = MealScore.calculateMealScore({
     goals,
     now: atEightPm,
@@ -66,7 +75,7 @@ test("requires calories and protein", () => {
   assert.equal(result.score, null);
 });
 
-test("time quota is smaller when more time remains", () => {
+contractTest("time quota is smaller when more time remains", (MealScore) => {
   const early = MealScore.calculateMealScore({
     goals,
     hoursLeft: 8,
@@ -84,7 +93,7 @@ test("time quota is smaller when more time remains", () => {
   assert.ok(late.components.kcal.score > early.components.kcal.score);
 });
 
-test("budget decay matches configured anchor behavior", () => {
+contractTest("budget decay matches configured anchor behavior", (MealScore) => {
   const score = MealScore.budgetScore(120, 100, 2, "full");
   assert.ok(Math.abs(score - Math.exp(-0.4)) < 1e-12);
 });

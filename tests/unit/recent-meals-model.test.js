@@ -1,12 +1,22 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createRecentMealsModel } = require("../../recent-meals-model.js");
-
-const { aggregateRecentMeals } = createRecentMealsModel();
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../recent-meals-model.js"))],
+  ["ESM", () => import("../../src/leaf/recent-meals-model.js")]
+];
 const BREAKFAST = "Caf\u00e9 da manh\u00e3";
 const LUNCH = "Almo\u00e7o";
 
-test("aggregates recent meals in day and persisted-meal order with existing rounding", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const api = await load();
+      return callback(api.createRecentMealsModel(), api);
+    });
+  });
+}
+
+contractTest("aggregates recent meals in day and persisted-meal order with existing rounding", ({ aggregateRecentMeals }) => {
   const breakfast = [{ protein: 10.4, kcal: 100.4 }, { protein: null, kcal: 49.4 }];
   const result = aggregateRecentMeals({
     dailyLogs: [
@@ -23,7 +33,7 @@ test("aggregates recent meals in day and persisted-meal order with existing roun
   assert.equal(result.some(item => item.meal === "Breakfast"), false);
 });
 
-test("skips missing and empty meals and preserves the 30-card limit", () => {
+contractTest("skips missing and empty meals and preserves the 30-card limit", ({ aggregateRecentMeals }) => {
   const dailyLogs = Array.from({ length: 16 }, (_, index) => ({
     date: `2026-07-${String(22 - index).padStart(2, "0")}`,
     log: {
@@ -41,7 +51,7 @@ test("skips missing and empty meals and preserves the 30-card limit", () => {
   assert.equal(result[29].meal, "Jantar");
 });
 
-test("supports the existing explicit result limit without mutating source logs", () => {
+contractTest("supports the existing explicit result limit without mutating source logs", ({ aggregateRecentMeals }) => {
   const source = [{ date: "2026-07-22", log: { [LUNCH]: [{ protein: 1, kcal: 2 }], Jantar: [{ protein: 3, kcal: 4 }] } }];
   const before = JSON.stringify(source);
   const result = aggregateRecentMeals({ dailyLogs: source, mealKeys: [LUNCH, "Jantar"], limit: 1 });
@@ -50,7 +60,7 @@ test("supports the existing explicit result limit without mutating source logs",
   assert.equal(JSON.stringify(source), before);
 });
 
-test("publishes a dependency-free UMD factory", () => {
+contractTest("publishes the same dependency-free factory contract", (_, { createRecentMealsModel }) => {
   assert.equal(typeof createRecentMealsModel, "function");
   assert.equal(typeof createRecentMealsModel().aggregateRecentMeals, "function");
 });

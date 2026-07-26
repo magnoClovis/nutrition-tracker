@@ -1,6 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createGroqClient, GroqClientError } = require("../../groq-client.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../groq-client.js"))],
+  ["ESM", () => import("../../src/leaf/groq-client.js")]
+];
 
 function response(body, { ok = true, jsonError } = {}) {
   return {
@@ -12,7 +15,7 @@ function response(body, { ok = true, jsonError } = {}) {
   };
 }
 
-function createFixture({ apiKey = "test-key", responses = [] } = {}) {
+function createFixture({ createGroqClient }, { apiKey = "test-key", responses = [] } = {}) {
   const requests = [];
   const keyReads = [];
   const queue = [...responses];
@@ -31,8 +34,14 @@ function createFixture({ apiKey = "test-key", responses = [] } = {}) {
   return { api, requests, keyReads };
 }
 
-test("sends the exact Groq request and returns the first assistant content", async () => {
-  const fixture = createFixture({
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => callback(await load()));
+  });
+}
+
+contractTest("sends the exact Groq request and returns the first assistant content", async api => {
+  const fixture = createFixture(api, {
     responses: [response({ choices: [{ message: { content: "Expected answer" } }] })]
   });
 
@@ -55,8 +64,9 @@ test("sends the exact Groq request and returns the first assistant content", asy
   });
 });
 
-test("rejects a missing API key before making any request", async () => {
-  const fixture = createFixture({ apiKey: "", responses: [] });
+contractTest("rejects a missing API key before making any request", async api => {
+  const { GroqClientError } = api;
+  const fixture = createFixture(api, { apiKey: "", responses: [] });
 
   await assert.rejects(
     fixture.api.callAI("prompt"),
@@ -66,8 +76,9 @@ test("rejects a missing API key before making any request", async () => {
   assert.equal(fixture.requests.length, 0);
 });
 
-test("keeps the Groq provider message on a non-success HTTP response", async () => {
-  const fixture = createFixture({
+contractTest("keeps the Groq provider message on a non-success HTTP response", async api => {
+  const { GroqClientError } = api;
+  const fixture = createFixture(api, {
     responses: [response({ error: { message: "Provider rejected request" } }, { ok: false })]
   });
 
@@ -79,8 +90,9 @@ test("keeps the Groq provider message on a non-success HTTP response", async () 
   );
 });
 
-test("returns a neutral API error when a non-success response has no provider message", async () => {
-  const fixture = createFixture({ responses: [response({}, { ok: false })] });
+contractTest("returns a neutral API error when a non-success response has no provider message", async api => {
+  const { GroqClientError } = api;
+  const fixture = createFixture(api, { responses: [response({}, { ok: false })] });
 
   await assert.rejects(
     fixture.api.callAI("prompt"),
@@ -90,9 +102,9 @@ test("returns a neutral API error when a non-success response has no provider me
   );
 });
 
-test("parses JSON before checking HTTP status and propagates an invalid-JSON error", async () => {
+contractTest("parses JSON before checking HTTP status and propagates an invalid-JSON error", async api => {
   const parseError = new SyntaxError("Unexpected token");
-  const fixture = createFixture({
+  const fixture = createFixture(api, {
     responses: [response(null, { ok: false, jsonError: parseError })]
   });
 
@@ -102,9 +114,9 @@ test("parses JSON before checking HTTP status and propagates an invalid-JSON err
   );
 });
 
-test("propagates the original network error", async () => {
+contractTest("propagates the original network error", async api => {
   const networkError = new TypeError("Failed to fetch");
-  const fixture = createFixture({ responses: [networkError] });
+  const fixture = createFixture(api, { responses: [networkError] });
 
   await assert.rejects(
     fixture.api.callAI("prompt"),
@@ -112,11 +124,11 @@ test("propagates the original network error", async () => {
   );
 });
 
-test("returns an empty string when assistant content is absent", async () => {
+contractTest("returns an empty string when assistant content is absent", async api => {
   const fixtures = [
-    createFixture({ responses: [response({})] }),
-    createFixture({ responses: [response({ choices: [] })] }),
-    createFixture({ responses: [response({ choices: [{ message: {} }] })] })
+    createFixture(api, { responses: [response({})] }),
+    createFixture(api, { responses: [response({ choices: [] })] }),
+    createFixture(api, { responses: [response({ choices: [{ message: {} }] })] })
   ];
 
   for (const fixture of fixtures) {
@@ -124,8 +136,8 @@ test("returns an empty string when assistant content is absent", async () => {
   }
 });
 
-test("uses the supplied max_tokens and preserves the literal falsy fallback to 800", async () => {
-  const fixture = createFixture({
+contractTest("uses the supplied max_tokens and preserves the literal falsy fallback to 800", async api => {
+  const fixture = createFixture(api, {
     responses: [
       response({ choices: [] }),
       response({ choices: [] }),

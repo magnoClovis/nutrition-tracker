@@ -78,3 +78,14 @@ test('rejects vendored React runtimes from the Vite artifact', (t) => {
     /file is outside the build allowlist: vendor\/react\.production\.min\.js/,
   );
 });
+
+test('rejects converted leaf UMD files from the Vite artifact', (t) => {
+  const directory = createValidBuildFixture();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(directory, 'hydration-guard.js'), '');
+
+  assert.throws(
+    () => verifyBuildDirectory(directory),
+    /file is outside the build allowlist: hydration-guard\.js/,
+  );
+});

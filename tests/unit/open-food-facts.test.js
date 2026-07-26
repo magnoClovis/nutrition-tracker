@@ -1,6 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createOpenFoodFacts } = require("../../open-food-facts.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../open-food-facts.js"))],
+  ["ESM", () => import("../../src/leaf/open-food-facts.js")]
+];
 
 function response(body, { ok = true } = {}) {
   return {
@@ -9,7 +12,7 @@ function response(body, { ok = true } = {}) {
   };
 }
 
-function createFixture(responses) {
+function createFixture({ createOpenFoodFacts }, responses) {
   const requests = [];
   const queue = [...responses];
   const api = createOpenFoodFacts({
@@ -23,10 +26,16 @@ function createFixture(responses) {
   return { api, requests };
 }
 
-test("searches the exact text endpoint and returns valid nutrition products", async () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => callback(await load()));
+  });
+}
+
+contractTest("searches the exact text endpoint and returns valid nutrition products", async api => {
   const validEnergy = { product_name: "Rice", nutriments: { "energy-kcal_100g": 130 } };
   const validProtein = { product_name: "Tofu", nutriments: { "proteins_100g": 12 } };
-  const fixture = createFixture([response({ products: [
+  const fixture = createFixture(api, [response({ products: [
     validEnergy,
     validProtein,
     { product_name: "No nutriments" },
@@ -45,14 +54,14 @@ test("searches the exact text endpoint and returns valid nutrition products", as
   );
 });
 
-test("returns an empty array when text search has no matching products", async () => {
-  const fixture = createFixture([response({ products: [] })]);
+contractTest("returns an empty array when text search has no matching products", async api => {
+  const fixture = createFixture(api, [response({ products: [] })]);
   assert.deepEqual(await fixture.api.searchProducts("missing"), []);
 });
 
-test("looks up a barcode through the exact endpoint and returns its product", async () => {
+contractTest("looks up a barcode through the exact endpoint and returns its product", async api => {
   const product = { product_name: "Milk", nutriments: { "proteins_100g": 3.2 } };
-  const fixture = createFixture([response({ status: 1, product })]);
+  const fixture = createFixture(api, [response({ status: 1, product })]);
 
   assert.equal(await fixture.api.getProductByBarcode("5601234567890"), product);
   assert.equal(
@@ -61,16 +70,16 @@ test("looks up a barcode through the exact endpoint and returns its product", as
   );
 });
 
-test("returns null when Open Food Facts reports no barcode product", async () => {
-  const missingStatus = createFixture([response({ status: 0 })]);
+contractTest("returns null when Open Food Facts reports no barcode product", async api => {
+  const missingStatus = createFixture(api, [response({ status: 0 })]);
   assert.equal(await missingStatus.api.getProductByBarcode("123"), null);
 
-  const missingProduct = createFixture([response({ status: 1 })]);
+  const missingProduct = createFixture(api, [response({ status: 1 })]);
   assert.equal(await missingProduct.api.getProductByBarcode("456"), null);
 });
 
-test("maps unit, portion, weight and energy above 1000 exactly as before", () => {
-  const { api } = createFixture([]);
+contractTest("maps unit, portion, weight and energy above 1000 exactly as before", moduleApi => {
+  const { api } = createFixture(moduleApi, []);
   const currentForm = {
     name: "Original",
     unit: "un",
@@ -118,8 +127,8 @@ test("maps unit, portion, weight and energy above 1000 exactly as before", () =>
   assert.notEqual(mapped, currentForm);
 });
 
-test("keeps energy at or below 1000 without the kilojoule conversion", () => {
-  const { api } = createFixture([]);
+contractTest("keeps energy at or below 1000 without the kilojoule conversion", moduleApi => {
+  const { api } = createFixture(moduleApi, []);
   const mapped = api.mapProductToForm({
     generic_name: "Generic",
     nutriments: { "energy-kcal_100g": 999.9 }
@@ -138,8 +147,8 @@ test("keeps energy at or below 1000 without the kilojoule conversion", () => {
   assert.equal(mapped.unitWeightG, "");
 });
 
-test("does not overwrite current nutrient fields when product values are absent or non-finite", () => {
-  const { api } = createFixture([]);
+contractTest("does not overwrite current nutrient fields when product values are absent or non-finite", moduleApi => {
+  const { api } = createFixture(moduleApi, []);
   const currentForm = {
     name: "Current name",
     unit: "g",
@@ -169,10 +178,10 @@ test("does not overwrite current nutrient fields when product values are absent 
   });
 });
 
-test("propagates neutral HTTP and network failures for the React layer to localize", async () => {
-  const httpFailure = createFixture([response({}, { ok: false })]);
+contractTest("propagates neutral HTTP and network failures for the React layer to localize", async api => {
+  const httpFailure = createFixture(api, [response({}, { ok: false })]);
   await assert.rejects(httpFailure.api.searchProducts("rice"), /Open Food Facts/);
 
-  const networkFailure = createFixture([new TypeError("network unavailable")]);
+  const networkFailure = createFixture(api, [new TypeError("network unavailable")]);
   await assert.rejects(networkFailure.api.getProductByBarcode("123"), /network unavailable/);
 });

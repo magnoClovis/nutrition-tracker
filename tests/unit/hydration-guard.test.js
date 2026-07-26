@@ -1,8 +1,17 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { canPersistHydratedKey } = require("../../hydration-guard.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../hydration-guard.js"))],
+  ["ESM", () => import("../../src/leaf/hydration-guard.js")]
+];
 
-test("an already hydrated key permits every value including empty and absent values", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => callback(await load()));
+  });
+}
+
+contractTest("an already hydrated key permits every value including empty and absent values", ({ canPersistHydratedKey }) => {
   const hydrated = new Set(["key"]);
 
   for (const value of [[], {}, "", null, undefined, false, 0]) {
@@ -10,21 +19,21 @@ test("an already hydrated key permits every value including empty and absent val
   }
 });
 
-test("unhydrated arrays require at least one item", () => {
+contractTest("unhydrated arrays require at least one item", ({ canPersistHydratedKey }) => {
   const hydrated = new Set();
 
   assert.equal(canPersistHydratedKey("key", [], hydrated), false);
   assert.equal(canPersistHydratedKey("key", [0], hydrated), true);
 });
 
-test("unhydrated objects require at least one enumerable property", () => {
+contractTest("unhydrated objects require at least one enumerable property", ({ canPersistHydratedKey }) => {
   const hydrated = new Set();
 
   assert.equal(canPersistHydratedKey("key", {}, hydrated), false);
   assert.equal(canPersistHydratedKey("key", { value: undefined }, hydrated), true);
 });
 
-test("unhydrated strings require non-zero length while whitespace remains content", () => {
+contractTest("unhydrated strings require non-zero length while whitespace remains content", ({ canPersistHydratedKey }) => {
   const hydrated = new Set();
 
   assert.equal(canPersistHydratedKey("key", "", hydrated), false);
@@ -32,7 +41,7 @@ test("unhydrated strings require non-zero length while whitespace remains conten
   assert.equal(canPersistHydratedKey("key", "value", hydrated), true);
 });
 
-test("other unhydrated values reject only null and undefined", () => {
+contractTest("other unhydrated values reject only null and undefined", ({ canPersistHydratedKey }) => {
   const hydrated = new Set();
 
   assert.equal(canPersistHydratedKey("key", null, hydrated), false);
@@ -42,6 +51,6 @@ test("other unhydrated values reject only null and undefined", () => {
   assert.equal(canPersistHydratedKey("key", Number.NaN, hydrated), true);
 });
 
-test("preserves the unhydrated non-empty waterGoal overwrite risk", () => {
+contractTest("preserves the unhydrated non-empty waterGoal overwrite risk", ({ canPersistHydratedKey }) => {
   assert.equal(canPersistHydratedKey("waterGoal", 2500, new Set()), true);
 });

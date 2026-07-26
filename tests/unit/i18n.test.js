@@ -1,22 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createI18n } = require("../../i18n.js");
-
-const {
-  LANGUAGE_OPTIONS,
-  normalizeLanguage,
-  getLanguageOption,
-  pickLang,
-  getLocalizedValue,
-  formatLocalizedText,
-  createTextGetter,
-  localeForLang,
-  sortLocaleForLang,
-  STRINGS,
-  MEAL_KEYS,
-  getMealLabelsForLanguage,
-  normalizeTabKey
-} = createI18n();
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../i18n.js"))],
+  ["ESM", () => import("../../src/leaf/i18n.js")]
+];
 
 const EXPECTED_MEAL_KEYS = [
   "Café da manhã",
@@ -35,7 +22,20 @@ const EXPECTED_MEAL_LABELS = {
   es: ["Desayuno", "Pre-entreno", "Post-entreno", "Almuerzo", "Merienda", "Cena", "Colación", "Otro"]
 };
 
-test("keeps the persisted language allowlist and Portuguese fallback stable", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createI18n } = await load();
+      return callback(createI18n());
+    });
+  });
+}
+
+contractTest("keeps the persisted language allowlist and Portuguese fallback stable", ({
+  LANGUAGE_OPTIONS,
+  normalizeLanguage,
+  getLanguageOption
+}) => {
   assert.deepEqual(LANGUAGE_OPTIONS.map(option => option.code), ["pt", "en", "es"]);
   assert.equal(normalizeLanguage("pt"), "pt");
   assert.equal(normalizeLanguage("en"), "en");
@@ -46,7 +46,7 @@ test("keeps the persisted language allowlist and Portuguese fallback stable", ()
   assert.equal(getLanguageOption("invalid").code, "pt");
 });
 
-test("selects language variants with the existing Portuguese fallback", () => {
+contractTest("selects language variants with the existing Portuguese fallback", ({ pickLang }) => {
   assert.equal(pickLang("pt", "Olá", "Hello", "Hola"), "Olá");
   assert.equal(pickLang("en", "Olá", "Hello", "Hola"), "Hello");
   assert.equal(pickLang("es", "Olá", "Hello", "Hola"), "Hola");
@@ -56,7 +56,10 @@ test("selects language variants with the existing Portuguese fallback", () => {
   assert.equal(pickLang("es", "Olá", "Hello", undefined), "Olá");
 });
 
-test("reads nested translations and falls back to Portuguese through the text getter", () => {
+contractTest("reads nested translations and falls back to Portuguese through the text getter", ({
+  getLocalizedValue,
+  createTextGetter
+}) => {
   const dictionary = {
     pt: { nested: { title: "Título {name}" }, onlyPt: "Somente PT" },
     en: { nested: { title: "Title {name}" } },
@@ -74,7 +77,7 @@ test("reads nested translations and falls back to Portuguese through the text ge
   assert.equal(englishText("unknown.key"), "unknown.key");
 });
 
-test("interpolates parameters without changing missing-token behavior", () => {
+contractTest("interpolates parameters without changing missing-token behavior", ({ formatLocalizedText }) => {
   assert.equal(
     formatLocalizedText("Olá, {name}. Meta: {amount}{unit}.", {name: "Bia", amount: 120, unit: "g"}),
     "Olá, Bia. Meta: 120g."
@@ -84,7 +87,11 @@ test("interpolates parameters without changing missing-token behavior", () => {
   assert.deepEqual(formatLocalizedText(["não", "texto"]), ["não", "texto"]);
 });
 
-test("freezes meal storage keys and every positional translation array", () => {
+contractTest("freezes meal storage keys and every positional translation array", ({
+  MEAL_KEYS,
+  STRINGS,
+  getMealLabelsForLanguage
+}) => {
   assert.deepEqual(MEAL_KEYS, EXPECTED_MEAL_KEYS);
   assert.deepEqual(STRINGS.pt.meals, EXPECTED_MEAL_LABELS.pt);
   assert.deepEqual(STRINGS.en.meals, EXPECTED_MEAL_LABELS.en);
@@ -95,7 +102,11 @@ test("freezes meal storage keys and every positional translation array", () => {
   assert.deepEqual(getMealLabelsForLanguage("invalid"), EXPECTED_MEAL_LABELS.pt);
 });
 
-test("keeps locale and tutorial tab normalization behavior stable", () => {
+contractTest("keeps locale and tutorial tab normalization behavior stable", ({
+  localeForLang,
+  sortLocaleForLang,
+  normalizeTabKey
+}) => {
   assert.equal(localeForLang("pt"), "pt-BR");
   assert.equal(localeForLang("en"), "en-US");
   assert.equal(localeForLang("es"), "es-ES");

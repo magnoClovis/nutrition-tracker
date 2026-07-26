@@ -1,6 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createAutosaveScheduler } = require("../../autosave-scheduler.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../autosave-scheduler.js"))],
+  ["ESM", () => import("../../src/leaf/autosave-scheduler.js")]
+];
 
 function createTimerHarness() {
   let nextId = 1;
@@ -33,7 +36,13 @@ async function flushPromises() {
   await Promise.resolve();
 }
 
-test("uses 800 ms by default and preserves the explicit 1500 ms notes delay", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => callback(await load()));
+  });
+}
+
+contractTest("uses 800 ms by default and preserves the explicit 1500 ms notes delay", ({ createAutosaveScheduler }) => {
   const timer = createTimerHarness();
   const timersByKey = {};
   const { scheduleSave } = createAutosaveScheduler({
@@ -54,7 +63,7 @@ test("uses 800 ms by default and preserves the explicit 1500 ms notes delay", ()
   assert.deepEqual(timersByKey, { log: 1, notes: 2 });
 });
 
-test("replaces only the previous timer for the same key", () => {
+contractTest("replaces only the previous timer for the same key", ({ createAutosaveScheduler }) => {
   const timer = createTimerHarness();
   const timersByKey = {};
   const writes = [];
@@ -78,7 +87,7 @@ test("replaces only the previous timer for the same key", () => {
   assert.deepEqual(writes, []);
 });
 
-test("persists strings directly, JSON-serializes other values, and marks only successful keys", async () => {
+contractTest("persists strings directly, JSON-serializes other values, and marks only successful keys", async ({ createAutosaveScheduler }) => {
   const timer = createTimerHarness();
   const timersByKey = {};
   const writes = [];
@@ -112,7 +121,7 @@ test("persists strings directly, JSON-serializes other values, and marks only su
   assert.deepEqual(persisted, ["string", "object"]);
 });
 
-test("keeps fired timer handles in the shared map without cleanup", async () => {
+contractTest("keeps fired timer handles in the shared map without cleanup", async ({ createAutosaveScheduler }) => {
   const timer = createTimerHarness();
   const timersByKey = {};
   const { scheduleSave } = createAutosaveScheduler({
@@ -130,7 +139,7 @@ test("keeps fired timer handles in the shared map without cleanup", async () => 
   assert.equal(timersByKey.key, 1);
 });
 
-test("publishes the UMD factory and requires every scheduler dependency", () => {
+contractTest("publishes the same factory and requires every scheduler dependency", ({ createAutosaveScheduler }) => {
   assert.equal(typeof createAutosaveScheduler, "function");
   assert.throws(
     () => createAutosaveScheduler({
