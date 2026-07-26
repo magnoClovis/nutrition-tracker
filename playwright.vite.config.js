@@ -13,7 +13,7 @@ module.exports = {
   },
   webServer: {
     ...baseConfig.webServer,
-    command: 'node tests/smoke/serve-static.js dist-vite 8766',
+    command: 'node tests/smoke/serve-static.js dist 8766',
     url: 'http://127.0.0.1:8766/index.html',
     reuseExistingServer: false
   }

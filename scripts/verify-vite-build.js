@@ -73,6 +73,38 @@ function verifyBuildDirectory(directory) {
     errors.push('missing processed CSS in assets/');
   }
 
+  const indexPath = path.join(directory, 'index.html');
+  if (fileSet.has('index.html')) {
+    const indexHtml = fs.readFileSync(indexPath, 'utf8');
+    const generatedScriptPattern = /<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["']\.\/assets\/[^"']+-[A-Za-z0-9_-]+\.js["'][^>]*>/i;
+    const generatedStylePattern = /<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=["']\.\/assets\/[^"']+-[A-Za-z0-9_-]+\.css["'][^>]*>/i;
+
+    if (!generatedScriptPattern.test(indexHtml)) {
+      errors.push('index.html is missing a relative hashed JavaScript asset');
+    }
+    if (!generatedStylePattern.test(indexHtml)) {
+      errors.push('index.html is missing a relative hashed CSS asset');
+    }
+    const generatedStyleMatch = indexHtml.match(generatedStylePattern);
+    const firstInlineStyleIndex = indexHtml.indexOf('<style>');
+    if (
+      generatedStyleMatch
+      && firstInlineStyleIndex >= 0
+      && generatedStyleMatch.index > firstInlineStyleIndex
+    ) {
+      errors.push('generated CSS asset appears after inline styles and changes the legacy cascade');
+    }
+    if (/\/src\/main\.jsx|index\.vite\.html/i.test(indexHtml)) {
+      errors.push('source Vite entry detected in built index.html');
+    }
+    if (/<script\b[^>]*\bsrc=["'][^"']*(?:vendor\/|app\.js|nutrition-tracker-controller\.js)[^"']*["']/i.test(indexHtml)) {
+      errors.push('legacy runtime reference detected in built index.html');
+    }
+    if (/\?v=/i.test(indexHtml)) {
+      errors.push('manual cache-busting query detected in built index.html');
+    }
+  }
+
   if (errors.length > 0) {
     throw new Error(`Vite build verification failed:\n- ${errors.join('\n- ')}`);
   }
@@ -81,7 +113,7 @@ function verifyBuildDirectory(directory) {
 }
 
 if (require.main === module) {
-  const requestedDirectory = process.argv[2] || 'dist-vite';
+  const requestedDirectory = process.argv[2] || 'dist';
   const outputDirectory = path.resolve(process.cwd(), requestedDirectory);
   const files = verifyBuildDirectory(outputDirectory);
   console.log(`Verified Vite build allowlist (${files.length} files).`);

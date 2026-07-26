@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt">
 <head>
   <meta charset="UTF-8"/>
@@ -27,9 +27,9 @@
     })();
   </script>
   <title>Diário Nutricional</title>
-  <link vite-ignore rel="manifest" href="manifest.json"/>
-  <link vite-ignore rel="icon" type="image/png" href="icone.png"/>
-  <link vite-ignore rel="apple-touch-icon" href="icone.png"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="icon" type="image/png" href="icone.png"/>
+  <link rel="apple-touch-icon" href="icone.png"/>
   <link rel="stylesheet" href="one-ui.css?v=16"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -234,7 +234,67 @@
     return false;
   };
   </script>
-  <!-- The parallel Vite entry mounts the ESM composition root. -->
-  <script type="module" src="/src/main.jsx"></script>
+  <!-- Third-party bundles live in vendor/ so index.html stays readable; do not edit minified vendor files manually. -->
+  <!-- Frozen legacy loader used only by the UMD smoke suite. -->
+  <script src="vendor/react.production.min.js"></script>
+  <script src="vendor/react-dom.production.min.js"></script>
+  <script src="vendor/prop-types.min.js"></script>
+  <script src="vendor/recharts.min.js"></script>
+
+  <!-- App scripts are split by responsibility: persistence adapter first, UI/application second. -->
+  <script src="firebase-config-internal.js?v=0.8.1-beta-20260718"></script>
+  <script src="firebase-auth-internal.js?v=0.8.1-beta-20260718"></script>
+  <script src="firebase-firestore-internal.js?v=0.8.1-beta-20260718"></script>
+  <script src="firebase-migration-internal.js?v=0.8.1-beta-20260718"></script>
+  <script src="firebase-backup-internal.js?v=0.8.1-beta-20260718"></script>
+  <script src="firebase-account-data-internal.js?v=0.8.1-beta-20260718"></script>
+  <script src="firebase-storage.js?v=0.8.1-beta-20260718-account-data-internal-1"></script>
+  <script src="meal-score.js?v=0.8.1-beta-20260713"></script>
+  <script src="i18n.js?v=0.8.1-beta-20260716"></script>
+  <script src="settings-panel.js?v=0.8.1-beta-20260716"></script>
+  <script src="backup-modal.js?v=0.8.1-beta-20260716"></script>
+  <script src="verify-email-screen.js?v=0.8.1-beta-20260716"></script>
+  <script src="open-food-facts.js?v=0.8.1-beta-20260718"></script>
+  <script src="barcode-scanner.js?v=0.8.1-beta-20260718"></script>
+  <script src="groq-client.js?v=0.8.1-beta-20260718"></script>
+  <script src="meal-review-ai.js?v=0.8.1-beta-20260718"></script>
+  <script src="food-autofill-ai.js?v=0.8.1-beta-20260718"></script>
+  <script src="dish-description-ai.js?v=0.8.1-beta-20260718"></script>
+  <script src="diary-ticker.js?v=0.8.1-beta-20260716"></script>
+  <script src="date-utils.js?v=0.8.1-beta-20260716"></script>
+  <script src="hydration-guard.js?v=0.8.1-beta-20260722"></script>
+  <script src="autosave-scheduler.js?v=0.8.1-beta-20260722"></script>
+  <script src="calendar-model.js?v=0.8.1-beta-20260722"></script>
+  <script src="food-entry.js?v=0.8.1-beta-20260716"></script>
+  <script src="meal-ga.js?v=0.8.1-beta-20260718"></script>
+  <script src="goal-calculator.js?v=0.8.1-beta-20260716"></script>
+  <script src="daily-nutrition-model.js?v=0.8.1-beta-20260722"></script>
+  <script src="recent-meals-model.js?v=0.8.1-beta-20260722"></script>
+  <script src="body-metrics-model.js?v=0.8.1-beta-20260722"></script>
+  <script src="historical-goals-model.js?v=0.8.1-beta-20260722"></script>
+  <script src="week-aggregator.js?v=0.8.1-beta-20260722"></script>
+  <script src="history-loaders.js?v=0.8.1-beta-20260722"></script>
+  <script src="nutrition-feedback-ai.js?v=0.8.1-beta-20260718"></script>
+  <script src="eating-patterns-ai.js?v=0.8.1-beta-20260718"></script>
+  <script src="profile-validation.js?v=0.8.1-beta-20260716"></script>
+  <script src="login-screen.js?v=0.8.1-beta-20260716"></script>
+  <script src="privacy-panel.js?v=0.8.1-beta-20260716"></script>
+  <script src="required-profile-modal.js?v=0.8.1-beta-20260716"></script>
+  <script src="ui-primitives.js?v=0.8.1-beta-20260716"></script>
+  <script src="release-notice.js?v=0.8.1-beta-20260716"></script>
+  <script src="tutorial-overlay.js?v=0.8.1-beta-20260716"></script>
+  <script src="visual-update-notice.js?v=0.8.1-beta-20260723"></script>
+  <script src="meal-review-modal.js?v=0.8.1-beta-20260723"></script>
+  <script src="ga-result-card.js?v=0.8.1-beta-20260723"></script>
+  <script src="saved-meal-card.js?v=0.8.1-beta-20260723"></script>
+  <script src="body-metrics-charts.js?v=0.8.1-beta-20260723"></script>
+  <script src="week-screen.js?v=0.8.1-beta-20260723"></script>
+  <script src="metrics-screen.js?v=0.8.1-beta-20260723"></script>
+  <script src="pantry-screen.js?v=0.8.1-beta-20260723"></script>
+  <script src="add-screen.js?v=0.8.1-beta-20260723"></script>
+  <script src="diary-screen.js?v=0.8.1-beta-20260723"></script>
+  <script src="app-header-navigation.js?v=0.8.1-beta-20260725"></script>
+  <script src="nutrition-tracker-controller.js?v=0.8.1-beta-20260725"></script>
+  <script src="app.js?v=0.8.1-beta-20260725-nutrition-tracker-controller-1"></script>
 </body>
 </html>

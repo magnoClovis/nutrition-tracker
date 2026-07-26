@@ -10,6 +10,7 @@ const { defineConfig, devices } = require('@playwright/test');
  */
 module.exports = defineConfig({
   testDir: './tests/smoke',
+  testIgnore: /cutover-visual-matrix\.spec\.js/,
   timeout: 30000,
   fullyParallel: false,
   workers: 1,
@@ -24,10 +25,10 @@ module.exports = defineConfig({
     screenshot: 'only-on-failure'
   },
   webServer: {
-    command: 'node tests/smoke/serve-static.js',
+    command: 'node tests/smoke/serve-static.js . 8765 tests/fixtures/index.legacy.html',
     cwd: __dirname,
     url: 'http://127.0.0.1:8765/index.html',
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 10000
   },
   projects: [
@@ -38,13 +39,13 @@ module.exports = defineConfig({
     },
     {
       name: 'desktop-chromium',
-      testIgnore: /auth\.setup\.js/,
+      testIgnore: [/auth\.setup\.js/, /cutover-visual-matrix\.spec\.js/],
       dependencies: ['auth-setup'],
       use: { ...devices['Desktop Chrome'] }
     },
     {
       name: 'mobile-chromium',
-      testIgnore: /auth\.setup\.js/,
+      testIgnore: [/auth\.setup\.js/, /cutover-visual-matrix\.spec\.js/],
       dependencies: ['auth-setup'],
       use: { ...devices['Pixel 5'] }
     }
