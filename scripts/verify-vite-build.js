@@ -4,12 +4,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const BASELINE_RUNTIME_FILES = [
-  'settings-panel.js',
-  'backup-modal.js',
   'verify-email-screen.js',
   'login-screen.js',
   'privacy-panel.js',
-  'required-profile-modal.js',
   'tutorial-overlay.js',
   'week-screen.js',
   'metrics-screen.js',

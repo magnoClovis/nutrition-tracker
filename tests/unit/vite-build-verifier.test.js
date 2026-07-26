@@ -58,11 +58,11 @@ test('rejects known personal-data export names even inside assets', (t) => {
 test('rejects a build missing an explicitly required runtime', (t) => {
   const directory = createValidBuildFixture();
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
-  fs.rmSync(path.join(directory, 'settings-panel.js'));
+  fs.rmSync(path.join(directory, 'verify-email-screen.js'));
 
   assert.throws(
     () => verifyBuildDirectory(directory),
-    /missing required output: settings-panel\.js/,
+    /missing required output: verify-email-screen\.js/,
   );
 });
 
@@ -142,5 +142,16 @@ test('rejects converted React support-component UMD files from the Vite artifact
   assert.throws(
     () => verifyBuildDirectory(directory),
     /file is outside the build allowlist: body-metrics-charts\.js/,
+  );
+});
+
+test('rejects converted React modal UMD files from the Vite artifact', (t) => {
+  const directory = createValidBuildFixture();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(directory, 'backup-modal.js'), '');
+
+  assert.throws(
+    () => verifyBuildDirectory(directory),
+    /file is outside the build allowlist: backup-modal\.js/,
   );
 });

@@ -2,7 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
-const { createSettingsPanel } = require("../../settings-panel.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../settings-panel.js"))],
+  ["ESM", () => import("../../src/components/settings-panel.js")]
+];
 
 const {
   LANGUAGE_OPTIONS,
@@ -67,7 +70,7 @@ function findButton(tree, label) {
   return elementsByType(tree, "button").find(button => elementText(button).includes(label));
 }
 
-function createFixture({
+function createFixture(createSettingsPanel, {
   lang = "en",
   darkMode = false,
   directKey = false,
@@ -117,7 +120,16 @@ function createFixture({
   };
 }
 
-test("renders the existing localized copy for light and dark mode combinations", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createSettingsPanel } = await load();
+      return callback(createSettingsPanel);
+    });
+  });
+}
+
+contractTest("renders the existing localized copy for light and dark mode combinations", createSettingsPanel => {
   const cases = [
     { lang: "pt", darkMode: false, expected: ["Aparência", "Modo escuro"] },
     { lang: "en", darkMode: true, expected: ["Appearance", "Light mode"] },
@@ -125,7 +137,7 @@ test("renders the existing localized copy for light and dark mode combinations",
   ];
 
   for (const entry of cases) {
-    const tree = createFixture(entry).harness.render();
+    const tree = createFixture(createSettingsPanel, entry).harness.render();
     const text = elementText(tree);
     for (const expected of entry.expected) {
       assert.equal(text.includes(expected), true, `${entry.lang} should include ${expected}: ${text}`);
@@ -133,9 +145,9 @@ test("renders the existing localized copy for light and dark mode combinations",
   }
 });
 
-test("delegates language and dark-mode changes to the existing callbacks", () => {
+contractTest("delegates language and dark-mode changes to the existing callbacks", createSettingsPanel => {
   const calls = [];
-  const fixture = createFixture({
+  const fixture = createFixture(createSettingsPanel, {
     lang: "en",
     callbacks: {
       toggleLang(code) { calls.push(["lang", code]); },
@@ -152,9 +164,9 @@ test("delegates language and dark-mode changes to the existing callbacks", () =>
   assert.deepEqual(calls, [["lang", "pt"], ["dark"]]);
 });
 
-test("calls signOut before onLogout and onClose", async () => {
+contractTest("calls signOut before onLogout and onClose", async createSettingsPanel => {
   const order = [];
-  const fixture = createFixture({
+  const fixture = createFixture(createSettingsPanel, {
     signOut() { order.push("signOut"); },
     callbacks: {
       onLogout() { order.push("onLogout"); },
@@ -166,9 +178,9 @@ test("calls signOut before onLogout and onClose", async () => {
   assert.deepEqual(order, ["signOut", "onLogout", "onClose"]);
 });
 
-test("keeps logout callbacks running in order when signOut rejects", async () => {
+contractTest("keeps logout callbacks running in order when signOut rejects", async createSettingsPanel => {
   const order = [];
-  const fixture = createFixture({
+  const fixture = createFixture(createSettingsPanel, {
     async signOut() {
       order.push("signOut");
       throw new Error("SIGN_OUT_FAILED");
@@ -183,9 +195,9 @@ test("keeps logout callbacks running in order when signOut rejects", async () =>
   assert.deepEqual(order, ["signOut", "onLogout", "onClose"]);
 });
 
-test("reads and writes groq_key and cors_proxy through the injected localStorage", () => {
+contractTest("reads and writes groq_key and cors_proxy through the injected localStorage", createSettingsPanel => {
   let closeCalls = 0;
-  const fixture = createFixture({
+  const fixture = createFixture(createSettingsPanel, {
     directKey: true,
     stored: { groq_key: "old-key", cors_proxy: "https://old.example/?" },
     callbacks: { onClose() { closeCalls += 1; } }
@@ -208,9 +220,9 @@ test("reads and writes groq_key and cors_proxy through the injected localStorage
   assert.equal(closeCalls, 1);
 });
 
-test("opens the existing feedback form through the injected URL service", () => {
+contractTest("opens the existing feedback form through the injected URL service", createSettingsPanel => {
   let closeCalls = 0;
-  const fixture = createFixture({
+  const fixture = createFixture(createSettingsPanel, {
     lang: "en",
     callbacks: { onClose() { closeCalls += 1; } }
   });

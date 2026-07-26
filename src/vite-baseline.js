@@ -17,6 +17,9 @@ import * as MealReviewModalModule from './components/meal-review-modal.js';
 import * as GaResultCardModule from './components/ga-result-card.js';
 import * as SavedMealCardModule from './components/saved-meal-card.js';
 import * as BodyMetricsCharts from './components/body-metrics-charts.js';
+import * as SettingsPanelModule from './components/settings-panel.js';
+import * as BackupModalModule from './components/backup-modal.js';
+import * as RequiredProfileModalModule from './components/required-profile-modal.js';
 import * as FirebaseConfigInternal from './leaf/firebase-config-internal.js';
 import * as FirebaseAuthInternal from './firebase/firebase-auth-internal.js';
 import * as FirebaseFirestoreInternal from './firebase/firebase-firestore-internal.js';
@@ -62,12 +65,9 @@ const Recharts = {
 };
 
 const legacyAppScripts = [
-  'settings-panel.js?v=0.8.1-beta-20260716',
-  'backup-modal.js?v=0.8.1-beta-20260716',
   'verify-email-screen.js?v=0.8.1-beta-20260716',
   'login-screen.js?v=0.8.1-beta-20260716',
   'privacy-panel.js?v=0.8.1-beta-20260716',
-  'required-profile-modal.js?v=0.8.1-beta-20260716',
   'tutorial-overlay.js?v=0.8.1-beta-20260716',
   'week-screen.js?v=0.8.1-beta-20260723',
   'metrics-screen.js?v=0.8.1-beta-20260723',
@@ -82,6 +82,7 @@ const legacyAppScripts = [
 function installNpmRuntime(target) {
   Object.assign(target, {
     AutosaveScheduler,
+    BackupModalModule,
     BarcodeScanner,
     BodyMetricsCharts,
     BodyMetricsModel,
@@ -120,6 +121,8 @@ function installNpmRuntime(target) {
     SavedMealCardModule,
     ProfileValidation,
     ReleaseNotice,
+    RequiredProfileModalModule,
+    SettingsPanelModule,
     WeekAggregator,
     UiPrimitives,
     VisualUpdateNoticeModule,

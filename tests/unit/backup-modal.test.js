@@ -2,7 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
-const { createBackupModal } = require("../../backup-modal.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../backup-modal.js"))],
+  ["ESM", () => import("../../src/components/backup-modal.js")]
+];
 
 const { normalizeLanguage, pickLang } = createI18n();
 const currentDispatcher = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentDispatcher;
@@ -74,7 +77,7 @@ class FakeFileReader {
   }
 }
 
-function createFixture({ getBackupContext, storageGet, lang = "en" } = {}) {
+function createFixture(createBackupModal, { getBackupContext, storageGet, lang = "en" } = {}) {
   const alerts = [];
   const errors = [];
   const { BackupModal } = createBackupModal({
@@ -99,6 +102,15 @@ function createFixture({ getBackupContext, storageGet, lang = "en" } = {}) {
   };
 }
 
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createBackupModal } = await load();
+      return callback(createBackupModal);
+    });
+  });
+}
+
 function exportData(marker, downloads) {
   return {
     activeLog: { Breakfast: [{ name: marker, protein: 1, kcal: 2, carbs: 3, fat: 4, fiber: 5, salt: 0.1 }] },
@@ -117,11 +129,11 @@ function exportData(marker, downloads) {
   };
 }
 
-test("calls getBackupContext for every export action and uses the latest render snapshot", async () => {
+contractTest("calls getBackupContext for every export action and uses the latest render snapshot", async createBackupModal => {
   const downloads = [];
   let marker = "first-snapshot";
   let contextCalls = 0;
-  const fixture = createFixture({
+  const fixture = createFixture(createBackupModal, {
     getBackupContext() {
       contextCalls += 1;
       return { exportData: exportData(marker, downloads) };
@@ -140,7 +152,7 @@ test("calls getBackupContext for every export action and uses the latest render 
   assert.equal(downloads[1].content.includes("second-snapshot"), true);
 });
 
-test("resolves separate current contexts for preview and confirmed import", async () => {
+contractTest("resolves separate current contexts for preview and confirmed import", async createBackupModal => {
   const rawBackup = { schema: "nutrition-tracker-account-backup", version: 3, data: { "notes_2026-07-16": "original" } };
   const getterCalls = [];
   const imported = [];
@@ -161,7 +173,7 @@ test("resolves separate current contexts for preview and confirmed import", asyn
       }
     }
   ];
-  const fixture = createFixture({
+  const fixture = createFixture(createBackupModal, {
     getBackupContext() {
       const index = getterCalls.length;
       getterCalls.push(index);
@@ -192,10 +204,10 @@ test("resolves separate current contexts for preview and confirmed import", asyn
   }]);
 });
 
-test("preserves empty-file behavior by previewing an empty object", async () => {
+contractTest("preserves empty-file behavior by previewing an empty object", async createBackupModal => {
   let previewed;
   let contextCalls = 0;
-  const fixture = createFixture({
+  const fixture = createFixture(createBackupModal, {
     getBackupContext() {
       contextCalls += 1;
       return {
@@ -219,9 +231,9 @@ test("preserves empty-file behavior by previewing an empty object", async () => 
   assert.equal(target.value, "");
 });
 
-test("preserves malformed-JSON behavior without reaching the preview bridge", async () => {
+contractTest("preserves malformed-JSON behavior without reaching the preview bridge", async createBackupModal => {
   let contextCalls = 0;
-  const fixture = createFixture({
+  const fixture = createFixture(createBackupModal, {
     getBackupContext() {
       contextCalls += 1;
       return {};
