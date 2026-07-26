@@ -15,8 +15,6 @@ const baselineRuntimeFiles = [
   'privacy-panel.js',
   'required-profile-modal.js',
   'tutorial-overlay.js',
-  'saved-meal-card.js',
-  'body-metrics-charts.js',
   'week-screen.js',
   'metrics-screen.js',
   'pantry-screen.js',
