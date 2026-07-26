@@ -38,11 +38,23 @@ jobs:
         run: npx playwright install chromium
 
       - name: Run the complete verification suite
+        shell: pwsh
         env:
           NUTRITION_TEST_EMAIL: ${{ secrets.NUTRITION_TEST_EMAIL }}
           NUTRITION_TEST_PASSWORD: ${{ secrets.NUTRITION_TEST_PASSWORD }}
           SMOKE_SERVER_IDLE_MS: 120000
-        run: npm test
+        run: |
+          & pwsh -NoProfile -File scripts/preflight-release.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & npm.cmd run test:unit
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & npm.cmd run test:smoke
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & npm.cmd run test:cutover
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload failure diagnostics
         if: failure()
