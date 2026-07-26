@@ -65,3 +65,16 @@ test('rejects a build missing an explicitly required runtime', (t) => {
     /missing required output: firebase-storage\.js/,
   );
 });
+
+test('rejects vendored React runtimes from the Vite artifact', (t) => {
+  const directory = createValidBuildFixture();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const vendoredRuntime = path.join(directory, 'vendor', 'react.production.min.js');
+  fs.mkdirSync(path.dirname(vendoredRuntime), { recursive: true });
+  fs.writeFileSync(vendoredRuntime, '');
+
+  assert.throws(
+    () => verifyBuildDirectory(directory),
+    /file is outside the build allowlist: vendor\/react\.production\.min\.js/,
+  );
+});

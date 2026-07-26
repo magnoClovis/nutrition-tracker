@@ -234,67 +234,7 @@
     return false;
   };
   </script>
-  <!-- Third-party bundles live in vendor/ so index.html stays readable; do not edit minified vendor files manually. -->
-  <script vite-ignore src="vendor/react.production.min.js"></script>
-  <script vite-ignore src="vendor/react-dom.production.min.js"></script>
-  <script vite-ignore src="vendor/prop-types.min.js"></script>
-  <script vite-ignore src="vendor/recharts.min.js"></script>
-
-  <!-- App scripts are split by responsibility: persistence adapter first, UI/application second. -->
-  <script vite-ignore src="firebase-config-internal.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="firebase-auth-internal.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="firebase-firestore-internal.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="firebase-migration-internal.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="firebase-backup-internal.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="firebase-account-data-internal.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="firebase-storage.js?v=0.8.1-beta-20260718-account-data-internal-1"></script>
-  <script vite-ignore src="meal-score.js?v=0.8.1-beta-20260713"></script>
-  <script vite-ignore src="i18n.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="settings-panel.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="backup-modal.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="verify-email-screen.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="open-food-facts.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="barcode-scanner.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="groq-client.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="meal-review-ai.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="food-autofill-ai.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="dish-description-ai.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="diary-ticker.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="date-utils.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="hydration-guard.js?v=0.8.1-beta-20260722"></script>
-  <script vite-ignore src="autosave-scheduler.js?v=0.8.1-beta-20260722"></script>
-  <script vite-ignore src="calendar-model.js?v=0.8.1-beta-20260722"></script>
-  <script vite-ignore src="food-entry.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="meal-ga.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="goal-calculator.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="daily-nutrition-model.js?v=0.8.1-beta-20260722"></script>
-  <script vite-ignore src="recent-meals-model.js?v=0.8.1-beta-20260722"></script>
-  <script vite-ignore src="body-metrics-model.js?v=0.8.1-beta-20260722"></script>
-  <script vite-ignore src="historical-goals-model.js?v=0.8.1-beta-20260722"></script>
-  <script vite-ignore src="week-aggregator.js?v=0.8.1-beta-20260722"></script>
-  <script vite-ignore src="history-loaders.js?v=0.8.1-beta-20260722"></script>
-  <script vite-ignore src="nutrition-feedback-ai.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="eating-patterns-ai.js?v=0.8.1-beta-20260718"></script>
-  <script vite-ignore src="profile-validation.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="login-screen.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="privacy-panel.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="required-profile-modal.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="ui-primitives.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="release-notice.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="tutorial-overlay.js?v=0.8.1-beta-20260716"></script>
-  <script vite-ignore src="visual-update-notice.js?v=0.8.1-beta-20260723"></script>
-  <script vite-ignore src="meal-review-modal.js?v=0.8.1-beta-20260723"></script>
-  <script vite-ignore src="ga-result-card.js?v=0.8.1-beta-20260723"></script>
-  <script vite-ignore src="saved-meal-card.js?v=0.8.1-beta-20260723"></script>
-  <script vite-ignore src="body-metrics-charts.js?v=0.8.1-beta-20260723"></script>
-  <script vite-ignore src="week-screen.js?v=0.8.1-beta-20260723"></script>
-  <script vite-ignore src="metrics-screen.js?v=0.8.1-beta-20260723"></script>
-  <script vite-ignore src="pantry-screen.js?v=0.8.1-beta-20260723"></script>
-  <script vite-ignore src="add-screen.js?v=0.8.1-beta-20260723"></script>
-  <script vite-ignore src="diary-screen.js?v=0.8.1-beta-20260723"></script>
-  <script vite-ignore src="app-header-navigation.js?v=0.8.1-beta-20260725"></script>
-  <script vite-ignore src="nutrition-tracker-controller.js?v=0.8.1-beta-20260725"></script>
-  <script vite-ignore src="app.js?v=0.8.1-beta-20260725-nutrition-tracker-controller-1"></script>
+  <!-- The Vite entry installs npm runtimes, then loads the unchanged UMD app in its current order. -->
   <script type="module" src="/src/vite-baseline.js"></script>
 </body>
 </html>
