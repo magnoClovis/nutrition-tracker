@@ -58,11 +58,11 @@ test('rejects known personal-data export names even inside assets', (t) => {
 test('rejects a build missing an explicitly required runtime', (t) => {
   const directory = createValidBuildFixture();
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
-  fs.rmSync(path.join(directory, 'nutrition-tracker-controller.js'));
+  fs.rmSync(path.join(directory, 'app.js'));
 
   assert.throws(
     () => verifyBuildDirectory(directory),
-    /missing required output: nutrition-tracker-controller\.js/,
+    /missing required output: app\.js/,
   );
 });
 
@@ -186,5 +186,16 @@ test('rejects converted React navigation-screen UMD files from the Vite artifact
   assert.throws(
     () => verifyBuildDirectory(directory),
     /file is outside the build allowlist: diary-screen\.js/,
+  );
+});
+
+test('rejects the converted NutritionTracker controller UMD file from the Vite artifact', (t) => {
+  const directory = createValidBuildFixture();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(directory, 'nutrition-tracker-controller.js'), '');
+
+  assert.throws(
+    () => verifyBuildDirectory(directory),
+    /file is outside the build allowlist: nutrition-tracker-controller\.js/,
   );
 });

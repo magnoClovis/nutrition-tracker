@@ -8,7 +8,6 @@ const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 const outputDirectory = resolve(projectRoot, 'dist-vite');
 
 const baselineRuntimeFiles = [
-  'nutrition-tracker-controller.js',
   'app.js',
 ];
 
