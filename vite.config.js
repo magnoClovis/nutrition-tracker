@@ -1,16 +1,13 @@
 import { copyFile, mkdir, rename } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 const outputDirectory = resolve(projectRoot, 'dist-vite');
 
 const baselineRuntimeFiles = [
-  'vendor/react.production.min.js',
-  'vendor/react-dom.production.min.js',
-  'vendor/prop-types.min.js',
-  'vendor/recharts.min.js',
   'firebase-config-internal.js',
   'firebase-auth-internal.js',
   'firebase-firestore-internal.js',
@@ -95,7 +92,7 @@ function preserveExplicitBaselineRuntime() {
 
 export default defineConfig({
   base: './',
-  plugins: [preserveExplicitBaselineRuntime()],
+  plugins: [react(), preserveExplicitBaselineRuntime()],
   build: {
     outDir: outputDirectory,
     emptyOutDir: true,

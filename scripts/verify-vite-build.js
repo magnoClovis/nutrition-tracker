@@ -4,10 +4,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const BASELINE_RUNTIME_FILES = [
-  'vendor/react.production.min.js',
-  'vendor/react-dom.production.min.js',
-  'vendor/prop-types.min.js',
-  'vendor/recharts.min.js',
   'firebase-config-internal.js',
   'firebase-auth-internal.js',
   'firebase-firestore-internal.js',
