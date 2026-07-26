@@ -3,7 +3,10 @@ const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
 const { createDateUtils } = require("../../date-utils.js");
-const { createAddScreen } = require("../../add-screen.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../add-screen.js"))],
+  ["ESM", () => import("../../src/components/add-screen.js")]
+];
 
 const { pickLang, normalizeLanguage, localeForLang } = createI18n();
 const { quickQtys, divisor } = createDateUtils({
@@ -11,8 +14,6 @@ const { quickQtys, divisor } = createDateUtils({
   pickLang,
   localeForLang
 });
-const { AddScreen } = createAddScreen({ React, pickLang, quickQtys, divisor });
-
 const labels = {
   repeatRecent: "Recent meals",
   today: "Today",
@@ -163,7 +164,17 @@ function baseProps(overrides = {}) {
   };
 }
 
-test("renders staged meal assembly and invokes its controlled callbacks", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createAddScreen } = await load();
+      const { AddScreen } = createAddScreen({ React, pickLang, quickQtys, divisor });
+      return callback(AddScreen);
+    });
+  });
+}
+
+contractTest("renders staged meal assembly and invokes its controlled callbacks", AddScreen => {
   let committed = 0;
   let evaluated = 0;
   let removed = null;
@@ -189,7 +200,7 @@ test("renders staged meal assembly and invokes its controlled callbacks", () => 
   assert.equal(removed, 0);
 });
 
-test("passes saved-template state and loading callback to SavedMealCard", () => {
+contractTest("passes saved-template state and loading callback to SavedMealCard", AddScreen => {
   const template = { id: "template-1", name: "Workout meal", items: [] };
   let loaded = null;
   const view = AddScreen(baseProps({
@@ -205,7 +216,7 @@ test("passes saved-template state and loading callback to SavedMealCard", () => 
   assert.equal(loaded, template);
 });
 
-test("renders dish-description loading/result states and delegates actions", () => {
+contractTest("renders dish-description loading/result states and delegates actions", AddScreen => {
   let estimated = 0;
   let registered = 0;
   let reviewed = 0;
@@ -252,7 +263,7 @@ test("renders dish-description loading/result states and delegates actions", () 
   assert.doesNotMatch(textContent(neutralAfterError), /Estimated plate|Approximate/);
 });
 
-test("keeps active GA absent and places the legacy transfer panel as an opaque node", () => {
+contractTest("keeps active GA absent and places the legacy transfer panel as an opaque node", AddScreen => {
   function GaResultCard() {
     return React.createElement("div", null, "active-ga-result");
   }
@@ -268,7 +279,7 @@ test("keeps active GA absent and places the legacy transfer panel as an opaque n
   assert.doesNotMatch(textContent(view), /active-ga-result|Should not render/);
 });
 
-test("recent meals and header remain controlled sections", () => {
+contractTest("recent meals and header remain controlled sections", AddScreen => {
   let toggled = 0;
   let loaded = null;
   let closed = 0;

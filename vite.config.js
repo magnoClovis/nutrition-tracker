@@ -8,10 +8,6 @@ const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 const outputDirectory = resolve(projectRoot, 'dist-vite');
 
 const baselineRuntimeFiles = [
-  'tutorial-overlay.js',
-  'add-screen.js',
-  'diary-screen.js',
-  'app-header-navigation.js',
   'nutrition-tracker-controller.js',
   'app.js',
 ];

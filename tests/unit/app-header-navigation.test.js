@@ -1,9 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
-const { createAppHeaderNavigation } = require("../../app-header-navigation.js");
-
-const { AppHeaderNavigation } = createAppHeaderNavigation({ React });
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../app-header-navigation.js"))],
+  ["ESM", () => import("../../src/components/app-header-navigation.js")]
+];
 
 function visit(node, callback) {
   if (!node || typeof node !== "object") return;
@@ -85,7 +86,17 @@ function baseProps(overrides = {}) {
   };
 }
 
-test("renders the diary header, status controls, summary, and one primary navigation", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createAppHeaderNavigation } = await load();
+      const { AppHeaderNavigation } = createAppHeaderNavigation({ React });
+      return callback(AppHeaderNavigation);
+    });
+  });
+}
+
+contractTest("renders the diary header, status controls, summary, and one primary navigation", AppHeaderNavigation => {
   let dayToggles = 0;
   let metricsOpens = 0;
   const openedTabs = [];
@@ -116,7 +127,7 @@ test("renders the diary header, status controls, summary, and one primary naviga
   assert.deepEqual(openedTabs, ["semana"]);
 });
 
-test("keeps both ephemeral menu states controlled and delegates resolved actions", () => {
+contractTest("keeps both ephemeral menu states controlled and delegates resolved actions", AppHeaderNavigation => {
   const events = [];
   const view = AppHeaderNavigation(baseProps({
     menuOpen: true,
@@ -151,7 +162,7 @@ test("keeps both ephemeral menu states controlled and delegates resolved actions
   ]);
 });
 
-test("renders non-diary progress, notifications, and the alternate navigation placement", () => {
+contractTest("renders non-diary progress, notifications, and the alternate navigation placement", AppHeaderNavigation => {
   const view = AppHeaderNavigation(baseProps({
     activeTab: "metricas",
     isMobileView: true,
@@ -172,7 +183,7 @@ test("renders non-diary progress, notifications, and the alternate navigation pl
   assert.equal(findNodes(view, node => node.type === "button" && node.props.title === "Open metrics").length, 0);
 });
 
-test("keeps Add as a pseudo-tab absent from the primary navigation", () => {
+contractTest("keeps Add as a pseudo-tab absent from the primary navigation", AppHeaderNavigation => {
   const view = AppHeaderNavigation(baseProps({ activeTab: "adicionar" }));
   const tabButtons = findNodes(view, node => node.props && String(node.props["data-tutorial"] || "").startsWith("tab-"));
 
