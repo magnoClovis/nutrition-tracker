@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createI18n } = require("../../i18n.js");
-const { createDishDescriptionAI } = require("../../dish-description-ai.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../dish-description-ai.js"))],
+  ["ESM", () => import("../../src/composite/dish-description-ai.js")]
+];
 
 const { normalizeLanguage } = createI18n();
 const languageInstructions = {
@@ -10,7 +13,7 @@ const languageInstructions = {
   es: "\nResponde en español.\n"
 };
 
-function createFixture(aiResponses = [], entryIds = ["entry-1"]) {
+function createFixture(createDishDescriptionAI, aiResponses = [], entryIds = ["entry-1"]) {
   const calls = [];
   const responseQueue = [...aiResponses];
   const idQueue = [...entryIds];
@@ -33,7 +36,23 @@ function createFixture(aiResponses = [], entryIds = ["entry-1"]) {
   };
 }
 
-test("estimates a dish with the exact token limit and builds the historical diary entry", async () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createDishDescriptionAI } = await load();
+      return callback({
+        createDishDescriptionAI,
+        createFixture: (responses, entryIds) => createFixture(
+          createDishDescriptionAI,
+          responses,
+          entryIds
+        )
+      });
+    });
+  });
+}
+
+contractTest("estimates a dish with the exact token limit and builds the historical diary entry", async ({ createFixture }) => {
   const fixture = createFixture([
     '```json\n{"name":"Frango com arroz","protein":42,"kcal":610,"carbs":68,"fat":18,"fiber":7,"salt":1.4,"confidence":"alta","note":"estimativa"}\n```'
   ], ["17000000000000.25"]);
@@ -73,7 +92,7 @@ test("estimates a dish with the exact token limit and builds the historical diar
   });
 });
 
-test("keeps the localized English and Spanish prompt contracts", async () => {
+contractTest("keeps the localized English and Spanish prompt contracts", async ({ createFixture }) => {
   const fixture = createFixture(["{}", "{}"]);
   const cases = [
     {
@@ -97,7 +116,7 @@ test("keeps the localized English and Spanish prompt contracts", async () => {
   }
 });
 
-test("returns an empty-description result without calling the AI", async () => {
+contractTest("returns an empty-description result without calling the AI", async ({ createFixture }) => {
   const fixture = createFixture();
   assert.deepEqual(
     await fixture.api.requestDishEstimate({ description: "   ", lang: "pt" }),
@@ -106,7 +125,7 @@ test("returns an empty-description result without calling the AI", async () => {
   assert.equal(fixture.calls.length, 0);
 });
 
-test("propagates Groq and malformed-JSON errors for the localized React warning", async () => {
+contractTest("propagates Groq and malformed-JSON errors for the localized React warning", async ({ createFixture }) => {
   const networkError = new TypeError("network unavailable");
   const fixture = createFixture([networkError, "```json\nnot-json\n```"]);
 
@@ -120,7 +139,7 @@ test("propagates Groq and malformed-JSON errors for the localized React warning"
   );
 });
 
-test("uses zero for every missing nutrient without adding time or foodSnapshot", () => {
+contractTest("uses zero for every missing nutrient without adding time or foodSnapshot", ({ createFixture }) => {
   const fixture = createFixture([], ["entry-missing"]);
   const entry = fixture.api.buildDescribedEntry({
     estimate: { name: "", protein: null, kcal: undefined, carbs: "", fat: 0 },
@@ -148,7 +167,7 @@ test("uses zero for every missing nutrient without adding time or foodSnapshot",
   assert.equal("foodSnapshot" in entry, false);
 });
 
-test("returns undefined without consuming an ID when no estimate exists", () => {
+contractTest("returns undefined without consuming an ID when no estimate exists", ({ createDishDescriptionAI }) => {
   let idCalls = 0;
   const api = createDishDescriptionAI({
     callAI: async () => "{}",

@@ -1,6 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createHistoryLoaders } = require("../../history-loaders.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../history-loaders.js"))],
+  ["ESM", () => import("../../src/composite/history-loaders.js")]
+];
 
 function deferred() {
   let resolve;
@@ -27,7 +30,16 @@ function baseDependencies(overrides = {}) {
   };
 }
 
-test("reads historical log and note in parallel and returns normalized data without setters", async () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createHistoryLoaders } = await load();
+      return callback(createHistoryLoaders);
+    });
+  });
+}
+
+contractTest("reads historical log and note in parallel and returns normalized data without setters", async createHistoryLoaders => {
   const logRead = deferred();
   const noteRead = deferred();
   const calls = [];
@@ -56,7 +68,7 @@ test("reads historical log and note in parallel and returns normalized data with
   assert.equal(setterCalls, 0);
 });
 
-test("returns a neutral TODAY result without reading storage", async () => {
+contractTest("returns a neutral TODAY result without reading storage", async createHistoryLoaders => {
   let reads = 0;
   const { loadHistoricalDate } = createHistoryLoaders(baseDependencies({
     storage: { get: async () => { reads++; return null; } }
@@ -69,7 +81,7 @@ test("returns a neutral TODAY result without reading storage", async () => {
   assert.equal(reads, 0);
 });
 
-test("keeps invalid historical JSON as a rejected loader promise", async () => {
+contractTest("keeps invalid historical JSON as a rejected loader promise", async createHistoryLoaders => {
   const { loadHistoricalDate } = createHistoryLoaders(baseDependencies({
     storage: {
       get: async key => key.startsWith("log_") ? { value: "{" } : { value: "note" }
@@ -82,7 +94,7 @@ test("keeps invalid historical JSON as a rejected loader promise", async () => {
   );
 });
 
-test("reads weekly history sequentially with a fresh Date per iteration", async () => {
+contractTest("reads weekly history sequentially with a fresh Date per iteration", async createHistoryLoaders => {
   let activeReads = 0;
   let maxActiveReads = 0;
   let dateCreations = 0;
@@ -128,7 +140,7 @@ test("reads weekly history sequentially with a fresh Date per iteration", async 
   assert.strictEqual(aggregateInput.goalContext, goalContext);
 });
 
-test("reads 30 meal-analysis days sequentially without normalizing meal keys", async () => {
+contractTest("reads 30 meal-analysis days sequentially without normalizing meal keys", async createHistoryLoaders => {
   let activeReads = 0;
   let maxActiveReads = 0;
   let normalizeCalls = 0;
@@ -163,7 +175,7 @@ test("reads 30 meal-analysis days sequentially without normalizing meal keys", a
   });
 });
 
-test("keeps invalid weekly and meal JSON as rejected promises", async () => {
+contractTest("keeps invalid weekly and meal JSON as rejected promises", async createHistoryLoaders => {
   const dependencies = baseDependencies({
     storage: { get: async () => ({ value: "{" }) }
   });
@@ -176,7 +188,7 @@ test("keeps invalid weekly and meal JSON as rejected promises", async () => {
   await assert.rejects(loadMealAnalysisData({ mealKeys: [] }), SyntaxError);
 });
 
-test("loads calendar days in parallel and keeps present, missing, invalid, and TODAY markers distinct only by input", async () => {
+contractTest("loads calendar days in parallel and keeps present, missing, invalid, and TODAY markers distinct only by input", async createHistoryLoaders => {
   const reads = new Map();
   const warnings = [];
   const goalCalls = [];
@@ -243,7 +255,7 @@ test("loads calendar days in parallel and keeps present, missing, invalid, and T
   assert.deepEqual(goalCalls.find(call => call.date === "2026-07-01").frozenGoal, { protein: 90 });
 });
 
-test("publishes the UMD factory and requires every loader dependency", () => {
+contractTest("publishes the factory and requires every loader dependency", createHistoryLoaders => {
   assert.equal(typeof createHistoryLoaders, "function");
   assert.throws(
     () => createHistoryLoaders(baseDependencies({ createDate: null })),

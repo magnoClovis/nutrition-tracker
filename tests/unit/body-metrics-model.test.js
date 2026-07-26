@@ -3,18 +3,33 @@ const assert = require("node:assert/strict");
 const { createI18n } = require("../../i18n.js");
 const { createDateUtils } = require("../../date-utils.js");
 const { createGoalCalculator } = require("../../goal-calculator.js");
-const { createBodyMetricsModel } = require("../../body-metrics-model.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../body-metrics-model.js"))],
+  ["ESM", () => import("../../src/composite/body-metrics-model.js")]
+];
 
 const { normalizeLanguage, pickLang, localeForLang } = createI18n();
 const { formatDateDM } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
 const { computeGoals } = createGoalCalculator();
 
-function createModel(overrides = {}) {
+function createModel(createBodyMetricsModel, overrides = {}) {
   return createBodyMetricsModel({
     computeGoals,
     formatDateDM,
     createMeasurementId: () => "generated-id",
     ...overrides
+  });
+}
+
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createBodyMetricsModel } = await load();
+      return callback({
+        createBodyMetricsModel,
+        createModel: overrides => createModel(createBodyMetricsModel, overrides)
+      });
+    });
   });
 }
 
@@ -44,7 +59,7 @@ function baseSnapshot(overrides = {}) {
   };
 }
 
-test("resolves the latest lexical measurement on or before a date", () => {
+contractTest("resolves the latest lexical measurement on or before a date", ({ createModel }) => {
   const { getWeightForDate } = createModel();
   const history = [
     { date: "2024-02-10", weight: 80 },
@@ -57,7 +72,7 @@ test("resolves the latest lexical measurement on or before a date", () => {
   assert.throws(() => getWeightForDate(undefined, "2024-02-01"), TypeError);
 });
 
-test("parses optional numbers while preserving zero and parseFloat behavior", () => {
+contractTest("parses optional numbers while preserving zero and parseFloat behavior", ({ createModel }) => {
   const { optionalNumber } = createModel();
   assert.equal(optionalNumber(""), null);
   assert.equal(optionalNumber(null), null);
@@ -68,7 +83,7 @@ test("parses optional numbers while preserving zero and parseFloat behavior", ()
   assert.equal(optionalNumber(0), 0);
 });
 
-test("upserts new and existing measurements with the exact ID priority", () => {
+contractTest("upserts new and existing measurements with the exact ID priority", ({ createModel }) => {
   let nextId = 0;
   const { upsertWeightEntry } = createModel({
     createMeasurementId: () => `generated-${++nextId}`
@@ -92,7 +107,7 @@ test("upserts new and existing measurements with the exact ID priority", () => {
   assert.equal(moved[1].weight, 78);
 });
 
-test("normalizes duplicate dates with the later fields and earlier ID", () => {
+contractTest("normalizes duplicate dates with the later fields and earlier ID", ({ createModel }) => {
   const { normalizeWeightHistory } = createModel();
   const normalized = normalizeWeightHistory([
     { id: "first-id", date: "2024-02-02", weight: 80, height: 180 },
@@ -107,7 +122,7 @@ test("normalizes duplicate dates with the later fields and earlier ID", () => {
   assert.deepEqual(normalizeWeightHistory(null), []);
 });
 
-test("calculates dated BMR with the production goal calculator and fallbacks", () => {
+contractTest("calculates dated BMR with the production goal calculator and fallbacks", ({ createModel }) => {
   const { calculateBmrForMeasurement } = createModel();
   const context = baseSnapshot();
   const measurementContext = {
@@ -130,7 +145,7 @@ test("calculates dated BMR with the production goal calculator and fallbacks", (
   assert.equal(calculateBmrForMeasurement(null, measurementContext), null);
 });
 
-test("builds weekly averages, calorie bank, deficit and adherence exactly", () => {
+contractTest("builds weekly averages, calorie bank, deficit and adherence exactly", ({ createModel }) => {
   const { buildBodyMetricsModel } = createModel();
   const model = buildBodyMetricsModel(baseSnapshot({
     weekData: [
@@ -165,7 +180,7 @@ test("builds weekly averages, calorie bank, deficit and adherence exactly", () =
   });
 });
 
-test("uses records rather than days for the 7/14 weight windows", () => {
+contractTest("uses records rather than days for the 7/14 weight windows", ({ createModel }) => {
   const { buildBodyMetricsModel } = createModel();
   const weightHistory = Array.from({ length: 15 }, (_, index) => ({
     id: String(index + 1),
@@ -187,7 +202,7 @@ test("uses records rather than days for the 7/14 weight windows", () => {
   assert.equal(insufficient.weightTrend.hasEnough, false);
 });
 
-test("uses only the last six valid fat measurements and requires three", () => {
+contractTest("uses only the last six valid fat measurements and requires three", ({ createModel }) => {
   const { buildBodyMetricsModel } = createModel();
   const bodyFatValues = [50, 29, 28, 27, 26, 25, 24];
   const weightHistory = bodyFatValues.map((bodyFatPct, index) => ({
@@ -212,7 +227,7 @@ test("uses only the last six valid fat measurements and requires three", () => {
   assert.equal(insufficient.bodyComposition.hasEnoughFatTrend, false);
 });
 
-test("preserves every field-specific zero-as-absence rule", () => {
+contractTest("preserves every field-specific zero-as-absence rule", ({ createModel }) => {
   const { buildBodyMetricsModel } = createModel({ computeGoals: () => ({ bmr: 0 }) });
   const model = buildBodyMetricsModel(baseSnapshot({
     weightHistory: [
@@ -242,7 +257,7 @@ test("preserves every field-specific zero-as-absence rule", () => {
   assert.deepEqual(model.chartSeries.bmr, []);
 });
 
-test("preserves six render-time normalization passes and ID generations", () => {
+contractTest("preserves six render-time normalization passes and ID generations", ({ createModel }) => {
   let generated = 0;
   const { buildBodyMetricsModel } = createModel({
     computeGoals: weight => ({ bmr: Number(weight) * 10 }),

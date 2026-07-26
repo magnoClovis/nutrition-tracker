@@ -2,7 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createI18n } = require("../../i18n.js");
 const { createGoalCalculator } = require("../../goal-calculator.js");
-const { createNutritionFeedbackAI } = require("../../nutrition-feedback-ai.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../nutrition-feedback-ai.js"))],
+  ["ESM", () => import("../../src/composite/nutrition-feedback-ai.js")]
+];
 
 const { normalizeLanguage, pickLang } = createI18n();
 const { ACTIVITY_LEVELS, calculateAge } = createGoalCalculator();
@@ -89,7 +92,7 @@ function baseSnapshot(overrides = {}) {
   };
 }
 
-function createFixture(responses = ["feedback"]) {
+function createFixture(createNutritionFeedbackAI, responses = ["feedback"]) {
   const calls = [];
   const queue = [...responses];
   const api = createNutritionFeedbackAI({
@@ -107,7 +110,16 @@ function createFixture(responses = ["feedback"]) {
   return { api, calls };
 }
 
-test("builds the Portuguese daily prompt from the explicit snapshot", async () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createNutritionFeedbackAI } = await load();
+      return callback(responses => createFixture(createNutritionFeedbackAI, responses));
+    });
+  });
+}
+
+contractTest("builds the Portuguese daily prompt from the explicit snapshot", async createFixture => {
   const fixture = createFixture(["texto gerado"]);
   const result = await fixture.api.generateNutritionFeedback(baseSnapshot());
 
@@ -122,7 +134,7 @@ test("builds the Portuguese daily prompt from the explicit snapshot", async () =
   assert.ok(fixture.calls[0].prompt.includes("Calorias: 451kcal (23% da meta)"));
 });
 
-test("keeps the Spanish activity-description quirk and factor fallback", async () => {
+contractTest("keeps the Spanish activity-description quirk and factor fallback", async createFixture => {
   const fixture = createFixture();
   const snapshot = baseSnapshot({
     lang: "es",
@@ -141,7 +153,7 @@ test("keeps the Spanish activity-description quirk and factor fallback", async (
   assert.ok(prompt.includes("Fecha: 2026-07-18 | DÍA DE DESCANSO"));
 });
 
-test("uses an explicit activity factor and builds the English weekly prompt", async () => {
+contractTest("uses an explicit activity factor and builds the English weekly prompt", async createFixture => {
   const fixture = createFixture();
   const snapshot = baseSnapshot({
     type: "week",
@@ -193,7 +205,7 @@ test("uses an explicit activity factor and builds the English weekly prompt", as
   assert.ok(prompt.includes("Days that hit the protein target: 1/2"));
 });
 
-test("returns the neutral no-week-data status without calling Groq", async () => {
+contractTest("returns the neutral no-week-data status without calling Groq", async createFixture => {
   const fixture = createFixture();
   const result = await fixture.api.generateNutritionFeedback(baseSnapshot({
     type: "week",
@@ -204,7 +216,7 @@ test("returns the neutral no-week-data status without calling Groq", async () =>
   assert.equal(fixture.calls.length, 0);
 });
 
-test("propagates Groq errors for the unchanged localized React handler", async () => {
+contractTest("propagates Groq errors for the unchanged localized React handler", async createFixture => {
   const groqError = new Error("provider unavailable");
   const fixture = createFixture([groqError]);
 

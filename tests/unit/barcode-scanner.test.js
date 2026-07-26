@@ -1,9 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const {
-  createBarcodeScanner,
-  ZXING_CDN_URLS
-} = require("../../barcode-scanner.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../barcode-scanner.js"))],
+  ["ESM", () => import("../../src/composite/barcode-scanner.js")]
+];
 
 const MESSAGES = {
   loadingCompatible: "loading-compatible",
@@ -13,7 +13,7 @@ const MESSAGES = {
   startFailed: "start-failed"
 };
 
-function createFixture(overrides = {}) {
+function createFixture(createBarcodeScanner, overrides = {}) {
   const timers = [];
   const frames = [];
   const messages = [];
@@ -95,11 +95,23 @@ function createFixture(overrides = {}) {
   return fixture;
 }
 
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const api = await load();
+      return callback({
+        ZXING_CDN_URLS: api.ZXING_CDN_URLS,
+        createFixture: overrides => createFixture(api.createBarcodeScanner, overrides)
+      });
+    });
+  });
+}
+
 async function flushAsyncWork() {
   await new Promise(resolve => setImmediate(resolve));
 }
 
-test("detects through native BarcodeDetector with the exact formats and camera constraints", async () => {
+contractTest("detects through native BarcodeDetector with the exact formats and camera constraints", async ({ createFixture }) => {
   let detectorOptions;
   const fixture = createFixture({
     windowObject: {
@@ -130,7 +142,7 @@ test("detects through native BarcodeDetector with the exact formats and camera c
   assert.equal(fixture.frames.length, 0);
 });
 
-test("uses the ZXing fallback when BarcodeDetector is absent", async () => {
+contractTest("uses the ZXing fallback when BarcodeDetector is absent", async ({ createFixture }) => {
   let decodeCalls = 0;
   class Reader {
     async decodeOnceFromVideoDevice(deviceId, video) {
@@ -158,7 +170,7 @@ test("uses the ZXing fallback when BarcodeDetector is absent", async () => {
   assert.deepEqual(fixture.lookups, ["4006381333931"]);
 });
 
-test("tries all four ZXing CDNs in order and rejects when none load", async () => {
+contractTest("tries all four ZXing CDNs in order and rejects when none load", async ({ createFixture, ZXING_CDN_URLS }) => {
   const fixture = createFixture({
     onAppendScript(script) {
       script.onerror();
@@ -174,7 +186,7 @@ test("tries all four ZXing CDNs in order and rejects when none load", async () =
   assert.equal(fixture.scripts.length, 4);
 });
 
-test("preserves the ZXingBrowser short-circuit even when window.ZXing is usable", async () => {
+contractTest("preserves the ZXingBrowser short-circuit even when window.ZXing is usable", async ({ createFixture, ZXING_CDN_URLS }) => {
   class ValidReader {}
   const fixture = createFixture({
     windowObject: {
@@ -193,7 +205,7 @@ test("preserves the ZXingBrowser short-circuit even when window.ZXing is usable"
   assert.deepEqual(fixture.scripts.map(script => script.src), ZXING_CDN_URLS);
 });
 
-test("leaves the native stream and active flags untouched when video is absent after timeout zero", async () => {
+contractTest("leaves the native stream and active flags untouched when video is absent after timeout zero", async ({ createFixture }) => {
   const fixture = createFixture({
     video: null,
     windowObject: {
@@ -213,7 +225,7 @@ test("leaves the native stream and active flags untouched when video is absent a
   assert.equal(fixture.frames.length, 0);
 });
 
-test("does not fall back to ZXing when the native constructor fails", async () => {
+contractTest("does not fall back to ZXing when the native constructor fails", async ({ createFixture }) => {
   let fallbackReaderConstructions = 0;
   class FallbackReader {
     constructor() { fallbackReaderConstructions += 1; }
@@ -234,7 +246,7 @@ test("does not fall back to ZXing when the native constructor fails", async () =
   assert.equal(fixture.scanning.at(-1), false);
 });
 
-test("manual stop ends controls, reader and tracks without clearing reader or video srcObject", () => {
+contractTest("manual stop ends controls, reader and tracks without clearing reader or video srcObject", ({ createFixture }) => {
   const calls = [];
   const video = { srcObject: { existing: true } };
   const reader = { reset: () => calls.push("reset") };

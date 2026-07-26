@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createGoalCalculator } = require("../../goal-calculator.js");
-const { createProfileValidation } = require("../../profile-validation.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../profile-validation.js"))],
+  ["ESM", () => import("../../src/composite/profile-validation.js")]
+];
 
 const { ACTIVITY_LEVELS } = createGoalCalculator();
 
@@ -13,8 +16,17 @@ function createStorage(values = {}) {
   };
 }
 
-function createApi(values = {}) {
+function createApi(createProfileValidation, values = {}) {
   return createProfileValidation({ storage: createStorage(values), activityLevels: ACTIVITY_LEVELS });
+}
+
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createProfileValidation } = await load();
+      return callback(values => createApi(createProfileValidation, values));
+    });
+  });
 }
 
 function localDateString(date) {
@@ -24,7 +36,7 @@ function localDateString(date) {
   return `${year}-${month}-${day}`;
 }
 
-test("validates birth-date boundaries using the current local date", () => {
+contractTest("validates birth-date boundaries using the current local date", createApi => {
   const { isValidBirthDate } = createApi();
   const today = new Date();
   const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
@@ -37,7 +49,7 @@ test("validates birth-date boundaries using the current local date", () => {
   assert.equal(isValidBirthDate(""), false);
 });
 
-test("validates gender and the real goal-calculator activity levels", () => {
+contractTest("validates gender and the real goal-calculator activity levels", createApi => {
   const { isValidGender, isValidActivityLevel } = createApi();
 
   assert.equal(isValidGender("male"), true);
@@ -51,7 +63,7 @@ test("validates gender and the real goal-calculator activity levels", () => {
   assert.equal(isValidActivityLevel(), false);
 });
 
-test("validates maintenance, loss, and gain goal profiles", () => {
+contractTest("validates maintenance, loss, and gain goal profiles", createApi => {
   const { isValidGoalProfile } = createApi();
 
   assert.equal(isValidGoalProfile({ activityLevel: "moderate", goalType: "maintenance" }), true);
@@ -63,7 +75,7 @@ test("validates maintenance, loss, and gain goal profiles", () => {
   assert.equal(isValidGoalProfile(), false);
 });
 
-test("reads a complete profile and preserves the persisted/manual property-name distinction", async () => {
+contractTest("reads a complete profile and preserves the persisted/manual property-name distinction", async createApi => {
   const values = {
     birthDate: "1990-06-15",
     gender: "female",
@@ -89,7 +101,7 @@ test("reads a complete profile and preserves the persisted/manual property-name 
   assert.equal(hasRequiredProfileData(profile), true);
 });
 
-test("returns empty fallbacks for partial and empty persisted profiles", async () => {
+contractTest("returns empty fallbacks for partial and empty persisted profiles", async createApi => {
   const partialApi = createApi({ birthDate: "1990-06-15", gender: "male" });
   const partial = await partialApi.getRequiredProfileData();
   assert.deepEqual(partial, {

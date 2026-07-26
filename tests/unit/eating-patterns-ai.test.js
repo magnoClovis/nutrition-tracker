@@ -2,7 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createI18n } = require("../../i18n.js");
 const { createGoalCalculator } = require("../../goal-calculator.js");
-const { createEatingPatternsAI } = require("../../eating-patterns-ai.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../eating-patterns-ai.js"))],
+  ["ESM", () => import("../../src/composite/eating-patterns-ai.js")]
+];
 
 const { pickLang } = createI18n();
 const { computeGoals } = createGoalCalculator();
@@ -76,7 +79,7 @@ function baseSnapshot(overrides = {}) {
   };
 }
 
-function createFixture(responses = ["analysis"]) {
+function createFixture(createEatingPatternsAI, responses = ["analysis"]) {
   const calls = [];
   const queue = [...responses];
   const api = createEatingPatternsAI({
@@ -93,7 +96,16 @@ function createFixture(responses = ["analysis"]) {
   return { api, calls };
 }
 
-test("builds the Portuguese prompt from present logs while empty days remain absent", async () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createEatingPatternsAI } = await load();
+      return callback(responses => createFixture(createEatingPatternsAI, responses));
+    });
+  });
+}
+
+contractTest("builds the Portuguese prompt from present logs while empty days remain absent", async createFixture => {
   const fixture = createFixture(["padrões"]);
   const snapshot = baseSnapshot({
     days: [
@@ -113,7 +125,7 @@ test("builds the Portuguese prompt from present logs while empty days remain abs
   assert.ok(fixture.calls[0].prompt.includes("Peso atual: 71kg"));
 });
 
-test("preserves separate training and rest summaries in the English prompt", async () => {
+contractTest("preserves separate training and rest summaries in the English prompt", async createFixture => {
   const fixture = createFixture();
   const snapshot = baseSnapshot({ lang: "en" });
   await fixture.api.generateEatingPatterns(snapshot);
@@ -125,7 +137,7 @@ test("preserves separate training and rest summaries in the English prompt", asy
   assert.ok(prompt.includes("Protein range: min 100g, max 140g"));
 });
 
-test("uses default training and historical goals without normalizing meal keys", async () => {
+contractTest("uses default training and historical goals without normalizing meal keys", async createFixture => {
   const fixture = createFixture();
   const snapshot = baseSnapshot({
     lang: "es",
@@ -148,7 +160,7 @@ test("uses default training and historical goals without normalizing meal keys",
   assert.ok(prompt.includes("Días de entrenamiento (1): media 95g proteína, 1700 kcal"));
 });
 
-test("returns the neutral no-data result without calling Groq", async () => {
+contractTest("returns the neutral no-data result without calling Groq", async createFixture => {
   const fixture = createFixture();
   const empty = await fixture.api.generateEatingPatterns(baseSnapshot({ days: [] }));
   const onlyEmptyLogs = await fixture.api.generateEatingPatterns(baseSnapshot({
@@ -160,7 +172,7 @@ test("returns the neutral no-data result without calling Groq", async () => {
   assert.equal(fixture.calls.length, 0);
 });
 
-test("propagates Groq and malformed parsed-log failures to the React handler", async () => {
+contractTest("propagates Groq and malformed parsed-log failures to the React handler", async createFixture => {
   const groqError = new Error("provider unavailable");
   const groqFixture = createFixture([groqError]);
   await assert.rejects(

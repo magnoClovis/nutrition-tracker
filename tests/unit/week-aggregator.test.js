@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createI18n } = require("../../i18n.js");
-const { createWeekAggregator } = require("../../week-aggregator.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../week-aggregator.js"))],
+  ["ESM", () => import("../../src/composite/week-aggregator.js")]
+];
 
 const { MEAL_KEYS } = createI18n();
 
@@ -21,10 +24,22 @@ function goalResult(overrides = {}) {
   };
 }
 
-function createAggregator(resolveHistoricalGoals = () => goalResult()) {
+function createAggregator(createWeekAggregator, resolveHistoricalGoals = () => goalResult()) {
   return createWeekAggregator({
     resolveHistoricalGoals,
     formatDateDM: date => `label:${date}`
+  });
+}
+
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createWeekAggregator } = await load();
+      return callback({
+        createWeekAggregator,
+        createAggregator: resolver => createAggregator(createWeekAggregator, resolver)
+      });
+    });
   });
 }
 
@@ -51,7 +66,7 @@ function weekSnapshot(overrides = {}) {
   };
 }
 
-test("aggregates complete and missing week days with the existing rounding and goal rules", () => {
+contractTest("aggregates complete and missing week days with the existing rounding and goal rules", ({ createAggregator }) => {
   const calls = [];
   const { aggregateWeekRows } = createAggregator(snapshot => {
     calls.push(snapshot);
@@ -117,7 +132,7 @@ test("aggregates complete and missing week days with the existing rounding and g
   assert.deepEqual(calls[0].frozenGoal, { protein: 95 });
 });
 
-test("creates the special dashed segment only between yesterday and today", () => {
+contractTest("creates the special dashed segment only between yesterday and today", ({ createAggregator }) => {
   const { aggregateWeekRows } = createAggregator();
   const rows = aggregateWeekRows(weekSnapshot({
     logsByDate: {
@@ -138,7 +153,7 @@ test("creates the special dashed segment only between yesterday and today", () =
   assert.equal(rows[2].kcalPastLine, null);
 });
 
-test("does not create a today segment when today is absent or first", () => {
+contractTest("does not create a today segment when today is absent or first", ({ createAggregator }) => {
   const { aggregateWeekRows } = createAggregator();
   const absent = aggregateWeekRows(weekSnapshot({ today: "2026-07-23" }));
   const first = aggregateWeekRows(weekSnapshot({
@@ -152,7 +167,7 @@ test("does not create a today segment when today is absent or first", () => {
   assert.equal(first.every(row => row.proteinTodayLine === null), true);
 });
 
-test("meal analysis counts only fixed PT keys and preserves unnormalized keys as ignored", () => {
+contractTest("meal analysis counts only fixed PT keys and preserves unnormalized keys as ignored", ({ createAggregator }) => {
   const { aggregateMealAverages } = createAggregator();
   const result = aggregateMealAverages({
     mealKeys: MEAL_KEYS,
@@ -183,7 +198,7 @@ test("meal analysis counts only fixed PT keys and preserves unnormalized keys as
   assert.equal(Object.hasOwn(result, "Desayuno"), false);
 });
 
-test("meal analysis skips empty meals and rounds totals by recorded day count", () => {
+contractTest("meal analysis skips empty meals and rounds totals by recorded day count", ({ createAggregator }) => {
   const { aggregateMealAverages } = createAggregator();
   const result = aggregateMealAverages({
     mealKeys: ["Almoço", "Jantar"],
@@ -200,7 +215,7 @@ test("meal analysis skips empty meals and rounds totals by recorded day count", 
   });
 });
 
-test("publishes the UMD factory and validates its two direct dependencies", () => {
+contractTest("publishes the factory and validates its two direct dependencies", ({ createWeekAggregator }) => {
   assert.equal(typeof createWeekAggregator, "function");
   assert.throws(
     () => createWeekAggregator({ resolveHistoricalGoals: null, formatDateDM: date => date }),

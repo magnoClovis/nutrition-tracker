@@ -4,7 +4,10 @@ const MealScore = require("../../meal-score.js");
 const { createI18n } = require("../../i18n.js");
 const { createDateUtils } = require("../../date-utils.js");
 const { createFoodEntry } = require("../../food-entry.js");
-const { createMealGA } = require("../../meal-ga.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../meal-ga.js"))],
+  ["ESM", () => import("../../src/composite/meal-ga.js")]
+];
 
 const { normalizeLanguage, pickLang, localeForLang } = createI18n();
 const { divisor } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
@@ -17,7 +20,7 @@ function createSeededRandom(seed) {
   };
 }
 
-function createFixture({ seed = 42, initialLog = {}, updateActiveLog } = {}) {
+function createFixture(createMealGA, { seed = 42, initialLog = {}, updateActiveLog } = {}) {
   let nextId = 0;
   let activeLog = initialLog;
   let updateCount = 0;
@@ -52,6 +55,15 @@ function createFixture({ seed = 42, initialLog = {}, updateActiveLog } = {}) {
     get activeLog() { return activeLog; },
     get updateCount() { return updateCount; }
   };
+}
+
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createMealGA } = await load();
+      return callback(options => createFixture(createMealGA, options));
+    });
+  });
 }
 
 function food(overrides = {}) {
@@ -90,7 +102,7 @@ function searchInput(overrides = {}) {
   };
 }
 
-test("calculates automatic limits with the real MealScore timing functions", () => {
+contractTest("calculates automatic limits with the real MealScore timing functions", createFixture => {
   const { api } = createFixture();
   const limits = api.getAutomaticMealSuggestionLimits({
     activeLog: {
@@ -114,7 +126,7 @@ test("calculates automatic limits with the real MealScore timing functions", () 
   });
 });
 
-test("generates deterministic suggestions for different pantry selections and goals", async () => {
+contractTest("generates deterministic suggestions for different pantry selections and goals", async createFixture => {
   const allFoods = createFixture({ seed: 7 });
   const allResult = await allFoods.api.runGA(searchInput());
   assert.equal(allResult.status, "success");
@@ -135,7 +147,7 @@ test("generates deterministic suggestions for different pantry selections and go
   assert.notDeepEqual(selectedResult.solutions[0].genes, allResult.solutions[0].genes);
 });
 
-test("applies per-food and nutritional bounds to every returned suggestion", async () => {
+contractTest("applies per-food and nutritional bounds to every returned suggestion", async createFixture => {
   const fixture = createFixture({ seed: 19 });
   const result = await fixture.api.runGA(searchInput({
     limits: {
@@ -156,7 +168,7 @@ test("applies per-food and nutritional bounds to every returned suggestion", asy
   });
 });
 
-test("keeps proteinTolerance without algorithmic effect", async () => {
+contractTest("keeps proteinTolerance without algorithmic effect", async createFixture => {
   const lowTolerance = createFixture({ seed: 123 });
   const highTolerance = createFixture({ seed: 123 });
   const lowResult = await lowTolerance.api.runGA(searchInput({ proteinTolerance: 5 }));
@@ -165,7 +177,7 @@ test("keeps proteinTolerance without algorithmic effect", async () => {
   assert.deepEqual(highResult, lowResult);
 });
 
-test("reports progress through callbacks and preserves the zero-delay yield", async () => {
+contractTest("reports progress through callbacks and preserves the zero-delay yield", async createFixture => {
   const fixture = createFixture({ seed: 1 });
   const progress = [];
   const result = await fixture.api.runGA(searchInput({
@@ -180,7 +192,7 @@ test("reports progress through callbacks and preserves the zero-delay yield", as
   assert.deepEqual(fixture.timerDelays, Array(progress.length).fill(0));
 });
 
-test("returns the existing empty-pantry outcome without progress or results", async () => {
+contractTest("returns the existing empty-pantry outcome without progress or results", async createFixture => {
   const fixture = createFixture();
   const progress = [];
   const results = [];
@@ -195,7 +207,7 @@ test("returns the existing empty-pantry outcome without progress or results", as
   assert.deepEqual(results, []);
 });
 
-test("preserves goal-property fallbacks and missing-object TypeErrors", async () => {
+contractTest("preserves goal-property fallbacks and missing-object TypeErrors", async createFixture => {
   const fixture = createFixture();
   const fallback = fixture.api.getAutomaticMealSuggestionLimits({
     activeLog: {},
@@ -219,7 +231,7 @@ test("preserves goal-property fallbacks and missing-object TypeErrors", async ()
   await assert.rejects(fixture.api.runGA(searchInput({ pantry: undefined })), TypeError);
 });
 
-test("adds GA quantities through the real buildEntry nutrient transformation", () => {
+contractTest("adds GA quantities through the real buildEntry nutrient transformation", createFixture => {
   const fixture = createFixture({ initialLog: { Almo\u00e7o: [] } });
   const selectedMeal = fixture.api.addGAResultToDiary({
     result: {
@@ -246,7 +258,7 @@ test("adds GA quantities through the real buildEntry nutrient transformation", (
   ]);
 });
 
-test("preserves one updater call per item for historical host semantics", () => {
+contractTest("preserves one updater call per item for historical host semantics", createFixture => {
   const historicalSnapshot = { Almo\u00e7o: [] };
   const resolvedUpdates = [];
   const fixture = createFixture({

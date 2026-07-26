@@ -2,7 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createI18n } = require("../../i18n.js");
 const { createDateUtils } = require("../../date-utils.js");
-const { createFoodEntry } = require("../../food-entry.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../food-entry.js"))],
+  ["ESM", () => import("../../src/composite/food-entry.js")]
+];
 
 const { normalizeLanguage, pickLang, localeForLang } = createI18n();
 const { divisor, rnd } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
@@ -21,26 +24,17 @@ function buildDayTotals(log) {
   };
 }
 
-const foodEntry = createFoodEntry({
-  divisor,
-  createEntryId: () => `entry-${++nextId}`,
-  getEntryTime: () => "12:34",
-  getPantry: () => pantry,
-  buildDayTotals
-});
+function createFoodEntryApi(createFoodEntry) {
+  return createFoodEntry({
+    divisor,
+    createEntryId: () => `entry-${++nextId}`,
+    getEntryTime: () => "12:34",
+    getPantry: () => pantry,
+    buildDayTotals
+  });
+}
 
-const {
-  ALL_FIELDS_KEYS,
-  emptyFood,
-  buildFoodSnapshot,
-  buildEntryFromSnapshot,
-  buildEntry,
-  recalcEntryQuantity,
-  templateEntries,
-  templateTotals
-} = foodEntry;
-
-function completeFood(overrides = {}) {
+function completeFood(ALL_FIELDS_KEYS, overrides = {}) {
   const food = {
     id: "food-complete",
     name: "Complete food",
@@ -53,7 +47,20 @@ function completeFood(overrides = {}) {
   return food;
 }
 
-test("creates a valid empty food state for every field", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createFoodEntry } = await load();
+      const foodEntry = createFoodEntryApi(createFoodEntry);
+      return callback({
+        ...foodEntry,
+        completeFood: overrides => completeFood(foodEntry.ALL_FIELDS_KEYS, overrides)
+      });
+    });
+  });
+}
+
+contractTest("creates a valid empty food state for every field", ({ emptyFood, ALL_FIELDS_KEYS }) => {
   const food = emptyFood();
   assert.equal(food.name, "");
   assert.equal(food.unit, "g");
@@ -63,7 +70,7 @@ test("creates a valid empty food state for every field", () => {
   ALL_FIELDS_KEYS.forEach(field => assert.equal(food[field.key], ""));
 });
 
-test("builds complete and null-safe food snapshots", () => {
+contractTest("builds complete and null-safe food snapshots", ({ buildFoodSnapshot, ALL_FIELDS_KEYS, completeFood }) => {
   const source = completeFood({ protein100: 12.5, salt100: null, extra: "ignored" });
   const snapshot = buildFoodSnapshot(source);
   assert.equal(snapshot.id, "food-complete");
@@ -78,7 +85,7 @@ test("builds complete and null-safe food snapshots", () => {
   ALL_FIELDS_KEYS.forEach(field => assert.equal(sparse[field.key], null));
 });
 
-test("builds entries from complete and sparse snapshots", () => {
+contractTest("builds entries from complete and sparse snapshots", ({ buildFoodSnapshot, buildEntryFromSnapshot, completeFood }) => {
   const complete = buildFoodSnapshot(completeFood({ protein100: 10, kcal100: 120, salt100: null }));
   const entry = buildEntryFromSnapshot(complete, 200);
   assert.match(entry.id, /^entry-/);
@@ -96,7 +103,7 @@ test("builds entries from complete and sparse snapshots", () => {
   assert.equal(sparse.kcal, null);
 });
 
-test("recalculates snapshot entries for doubled, zero, and fractional quantities", () => {
+contractTest("recalculates snapshot entries for doubled, zero, and fractional quantities", ({ buildEntry, recalcEntryQuantity, completeFood }) => {
   const original = buildEntry(completeFood({ protein100: 10, kcal100: 100 }), 100);
   const doubled = recalcEntryQuantity(original, 200);
   assert.equal(doubled.id, original.id);
@@ -113,7 +120,7 @@ test("recalculates snapshot entries for doubled, zero, and fractional quantities
   assert.equal(fractional.kcal, 12.5);
 });
 
-test("preserves legacy ratio behavior without a food snapshot", () => {
+contractTest("preserves legacy ratio behavior without a food snapshot", ({ recalcEntryQuantity }) => {
   const legacy = {id: "legacy", qty: 50, protein: 5, kcal: 60, carbs: null};
   const doubled = recalcEntryQuantity(legacy, 100);
   assert.equal(doubled.protein, 10);
@@ -125,7 +132,12 @@ test("preserves legacy ratio behavior without a food snapshot", () => {
   assert.equal(zero.kcal, 0);
 });
 
-test("builds and totals templates with snapshot, legacy, pantry, and missing items", () => {
+contractTest("builds and totals templates with snapshot, legacy, pantry, and missing items", ({
+  buildFoodSnapshot,
+  templateEntries,
+  templateTotals,
+  completeFood
+}) => {
   pantry = [completeFood({
     id: "pantry-food",
     name: "Pantry food",
