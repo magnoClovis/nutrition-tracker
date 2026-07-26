@@ -58,11 +58,11 @@ test('rejects known personal-data export names even inside assets', (t) => {
 test('rejects a build missing an explicitly required runtime', (t) => {
   const directory = createValidBuildFixture();
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
-  fs.rmSync(path.join(directory, 'firebase-storage.js'));
+  fs.rmSync(path.join(directory, 'settings-panel.js'));
 
   assert.throws(
     () => verifyBuildDirectory(directory),
-    /missing required output: firebase-storage\.js/,
+    /missing required output: settings-panel\.js/,
   );
 });
 
@@ -109,5 +109,16 @@ test('rejects converted Firebase-internal UMD files from the Vite artifact', (t)
   assert.throws(
     () => verifyBuildDirectory(directory),
     /file is outside the build allowlist: firebase-migration-internal\.js/,
+  );
+});
+
+test('rejects the converted Firebase storage UMD file from the Vite artifact', (t) => {
+  const directory = createValidBuildFixture();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(directory, 'firebase-storage.js'), '');
+
+  assert.throws(
+    () => verifyBuildDirectory(directory),
+    /file is outside the build allowlist: firebase-storage\.js/,
   );
 });

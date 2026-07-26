@@ -4,7 +4,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const BASELINE_RUNTIME_FILES = [
-  'firebase-storage.js',
   'settings-panel.js',
   'backup-modal.js',
   'verify-email-screen.js',

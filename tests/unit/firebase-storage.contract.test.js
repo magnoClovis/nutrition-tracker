@@ -257,7 +257,7 @@ test("publishes the complete intentional Firebase contract with stable arities a
   assert.equal(context.storage.delete, context.fbDel);
   assert.equal(context.storage.list, context.fbList);
 
-  [
+  const publicOperations = [
     "migrateStorageToFirestoreV3",
     "migrateLegacyNutritionDocs",
     "normalizeCurrentUserStorage",
@@ -268,9 +268,35 @@ test("publishes the complete intentional Firebase contract with stable arities a
     "previewFullAccountBackupImport",
     "importFullAccountBackup",
     "debugNutritionStorage"
-  ].forEach(name => assert.equal(typeof context[name], "function", name));
+  ];
+  publicOperations.forEach(name => assert.equal(typeof context[name], "function", name));
   assert.equal(context.migrateLegacyNutritionDocs, context.migrateStorageToFirestoreV3);
   assert.equal(context.normalizeCurrentUserStorage, context.migrateStorageToFirestoreV3);
+
+  const configNames = [
+    "FB_PROJECT",
+    "FB_KEY",
+    "FB_BASE",
+    "AUTH_BASE",
+    "TOKEN_BASE",
+    "REPORT_SERVER_URL",
+    "REPORTS_ENABLED"
+  ];
+  const namespaceKeys = [
+    "_saveSession",
+    ...Object.keys(arities).filter(name => name !== "_saveSession"),
+    ...publicOperations,
+    ...configNames,
+    "storage"
+  ];
+  assert.deepEqual(Object.keys(context.FirebaseStorage), namespaceKeys);
+  namespaceKeys
+    .filter(name => name !== "storage" && !configNames.includes(name))
+    .forEach(name => assert.equal(context.FirebaseStorage[name], context[name], `FirebaseStorage.${name}`));
+  configNames.forEach(name => {
+    assert.equal(context.FirebaseStorage[name], fixture.evaluate(name), `FirebaseStorage.${name}`);
+  });
+  assert.equal(context.FirebaseStorage.storage, context.storage);
 });
 
 test("preserves the exposed inactive-legacy fb* stub contract", async () => {

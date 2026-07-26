@@ -8,7 +8,6 @@ const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 const outputDirectory = resolve(projectRoot, 'dist-vite');
 
 const baselineRuntimeFiles = [
-  'firebase-storage.js',
   'settings-panel.js',
   'backup-modal.js',
   'verify-email-screen.js',
