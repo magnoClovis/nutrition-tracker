@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: nutrition-validation-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   test:
     name: Preflight, unit and Playwright
