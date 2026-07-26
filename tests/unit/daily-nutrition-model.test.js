@@ -3,12 +3,24 @@ const assert = require("node:assert/strict");
 const { createI18n } = require("../../i18n.js");
 const { createDateUtils } = require("../../date-utils.js");
 const { createGoalCalculator } = require("../../goal-calculator.js");
-const { createDailyNutritionModel } = require("../../daily-nutrition-model.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../daily-nutrition-model.js"))],
+  ["ESM", () => import("../../src/composite/daily-nutrition-model.js")]
+];
 
 const { normalizeLanguage, pickLang, localeForLang } = createI18n();
 const { rnd } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
 const { getGoalAdjustment, getProteinMultiplier } = createGoalCalculator();
-const model = createDailyNutritionModel({ rnd, getGoalAdjustment, getProteinMultiplier });
+
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createDailyNutritionModel } = await load();
+      const model = createDailyNutritionModel({ rnd, getGoalAdjustment, getProteinMultiplier });
+      return callback({ model, createDailyNutritionModel });
+    });
+  });
+}
 
 function baseGoals(overrides = {}) {
   return {
@@ -25,7 +37,7 @@ function baseGoals(overrides = {}) {
   };
 }
 
-test("builds rounded storage totals and unrounded live totals with existing null handling", () => {
+contractTest("builds rounded storage totals and unrounded live totals with existing null handling", ({ model }) => {
   const log = {
     Breakfast: [
       { protein: 10.125, kcal: 100.555, carbs: 20.2, fat: 3.333, fiber: null, salt: 0.125, sugars: 4.5, satfat: 1.2 },
@@ -53,7 +65,7 @@ test("builds rounded storage totals and unrounded live totals with existing null
   });
 });
 
-test("preserves water rounding, zero custom-goal fallback, and goal-calculator fallbacks", () => {
+contractTest("preserves water rounding, zero custom-goal fallback, and goal-calculator fallbacks", ({ model }) => {
   const result = model.buildDailyGoalModel({
     baseGoals: baseGoals({ baseCalories: 0, adjustment: null, proteinMultiplier: 0 }),
     customGoals: { protein: 0, kcal: 1800, water: 0 },
@@ -80,7 +92,7 @@ test("preserves water rounding, zero custom-goal fallback, and goal-calculator f
   assert.equal(noWeight.baseWaterGoal, 2500);
 });
 
-test("returns warning levels and ordered health guardrails at existing boundaries", () => {
+contractTest("returns warning levels and ordered health guardrails at existing boundaries", ({ model }) => {
   const extreme = model.buildDailyGoalModel({
     baseGoals: baseGoals({ kcal: 1100, baseCalories: 2000, adjustment: -800 }),
     customGoals: {},
@@ -117,7 +129,7 @@ test("returns warning levels and ordered health guardrails at existing boundarie
   assert.deepEqual(fastGain.healthGuardrailCodes, ["fast-gain"]);
 });
 
-test("classifies every diary-status branch with the original strict thresholds", () => {
+contractTest("classifies every diary-status branch with the original strict thresholds", ({ model }) => {
   assert.equal(model.classifyDiaryStatus({ entryCount: 0, proteinPercent: 100, kcalPercent: 100 }), "empty");
   assert.equal(model.classifyDiaryStatus({ entryCount: 1, proteinPercent: 100, kcalPercent: 116 }), "calories-high");
   assert.equal(model.classifyDiaryStatus({ entryCount: 1, proteinPercent: 59, kcalPercent: 61 }), "protein-lagging");
@@ -125,7 +137,7 @@ test("classifies every diary-status branch with the original strict thresholds",
   assert.equal(model.classifyDiaryStatus({ entryCount: 1, proteinPercent: 60, kcalPercent: 60 }), "in-progress");
 });
 
-test("selects reached goal metrics in the existing order and adds water only for today", () => {
+contractTest("selects reached goal metrics in the existing order and adds water only for today", ({ model }) => {
   const snapshot = {
     tot: { protein: 100, kcal: 1999, carbs: 250, fat: 69, fiber: 30, salt: 5 },
     goals: { protein: 100, kcal: 2000, carbs: 250, fat: 70, fiber: 30, salt: 0, water: 2500 },
@@ -141,7 +153,7 @@ test("selects reached goal metrics in the existing order and adds water only for
   );
 });
 
-test("publishes the UMD factory and validates all direct dependencies", () => {
+contractTest("publishes the factory and validates all direct dependencies", ({ createDailyNutritionModel }) => {
   assert.equal(typeof createDailyNutritionModel, "function");
   assert.throws(
     () => createDailyNutritionModel({ rnd, getGoalAdjustment: null, getProteinMultiplier }),

@@ -10,6 +10,22 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import * as BarcodeScanner from './composite/barcode-scanner.js';
+import * as BodyMetricsModel from './composite/body-metrics-model.js';
+import * as DailyNutritionModel from './composite/daily-nutrition-model.js';
+import * as DateUtils from './composite/date-utils.js';
+import * as DiaryTicker from './composite/diary-ticker.js';
+import * as DishDescriptionAI from './composite/dish-description-ai.js';
+import * as EatingPatternsAI from './composite/eating-patterns-ai.js';
+import * as FoodAutofillAI from './composite/food-autofill-ai.js';
+import * as FoodEntry from './composite/food-entry.js';
+import * as HistoricalGoalsModel from './composite/historical-goals-model.js';
+import * as HistoryLoaders from './composite/history-loaders.js';
+import * as MealGA from './composite/meal-ga.js';
+import * as MealReviewAI from './composite/meal-review-ai.js';
+import * as NutritionFeedbackAI from './composite/nutrition-feedback-ai.js';
+import * as ProfileValidation from './composite/profile-validation.js';
+import * as WeekAggregator from './composite/week-aggregator.js';
 import * as AutosaveScheduler from './leaf/autosave-scheduler.js';
 import * as CalendarModel from './leaf/calendar-model.js';
 import * as FirebaseConfigInternal from './leaf/firebase-config-internal.js';
@@ -42,22 +58,6 @@ const legacyAppScripts = [
   'settings-panel.js?v=0.8.1-beta-20260716',
   'backup-modal.js?v=0.8.1-beta-20260716',
   'verify-email-screen.js?v=0.8.1-beta-20260716',
-  'barcode-scanner.js?v=0.8.1-beta-20260718',
-  'meal-review-ai.js?v=0.8.1-beta-20260718',
-  'food-autofill-ai.js?v=0.8.1-beta-20260718',
-  'dish-description-ai.js?v=0.8.1-beta-20260718',
-  'diary-ticker.js?v=0.8.1-beta-20260716',
-  'date-utils.js?v=0.8.1-beta-20260716',
-  'food-entry.js?v=0.8.1-beta-20260716',
-  'meal-ga.js?v=0.8.1-beta-20260718',
-  'daily-nutrition-model.js?v=0.8.1-beta-20260722',
-  'body-metrics-model.js?v=0.8.1-beta-20260722',
-  'historical-goals-model.js?v=0.8.1-beta-20260722',
-  'week-aggregator.js?v=0.8.1-beta-20260722',
-  'history-loaders.js?v=0.8.1-beta-20260722',
-  'nutrition-feedback-ai.js?v=0.8.1-beta-20260718',
-  'eating-patterns-ai.js?v=0.8.1-beta-20260718',
-  'profile-validation.js?v=0.8.1-beta-20260716',
   'login-screen.js?v=0.8.1-beta-20260716',
   'privacy-panel.js?v=0.8.1-beta-20260716',
   'required-profile-modal.js?v=0.8.1-beta-20260716',
@@ -82,19 +82,35 @@ const legacyAppScripts = [
 function installNpmRuntime(target) {
   Object.assign(target, {
     AutosaveScheduler,
+    BarcodeScanner,
+    BodyMetricsModel,
     CalendarModel,
+    DailyNutritionModel,
+    DateUtils,
+    DiaryTicker,
+    DishDescriptionAI,
+    EatingPatternsAI,
     FirebaseConfigInternal,
+    FoodAutofillAI,
+    FoodEntry,
     GoalCalculator,
     GroqClient,
+    HistoricalGoalsModel,
+    HistoryLoaders,
     HydrationGuard,
     I18n,
+    MealGA,
+    MealReviewAI,
     MealScore,
+    NutritionFeedbackAI,
     OpenFoodFacts,
     PropTypes,
     React,
     ReactDOM,
     RecentMealsModel,
     Recharts,
+    ProfileValidation,
+    WeekAggregator,
   });
 }
 

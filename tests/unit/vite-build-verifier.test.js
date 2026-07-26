@@ -89,3 +89,14 @@ test('rejects converted leaf UMD files from the Vite artifact', (t) => {
     /file is outside the build allowlist: hydration-guard\.js/,
   );
 });
+
+test('rejects converted composite UMD files from the Vite artifact', (t) => {
+  const directory = createValidBuildFixture();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(directory, 'barcode-scanner.js'), '');
+
+  assert.throws(
+    () => verifyBuildDirectory(directory),
+    /file is outside the build allowlist: barcode-scanner\.js/,
+  );
+});

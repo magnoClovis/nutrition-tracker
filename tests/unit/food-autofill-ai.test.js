@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createI18n } = require("../../i18n.js");
-const { createFoodAutofillAI } = require("../../food-autofill-ai.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../food-autofill-ai.js"))],
+  ["ESM", () => import("../../src/composite/food-autofill-ai.js")]
+];
 
 const { normalizeLanguage, pickLang } = createI18n();
 const languageInstructions = {
@@ -10,7 +13,7 @@ const languageInstructions = {
   es: "\nResponde en español.\n"
 };
 
-function createFixture(aiResponses = []) {
+function createFixture(createFoodAutofillAI, aiResponses = []) {
   const calls = [];
   const queue = [...aiResponses];
   let activeLang = "pt";
@@ -32,7 +35,16 @@ function createFixture(aiResponses = []) {
   };
 }
 
-test("builds the localized common and per-unit prompts for PT, EN, and ES", async () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createFoodAutofillAI } = await load();
+      return callback(responses => createFixture(createFoodAutofillAI, responses));
+    });
+  });
+}
+
+contractTest("builds the localized common and per-unit prompts for PT, EN, and ES", async createFixture => {
   const cases = [
     { lang: "pt", unit: "g", start: 'O usuário quer registrar "Banana" com unidade "g".', marker: "Responda APENAS com JSON sem markdown" },
     { lang: "pt", unit: "un", start: 'Verifique se existe o alimento "Banana" e se faz sentido medir em unidades individuais.', marker: "valor_100g x peso_unidade / 100" },
@@ -55,7 +67,7 @@ test("builds the localized common and per-unit prompts for PT, EN, and ES", asyn
   }
 });
 
-test("removes Markdown fences, parses JSON, and merges standard fields", async () => {
+contractTest("removes Markdown fences, parses JSON, and merges standard fields", async createFixture => {
   const fixture = createFixture([
     '```json\n{"ok":true,"protein100":12.5,"kcal100":null,"salt100":0}\n```'
   ]);
@@ -72,7 +84,7 @@ test("removes Markdown fences, parses JSON, and merges standard fields", async (
   });
 });
 
-test("propagates malformed JSON for the React layer to report", async () => {
+contractTest("propagates malformed JSON for the React layer to report", async createFixture => {
   const fixture = createFixture(["```json\nnot-json\n```"]);
   await assert.rejects(
     fixture.api.requestFoodAutofill({ foodName: "Rice", unit: "g", lang: "en" }),
@@ -80,7 +92,7 @@ test("propagates malformed JSON for the React layer to report", async () => {
   );
 });
 
-test("calculates per-unit fields proportionally and clears unitWeightG", async () => {
+contractTest("calculates per-unit fields proportionally and clears unitWeightG", async createFixture => {
   const fixture = createFixture([JSON.stringify({
     ok: true,
     per100: {
@@ -113,7 +125,7 @@ test("calculates per-unit fields proportionally and clears unitWeightG", async (
   assert.equal(mapped.unitWeightG, "");
 });
 
-test("preserves every current nutrient whose AI value is null or absent", async () => {
+contractTest("preserves every current nutrient whose AI value is null or absent", async createFixture => {
   const fixture = createFixture(['{"ok":true,"protein100":null,"kcal100":123}']);
   const result = await fixture.api.requestFoodAutofill({ foodName: "Food", unit: "ml", lang: "es" });
   const currentForm = {
@@ -127,7 +139,7 @@ test("preserves every current nutrient whose AI value is null or absent", async 
   });
 });
 
-test("returns an empty-name result without calling the AI", async () => {
+contractTest("returns an empty-name result without calling the AI", async createFixture => {
   const fixture = createFixture();
   assert.deepEqual(
     await fixture.api.requestFoodAutofill({ foodName: "   ", unit: "g", lang: "pt" }),
@@ -136,7 +148,7 @@ test("returns an empty-name result without calling the AI", async () => {
   assert.equal(fixture.calls.length, 0);
 });
 
-test("returns a neutral rejected result when the provider rejects the food/unit pair", async () => {
+contractTest("returns a neutral rejected result when the provider rejects the food/unit pair", async createFixture => {
   const fixture = createFixture(['{"ok":false,"reason":"unit mismatch"}']);
   assert.deepEqual(
     await fixture.api.requestFoodAutofill({ foodName: "Milk", unit: "un", lang: "en" }),

@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createI18n } = require("../../i18n.js");
-const { createMealReviewAI } = require("../../meal-review-ai.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../meal-review-ai.js"))],
+  ["ESM", () => import("../../src/composite/meal-review-ai.js")]
+];
 
 const { pickLang } = createI18n();
 
@@ -37,11 +40,20 @@ function review(overrides = {}) {
   };
 }
 
-function createFixture(callAI) {
+function createFixture(createMealReviewAI, callAI) {
   return createMealReviewAI({ callAI, pickLang, getEvaluationCount });
 }
 
-test("builds the exact structured payload and requests 350 tokens", async () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createMealReviewAI } = await load();
+      return callback(callAI => createFixture(createMealReviewAI, callAI));
+    });
+  });
+}
+
+contractTest("builds the exact structured payload and requests 350 tokens", async createFixture => {
   const calls = [];
   const api = createFixture((prompt, maxTokens) => {
     calls.push({ prompt, maxTokens });
@@ -74,7 +86,7 @@ test("builds the exact structured payload and requests 350 tokens", async () => 
   });
 });
 
-test("selects the existing English and Spanish prompts for different reviews", async () => {
+contractTest("selects the existing English and Spanish prompts for different reviews", async createFixture => {
   const prompts = [];
   const api = createFixture((prompt, maxTokens) => {
     prompts.push({ prompt, maxTokens });
@@ -104,7 +116,7 @@ test("selects the existing English and Spanish prompts for different reviews", a
   assert.equal(spanishPayload.coverage, 50);
 });
 
-test("returns successful explanatory text unchanged", async () => {
+contractTest("returns successful explanatory text unchanged", async createFixture => {
   const api = createFixture(() => Promise.resolve("Keep this exact text."));
   assert.equal(
     await api.requestMealReviewExplanation(review(), "en"),
@@ -112,7 +124,7 @@ test("returns successful explanatory text unchanged", async () => {
   );
 });
 
-test("lets the React-style host silently neutralize a Groq rejection", async () => {
+contractTest("lets the React-style host silently neutralize a Groq rejection", async createFixture => {
   const groqError = new Error("Groq unavailable");
   const api = createFixture(() => Promise.reject(groqError));
   let displayedText = "previous";
@@ -129,7 +141,7 @@ test("lets the React-style host silently neutralize a Groq rejection", async () 
   assert.equal(notified, false);
 });
 
-test("keeps malformed-review prompt failures synchronous before the AI Promise exists", () => {
+contractTest("keeps malformed-review prompt failures synchronous before the AI Promise exists", createFixture => {
   let aiCalls = 0;
   const api = createFixture(() => {
     aiCalls++;

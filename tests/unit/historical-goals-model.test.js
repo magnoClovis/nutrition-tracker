@@ -2,7 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createGoalCalculator } = require("../../goal-calculator.js");
 const { createBodyMetricsModel } = require("../../body-metrics-model.js");
-const { createHistoricalGoalsModel } = require("../../historical-goals-model.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../historical-goals-model.js"))],
+  ["ESM", () => import("../../src/composite/historical-goals-model.js")]
+];
 
 const { computeGoals } = createGoalCalculator();
 const { getWeightForDate } = createBodyMetricsModel({
@@ -10,10 +13,18 @@ const { getWeightForDate } = createBodyMetricsModel({
   formatDateDM: date => date,
   createMeasurementId: () => "measurement-id"
 });
-const { resolveHistoricalGoals } = createHistoricalGoalsModel({
-  computeGoals,
-  getWeightForDate
-});
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createHistoricalGoalsModel } = await load();
+      const { resolveHistoricalGoals } = createHistoricalGoalsModel({
+        computeGoals,
+        getWeightForDate
+      });
+      return callback({ createHistoricalGoalsModel, resolveHistoricalGoals });
+    });
+  });
+}
 
 function baseSnapshot(overrides = {}) {
   return {
@@ -41,7 +52,7 @@ function baseSnapshot(overrides = {}) {
   };
 }
 
-test("recalculates a historical date with current preferences when no snapshot exists", () => {
+contractTest("recalculates a historical date with current preferences when no snapshot exists", ({ resolveHistoricalGoals }) => {
   const snapshot = baseSnapshot({ customGoals: { protein: 190 } });
   const result = resolveHistoricalGoals(snapshot);
   const expectedRaw = computeGoals(78, true, {
@@ -58,7 +69,7 @@ test("recalculates a historical date with current preferences when no snapshot e
   assert.deepEqual(result.effectiveGoal, result.computedGoal);
 });
 
-test("overlays a frozen past snapshot while retaining recalculated metadata", () => {
+contractTest("overlays a frozen past snapshot while retaining recalculated metadata", ({ resolveHistoricalGoals }) => {
   const frozenGoal = {
     protein: 150,
     kcal: 2100,
@@ -77,7 +88,7 @@ test("overlays a frozen past snapshot while retaining recalculated metadata", ()
   assert.equal(result.effectiveGoal.adjustment, result.computedGoal.adjustment);
 });
 
-test("TODAY ignores an existing frozen snapshot", () => {
+contractTest("TODAY ignores an existing frozen snapshot", ({ resolveHistoricalGoals }) => {
   const result = resolveHistoricalGoals(baseSnapshot({
     date: "2026-07-22",
     frozenGoal: { protein: 1, kcal: 1, water: 1 }
@@ -88,7 +99,7 @@ test("TODAY ignores an existing frozen snapshot", () => {
   assert.equal(result.effectiveGoal.water, undefined);
 });
 
-test("numeric zero custom goals do not override while string zero does", () => {
+contractTest("numeric zero custom goals do not override while string zero does", ({ resolveHistoricalGoals }) => {
   const result = resolveHistoricalGoals(baseSnapshot({
     customGoals: {
       protein: 0,
@@ -108,7 +119,7 @@ test("numeric zero custom goals do not override while string zero does", () => {
   assert.equal(result.computedGoal.salt, result.rawGoal.salt);
 });
 
-test("historical calculations keep using current age instead of the requested date", () => {
+contractTest("historical calculations keep using current age instead of the requested date", ({ resolveHistoricalGoals }) => {
   const snapshot = baseSnapshot({
     date: "2010-01-01",
     weightHistory: [{ id: "historical", date: "2009-12-31", weight: 80, height: 180 }],
@@ -134,7 +145,7 @@ test("historical calculations keep using current age instead of the requested da
   assert.notEqual(result.rawGoal.bmr, historicalAgeGoal.bmr);
 });
 
-test("preserves the richer manually refreshed snapshot shape without normalization", () => {
+contractTest("preserves the richer manually refreshed snapshot shape without normalization", ({ resolveHistoricalGoals }) => {
   const initial = resolveHistoricalGoals(baseSnapshot());
   const manuallyRefreshed = {
     ...initial.computedGoal,
@@ -148,7 +159,7 @@ test("preserves the richer manually refreshed snapshot shape without normalizati
   assert.equal(result.effectiveGoal.water, undefined);
 });
 
-test("uses fallback weight and height and preserves the explicit day type", () => {
+contractTest("uses fallback weight and height and preserves the explicit day type", ({ createHistoricalGoalsModel }) => {
   const calls = [];
   const resolver = createHistoricalGoalsModel({
     getWeightForDate: () => null,
@@ -171,7 +182,7 @@ test("uses fallback weight and height and preserves the explicit day type", () =
   assert.equal(Object.hasOwn(calls[0].profile, "referenceDate"), false);
 });
 
-test("publishes the UMD factory and requires both injected dependencies", () => {
+contractTest("publishes the factory and requires both injected dependencies", ({ createHistoricalGoalsModel }) => {
   assert.equal(typeof createHistoricalGoalsModel, "function");
   assert.throws(
     () => createHistoricalGoalsModel({ computeGoals, getWeightForDate: null }),
