@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-config-internal.js"), "utf8");
 
-function loadConfig(reportServerUrl) {
+function loadUmdConfig(reportServerUrl) {
   const warnings = [];
   const context = {
     URL,
@@ -28,7 +28,46 @@ function loadConfig(reportServerUrl) {
   };
 }
 
-test("publishes the namespaced UMD factory and fixed Firebase endpoints", () => {
+function createEsmConfigLoader(api) {
+  return reportServerUrl => {
+    const warnings = [];
+    const hadConfig = Object.prototype.hasOwnProperty.call(globalThis, "NUTRITION_TRACKER_CONFIG");
+    const previousConfig = globalThis.NUTRITION_TRACKER_CONFIG;
+    const previousConsole = globalThis.console;
+
+    if (reportServerUrl === undefined) delete globalThis.NUTRITION_TRACKER_CONFIG;
+    else globalThis.NUTRITION_TRACKER_CONFIG = { reportServerUrl };
+    globalThis.console = {
+      ...previousConsole,
+      warn(message) { warnings.push(message); }
+    };
+
+    try {
+      return {
+        config: api.createFirebaseConfig(),
+        warnings,
+        api
+      };
+    } finally {
+      if (hadConfig) globalThis.NUTRITION_TRACKER_CONFIG = previousConfig;
+      else delete globalThis.NUTRITION_TRACKER_CONFIG;
+      globalThis.console = previousConsole;
+    }
+  };
+}
+
+const implementations = [
+  ["UMD", async () => loadUmdConfig],
+  ["ESM", async () => createEsmConfigLoader(await import("../../src/leaf/firebase-config-internal.js"))]
+];
+
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => callback(await load()));
+  });
+}
+
+contractTest("publishes the namespaced factory and fixed Firebase endpoints", loadConfig => {
   const { api, config } = loadConfig("https://reports.example.test");
   assert.equal(typeof api.createFirebaseConfig, "function");
   assert.equal(config.FB_PROJECT, "nutrition-tracker-780b3");
@@ -38,14 +77,14 @@ test("publishes the namespaced UMD factory and fixed Firebase endpoints", () => 
   assert.equal(config.TOKEN_BASE, "https://securetoken.googleapis.com/v1/token");
 });
 
-test("accepts a valid HTTPS report URL and removes its final slash", () => {
+contractTest("accepts a valid HTTPS report URL and removes its final slash", loadConfig => {
   const { config, warnings } = loadConfig("  https://reports.example.test/root/  ");
   assert.equal(config.REPORT_SERVER_URL, "https://reports.example.test/root");
   assert.equal(config.REPORTS_ENABLED, true);
   assert.deepEqual(warnings, []);
 });
 
-test("disables reports for absent, empty, and non-string URL values", () => {
+contractTest("disables reports for absent, empty, and non-string URL values", loadConfig => {
   for (const value of [undefined, "", "   ", null, 123]) {
     const { config, warnings } = loadConfig(value);
     assert.equal(config.REPORT_SERVER_URL, "");
@@ -54,7 +93,7 @@ test("disables reports for absent, empty, and non-string URL values", () => {
   }
 });
 
-test("disables reports and warns for invalid and non-HTTPS URLs", () => {
+contractTest("disables reports and warns for invalid and non-HTTPS URLs", loadConfig => {
   const invalid = loadConfig("not a url");
   assert.equal(invalid.config.REPORT_SERVER_URL, "");
   assert.equal(invalid.config.REPORTS_ENABLED, false);
@@ -66,7 +105,7 @@ test("disables reports and warns for invalid and non-HTTPS URLs", () => {
   assert.deepEqual(insecure.warnings, ["Advanced reports require an HTTPS server URL and remain disabled."]);
 });
 
-test("derives REPORTS_ENABLED literally from Boolean(REPORT_SERVER_URL)", () => {
+contractTest("derives REPORTS_ENABLED literally from Boolean(REPORT_SERVER_URL)", loadConfig => {
   const enabled = loadConfig("https://reports.example.test").config;
   const disabled = loadConfig("").config;
   assert.equal(enabled.REPORTS_ENABLED, Boolean(enabled.REPORT_SERVER_URL));

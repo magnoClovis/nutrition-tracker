@@ -1,16 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createGoalCalculator } = require("../../goal-calculator.js");
-
-const {
-  ACTIVITY_LEVELS,
-  REST_FACTORS,
-  calculateAge,
-  getGoalAdjustment,
-  defaultProteinMultiplier,
-  getProteinMultiplier,
-  computeGoals
-} = createGoalCalculator();
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../goal-calculator.js"))],
+  ["ESM", () => import("../../src/leaf/goal-calculator.js")]
+];
 
 const baseProfile = {
   height: 180,
@@ -20,7 +13,16 @@ const baseProfile = {
   prefs: { goalType: "maintenance" }
 };
 
-test("computes training goals with every activity factor", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createGoalCalculator } = await load();
+      return callback(createGoalCalculator());
+    });
+  });
+}
+
+contractTest("computes training goals with every activity factor", ({ ACTIVITY_LEVELS, computeGoals }) => {
   for (const [activityLevel, activity] of Object.entries(ACTIVITY_LEVELS)) {
     const goals = computeGoals(80, true, {
       ...baseProfile,
@@ -32,7 +34,7 @@ test("computes training goals with every activity factor", () => {
   }
 });
 
-test("applies every rest factor instead of the training factor", () => {
+contractTest("applies every rest factor instead of the training factor", ({ REST_FACTORS, computeGoals }) => {
   for (const [activityLevel, restFactor] of Object.entries(REST_FACTORS)) {
     const goals = computeGoals(80, false, {
       ...baseProfile,
@@ -43,19 +45,19 @@ test("applies every rest factor instead of the training factor", () => {
   }
 });
 
-test("calculates age around the birthday using local calendar fields", () => {
+contractTest("calculates age around the birthday using local calendar fields", ({ calculateAge }) => {
   assert.equal(calculateAge("1990-07-16", new Date(2026, 6, 16, 12)), 36);
   assert.equal(calculateAge("1990-07-15", new Date(2026, 6, 16, 12)), 36);
   assert.equal(calculateAge("1990-07-17", new Date(2026, 6, 16, 12)), 35);
 });
 
-test("preserves leap-day birthday behavior", () => {
+contractTest("preserves leap-day birthday behavior", ({ calculateAge }) => {
   assert.equal(calculateAge("2000-02-29", new Date(2023, 1, 28, 12)), 22);
   assert.equal(calculateAge("2000-02-29", new Date(2023, 2, 1, 12)), 23);
   assert.equal(calculateAge("2000-02-29", new Date(2024, 1, 29, 12)), 24);
 });
 
-test("uses maintenance, calculated loss and gain, and manual adjustments", () => {
+contractTest("uses maintenance, calculated loss and gain, and manual adjustments", ({ getGoalAdjustment }) => {
   assert.equal(getGoalAdjustment({ goalType: "maintenance" }), 0);
   assert.equal(getGoalAdjustment({ goalType: "loss", goalKg: 7.7, goalWeeks: 11 }), -770);
   assert.equal(getGoalAdjustment({ goalType: "gain", goalKg: 7.7, goalWeeks: 11 }), 770);
@@ -63,7 +65,7 @@ test("uses maintenance, calculated loss and gain, and manual adjustments", () =>
   assert.equal(getGoalAdjustment({ goalType: "gain", goalKg: 0, goalWeeks: 10 }), 0);
 });
 
-test("uses goal-specific and manual protein multipliers", () => {
+contractTest("uses goal-specific and manual protein multipliers", ({ defaultProteinMultiplier, getProteinMultiplier }) => {
   assert.equal(defaultProteinMultiplier("maintenance"), 1.6);
   assert.equal(defaultProteinMultiplier("loss"), 2);
   assert.equal(defaultProteinMultiplier("gain"), 2.2);
@@ -72,7 +74,7 @@ test("uses goal-specific and manual protein multipliers", () => {
   assert.equal(getProteinMultiplier({ goalType: "gain", proteinMultiplier: 0 }), 2.2);
 });
 
-test("keeps goal adjustments and protein defaults consistent on training and rest days", () => {
+contractTest("keeps goal adjustments and protein defaults consistent on training and rest days", ({ computeGoals }) => {
   const cases = [
     { goalType: "maintenance", adjustment: 0, proteinMultiplier: 1.6 },
     { goalType: "loss", adjustment: -110, proteinMultiplier: 2 },
@@ -96,7 +98,7 @@ test("keeps goal adjustments and protein defaults consistent on training and res
   }
 });
 
-test("applies goal adjustment and protein multiplier inside computeGoals", () => {
+contractTest("applies goal adjustment and protein multiplier inside computeGoals", ({ computeGoals }) => {
   const goals = computeGoals(80, true, {
     ...baseProfile,
     prefs: {

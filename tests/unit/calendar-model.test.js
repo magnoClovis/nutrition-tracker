@@ -1,15 +1,20 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createCalendarModel } = require("../../calendar-model.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../calendar-model.js"))],
+  ["ESM", () => import("../../src/leaf/calendar-model.js")]
+];
 
-const {
-  monthDays,
-  shiftMonth,
-  calendarMarkerFor,
-  calendarMonthStats
-} = createCalendarModel();
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createCalendarModel } = await load();
+      return callback(createCalendarModel());
+    });
+  });
+}
 
-test("builds Sunday-first calendar grids including leap years", () => {
+contractTest("builds Sunday-first calendar grids including leap years", ({ monthDays }) => {
   const leapFebruary = monthDays("2024-02");
   assert.equal(leapFebruary.length, 35);
   assert.deepEqual(leapFebruary.slice(0, 4), [null, null, null, null]);
@@ -28,14 +33,14 @@ test("builds Sunday-first calendar grids including leap years", () => {
   assert.equal(sundayStart.length % 7, 0);
 });
 
-test("shifts months across year boundaries using the existing local-Date model", () => {
+contractTest("shifts months across year boundaries using the existing local-Date model", ({ shiftMonth }) => {
   assert.equal(shiftMonth("2024-01", -1), "2023-12");
   assert.equal(shiftMonth("2023-12", 1), "2024-01");
   assert.equal(shiftMonth("2024-02", 12), "2025-02");
   assert.equal(shiftMonth("2024-02", -14), "2022-12");
 });
 
-test("builds calendar markers with the existing thresholds and rounding", () => {
+contractTest("builds calendar markers with the existing thresholds and rounding", ({ calendarMarkerFor }) => {
   const marker = calendarMarkerFor({
     breakfast: [{ protein: 40.4, kcal: 400.4 }],
     dinner: [{ protein: 60.2, kcal: 449.6 }]
@@ -60,7 +65,7 @@ test("builds calendar markers with the existing thresholds and rounding", () => 
   assert.equal(overBoundary.kcal, 1150);
 });
 
-test("treats empty logs and missing nutrient fields exactly as before", () => {
+contractTest("treats empty logs and missing nutrient fields exactly as before", ({ calendarMarkerFor }) => {
   assert.deepEqual(calendarMarkerFor({}, { protein: 100, kcal: 2000 }), {
     hasData: false,
     proteinMet: false,
@@ -80,7 +85,7 @@ test("treats empty logs and missing nutrient fields exactly as before", () => {
   });
 });
 
-test("aggregates only markers containing diary data", () => {
+contractTest("aggregates only markers containing diary data", ({ calendarMonthStats }) => {
   assert.deepEqual(calendarMonthStats({
     "2024-02-01": { hasData: true, proteinMet: true, kcalOver: false, kcal: 1800, protein: 100 },
     "2024-02-02": { hasData: true, proteinMet: false, kcalOver: true, kcal: 2101, protein: 80 },

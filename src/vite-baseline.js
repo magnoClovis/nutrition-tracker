@@ -10,6 +10,16 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import * as AutosaveScheduler from './leaf/autosave-scheduler.js';
+import * as CalendarModel from './leaf/calendar-model.js';
+import * as FirebaseConfigInternal from './leaf/firebase-config-internal.js';
+import * as GoalCalculator from './leaf/goal-calculator.js';
+import * as GroqClient from './leaf/groq-client.js';
+import * as HydrationGuard from './leaf/hydration-guard.js';
+import * as I18n from './leaf/i18n.js';
+import * as MealScore from './leaf/meal-score.js';
+import * as OpenFoodFacts from './leaf/open-food-facts.js';
+import * as RecentMealsModel from './leaf/recent-meals-model.js';
 
 const ReactDOM = { createRoot };
 const Recharts = {
@@ -23,34 +33,24 @@ const Recharts = {
 };
 
 const legacyAppScripts = [
-  'firebase-config-internal.js?v=0.8.1-beta-20260718',
   'firebase-auth-internal.js?v=0.8.1-beta-20260718',
   'firebase-firestore-internal.js?v=0.8.1-beta-20260718',
   'firebase-migration-internal.js?v=0.8.1-beta-20260718',
   'firebase-backup-internal.js?v=0.8.1-beta-20260718',
   'firebase-account-data-internal.js?v=0.8.1-beta-20260718',
   'firebase-storage.js?v=0.8.1-beta-20260718-account-data-internal-1',
-  'meal-score.js?v=0.8.1-beta-20260713',
-  'i18n.js?v=0.8.1-beta-20260716',
   'settings-panel.js?v=0.8.1-beta-20260716',
   'backup-modal.js?v=0.8.1-beta-20260716',
   'verify-email-screen.js?v=0.8.1-beta-20260716',
-  'open-food-facts.js?v=0.8.1-beta-20260718',
   'barcode-scanner.js?v=0.8.1-beta-20260718',
-  'groq-client.js?v=0.8.1-beta-20260718',
   'meal-review-ai.js?v=0.8.1-beta-20260718',
   'food-autofill-ai.js?v=0.8.1-beta-20260718',
   'dish-description-ai.js?v=0.8.1-beta-20260718',
   'diary-ticker.js?v=0.8.1-beta-20260716',
   'date-utils.js?v=0.8.1-beta-20260716',
-  'hydration-guard.js?v=0.8.1-beta-20260722',
-  'autosave-scheduler.js?v=0.8.1-beta-20260722',
-  'calendar-model.js?v=0.8.1-beta-20260722',
   'food-entry.js?v=0.8.1-beta-20260716',
   'meal-ga.js?v=0.8.1-beta-20260718',
-  'goal-calculator.js?v=0.8.1-beta-20260716',
   'daily-nutrition-model.js?v=0.8.1-beta-20260722',
-  'recent-meals-model.js?v=0.8.1-beta-20260722',
   'body-metrics-model.js?v=0.8.1-beta-20260722',
   'historical-goals-model.js?v=0.8.1-beta-20260722',
   'week-aggregator.js?v=0.8.1-beta-20260722',
@@ -81,9 +81,19 @@ const legacyAppScripts = [
 
 function installNpmRuntime(target) {
   Object.assign(target, {
+    AutosaveScheduler,
+    CalendarModel,
+    FirebaseConfigInternal,
+    GoalCalculator,
+    GroqClient,
+    HydrationGuard,
+    I18n,
+    MealScore,
+    OpenFoodFacts,
     PropTypes,
     React,
     ReactDOM,
+    RecentMealsModel,
     Recharts,
   });
 }
