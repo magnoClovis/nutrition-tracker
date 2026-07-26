@@ -234,7 +234,7 @@
     return false;
   };
   </script>
-  <!-- The Vite entry installs npm runtimes, then loads the unchanged UMD app in its current order. -->
-  <script type="module" src="/src/vite-baseline.js"></script>
+  <!-- The parallel Vite entry mounts the ESM composition root. -->
+  <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

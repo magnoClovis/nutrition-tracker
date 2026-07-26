@@ -3,9 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const BASELINE_RUNTIME_FILES = [
-  'app.js',
-];
+const BASELINE_RUNTIME_FILES = [];
 
 const STATIC_FILES = [
   'index.html',

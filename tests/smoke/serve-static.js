@@ -3,8 +3,8 @@ const http = require('node:http');
 const path = require('node:path');
 
 const HOST = '127.0.0.1';
-const PORT = 8765;
-const ROOT_DIR = path.resolve(__dirname, '..', '..');
+const PORT = Number(process.argv[3] || 8765);
+const ROOT_DIR = path.resolve(__dirname, '..', '..', process.argv[2] || '.');
 const IDLE_TIMEOUT_MS = Number(process.env.SMOKE_SERVER_IDLE_MS || 60000);
 
 const MIME_TYPES = {
