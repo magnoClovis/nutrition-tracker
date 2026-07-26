@@ -15,6 +15,8 @@ import * as ReleaseNotice from './components/release-notice.js';
 import * as VisualUpdateNoticeModule from './components/visual-update-notice.js';
 import * as MealReviewModalModule from './components/meal-review-modal.js';
 import * as GaResultCardModule from './components/ga-result-card.js';
+import * as SavedMealCardModule from './components/saved-meal-card.js';
+import * as BodyMetricsCharts from './components/body-metrics-charts.js';
 import * as FirebaseConfigInternal from './leaf/firebase-config-internal.js';
 import * as FirebaseAuthInternal from './firebase/firebase-auth-internal.js';
 import * as FirebaseFirestoreInternal from './firebase/firebase-firestore-internal.js';
@@ -67,8 +69,6 @@ const legacyAppScripts = [
   'privacy-panel.js?v=0.8.1-beta-20260716',
   'required-profile-modal.js?v=0.8.1-beta-20260716',
   'tutorial-overlay.js?v=0.8.1-beta-20260716',
-  'saved-meal-card.js?v=0.8.1-beta-20260723',
-  'body-metrics-charts.js?v=0.8.1-beta-20260723',
   'week-screen.js?v=0.8.1-beta-20260723',
   'metrics-screen.js?v=0.8.1-beta-20260723',
   'pantry-screen.js?v=0.8.1-beta-20260723',
@@ -83,6 +83,7 @@ function installNpmRuntime(target) {
   Object.assign(target, {
     AutosaveScheduler,
     BarcodeScanner,
+    BodyMetricsCharts,
     BodyMetricsModel,
     CalendarModel,
     DailyNutritionModel,
@@ -116,6 +117,7 @@ function installNpmRuntime(target) {
     ReactDOM,
     RecentMealsModel,
     Recharts,
+    SavedMealCardModule,
     ProfileValidation,
     ReleaseNotice,
     WeekAggregator,

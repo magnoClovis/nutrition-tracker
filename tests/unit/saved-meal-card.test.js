@@ -4,7 +4,10 @@ const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
 const { createDateUtils } = require("../../date-utils.js");
 const { createFoodEntry } = require("../../food-entry.js");
-const { createSavedMealCard } = require("../../saved-meal-card.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../saved-meal-card.js"))],
+  ["ESM", () => import("../../src/components/saved-meal-card.js")]
+];
 
 const { normalizeLanguage, pickLang, localeForLang } = createI18n();
 const { divisor } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
@@ -22,14 +25,6 @@ const foodEntry = createFoodEntry({
     salt: totals.salt + Number(item.salt || 0)
   }), { protein: 0, kcal: 0, carbs: 0, fat: 0, fiber: 0, salt: 0 })
 });
-const { SavedMealCard } = createSavedMealCard({
-  React,
-  pickLang,
-  templateEntries: foodEntry.templateEntries,
-  templateTotals: foodEntry.templateTotals,
-  templateItemEntry: foodEntry.templateItemEntry
-});
-
 function textContent(node) {
   const parts = [];
   function collect(value) {
@@ -91,7 +86,23 @@ function props(overrides = {}) {
   };
 }
 
-test("renders add-context totals and delegates append/edit", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createSavedMealCard } = await load();
+      const { SavedMealCard } = createSavedMealCard({
+        React,
+        pickLang,
+        templateEntries: foodEntry.templateEntries,
+        templateTotals: foodEntry.templateTotals,
+        templateItemEntry: foodEntry.templateItemEntry
+      });
+      return callback(SavedMealCard);
+    });
+  });
+}
+
+contractTest("renders add-context totals and delegates append/edit", SavedMealCard => {
   const calls = [];
   const card = SavedMealCard(props({
     onAppend: template => calls.push(["append", template.id]),
@@ -105,7 +116,7 @@ test("renders add-context totals and delegates append/edit", () => {
   assert.deepEqual(calls, [["append", "meal-1"], ["load", "meal-1"]]);
 });
 
-test("renders empty expanded templates and pantry delete action", () => {
+contractTest("renders empty expanded templates and pantry delete action", SavedMealCard => {
   let deleted;
   const card = SavedMealCard(props({
     template: { id: "empty", name: "Vazio", meal: "Almo\u00e7o", items: [] },
@@ -118,7 +129,7 @@ test("renders empty expanded templates and pantry delete action", () => {
   assert.equal(deleted, "empty");
 });
 
-test("renders the inline edit form and delegates draft/item actions", () => {
+contractTest("renders the inline edit form and delegates draft/item actions", SavedMealCard => {
   const calls = [];
   const editDraft = {
     name: "Modelo",

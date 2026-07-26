@@ -2,7 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
-const { createBodyMetricsCharts } = require("../../body-metrics-charts.js");
+const implementations = [
+  ["UMD", () => Promise.resolve(require("../../body-metrics-charts.js"))],
+  ["ESM", () => import("../../src/components/body-metrics-charts.js")]
+];
 
 const Recharts = {
   LineChart: "LineChart",
@@ -14,12 +17,6 @@ const Recharts = {
   ReferenceLine: "ReferenceLine"
 };
 const { pickLang } = createI18n();
-const {
-  BodyMetricChart,
-  WeightTrendChart,
-  BmrTrendChart,
-  BodyFatTrendChart
-} = createBodyMetricsCharts({ React, Recharts, pickLang });
 const chartTheme = { bg: "#fff", tick: "#555", border: "#ddd", label: "#777" };
 
 function findTypes(node, type) {
@@ -33,7 +30,21 @@ function findTypes(node, type) {
   return found;
 }
 
-test("preserves empty/minimum-point rendering gates", () => {
+function contractTest(name, callback) {
+  implementations.forEach(([format, load]) => {
+    test(`${format}: ${name}`, async () => {
+      const { createBodyMetricsCharts } = await load();
+      return callback(createBodyMetricsCharts({ React, Recharts, pickLang }));
+    });
+  });
+}
+
+contractTest("preserves empty/minimum-point rendering gates", ({
+  BodyMetricChart,
+  WeightTrendChart,
+  BmrTrendChart,
+  BodyFatTrendChart
+}) => {
   assert.equal(BodyMetricChart({
     config: { data: [] }, isMobileView: false, chartTheme, targetLabel: "Meta "
   }), null);
@@ -50,7 +61,7 @@ test("preserves empty/minimum-point rendering gates", () => {
   }), null);
 });
 
-test("keeps target zero hidden and a positive target visible", () => {
+contractTest("keeps target zero hidden and a positive target visible", ({ BodyMetricChart }) => {
   const base = {
     key: "bodyFatPct", title: "Gordura", label: "Gordura corporal",
     unit: "%", color: "#c86e8e", data: [{ date: "01/01", value: 15 }]
@@ -66,7 +77,10 @@ test("keeps target zero hidden and a positive target visible", () => {
   assert.equal(findTypes(positive, "ResponsiveContainer")[0].props.height, 190);
 });
 
-test("renders weight and BMR series with the existing keys and visibility", () => {
+contractTest("renders weight and BMR series with the existing keys and visibility", ({
+  WeightTrendChart,
+  BmrTrendChart
+}) => {
   const weight = WeightTrendChart({
     data: [{ date: "01", weight: 70 }, { date: "02", weight: 69 }],
     title: "Weight trend", visible: false, isMobileView: true, chartTheme
@@ -83,7 +97,7 @@ test("renders weight and BMR series with the existing keys and visibility", () =
   assert.equal(findTypes(bmr, "Line")[0].props.dataKey, "bmr");
 });
 
-test("renders localized body-fat chart and preserves target zero", () => {
+contractTest("renders localized body-fat chart and preserves target zero", ({ BodyFatTrendChart }) => {
   const data = [
     { label: "01", bodyFatPct: 15 },
     { label: "02", bodyFatPct: 14 }

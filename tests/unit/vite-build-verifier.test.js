@@ -133,3 +133,14 @@ test('rejects converted React component UMD files from the Vite artifact', (t) =
     /file is outside the build allowlist: ui-primitives\.js/,
   );
 });
+
+test('rejects converted React support-component UMD files from the Vite artifact', (t) => {
+  const directory = createValidBuildFixture();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(directory, 'body-metrics-charts.js'), '');
+
+  assert.throws(
+    () => verifyBuildDirectory(directory),
+    /file is outside the build allowlist: body-metrics-charts\.js/,
+  );
+});
