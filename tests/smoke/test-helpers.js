@@ -24,7 +24,7 @@ function collectCriticalErrors(page) {
 
 async function openApp(page) {
   const errors = collectCriticalErrors(page);
-  await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('index.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#root')).toBeVisible();
   await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
   return errors;
