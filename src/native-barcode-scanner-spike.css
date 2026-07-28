@@ -1,0 +1,54 @@
+.phrona-native-scanner-spike-launcher {
+  position: fixed;
+  right: 14px;
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  z-index: 2147483646;
+  padding: 10px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  background: #185c42;
+  color: #fff;
+  font: 700 12px/1.2 system-ui, "Segoe UI", sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+html.phrona-native-scanner-spike-active,
+body.phrona-native-scanner-spike-active,
+body.phrona-native-scanner-spike-active #root {
+  background: transparent !important;
+}
+
+body.phrona-native-scanner-spike-active #root > :not(.phrona-native-scanner-spike) {
+  visibility: hidden !important;
+}
+
+body.phrona-native-scanner-spike-active .phrona-native-scanner-spike {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  visibility: visible !important;
+  background: transparent;
+}
+
+.phrona-native-scanner-spike-target {
+  position: fixed;
+  left: 12%;
+  right: 12%;
+  top: 22%;
+  height: 28%;
+  border: 3px solid rgba(255, 255, 255, 0.92);
+  border-radius: 18px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+
+.phrona-native-scanner-spike-result {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid rgba(108, 221, 165, 0.45);
+  border-radius: 10px;
+  background: rgba(24, 92, 66, 0.28);
+  overflow-wrap: anywhere;
+}

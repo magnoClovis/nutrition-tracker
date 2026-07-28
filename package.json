@@ -17,6 +17,7 @@
     "test": "npm.cmd run preflight && npm.cmd run test:unit && npm.cmd run test:smoke && npm.cmd run test:cutover"
   },
   "dependencies": {
+    "@capacitor-mlkit/barcode-scanning": "8.1.0",
     "@capacitor/android": "8.4.2",
     "@capacitor/core": "8.4.2",
     "prop-types": "15.8.1",
