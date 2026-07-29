@@ -53,6 +53,7 @@ captures/
 .idea/navEditor.xml
 
 # Keystore files
+keystore.properties
 *.jks
 *.keystore
 
