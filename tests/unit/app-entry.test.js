@@ -25,7 +25,7 @@ function matches(pattern, source = appSource) {
 
 test('preserves the App hook and helper-function contract', () => {
   assert.equal(matches(/React\.useState\(/g).length, 15);
-  assert.equal(matches(/React\.useEffect\(/g).length, 3);
+  assert.equal(matches(/React\.useEffect\(/g).length, 5);
 
   assert.deepEqual(
     matches(/(?:async\s+)?function\s+(toggleLang|toggleDark|handleLogout|checkRequiredProfile|normalizeStorageAfterLogin|checkVisualUpdateNotice|afterAuthenticated)\s*\(/g)

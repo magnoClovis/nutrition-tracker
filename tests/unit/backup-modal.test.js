@@ -24,6 +24,15 @@ function createHookHarness(Component, props) {
           state[index] = typeof nextValue === "function" ? nextValue(state[index]) : nextValue;
         };
         return [state[index], setValue];
+      },
+      useRef(initialValue) {
+        const index = hookIndex++;
+        if (!(index in state)) state[index] = { current: initialValue };
+        return state[index];
+      },
+      useEffect(effect) {
+        hookIndex++;
+        effect();
       }
     };
     const previousDispatcher = currentDispatcher.current;

@@ -49,7 +49,10 @@
     }
 
     const { useState, useEffect, useRef } = React;
-    const { storage } = services;
+    const { storage, resolveNutritionBackAction } = services;
+    const resolveBackAction = typeof resolveNutritionBackAction === "function"
+      ? resolveNutritionBackAction
+      : () => null;
     const {
       LANGUAGE_OPTIONS,
       normalizeLanguage,
@@ -482,7 +485,9 @@
       externalLang,
       externalDarkMode,
       onLanguageChange,
-      onDarkModeChange
+      onDarkModeChange,
+      registerBackHandler,
+      backHandlerPriority
     }) {
       const [lang, setLang] = useState(() => normalizeLanguage(externalLang || localStorage.getItem('appLang') || 'pt'));
       const [menuOpen, setMenuOpen] = useState(false);
@@ -673,9 +678,15 @@
       const [pantry, setPantry] = useState([]);
       const [log, setLog] = useState({});
       const [tab, setTab] = useState("diario");
+      const tabHistoryRef = useRef([]);
       function openTab(nextTab, opts = {}) {
         const normalizedTab = normalizeTabKey(nextTab);
-        setTab(normalizedTab);
+        setTab(currentTab => {
+          if (currentTab !== normalizedTab && !opts.fromBack) {
+            tabHistoryRef.current.push(currentTab);
+          }
+          return normalizedTab;
+        });
         if (opts.skipTutorial || window.__tutorialNavigating) return;
         storage.get(tutorialSeenKey(normalizedTab)).then(r => {
           if (!hasSeenTutorial(r)) {
@@ -3904,6 +3915,120 @@
         });
       }
 
+      const nutritionBackStateRef = useRef(null);
+      nutritionBackStateRef.current = () => {
+        const resolution = resolveBackAction({
+          mealReviewHelpOpen,
+          showSaveTemplateModal,
+          gaAdvancedOpen,
+          metricsProgressInfoOpen,
+          backupImportPreview,
+          barcodeModalOpen,
+          reportModalOpen,
+          mealReview,
+          detailFood,
+          calendarOpen,
+          notesOpen,
+          backupOpen,
+          showGA,
+          metricsProgressOpen,
+          bodyCompositionOpen,
+          showSuppAdd,
+          showSuppForm,
+          headerLanguageMenuOpen,
+          menuOpen,
+          entryMenuId,
+          editEntryId,
+          editingId,
+          editingWeightId,
+          editingTemplateId,
+          editStagedIdx,
+          editWaterGoal,
+          editingGoals,
+          showExportPanel,
+          exportResult,
+          showRecentMeals,
+          newFoodOpen,
+          pantryItemsOpen,
+          mealTemplatesOpen,
+          suppPantryOpen,
+          addTemplatesOpen,
+          tab,
+          viewDate,
+          today: TODAY,
+          hasTabHistory: tabHistoryRef.current.length > 0
+        });
+        if (!resolution) return false;
+
+        switch (resolution.action) {
+          case "closeMealReviewHelp": setMealReviewHelpOpen(false); break;
+          case "closeSaveTemplateModal": setShowSaveTemplateModal(false); break;
+          case "closeGaAdvanced": setGAAdvancedOpen(false); break;
+          case "closeMetricsProgressInfo": setMetricsProgressInfoOpen(false); break;
+          case "closeBackupImportPreview": closeBackupImportPreview(null); break;
+          case "closeBarcodeModal": closeBarcodeModal(); break;
+          case "closeReportModal": setReportModalOpen(false); break;
+          case "closeMealReview":
+            setMealReview(null);
+            setMealReviewHelpOpen(false);
+            break;
+          case "closeFoodDetail": setDetailFood(null); break;
+          case "closeCalendar": setCalendarOpen(false); break;
+          case "closeNotes": setNotesOpen(false); break;
+          case "closeBackup": setBackupOpen(false); break;
+          case "closeGa": setShowGA(false); break;
+          case "closeMetricsProgress": setMetricsProgressOpen(false); break;
+          case "closeBodyComposition": setBodyCompositionOpen(false); break;
+          case "closeSupplementAdd": setShowSuppAdd(false); break;
+          case "closeSupplementForm": setShowSuppForm(false); break;
+          case "closeHeaderLanguageMenu": setHeaderLanguageMenuOpen(false); break;
+          case "closeHeaderMenu":
+            setMenuOpen(false);
+            setHeaderLanguageMenuOpen(false);
+            break;
+          case "closeEntryMenu": setEntryMenuId(null); break;
+          case "cancelEntryEdit": setEditEntryId(null); break;
+          case "cancelFoodEdit":
+            setEditingId(null);
+            setEditForm(null);
+            break;
+          case "cancelWeightEdit": setEditingWeightId(null); break;
+          case "cancelTemplateEdit": cancelTemplateEdit(); break;
+          case "cancelStagedEdit":
+            setEditStagedIdx(null);
+            setEditStagedQty("");
+            break;
+          case "cancelWaterGoalEdit": setEditWaterGoal(false); break;
+          case "cancelGoalsEdit": setEditingGoals(false); break;
+          case "closeExportPanel": setShowExportPanel(null); break;
+          case "closeExportResult": setExportResult(null); break;
+          case "closeRecentMeals": setShowRecentMeals(false); break;
+          case "closeNewFood": setNewFoodOpen(false); break;
+          case "closePantryItems": setPantryItemsOpen(false); break;
+          case "closeMealTemplates": setMealTemplatesOpen(false); break;
+          case "closeSupplementPantry": setSuppPantryOpen(false); break;
+          case "closeAddTemplates": setAddTemplatesOpen(false); break;
+          case "returnToToday": changeViewDate(TODAY); break;
+          case "leaveAddScreen":
+          case "leaveSecondaryTab": {
+            const destination = tabHistoryRef.current.pop() || "diario";
+            openTab(destination, { skipTutorial: true, fromBack: true });
+            break;
+          }
+          default: return false;
+        }
+        return true;
+      };
+
+      useEffect(() => {
+        if (typeof registerBackHandler !== "function") return undefined;
+        return registerBackHandler({
+          id: "nutrition-tracker",
+          priority: Number(backHandlerPriority) || 0,
+          handler: () => nutritionBackStateRef.current()
+        });
+      }, [registerBackHandler, backHandlerPriority]);
+
       useEffect(() => {
         if (!loaded || typeof window.hideInitialLoading !== "function") return;
         window.hideInitialLoading();
@@ -5231,7 +5356,7 @@
         showExportPanel,
         exportResult,
         onOpenDay: date => {
-          setTab("diario");
+          openTab("diario", { skipTutorial: true });
           changeViewDate(date);
         },
         onToggleWeekExport: () => setShowExportPanel(showExportPanel === "week" ? null : "week"),

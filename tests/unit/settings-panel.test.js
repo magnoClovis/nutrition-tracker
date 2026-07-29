@@ -29,6 +29,15 @@ function createHookHarness(Component, props) {
           state[index] = typeof nextValue === "function" ? nextValue(state[index]) : nextValue;
         };
         return [state[index], setValue];
+      },
+      useRef(initialValue) {
+        const index = hookIndex++;
+        if (!(index in state)) state[index] = { current: initialValue };
+        return state[index];
+      },
+      useEffect(effect) {
+        hookIndex++;
+        effect();
       }
     };
     const previousDispatcher = currentDispatcher.current;
@@ -76,6 +85,7 @@ function createFixture(createSettingsPanel, {
   directKey = false,
   stored = {},
   signOut,
+  registerBackHandler,
   callbacks = {}
 } = {}) {
   const storageReads = [];
@@ -110,7 +120,9 @@ function createFixture(createSettingsPanel, {
     darkMode,
     toggleLang: callbacks.toggleLang || (() => {}),
     toggleDark: callbacks.toggleDark || (() => {}),
-    directKey
+    directKey,
+    registerBackHandler,
+    backHandlerPriority: 300
   };
   return {
     harness: createHookHarness(SettingsPanel, props),
@@ -238,4 +250,25 @@ contractTest("opens the existing feedback form through the injected URL service"
     "noopener,noreferrer"
   ]]);
   assert.equal(closeCalls, 1);
+});
+
+contractTest("Android Back closes the nested feedback confirmation before Settings", createSettingsPanel => {
+  let registeredHandler = null;
+  let closeCalls = 0;
+  const fixture = createFixture(createSettingsPanel, {
+    registerBackHandler({ handler }) {
+      registeredHandler = handler;
+      return () => {};
+    },
+    callbacks: { onClose() { closeCalls += 1; } }
+  });
+
+  let tree = fixture.harness.render();
+  findButton(tree, "Send feedback / report a bug").props.onClick();
+  fixture.harness.render();
+
+  assert.equal(registeredHandler(), true);
+  tree = fixture.harness.render();
+  assert.equal(findButton(tree, "Open form"), undefined);
+  assert.equal(closeCalls, 0);
 });

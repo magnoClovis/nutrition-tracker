@@ -9,7 +9,9 @@ const implementations = [
 function createController(createNutritionTrackerController) {
   return createNutritionTrackerController({
     React,
-    services: {},
+    services: {
+      resolveNutritionBackAction: () => null
+    },
     domain: {},
     screens: {},
     browser: {
@@ -41,8 +43,8 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
   const source = NutritionTracker.toString();
 
   assert.equal((source.match(/\buseState\s*\(/g) || []).length, 147);
-  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 35);
-  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 14);
+  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 36);
+  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 16);
 });
 
 contractTest("keeps all eleven render-scoped factories in their original order", createNutritionTrackerController => {
