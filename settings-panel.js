@@ -74,9 +74,23 @@
      * @param {function(string): void} props.toggleLang Changes the active language.
      * @param {function(): void} props.toggleDark Toggles the active color mode.
      * @param {boolean} props.directKey Whether to open directly on the AI-key editor.
+     * @param {function(Object): function(): void} [props.registerBackHandler] Registers nested Android Back handling.
+     * @param {number} [props.backHandlerPriority] Dispatcher priority for the nested handler.
      * @returns {Object} React element tree for the settings panel.
      */
-    function SettingsPanel({onClose, onLogout, onOpenBackup, onOpenPrivacy, lang, darkMode, toggleLang, toggleDark, directKey}) {
+    function SettingsPanel({
+      onClose,
+      onLogout,
+      onOpenBackup,
+      onOpenPrivacy,
+      lang,
+      darkMode,
+      toggleLang,
+      toggleDark,
+      directKey,
+      registerBackHandler,
+      backHandlerPriority
+    }) {
       const [showKey, setShowKey] = React.useState(!!directKey);
       const [showFeedbackConfirm, setShowFeedbackConfirm] = React.useState(false);
       const [languageMenuOpen, setLanguageMenuOpen] = React.useState(false);
@@ -161,6 +175,31 @@
         toggleLang(code);
         setLanguageMenuOpen(false);
       }
+
+      const nestedBackStateRef = React.useRef(null);
+      nestedBackStateRef.current = () => {
+        if (showFeedbackConfirm) {
+          setShowFeedbackConfirm(false);
+          return true;
+        }
+        if (showKey) {
+          closeKey();
+          return true;
+        }
+        if (languageMenuOpen) {
+          setLanguageMenuOpen(false);
+          return true;
+        }
+        return false;
+      };
+      React.useEffect(() => {
+        if (typeof registerBackHandler !== 'function') return undefined;
+        return registerBackHandler({
+          id: 'settings-panel',
+          priority: Number(backHandlerPriority) || 0,
+          handler: () => nestedBackStateRef.current(),
+        });
+      }, [registerBackHandler, backHandlerPriority]);
     
       const inp = {width:'100%',background:'var(--surface)',border:'1px solid var(--border2)',color:'var(--text)',padding:'11px 12px',borderRadius:8,fontSize:13,boxSizing:'border-box',outline:'none',fontFamily:'inherit'};
     
