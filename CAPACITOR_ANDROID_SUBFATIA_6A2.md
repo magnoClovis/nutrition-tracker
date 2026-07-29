@@ -100,7 +100,20 @@ O APK final desta iteração será montado temporariamente com:
 - PR #75 — Subfatia 6A2 e esta iteração corretiva.
 
 As branches e os históricos dos dois PRs permanecem separados. Caminho, tamanho
-e SHA-256 serão registrados depois do build combinado.
+e SHA-256 do artefato gerado:
+
+- caminho convencional:
+  `android/app/build/outputs/apk/debug/app-debug.apk`;
+- cópia identificada:
+  `android/app/build/outputs/apk/debug/phrona-combined-pr74-pr75-debug.apk`;
+- tamanho: 35.539.826 bytes;
+- SHA-256:
+  `73DAD1C7F0EF557ABA33F86603B98DDB10EF24194D05EAEF5A932913FFD98346`.
+
+Na composição temporária, o preflight passou, 734 testes unitários passaram, o
+build Vite foi verificado, os quatro plugins Capacitor foram sincronizados e o
+`assembleDebug` terminou com 150 tarefas executadas. Nenhum commit de merge foi
+criado.
 
 ## Roteiro de validação física
 
