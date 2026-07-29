@@ -1,10 +1,10 @@
-// Diario Nutricional application script.
+// Trofia application script.
 // This file is intentionally kept outside index.html so the app code is readable
 // and third-party bundles remain isolated in vendor/. New feature code should keep
 // calculation helpers documented where inputs/outputs are not immediately obvious.
 const {useState,useEffect,useRef}=React;
 const {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,ReferenceLine}=Recharts;
-const APP_VERSION_LABEL = window.APP_VERSION_LABEL || "Diário Nutricional v0.8.1 Beta";
+const APP_VERSION_LABEL = window.APP_VERSION_LABEL || "Trofia v0.8.1 Beta";
 const MOST_RECENT_TUTORIAL_KEY = "tutorial_most_recent_version_seen";
 const CURRENT_RELEASE_TUTORIAL_VERSION = "0.8.0-beta";
 const RELEASE_TUTORIAL_TYPE = "release080";

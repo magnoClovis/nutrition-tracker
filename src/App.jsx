@@ -109,7 +109,7 @@ Object.assign(globalThis, {
   SavedMealCardModule,
 });
 
-const APP_VERSION_LABEL = window.APP_VERSION_LABEL || 'Diário Nutricional v0.8.1 Beta';
+const APP_VERSION_LABEL = window.APP_VERSION_LABEL || 'Trofia v0.8.1 Beta';
 const MOST_RECENT_TUTORIAL_KEY = 'tutorial_most_recent_version_seen';
 const CURRENT_RELEASE_TUTORIAL_VERSION = '0.8.0-beta';
 const RELEASE_TUTORIAL_TYPE = 'release080';

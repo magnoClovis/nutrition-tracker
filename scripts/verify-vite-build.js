@@ -8,10 +8,10 @@ const BASELINE_RUNTIME_FILES = [];
 const STATIC_FILES = [
   'index.html',
   'manifest.json',
-  'phrona-icon-192.png',
-  'phrona-icon-512.png',
-  'phrona-favicon-32.png',
-  'phrona-apple-touch-icon.png',
+  'trofia-icon-192.png',
+  'trofia-icon-512.png',
+  'trofia-favicon-32.png',
+  'trofia-apple-touch-icon.png',
 ];
 
 const REQUIRED_OUTPUT_FILES = [...STATIC_FILES, ...BASELINE_RUNTIME_FILES];

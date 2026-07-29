@@ -1,14 +1,14 @@
 {
-  "name": "Diário Nutricional",
-  "short_name": "Nutrição",
-  "description": "Registo diário de nutrição com IA",
+  "name": "Trofia",
+  "short_name": "Trofia",
+  "description": "Trofia — registo diário de nutrição com IA",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0D3F2A",
-  "theme_color": "#111111",
+  "background_color": "#093C2D",
+  "theme_color": "#093C2D",
   "orientation": "portrait",
   "icons": [
-    {"src": "phrona-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
-    {"src": "phrona-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+    {"src": "trofia-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "trofia-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
   ]
 }

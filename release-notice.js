@@ -41,17 +41,17 @@
       const textByLang = {
         pt: {
           title: "Bem-vindo \u00e0 vers\u00e3o 0.8.0 Beta! \ud83c\udf89\ud83e\udd73",
-          body: "O Di\u00e1rio Nutricional agora tamb\u00e9m est\u00e1 dispon\u00edvel em espanhol e ganhou novas ferramentas para ajudar nas suas decis\u00f5es: voc\u00ea pode avaliar uma refei\u00e7\u00e3o antes de registr\u00e1-la, acompanhar melhor sua semana e suas m\u00e9tricas corporais e enviar feedback diretamente pelas Configura\u00e7\u00f5es. Preparamos um guia r\u00e1pido com as principais novidades.",
+          body: "A Trofia agora tamb\u00e9m est\u00e1 dispon\u00edvel em espanhol e ganhou novas ferramentas para ajudar nas suas decis\u00f5es: voc\u00ea pode avaliar uma refei\u00e7\u00e3o antes de registr\u00e1-la, acompanhar melhor sua semana e suas m\u00e9tricas corporais e enviar feedback diretamente pelas Configura\u00e7\u00f5es. Preparamos um guia r\u00e1pido com as principais novidades.",
           btn: "Ver novidades"
         },
         en: {
           title: "Welcome to version 0.8.0 Beta! \ud83c\udf89\ud83e\udd73",
-          body: "Nutrition Tracker is now also available in Spanish and includes new tools to support your daily decisions: you can evaluate a meal before logging it, follow your weekly and body metrics more clearly, and send feedback directly from Settings. We prepared a quick tour of the main updates.",
+          body: "Trofia is now also available in Spanish and includes new tools to support your daily decisions: you can evaluate a meal before logging it, follow your weekly and body metrics more clearly, and send feedback directly from Settings. We prepared a quick tour of the main updates.",
           btn: "See what's new"
         },
         es: {
           title: "\u00a1Bienvenido a la versi\u00f3n 0.8.0 Beta! \ud83c\udf89\ud83e\udd73",
-          body: "Diario Nutricional ya est\u00e1 disponible en espa\u00f1ol e incluye nuevas herramientas para ayudarte en tus decisiones diarias: puedes evaluar una comida antes de registrarla, seguir con m\u00e1s claridad tu semana y tus m\u00e9tricas corporales y enviar comentarios directamente desde Configuraci\u00f3n. Preparamos una gu\u00eda r\u00e1pida con las principales novedades.",
+          body: "Trofia ya est\u00e1 disponible en espa\u00f1ol e incluye nuevas herramientas para ayudarte en tus decisiones diarias: puedes evaluar una comida antes de registrarla, seguir con m\u00e1s claridad tu semana y tus m\u00e9tricas corporales y enviar comentarios directamente desde Configuraci\u00f3n. Preparamos una gu\u00eda r\u00e1pida con las principales novedades.",
           btn: "Ver novedades"
         }
       };

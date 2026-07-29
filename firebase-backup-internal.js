@@ -1,5 +1,5 @@
 /**
- * Internal full-account backup and restoration service for the Nutrition Tracker.
+ * Internal full-account backup and restoration service for Trofia.
  *
  * This module exports, validates, previews, and imports real user data while
  * `firebase-storage.js` remains the only public facade. Firestore access is

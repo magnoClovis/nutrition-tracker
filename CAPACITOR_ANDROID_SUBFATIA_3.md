@@ -5,7 +5,7 @@ Data da validação: 28 de julho de 2026.
 ## Escopo
 
 Esta subfatia formaliza a validação funcional do primeiro wrapper Android de
-debug do Phrona em aparelho real. Ela não inclui correções funcionais,
+debug da Trofia em aparelho real. Ela não inclui correções funcionais,
 alterações no scanner de código de barras, implementação de permissões,
 integrações nativas, assinatura de release ou decisões das Subfatias 4 e 5.
 
@@ -15,7 +15,7 @@ Resultado geral: **PASSOU COM RESSALVAS**.
 
 - aparelho físico identificado pelo ADB como `SM_S938B`;
 - instalação autorizada por depuração USB;
-- application ID `com.hermegas.phrona`;
+- application ID atual `com.hermegas.trofia`;
 - variante Android `debug`;
 - APK:
   `android/app/build/outputs/apk/debug/app-debug.apk`;
@@ -35,7 +35,7 @@ Resultado: **PASSOU**.
 
 - o ADB reconheceu e autorizou o aparelho;
 - o APK foi instalado com sucesso;
-- o Phrona apareceu na lista de aplicativos;
+- a Trofia apareceu na lista de aplicativos;
 - o aplicativo abriu normalmente no aparelho físico;
 - o fluxo inicial e a tela de login ficaram disponíveis.
 
@@ -116,7 +116,7 @@ foi usado um arquivo improvisado para evitar risco de escrita incorreta.
 
 Resultado: **PASSOU**.
 
-O conteúdo copiado pelo Phrona pôde ser colado corretamente em outro aplicativo
+O conteúdo copiado pela Trofia pôde ser colado corretamente em outro aplicativo
 do Android.
 
 ## Links externos
@@ -124,14 +124,14 @@ do Android.
 Resultado: **PASSOU**.
 
 Os links externos disponíveis abriram corretamente no ambiente do aparelho e o
-retorno ao Phrona funcionou sem perda observável de estado.
+retorno à Trofia funcionou sem perda observável de estado.
 
 ## Scanner web atual
 
 Resultado da câmera: **BLOQUEADO**.
 
 - o Android não apresentou solicitação de permissão de câmera;
-- em Configurações, o Phrona informou que nenhuma permissão era necessária;
+- em Configurações, a Trofia informou que nenhuma permissão era necessária;
 - não havia opção para conceder câmera manualmente;
 - o scanner exibiu a mensagem de que a câmera foi negada, não estava disponível
   ou não era compatível;

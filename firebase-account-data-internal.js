@@ -1,7 +1,7 @@
 /**
  * !!! DESTRUCTIVE AND IRREVERSIBLE ACCOUNT-DATA OPERATION !!!
  *
- * Internal Firestore account-data deletion service for the Nutrition Tracker.
+ * Internal Firestore account-data deletion service for Trofia.
  * `firebase-storage.js` remains the sole public facade and publishes this
  * module's operation as `window.deleteCurrentUserFirestoreData`.
  *

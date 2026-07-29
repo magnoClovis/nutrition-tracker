@@ -1,5 +1,5 @@
 /**
- * Internal Firestore persistence core for the Nutrition Tracker.
+ * Internal Firestore persistence core for Trofia.
  *
  * This module implements the application's most widely used data contract:
  * root-profile fields, active `data/{key}` documents, legacy documents, local

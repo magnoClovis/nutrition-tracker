@@ -1,4 +1,4 @@
-# Diario Nutricional - Stable Release Checklist
+# Trofia - Stable Release Checklist
 
 This file tracks the hardening/stability work for the 0.7.5 beta path toward a
 more reliable stable release.

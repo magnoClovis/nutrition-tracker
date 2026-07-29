@@ -616,7 +616,7 @@ explicitamente adiada.
 Localização: validação manual da Subfatia 3 do Capacitor Android em aparelho
 real; AndroidManifest.xml e barcode-scanner.js.
 Descrição/impacto: ao abrir o scanner, o Android não apresenta solicitação de
-permissão. A tela de permissões do Phrona informa que nenhuma permissão é
+permissão. A tela de permissões da Trofia informa que nenhuma permissão é
 necessária e não permite autorizar a câmera manualmente. O scanner exibe o
 fallback de câmera negada, indisponível ou incompatível. A digitação manual do
 código de barras encontra o alimento normalmente.

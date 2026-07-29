@@ -1,5 +1,5 @@
 /**
- * MAXIMUM-CAUTION CONTROLLER CORE for the Diário Nutricional application.
+ * MAXIMUM-CAUTION CONTROLLER CORE for the Trofia application.
  *
  * This UMD module owns the complete NutritionTracker controller: its 145 React
  * states, 35 effects, 14 refs, local callbacks, and the temporal hydration /

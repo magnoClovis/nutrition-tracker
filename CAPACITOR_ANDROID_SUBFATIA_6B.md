@@ -9,8 +9,8 @@ Esta subfatia trata exclusivamente de:
 - retomada após segundo plano;
 - regressão de links externos.
 
-A renomeação comercial de Phrona para Trofia e a alteração do Application ID
-para `com.hermegas.trofia` permanecem fora deste PR.
+A identidade comercial atual é Trofia, com Application ID
+`com.hermegas.trofia`.
 
 Também permanecem inalterados o scanner, Firebase, Open Food Facts, lógica de
 domínio e configuração funcional de exportação/importação.
@@ -82,13 +82,12 @@ Qualquer mudança depende do resultado do teste físico descrito abaixo.
 ## APK de validação
 
 - caminho:
-  `android/app/build/outputs/apk/debug/phrona-subfatia-6b-status-bar-debug.apk`;
+  `android/app/build/outputs/apk/debug/trofia-subfatia-6b-status-bar-debug.apk`;
 - tamanho: 35.557.106 bytes;
 - SHA-256:
   `BC5D49C848213F11DD2596D1B8F8D9D3F2CD1FDEAB8D27D4C9FDC325098EFAF0`.
 
-O APK ainda aparece como Phrona porque a renomeação para Trofia é uma mudança
-separada.
+Os APKs atuais usam o nome Trofia.
 
 ## Roteiro físico
 
@@ -98,7 +97,7 @@ No PowerShell, a partir da raiz do repositório:
 
 ```powershell
 & "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" devices -l
-& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install -r ".\android\app\build\outputs\apk\debug\phrona-subfatia-6b-status-bar-debug.apk"
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install -r ".\android\app\build\outputs\apk\debug\trofia-subfatia-6b-status-bar-debug.apk"
 ```
 
 O primeiro comando deve mostrar o aparelho com status `device`. O segundo deve

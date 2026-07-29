@@ -1,4 +1,4 @@
-DIARIO NUTRICIONAL - GUIA OFICIAL DE SMOKE TESTS
+TROFIA - GUIA OFICIAL DE SMOKE TESTS
 Versao do app: 0.7.5 Beta
 Ultima revisao: 2026-07-07
 
@@ -6,7 +6,7 @@ Ultima revisao: 2026-07-07
 ===========
 
 Este documento explica como executar, interpretar e diagnosticar os smoke tests
-do Diario Nutricional.
+da Trofia.
 
 Smoke tests sao testes automaticos curtos, feitos para responder uma pergunta
 simples antes de continuar trabalhando ou publicar uma versao:

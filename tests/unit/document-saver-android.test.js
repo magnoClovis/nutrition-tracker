@@ -5,7 +5,7 @@ const path = require("node:path");
 
 const sourcePath = path.resolve(
   __dirname,
-  "../../android/app/src/main/java/com/hermegas/phrona/DocumentSaverPlugin.java"
+  "../../android/app/src/main/java/com/hermegas/trofia/DocumentSaverPlugin.java"
 );
 
 test("stages large exports outside the Capacitor activity-state bundle", () => {

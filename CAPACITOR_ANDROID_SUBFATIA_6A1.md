@@ -29,7 +29,7 @@ de Configurações e da prévia de importação possuem prioridade maior que
 o próprio shell.
 
 Na raiz — aba **Diário**, data de hoje e nenhum painel aberto — o evento
-não é consumido e o Capacitor minimiza o Phrona. Um segundo evento não é
+não é consumido e o Capacitor minimiza a Trofia. Um segundo evento não é
 executado em paralelo enquanto o primeiro ainda está sendo processado.
 
 ## Preservação dos fluxos existentes
@@ -154,7 +154,7 @@ apagaria os dados locais desse app de teste.
 ### 6. Raiz
 
 1. Vá ao Diário de hoje e feche todos os painéis.
-2. Pressione Voltar: o Phrona deve ser minimizado.
+2. Pressione Voltar: a Trofia deve ser minimizada.
 3. Reabra-o pelos aplicativos recentes e confirme que o estado continua
    íntegro.
 

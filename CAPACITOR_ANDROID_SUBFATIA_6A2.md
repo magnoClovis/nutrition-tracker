@@ -73,7 +73,7 @@ O APK combinado confirmou:
 
 - **Compartilhar** funciona corretamente;
 - Voltar fecha a tela de backup corretamente;
-- **Salvar no aparelho** abria o seletor, mas o Phrona encerrava depois da
+- **Salvar no aparelho** abria o seletor, mas a Trofia encerrava depois da
   confirmação e deixava um arquivo vazio;
 - **Atualizar dados** afirmava sucesso sem mudança observável;
 - deslizar para baixo não mostrava atualização, conforme esperado, pois
@@ -136,7 +136,7 @@ e SHA-256 do artefato gerado:
 - caminho convencional:
   `android/app/build/outputs/apk/debug/app-debug.apk`;
 - cópia identificada:
-  `android/app/build/outputs/apk/debug/phrona-combined-pr74-pr75-debug.apk`;
+  `android/app/build/outputs/apk/debug/trofia-combined-pr74-pr75-debug.apk`;
 - tamanho: 35.556.254 bytes;
 - SHA-256:
   `C6D6F8E8DCBD4787BD5A54677724EA207515CD90EE76D758FD7DD5B3D3796F20`.
@@ -159,7 +159,7 @@ criado.
    de sucesso.
 6. Abra o seletor de importação e confira se o arquivo salvo aparece em
    **Recentes**. A organização de Recentes e dos provedores é controlada pelo
-   seletor do Android, não pelo Phrona.
+   seletor do Android, não pela Trofia.
 
 ### 2. Compartilhar
 

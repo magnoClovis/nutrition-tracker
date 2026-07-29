@@ -1,4 +1,4 @@
-package com.hermegas.phrona;
+package com.hermegas.trofia;
 
 import android.os.Bundle;
 
