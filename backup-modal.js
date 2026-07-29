@@ -39,6 +39,7 @@
    * @param {function(string, *, *, *): *} dependencies.pickLang Language selector from `i18n.js`.
    * @param {{get: function(string): Promise<Object|null>}} dependencies.storage App storage adapter.
    * @param {{getItem: function(string): (string|null)}} dependencies.localStorage Browser-local storage service.
+   * @param {function(Object): Promise<Object>} [dependencies.exportFile] Runtime file-export adapter.
    * @param {function(): Object} dependencies.getBackupContext Returns current export data and backup bridge functions for each action.
    * @param {function(): Object} dependencies.FileReader Browser FileReader constructor.
    * @param {function(string): void} dependencies.alertUser Browser alert service.
@@ -51,6 +52,7 @@
     pickLang,
     storage,
     localStorage: localStorageService,
+    exportFile,
     getBackupContext,
     FileReader: FileReaderCtor,
     alertUser,
@@ -60,6 +62,7 @@
         typeof normalizeLanguage !== "function" || typeof pickLang !== "function" ||
         !storage || typeof storage.get !== "function" ||
         !localStorageService || typeof localStorageService.getItem !== "function" ||
+        (exportFile !== undefined && typeof exportFile !== "function") ||
         typeof getBackupContext !== "function" || typeof FileReaderCtor !== "function" ||
         typeof alertUser !== "function" || typeof reportError !== "function") {
       throw new TypeError("BackupModal requires React, i18n, storage, browser services, and getBackupContext");
@@ -120,8 +123,12 @@
           const backupContext = getBackupContext() || {};
           const d = backupContext.exportData || {};
           const {activeLog, log, TODAY, isTraining, goals, goalHistory, trainingByDate,
-                 buildDayTotals, normalizeMealKeys, downloadFile, lang, notify,
+                 buildDayTotals, normalizeMealKeys, exportFile: contextExportFile, lang, notify,
                  weightHistory} = d;
+          const activeExportFile = exportFile || contextExportFile;
+          if (typeof activeExportFile !== "function") {
+            throw new Error(L('App ainda não está pronto', 'App not ready', 'La app aún no está lista'));
+          }
           const today = TODAY || new Date().toISOString().split('T')[0];
           const exportLang = normalizeLanguage(lang || normalizedLang || 'pt');
           const E = (pt, en, es) => pickLang(exportLang, pt, en, es);
@@ -141,12 +148,15 @@
               salt:    Math.round(ae.reduce((s,e)=>s+(e.salt ?? 0),0)*10)/10
             };
             const data = {date:today, isTraining, goals, meals:activeLog, totals:totDay};
-            downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:'day',data},null,2),
-              'diario_'+today+'.json', 'application/json');
+            await activeExportFile({
+              content: JSON.stringify({exportedAt:new Date().toISOString(),type:'day',data},null,2),
+              filename: 'diario_'+today+'.json',
+              mimeType: 'application/json'
+            });
             if (notify) notify(E('Arquivo baixado!', 'File downloaded!', 'Archivo descargado!'));
     
           } else if (key === 'week' || key === 'month') {
-            if (!buildDayTotals || !normalizeMealKeys || !downloadFile) throw new Error(E('App ainda não está pronto', 'App not ready', 'La app aún no está lista'));
+            if (!buildDayTotals || !normalizeMealKeys) throw new Error(E('App ainda não está pronto', 'App not ready', 'La app aún no está lista'));
             const n = key === 'week' ? 7 : 30;
             const days = [];
             for (let i = n-1; i >= 0; i--) {
@@ -169,21 +179,31 @@
               days.push({date, isTraining:trainingByDate?.[date] ?? true, goals: goalHistory?.[date] || null, totals:tot, meals:dayLog});
             }
             const fname = (key==='week'?'semana':'mes')+'_'+today+'.json';
-            downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:key,days},null,2), fname, 'application/json');
+            await activeExportFile({
+              content: JSON.stringify({exportedAt:new Date().toISOString(),type:key,days},null,2),
+              filename: fname,
+              mimeType: 'application/json'
+            });
             if (notify) notify(E('Arquivo baixado!', 'File downloaded!', 'Archivo descargado!'));
     
           } else if (key === 'pantry') {
             const r = await storage.get('pantry_v2');
             const data = {pantry_v2: r?.value || '[]'};
-            downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:'pantry',data},null,2),
-              'despensa_'+today+'.json', 'application/json');
+            await activeExportFile({
+              content: JSON.stringify({exportedAt:new Date().toISOString(),type:'pantry',data},null,2),
+              filename: 'despensa_'+today+'.json',
+              mimeType: 'application/json'
+            });
             if (notify) notify(E('Arquivo baixado!', 'File downloaded!', 'Archivo descargado!'));
     
           } else if (key === 'weight') {
             const whr = await storage.get('weightHistory').catch(()=>null);
             const whData = whr?.value ? JSON.parse(whr.value) : (weightHistory||[]);
-            downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:'weight',data:{weightHistory:whData}},null,2),
-              'peso_'+today+'.json', 'application/json');
+            await activeExportFile({
+              content: JSON.stringify({exportedAt:new Date().toISOString(),type:'weight',data:{weightHistory:whData}},null,2),
+              filename: 'peso_'+today+'.json',
+              mimeType: 'application/json'
+            });
             if (notify) notify(E('Arquivo baixado!', 'File downloaded!', 'Archivo descargado!'));
           }
           setDownloaded(key);

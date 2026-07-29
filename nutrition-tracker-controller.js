@@ -49,7 +49,7 @@
     }
 
     const { useState, useEffect, useRef } = React;
-    const { storage } = services;
+    const { storage, exportFile: injectedExportFile } = services;
     const {
       LANGUAGE_OPTIONS,
       normalizeLanguage,
@@ -439,7 +439,7 @@
       }
     };
 
-    function downloadFile(content, filename, mime) {
+    function webExportFile(content, filename, mime) {
       try {
         const url = "data:" + mime + ";charset=utf-8," + encodeURIComponent(content);
         const a = document.createElement("a");
@@ -460,9 +460,9 @@
         setTimeout(() => URL.revokeObjectURL(url2), 1000);
       }
     }
-    function downloadText(content, filename, type) {
-      downloadFile(content, filename, type);
-    }
+    const exportFile = typeof injectedExportFile === "function"
+      ? injectedExportFile
+      : async ({content, filename, mimeType}) => webExportFile(content, filename, mimeType);
     function dateLabel(date, lang) {
       const s = STRINGS[lang || 'pt'];
       if (date === TODAY) return `${s.today} ${formatDateDMY(date)}`;
@@ -2311,7 +2311,7 @@
       // Update data refs now that all derived state is available
       window._exportData = {
         activeLog, log, TODAY, isTraining, goals, goalHistory, trainingByDate,
-        buildDayTotals, normalizeMealKeys, downloadFile, lang, notify,
+        buildDayTotals, normalizeMealKeys, exportFile, lang, notify,
         weightHistory
       };
       function setActiveLog(newLog) {
@@ -2916,19 +2916,31 @@
               ? await window.exportFullAccountBackup()
               : await buildLegacyFullBackup();
             filename = 'backup_completo_' + today + '.json';
-            downloadFile(JSON.stringify(backup, null, 2), filename, 'application/json');
+            await exportFile({
+              content: JSON.stringify(backup, null, 2),
+              filename,
+              mimeType: 'application/json'
+            });
 
           } else if (type === 'pantry') {
             const r = await storage.get('pantry_v2');
             data = {pantry_v2: r?.value || '[]'};
             filename = 'despensa_' + today + '.json';
-            downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:'pantry',data},null,2), filename, 'application/json');
+            await exportFile({
+              content: JSON.stringify({exportedAt:new Date().toISOString(),type:'pantry',data},null,2),
+              filename,
+              mimeType: 'application/json'
+            });
 
           } else if (type === 'today') {
             const entries = Object.values(activeLog).flat();
             data = {date:today, isTraining, goals, meals:activeLog, totals:buildDayTotals(activeLog)};
             filename = 'diario_' + today + '.json';
-            downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:'day',data},null,2), filename, 'application/json');
+            await exportFile({
+              content: JSON.stringify({exportedAt:new Date().toISOString(),type:'day',data},null,2),
+              filename,
+              mimeType: 'application/json'
+            });
 
           } else if (type === 'week' || type === 'month') {
             const days_n = type === 'week' ? 7 : 30;
@@ -2944,14 +2956,22 @@
               days.push({date, isTraining:trainingByDate[date] ?? true, totals:buildDayTotals(dayLog), meals:dayLog});
             }
             filename = (type==='week'?'semana':'mes') + '_' + today + '.json';
-            downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type,days},null,2), filename, 'application/json');
+            await exportFile({
+              content: JSON.stringify({exportedAt:new Date().toISOString(),type,days},null,2),
+              filename,
+              mimeType: 'application/json'
+            });
 
           } else if (type === 'weight') {
             const whr = await storage.get('weightHistory').catch(()=>null);
             const whData = whr?.value ? JSON.parse(whr.value) : weightHistory;
             data = {weightHistory: whData};
             filename = 'peso_' + today + '.json';
-            downloadFile(JSON.stringify({exportedAt:new Date().toISOString(),type:'weight',data},null,2), filename, 'application/json');
+            await exportFile({
+              content: JSON.stringify({exportedAt:new Date().toISOString(),type:'weight',data},null,2),
+              filename,
+              mimeType: 'application/json'
+            });
           }
 
           notify(L('Arquivo baixado!', 'File downloaded!', 'Archivo descargado!'));
@@ -2969,7 +2989,11 @@
             : await buildLegacyFullBackup();
           const json = JSON.stringify(backup, null, 2);
           setBackupJson(json);
-          downloadFile(json, 'backup_completo_' + TODAY + '.json', 'application/json');
+          await exportFile({
+            content: json,
+            filename: 'backup_completo_' + TODAY + '.json',
+            mimeType: 'application/json'
+          });
           notify(text('notifBackupDone'));
         } catch (e) {
           notify(uiText("Erro ao exportar: ", "Export error: ", "Error al exportar: ") + e.message);

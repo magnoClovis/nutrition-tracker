@@ -38,6 +38,7 @@ import * as DishDescriptionAI from './composite/dish-description-ai.js';
 import * as EatingPatternsAI from './composite/eating-patterns-ai.js';
 import * as FoodAutofillAI from './composite/food-autofill-ai.js';
 import * as FoodEntry from './composite/food-entry.js';
+import { exportFile } from './composite/file-export-runtime.js';
 import * as HistoricalGoalsModel from './composite/historical-goals-model.js';
 import * as HistoryLoaders from './composite/history-loaders.js';
 import * as MealGA from './composite/meal-ga.js';
@@ -174,6 +175,7 @@ const {
   pickLang,
   storage,
   localStorage,
+  exportFile,
   getBackupContext: () => ({
     exportData: window._exportData || {},
     exportFullBackup: window._exportFullBackup,
@@ -446,6 +448,7 @@ const {
   React,
   services: {
     storage,
+    exportFile,
   },
   domain: {
     LANGUAGE_OPTIONS,
