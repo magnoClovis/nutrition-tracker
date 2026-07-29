@@ -24,6 +24,15 @@ test("safe-area aliases prefer Capacitor SystemBars variables with env fallbacks
   assert.match(css, /\[data-safe-area-sheet="true"\]/);
 });
 
+test("viewport lets the themed WebView continue behind Android system bars", () => {
+  const index = read("index.html");
+
+  assert.match(
+    index,
+    /<meta name="viewport" content="[^"]*\bviewport-fit=cover\b[^"]*"\/>/,
+  );
+});
+
 test("shell and overlays consume only the unified aliases", () => {
   const migratedSources = [
     "index.html",

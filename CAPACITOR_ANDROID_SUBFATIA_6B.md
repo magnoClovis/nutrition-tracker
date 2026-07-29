@@ -44,6 +44,17 @@ Os insets são aplicados seletivamente a:
 Não foi adicionado padding global a `html` ou `body`. A apresentação do scanner
 nativo continua usando seu CSS próprio, sem alteração.
 
+O viewport também usa `viewport-fit=cover`, permitindo que a WebView temática
+continue por baixo da barra de status enquanto os aliases acima mantêm o
+conteúdo interativo abaixo do notch. Um adaptador Android injetável sincroniza
+o contraste dos ícones da barra de status com o tema atual:
+
+- tema escuro: ícones claros;
+- tema claro: ícones escuros.
+
+O adaptador observa a fonte de verdade já existente (`data-theme`) e permanece
+inerte no navegador/PWA. Nenhuma dependência adicional foi instalada.
+
 ## Teclado
 
 Nenhuma correção de teclado foi aplicada preventivamente:
@@ -57,11 +68,13 @@ Qualquer mudança depende do resultado do teste físico descrito abaixo.
 ## Validação automatizada
 
 - preflight: aprovado sem avisos;
-- testes unitários: 739 aprovados;
+- testes unitários: 743 aprovados;
 - smoke legado: 20 aprovados e 17 autenticados ignorados por ausência das
   credenciais locais;
 - smoke Vite: 20 aprovados e 17 autenticados ignorados pelo mesmo motivo;
-- matriz visual de cutover: 60 de 60 aprovados;
+- matriz visual de cutover: 60 de 60 aprovados. Uma divergência isolada de
+  pixels em Métricas, inglês, mobile, tema escuro passou ao ser repetida
+  imediatamente; os quatro casos interrompidos depois dela também passaram;
 - `npx cap sync android`: quatro plugins encontrados;
 - `:app:assembleDebug`: 150 tarefas executadas com sucesso usando Java 21 e
   saídas temporárias fora do OneDrive.
@@ -69,10 +82,10 @@ Qualquer mudança depende do resultado do teste físico descrito abaixo.
 ## APK de validação
 
 - caminho:
-  `android/app/build/outputs/apk/debug/phrona-subfatia-6b-safe-areas-debug.apk`;
-- tamanho: 35.556.838 bytes;
+  `android/app/build/outputs/apk/debug/phrona-subfatia-6b-status-bar-debug.apk`;
+- tamanho: 35.557.106 bytes;
 - SHA-256:
-  `C9E0F06E81F7DD9810FEB30E428B9ED6F4E0967FF1200C7CE579C1A46FC84FD5`.
+  `BC5D49C848213F11DD2596D1B8F8D9D3F2CD1FDEAB8D27D4C9FDC325098EFAF0`.
 
 O APK ainda aparece como Phrona porque a renomeação para Trofia é uma mudança
 separada.
@@ -85,7 +98,7 @@ No PowerShell, a partir da raiz do repositório:
 
 ```powershell
 & "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" devices -l
-& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install -r ".\android\app\build\outputs\apk\debug\phrona-subfatia-6b-safe-areas-debug.apk"
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install -r ".\android\app\build\outputs\apk\debug\phrona-subfatia-6b-status-bar-debug.apk"
 ```
 
 O primeiro comando deve mostrar o aparelho com status `device`. O segundo deve
@@ -168,12 +181,19 @@ Desativar **Não manter atividades** imediatamente após o teste.
 
 ## Resultados físicos
 
-Pendente de validação no aparelho:
+Validação informada em aparelho físico:
 
-- teclado: pendente;
-- safe areas por gestos: pendente;
-- safe areas por três botões: pendente;
-- temas e rotação: pendente;
-- retomada quente: pendente;
-- recriação opcional: pendente;
-- links externos: pendente.
+- teclado: aprovado, sem campo ou ação importante encoberto;
+- safe areas por gestos: aprovado;
+- safe areas por três botões: aprovado;
+- temas e rotação: aprovado;
+- retomada quente: aprovada;
+- links externos: aprovados;
+- recriação opcional com **Não manter atividades**: não reportada e não
+  bloqueante.
+
+Foi identificado apenas um acabamento visual: a faixa nativa da barra de status
+continuava cinza nos dois temas. A causa era a ausência de
+`viewport-fit=cover`; a correção descrita na seção **Safe areas** foi adicionada
+ao mesmo PR. A continuidade do fundo sob o notch e o contraste dos ícones
+precisam de uma última confirmação física no APK atualizado.
