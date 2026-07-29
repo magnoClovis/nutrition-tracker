@@ -19,6 +19,12 @@ body.phrona-native-barcode-scanner-active {
   width: 100%;
 }
 
+body.phrona-native-barcode-scanner-active [data-app-main] {
+  animation: none !important;
+  transform: none !important;
+  overflow: visible !important;
+}
+
 body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow {
   position: fixed;
   inset: auto 12px calc(18px + env(safe-area-inset-bottom, 0px));
@@ -28,25 +34,11 @@ body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow {
   max-height: calc(100dvh - 36px - env(safe-area-inset-bottom, 0px));
   overflow: hidden !important;
   padding: 12px !important;
-  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border: 1px solid var(--border2) !important;
   border-radius: 16px !important;
-  background: rgba(15, 23, 20, 0.96) !important;
-  color: #f5f7f5 !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
   box-shadow: 0 18px 70px rgba(0, 0, 0, 0.5);
-}
-
-body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow::before {
-  content: "";
-  position: fixed;
-  top: 22%;
-  left: 12%;
-  width: 76%;
-  height: 28%;
-  box-sizing: border-box;
-  visibility: visible !important;
-  border: 3px solid rgba(255, 255, 255, 0.92);
-  border-radius: 18px;
-  pointer-events: none;
 }
 
 body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow * {

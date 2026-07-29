@@ -210,6 +210,20 @@ controles de fechar, parar câmera e lanterna. Entrada manual, busca e
 mensagem auxiliar reaparecem integralmente assim que a câmera é
 encerrada.
 
+## Iteração física 5 — posicionamento do painel
+
+A leitura permaneceu correta e a rolagem deixou de ocorrer. Porém, o
+painel de controles ficou fora do viewport e a moldura decorativa foi
+deslocada para baixo. A causa foi a animação `softIn` mantida no
+`data-app-main`: mesmo terminando em `translateY(0)`, a propriedade
+`transform` cria um bloco de posicionamento para descendentes `fixed`.
+
+A moldura foi removida porque não limita a área real reconhecida pelo ML
+Kit. Durante a sessão nativa, a animação e o transform do ancestral são
+neutralizados para que o painel seja posicionado contra o viewport. O
+painel agora usa `var(--surface)`, `var(--text)` e `var(--border2)`,
+herdando automaticamente o tema claro ou escuro ativo.
+
 ## Validação automatizada da integração
 
 A integração cobre por teste:
@@ -229,16 +243,16 @@ O fluxo funcional integrado já foi validado em aparelho físico. Após a
 correção dos dois defeitos visuais, resta instalar o novo APK e confirmar
 no fluxo **Alimentos > Ler código de barras > Usar câmera**:
 
-1. ausência do indicador de reprodução;
-2. tela sem rolagem durante a leitura;
-3. painel compacto visível sem precisar rolar;
+1. painel compacto visível no rodapé sem precisar rolar;
+2. painel claro no tema claro e escuro no tema escuro;
+3. ausência do indicador de reprodução, da moldura e da rolagem;
 4. prévia, leitura, cancelamento e lanterna preservados;
 5. entrada manual novamente disponível depois de parar a câmera.
 
 ## Resultado desta implementação
 
 - preflight: aprovado, sem avisos;
-- testes unitários: 704 aprovados;
+- testes unitários: 705 aprovados;
 - smoke legado: 20 aprovados e 17 autenticados ignorados por ausência
   de credenciais locais;
 - smoke Vite: 20 aprovados e 17 autenticados ignorados pelo mesmo
@@ -250,9 +264,9 @@ no fluxo **Alimentos > Ler código de barras > Usar câmera**:
   temporárias fora do OneDrive;
 - APK copiado para
   `android/app/build/outputs/apk/debug/app-debug.apk`;
-- tamanho do APK: 35.395.500 bytes;
+- tamanho do APK: 35.399.341 bytes;
 - SHA-256:
-  `C9F97F1D1D43E724EF92AC22400769A7F76EECE1CCDDD4D3C315C1427277C752`.
+  `0F959F9366D94C9A6EE4BAEDAAFE589FE948761FC55EE3320A46C958C92E14EA`.
 
 Nenhum comando `adb` foi executado e o APK não foi instalado durante
 esta sessão.
