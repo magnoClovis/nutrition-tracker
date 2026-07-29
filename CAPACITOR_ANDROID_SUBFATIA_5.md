@@ -188,6 +188,28 @@ A composição Vite instala uma fachada runtime com o mesmo
 `lookupBarcode`, `fetchBarcodeProduct`, a integração Open Food Facts e
 `barcode-scanner.js` permanecem inalterados.
 
+## Iteração física 4 — fluxo real
+
+O APK integrado foi validado no fluxo real de alimentos:
+
+- a câmera abriu e exibiu a prévia corretamente;
+- a leitura de código ocorreu sem falhas;
+- o produto foi entregue ao fluxo existente sem regressões;
+- o tema do app permaneceu estável durante e depois da leitura.
+
+A validação revelou somente dois defeitos visuais pequenos. O elemento
+HTML `<video>`, que no modo nativo serve apenas como âncora para localizar
+o modal, era exibido vazio e recebia do WebView/One UI um indicador de
+reprodução. Além disso, o documento continuava rolável atrás da WebView
+transparente, o que permitia uma captura de tela longa e repetida.
+
+A correção visual mantém o `<video>` montado, mas invisível no modo
+nativo, substitui sua borda por uma moldura CSS independente, bloqueia
+scroll e overscroll durante a leitura e reduz o painel ativo aos
+controles de fechar, parar câmera e lanterna. Entrada manual, busca e
+mensagem auxiliar reaparecem integralmente assim que a câmera é
+encerrada.
+
 ## Validação automatizada da integração
 
 A integração cobre por teste:
@@ -201,20 +223,17 @@ A integração cobre por teste:
 - disponibilidade, acionamento e estado da lanterna;
 - especificidade da transparência da WebView no tema escuro.
 
-## Validação física final pendente
+## Revalidação visual final pendente
 
-O spike e sua superfície foram validados anteriormente no aparelho
-físico. A integração final foi produzida sem aparelho conectado, por
-restrição explícita desta sessão. Antes do merge, ainda é necessário
-instalar o novo APK e confirmar no fluxo **Alimentos > Ler código de
-barras > Usar câmera**:
+O fluxo funcional integrado já foi validado em aparelho físico. Após a
+correção dos dois defeitos visuais, resta instalar o novo APK e confirmar
+no fluxo **Alimentos > Ler código de barras > Usar câmera**:
 
-1. prévia visível nos temas claro e escuro;
-2. leitura de um produto e retorno automático do resultado do Open Food
-   Facts;
-3. cancelamento e fechamento do modal liberando a câmera;
-4. permissão negada mantendo a digitação manual disponível;
-5. lanterna ligando e desligando quando oferecida.
+1. ausência do indicador de reprodução;
+2. tela sem rolagem durante a leitura;
+3. painel compacto visível sem precisar rolar;
+4. prévia, leitura, cancelamento e lanterna preservados;
+5. entrada manual novamente disponível depois de parar a câmera.
 
 ## Resultado desta implementação
 
@@ -231,9 +250,9 @@ barras > Usar câmera**:
   temporárias fora do OneDrive;
 - APK copiado para
   `android/app/build/outputs/apk/debug/app-debug.apk`;
-- tamanho do APK: 35.395.224 bytes;
+- tamanho do APK: 35.395.500 bytes;
 - SHA-256:
-  `3E439552F6CB76B68EDD8147F3AF0E69B70BA0685833FBBCBA2FD763A0F0EB46`.
+  `C9F97F1D1D43E724EF92AC22400769A7F76EECE1CCDDD4D3C315C1427277C752`.
 
 Nenhum comando `adb` foi executado e o APK não foi instalado durante
 esta sessão.

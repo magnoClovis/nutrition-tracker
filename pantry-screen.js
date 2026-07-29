@@ -395,6 +395,7 @@
       marginBottom: 8
     }
   }, uiText("Ler código de barras", "Scan barcode", "Leer código de barras")), barcodeModalOpen && /*#__PURE__*/React.createElement("div", {
+    className: "phrona-barcode-modal",
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -403,6 +404,7 @@
       marginBottom: 8
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "phrona-barcode-modal-header",
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -425,6 +427,7 @@
       fontSize: 18
     }
   }, "\xD7")), scannerVideoElement, /*#__PURE__*/React.createElement("button", {
+    className: "phrona-barcode-camera-button",
     onClick: barcodeScanning ? stopBarcodeScanner : startBarcodeScanner,
     disabled: barcodeLoading,
     style: {
@@ -433,6 +436,7 @@
       marginBottom: 8
     }
   }, barcodeScanning ? uiText("Parar câmera", "Stop camera", "Detener cámara") : uiText("Usar câmera", "Use camera", "Usar cámara")), barcodeScanning && barcodeTorchAvailable && /*#__PURE__*/React.createElement("button", {
+    className: "phrona-barcode-torch-button",
     onClick: toggleBarcodeTorch,
     style: {
       ...sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)"),
@@ -440,6 +444,7 @@
       marginBottom: 8
     }
   }, barcodeTorchEnabled ? uiText("Desligar lanterna", "Turn flashlight off", "Apagar linterna") : uiText("Ligar lanterna", "Turn flashlight on", "Encender linterna")), /*#__PURE__*/React.createElement("div", {
+    className: "phrona-barcode-manual-controls",
     style: {
       display: "flex",
       gap: 8
@@ -462,6 +467,7 @@
       minWidth: 86
     }
   }, barcodeLoading ? uiText("Buscando", "Searching", "Buscando") : uiText("Buscar", "Search", "Buscar"))), barcodeMessage && /*#__PURE__*/React.createElement("div", {
+    className: "phrona-barcode-message",
     style: {
       marginTop: 8,
       fontSize: 12,

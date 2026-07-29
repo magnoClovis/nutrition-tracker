@@ -3246,6 +3246,7 @@
       const selectedFood = addEntry.foodId ? pantry.find(f => f.id === addEntry.foodId) : null;
       const scannerVideoElement = barcodeModalOpen ? /*#__PURE__*/React.createElement("video", {
         ref: videoRef,
+        className: "phrona-barcode-video-anchor",
         playsInline: true,
         muted: true,
         style: {

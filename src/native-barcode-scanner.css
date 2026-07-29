@@ -2,6 +2,9 @@ html.phrona-native-barcode-scanner-active,
 body.phrona-native-barcode-scanner-active,
 body.phrona-native-barcode-scanner-active #root {
   background: transparent !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  overscroll-behavior: none;
 }
 
 html.phrona-native-barcode-scanner-active body.phrona-native-barcode-scanner-active {
@@ -11,6 +14,9 @@ html.phrona-native-barcode-scanner-active body.phrona-native-barcode-scanner-act
 
 body.phrona-native-barcode-scanner-active {
   visibility: hidden;
+  position: fixed;
+  inset: 0;
+  width: 100%;
 }
 
 body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow {
@@ -19,7 +25,9 @@ body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow {
   z-index: 2147483647;
   visibility: visible !important;
   margin: 0 !important;
-  padding: 16px !important;
+  max-height: calc(100dvh - 36px - env(safe-area-inset-bottom, 0px));
+  overflow: hidden !important;
+  padding: 12px !important;
   border: 1px solid rgba(255, 255, 255, 0.22) !important;
   border-radius: 16px !important;
   background: rgba(15, 23, 20, 0.96) !important;
@@ -27,22 +35,40 @@ body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow {
   box-shadow: 0 18px 70px rgba(0, 0, 0, 0.5);
 }
 
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow::before {
+  content: "";
+  position: fixed;
+  top: 22%;
+  left: 12%;
+  width: 76%;
+  height: 28%;
+  box-sizing: border-box;
+  visibility: visible !important;
+  border: 3px solid rgba(255, 255, 255, 0.92);
+  border-radius: 18px;
+  pointer-events: none;
+}
+
 body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow * {
   visibility: visible !important;
 }
 
-body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow video {
-  position: fixed;
-  left: 12%;
-  right: 12%;
-  top: 22%;
-  width: 76% !important;
-  height: 28%;
-  min-height: 0 !important;
-  max-height: none !important;
-  margin: 0 !important;
-  border: 3px solid rgba(255, 255, 255, 0.92);
-  border-radius: 18px;
-  background: transparent !important;
-  pointer-events: none;
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-video-anchor,
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-manual-controls,
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-message {
+  display: none !important;
+}
+
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-modal-header {
+  margin-bottom: 6px !important;
+}
+
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-camera-button,
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-torch-button {
+  margin-bottom: 6px !important;
+}
+
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-torch-button:last-child,
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-camera-button:last-child {
+  margin-bottom: 0 !important;
 }

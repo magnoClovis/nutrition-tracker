@@ -266,6 +266,8 @@ contractTest("delegates scanner controls and places the controller-owned video e
 
   assert.deepEqual(calls, [["open", true], ["message", ""], ["start"], ["lookup"], ["close"]]);
   assert.equal(findNodes(view, node => node.props && node.props["data-controller-video"]).length, 1);
+  assert.equal(findNodes(view, node => node.props?.className === "phrona-barcode-modal").length, 1);
+  assert.equal(findNodes(view, node => node.props?.className === "phrona-barcode-manual-controls").length, 1);
 });
 
 contractTest("shows native flashlight control only while scanning and supported", PantryScreen => {
