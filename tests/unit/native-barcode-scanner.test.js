@@ -6,7 +6,7 @@ const path = require("node:path");
 const repositoryRoot = path.resolve(__dirname, "..", "..");
 
 async function loadFactory() {
-  return import("../../src/composite/native-barcode-scanner-spike.js");
+  return import("../../src/composite/native-barcode-scanner.js");
 }
 
 function createPluginFixture() {
@@ -59,37 +59,37 @@ function createPluginFixture() {
   return { plugin, calls, listeners, handles };
 }
 
-test("native spike is unavailable outside Capacitor Android", async () => {
-  const { createNativeBarcodeScannerSpike } = await loadFactory();
+test("native scanner is unavailable outside Capacitor Android", async () => {
+  const { createNativeBarcodeScanner } = await loadFactory();
   const fixture = createPluginFixture();
-  const spike = createNativeBarcodeScannerSpike({
+  const scanner = createNativeBarcodeScanner({
     barcodeScanner: fixture.plugin,
     formats: ["EAN_13"],
     isNativeAndroid: () => false
   });
 
-  assert.equal(spike.isAvailable(), false);
+  assert.equal(scanner.isAvailable(), false);
   await assert.rejects(
-    spike.start({ onDetected() {}, onError() {} }),
+    scanner.start({ onDetected() {}, onError() {} }),
     /available only on Capacitor Android/
   );
   assert.deepEqual(fixture.calls, []);
 });
 
-test("native spike forwards permission and hardware checks through injected plugin", async () => {
-  const { createNativeBarcodeScannerSpike } = await loadFactory();
+test("native scanner forwards permission and hardware checks through injected plugin", async () => {
+  const { createNativeBarcodeScanner } = await loadFactory();
   const fixture = createPluginFixture();
-  const spike = createNativeBarcodeScannerSpike({
+  const scanner = createNativeBarcodeScanner({
     barcodeScanner: fixture.plugin,
     formats: ["EAN_13"],
     isNativeAndroid: () => true
   });
 
-  assert.deepEqual(await spike.checkPermissions(), { camera: "prompt" });
-  assert.deepEqual(await spike.requestPermissions(), { camera: "granted" });
-  assert.deepEqual(await spike.isSupported(), { supported: true });
-  await spike.toggleTorch();
-  await spike.openSettings();
+  assert.deepEqual(await scanner.checkPermissions(), { camera: "prompt" });
+  assert.deepEqual(await scanner.requestPermissions(), { camera: "granted" });
+  assert.deepEqual(await scanner.isSupported(), { supported: true });
+  await scanner.toggleTorch();
+  await scanner.openSettings();
 
   assert.deepEqual(fixture.calls, [
     ["checkPermissions"],
@@ -100,22 +100,25 @@ test("native spike forwards permission and hardware checks through injected plug
   ]);
 });
 
-test("native spike accepts one result, stops camera, and never performs a lookup", async () => {
-  const { createNativeBarcodeScannerSpike } = await loadFactory();
+test("native scanner accepts one result and stops before delivering it", async () => {
+  const { createNativeBarcodeScanner } = await loadFactory();
   const fixture = createPluginFixture();
   const detected = [];
   const errors = [];
-  const spike = createNativeBarcodeScannerSpike({
+  const scanner = createNativeBarcodeScanner({
     barcodeScanner: fixture.plugin,
     formats: ["EAN_13", "UPC_A"],
     isNativeAndroid: () => true
   });
 
-  await spike.start({
-    onDetected: result => detected.push(result),
+  await scanner.start({
+    onDetected: result => {
+      fixture.calls.push(["delivered"]);
+      detected.push(result);
+    },
     onError: error => errors.push(error)
   });
-  assert.equal(spike.isActive(), true);
+  assert.equal(scanner.isActive(), true);
   assert.deepEqual(fixture.calls[0], ["start", { formats: ["EAN_13", "UPC_A"] }]);
 
   fixture.listeners.get("barcodesScanned")({
@@ -125,30 +128,34 @@ test("native spike accepts one result, stops camera, and never performs a lookup
 
   assert.deepEqual(detected, [{ code: "7891234567895", format: "EAN_13" }]);
   assert.deepEqual(errors, []);
-  assert.equal(spike.isActive(), false);
+  assert.equal(scanner.isActive(), false);
   assert.equal(fixture.calls.filter(call => call[0] === "stop").length, 1);
+  assert.ok(
+    fixture.calls.findIndex(call => call[0] === "stop")
+      < fixture.calls.findIndex(call => call[0] === "delivered"),
+  );
 });
 
-test("native spike cancellation removes listeners and is idempotent", async () => {
-  const { createNativeBarcodeScannerSpike } = await loadFactory();
+test("native scanner cancellation removes listeners and is idempotent", async () => {
+  const { createNativeBarcodeScanner } = await loadFactory();
   const fixture = createPluginFixture();
-  const spike = createNativeBarcodeScannerSpike({
+  const scanner = createNativeBarcodeScanner({
     barcodeScanner: fixture.plugin,
     formats: ["EAN_8"],
     isNativeAndroid: () => true
   });
 
-  await spike.start({ onDetected() {}, onError() {} });
-  await spike.stop();
-  await spike.stop();
+  await scanner.start({ onDetected() {}, onError() {} });
+  await scanner.stop();
+  await scanner.stop();
 
   assert.equal(fixture.calls.filter(call => call[0] === "stop").length, 1);
   assert.equal(fixture.calls.filter(call => call[0] === "remove").length, 2);
   assert.equal(fixture.listeners.size, 0);
 });
 
-test("native spike cleans up when listener registration fails", async () => {
-  const { createNativeBarcodeScannerSpike } = await loadFactory();
+test("native scanner cleans up when listener registration fails", async () => {
+  const { createNativeBarcodeScanner } = await loadFactory();
   const fixture = createPluginFixture();
   fixture.plugin.addListener = async name => {
     if (name === "scanError") throw new Error("listener unavailable");
@@ -159,46 +166,46 @@ test("native spike cleans up when listener registration fails", async () => {
     };
     return handle;
   };
-  const spike = createNativeBarcodeScannerSpike({
+  const scanner = createNativeBarcodeScanner({
     barcodeScanner: fixture.plugin,
     formats: ["EAN_13"],
     isNativeAndroid: () => true
   });
 
   await assert.rejects(
-    spike.start({ onDetected() {}, onError() {} }),
+    scanner.start({ onDetected() {}, onError() {} }),
     /listener unavailable/
   );
 
-  assert.equal(spike.isActive(), false);
+  assert.equal(scanner.isActive(), false);
   assert.deepEqual(fixture.calls, [["remove", "barcodesScanned"]]);
 });
 
-test("native spike hides the whole WebView body without masking the camera preview", () => {
+test("native flow hides the WebView body without masking the real scanner controls", () => {
   const css = fs.readFileSync(
-    path.join(repositoryRoot, "src", "native-barcode-scanner-spike.css"),
+    path.join(repositoryRoot, "src", "native-barcode-scanner.css"),
     "utf8"
   );
 
   assert.match(
     css,
-    /body\.phrona-native-scanner-spike-active\s*\{\s*visibility:\s*hidden;/
+    /body\.phrona-native-barcode-scanner-active\s*\{\s*visibility:\s*hidden;/
   );
   assert.match(
     css,
-    /body\.phrona-native-scanner-spike-active \.phrona-native-scanner-spike\s*\{[\s\S]*?visibility:\s*visible !important;/
+    /body\.phrona-native-barcode-scanner-active \.phrona-native-barcode-scanner-flow\s*\{[\s\S]*?visibility:\s*visible !important;/
   );
   assert.doesNotMatch(css, /9999px/);
 });
 
-test("native spike overrides the more specific dark One UI body background", () => {
+test("native flow overrides the more specific dark One UI body background", () => {
   const css = fs.readFileSync(
-    path.join(repositoryRoot, "src", "native-barcode-scanner-spike.css"),
+    path.join(repositoryRoot, "src", "native-barcode-scanner.css"),
     "utf8"
   );
 
   assert.match(
     css,
-    /html\.phrona-native-scanner-spike-active body\.phrona-native-scanner-spike-active\s*\{[\s\S]*?background-color:\s*transparent !important;[\s\S]*?background-image:\s*none !important;/
+    /html\.phrona-native-barcode-scanner-active body\.phrona-native-barcode-scanner-active\s*\{[\s\S]*?background-color:\s*transparent !important;[\s\S]*?background-image:\s*none !important;/
   );
 });

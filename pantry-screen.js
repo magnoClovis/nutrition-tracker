@@ -115,12 +115,15 @@
         setBarcodeInput,
         barcodeLoading,
         barcodeScanning,
+        barcodeTorchAvailable,
+        barcodeTorchEnabled,
         barcodeMessage,
         setBarcodeMessage,
         scannerVideoElement,
         closeBarcodeModal,
         startBarcodeScanner,
         stopBarcodeScanner,
+        toggleBarcodeTorch,
         fetchBarcodeProduct,
         searchFoodDatabase,
         autoFillNutrition,
@@ -429,7 +432,14 @@
       width: "100%",
       marginBottom: 8
     }
-  }, barcodeScanning ? uiText("Parar câmera", "Stop camera", "Detener cámara") : uiText("Usar câmera", "Use camera", "Usar cámara")), /*#__PURE__*/React.createElement("div", {
+  }, barcodeScanning ? uiText("Parar câmera", "Stop camera", "Detener cámara") : uiText("Usar câmera", "Use camera", "Usar cámara")), barcodeScanning && barcodeTorchAvailable && /*#__PURE__*/React.createElement("button", {
+    onClick: toggleBarcodeTorch,
+    style: {
+      ...sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)"),
+      width: "100%",
+      marginBottom: 8
+    }
+  }, barcodeTorchEnabled ? uiText("Desligar lanterna", "Turn flashlight off", "Apagar linterna") : uiText("Ligar lanterna", "Turn flashlight on", "Encender linterna")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 8

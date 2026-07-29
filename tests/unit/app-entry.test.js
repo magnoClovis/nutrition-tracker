@@ -85,7 +85,8 @@ test('uses a single JSX bootstrap without StrictMode or createElement', () => {
   assert.match(mainSource, /createRoot\(document\.getElementById\('root'\)\)/);
   assert.equal((mainSource.match(/root\.render\(/g) || []).length, 1);
   assert.match(mainSource, /root\.render\([\s\S]*?<App \/>/);
-  assert.match(mainSource, /root\.render\([\s\S]*?<NativeBarcodeScannerSpikePanel \/>/);
+  assert.doesNotMatch(mainSource, /NativeBarcodeScannerSpikePanel|Testar scanner nativo/);
+  assert.match(appSource, /import \* as BarcodeScanner from '\.\/composite\/barcode-scanner-runtime\.js'/);
   assert.match(productionHtmlSource, /<script type="module" src="\/src\/main\.jsx"><\/script>/);
   assert.doesNotMatch(productionHtmlSource, /vite-baseline\.js|app\.js|\?v=/);
   assert.match(viteConfigSource, /react\(\{ jsxRuntime: 'classic' \}\)/);

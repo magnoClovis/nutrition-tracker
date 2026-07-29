@@ -1,22 +1,22 @@
 /**
- * Creates the isolated native barcode-scanner spike.
+ * Creates the native barcode-scanner capture service.
  *
  * The injected plugin is the only dependency that can reach the native camera.
  * This module deliberately has no product lookup or persistence dependency.
  */
-export function createNativeBarcodeScannerSpike({
+export function createNativeBarcodeScanner({
   barcodeScanner,
   formats,
   isNativeAndroid,
 }) {
   if (!barcodeScanner || typeof barcodeScanner.startScan !== 'function') {
-    throw new TypeError('Native barcode spike requires a barcode scanner plugin');
+    throw new TypeError('Native barcode scanner requires a barcode scanner plugin');
   }
   if (!Array.isArray(formats) || formats.length === 0) {
-    throw new TypeError('Native barcode spike requires at least one barcode format');
+    throw new TypeError('Native barcode scanner requires at least one barcode format');
   }
   if (typeof isNativeAndroid !== 'function') {
-    throw new TypeError('Native barcode spike requires an Android environment detector');
+    throw new TypeError('Native barcode scanner requires an Android environment detector');
   }
 
   let active = false;
@@ -41,10 +41,10 @@ export function createNativeBarcodeScannerSpike({
 
   async function start({ onDetected, onError }) {
     if (!isNativeAndroid()) {
-      throw new Error('The native barcode spike is available only on Capacitor Android');
+      throw new Error('The native barcode scanner is available only on Capacitor Android');
     }
     if (typeof onDetected !== 'function' || typeof onError !== 'function') {
-      throw new TypeError('Native barcode spike requires result and error callbacks');
+      throw new TypeError('Native barcode scanner requires result and error callbacks');
     }
 
     await stop();

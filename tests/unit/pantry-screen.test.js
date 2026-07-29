@@ -100,12 +100,15 @@ function baseProps(overrides = {}) {
     setBarcodeInput: noOp,
     barcodeLoading: false,
     barcodeScanning: false,
+    barcodeTorchAvailable: false,
+    barcodeTorchEnabled: false,
     barcodeMessage: "",
     setBarcodeMessage: noOp,
     scannerVideoElement: React.createElement("video", { "data-test-video": true }),
     closeBarcodeModal: noOp,
     startBarcodeScanner: noOp,
     stopBarcodeScanner: noOp,
+    toggleBarcodeTorch: noOp,
     fetchBarcodeProduct: noOp,
     searchFoodDatabase: noOp,
     autoFillNutrition: noOp,
@@ -263,6 +266,27 @@ contractTest("delegates scanner controls and places the controller-owned video e
 
   assert.deepEqual(calls, [["open", true], ["message", ""], ["start"], ["lookup"], ["close"]]);
   assert.equal(findNodes(view, node => node.props && node.props["data-controller-video"]).length, 1);
+});
+
+contractTest("shows native flashlight control only while scanning and supported", PantryScreen => {
+  const calls = [];
+  const view = PantryScreen(baseProps({
+    newFoodOpen: true,
+    barcodeModalOpen: true,
+    barcodeScanning: true,
+    barcodeTorchAvailable: true,
+    barcodeTorchEnabled: false,
+    toggleBarcodeTorch() {
+      calls.push(["torch"]);
+    }
+  }));
+
+  const torchButton = findNodes(view, node => (
+    node.type === "button" && textContent(node) === "Turn flashlight on"
+  ))[0];
+  assert.ok(torchButton);
+  torchButton.props.onClick();
+  assert.deepEqual(calls, [["torch"]]);
 });
 
 contractTest("preserves the hidden required supplement dose and orphan body-composition block", PantryScreen => {

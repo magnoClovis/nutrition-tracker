@@ -1,11 +1,12 @@
-# Capacitor Android — Subfatia 5: spike do scanner nativo
+# Capacitor Android — Subfatia 5: scanner nativo
 
 ## Escopo
 
-Este spike valida `@capacitor-mlkit/barcode-scanning@8.1.0` em um
-aparelho Android físico antes da integração com o fluxo de produto.
+Esta subfatia introduz `@capacitor-mlkit/barcode-scanning@8.1.0`,
+valida a captura em aparelho Android físico e integra o scanner ao
+fluxo real de cadastro de alimentos.
 
-A superfície é deliberadamente diagnóstica:
+A primeira etapa usou uma superfície deliberadamente diagnóstica:
 
 - mostra somente o código e o formato detectados;
 - não chama `lookupBarcode`;
@@ -13,8 +14,9 @@ A superfície é deliberadamente diagnóstica:
 - não grava nem altera dados;
 - não substitui nem modifica o scanner web existente.
 
-O botão **Testar scanner nativo** aparece somente quando a aplicação
-está executando como aplicativo Android nativo pelo Capacitor.
+Depois da validação física, o botão diagnóstico foi removido. O botão
+real **Usar câmera** agora seleciona o scanner nativo somente quando a
+aplicação está executando como Android pelo Capacitor.
 
 ## Instalação do APK
 
@@ -109,9 +111,9 @@ que a biblioteca informou `available: false` para a câmera em uso.
 5. Inicie novamente, feche o painel pelo fluxo disponível e confirme
    que a câmera não permanece ativa.
 
-## Critério para avançar
+## Critério para avançar — concluído
 
-A integração com `lookupBarcode` permanece bloqueada até a validação,
+A integração com `lookupBarcode` permaneceu bloqueada até a validação,
 em aparelho físico, de:
 
 - leitura correta de um código real;
@@ -162,3 +164,76 @@ essas duas propriedades transparentes durante a leitura. A câmera
 apareceu imediatamente no aparelho após aplicar exatamente essas
 propriedades, sem trocar o tema e sem aguardar temporizadores ou ciclos
 de pintura.
+
+## Integração no fluxo real
+
+A composição Vite instala uma fachada runtime com o mesmo
+`createBarcodeScanner(dependencies)` consumido pelo controller:
+
+- navegador e PWA recebem diretamente o controller criado por
+  `barcode-scanner.js`, sem alterar seu código ou comportamento;
+- Capacitor Android recebe o serviço ML Kit com EAN-13, EAN-8, UPC-A,
+  UPC-E e Code 128;
+- o código capturado é entregue a `setInput(code)` e ao
+  `lookupBarcode(code)` já injetado pelo controller;
+- o serviço nativo encerra a câmera e remove os listeners antes de
+  entregar o resultado ao lookup;
+- um identificador compartilhado de lançamento descarta concessões de
+  permissão e resultados tardios depois de cancelamento;
+- cancelamento, fechamento do modal, desmontagem e ida ao background
+  executam o mesmo cleanup idempotente;
+- a lanterna aparece no modal real somente quando o plugin informa que
+  ela está disponível.
+
+`lookupBarcode`, `fetchBarcodeProduct`, a integração Open Food Facts e
+`barcode-scanner.js` permanecem inalterados.
+
+## Validação automatizada da integração
+
+A integração cobre por teste:
+
+- delegação integral ao scanner web fora do Android nativo;
+- permissão já concedida, solicitação de permissão e negativa;
+- cancelamento enquanto a solicitação de permissão ainda está aberta;
+- entrega do código ao input e ao lookup existente;
+- descarte de resultados tardios e parada antes do callback;
+- cleanup ao colocar o app em segundo plano;
+- disponibilidade, acionamento e estado da lanterna;
+- especificidade da transparência da WebView no tema escuro.
+
+## Validação física final pendente
+
+O spike e sua superfície foram validados anteriormente no aparelho
+físico. A integração final foi produzida sem aparelho conectado, por
+restrição explícita desta sessão. Antes do merge, ainda é necessário
+instalar o novo APK e confirmar no fluxo **Alimentos > Ler código de
+barras > Usar câmera**:
+
+1. prévia visível nos temas claro e escuro;
+2. leitura de um produto e retorno automático do resultado do Open Food
+   Facts;
+3. cancelamento e fechamento do modal liberando a câmera;
+4. permissão negada mantendo a digitação manual disponível;
+5. lanterna ligando e desligando quando oferecida.
+
+## Resultado desta implementação
+
+- preflight: aprovado, sem avisos;
+- testes unitários: 704 aprovados;
+- smoke legado: 20 aprovados e 17 autenticados ignorados por ausência
+  de credenciais locais;
+- smoke Vite: 20 aprovados e 17 autenticados ignorados pelo mesmo
+  motivo;
+- matriz visual legado/Vite: 60 aprovados;
+- sincronização Capacitor: concluída com o plugin
+  `@capacitor-mlkit/barcode-scanning@8.1.0`;
+- `:app:assembleDebug`: concluído com sucesso usando saídas Gradle
+  temporárias fora do OneDrive;
+- APK copiado para
+  `android/app/build/outputs/apk/debug/app-debug.apk`;
+- tamanho do APK: 35.395.224 bytes;
+- SHA-256:
+  `3E439552F6CB76B68EDD8147F3AF0E69B70BA0685833FBBCBA2FD763A0F0EB46`.
+
+Nenhum comando `adb` foi executado e o APK não foi instalado durante
+esta sessão.

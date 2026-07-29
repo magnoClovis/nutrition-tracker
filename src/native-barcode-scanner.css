@@ -1,0 +1,48 @@
+html.phrona-native-barcode-scanner-active,
+body.phrona-native-barcode-scanner-active,
+body.phrona-native-barcode-scanner-active #root {
+  background: transparent !important;
+}
+
+html.phrona-native-barcode-scanner-active body.phrona-native-barcode-scanner-active {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+body.phrona-native-barcode-scanner-active {
+  visibility: hidden;
+}
+
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow {
+  position: fixed;
+  inset: auto 12px calc(18px + env(safe-area-inset-bottom, 0px));
+  z-index: 2147483647;
+  visibility: visible !important;
+  margin: 0 !important;
+  padding: 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 16px !important;
+  background: rgba(15, 23, 20, 0.96) !important;
+  color: #f5f7f5 !important;
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.5);
+}
+
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow * {
+  visibility: visible !important;
+}
+
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow video {
+  position: fixed;
+  left: 12%;
+  right: 12%;
+  top: 22%;
+  width: 76% !important;
+  height: 28%;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border: 3px solid rgba(255, 255, 255, 0.92);
+  border-radius: 18px;
+  background: transparent !important;
+  pointer-events: none;
+}
