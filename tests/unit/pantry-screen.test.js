@@ -169,11 +169,16 @@ function baseProps(overrides = {}) {
   };
 }
 
-function contractTest(name, callback) {
+function contractTest(name, callback, dependencyOverrides = {}) {
   implementations.forEach(([format, load]) => {
     test(`${format}: ${name}`, async () => {
       const { createPantryScreen } = await load();
-      const { PantryScreen } = createPantryScreen({ React, pickLang, portionLabel });
+      const { PantryScreen } = createPantryScreen({
+        React,
+        pickLang,
+        portionLabel,
+        ...dependencyOverrides
+      });
       return callback(PantryScreen);
     });
   });
@@ -289,6 +294,32 @@ contractTest("shows native flashlight control only while scanning and supported"
   assert.ok(torchButton);
   torchButton.props.onClick();
   assert.deepEqual(calls, [["torch"]]);
+});
+
+contractTest("portals active native controls directly to the injected viewport surface", PantryScreen => {
+  const view = PantryScreen(baseProps({
+    newFoodOpen: true,
+    barcodeModalOpen: true,
+    barcodeScanning: true,
+    barcodeTorchAvailable: true
+  }));
+
+  const portal = findNodes(view, node => node.props?.["data-native-barcode-portal"])[0];
+  assert.ok(portal);
+  const modal = findNodes(portal, node => (
+    typeof node.props?.className === "string"
+    && node.props.className.includes("phrona-native-barcode-scanner-flow")
+  ))[0];
+  assert.ok(modal);
+}, {
+  nativeBarcodePortal: {
+    isActive: () => true,
+    render: node => React.createElement(
+      "native-barcode-portal",
+      { "data-native-barcode-portal": true },
+      node
+    )
+  }
 });
 
 contractTest("preserves the hidden required supplement dose and orphan body-composition block", PantryScreen => {

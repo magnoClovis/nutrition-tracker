@@ -30,14 +30,21 @@
    * @param {Object} dependencies.React React runtime supplied by the host.
    * @param {function(string,string,string,string): string} dependencies.pickLang Language picker from i18n.js.
    * @param {function(string,string): string} dependencies.portionLabel Unit-label formatter from date-utils.js.
+   * @param {Object} [dependencies.nativeBarcodePortal] Optional injected native overlay portal.
    * @returns {{PantryScreen: function(Object): Object}} Pantry screen API.
    */
-  function createPantryScreen({ React, pickLang, portionLabel }) {
+  function createPantryScreen({ React, pickLang, portionLabel, nativeBarcodePortal = null }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof portionLabel !== "function") {
       throw new TypeError("PantryScreen requires React, pickLang, and portionLabel");
     }
+    if (nativeBarcodePortal
+      && (typeof nativeBarcodePortal.isActive !== "function"
+        || typeof nativeBarcodePortal.render !== "function")) {
+      throw new TypeError("nativeBarcodePortal requires isActive and render");
+    }
 
+    const nativeScannerFlowClass = "phrona-native-barcode-scanner-flow";
     const inp = {
       width: "100%",
       background: "var(--input)",
@@ -210,6 +217,13 @@
           onCancelEdit: cancelTemplateEdit,
           onSaveEdit: saveTemplateEdit
         });
+      }
+
+      function renderBarcodeModal(modal) {
+        if (!barcodeScanning || !nativeBarcodePortal?.isActive()) return modal;
+        return nativeBarcodePortal.render(React.cloneElement(modal, {
+          className: `${modal.props.className} ${nativeScannerFlowClass}`
+        }));
       }
 
       return /*#__PURE__*/React.createElement("div", {
@@ -394,7 +408,7 @@
       fontFamily: "inherit",
       marginBottom: 8
     }
-  }, uiText("Ler código de barras", "Scan barcode", "Leer código de barras")), barcodeModalOpen && /*#__PURE__*/React.createElement("div", {
+  }, uiText("Ler código de barras", "Scan barcode", "Leer código de barras")), barcodeModalOpen && renderBarcodeModal(/*#__PURE__*/React.createElement("div", {
     className: "phrona-barcode-modal",
     style: {
       background: "var(--surface)",
@@ -474,7 +488,7 @@
       color: "var(--muted)",
       lineHeight: 1.45
     }
-  }, barcodeMessage)), /*#__PURE__*/React.createElement("button", {
+  }, barcodeMessage))), /*#__PURE__*/React.createElement("button", {
     onClick: searchFoodDatabase,
     disabled: foodDbLoading,
     style: {

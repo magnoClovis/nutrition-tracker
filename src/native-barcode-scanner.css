@@ -19,12 +19,6 @@ body.phrona-native-barcode-scanner-active {
   width: 100%;
 }
 
-body.phrona-native-barcode-scanner-active [data-app-main] {
-  animation: none !important;
-  transform: none !important;
-  overflow: visible !important;
-}
-
 body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow {
   position: fixed;
   inset: auto 12px calc(18px + env(safe-area-inset-bottom, 0px));
@@ -34,10 +28,10 @@ body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow {
   max-height: calc(100dvh - 36px - env(safe-area-inset-bottom, 0px));
   overflow: hidden !important;
   padding: 12px !important;
-  border: 1px solid var(--border2) !important;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 13%, transparent) !important;
   border-radius: 16px !important;
-  background: var(--surface) !important;
-  color: var(--text) !important;
+  background: var(--surface-block) !important;
+  color: var(--text-primary) !important;
   box-shadow: 0 18px 70px rgba(0, 0, 0, 0.5);
 }
 
@@ -55,9 +49,26 @@ body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .p
   margin-bottom: 6px !important;
 }
 
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-modal-header,
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-modal-header * {
+  color: var(--text-primary) !important;
+}
+
 body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-camera-button,
 body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-torch-button {
   margin-bottom: 6px !important;
+}
+
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-camera-button {
+  border-color: transparent !important;
+  background: var(--accent-danger-bg) !important;
+  color: var(--accent-danger-text) !important;
+}
+
+body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-torch-button {
+  border-color: color-mix(in srgb, var(--text-secondary) 40%, transparent) !important;
+  background: var(--surface-block-alt) !important;
+  color: var(--text-secondary) !important;
 }
 
 body.phrona-native-barcode-scanner-active .phrona-native-barcode-scanner-flow .phrona-barcode-torch-button:last-child,

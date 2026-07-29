@@ -97,8 +97,8 @@ test('uses a single JSX bootstrap without StrictMode or createElement', () => {
 });
 
 test('keeps the native scanner overlay viewport-bound and theme-aware', () => {
-  assert.match(nativeScannerCssSource, /\[data-app-main\][\s\S]*?animation: none !important/);
-  assert.match(nativeScannerCssSource, /\.phrona-native-barcode-scanner-flow[\s\S]*?background: var\(--surface\) !important/);
+  assert.match(appSource, /nativeBarcodePortal:[\s\S]*?createPortal\(node, document\.body\)/);
+  assert.match(nativeScannerCssSource, /\.phrona-native-barcode-scanner-flow[\s\S]*?background: var\(--surface-block\) !important/);
   assert.match(nativeScannerCssSource, /\.phrona-barcode-video-anchor[\s\S]*?display: none !important/);
   assert.doesNotMatch(nativeScannerCssSource, /\.phrona-native-barcode-scanner-flow::before/);
 });

@@ -224,6 +224,25 @@ neutralizados para que o painel seja posicionado contra o viewport. O
 painel agora usa `var(--surface)`, `var(--text)` e `var(--border2)`,
 herdando automaticamente o tema claro ou escuro ativo.
 
+## Iteração física 6 — portal de viewport
+
+A prévia e a leitura continuaram corretas, mas o painel permaneceu fora
+da área visível. Isso demonstrou que neutralizar propriedades isoladas do
+contêiner existente não é uma base confiável no WebView do aparelho.
+
+A solução deixa de posicionar o painel dentro da árvore rolável de
+**Adicionar**. A composição Vite injeta explicitamente uma porta React
+que renderiza o mesmo modal controlado diretamente em `document.body`
+somente enquanto a sessão nativa está ativa. Assim:
+
+- os mesmos callbacks React continuam controlando fechar, parar câmera e
+  lanterna;
+- o navegador/PWA e o carregador legado continuam usando o modal inline;
+- o overlay nativo não depende de animação, transform, altura ou overflow
+  dos contêineres da tela;
+- os tokens globais `--surface-block`, `--surface-block-alt` e
+  `--text-primary` preservam o tema claro ou escuro.
+
 ## Validação automatizada da integração
 
 A integração cobre por teste:
@@ -252,7 +271,7 @@ no fluxo **Alimentos > Ler código de barras > Usar câmera**:
 ## Resultado desta implementação
 
 - preflight: aprovado, sem avisos;
-- testes unitários: 705 aprovados;
+- testes unitários: 707 aprovados;
 - smoke legado: 20 aprovados e 17 autenticados ignorados por ausência
   de credenciais locais;
 - smoke Vite: 20 aprovados e 17 autenticados ignorados pelo mesmo
@@ -264,9 +283,9 @@ no fluxo **Alimentos > Ler código de barras > Usar câmera**:
   temporárias fora do OneDrive;
 - APK copiado para
   `android/app/build/outputs/apk/debug/app-debug.apk`;
-- tamanho do APK: 35.399.341 bytes;
+- tamanho do APK: 35.399.339 bytes;
 - SHA-256:
-  `0F959F9366D94C9A6EE4BAEDAAFE589FE948761FC55EE3320A46C958C92E14EA`.
+  `552CCC081410AEE160EB7A1058A64FD13E67E063F2DE1F4FA30E15D6C678FF89`.
 
 Nenhum comando `adb` foi executado e o APK não foi instalado durante
 esta sessão.

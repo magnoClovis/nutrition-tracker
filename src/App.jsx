@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   Line,
   LineChart,
@@ -393,7 +394,15 @@ const {
 
 const {
   PantryScreen,
-} = PantryScreenModule.createPantryScreen({ React, pickLang, portionLabel });
+} = PantryScreenModule.createPantryScreen({
+  React,
+  pickLang,
+  portionLabel,
+  nativeBarcodePortal: {
+    isActive: () => document.body.classList.contains('phrona-native-barcode-scanner-active'),
+    render: node => createPortal(node, document.body),
+  },
+});
 
 const {
   AddScreen,
