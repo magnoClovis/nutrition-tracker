@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import {
   Directory,
   Encoding,
@@ -15,6 +15,8 @@ const isNativeAndroid = () => (
   Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
 );
 
+const DocumentSaver = registerPlugin('DocumentSaver');
+
 const webExportFile = createWebFileExporter({
   documentObject: document,
   BlobCtor: Blob,
@@ -23,6 +25,7 @@ const webExportFile = createWebFileExporter({
 });
 
 const nativeExportFile = createNativeFileExporter({
+  documentSaver: DocumentSaver,
   filesystem: Filesystem,
   share: Share,
   cacheDirectory: Directory.Cache,
@@ -36,3 +39,4 @@ const fileExportAdapter = createFileExportAdapter({
 });
 
 export const exportFile = fileExportAdapter.exportFile;
+export const supportsNativeFileDestinations = isNativeAndroid();

@@ -44,18 +44,43 @@ export function createWebFileExporter({
 }
 
 export function createNativeFileExporter({
+  documentSaver,
   filesystem,
   share,
   cacheDirectory,
   utf8Encoding,
 }) {
-  if (!filesystem?.writeFile || !filesystem?.getUri || !share?.share
+  if (!documentSaver?.saveFile
+    || !filesystem?.writeFile || !filesystem?.getUri || !share?.share
     || !cacheDirectory || !utf8Encoding) {
-    throw new TypeError('Native file exporter requires Filesystem and Share plugins');
+    throw new TypeError('Native file exporter requires document saving, Filesystem, and Share plugins');
   }
 
-  return async function nativeExportFile({ content, filename, mimeType }) {
+  return async function nativeExportFile({
+    content,
+    filename,
+    mimeType,
+    destination = 'save',
+  }) {
     validateExportRequest({ content, filename, mimeType });
+    if (destination === 'save') {
+      const saveResult = await documentSaver.saveFile({
+        content,
+        filename,
+        mimeType,
+      });
+      return {
+        method: 'save',
+        filename,
+        mimeType,
+        uri: saveResult?.uri,
+        cancelled: saveResult?.cancelled === true,
+      };
+    }
+    if (destination !== 'share') {
+      throw new TypeError(`Unsupported native export destination: ${destination}`);
+    }
+
     await filesystem.writeFile({
       path: filename,
       data: content,

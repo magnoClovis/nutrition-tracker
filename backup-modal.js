@@ -40,6 +40,7 @@
    * @param {{get: function(string): Promise<Object|null>}} dependencies.storage App storage adapter.
    * @param {{getItem: function(string): (string|null)}} dependencies.localStorage Browser-local storage service.
    * @param {function(Object): Promise<Object>} [dependencies.exportFile] Runtime file-export adapter.
+   * @param {boolean} [dependencies.supportsNativeFileDestinations=false] Whether Android save/share choices are available.
    * @param {function(): Object} dependencies.getBackupContext Returns current export data and backup bridge functions for each action.
    * @param {function(): Object} dependencies.FileReader Browser FileReader constructor.
    * @param {function(string): void} dependencies.alertUser Browser alert service.
@@ -53,6 +54,7 @@
     storage,
     localStorage: localStorageService,
     exportFile,
+    supportsNativeFileDestinations = false,
     getBackupContext,
     FileReader: FileReaderCtor,
     alertUser,
@@ -63,6 +65,7 @@
         !storage || typeof storage.get !== "function" ||
         !localStorageService || typeof localStorageService.getItem !== "function" ||
         (exportFile !== undefined && typeof exportFile !== "function") ||
+        typeof supportsNativeFileDestinations !== "boolean" ||
         typeof getBackupContext !== "function" || typeof FileReaderCtor !== "function" ||
         typeof alertUser !== "function" || typeof reportError !== "function") {
       throw new TypeError("BackupModal requires React, i18n, storage, browser services, and getBackupContext");
@@ -93,6 +96,9 @@
       const [importPreview, setImportPreview] = React.useState(null);
       const [importSelections, setImportSelections] = React.useState({});
       const [importingBackup, setImportingBackup] = React.useState(false);
+      const [exportDestinationKey, setExportDestinationKey] = React.useState(null);
+      const [refreshingData, setRefreshingData] = React.useState(false);
+      const [showRefreshFallback, setShowRefreshFallback] = React.useState(false);
     
       const backupCategoryLabels = {
         profile: L('Perfil nutricional', 'Nutrition profile', 'Perfil nutricional'),
@@ -117,7 +123,8 @@
         { key:'all',    icon:'', title:L('Exportar dados', 'Export data', 'Exportar datos'), desc:L('Backup completo: diário, alimentos, peso, metas e água', 'Full backup: diary, foods, weight, goals, and water', 'Backup completo: diario, alimentos, peso, metas y agua'), highlight:true },
       ];
     
-      async function doExport(key) {
+      async function doExport(key, destination) {
+        setExportDestinationKey(null);
         setLoading(key);
         try {
           const backupContext = getBackupContext() || {};
@@ -132,9 +139,19 @@
           const today = TODAY || new Date().toISOString().split('T')[0];
           const exportLang = normalizeLanguage(lang || normalizedLang || 'pt');
           const E = (pt, en, es) => pickLang(exportLang, pt, en, es);
+          const exportRequest = request => activeExportFile({
+            ...request,
+            ...(destination ? {destination} : {})
+          });
     
           if (key === 'all') {
-            if (backupContext.exportFullBackup) await backupContext.exportFullBackup();
+            if (backupContext.exportFullBackup) {
+              const result = await backupContext.exportFullBackup({destination});
+              if (result?.cancelled) {
+                setLoading(null);
+                return;
+              }
+            }
     
           } else if (key === 'today') {
             if (!activeLog || !buildDayTotals) throw new Error(E('App ainda não está pronto', 'App not ready', 'La app aún no está lista'));
@@ -148,11 +165,15 @@
               salt:    Math.round(ae.reduce((s,e)=>s+(e.salt ?? 0),0)*10)/10
             };
             const data = {date:today, isTraining, goals, meals:activeLog, totals:totDay};
-            await activeExportFile({
+            const result = await exportRequest({
               content: JSON.stringify({exportedAt:new Date().toISOString(),type:'day',data},null,2),
               filename: 'diario_'+today+'.json',
               mimeType: 'application/json'
             });
+            if (result?.cancelled) {
+              setLoading(null);
+              return;
+            }
             if (notify) notify(E('Arquivo baixado!', 'File downloaded!', 'Archivo descargado!'));
     
           } else if (key === 'week' || key === 'month') {
@@ -179,31 +200,43 @@
               days.push({date, isTraining:trainingByDate?.[date] ?? true, goals: goalHistory?.[date] || null, totals:tot, meals:dayLog});
             }
             const fname = (key==='week'?'semana':'mes')+'_'+today+'.json';
-            await activeExportFile({
+            const result = await exportRequest({
               content: JSON.stringify({exportedAt:new Date().toISOString(),type:key,days},null,2),
               filename: fname,
               mimeType: 'application/json'
             });
+            if (result?.cancelled) {
+              setLoading(null);
+              return;
+            }
             if (notify) notify(E('Arquivo baixado!', 'File downloaded!', 'Archivo descargado!'));
     
           } else if (key === 'pantry') {
             const r = await storage.get('pantry_v2');
             const data = {pantry_v2: r?.value || '[]'};
-            await activeExportFile({
+            const result = await exportRequest({
               content: JSON.stringify({exportedAt:new Date().toISOString(),type:'pantry',data},null,2),
               filename: 'despensa_'+today+'.json',
               mimeType: 'application/json'
             });
+            if (result?.cancelled) {
+              setLoading(null);
+              return;
+            }
             if (notify) notify(E('Arquivo baixado!', 'File downloaded!', 'Archivo descargado!'));
     
           } else if (key === 'weight') {
             const whr = await storage.get('weightHistory').catch(()=>null);
             const whData = whr?.value ? JSON.parse(whr.value) : (weightHistory||[]);
-            await activeExportFile({
+            const result = await exportRequest({
               content: JSON.stringify({exportedAt:new Date().toISOString(),type:'weight',data:{weightHistory:whData}},null,2),
               filename: 'peso_'+today+'.json',
               mimeType: 'application/json'
             });
+            if (result?.cancelled) {
+              setLoading(null);
+              return;
+            }
             if (notify) notify(E('Arquivo baixado!', 'File downloaded!', 'Archivo descargado!'));
           }
           setDownloaded(key);
@@ -302,15 +335,60 @@
         try {
           const result = await importFullAccountBackup(pendingImportBackup, {categories: selected});
           const count = Number(result?.imported ?? 0);
+          const reloadNutritionData = backupContext.reloadNutritionData;
+          let refreshed = false;
+          if (typeof reloadNutritionData === 'function') {
+            try {
+              await reloadNutritionData();
+              refreshed = true;
+            } catch (_) {}
+          }
           closeImportPreview();
+          setShowRefreshFallback(true);
           setImportDone(L(
-            `Importação concluída: ${count} registros. Recarregue a página.`,
-            `Import complete: ${count} records. Reload the page.`,
-            `Importación completada: ${count} registros. Recarga la página.`
+            refreshed
+              ? `Importação concluída: ${count} registros. Dados atualizados.`
+              : `Importação concluída: ${count} registros. Toque em Atualizar dados.`,
+            refreshed
+              ? `Import complete: ${count} records. Data refreshed.`
+              : `Import complete: ${count} records. Tap Refresh data.`,
+            refreshed
+              ? `Importación completada: ${count} registros. Datos actualizados.`
+              : `Importación completada: ${count} registros. Toca Actualizar datos.`
           ));
         } catch (error) {
           setImportDone(L('Erro ao importar: ', 'Import error: ', 'Error al importar: ') + (error?.message || String(error)));
           setImportingBackup(false);
+        }
+      }
+
+      async function refreshImportedData() {
+        const backupContext = getBackupContext() || {};
+        const reloadNutritionData = backupContext.reloadNutritionData;
+        if (typeof reloadNutritionData !== 'function') {
+          setImportDone(L(
+            'Atualização de dados indisponível.',
+            'Data refresh is unavailable.',
+            'La actualización de datos no está disponible.'
+          ));
+          return;
+        }
+        setRefreshingData(true);
+        try {
+          await reloadNutritionData();
+          setImportDone(L(
+            'Dados atualizados.',
+            'Data refreshed.',
+            'Datos actualizados.'
+          ));
+        } catch (error) {
+          setImportDone(L(
+            'Erro ao atualizar dados: ',
+            'Data refresh error: ',
+            'Error al actualizar datos: '
+          ) + (error?.message || String(error)));
+        } finally {
+          setRefreshingData(false);
         }
       }
       // Read theme from localStorage (same as App and LoginScreen)
@@ -362,7 +440,9 @@
             exportOptions.map(opt =>
               React.createElement('button', {
                 key: opt.key,
-                onClick: () => doExport(opt.key),
+                onClick: () => supportsNativeFileDestinations
+                  ? setExportDestinationKey(opt.key)
+                  : doExport(opt.key),
                 disabled: loading === opt.key,
                 style:{
                   display:'flex', alignItems:'center', gap:14,
@@ -424,6 +504,19 @@
             background:'var(--btn-ok)', border:'1px solid var(--btn-ok-border)',
             color:'var(--btn-ok-text)', fontSize:14
           }}, importDone),
+          showRefreshFallback && React.createElement('button', {
+            type:'button',
+            onClick:refreshImportedData,
+            disabled:refreshingData,
+            style:{
+              marginTop:10, width:'100%', padding:'12px 16px', borderRadius:999,
+              background:'var(--btn-info)', border:'1px solid var(--btn-info-border)',
+              color:'var(--btn-info-text)', fontFamily:'inherit', fontWeight:600,
+              cursor:refreshingData?'default':'pointer', opacity:refreshingData?0.65:1
+            }
+          }, refreshingData
+            ? L('Atualizando...', 'Refreshing...', 'Actualizando...')
+            : L('Atualizar dados', 'Refresh data', 'Actualizar datos')),
           React.createElement('p', {style:{
             fontSize:12, color:'var(--muted)', marginTop:10, lineHeight:1.5
           }}, L(
@@ -433,6 +526,55 @@
           ))
         ),
     
+        exportDestinationKey && React.createElement('div', {style:{
+          position:'fixed', inset:0, zIndex:100006,
+          background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)',
+          display:'flex', alignItems:'center', justifyContent:'center', padding:16
+        }},
+          React.createElement('div', {style:{
+            width:'min(420px, 100%)', background:'var(--surface)',
+            border:'1px solid var(--border2)', borderRadius:14,
+            boxShadow:'0 20px 70px rgba(0,0,0,0.32)', padding:20, color:'var(--text)'
+          }},
+            React.createElement('h3', {style:{margin:'0 0 8px', fontSize:18}},
+              L('Exportar arquivo', 'Export file', 'Exportar archivo')),
+            React.createElement('p', {style:{margin:'0 0 16px', color:'var(--muted)', fontSize:13, lineHeight:1.45}},
+              L(
+                'Escolha onde deseja guardar o backup.',
+                'Choose how to keep the backup.',
+                'Elige cómo guardar el backup.'
+              )),
+            React.createElement('div', {style:{display:'flex', flexDirection:'column', gap:10}},
+              React.createElement('button', {
+                type:'button',
+                onClick:() => doExport(exportDestinationKey, 'save'),
+                style:{
+                  padding:'13px 16px', borderRadius:999, cursor:'pointer',
+                  background:'var(--btn-ok)', border:'1px solid var(--btn-ok-border)',
+                  color:'var(--btn-ok-text)', fontFamily:'inherit', fontWeight:600
+                }
+              }, L('Salvar no aparelho', 'Save on device', 'Guardar en el dispositivo')),
+              React.createElement('button', {
+                type:'button',
+                onClick:() => doExport(exportDestinationKey, 'share'),
+                style:{
+                  padding:'13px 16px', borderRadius:999, cursor:'pointer',
+                  background:'var(--btn-info)', border:'1px solid var(--btn-info-border)',
+                  color:'var(--btn-info-text)', fontFamily:'inherit', fontWeight:600
+                }
+              }, L('Compartilhar', 'Share', 'Compartir')),
+              React.createElement('button', {
+                type:'button',
+                onClick:() => setExportDestinationKey(null),
+                style:{
+                  padding:'11px 16px', border:0, background:'transparent',
+                  color:'var(--muted)', fontFamily:'inherit', cursor:'pointer'
+                }
+              }, L('Cancelar', 'Cancel', 'Cancelar'))
+            )
+          )
+        ),
+
         importPreview && (() => {
           const categories = Array.isArray(importPreview.categories) ? importPreview.categories : [];
           const selectedKeys = Object.keys(importSelections);

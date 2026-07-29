@@ -2,20 +2,9 @@
 
 ## Escopo
 
-Esta subfatia corrige o achado D15: os downloads de backup baseados em
-`data:`/`Blob` não produziam arquivo nem feedback na WebView Android.
-
-A correção introduz uma fronteira assíncrona e injetável:
-
-- navegador e PWA preservam o mecanismo existente de `data:` URL, com o mesmo
-  fallback para `Blob`;
-- Capacitor Android grava o conteúdo UTF-8 em `Directory.Cache` com
-  `@capacitor/filesystem@8.1.2`;
-- em seguida, obtém a URI do arquivo e abre o seletor de compartilhamento do
-  Android com `@capacitor/share@8.0.1`;
-- mensagens de sucesso só são emitidas depois que a exportação assíncrona
-  termina; erros de escrita ou compartilhamento seguem o tratamento de erro
-  existente.
+Esta subfatia corrige o achado D15 sem alterar o mecanismo de exportação do
+navegador/PWA. O caminho Android é isolado atrás do contrato assíncrono
+`exportFile({ content, filename, mimeType, destination })`.
 
 Foram migrados o backup completo e os backups por categoria disponíveis no
 modal: Diário, últimos 7 dias, últimos 30 dias, Alimentos e Histórico de peso.
@@ -23,154 +12,147 @@ modal: Diário, últimos 7 dias, últimos 30 dias, Alimentos e Histórico de pes
 Permanecem deliberadamente fora do escopo:
 
 - `exportCSV()` da despensa, que continua copiando dados para o clipboard;
-- relatórios diário/semanal em JSON, CSV, HTML e TXT que hoje apenas mostram
-  texto para cópia;
+- relatórios diário/semanal que hoje apenas mostram texto para cópia;
+- pull-to-refresh;
 - lógica de domínio, Firebase, Open Food Facts e scanner.
 
-## Arquitetura
+## Primeira validação física
 
-O contrato compartilhado é:
+O primeiro APK da subfatia confirmou que:
 
-```js
-await exportFile({ content, filename, mimeType });
-```
+- a folha de compartilhamento abriu e permitiu enviar o JSON a outros apps;
+- o aparelho testado não ofereceu uma opção clara para guardar o arquivo
+  localmente;
+- depois de transferido de volta ao telefone, o arquivo não apareceu de
+  imediato em **Recentes**, exigindo procurar pelas pastas do seletor Android;
+- a prévia da importação reconheceu corretamente categorias, campos e modos;
+- a importação anunciou sucesso, mas a interface não refletiu os valores nem
+  depois de reabrir o app;
+- o botão Voltar minimizou o app na tela de backup porque aquele APK continha
+  somente a branch do PR #75, sem a correção da Subfatia 6A1 do PR #74.
 
-O runtime usa `Capacitor.isNativePlatform()` e
-`Capacitor.getPlatform() === "android"` para escolher o implementador.
-As dependências nativas e os serviços do navegador são fornecidos
-explicitamente às fábricas do adaptador, permitindo testar seleção, ordem e
-falhas sem um aparelho conectado.
+O número de registros mostrado na confirmação não foi anotado. Na próxima
+validação ele deve ser registrado para distinguir uma falha de persistência de
+uma falha apenas de reidratação da interface.
 
-No Android, a ordem observável é:
+## Iteração corretiva
 
-1. `Filesystem.writeFile`, com `Directory.Cache` e `Encoding.UTF8`;
-2. `Filesystem.getUri`;
-3. `Share.share`, passando a URI em `files`.
+### Salvar no aparelho
 
-O arquivo em cache é temporário e pode ser removido pelo sistema. A cópia
-durável é aquela que o usuário salva em Arquivos, Drive, e-mail ou outro destino
-selecionado no compartilhamento.
+No Android, cada exportação agora apresenta duas ações explícitas:
+
+1. **Salvar no aparelho** abre o seletor nativo de criação de documento por
+   `ACTION_CREATE_DOCUMENT`, com nome e tipo MIME sugeridos;
+2. **Compartilhar** preserva o caminho já validado com
+   `@capacitor/filesystem@8.1.2` em `Directory.Cache` e
+   `@capacitor/share@8.0.1`.
+
+O seletor de documento permite escolher Downloads, armazenamento local, Drive
+ou outro provedor exposto pelo Android. Ele não exige permissão ampla de
+armazenamento. Cancelar o seletor não produz confirmação falsa de sucesso.
+
+A ponte `DocumentSaver` recebe conteúdo, nome e MIME por injeção no adaptador,
+grava UTF-8 na URI fornecida pelo Android e devolve `{ cancelled, uri }`.
+
+No navegador/PWA, `destination` não é exposto e o comportamento existente de
+`data:`/`Blob` permanece inalterado.
+
+### Reidratação após importação
+
+Depois que todas as escritas da importação terminam, o modal aguarda a ponte
+injetada `reloadNutritionData`, ligada ao `loadAll` já existente do
+controlador. A confirmação informa o número de registros importados e só então
+indica que os dados foram atualizados.
+
+O modal também mostra **Atualizar dados** como fallback manual. Esse botão
+resolve novamente o contexto mais recente e chama a mesma ponte, sem duplicar
+lógica de carregamento ou implementar pull-to-refresh.
 
 ## Validação automatizada
 
+- testes focados do adaptador, modal e composição: passaram;
+- build Vite e verificação da allowlist: passaram;
+- sincronização Capacitor: passou;
+- compilação Android da ponte `DocumentSaver`: passou;
 - preflight: passou sem avisos;
-- testes unitários: 719 passaram;
+- testes unitários: 725 passaram;
 - smoke legado: 20 passaram e 17 foram ignorados por ausência deliberada das
   credenciais locais de teste autenticado;
 - smoke Vite: 20 passaram e 17 foram ignorados pelo mesmo motivo;
-- matriz de cutover: 60 de 60 combinações passaram;
-- build Android: `assembleDebug` passou com 131 tarefas executadas.
+- matriz de cutover: 60 de 60 combinações passaram.
 
-A primeira execução da matriz apresentou uma divergência de pixels isolada em
-Métricas, português, mobile, tema escuro, depois de 51 casos aprovados. A
-combinação passou imediatamente quando repetida sozinha e a segunda execução
-integral passou em 60 de 60 casos. Nenhuma alteração visual foi necessária.
+A primeira execução da matriz apresentou a mesma divergência de pixels isolada
+já observada anteriormente em Métricas, português, mobile, tema escuro, depois
+de 51 casos aprovados. O caso passou imediatamente quando repetido sozinho. A
+tentativa integral seguinte foi interrompida por um bloqueio `EBUSY` do OneDrive
+em um trace temporário. Redirecionada a saída do Playwright para a pasta
+temporária do Windows, a matriz integral passou em 60 de 60 casos.
 
-## APK de debug
+O build Android usa Java 21 do Android Studio e saída intermediária temporária,
+evitando a disputa de arquivos do Gradle com o OneDrive. Nenhuma configuração
+permanente da máquina ou do projeto é alterada.
 
-- caminho: `android/app/build/outputs/apk/debug/app-debug.apk`;
-- tamanho: 35.535.224 bytes;
-- SHA-256:
-  `89531FA35308852B571CEF9695C21A128351CF413F9E3A801E7CC7463E1EB041`.
+## APK combinado para validação física
 
-Como o repositório fica sob o OneDrive, as saídas intermediárias do Gradle foram
-redirecionadas temporariamente para fora da árvore de trabalho e somente o APK
-final foi copiado para o caminho convencional. O build usou o Java 21 incluído
-no Android Studio apenas por variável de ambiente do processo; nenhuma
-configuração permanente da máquina ou do projeto foi alterada.
+O APK final desta iteração será montado temporariamente com:
+
+- PR #74 — Subfatia 6A1, incluindo a correção do botão Voltar;
+- PR #75 — Subfatia 6A2 e esta iteração corretiva.
+
+As branches e os históricos dos dois PRs permanecem separados. Caminho, tamanho
+e SHA-256 serão registrados depois do build combinado.
 
 ## Roteiro de validação física
 
-### 1. Instalar ou atualizar
+### 1. Salvar no aparelho
 
-1. Na raiz do repositório, conecte o aparelho com depuração USB autorizada.
-2. Confirme que ele aparece como `device`:
+1. Abra **Backup e restauração**.
+2. Exporte o backup completo e escolha **Salvar no aparelho**.
+3. Confirme que o seletor Android abre com o nome
+   `backup_completo_AAAA-MM-DD.json`.
+4. Escolha **Downloads** e toque em **Salvar**.
+5. Repita uma exportação e cancele o seletor; confirme que não aparece mensagem
+   de sucesso.
+6. Abra o seletor de importação e confira se o arquivo salvo aparece em
+   **Recentes**. A organização de Recentes e dos provedores é controlada pelo
+   seletor do Android, não pelo Phrona.
 
-   ```powershell
-   & "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" devices -l
-   ```
+### 2. Compartilhar
 
-3. Instale ou atualize o APK:
+1. Exporte uma categoria e escolha **Compartilhar**.
+2. Confirme que a folha de compartilhamento abre.
+3. Envie a um destino disponível e confirme que o anexo é um `.json`.
 
-   ```powershell
-   & "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install -r ".\android\app\build\outputs\apk\debug\app-debug.apk"
-   ```
+### 3. Fechar o ciclo de importação
 
-4. Espere `Success` e abra **Phrona**.
+Use preferencialmente uma conta de teste e revise o modo antes de confirmar.
 
-Se aparecer `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, a instalação existente usa
-outra chave de debug. Não desinstale antes de decidir se os dados locais de
-teste podem ser apagados.
+1. Importe o backup salvo em Downloads.
+2. Confirme que a prévia lista as categorias esperadas.
+3. Anote o número de registros mostrado após a importação.
+4. Confirme se os dados escolhidos aparecem automaticamente no app.
+5. Se algum dado visual permanecer antigo, toque em **Atualizar dados** e
+   confira novamente.
+6. Feche e reabra o app para confirmar persistência.
 
-### 2. Backup completo
+### 4. Botão Voltar no APK combinado
 
-1. Entre no fluxo de backup e toque em **Exportar dados**.
-2. Confirme que o seletor de compartilhamento do Android abre.
-3. Confirme que aparecem destinos compatíveis instalados no aparelho, por
-   exemplo Arquivos, Google Drive e e-mail.
-4. Escolha **Arquivos** ou equivalente e salve
-   `backup_completo_AAAA-MM-DD.json` em uma pasta fácil de localizar.
-5. Abra o arquivo em um visualizador de texto e confirme que:
-   - ele não está vazio;
-   - caracteres acentuados estão corretos;
-   - o conteúdo é JSON legível.
+1. Abra **Backup e restauração**.
+2. Pressione Voltar.
+3. Confirme que a tela de backup fecha e o app retorna à tela anterior, sem
+   minimizar.
 
-### 3. Backups por categoria
-
-Repita o teste pelo menos para:
-
-1. **Diário — hoje**;
-2. **Últimos 7 dias**;
-3. **Último mês (30 dias)**;
-4. **Alimentos**;
-5. **Histórico de peso**.
-
-Para cada opção, confirme:
-
-- o compartilhamento abre;
-- o nome do arquivo corresponde à categoria e à data;
-- é possível salvar ou enviar o arquivo;
-- não aparece mensagem de sucesso antes da criação/abertura do
-  compartilhamento;
-- se ocorrer uma falha real, aparece uma mensagem de erro e não uma confirmação
-  falsa.
-
-### 4. Destinos de compartilhamento
-
-Use o backup completo para validar, conforme os aplicativos disponíveis:
-
-1. salvar pelo app Arquivos;
-2. enviar ao Google Drive;
-3. anexar a um rascunho de e-mail.
-
-Confirme que o destino recebe um arquivo `.json`, não apenas texto ou um link.
-Não é necessário enviar o e-mail; o rascunho com o anexo é suficiente.
-
-### 5. Fechar o ciclo: exportação e importação
-
-Este teste escreve dados reais. Use preferencialmente uma conta de teste e
-revise cuidadosamente o modo de importação antes de confirmar.
-
-1. Guarde um backup completo pelo app Arquivos.
-2. Volte ao Phrona e abra a importação.
-3. Selecione exatamente o arquivo recém-exportado.
-4. Confirme que a prévia reconhece o backup e lista as categorias esperadas.
-5. Para evitar sobrescrever dados, use o modo não destrutivo disponível ou
-   selecione somente uma categoria segura de teste.
-6. Confirme a importação.
-7. Verifique que o fluxo termina sem erro e que os dados escolhidos continuam
-   coerentes.
-
-Resultado esperado: o ciclo `exportar → salvar → selecionar → pré-visualizar →
-importar` funciona integralmente no aparelho Android.
-
-## Registro dos resultados físicos
+## Registro dos próximos resultados físicos
 
 - modelo e versão Android:
-- backup completo:
-- categorias:
-- Arquivos:
-- Google Drive:
-- e-mail:
-- importação:
+- salvar em Downloads:
+- arquivo em Recentes:
+- cancelar sem falso sucesso:
+- compartilhar:
+- categorias importadas:
+- número de registros informado:
+- atualização automática:
+- botão Atualizar dados:
+- persistência após reabrir:
+- botão Voltar:
 - observações:

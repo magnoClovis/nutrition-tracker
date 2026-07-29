@@ -81,6 +81,7 @@ function createFixture(createBackupModal, {
   getBackupContext,
   storageGet,
   exportFile,
+  supportsNativeFileDestinations = false,
   lang = "en"
 } = {}) {
   const alerts = [];
@@ -102,6 +103,7 @@ function createFixture(createBackupModal, {
           exports.push(request);
           return { method: "download" };
         }),
+    supportsNativeFileDestinations,
     getBackupContext: getBackupContext || (() => ({})),
     FileReader: FakeFileReader,
     alertUser(message) { alerts.push(message); },
@@ -191,6 +193,52 @@ contractTest("waits for export completion before announcing success", async crea
   assert.deepEqual(notifications, ["File downloaded!"]);
 });
 
+contractTest("offers explicit save and share destinations only for native Android", async createBackupModal => {
+  const requests = [];
+  const fixture = createFixture(createBackupModal, {
+    supportsNativeFileDestinations: true,
+    async exportFile(request) {
+      requests.push(request);
+      return { method: request.destination };
+    },
+    getBackupContext() {
+      return { exportData: exportData("native") };
+    }
+  });
+
+  let tree = fixture.harness.render();
+  findButton(tree, "Diary - today").props.onClick();
+  tree = fixture.harness.render();
+
+  assert.equal(requests.length, 0);
+  assert.ok(findButton(tree, "Save on device"));
+  assert.ok(findButton(tree, "Share"));
+
+  await findButton(tree, "Save on device").props.onClick();
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].destination, "save");
+});
+
+contractTest("does not announce success when Android document saving is cancelled", async createBackupModal => {
+  const notifications = [];
+  const fixture = createFixture(createBackupModal, {
+    supportsNativeFileDestinations: true,
+    async exportFile() {
+      return { method: "save", cancelled: true };
+    },
+    getBackupContext() {
+      return { exportData: exportData("cancelled", notifications) };
+    }
+  });
+
+  let tree = fixture.harness.render();
+  findButton(tree, "Diary - today").props.onClick();
+  tree = fixture.harness.render();
+  await findButton(tree, "Save on device").props.onClick();
+
+  assert.deepEqual(notifications, []);
+});
+
 contractTest("accepts the controller export bridge used by the frozen legacy composition", async createBackupModal => {
   const exports = [];
   const fixture = createFixture(createBackupModal, {
@@ -236,6 +284,7 @@ contractTest("resolves separate current contexts for preview and confirmed impor
   const rawBackup = { schema: "nutrition-tracker-account-backup", version: 3, data: { "notes_2026-07-16": "original" } };
   const getterCalls = [];
   const imported = [];
+  const reloads = [];
   const contexts = [
     {
       async previewFullAccountBackupImport(value) {
@@ -250,6 +299,9 @@ contractTest("resolves separate current contexts for preview and confirmed impor
       async importFullAccountBackup(value, options) {
         imported.push({ value, options });
         return { imported: 1, skipped: 0 };
+      },
+      async reloadNutritionData() {
+        reloads.push("after-import");
       }
     }
   ];
@@ -282,6 +334,10 @@ contractTest("resolves separate current contexts for preview and confirmed impor
     value: rawBackup,
     options: { categories: { notes: "replace" } }
   }]);
+  assert.deepEqual(reloads, ["after-import"]);
+  tree = fixture.harness.render();
+  assert.equal(elementText(tree).includes("Import complete: 1 records. Data refreshed."), true);
+  assert.ok(findButton(tree, "Refresh data"));
 });
 
 contractTest("preserves empty-file behavior by previewing an empty object", async createBackupModal => {

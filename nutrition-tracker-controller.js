@@ -1036,6 +1036,7 @@
         setSyncing(false);
         setLoaded(true);
       }
+      window._reloadNutritionData = loadAll;
       useEffect(() => {
         loadAll();
       }, []);
@@ -2980,7 +2981,7 @@
         }
       }
 
-      async function exportFullBackup() {
+      async function exportFullBackup(options = {}) {
         setBackupLoading(true);
         setBackupJson(null);
         try {
@@ -2989,16 +2990,21 @@
             : await buildLegacyFullBackup();
           const json = JSON.stringify(backup, null, 2);
           setBackupJson(json);
-          await exportFile({
+          const exportResult = await exportFile({
             content: json,
             filename: 'backup_completo_' + TODAY + '.json',
-            mimeType: 'application/json'
+            mimeType: 'application/json',
+            ...(options.destination ? {destination: options.destination} : {})
           });
+          if (exportResult?.cancelled) return exportResult;
           notify(text('notifBackupDone'));
+          return exportResult;
         } catch (e) {
           notify(uiText("Erro ao exportar: ", "Export error: ", "Error al exportar: ") + e.message);
+          return {error: e};
+        } finally {
+          setBackupLoading(false);
         }
-        setBackupLoading(false);
       }
       function exportCSV() {
         const headers = ["name", "unit", ...ALL_FIELDS_KEYS.map(f => f.key)];

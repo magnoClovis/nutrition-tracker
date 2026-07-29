@@ -147,6 +147,11 @@ test("writes UTF-8 to cache, resolves its URI, then opens Android sharing", asyn
   const { createNativeFileExporter } = await loadAdapter();
   const calls = [];
   const exportFile = createNativeFileExporter({
+    documentSaver: {
+      async saveFile() {
+        throw new Error("must not save");
+      }
+    },
     filesystem: {
       async writeFile(options) {
         calls.push(["writeFile", options]);
@@ -168,7 +173,8 @@ test("writes UTF-8 to cache, resolves its URI, then opens Android sharing", asyn
   const request = {
     content: '{"nome":"açúcar"}',
     filename: "backup.json",
-    mimeType: "application/json"
+    mimeType: "application/json",
+    destination: "share"
   };
 
   const result = await exportFile(request);
@@ -203,6 +209,11 @@ test("does not open sharing when the native file write fails", async () => {
   const { createNativeFileExporter } = await loadAdapter();
   let shareCalls = 0;
   const exportFile = createNativeFileExporter({
+    documentSaver: {
+      async saveFile() {
+        throw new Error("must not save");
+      }
+    },
     filesystem: {
       async writeFile() {
         throw new Error("disk unavailable");
@@ -221,8 +232,95 @@ test("does not open sharing when the native file write fails", async () => {
   });
 
   await assert.rejects(
-    exportFile({ content: "{}", filename: "backup.json", mimeType: "application/json" }),
+    exportFile({
+      content: "{}",
+      filename: "backup.json",
+      mimeType: "application/json",
+      destination: "share"
+    }),
     /disk unavailable/
   );
   assert.equal(shareCalls, 0);
+});
+
+test("uses the Android document picker by default and preserves cancellation", async () => {
+  const { createNativeFileExporter } = await loadAdapter();
+  const calls = [];
+  const exportFile = createNativeFileExporter({
+    documentSaver: {
+      async saveFile(options) {
+        calls.push(options);
+        return { cancelled: true };
+      }
+    },
+    filesystem: {
+      async writeFile() {
+        throw new Error("must not stage a saved file");
+      },
+      async getUri() {
+        throw new Error("must not resolve a saved file");
+      }
+    },
+    share: {
+      async share() {
+        throw new Error("must not share a saved file");
+      }
+    },
+    cacheDirectory: "CACHE",
+    utf8Encoding: "utf8"
+  });
+  const request = {
+    content: '{"nome":"açúcar"}',
+    filename: "backup.json",
+    mimeType: "application/json"
+  };
+
+  const result = await exportFile(request);
+
+  assert.deepEqual(calls, [request]);
+  assert.deepEqual(result, {
+    method: "save",
+    filename: "backup.json",
+    mimeType: "application/json",
+    uri: undefined,
+    cancelled: true
+  });
+});
+
+test("returns the URI selected by the Android document picker", async () => {
+  const { createNativeFileExporter } = await loadAdapter();
+  const exportFile = createNativeFileExporter({
+    documentSaver: {
+      async saveFile() {
+        return {
+          cancelled: false,
+          uri: "content://downloads/backup.json"
+        };
+      }
+    },
+    filesystem: {
+      async writeFile() {},
+      async getUri() {}
+    },
+    share: {
+      async share() {}
+    },
+    cacheDirectory: "CACHE",
+    utf8Encoding: "utf8"
+  });
+
+  const result = await exportFile({
+    content: "{}",
+    filename: "backup.json",
+    mimeType: "application/json",
+    destination: "save"
+  });
+
+  assert.deepEqual(result, {
+    method: "save",
+    filename: "backup.json",
+    mimeType: "application/json",
+    uri: "content://downloads/backup.json",
+    cancelled: false
+  });
 });
