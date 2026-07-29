@@ -145,11 +145,19 @@ async function fbGet3(k) { return _firebaseFirestore.fbGet3(k); }
 async function fbSet3(k, v) { return _firebaseFirestore.fbSet3(k, v); }
 async function fbDel3(k) { return _firebaseFirestore.fbDel3(k); }
 async function fbList3(p) { return _firebaseFirestore.fbList3(p); }
+function clearImportedLocalFallback(k) {
+  try {
+    const uid = _getUid();
+    if (uid) localStorage.removeItem(uid + "_" + k);
+    localStorage.removeItem(k);
+  } catch (_) {}
+}
 
 const _firebaseBackup = window.FirebaseBackupInternal.createFirebaseBackup({
   getUid: _getUid,
   fbGet3,
   fbSet3,
+  clearLocalFallback: clearImportedLocalFallback,
   storageValue2: _storageValue2,
   parseStorageJson3: _parseStorageJson3,
   loadRootFields3: _loadRootFields3,
