@@ -77,9 +77,17 @@
      * @param {string} props.lang Active application language.
      * @param {boolean} props.darkMode Whether dark mode is active.
      * @param {function(): void} props.onClose Closes the modal without cancelling in-flight operations.
+     * @param {function(Object): function(): void} [props.registerBackHandler] Registers nested Android Back handling.
+     * @param {number} [props.backHandlerPriority] Dispatcher priority for the nested handler.
      * @returns {Object} React element tree for backup and restore.
      */
-    function BackupModal({ lang, darkMode, onClose }) {
+    function BackupModal({
+      lang,
+      darkMode,
+      onClose,
+      registerBackHandler,
+      backHandlerPriority
+    }) {
       const normalizedLang = normalizeLanguage(lang);
       const isPt = normalizedLang === 'pt';
       const L = (pt, en, es) => pickLang(normalizedLang, pt, en, es);
@@ -262,6 +270,21 @@
         setImportSelections({});
         setImportingBackup(false);
       }
+
+      const nestedBackStateRef = React.useRef(null);
+      nestedBackStateRef.current = () => {
+        if (!importPreview) return false;
+        closeImportPreview();
+        return true;
+      };
+      React.useEffect(() => {
+        if (typeof registerBackHandler !== 'function') return undefined;
+        return registerBackHandler({
+          id: 'backup-modal',
+          priority: Number(backHandlerPriority) || 0,
+          handler: () => nestedBackStateRef.current(),
+        });
+      }, [registerBackHandler, backHandlerPriority]);
     
       async function confirmImportPreview() {
         if (!pendingImportBackup) return;

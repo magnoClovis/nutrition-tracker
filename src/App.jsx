@@ -45,6 +45,13 @@ import * as MealReviewAI from './composite/meal-review-ai.js';
 import * as NutritionFeedbackAI from './composite/nutrition-feedback-ai.js';
 import * as ProfileValidation from './composite/profile-validation.js';
 import * as WeekAggregator from './composite/week-aggregator.js';
+import { androidAppRuntime } from './composite/android-app-runtime.js';
+import {
+  BACK_HANDLER_PRIORITY,
+  createBackNavigationDispatcher,
+  resolveNutritionBackAction,
+  resolveTabHistoryAfterNavigation,
+} from './composite/android-back-navigation.js';
 import { createNutritionTrackerController } from './controller/nutrition-tracker-controller.js';
 import {
   FB_KEY,
@@ -446,6 +453,8 @@ const {
   React,
   services: {
     storage,
+    resolveNutritionBackAction,
+    resolveTabHistoryAfterNavigation,
   },
   domain: {
     LANGUAGE_OPTIONS,
@@ -552,6 +561,37 @@ export function App() {
   const [showReleaseNotice, setShowReleaseNotice] = React.useState(false);
   const [showVisualUpdateNotice, setShowVisualUpdateNotice] = React.useState(false);
   const [darkMode, setDarkMode] = React.useState(readPreferredDarkMode);
+  const backDispatcherRef = React.useRef(null);
+  if (!backDispatcherRef.current) {
+    backDispatcherRef.current = createBackNavigationDispatcher({
+      onUnhandled: () => androidAppRuntime.minimize(),
+    });
+  }
+  const registerBackHandler = React.useCallback(
+    registration => backDispatcherRef.current.register(registration),
+    [],
+  );
+
+  React.useEffect(() => {
+    let disposed = false;
+    let removeListener = () => {};
+
+    androidAppRuntime
+      .addBackButtonListener(event => backDispatcherRef.current.dispatch(event))
+      .then(remove => {
+        if (disposed) {
+          void remove();
+          return;
+        }
+        removeListener = remove;
+      })
+      .catch(error => console.error('Unable to register Android Back listener', error));
+
+    return () => {
+      disposed = true;
+      void removeListener();
+    };
+  }, []);
 
   React.useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
@@ -589,6 +629,53 @@ export function App() {
     setShowReleaseNotice(false);
     setShowVisualUpdateNotice(false);
   }
+
+  React.useEffect(() => registerBackHandler({
+    id: 'app-shell',
+    priority: BACK_HANDLER_PRIORITY.app,
+    handler: () => {
+      if (pendingEmail) {
+        setPendingEmail(null);
+        setPendingName('');
+        fbSignOut();
+        return true;
+      }
+      if (showTutorial) {
+        setShowTutorial(false);
+        return true;
+      }
+      if (showReleaseNotice) {
+        setShowReleaseNotice(false);
+        return true;
+      }
+      if (showVisualUpdateNotice) {
+        setShowVisualUpdateNotice(false);
+        return true;
+      }
+      if (showPrivacy) {
+        setShowPrivacy(false);
+        return true;
+      }
+      if (showBackup) {
+        setShowBackup(false);
+        return true;
+      }
+      if (showSettings) {
+        setShowSettings(false);
+        return true;
+      }
+      return false;
+    },
+  }), [
+    pendingEmail,
+    registerBackHandler,
+    showBackup,
+    showPrivacy,
+    showReleaseNotice,
+    showSettings,
+    showTutorial,
+    showVisualUpdateNotice,
+  ]);
 
   async function checkRequiredProfile() {
     setProfileChecking(true);
@@ -796,6 +883,8 @@ export function App() {
             externalDarkMode={darkMode}
             onLanguageChange={toggleLang}
             onDarkModeChange={toggleDark}
+            registerBackHandler={registerBackHandler}
+            backHandlerPriority={BACK_HANDLER_PRIORITY.nutrition}
           />
         )}
         {showPrivacy ? (
@@ -810,6 +899,8 @@ export function App() {
             lang={lang}
             darkMode={darkMode}
             onClose={() => setShowBackup(false)}
+            registerBackHandler={registerBackHandler}
+            backHandlerPriority={BACK_HANDLER_PRIORITY.nestedPanel}
           />
         ) : null}
         {showReleaseNotice && !requiredProfile ? (
@@ -849,6 +940,8 @@ export function App() {
             toggleLang={toggleLang}
             toggleDark={toggleDark}
             directKey={false}
+            registerBackHandler={registerBackHandler}
+            backHandlerPriority={BACK_HANDLER_PRIORITY.nestedPanel}
           />
         ) : null}
       </>
