@@ -65,8 +65,35 @@ controlador. A confirmação informa o número de registros importados e só ent
 indica que os dados foram atualizados.
 
 O modal também mostra **Atualizar dados** como fallback manual. Esse botão
-resolve novamente o contexto mais recente e chama a mesma ponte, sem duplicar
-lógica de carregamento ou implementar pull-to-refresh.
+recarrega de fato o aplicativo, sem implementar pull-to-refresh.
+
+## Segunda validação física e causa raiz
+
+O APK combinado confirmou:
+
+- **Compartilhar** funciona corretamente;
+- Voltar fecha a tela de backup corretamente;
+- **Salvar no aparelho** abria o seletor, mas o Phrona encerrava depois da
+  confirmação e deixava um arquivo vazio;
+- **Atualizar dados** afirmava sucesso sem mudança observável;
+- deslizar para baixo não mostrava atualização, conforme esperado, pois
+  pull-to-refresh não foi implementado.
+
+Com o aparelho conectado, o `logcat` registrou repetidamente
+`TransactionTooLargeException`: parcel de 3.324.676 bytes, contendo duas cópias
+do backup de 1.660.548 bytes no estado salvo pelo Capacitor. A ponte agora:
+
+1. grava o UTF-8 em arquivo temporário no cache;
+2. remove `content` do `PluginCall`;
+3. abre `ACTION_CREATE_DOCUMENT`;
+4. copia o arquivo temporário para a URI escolhida;
+5. remove o temporário em sucesso, erro ou cancelamento.
+
+Na importação, cada escrita confirmada agora elimina apenas os fallbacks locais
+da mesma chave. Isso impede que um valor antigo e maior seja escolhido como
+"mais rico" e sobrescreva novamente o valor restaurado. A confirmação mostra
+somente a contagem real; não declara mais que a tela foi atualizada. O botão
+**Atualizar dados** executa uma recarga completa e visível do aplicativo.
 
 ## Validação automatizada
 
@@ -75,11 +102,15 @@ lógica de carregamento ou implementar pull-to-refresh.
 - sincronização Capacitor: passou;
 - compilação Android da ponte `DocumentSaver`: passou;
 - preflight: passou sem avisos;
-- testes unitários: 725 passaram;
+- testes unitários: 727 passaram;
 - smoke legado: 20 passaram e 17 foram ignorados por ausência deliberada das
   credenciais locais de teste autenticado;
 - smoke Vite: 20 passaram e 17 foram ignorados pelo mesmo motivo;
 - matriz de cutover: 60 de 60 combinações passaram.
+
+Na segunda iteração corretiva, a suíte completa voltou a passar integralmente:
+preflight, 727 testes unitários, ambos os smokes e 60/60 da matriz de cutover.
+A compilação Android isolada terminou com 131 tarefas executadas.
 
 A primeira execução da matriz apresentou a mesma divergência de pixels isolada
 já observada anteriormente em Métricas, português, mobile, tema escuro, depois

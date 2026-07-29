@@ -474,7 +474,13 @@ test("sign-out clears session storage and returns the unauthenticated storage nu
 
 test("normalizes profile values while preserving storage {value} string records", async () => {
   const backend = createFirestoreBackend();
-  const fixture = loadFirebaseStorage({ fetchRequest: backend.fetchRequest });
+  const fixture = loadFirebaseStorage({
+    fetchRequest: backend.fetchRequest,
+    local: {
+      "user-1_pantry_v2": '[{"id":"stale-user-fallback"}]',
+      pantry_v2: '[{"id":"stale-plain-fallback"}]'
+    }
+  });
   fixture.saveSession();
   fixture.suppressAutomaticMigration();
 
@@ -594,6 +600,8 @@ test("preserves backup validation, preview and import return shapes", async () =
   assert.equal(backend.rootFields.goalType, "loss");
   assert.match(backend.dataDocs.get("pantry_v2"), /existing/);
   assert.match(backend.dataDocs.get("pantry_v2"), /new/);
+  assert.equal(fixture.localStorage.getItem("user-1_pantry_v2"), null);
+  assert.equal(fixture.localStorage.getItem("pantry_v2"), null);
 });
 
 test("preserves destructive deletion behavior when child listings fail", async () => {

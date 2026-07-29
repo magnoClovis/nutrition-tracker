@@ -203,7 +203,13 @@ rede.
 Risco de corrigir: uma fila offline precisa de IDs idempotentes e política de
 conflito para não duplicar refeições ao reconectar.
 Rastreio: reproduzido em aparelho Android real durante a Subfatia 3; correção
-explicitamente adiada.
+inicial de compartilhamento validada na Subfatia 6A2. A primeira implementação
+de "Salvar no aparelho" criou o documento, mas derrubou o processo antes da
+escrita: o logcat confirmou `TransactionTooLargeException` com parcel de
+3.324.676 bytes, pois o backup de 1.660.548 bytes era persistido duas vezes no
+estado da Activity pelo Capacitor. O arquivo resultante ficava vazio. Correção
+passou a preparar o conteúdo em cache e removê-lo do PluginCall antes de abrir
+`ACTION_CREATE_DOCUMENT`; aguarda nova validação física.
 
 
 2. RACES, CANCELAMENTO E ORDEM DE RESPOSTAS
@@ -640,6 +646,27 @@ Risco de corrigir: handlers duplicados entre WebView, histórico web e Capacitor
 podem executar duas ações ou fechar o app prematuramente.
 Rastreio: reproduzido em modal, configurações e outras telas durante a
 Subfatia 3; correção explicitamente adiada.
+
+[D18] Importação confirmada pode não substituir fallback local nem atualizar a UI
+Localização: validação física da Subfatia 6A2; firebase-backup-internal.js;
+firebase-storage.js; backup-modal.js.
+Descrição/impacto: a prévia e a escrita remota terminam e o modal anuncia
+sucesso, mas os valores antigos podem continuar visíveis inclusive após reabrir.
+Para chaves críticas, a leitura escolhe o candidato local mais rico; um fallback
+antigo maior pode vencer o valor importado e voltar a gravá-lo no Firestore.
+Além disso, o botão de atualização chamava `loadAll`, que engole falhas e não
+recarrega todas as telas, mas anunciava "Dados atualizados" mesmo sem mudança
+observável.
+Severidade: ALTO — o usuário recebe confirmação de restauração sem conseguir
+observar com segurança os dados escolhidos.
+Resolução aplicada: após cada escrita importada confirmada, remover somente os
+fallbacks locais correspondentes; manter a reidratação automática e fazer o
+botão "Atualizar dados" recarregar de fato o aplicativo, sem alegar sucesso
+antecipado. Pull-to-refresh permanece fora do escopo.
+Risco de corrigir: remoção ampla de localStorage poderia afetar outra conta;
+por isso a limpeza é limitada à chave importada, em variantes simples e
+namespaced do usuário autenticado. Aguarda nova validação física do ciclo
+exportar/importar.
 
 
 5. CÓDIGO MORTO, DESCONECTADO OU DÍVIDA DE LIMPEZA

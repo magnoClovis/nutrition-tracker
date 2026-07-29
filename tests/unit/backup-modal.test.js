@@ -285,6 +285,7 @@ contractTest("resolves separate current contexts for preview and confirmed impor
   const getterCalls = [];
   const imported = [];
   const reloads = [];
+  const applicationReloads = [];
   const contexts = [
     {
       async previewFullAccountBackupImport(value) {
@@ -302,6 +303,9 @@ contractTest("resolves separate current contexts for preview and confirmed impor
       },
       async reloadNutritionData() {
         reloads.push("after-import");
+      },
+      async reloadApplication() {
+        applicationReloads.push("full-reload");
       }
     }
   ];
@@ -309,7 +313,7 @@ contractTest("resolves separate current contexts for preview and confirmed impor
     getBackupContext() {
       const index = getterCalls.length;
       getterCalls.push(index);
-      return contexts[index];
+      return contexts[Math.min(index, contexts.length - 1)];
     }
   });
 
@@ -336,8 +340,12 @@ contractTest("resolves separate current contexts for preview and confirmed impor
   }]);
   assert.deepEqual(reloads, ["after-import"]);
   tree = fixture.harness.render();
-  assert.equal(elementText(tree).includes("Import complete: 1 records. Data refreshed."), true);
-  assert.ok(findButton(tree, "Refresh data"));
+  assert.equal(elementText(tree).includes("Import complete: 1 records."), true);
+  await findButton(tree, "Refresh data").props.onClick();
+  assert.deepEqual(getterCalls, [0, 1, 2]);
+  assert.deepEqual(applicationReloads, ["full-reload"]);
+  tree = fixture.harness.render();
+  assert.equal(elementText(tree).includes("Reloading the app..."), true);
 });
 
 contractTest("preserves empty-file behavior by previewing an empty object", async createBackupModal => {

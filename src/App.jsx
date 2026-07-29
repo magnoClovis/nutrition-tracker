@@ -186,6 +186,7 @@ const {
     previewFullAccountBackupImport: window.previewFullAccountBackupImport,
     importFullAccountBackup: window.importFullAccountBackup,
     reloadNutritionData: window._reloadNutritionData,
+    reloadApplication: () => window.location.reload(),
   }),
   FileReader: window.FileReader,
   alertUser: window.alert.bind(window),

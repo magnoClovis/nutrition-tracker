@@ -69,6 +69,7 @@ function loadBackup(createFirebaseBackup, {
   const stored = new Map(Object.entries(current));
   const writes = [];
   const patches = [];
+  const clearedFallbacks = [];
   const service = createFirebaseBackup({
     getUid: () => uid,
     async fbGet3(key) {
@@ -79,6 +80,9 @@ function loadBackup(createFirebaseBackup, {
       if (failures.write === true || failures.write === key) throw new Error("write failed");
       writes.push({key, value});
       stored.set(key, value);
+    },
+    clearLocalFallback(key) {
+      clearedFallbacks.push(key);
     },
     storageValue2: value => typeof value === "string" ? value : JSON.stringify(value),
     parseStorageJson3: parseStorageJson,
@@ -111,7 +115,7 @@ function loadBackup(createFirebaseBackup, {
     mergeObjectValues
   });
 
-  return { service, stored, writes, patches };
+  return { service, stored, writes, patches, clearedFallbacks };
 }
 
 function contractTest(name, callback) {
@@ -217,6 +221,7 @@ contractTest("preserves append merges, existing daily records, replace writes, a
   );
   assert.match(JSON.stringify(append.stored.get("pantry_v2")), /existing/);
   assert.match(JSON.stringify(append.stored.get("pantry_v2")), /new/);
+  assert.deepEqual(append.clearedFallbacks, ["pantry_v2"]);
   assert.equal(append.stored.get(dayKey), '{"meals":{"Almoço":[]}}');
   assert.equal(append.patches.length, 1);
   assert.equal(append.patches[0].fields._schemaVersion, 4);
@@ -230,6 +235,7 @@ contractTest("preserves append merges, existing daily records, replace writes, a
     {imported: 1, skipped: 0}
   );
   assert.equal(replace.stored.get(dayKey), "new");
+  assert.deepEqual(replace.clearedFallbacks, [dayKey]);
 });
 
 contractTest("imports a legacy pantry alias into pantry_v2", async loadBackup => {
@@ -240,6 +246,7 @@ contractTest("imports a legacy pantry alias into pantry_v2", async loadBackup =>
   );
   assert.deepEqual(plain(result), {imported: 1, skipped: 0});
   assert.equal(fixture.writes[0].key, "pantry_v2");
+  assert.deepEqual(fixture.clearedFallbacks, ["pantry_v2"]);
 });
 
 contractTest("preserves prior batches without rollback when a later write fails", async loadBackup => {
@@ -254,5 +261,6 @@ contractTest("preserves prior batches without rollback when a later write fails"
     /write failed/
   );
   assert.equal(fixture.writes.length, 15);
+  assert.equal(fixture.clearedFallbacks.length, 15);
   assert.equal(fixture.patches.length, 0);
 });

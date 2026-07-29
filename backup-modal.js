@@ -336,25 +336,17 @@
           const result = await importFullAccountBackup(pendingImportBackup, {categories: selected});
           const count = Number(result?.imported ?? 0);
           const reloadNutritionData = backupContext.reloadNutritionData;
-          let refreshed = false;
           if (typeof reloadNutritionData === 'function') {
             try {
               await reloadNutritionData();
-              refreshed = true;
             } catch (_) {}
           }
           closeImportPreview();
           setShowRefreshFallback(true);
           setImportDone(L(
-            refreshed
-              ? `Importação concluída: ${count} registros. Dados atualizados.`
-              : `Importação concluída: ${count} registros. Toque em Atualizar dados.`,
-            refreshed
-              ? `Import complete: ${count} records. Data refreshed.`
-              : `Import complete: ${count} records. Tap Refresh data.`,
-            refreshed
-              ? `Importación completada: ${count} registros. Datos actualizados.`
-              : `Importación completada: ${count} registros. Toca Actualizar datos.`
+            `Importação concluída: ${count} registros.`,
+            `Import complete: ${count} records.`,
+            `Importación completada: ${count} registros.`
           ));
         } catch (error) {
           setImportDone(L('Erro ao importar: ', 'Import error: ', 'Error al importar: ') + (error?.message || String(error)));
@@ -364,8 +356,8 @@
 
       async function refreshImportedData() {
         const backupContext = getBackupContext() || {};
-        const reloadNutritionData = backupContext.reloadNutritionData;
-        if (typeof reloadNutritionData !== 'function') {
+        const reloadApplication = backupContext.reloadApplication;
+        if (typeof reloadApplication !== 'function') {
           setImportDone(L(
             'Atualização de dados indisponível.',
             'Data refresh is unavailable.',
@@ -375,12 +367,12 @@
         }
         setRefreshingData(true);
         try {
-          await reloadNutritionData();
           setImportDone(L(
-            'Dados atualizados.',
-            'Data refreshed.',
-            'Datos actualizados.'
+            'Recarregando o aplicativo...',
+            'Reloading the app...',
+            'Recargando la aplicación...'
           ));
+          await reloadApplication();
         } catch (error) {
           setImportDone(L(
             'Erro ao atualizar dados: ',

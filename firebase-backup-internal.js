@@ -32,6 +32,7 @@
    * @param {Function} dependencies.getUid Authentication-owned UID getter.
    * @param {Function} dependencies.fbGet3 Active-v3 storage reader.
    * @param {Function} dependencies.fbSet3 Active-v3 storage writer.
+   * @param {Function} dependencies.clearLocalFallback Removes stale browser fallback after a confirmed write.
    * @param {Function} dependencies.storageValue2 Storage-compatible serializer.
    * @param {Function} dependencies.parseStorageJson3 Storage-compatible parser.
    * @param {Function} dependencies.loadRootFields3 Root-document reader.
@@ -49,6 +50,7 @@
     getUid,
     fbGet3,
     fbSet3,
+    clearLocalFallback,
     storageValue2,
     parseStorageJson3,
     loadRootFields3,
@@ -409,6 +411,7 @@
           const strategy = selected[entry.category];
           if (strategy === "replace") {
             await fbSet3(entry.targetKey, entry.value);
+            clearLocalFallback(entry.targetKey);
             imported++;
             return;
           }
@@ -421,6 +424,7 @@
           }
           const merged = _mergeBackupValues3(entry.targetKey, hasCurrent ? current.value : null, entry.value);
           await fbSet3(entry.targetKey, merged);
+          clearLocalFallback(entry.targetKey);
           imported++;
         }));
       }
