@@ -137,11 +137,11 @@ e SHA-256 do artefato gerado:
   `android/app/build/outputs/apk/debug/app-debug.apk`;
 - cópia identificada:
   `android/app/build/outputs/apk/debug/phrona-combined-pr74-pr75-debug.apk`;
-- tamanho: 35.539.826 bytes;
+- tamanho: 35.556.254 bytes;
 - SHA-256:
-  `73DAD1C7F0EF557ABA33F86603B98DDB10EF24194D05EAEF5A932913FFD98346`.
+  `C6D6F8E8DCBD4787BD5A54677724EA207515CD90EE76D758FD7DD5B3D3796F20`.
 
-Na composição temporária, o preflight passou, 734 testes unitários passaram, o
+Na composição temporária, o preflight passou, 736 testes unitários passaram, o
 build Vite foi verificado, os quatro plugins Capacitor foram sincronizados e o
 `assembleDebug` terminou com 150 tarefas executadas. Nenhum commit de merge foi
 criado.
