@@ -422,13 +422,13 @@
         '--dim':'#8a8680'
       };
     
-      return React.createElement('div', {style: Object.assign({
+      return React.createElement('div', {'data-safe-area-screen':'true', style: Object.assign({
         position:'fixed', inset:0, zIndex:99998,
         background: bDark?'#111':'#f2f1ed', overflowY:'auto',
         display:'flex', flexDirection:'column'
       }, bTheme)},
         // Header
-        React.createElement('div', {style:{
+        React.createElement('div', {'data-safe-area-screen-header':'true', style:{
           display:'flex', alignItems:'center', gap:12,
           padding:'16px 20px', borderBottom:'1px solid var(--border2)',
           background:'var(--surface)', position:'sticky', top:0, zIndex:1
@@ -541,7 +541,7 @@
           ))
         ),
     
-        exportDestinationKey && React.createElement('div', {style:{
+        exportDestinationKey && React.createElement('div', {'data-safe-area-dialog':'16', style:{
           position:'fixed', inset:0, zIndex:100006,
           background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)',
           display:'flex', alignItems:'center', justifyContent:'center', padding:16
@@ -597,7 +597,7 @@
           const needsStrategy = selectedKeys.some(key => !importSelections[key]);
           const canImport = selectedCount > 0 && !needsStrategy && !importingBackup;
     
-          return React.createElement('div', {style:{
+          return React.createElement('div', {'data-safe-area-dialog':'16', style:{
             position:'fixed', inset:0, zIndex:100006,
             background:'rgba(0,0,0,0.45)', backdropFilter:'blur(3px)',
             display:'flex', alignItems:'center', justifyContent:'center', padding:16

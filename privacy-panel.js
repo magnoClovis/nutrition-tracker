@@ -208,7 +208,7 @@
         }, section==='main' ? '\u00D7' : '\u2190')
       );
 
-      if (section === 'changePassword') return React.createElement('div', {style:overlay},
+      if (section === 'changePassword') return React.createElement('div', {'data-safe-area-dialog':'16', style:overlay},
         React.createElement('div', {style:box},
           header(isPt?'Alterar senha':'Change password'),
           err && React.createElement('p', {style:{color:'#c87e7e', fontSize:12, marginBottom:10}}, err),
@@ -224,7 +224,7 @@
         )
       );
 
-      if (section === 'deleteAccount') return React.createElement('div', {style:overlay},
+      if (section === 'deleteAccount') return React.createElement('div', {'data-safe-area-dialog':'16', style:overlay},
         React.createElement('div', {style:box},
           header(isPt?'Apagar conta':'Delete account'),
           React.createElement('p', {style:{color:'#c87e7e', fontSize:13, marginBottom:12, lineHeight:1.5}},
@@ -244,7 +244,7 @@
       );
 
       // Main panel
-      return React.createElement('div', {style:overlay},
+      return React.createElement('div', {'data-safe-area-dialog':'16', style:overlay},
         React.createElement('div', {style:box},
           header(isPt?'\uD83D\uDD12 Privacidade e seguran\xe7a':'\uD83D\uDD12 Privacy & security'),
 

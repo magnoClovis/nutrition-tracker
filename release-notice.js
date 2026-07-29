@@ -57,6 +57,7 @@
       };
       const text = textByLang[normalizedLang] || textByLang.pt;
       return React.createElement("div", {
+        "data-safe-area-dialog": "18",
         style: {
           position: "fixed",
           inset: 0,

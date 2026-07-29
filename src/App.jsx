@@ -51,6 +51,10 @@ import * as ProfileValidation from './composite/profile-validation.js';
 import * as WeekAggregator from './composite/week-aggregator.js';
 import { androidAppRuntime } from './composite/android-app-runtime.js';
 import {
+  androidSystemBarsRuntime,
+  observeSystemBarsTheme,
+} from './composite/android-system-bars-runtime.js';
+import {
   BACK_HANDLER_PRIORITY,
   createBackNavigationDispatcher,
   resolveNutritionBackAction,
@@ -604,6 +608,12 @@ export function App() {
 
   React.useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
+    return observeSystemBarsTheme({
+      rootElement: document.documentElement,
+      runtime: androidSystemBarsRuntime,
+      createObserver: listener => new MutationObserver(listener),
+      onError: error => console.error('Unable to update Android status bar style', error),
+    });
   }, [darkMode]);
 
   function toggleLang(nextLang) {
