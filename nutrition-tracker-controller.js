@@ -794,6 +794,8 @@
       const [barcodeInput, setBarcodeInput] = useState("");
       const [barcodeLoading, setBarcodeLoading] = useState(false);
       const [barcodeScanning, setBarcodeScanning] = useState(false);
+      const [barcodeTorchAvailable, setBarcodeTorchAvailable] = useState(false);
+      const [barcodeTorchEnabled, setBarcodeTorchEnabled] = useState(false);
       const [barcodeMessage, setBarcodeMessage] = useState("");
       const [reportModalOpen, setReportModalOpen] = useState(false);
       const [reportType, setReportType] = useState("week");
@@ -807,7 +809,8 @@
       const barcodeScanRef = useRef(false);
       const {
         stopBarcodeScanner,
-        startBarcodeScanner
+        startBarcodeScanner,
+        toggleBarcodeTorch = async () => {}
       } = window.BarcodeScanner.createBarcodeScanner({
         windowObject: window,
         navigatorObject: navigator,
@@ -824,6 +827,8 @@
         setScanning: setBarcodeScanning,
         setMessage: setBarcodeMessage,
         setInput: setBarcodeInput,
+        setTorchAvailable: setBarcodeTorchAvailable,
+        setTorchEnabled: setBarcodeTorchEnabled,
         lookupBarcode: code => fetchBarcodeProduct(code),
         messages: {
           loadingCompatible: pickLang(lang, "Carregando leitor compatível...", "Loading compatible barcode scanner...", "Cargando lector compatible..."),
@@ -3241,6 +3246,7 @@
       const selectedFood = addEntry.foodId ? pantry.find(f => f.id === addEntry.foodId) : null;
       const scannerVideoElement = barcodeModalOpen ? /*#__PURE__*/React.createElement("video", {
         ref: videoRef,
+        className: "phrona-barcode-video-anchor",
         playsInline: true,
         muted: true,
         style: {
@@ -5132,12 +5138,15 @@
         setBarcodeInput,
         barcodeLoading,
         barcodeScanning,
+        barcodeTorchAvailable,
+        barcodeTorchEnabled,
         barcodeMessage,
         setBarcodeMessage,
         scannerVideoElement,
         closeBarcodeModal,
         startBarcodeScanner,
         stopBarcodeScanner,
+        toggleBarcodeTorch,
         fetchBarcodeProduct,
         searchFoodDatabase,
         autoFillNutrition,

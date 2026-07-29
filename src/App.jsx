@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   Line,
   LineChart,
@@ -28,7 +29,7 @@ import * as UiPrimitives from './components/ui-primitives.js';
 import * as VerifyEmailScreenModule from './components/verify-email-screen.js';
 import * as VisualUpdateNoticeModule from './components/visual-update-notice.js';
 import * as WeekScreenModule from './components/week-screen.js';
-import * as BarcodeScanner from './composite/barcode-scanner.js';
+import * as BarcodeScanner from './composite/barcode-scanner-runtime.js';
 import * as BodyMetricsModel from './composite/body-metrics-model.js';
 import * as DailyNutritionModel from './composite/daily-nutrition-model.js';
 import * as DateUtils from './composite/date-utils.js';
@@ -393,7 +394,15 @@ const {
 
 const {
   PantryScreen,
-} = PantryScreenModule.createPantryScreen({ React, pickLang, portionLabel });
+} = PantryScreenModule.createPantryScreen({
+  React,
+  pickLang,
+  portionLabel,
+  nativeBarcodePortal: {
+    isActive: () => document.body.classList.contains('phrona-native-barcode-scanner-active'),
+    render: node => createPortal(node, document.body),
+  },
+});
 
 const {
   AddScreen,

@@ -30,14 +30,21 @@
    * @param {Object} dependencies.React React runtime supplied by the host.
    * @param {function(string,string,string,string): string} dependencies.pickLang Language picker from i18n.js.
    * @param {function(string,string): string} dependencies.portionLabel Unit-label formatter from date-utils.js.
+   * @param {Object} [dependencies.nativeBarcodePortal] Optional injected native overlay portal.
    * @returns {{PantryScreen: function(Object): Object}} Pantry screen API.
    */
-  function createPantryScreen({ React, pickLang, portionLabel }) {
+  function createPantryScreen({ React, pickLang, portionLabel, nativeBarcodePortal = null }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof portionLabel !== "function") {
       throw new TypeError("PantryScreen requires React, pickLang, and portionLabel");
     }
+    if (nativeBarcodePortal
+      && (typeof nativeBarcodePortal.isActive !== "function"
+        || typeof nativeBarcodePortal.render !== "function")) {
+      throw new TypeError("nativeBarcodePortal requires isActive and render");
+    }
 
+    const nativeScannerFlowClass = "phrona-native-barcode-scanner-flow";
     const inp = {
       width: "100%",
       background: "var(--input)",
@@ -115,12 +122,15 @@
         setBarcodeInput,
         barcodeLoading,
         barcodeScanning,
+        barcodeTorchAvailable,
+        barcodeTorchEnabled,
         barcodeMessage,
         setBarcodeMessage,
         scannerVideoElement,
         closeBarcodeModal,
         startBarcodeScanner,
         stopBarcodeScanner,
+        toggleBarcodeTorch,
         fetchBarcodeProduct,
         searchFoodDatabase,
         autoFillNutrition,
@@ -207,6 +217,13 @@
           onCancelEdit: cancelTemplateEdit,
           onSaveEdit: saveTemplateEdit
         });
+      }
+
+      function renderBarcodeModal(modal) {
+        if (!barcodeScanning || !nativeBarcodePortal?.isActive()) return modal;
+        return nativeBarcodePortal.render(React.cloneElement(modal, {
+          className: `${modal.props.className} ${nativeScannerFlowClass}`
+        }));
       }
 
       return /*#__PURE__*/React.createElement("div", {
@@ -391,7 +408,8 @@
       fontFamily: "inherit",
       marginBottom: 8
     }
-  }, uiText("Ler código de barras", "Scan barcode", "Leer código de barras")), barcodeModalOpen && /*#__PURE__*/React.createElement("div", {
+  }, uiText("Ler código de barras", "Scan barcode", "Leer código de barras")), barcodeModalOpen && renderBarcodeModal(/*#__PURE__*/React.createElement("div", {
+    className: "phrona-barcode-modal",
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -400,6 +418,7 @@
       marginBottom: 8
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "phrona-barcode-modal-header",
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -422,6 +441,7 @@
       fontSize: 18
     }
   }, "\xD7")), scannerVideoElement, /*#__PURE__*/React.createElement("button", {
+    className: "phrona-barcode-camera-button",
     onClick: barcodeScanning ? stopBarcodeScanner : startBarcodeScanner,
     disabled: barcodeLoading,
     style: {
@@ -429,7 +449,16 @@
       width: "100%",
       marginBottom: 8
     }
-  }, barcodeScanning ? uiText("Parar câmera", "Stop camera", "Detener cámara") : uiText("Usar câmera", "Use camera", "Usar cámara")), /*#__PURE__*/React.createElement("div", {
+  }, barcodeScanning ? uiText("Parar câmera", "Stop camera", "Detener cámara") : uiText("Usar câmera", "Use camera", "Usar cámara")), barcodeScanning && barcodeTorchAvailable && /*#__PURE__*/React.createElement("button", {
+    className: "phrona-barcode-torch-button",
+    onClick: toggleBarcodeTorch,
+    style: {
+      ...sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)"),
+      width: "100%",
+      marginBottom: 8
+    }
+  }, barcodeTorchEnabled ? uiText("Desligar lanterna", "Turn flashlight off", "Apagar linterna") : uiText("Ligar lanterna", "Turn flashlight on", "Encender linterna")), /*#__PURE__*/React.createElement("div", {
+    className: "phrona-barcode-manual-controls",
     style: {
       display: "flex",
       gap: 8
@@ -452,13 +481,14 @@
       minWidth: 86
     }
   }, barcodeLoading ? uiText("Buscando", "Searching", "Buscando") : uiText("Buscar", "Search", "Buscar"))), barcodeMessage && /*#__PURE__*/React.createElement("div", {
+    className: "phrona-barcode-message",
     style: {
       marginTop: 8,
       fontSize: 12,
       color: "var(--muted)",
       lineHeight: 1.45
     }
-  }, barcodeMessage)), /*#__PURE__*/React.createElement("button", {
+  }, barcodeMessage))), /*#__PURE__*/React.createElement("button", {
     onClick: searchFoodDatabase,
     disabled: foodDbLoading,
     style: {

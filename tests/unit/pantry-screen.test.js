@@ -100,12 +100,15 @@ function baseProps(overrides = {}) {
     setBarcodeInput: noOp,
     barcodeLoading: false,
     barcodeScanning: false,
+    barcodeTorchAvailable: false,
+    barcodeTorchEnabled: false,
     barcodeMessage: "",
     setBarcodeMessage: noOp,
     scannerVideoElement: React.createElement("video", { "data-test-video": true }),
     closeBarcodeModal: noOp,
     startBarcodeScanner: noOp,
     stopBarcodeScanner: noOp,
+    toggleBarcodeTorch: noOp,
     fetchBarcodeProduct: noOp,
     searchFoodDatabase: noOp,
     autoFillNutrition: noOp,
@@ -166,11 +169,16 @@ function baseProps(overrides = {}) {
   };
 }
 
-function contractTest(name, callback) {
+function contractTest(name, callback, dependencyOverrides = {}) {
   implementations.forEach(([format, load]) => {
     test(`${format}: ${name}`, async () => {
       const { createPantryScreen } = await load();
-      const { PantryScreen } = createPantryScreen({ React, pickLang, portionLabel });
+      const { PantryScreen } = createPantryScreen({
+        React,
+        pickLang,
+        portionLabel,
+        ...dependencyOverrides
+      });
       return callback(PantryScreen);
     });
   });
@@ -263,6 +271,55 @@ contractTest("delegates scanner controls and places the controller-owned video e
 
   assert.deepEqual(calls, [["open", true], ["message", ""], ["start"], ["lookup"], ["close"]]);
   assert.equal(findNodes(view, node => node.props && node.props["data-controller-video"]).length, 1);
+  assert.equal(findNodes(view, node => node.props?.className === "phrona-barcode-modal").length, 1);
+  assert.equal(findNodes(view, node => node.props?.className === "phrona-barcode-manual-controls").length, 1);
+});
+
+contractTest("shows native flashlight control only while scanning and supported", PantryScreen => {
+  const calls = [];
+  const view = PantryScreen(baseProps({
+    newFoodOpen: true,
+    barcodeModalOpen: true,
+    barcodeScanning: true,
+    barcodeTorchAvailable: true,
+    barcodeTorchEnabled: false,
+    toggleBarcodeTorch() {
+      calls.push(["torch"]);
+    }
+  }));
+
+  const torchButton = findNodes(view, node => (
+    node.type === "button" && textContent(node) === "Turn flashlight on"
+  ))[0];
+  assert.ok(torchButton);
+  torchButton.props.onClick();
+  assert.deepEqual(calls, [["torch"]]);
+});
+
+contractTest("portals active native controls directly to the injected viewport surface", PantryScreen => {
+  const view = PantryScreen(baseProps({
+    newFoodOpen: true,
+    barcodeModalOpen: true,
+    barcodeScanning: true,
+    barcodeTorchAvailable: true
+  }));
+
+  const portal = findNodes(view, node => node.props?.["data-native-barcode-portal"])[0];
+  assert.ok(portal);
+  const modal = findNodes(portal, node => (
+    typeof node.props?.className === "string"
+    && node.props.className.includes("phrona-native-barcode-scanner-flow")
+  ))[0];
+  assert.ok(modal);
+}, {
+  nativeBarcodePortal: {
+    isActive: () => true,
+    render: node => React.createElement(
+      "native-barcode-portal",
+      { "data-native-barcode-portal": true },
+      node
+    )
+  }
 });
 
 contractTest("preserves the hidden required supplement dose and orphan body-composition block", PantryScreen => {

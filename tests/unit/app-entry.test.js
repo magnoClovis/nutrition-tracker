@@ -8,6 +8,10 @@ const test = require('node:test');
 const repositoryRoot = path.resolve(__dirname, '..', '..');
 const appSource = fs.readFileSync(path.join(repositoryRoot, 'src', 'App.jsx'), 'utf8');
 const mainSource = fs.readFileSync(path.join(repositoryRoot, 'src', 'main.jsx'), 'utf8');
+const nativeScannerCssSource = fs.readFileSync(
+  path.join(repositoryRoot, 'src', 'native-barcode-scanner.css'),
+  'utf8',
+);
 const productionHtmlSource = fs.readFileSync(path.join(repositoryRoot, 'index.html'), 'utf8');
 const legacyHtmlSource = fs.readFileSync(
   path.join(repositoryRoot, 'tests', 'fixtures', 'index.legacy.html'),
@@ -83,10 +87,20 @@ test('uses a single JSX bootstrap without StrictMode or createElement', () => {
   assert.doesNotMatch(appSource, /React\.createElement/);
   assert.doesNotMatch(mainSource, /React\.createElement|StrictMode/);
   assert.match(mainSource, /createRoot\(document\.getElementById\('root'\)\)/);
-  assert.match(mainSource, /root\.render\(<App \/>\);/);
+  assert.equal((mainSource.match(/root\.render\(/g) || []).length, 1);
+  assert.match(mainSource, /root\.render\([\s\S]*?<App \/>/);
+  assert.doesNotMatch(mainSource, /NativeBarcodeScannerSpikePanel|Testar scanner nativo/);
+  assert.match(appSource, /import \* as BarcodeScanner from '\.\/composite\/barcode-scanner-runtime\.js'/);
   assert.match(productionHtmlSource, /<script type="module" src="\/src\/main\.jsx"><\/script>/);
   assert.doesNotMatch(productionHtmlSource, /vite-baseline\.js|app\.js|\?v=/);
   assert.match(viteConfigSource, /react\(\{ jsxRuntime: 'classic' \}\)/);
+});
+
+test('keeps the native scanner overlay viewport-bound and theme-aware', () => {
+  assert.match(appSource, /nativeBarcodePortal:[\s\S]*?createPortal\(node, document\.body\)/);
+  assert.match(nativeScannerCssSource, /\.phrona-native-barcode-scanner-flow[\s\S]*?background: var\(--surface-block\) !important/);
+  assert.match(nativeScannerCssSource, /\.phrona-barcode-video-anchor[\s\S]*?display: none !important/);
+  assert.doesNotMatch(nativeScannerCssSource, /\.phrona-native-barcode-scanner-flow::before/);
 });
 
 test('keeps one production ESM entry and a separate frozen legacy loader', () => {
