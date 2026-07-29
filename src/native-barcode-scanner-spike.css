@@ -18,8 +18,8 @@ body.phrona-native-scanner-spike-active #root {
   background: transparent !important;
 }
 
-body.phrona-native-scanner-spike-active #root > :not(.phrona-native-scanner-spike) {
-  visibility: hidden !important;
+body.phrona-native-scanner-spike-active {
+  visibility: hidden;
 }
 
 body.phrona-native-scanner-spike-active .phrona-native-scanner-spike {
@@ -38,7 +38,6 @@ body.phrona-native-scanner-spike-active .phrona-native-scanner-spike {
   height: 28%;
   border: 3px solid rgba(255, 255, 255, 0.92);
   border-radius: 18px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.28);
   pointer-events: none;
 }
 

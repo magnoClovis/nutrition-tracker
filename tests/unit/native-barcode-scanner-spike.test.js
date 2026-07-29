@@ -1,5 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const repositoryRoot = path.resolve(__dirname, "..", "..");
 
 async function loadFactory() {
   return import("../../src/composite/native-barcode-scanner-spike.js");
@@ -168,4 +172,21 @@ test("native spike cleans up when listener registration fails", async () => {
 
   assert.equal(spike.isActive(), false);
   assert.deepEqual(fixture.calls, [["remove", "barcodesScanned"]]);
+});
+
+test("native spike hides the whole WebView body without masking the camera preview", () => {
+  const css = fs.readFileSync(
+    path.join(repositoryRoot, "src", "native-barcode-scanner-spike.css"),
+    "utf8"
+  );
+
+  assert.match(
+    css,
+    /body\.phrona-native-scanner-spike-active\s*\{\s*visibility:\s*hidden;/
+  );
+  assert.match(
+    css,
+    /body\.phrona-native-scanner-spike-active \.phrona-native-scanner-spike\s*\{[\s\S]*?visibility:\s*visible !important;/
+  );
+  assert.doesNotMatch(css, /9999px/);
 });

@@ -119,3 +119,18 @@ em aparelho físico, de:
 - permissão negada e posteriormente concedida;
 - lanterna, quando disponível;
 - encerramento da câmera ao colocar o app em segundo plano.
+
+## Iteração física 1
+
+No primeiro teste em aparelho físico:
+
+- o Android solicitou e recebeu a permissão de câmera;
+- o plugin chegou ao estado de leitura;
+- o indicador de uso da câmera ficou ativo;
+- a biblioteca informou que a lanterna estava disponível;
+- a prévia permaneceu encoberta por uma camada escura da WebView.
+
+A superfície foi ajustada para seguir o padrão recomendado pelo plugin:
+durante a leitura, todo o `body` fica invisível e somente o painel
+diagnóstico volta a ser mostrado. O véu escuro ao redor da mira também
+foi removido para tornar a segunda validação da prévia inequívoca.
