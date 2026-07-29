@@ -21,6 +21,20 @@ export const NUTRITION_BACK_LEVEL = Object.freeze({
   secondaryTab: 7,
 });
 
+/**
+ * Returns the next immutable tab-history snapshot for one navigation.
+ */
+export function resolveTabHistoryAfterNavigation(history, {
+  currentTab,
+  nextTab,
+  fromBack = false,
+  resetHistory = false,
+}) {
+  if (resetHistory) return [];
+  if (currentTab === nextTab || fromBack) return history;
+  return [...history, currentTab];
+}
+
 const ACTIONS_BY_LEVEL = Object.freeze([
   [
     ['mealReviewHelpOpen', 'closeMealReviewHelp'],

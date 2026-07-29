@@ -68,7 +68,7 @@ Antes da entrega do APK, também são executados:
 Resultados finais:
 
 - preflight: aprovado, sem avisos;
-- testes unitários: 715 aprovados;
+- testes unitários: 716 aprovados;
 - smoke legado: 20 aprovados e 17 testes autenticados ignorados porque
   as credenciais locais de teste não estavam configuradas;
 - smoke Vite: 20 aprovados e 17 testes autenticados ignorados pelo
@@ -84,9 +84,9 @@ Artefato local, deliberadamente ignorado pelo Git:
 
 `android/app/build/outputs/apk/debug/app-debug.apk`
 
-- tamanho: 35.415.661 bytes;
+- tamanho: 35.415.845 bytes;
 - SHA-256:
-  `A8FCDE3804972912CE51C86CF86F4424E02711B4219D5582ED54C24B6FA23884`.
+  `CB4F5C509B10FBA00B42F7C3C7DBB5BA3569299D0C22A3E387DE4B1DB4E69B99`.
 
 O APK usa a assinatura automática de debug do Android e serve somente
 para desenvolvimento e sideload. Ele não é um artefato de release para
@@ -160,5 +160,20 @@ apagaria os dados locais desse app de teste.
 
 ## Resultado físico
 
-Pendente de preenchimento após a instalação e execução do roteiro no
-aparelho real.
+Primeira validação concluída no aparelho físico:
+
+- estados aninhados e globais: aprovados;
+- modais e scanner: aprovados;
+- estados contextuais e telas secundárias: aprovados;
+- tela Adicionar, abas e histórico: aprovados;
+- data histórica e retorno contextual à Semana: aprovados;
+- retomada pelos aplicativos recentes: aprovada.
+
+Foi identificado um caso limítrofe na raiz: ao tocar explicitamente em
+**Diário** depois de visitar outras abas, Voltar ainda percorria toda a
+pilha anterior antes de minimizar. O ajuste de revalidação limpa a pilha
+somente nesse toque explícito. A abertura contextual de um dia pela
+Semana continua preservando a origem e a ordem Diário histórico →
+Diário de hoje → Semana.
+
+Pendente apenas a revalidação física desse ajuste final.

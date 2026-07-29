@@ -49,10 +49,21 @@
     }
 
     const { useState, useEffect, useRef } = React;
-    const { storage, resolveNutritionBackAction } = services;
+    const {
+      storage,
+      resolveNutritionBackAction,
+      resolveTabHistoryAfterNavigation
+    } = services;
     const resolveBackAction = typeof resolveNutritionBackAction === "function"
       ? resolveNutritionBackAction
       : () => null;
+    const resolveNextTabHistory = typeof resolveTabHistoryAfterNavigation === "function"
+      ? resolveTabHistoryAfterNavigation
+      : (history, transition) => {
+          if (transition.resetHistory) return [];
+          if (transition.currentTab === transition.nextTab || transition.fromBack) return history;
+          return [...history, transition.currentTab];
+        };
     const {
       LANGUAGE_OPTIONS,
       normalizeLanguage,
@@ -682,9 +693,12 @@
       function openTab(nextTab, opts = {}) {
         const normalizedTab = normalizeTabKey(nextTab);
         setTab(currentTab => {
-          if (currentTab !== normalizedTab && !opts.fromBack) {
-            tabHistoryRef.current.push(currentTab);
-          }
+          tabHistoryRef.current = resolveNextTabHistory(tabHistoryRef.current, {
+            currentTab,
+            nextTab: normalizedTab,
+            fromBack: !!opts.fromBack,
+            resetHistory: !!opts.resetHistory
+          });
           return normalizedTab;
         });
         if (opts.skipTutorial || window.__tutorialNavigating) return;
@@ -4364,7 +4378,9 @@
         metricsTitle: uiText("Abrir métricas", "Open metrics", "Abrir métricas"),
         onOpenMetrics: () => openTab("metricas"),
         navItems: tabNavItems.map(([key, label]) => ({ key, label })),
-        onOpenTab: openTab,
+        onOpenTab: nextTab => openTab(nextTab, {
+          resetHistory: normalizeTabKey(nextTab) === "diario"
+        }),
         miniProgressItems,
         summaryNode: /*#__PURE__*/React.createElement(DiaryScreen, { ...diaryScreenProps, section: "summary" }),
         goalToast,

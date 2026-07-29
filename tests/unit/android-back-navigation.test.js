@@ -104,3 +104,25 @@ test('resolver checks same-level actions in deterministic topmost-first order', 
     level: 2,
   });
 });
+
+test('explicit Diary navigation resets history without affecting contextual navigation', async () => {
+  const { resolveTabHistoryAfterNavigation } = await loadModule();
+  const history = ['diario', 'despensa'];
+
+  assert.deepEqual(resolveTabHistoryAfterNavigation(history, {
+    currentTab: 'semana',
+    nextTab: 'diario',
+    resetHistory: true,
+  }), []);
+
+  assert.deepEqual(resolveTabHistoryAfterNavigation(history, {
+    currentTab: 'semana',
+    nextTab: 'diario',
+  }), ['diario', 'despensa', 'semana']);
+
+  assert.deepEqual(resolveTabHistoryAfterNavigation(history, {
+    currentTab: 'semana',
+    nextTab: 'despensa',
+    fromBack: true,
+  }), history);
+});

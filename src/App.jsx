@@ -50,6 +50,7 @@ import {
   BACK_HANDLER_PRIORITY,
   createBackNavigationDispatcher,
   resolveNutritionBackAction,
+  resolveTabHistoryAfterNavigation,
 } from './composite/android-back-navigation.js';
 import { createNutritionTrackerController } from './controller/nutrition-tracker-controller.js';
 import {
@@ -453,6 +454,7 @@ const {
   services: {
     storage,
     resolveNutritionBackAction,
+    resolveTabHistoryAfterNavigation,
   },
   domain: {
     LANGUAGE_OPTIONS,

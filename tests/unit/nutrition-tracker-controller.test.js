@@ -10,7 +10,8 @@ function createController(createNutritionTrackerController) {
   return createNutritionTrackerController({
     React,
     services: {
-      resolveNutritionBackAction: () => null
+      resolveNutritionBackAction: () => null,
+      resolveTabHistoryAfterNavigation: history => history
     },
     domain: {},
     screens: {},
