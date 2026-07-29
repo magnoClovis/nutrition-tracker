@@ -4,7 +4,7 @@ Data da validação: 28 de julho de 2026.
 
 ## Escopo
 
-Esta subfatia formaliza o primeiro wrapper Android de debug do Phrona,
+Esta subfatia formaliza o primeiro wrapper Android de debug da Trofia,
 baseado no projeto Capacitor introduzido pelo PR #69. Ela não inclui
 validação em aparelho físico, alterações no scanner de código de barras,
 permissões de câmera, ícones definitivos, splash screen definitivo ou
@@ -53,8 +53,8 @@ Nenhum ajuste de configuração do aplicativo foi identificado como
 necessário. A compilação, a inicialização, a autenticação Firebase, o
 carregamento de dados reais e a navegação funcionaram com:
 
-- application ID `com.hermegas.phrona`;
-- nome de exibição `Phrona`;
+- application ID atual `com.hermegas.trofia`;
+- nome de exibição atual `Trofia`;
 - `compileSdkVersion` e `targetSdkVersion` 36;
 - `minSdkVersion` 24;
 - `versionCode` 1;

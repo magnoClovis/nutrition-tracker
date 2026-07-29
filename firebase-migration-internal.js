@@ -1,7 +1,7 @@
 /**
  * !!! CRITICAL DATA-LOSS RISK — INTENTIONALLY PRESERVED !!!
  *
- * Internal legacy-schema migration service for the Nutrition Tracker.
+ * Internal legacy-schema migration service for Trofia.
  *
  * Historical migration keys cover only today plus the previous 119 local
  * calendar days, converted to UTC with `toISOString()`. The separate legacy

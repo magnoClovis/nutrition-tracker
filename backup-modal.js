@@ -1,5 +1,5 @@
 /**
- * Backup and restore UI for exporting and importing real Nutrition Tracker user data.
+ * Backup and restore UI for exporting and importing real Trofia user data.
  *
  * The UMD module exposes a `createBackupModal` factory. The host injects React,
  * localization helpers from `i18n.js`, storage and browser services, plus a

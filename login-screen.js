@@ -115,7 +115,7 @@
       const normalizedLoginLang = normalizeLanguage(loginLang);
       const loginCopy = {
         pt: {
-          title: 'Di\u00e1rio Nutricional', login: 'Entrar', register: 'Criar conta',
+          title: 'Trofia', login: 'Entrar', register: 'Criar conta',
           subtitle: 'Acompanhe sua nutri\u00e7\u00e3o di\u00e1ria e alcance seus objetivos.',
           email: 'Email', password: 'Senha', confirm: 'Confirmar senha',
           showPassword: 'Mostrar senha', hidePassword: 'Ocultar senha',
@@ -134,7 +134,7 @@
           errGender: 'O g\u00eanero \u00e9 obrigat\u00f3rio.'
         },
         en: {
-          title: 'Nutrition Tracker', login: 'Sign in', register: 'Create account',
+          title: 'Trofia', login: 'Sign in', register: 'Create account',
           subtitle: 'Track your daily nutrition and reach your goals.',
           email: 'Email', password: 'Password', confirm: 'Confirm password',
           showPassword: 'Show password', hidePassword: 'Hide password',
@@ -152,7 +152,7 @@
           errBirth: 'Date of birth is required and must be valid.', errGender: 'Gender is required.'
         },
         es: {
-          title: 'Diario Nutricional', login: 'Iniciar sesi\u00f3n', register: 'Crear cuenta',
+          title: 'Trofia', login: 'Iniciar sesi\u00f3n', register: 'Crear cuenta',
           subtitle: 'Registra tu nutrici\u00f3n diaria y avanza hacia tus objetivos.',
           email: 'Email', password: 'Contrase\u00f1a', confirm: 'Confirmar contrase\u00f1a',
           showPassword: 'Mostrar contrase\u00f1a', hidePassword: 'Ocultar contrase\u00f1a',

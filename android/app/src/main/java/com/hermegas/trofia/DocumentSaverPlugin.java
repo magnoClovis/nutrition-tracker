@@ -1,4 +1,4 @@
-package com.hermegas.phrona;
+package com.hermegas.trofia;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -44,7 +44,7 @@ public class DocumentSaverPlugin extends Plugin {
         }
 
         try {
-            pendingFile = File.createTempFile("phrona-export-", ".tmp", getContext().getCacheDir());
+            pendingFile = File.createTempFile("trofia-export-", ".tmp", getContext().getCacheDir());
             try (OutputStream stagedOutput = new FileOutputStream(pendingFile, false)) {
                 stagedOutput.write(content.getBytes(StandardCharsets.UTF_8));
                 stagedOutput.flush();

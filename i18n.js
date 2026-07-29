@@ -144,7 +144,7 @@
     const STRINGS = {
       pt: {
         // App
-        appTitle: "Diário Nutricional",
+        appTitle: "Trofia",
         langBtn: "English",
         // Header
         dayOf: "Dia de",
@@ -416,7 +416,7 @@
       },
       en: {
         // App
-        appTitle: "Nutrition Tracker",
+        appTitle: "Trofia",
         langBtn: "Português",
         // Header
         dayOf: "Day type",
@@ -690,7 +690,7 @@
 
     STRINGS.es = {
       ...STRINGS.pt,
-      appTitle: "Diario Nutricional",
+      appTitle: "Trofia",
       langBtn: "Idioma",
       dayOf: "Día de",
       trainDay: "Entreno",

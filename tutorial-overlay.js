@@ -1,5 +1,5 @@
 /**
- * Interactive, localized tutorial overlay for the Nutrition Tracker UI.
+ * Interactive, localized tutorial overlay for the Trofia UI.
  *
  * The UMD module exposes a `createTutorialOverlay` factory. The host injects
  * its loaded React runtime and `normalizeLanguage` from `i18n.js`. The

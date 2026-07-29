@@ -20,7 +20,7 @@ function Add-Ok([string]$message) {
 
 Push-Location $root
 try {
-  Write-Host "Nutrition Tracker release preflight" -ForegroundColor Cyan
+  Write-Host "Trofia release preflight" -ForegroundColor Cyan
   Write-Host "Root: $root"
 
   # Encoding regressions have repeatedly broken visible Portuguese/English UI.

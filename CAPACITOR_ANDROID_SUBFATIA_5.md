@@ -33,7 +33,7 @@ aplicação está executando como Android pelo Capacitor.
    & "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install -r ".\android\app\build\outputs\apk\debug\app-debug.apk"
    ```
 
-4. Espere a mensagem `Success` e abra **Phrona** no aparelho.
+4. Espere a mensagem `Success` e abra **Trofia** no aparelho.
 
 Se o Android responder `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, a versão
 instalada foi assinada com outra chave de debug. Não desinstale antes
@@ -51,7 +51,7 @@ de decidir se os dados locais desse app de teste podem ser apagados.
 ### 2. Permissão negada
 
 1. Toque em **Iniciar teste**.
-2. Leia a justificativa apresentada pela Phrona.
+2. Leia a justificativa apresentada pela Trofia.
 3. Toque em **Continuar e permitir câmera**.
 4. Na janela do Android, negue a câmera.
 5. Confirme que o painel informa a negativa e oferece
@@ -63,7 +63,7 @@ de decidir se os dados locais desse app de teste podem ser apagados.
 1. Toque em **Abrir configurações**.
 2. Na tela **Informações do app > Permissões > Câmera**, selecione
    **Permitir somente durante o uso do app**.
-3. Volte para a Phrona.
+3. Volte para a Trofia.
 4. Toque em **Verificar novamente**.
 5. Confirme que a prévia da câmera aparece atrás da mira.
 
@@ -104,9 +104,9 @@ que a biblioteca informou `available: false` para a câmera em uso.
 
 ### 7. Ciclo de vida
 
-1. Inicie uma leitura e minimize a Phrona.
+1. Inicie uma leitura e minimize a Trofia.
 2. Confirme que o indicador de uso da câmera do Android desaparece.
-3. Volte à Phrona.
+3. Volte à Trofia.
 4. Confirme que o painel mostra a leitura como cancelada.
 5. Inicie novamente, feche o painel pelo fluxo disponível e confirme
    que a câmera não permanece ativa.
@@ -143,7 +143,7 @@ A segunda validação isolou o comportamento:
 
 - mesmo com a prévia preta, códigos eram detectados corretamente;
 - a lanterna física funcionava;
-- no tema claro da Phrona, a prévia aparecia normalmente;
+- no tema claro da Trofia, a prévia aparecia normalmente;
 - no tema escuro, somente a imagem da prévia permanecia encoberta.
 
 Uma tentativa de isolar o problema trocando temporariamente o tema para

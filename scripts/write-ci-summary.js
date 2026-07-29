@@ -57,7 +57,7 @@ const unitOutcome = process.env.UNIT_OUTCOME || 'skipped';
 const smokeOutcome = process.env.SMOKE_OUTCOME || 'skipped';
 
 const summary = [
-  '# Nutrition Tracker CI',
+  '# Trofia CI',
   '',
   '| Verificação | Resultado | Passaram | Falharam | Ignorados | Total |',
   '|---|---:|---:|---:|---:|---:|',

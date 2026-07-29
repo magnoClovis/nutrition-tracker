@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Phrona</string>
-    <string name="title_activity_main">Phrona</string>
-    <string name="package_name">com.hermegas.phrona</string>
-    <string name="custom_url_scheme">com.hermegas.phrona</string>
+    <string name="app_name">Trofia</string>
+    <string name="title_activity_main">Trofia</string>
+    <string name="package_name">com.hermegas.trofia</string>
+    <string name="custom_url_scheme">com.hermegas.trofia</string>
 </resources>

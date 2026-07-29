@@ -1,5 +1,5 @@
 /**
- * Email-verification screen for the Nutrition Tracker authentication flow.
+ * Email-verification screen for the Trofia authentication flow.
  *
  * The UMD module exposes a `createVerifyEmailScreen` factory. The host injects
  * React, named Firebase authentication services from `firebase-storage.js`,
