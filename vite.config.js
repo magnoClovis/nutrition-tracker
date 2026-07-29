@@ -11,9 +11,10 @@ const baselineRuntimeFiles = [];
 
 const baselineStaticFiles = [
   'manifest.json',
-  'icon-192.png',
-  'icon-512.png',
-  'icone.png',
+  'phrona-icon-192.png',
+  'phrona-icon-512.png',
+  'phrona-favicon-32.png',
+  'phrona-apple-touch-icon.png',
 ];
 
 function copyExplicitStaticFiles() {
