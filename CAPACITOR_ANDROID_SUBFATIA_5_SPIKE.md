@@ -134,3 +134,19 @@ A superfície foi ajustada para seguir o padrão recomendado pelo plugin:
 durante a leitura, todo o `body` fica invisível e somente o painel
 diagnóstico volta a ser mostrado. O véu escuro ao redor da mira também
 foi removido para tornar a segunda validação da prévia inequívoca.
+
+## Iteração física 2
+
+A segunda validação isolou o comportamento:
+
+- mesmo com a prévia preta, códigos eram detectados corretamente;
+- a lanterna física funcionava;
+- no tema claro da Phrona, a prévia aparecia normalmente;
+- no tema escuro, somente a imagem da prévia permanecia encoberta.
+
+Para contornar especificamente a composição escura da WebView, o spike
+agora usa temporariamente o modo visual claro apenas durante a sessão
+ativa da câmera. O tema anterior é preservado em memória e restaurado
+ao detectar um código, cancelar, falhar, colocar o app em segundo plano
+ou desmontar o painel. A preferência de tema salva pelo usuário não é
+alterada.

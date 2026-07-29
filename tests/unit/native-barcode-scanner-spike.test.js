@@ -190,3 +190,22 @@ test("native spike hides the whole WebView body without masking the camera previ
   );
   assert.doesNotMatch(css, /9999px/);
 });
+
+test("native spike temporarily isolates dark theme while the camera surface is active", () => {
+  const component = fs.readFileSync(
+    path.join(repositoryRoot, "src", "components", "native-barcode-scanner-spike.jsx"),
+    "utf8"
+  );
+
+  assert.match(component, /previousThemeRef = React\.useRef\(null\)/);
+  assert.match(component, /previousThemeRef\.current = documentElement\.dataset\.theme \|\| ''/);
+  assert.match(
+    component,
+    /previousThemeRef\.current === 'dark'[\s\S]*?documentElement\.dataset\.theme = 'light'/
+  );
+  assert.match(
+    component,
+    /!active && previousThemeRef\.current !== null[\s\S]*?documentElement\.dataset\.theme = previousThemeRef\.current/
+  );
+  assert.match(component, /delete documentElement\.dataset\.theme/);
+});
