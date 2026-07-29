@@ -1,5 +1,9 @@
 /* One UI 8 presentation layer. Business logic and application state stay in app.js. */
 :root {
+  --app-safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --app-safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+  --app-safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --app-safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
   --surface-page: #f1efe8;
   --surface-block: #ffffff;
   --surface-block-alt: #f7f6f2;
@@ -128,7 +132,7 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   background: var(--page-gradient) fixed !important;
   color: var(--text-primary) !important;
   font-family: inherit !important;
-  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+  padding-bottom: calc(96px + var(--app-safe-bottom)) !important;
 }
 
 [data-one-ui-root]:has(> [data-app-header][data-active-tab="diario"]) {
@@ -211,7 +215,11 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 }
 
 [data-app-header] {
-  padding: 12px 20px 10px !important;
+  padding:
+    calc(12px + var(--app-safe-top))
+    calc(20px + var(--app-safe-right))
+    10px
+    calc(20px + var(--app-safe-left)) !important;
   border-bottom: 0 !important;
   box-shadow: none !important;
 }
@@ -313,9 +321,9 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 
 [data-app-nav] {
   position: fixed !important;
-  left: 12px;
-  right: 12px;
-  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  left: calc(12px + var(--app-safe-left));
+  right: calc(12px + var(--app-safe-right));
+  bottom: calc(10px + var(--app-safe-bottom));
   z-index: 800;
   display: grid !important;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -328,6 +336,54 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   border-radius: var(--radius-pill) !important;
   box-shadow: 0 8px 30px rgba(0,0,0,.08) !important;
   isolation: isolate;
+}
+
+[data-safe-area-screen="true"] {
+  box-sizing: border-box;
+  padding-right: var(--app-safe-right) !important;
+  padding-bottom: var(--app-safe-bottom) !important;
+  padding-left: var(--app-safe-left) !important;
+}
+
+[data-safe-area-screen-header="true"] {
+  padding-top: calc(16px + var(--app-safe-top)) !important;
+}
+
+[data-safe-area-dialog] {
+  --app-safe-dialog-gap: 16px;
+  box-sizing: border-box;
+  padding:
+    calc(var(--app-safe-dialog-gap) + var(--app-safe-top))
+    calc(var(--app-safe-dialog-gap) + var(--app-safe-right))
+    calc(var(--app-safe-dialog-gap) + var(--app-safe-bottom))
+    calc(var(--app-safe-dialog-gap) + var(--app-safe-left)) !important;
+}
+
+[data-safe-area-dialog="20"] {
+  --app-safe-dialog-gap: 20px;
+}
+
+[data-safe-area-dialog="18"] {
+  --app-safe-dialog-gap: 18px;
+}
+
+[data-safe-area-dialog="24"] {
+  --app-safe-dialog-gap: 24px;
+}
+
+[data-safe-area-sheet="true"] {
+  box-sizing: border-box;
+  padding-right: var(--app-safe-right) !important;
+  padding-bottom: calc(20px + var(--app-safe-bottom)) !important;
+  padding-left: var(--app-safe-left) !important;
+}
+
+[data-safe-area-toast="true"] {
+  top: calc(14px + var(--app-safe-top)) !important;
+  width: min(
+    520px,
+    calc(100% - 28px - var(--app-safe-left) - var(--app-safe-right))
+  ) !important;
 }
 
 [data-app-nav] button {
@@ -353,7 +409,11 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   width: 100% !important;
   max-width: 1080px !important;
   margin: 0 auto !important;
-  padding: 20px !important;
+  padding:
+    20px
+    calc(20px + var(--app-safe-right))
+    20px
+    calc(20px + var(--app-safe-left)) !important;
   background: transparent !important;
   border: 0 !important;
 }
@@ -885,7 +945,13 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 
 @media (min-width: 768px) and (max-width: 1023px) {
   :root { --radius-block: 17px; --radius-control: 11px; }
-  [data-app-main]:not([data-app-main="adicionar"]) { padding: 24px 28px !important; }
+  [data-app-main]:not([data-app-main="adicionar"]) {
+    padding:
+      24px
+      calc(28px + var(--app-safe-right))
+      24px
+      calc(28px + var(--app-safe-left)) !important;
+  }
   [data-screen="semana"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   [data-screen="semana"] > :not([data-tutorial="week-protein-chart"]):not([data-tutorial="week-calories-chart"]) { grid-column: 1 / -1; }
 }
@@ -909,7 +975,11 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   }
 
   [data-app-header] {
-    padding: 14px max(32px, calc((100vw - 1080px) / 2)) 10px !important;
+    padding:
+      calc(14px + var(--app-safe-top))
+      max(calc(32px + var(--app-safe-right)), calc((100vw - 1080px) / 2))
+      10px
+      max(calc(32px + var(--app-safe-left)), calc((100vw - 1080px) / 2)) !important;
   }
 
   [data-app-header] > div:first-child > div:first-child > div:first-child {
@@ -1035,7 +1105,13 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 }
 
 @media (max-width: 767px) {
-  [data-app-main]:not([data-app-main="adicionar"]) { padding: 14px 20px 24px !important; }
+  [data-app-main]:not([data-app-main="adicionar"]) {
+    padding:
+      14px
+      calc(20px + var(--app-safe-right))
+      24px
+      calc(20px + var(--app-safe-left)) !important;
+  }
   [data-diary-metrics] { padding-left: 20px !important; padding-right: 20px !important; }
   [data-diary-metrics] > [data-metric-category] { padding: 16px !important; }
   [data-screen="diario"] { display: flex !important; flex-direction: column; gap: 0; }

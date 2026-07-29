@@ -88,6 +88,7 @@
 
       return React.createElement("div", {
         "data-meal-review-modal": "true",
+        "data-safe-area-dialog": "16",
         "data-theme": darkMode ? "dark" : "light",
         onClick: onClose,
         style: {

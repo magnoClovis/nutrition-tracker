@@ -245,7 +245,7 @@
         )
       );
     
-      if (showKey) return React.createElement('div', {style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.94)',zIndex:10002,display:'flex',alignItems:'center',justifyContent:'center',padding:20}},
+      if (showKey) return React.createElement('div', {'data-safe-area-dialog':'20', style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.94)',zIndex:10002,display:'flex',alignItems:'center',justifyContent:'center',padding:20}},
         React.createElement('div', {style:{background:'var(--surface,#fff)',borderRadius:14,width:'100%',maxWidth:400,padding:24,border:'1px solid var(--border2)'}},
           React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}},
             React.createElement('span',{style:{fontSize:11,letterSpacing:1,color:'var(--muted)',textTransform:'uppercase'}}, S.keyLabel),
@@ -261,7 +261,7 @@
     
       return React.createElement(React.Fragment, null,
         React.createElement('div', {onClick:onClose, style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,display:'flex',alignItems:'flex-end'}},
-          React.createElement('div', {onClick:e=>e.stopPropagation(), style:{background:'var(--surface,#fff)',borderRadius:'18px 18px 0 0',width:'100%',maxHeight:'86vh',paddingBottom:'env(safe-area-inset-bottom,20px)',overflowY:'auto',boxShadow:'0 -4px 40px rgba(0,0,0,0.6)'}},
+          React.createElement('div', {'data-safe-area-sheet':'true', onClick:e=>e.stopPropagation(), style:{background:'var(--surface,#fff)',borderRadius:'18px 18px 0 0',width:'100%',maxHeight:'86vh',paddingBottom:'calc(20px + var(--app-safe-bottom))',overflowY:'auto',boxShadow:'0 -4px 40px rgba(0,0,0,0.6)'}},
             React.createElement('div',{style:{textAlign:'center',padding:'14px 0 4px',cursor:'pointer'},onClick:onClose},
               React.createElement('div',{style:{width:32,height:4,background:'var(--border2)',borderRadius:2,margin:'0 auto'}})
             ),
@@ -282,6 +282,7 @@
           )
         ),
         showFeedbackConfirm ? React.createElement('div', {
+          'data-safe-area-dialog':'20',
           onClick:()=>setShowFeedbackConfirm(false),
           style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.45)',zIndex:10001,display:'flex',alignItems:'center',justifyContent:'center',padding:20}
         },

@@ -235,7 +235,7 @@
       return /*#__PURE__*/React.createElement("div", {
     "data-screen": "metricas",
     style: {
-      padding: isMobileView ? "0 0 calc(76px + env(safe-area-inset-bottom, 0px))" : "2px 16px 30px",
+      padding: isMobileView ? "0 0 calc(76px + var(--app-safe-bottom))" : "2px 16px 30px",
       boxSizing: "border-box",
       width: "100%"
     }

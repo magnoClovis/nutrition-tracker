@@ -324,6 +324,7 @@
 
       function renderContent() {
         return React.createElement(React.Fragment, null, showSaveTemplateModal && /*#__PURE__*/React.createElement("div", {
+    "data-safe-area-dialog":"16",
     style:{position:"fixed",inset:0,zIndex:100003,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(3px)",
       display:"flex",alignItems:"center",justifyContent:"center",padding:16},
     onClick: e => { if(e.target===e.currentTarget) setShowSaveTemplateModal(false); }

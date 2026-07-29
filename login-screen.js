@@ -297,7 +297,7 @@
         : {'--bg':'#f2f1ed','--surface':'#ffffff','--input':'#f5f3ef','--border2':'#b8b4ac','--text':'#252220','--text3':'#3a3733','--muted':'#6a6662','--btn-ok':'#e8f4e8','--btn-ok-border':'#a8cfa8','--btn-ok-text':'#2a6a2a','--btn-info':'#e8eaf4','--btn-info-border':'#a8aed0','--btn-info-text':'#3a4a8a','--btn-inactive':'#ede9e3','--btn-warn-text':'#8a2a2a'};
       const loginVars = Object.assign({position:'fixed',inset:0,background:loginDark?'#111':'#f2f1ed',display:'flex',alignItems:'center',justifyContent:'center',padding:24,zIndex:99999}, loginTheme);
 
-      return React.createElement('div', {style: loginVars},
+      return React.createElement('div', {'data-safe-area-dialog':'24', style: loginVars},
         React.createElement('div', {style:{width:'100%',maxWidth:380}},
           React.createElement('div', {style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:16}},
             React.createElement('button', {onClick:toggleLoginDark, style:{background:'none',border:'1px solid var(--border2)',color:'var(--muted)',borderRadius:6,padding:'5px 10px',fontSize:13,cursor:'pointer',fontFamily:'inherit'}}, loginDark ? '\u2600' : '\u263e'),

@@ -49,6 +49,7 @@
       const dismissLabel = pickLang(normalizedLang, "Dispensar aviso", "Dismiss notice", "Cerrar aviso");
       return React.createElement("div", {
         role: "status",
+        "data-safe-area-toast": "true",
         style: {
           position: "fixed",
           top: 14,

@@ -3925,7 +3925,7 @@
           style: {
             width: "100%",
             boxSizing: "border-box",
-            padding: isMobileView ? "30px 16px calc(112px + env(safe-area-inset-bottom, 0px))" : "34px 16px 40px",
+            padding: isMobileView ? "30px 16px calc(112px + var(--app-safe-bottom))" : "34px 16px 40px",
             marginTop: 18,
             textAlign: "center",
             color: "var(--muted)",
@@ -4432,7 +4432,7 @@
         key: tab,
         "data-app-main": tab,
         style: {
-          padding: tab === "adicionar" ? (isMobileView ? "18px 18px calc(22px + env(safe-area-inset-bottom,0px))" : "22px 24px 26px") : (tab === "metricas" && isMobileView ? "14px 10px calc(90px + env(safe-area-inset-bottom,0px))" : "20px clamp(18px, 3vw, 34px) 32px"),
+          padding: tab === "adicionar" ? (isMobileView ? "18px calc(18px + var(--app-safe-right)) calc(22px + var(--app-safe-bottom)) calc(18px + var(--app-safe-left))" : "22px 24px 26px") : (tab === "metricas" && isMobileView ? "14px 10px calc(90px + var(--app-safe-bottom))" : "20px clamp(18px, 3vw, 34px) 32px"),
           order: 9,
           boxSizing: "border-box",
           width: tab === "adicionar" ? (isMobileView ? "100%" : 720) : "100%",
