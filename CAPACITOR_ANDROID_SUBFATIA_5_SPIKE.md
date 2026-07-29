@@ -144,9 +144,21 @@ A segunda validação isolou o comportamento:
 - no tema claro da Phrona, a prévia aparecia normalmente;
 - no tema escuro, somente a imagem da prévia permanecia encoberta.
 
-Para contornar especificamente a composição escura da WebView, o spike
-agora usa temporariamente o modo visual claro apenas durante a sessão
-ativa da câmera. O tema anterior é preservado em memória e restaurado
-ao detectar um código, cancelar, falhar, colocar o app em segundo plano
-ou desmontar o painel. A preferência de tema salva pelo usuário não é
-alterada.
+Uma tentativa de isolar o problema trocando temporariamente o tema para
+claro confirmou que a camada opaca pertencia à WebView, mas não resolveu
+a prévia: o fundo apenas mudou de escuro para claro.
+
+## Iteração física 3
+
+A inspeção dos estilos computados no WebView do aparelho localizou a
+causa: a regra global de One UI
+`body:has([data-one-ui-root][data-theme="dark"])` tem especificidade maior
+que a regra inicial do scanner e mantinha `background-color` e
+`background-image` opacos.
+
+A correção definitiva usa um seletor limitado às classes ativas no
+`html` e no `body`, com especificidade suficiente para tornar somente
+essas duas propriedades transparentes durante a leitura. A câmera
+apareceu imediatamente no aparelho após aplicar exatamente essas
+propriedades, sem trocar o tema e sem aguardar temporizadores ou ciclos
+de pintura.

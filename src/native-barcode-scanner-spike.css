@@ -18,6 +18,11 @@ body.phrona-native-scanner-spike-active #root {
   background: transparent !important;
 }
 
+html.phrona-native-scanner-spike-active body.phrona-native-scanner-spike-active {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
 body.phrona-native-scanner-spike-active {
   visibility: hidden;
 }

@@ -68,28 +68,10 @@ export function createNativeBarcodeScannerSpikePanel({
     const [torchEnabled, setTorchEnabled] = React.useState(false);
     const settledRef = React.useRef(false);
     const activeRef = React.useRef(false);
-    const previousThemeRef = React.useRef(null);
 
     const setCameraSurfaceActive = React.useCallback(active => {
-      const documentElement = documentObject.documentElement;
-      if (active && previousThemeRef.current === null) {
-        previousThemeRef.current = documentElement.dataset.theme || '';
-      }
-
       documentObject.documentElement.classList.toggle('phrona-native-scanner-spike-active', active);
       documentObject.body.classList.toggle('phrona-native-scanner-spike-active', active);
-
-      if (active && previousThemeRef.current === 'dark') {
-        documentElement.dataset.theme = 'light';
-      } else if (!active && previousThemeRef.current !== null) {
-        if (previousThemeRef.current) {
-          documentElement.dataset.theme = previousThemeRef.current;
-        } else {
-          delete documentElement.dataset.theme;
-        }
-        previousThemeRef.current = null;
-      }
-
       activeRef.current = active;
     }, []);
 
