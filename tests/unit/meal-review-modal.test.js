@@ -81,7 +81,7 @@ contractTest("returns null without a review and renders the current assessment s
   assert.equal(modal.props["data-theme"], "dark");
   assert.match(copy, /4\.25/);
   assert.match(copy, /N\u00e3o avaliados: Sal\./);
-  assert.match(copy, /Configure a chave de IA/);
+  assert.match(copy, /explica\u00e7\u00e3o por IA est\u00e1 temporariamente indispon\u00edvel/);
 });
 
 contractTest("renders loading/help states and delegates all four actions", MealReviewModal => {

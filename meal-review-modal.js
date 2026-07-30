@@ -156,7 +156,7 @@
       ))),
       React.createElement("div", { style: { background: "var(--ai-bg)", border: "1px solid var(--ai-border)", borderRadius: 10, padding: 12, marginBottom: 14 } },
         React.createElement("div", { style: { fontSize: 12, color: "var(--ai-text)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 } }, "\u2726 ", uiText("Explica\u00e7\u00e3o", "Explanation", "Explicaci\u00f3n")),
-        React.createElement("div", { style: { fontSize: 13, color: "var(--text3)", lineHeight: 1.55, whiteSpace: "pre-wrap" } }, aiLoading ? uiText("Analisando...", "Analyzing...", "Analizando...") : aiText || uiText("A nota foi calculada localmente. Configure a chave de IA para receber uma explica\u00e7\u00e3o personalizada.", "The score was calculated locally. Configure the AI key for a personalized explanation.", "La nota fue calculada localmente. Configura la clave de IA para recibir una explicaci\u00f3n personalizada."))
+        React.createElement("div", { style: { fontSize: 13, color: "var(--text3)", lineHeight: 1.55, whiteSpace: "pre-wrap" } }, aiLoading ? uiText("Analisando...", "Analyzing...", "Analizando...") : aiText || uiText("A nota foi calculada localmente. A explica\u00e7\u00e3o por IA est\u00e1 temporariamente indispon\u00edvel.", "The score was calculated locally. The AI explanation is temporarily unavailable.", "La nota fue calculada localmente. La explicaci\u00f3n por IA no est\u00e1 disponible temporalmente."))
       ),
       React.createElement("div", { style: { display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "1fr 1fr 1.3fr", gap: 8 } },
         React.createElement("button", { onClick: onClose, style: buttonStyle("transparent", "var(--border2)", "var(--text2)") }, uiText("Editar", "Edit", "Editar")),

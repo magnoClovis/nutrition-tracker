@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "trofia-ai-proxy",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-29",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "AI_RATE_LIMITER",
+        "class_name": "AIRateLimiter"
+      }
+    ]
+  },
+  "exports": {
+    "AIRateLimiter": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
+  "workers_dev": true,
+  "observability": {
+    "enabled": false
+  }
+}

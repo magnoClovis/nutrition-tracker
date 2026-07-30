@@ -1,18 +1,17 @@
 /**
- * Settings panel for appearance, language, data tools, local AI credentials,
+ * Settings panel for appearance, language, data tools, managed AI status,
  * feedback, and account logout.
  *
  * The UMD module exposes a `createSettingsPanel` factory. The host injects its
  * React runtime, the real language contracts from `i18n.js`, a browser-like
- * local-storage service, the Firebase sign-out service, and a URL-opening
- * service. The component receives callbacks and current UI settings through
- * props and returns a React element tree.
+ * Firebase sign-out service, and a URL-opening service. The component receives
+ * callbacks and current UI settings through props and returns a React element
+ * tree.
  *
- * Local persistence contract: `groq_key` and `cors_proxy` remain browser-only
- * localStorage keys. Logout calls the injected sign-out service first, tolerates
- * its errors, then invokes `onLogout` and `onClose` in that order. The host's
- * current `onLogout` implementation signs out again; this intentional duplicate
- * call is preserved as an explicitly documented compatibility behavior.
+ * Logout calls the injected sign-out service first, tolerates its errors, then
+ * invokes `onLogout` and `onClose` in that order. The host's current `onLogout`
+ * implementation signs out again; this intentional duplicate call is preserved
+ * as an explicitly documented compatibility behavior.
  *
  * @module SettingsPanel
  */
@@ -32,7 +31,6 @@
    * @param {function(string): string} dependencies.normalizeLanguage Language normalizer from `i18n.js`.
    * @param {function(string): Object} dependencies.getLanguageOption Language descriptor reader from `i18n.js`.
    * @param {function(string, *, *, *): *} dependencies.pickLang Language selector from `i18n.js`.
-   * @param {{getItem: function(string): (string|null), setItem: function(string, string): void}} dependencies.localStorage Browser-local storage service.
    * @param {function(): (*|Promise<*>)} dependencies.signOut Firebase sign-out service from `firebase-storage.js`.
    * @param {function(string, string, string): *} dependencies.openUrl Browser URL-opening service, normally bound `window.open`.
    * @returns {{SettingsPanel: function(Object): Object}} Configured settings-panel component API.
@@ -43,21 +41,17 @@
     normalizeLanguage,
     getLanguageOption,
     pickLang,
-    localStorage: localStorageService,
     signOut,
     openUrl
   }) {
     if (!React || typeof React.createElement !== "function" || typeof React.useState !== "function" ||
         !Array.isArray(languageOptions) || typeof normalizeLanguage !== "function" ||
         typeof getLanguageOption !== "function" || typeof pickLang !== "function" ||
-        !localStorageService || typeof localStorageService.getItem !== "function" ||
-        typeof localStorageService.setItem !== "function" || typeof signOut !== "function" ||
-        typeof openUrl !== "function") {
-      throw new TypeError("SettingsPanel requires React, i18n, localStorage, signOut, and openUrl dependencies");
+        typeof signOut !== "function" || typeof openUrl !== "function") {
+      throw new TypeError("SettingsPanel requires React, i18n, signOut, and openUrl dependencies");
     }
 
     const LANGUAGE_OPTIONS = languageOptions;
-    const localStorage = localStorageService;
     const fbSignOut = signOut;
     const window = { open: openUrl };
 
@@ -73,7 +67,6 @@
      * @param {boolean} props.darkMode Whether dark mode is active.
      * @param {function(string): void} props.toggleLang Changes the active language.
      * @param {function(): void} props.toggleDark Toggles the active color mode.
-     * @param {boolean} props.directKey Whether to open directly on the AI-key editor.
      * @param {function(Object): function(): void} [props.registerBackHandler] Registers nested Android Back handling.
      * @param {number} [props.backHandlerPriority] Dispatcher priority for the nested handler.
      * @returns {Object} React element tree for the settings panel.
@@ -87,15 +80,11 @@
       darkMode,
       toggleLang,
       toggleDark,
-      directKey,
       registerBackHandler,
       backHandlerPriority
     }) {
-      const [showKey, setShowKey] = React.useState(!!directKey);
       const [showFeedbackConfirm, setShowFeedbackConfirm] = React.useState(false);
       const [languageMenuOpen, setLanguageMenuOpen] = React.useState(false);
-      const [groqKey, setGroqKey] = React.useState(()=>localStorage.getItem('groq_key')||'');
-      const [proxy, setProxy] = React.useState(()=>localStorage.getItem('cors_proxy')||'');
     
       const normalizedLang = normalizeLanguage(lang || 'pt');
       const currentLanguage = getLanguageOption(normalizedLang);
@@ -115,12 +104,17 @@
         backup: pickLang(normalizedLang, 'Backup e restaurar', 'Backup & restore', 'Copia de seguridad y restauraci\u00f3n'),
         privacy: pickLang(normalizedLang, 'Privacidade e seguran\u00e7a', 'Privacy & security', 'Privacidad y seguridad'),
         intelligence: pickLang(normalizedLang, 'Intelig\u00eancia', 'Intelligence', 'Inteligencia'),
-        apiKey: pickLang(normalizedLang, 'IA / Chave de API (avan\u00e7ado)', 'AI / API key (advanced)', 'IA / Clave API (avanzado)'),
-        aiHint: pickLang(
+        aiReady: pickLang(
           normalizedLang,
-          'Habilita as fun\u00e7\u00f5es com \u2726, como an\u00e1lises e preenchimento por IA.',
-          'Enables \u2726 features such as AI analysis and automatic filling.',
-          'Activa las funciones con \u2726, como an\u00e1lisis y relleno con IA.'
+          'IA do Trofia \u2014 pronta para usar',
+          'Trofia AI \u2014 ready to use',
+          'IA de Trofia \u2014 lista para usar'
+        ),
+        aiReadyHint: pickLang(
+          normalizedLang,
+          'As fun\u00e7\u00f5es com \u2726 est\u00e3o dispon\u00edveis para sua conta.',
+          '\u2726 features are available for your account.',
+          'Las funciones con \u2726 est\u00e1n disponibles para tu cuenta.'
         ),
         feedbackSupport: pickLang(normalizedLang, 'Feedback e suporte', 'Feedback & support', 'Comentarios y soporte'),
         feedbackLabel: pickLang(normalizedLang, 'Enviar feedback / reportar erro', 'Send feedback / report a bug', 'Enviar comentarios / reportar error'),
@@ -135,30 +129,9 @@
         feedbackCancel: pickLang(normalizedLang, 'Cancelar', 'Cancel', 'Cancelar'),
         feedbackOpen: pickLang(normalizedLang, 'Abrir formul\u00e1rio', 'Open form', 'Abrir formulario'),
         account: pickLang(normalizedLang, 'Conta', 'Account', 'Cuenta'),
-        logout: pickLang(normalizedLang, 'Sair da conta', 'Sign out', 'Cerrar sesi\u00f3n'),
-        save: pickLang(normalizedLang, 'Salvar', 'Save', 'Guardar'),
-        keyLabel: pickLang(normalizedLang, 'Chave API Groq', 'Groq API Key', 'Clave API de Groq'),
-        keyHint: pickLang(
-          normalizedLang,
-          'Cole aqui sua chave da Groq. Ela fica salva apenas neste navegador.',
-          'Paste your Groq key here. It is stored only in this browser.',
-          'Pega aqu\u00ed tu clave de Groq. Se guarda solo en este navegador.'
-        ),
-        proxyLabel: pickLang(normalizedLang, 'Proxy CORS (opcional)', 'CORS proxy (optional)', 'Proxy CORS (opcional)'),
-        proxyHint: pickLang(
-          normalizedLang,
-          'Use somente se os recursos de IA falharem por bloqueio de CORS.',
-          'Use only if AI features fail because of CORS blocking.',
-          '\u00dasalo solo si las funciones de IA fallan por bloqueo CORS.'
-        )
+        logout: pickLang(normalizedLang, 'Sair da conta', 'Sign out', 'Cerrar sesi\u00f3n')
       };
     
-      function closeKey() { directKey ? onClose() : setShowKey(false); }
-      function saveKey() {
-        localStorage.setItem('groq_key', groqKey);
-        localStorage.setItem('cors_proxy', proxy);
-        closeKey();
-      }
       async function doLogout() {
         try {
           await Promise.resolve(fbSignOut());
@@ -182,10 +155,6 @@
           setShowFeedbackConfirm(false);
           return true;
         }
-        if (showKey) {
-          closeKey();
-          return true;
-        }
         if (languageMenuOpen) {
           setLanguageMenuOpen(false);
           return true;
@@ -201,8 +170,6 @@
         });
       }, [registerBackHandler, backHandlerPriority]);
     
-      const inp = {width:'100%',background:'var(--surface)',border:'1px solid var(--border2)',color:'var(--text)',padding:'11px 12px',borderRadius:8,fontSize:13,boxSizing:'border-box',outline:'none',fontFamily:'inherit'};
-    
       const sectionTitle = label => React.createElement('div', {
         style:{padding:'16px 20px 6px',fontSize:11,letterSpacing:2,textTransform:'uppercase',color:'var(--muted)',fontWeight:700}
       }, label);
@@ -215,6 +182,17 @@
         React.createElement('span', {style:{flex:1}},
           React.createElement('span', null, label),
           hint ? React.createElement('span', {style:{display:'block',fontSize:12,color:'var(--muted)',marginTop:4,lineHeight:1.35}}, hint) : null
+        )
+      );
+
+      const infoRow = (label, hint, leading) => React.createElement('div', {style:{
+        display:'flex',alignItems:'center',gap:12,width:'100%',borderTop:'1px solid var(--border2)',
+        color:'var(--text2)',padding:'15px 20px',fontSize:14,boxSizing:'border-box'
+      }},
+        React.createElement('span', {style:{fontSize:17,width:22,textAlign:'center',flex:'0 0 22px'}}, leading),
+        React.createElement('span', {style:{flex:1}},
+          React.createElement('span', null, label),
+          React.createElement('span', {style:{display:'block',fontSize:12,color:'var(--muted)',marginTop:4,lineHeight:1.35}}, hint)
         )
       );
     
@@ -245,20 +223,6 @@
         )
       );
     
-      if (showKey) return React.createElement('div', {'data-safe-area-dialog':'20', style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.94)',zIndex:10002,display:'flex',alignItems:'center',justifyContent:'center',padding:20}},
-        React.createElement('div', {style:{background:'var(--surface,#fff)',borderRadius:14,width:'100%',maxWidth:400,padding:24,border:'1px solid var(--border2)'}},
-          React.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}},
-            React.createElement('span',{style:{fontSize:11,letterSpacing:1,color:'var(--muted)',textTransform:'uppercase'}}, S.keyLabel),
-            React.createElement('button',{onClick:closeKey,style:{background:'none',border:'none',color:'var(--text2)',fontSize:22,cursor:'pointer',lineHeight:1}},'x')
-          ),
-          React.createElement('input',{type:'text',value:groqKey,onChange:e=>setGroqKey(e.target.value),placeholder:'gsk_...',style:{...inp,fontFamily:'monospace',fontSize:11,marginBottom:4}}),
-          React.createElement('div',{style:{fontSize:12,color:'var(--muted)',marginBottom:14}},S.keyHint),
-          React.createElement('input',{type:'text',value:proxy,onChange:e=>setProxy(e.target.value),placeholder:'https://corsproxy.io/?',style:{...inp,marginBottom:4}}),
-          React.createElement('div',{style:{fontSize:12,color:'var(--muted)',marginBottom:20}},S.proxyLabel + ' - ' + S.proxyHint),
-          React.createElement('button',{onClick:saveKey,style:{width:'100%',background:'var(--btn-ok)',border:'1px solid var(--btn-ok-border)',color:'var(--btn-ok-text)',padding:'12px',borderRadius:8,fontSize:11,letterSpacing:1,textTransform:'uppercase',cursor:'pointer',fontFamily:'inherit'}}, S.save)
-        )
-      );
-    
       return React.createElement(React.Fragment, null,
         React.createElement('div', {onClick:onClose, style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,display:'flex',alignItems:'flex-end'}},
           React.createElement('div', {'data-safe-area-sheet':'true', onClick:e=>e.stopPropagation(), style:{background:'var(--surface,#fff)',borderRadius:'18px 18px 0 0',width:'100%',maxHeight:'86vh',paddingBottom:'calc(20px + var(--app-safe-bottom))',overflowY:'auto',boxShadow:'0 -4px 40px rgba(0,0,0,0.6)'}},
@@ -273,7 +237,7 @@
               rowBtn(S.backup, ()=>{onClose(); onOpenBackup && onOpenBackup();}, false, null, '\ud83d\udcbe'),
               rowBtn(S.privacy, ()=>{onClose(); onOpenPrivacy && onOpenPrivacy();}, false, null, '\ud83d\udd12'),
               sectionTitle(S.intelligence),
-              rowBtn(S.apiKey, ()=>setShowKey(true), false, S.aiHint, '\ud83d\udd11'),
+              infoRow(S.aiReady, S.aiReadyHint, '\u2726'),
               sectionTitle(S.feedbackSupport),
               rowBtn(S.feedbackLabel, ()=>setShowFeedbackConfirm(true), false, S.feedbackHint, '\ud83d\udcac'),
               sectionTitle(S.account),
