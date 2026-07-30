@@ -82,32 +82,17 @@ function findButton(tree, label) {
 function createFixture(createSettingsPanel, {
   lang = "en",
   darkMode = false,
-  directKey = false,
-  stored = {},
   signOut,
   registerBackHandler,
   callbacks = {}
 } = {}) {
-  const storageReads = [];
-  const storageWrites = [];
   const opened = [];
-  const localStorage = {
-    getItem(key) {
-      storageReads.push(key);
-      return Object.prototype.hasOwnProperty.call(stored, key) ? stored[key] : null;
-    },
-    setItem(key, value) {
-      storageWrites.push([key, value]);
-      stored[key] = value;
-    }
-  };
   const { SettingsPanel } = createSettingsPanel({
     React,
     languageOptions: LANGUAGE_OPTIONS,
     normalizeLanguage,
     getLanguageOption,
     pickLang,
-    localStorage,
     signOut: signOut || (() => {}),
     openUrl(...args) { opened.push(args); }
   });
@@ -120,14 +105,11 @@ function createFixture(createSettingsPanel, {
     darkMode,
     toggleLang: callbacks.toggleLang || (() => {}),
     toggleDark: callbacks.toggleDark || (() => {}),
-    directKey,
     registerBackHandler,
     backHandlerPriority: 300
   };
   return {
     harness: createHookHarness(SettingsPanel, props),
-    storageReads,
-    storageWrites,
     opened
   };
 }
@@ -207,29 +189,21 @@ contractTest("keeps logout callbacks running in order when signOut rejects", asy
   assert.deepEqual(order, ["signOut", "onLogout", "onClose"]);
 });
 
-contractTest("reads and writes groq_key and cors_proxy through the injected localStorage", createSettingsPanel => {
-  let closeCalls = 0;
-  const fixture = createFixture(createSettingsPanel, {
-    directKey: true,
-    stored: { groq_key: "old-key", cors_proxy: "https://old.example/?" },
-    callbacks: { onClose() { closeCalls += 1; } }
-  });
+contractTest("shows managed AI as ready without credential controls", createSettingsPanel => {
+  const cases = [
+    ["pt", "IA do Trofia — pronta para usar"],
+    ["en", "Trofia AI — ready to use"],
+    ["es", "IA de Trofia — lista para usar"]
+  ];
 
-  let tree = fixture.harness.render();
-  assert.deepEqual(fixture.storageReads, ["groq_key", "cors_proxy"]);
-  const inputs = elementsByType(tree, "input");
-  assert.deepEqual(inputs.map(input => input.props.value), ["old-key", "https://old.example/?"]);
-
-  inputs[0].props.onChange({ target: { value: "new-key" } });
-  inputs[1].props.onChange({ target: { value: "https://proxy.example/?" } });
-  tree = fixture.harness.render();
-  findButton(tree, "Save").props.onClick();
-
-  assert.deepEqual(fixture.storageWrites, [
-    ["groq_key", "new-key"],
-    ["cors_proxy", "https://proxy.example/?"]
-  ]);
-  assert.equal(closeCalls, 1);
+  for (const [lang, expected] of cases) {
+    const tree = createFixture(createSettingsPanel, { lang }).harness.render();
+    const text = elementText(tree);
+    assert.equal(text.includes(expected), true);
+    assert.equal(elementsByType(tree, "input").length, 0);
+    assert.equal(findButton(tree, expected), undefined);
+    assert.equal(/Groq|CORS proxy|chave de API|API key|clave API/i.test(text), false);
+  }
 });
 
 contractTest("opens the existing feedback form through the injected URL service", createSettingsPanel => {

@@ -187,7 +187,7 @@ test.describe('authenticated critical data flows', () => {
 
   test('edits, re-evaluates, and logs a locally scored meal while AI times out', async ({ page }) => {
     test.setTimeout(60000);
-    await interceptOptionalExternalApis(page, { groqDelayMs: 300 });
+    await interceptOptionalExternalApis(page, { aiDelayMs: 300 });
     const errors = await openApp(page);
     await setAppLanguage(page, 'pt');
 

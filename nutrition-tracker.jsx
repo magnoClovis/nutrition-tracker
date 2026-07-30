@@ -66,12 +66,12 @@ const {
 });
 
 const {
-  callAI: requestGroqCompletion
-} = window.GroqClient.createGroqClient({
+  callAI: requestAICompletion
+} = window.AIClient.createAIClient({
   fetchRequest: (...args) => window.fetch(...args),
-  getApiKey: () => localStorage.getItem("groq_key") || ""
+  getIdToken: () => fbToken()
 });
-const { GroqClientError } = window.GroqClient;
+const { AIClientError } = window.AIClient;
 
 const {
   SettingsPanel
@@ -81,7 +81,6 @@ const {
   normalizeLanguage,
   getLanguageOption,
   pickLang,
-  localStorage,
   signOut: fbSignOut,
   openUrl: window.open.bind(window)
 });
@@ -369,8 +368,8 @@ const {
     searchOpenFoodFactsProducts,
     getOpenFoodFactsProductByBarcode,
     mapOpenFoodFactsProductToForm,
-    requestGroqCompletion,
-    GroqClientError,
+    requestAICompletion,
+    AIClientError,
     getGreetingPeriod,
     getGreetingEmoji,
     buildNutrientTickerSlide,
@@ -708,8 +707,7 @@ function App() {
         onLogout: handleLogout,
         onOpenBackup: () => setShowBackup(true),
         onOpenPrivacy: () => setShowPrivacy(true),
-        lang, darkMode, toggleLang, toggleDark,
-        directKey: false
+        lang, darkMode, toggleLang, toggleDark
       }) : null
     )
   );

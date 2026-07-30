@@ -88,9 +88,9 @@ async function setAppLanguage(page, language) {
   await dismissTutorialIfVisible(page);
 }
 
-async function interceptOptionalExternalApis(page, { groqDelayMs = 0 } = {}) {
-  await page.route('https://api.groq.com/**', async (route) => {
-    if (groqDelayMs) await new Promise(resolve => setTimeout(resolve, groqDelayMs));
+async function interceptOptionalExternalApis(page, { aiDelayMs = 0 } = {}) {
+  await page.route('https://trofia-ai-proxy.cmagno-dev.workers.dev/**', async (route) => {
+    if (aiDelayMs) await new Promise(resolve => setTimeout(resolve, aiDelayMs));
     await route.abort('timedout');
   });
   await page.route('https://world.openfoodfacts.org/**', route => route.fulfill({ status: 503, body: '{}' }));

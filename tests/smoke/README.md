@@ -61,7 +61,7 @@ credenciais de teste não configuradas — preencha tests/test-user.local.json o
 ```
 
 Firebase Auth and Firestore are the only real remote integrations used by the
-authenticated suite. Groq, Open Food Facts, and the advanced-report server are
+authenticated suite. The managed AI Worker, Open Food Facts, and the advanced-report server are
 always intercepted; the tests never send real requests to those services.
 
 The test runner starts the app locally at `http://127.0.0.1:8765/index.html`.

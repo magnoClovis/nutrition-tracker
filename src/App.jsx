@@ -69,12 +69,13 @@ import {
   fbIsLoggedIn,
   fbRefreshToken,
   fbSignOut,
+  fbToken,
   storage,
 } from './firebase/firebase-storage.js';
+import * as AIClient from './leaf/ai-client.js';
 import * as AutosaveScheduler from './leaf/autosave-scheduler.js';
 import * as CalendarModel from './leaf/calendar-model.js';
 import * as GoalCalculator from './leaf/goal-calculator.js';
-import * as GroqClient from './leaf/groq-client.js';
 import * as HydrationGuard from './leaf/hydration-guard.js';
 import * as I18n from './leaf/i18n.js';
 import * as MealScore from './leaf/meal-score.js';
@@ -161,12 +162,12 @@ const {
 });
 
 const {
-  callAI: requestGroqCompletion,
-} = GroqClient.createGroqClient({
+  callAI: requestAICompletion,
+} = AIClient.createAIClient({
   fetchRequest: (...args) => window.fetch(...args),
-  getApiKey: () => localStorage.getItem('groq_key') || '',
+  getIdToken: () => fbToken(),
 });
-const { GroqClientError } = GroqClient;
+const { AIClientError } = AIClient;
 
 const {
   SettingsPanel,
@@ -176,7 +177,6 @@ const {
   normalizeLanguage,
   getLanguageOption,
   pickLang,
-  localStorage,
   signOut: fbSignOut,
   openUrl: window.open.bind(window),
 });
@@ -484,8 +484,8 @@ const {
     searchOpenFoodFactsProducts,
     getOpenFoodFactsProductByBarcode,
     mapOpenFoodFactsProductToForm,
-    requestGroqCompletion,
-    GroqClientError,
+    requestAICompletion,
+    AIClientError,
     getGreetingPeriod,
     getGreetingEmoji,
     buildNutrientTickerSlide,
@@ -958,7 +958,6 @@ export function App() {
             darkMode={darkMode}
             toggleLang={toggleLang}
             toggleDark={toggleDark}
-            directKey={false}
             registerBackHandler={registerBackHandler}
             backHandlerPriority={BACK_HANDLER_PRIORITY.nestedPanel}
           />

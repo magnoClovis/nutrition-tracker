@@ -1,0 +1,251 @@
+import {
+  createFirebaseIdTokenVerifier,
+  FirebaseIdTokenError
+} from "./firebase-id-token.js";
+
+const COMPLETION_PATH = "/v1/ai/completion";
+const FIREBASE_PROJECT_ID = "nutrition-tracker-780b3";
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
+const GEMINI_ENDPOINT =
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const ALLOWED_ORIGINS = new Set([
+  "https://magnoclovis.github.io",
+  "https://localhost"
+]);
+const MAX_PROMPT_CHARACTERS = 40_000;
+const MAX_OUTPUT_TOKENS = 1_200;
+const MAX_REQUEST_BODY_BYTES = (MAX_PROMPT_CHARACTERS * 4) + 4_096;
+
+function corsHeaders(origin) {
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin"
+  };
+}
+
+function jsonResponse(status, body, origin) {
+  const headers = {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store"
+  };
+  if (origin && ALLOWED_ORIGINS.has(origin)) {
+    Object.assign(headers, corsHeaders(origin));
+  }
+  return new Response(JSON.stringify(body), { status, headers });
+}
+
+function errorResponse(status, code, origin) {
+  return jsonResponse(status, { error: { code } }, origin);
+}
+
+async function readBoundedText(request, maximumBytes) {
+  const declaredLength = Number(request.headers.get("Content-Length"));
+  if (Number.isFinite(declaredLength) && declaredLength > maximumBytes) {
+    throw new RangeError("request-too-large");
+  }
+  if (!request.body) return "";
+
+  const reader = request.body.getReader();
+  const chunks = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maximumBytes) {
+        await reader.cancel();
+        throw new RangeError("request-too-large");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const body = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(body);
+}
+
+function parseAuthorizationToken(request) {
+  const authorization = request.headers.get("Authorization") || "";
+  const match = authorization.match(/^Bearer ([^\s]+)$/);
+  return match ? match[1] : null;
+}
+
+function isCompletionBody(value) {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const keys = Object.keys(value);
+  return keys.length === 2 &&
+    keys.includes("prompt") &&
+    keys.includes("maxTokens") &&
+    typeof value.prompt === "string" &&
+    value.prompt.trim().length > 0 &&
+    value.prompt.length <= MAX_PROMPT_CHARACTERS &&
+    Number.isInteger(value.maxTokens) &&
+    value.maxTokens >= 1 &&
+    value.maxTokens <= MAX_OUTPUT_TOKENS;
+}
+
+function geminiText(payload) {
+  const parts = payload?.candidates?.[0]?.content?.parts;
+  if (!Array.isArray(parts)) return null;
+  const text = parts
+    .filter(part => part && typeof part.text === "string")
+    .map(part => part.text)
+    .join("");
+  return text || null;
+}
+
+export function createAIWorker({
+  verifyFirebaseIdToken = createFirebaseIdTokenVerifier({
+    projectId: FIREBASE_PROJECT_ID
+  }),
+  fetchRequest = globalThis.fetch,
+  now = () => Date.now()
+} = {}) {
+  if (typeof verifyFirebaseIdToken !== "function" ||
+      typeof fetchRequest !== "function" ||
+      typeof now !== "function") {
+    throw new TypeError("AI Worker requires token verification, fetch, and clock functions");
+  }
+
+  return {
+    async fetch(request, env) {
+      const url = new URL(request.url);
+      if (url.pathname !== COMPLETION_PATH) {
+        return errorResponse(404, "not-found");
+      }
+
+      const origin = request.headers.get("Origin");
+      if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+        return errorResponse(403, "origin-not-allowed");
+      }
+
+      if (request.method === "OPTIONS") {
+        const requestedMethod = request.headers.get("Access-Control-Request-Method");
+        const requestedHeaders = (request.headers.get("Access-Control-Request-Headers") || "")
+          .split(",")
+          .map(header => header.trim().toLowerCase())
+          .filter(Boolean);
+        const allowedHeaders = new Set(["authorization", "content-type"]);
+        if (requestedMethod !== "POST" ||
+            requestedHeaders.some(header => !allowedHeaders.has(header))) {
+          return errorResponse(405, "method-not-allowed", origin);
+        }
+        return new Response(null, { status: 204, headers: corsHeaders(origin) });
+      }
+
+      if (request.method !== "POST") {
+        const response = errorResponse(405, "method-not-allowed", origin);
+        response.headers.set("Allow", "POST, OPTIONS");
+        return response;
+      }
+
+      const contentType = request.headers.get("Content-Type") || "";
+      if (!/^application\/json(?:\s*;|$)/i.test(contentType)) {
+        return errorResponse(415, "unsupported-media-type", origin);
+      }
+
+      const token = parseAuthorizationToken(request);
+      if (!token) return errorResponse(401, "invalid-authentication", origin);
+
+      let identity;
+      try {
+        identity = await verifyFirebaseIdToken(token);
+      } catch (error) {
+        if (error instanceof FirebaseIdTokenError &&
+            error.code === "certificate-unavailable") {
+          return errorResponse(503, "authentication-unavailable", origin);
+        }
+        return errorResponse(401, "invalid-authentication", origin);
+      }
+
+      let body;
+      try {
+        const rawBody = await readBoundedText(request, MAX_REQUEST_BODY_BYTES);
+        body = JSON.parse(rawBody);
+      } catch (error) {
+        if (error instanceof RangeError && error.message === "request-too-large") {
+          return errorResponse(413, "request-too-large", origin);
+        }
+        return errorResponse(400, "invalid-json", origin);
+      }
+
+      if (!isCompletionBody(body)) {
+        return errorResponse(400, "invalid-request", origin);
+      }
+      if (!env?.GEMINI_API_KEY || typeof env.GEMINI_API_KEY !== "string") {
+        return errorResponse(503, "provider-not-configured", origin);
+      }
+
+      let rateLimitResult;
+      try {
+        if (!env.AI_RATE_LIMITER ||
+            typeof env.AI_RATE_LIMITER.getByName !== "function") {
+          throw new TypeError("missing rate limiter binding");
+        }
+        const limiter = env.AI_RATE_LIMITER.getByName("gemini-project-quota");
+        rateLimitResult = await limiter.check(identity.uid, now());
+        if (!rateLimitResult ||
+            typeof rateLimitResult.allowed !== "boolean") {
+          throw new TypeError("invalid rate limiter response");
+        }
+      } catch (_) {
+        return errorResponse(503, "rate-limit-unavailable", origin);
+      }
+
+      if (!rateLimitResult.allowed) {
+        const response = errorResponse(429, "rate-limit-exceeded", origin);
+        response.headers.set(
+          "Retry-After",
+          String(Math.max(1, Math.ceil(rateLimitResult.retryAfterSeconds || 1)))
+        );
+        return response;
+      }
+
+      let providerResponse;
+      let providerPayload;
+      try {
+        providerResponse = await fetchRequest(GEMINI_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": env.GEMINI_API_KEY
+          },
+          body: JSON.stringify({
+            contents: [{
+              role: "user",
+              parts: [{ text: body.prompt }]
+            }],
+            generationConfig: {
+              maxOutputTokens: body.maxTokens,
+              temperature: 0
+            }
+          })
+        });
+        providerPayload = await providerResponse.json();
+      } catch (_) {
+        return errorResponse(502, "provider-unavailable", origin);
+      }
+
+      if (!providerResponse.ok) {
+        return errorResponse(502, "provider-error", origin);
+      }
+      const text = geminiText(providerPayload);
+      if (text === null) {
+        return errorResponse(502, "invalid-provider-response", origin);
+      }
+      return jsonResponse(200, { text }, origin);
+    }
+  };
+}

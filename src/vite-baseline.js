@@ -57,7 +57,7 @@ import * as WeekAggregator from './composite/week-aggregator.js';
 import * as AutosaveScheduler from './leaf/autosave-scheduler.js';
 import * as CalendarModel from './leaf/calendar-model.js';
 import * as GoalCalculator from './leaf/goal-calculator.js';
-import * as GroqClient from './leaf/groq-client.js';
+import * as AIClient from './leaf/ai-client.js';
 import * as HydrationGuard from './leaf/hydration-guard.js';
 import * as I18n from './leaf/i18n.js';
 import * as MealScore from './leaf/meal-score.js';
@@ -105,7 +105,7 @@ function installNpmRuntime(target) {
     FoodAutofillAI,
     FoodEntry,
     GoalCalculator,
-    GroqClient,
+    AIClient,
     HistoricalGoalsModel,
     HistoryLoaders,
     HydrationGuard,

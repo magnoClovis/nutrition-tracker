@@ -80,8 +80,8 @@
       searchOpenFoodFactsProducts,
       getOpenFoodFactsProductByBarcode,
       mapOpenFoodFactsProductToForm,
-      requestGroqCompletion,
-      GroqClientError,
+      requestAICompletion,
+      AIClientError,
       getGreetingPeriod,
       getGreetingEmoji,
       buildNutrientTickerSlide,
@@ -2737,17 +2737,28 @@
       // Gemini AI helper
       async function callAI(prompt, maxTokens) {
         try {
-          return await requestGroqCompletion(prompt, maxTokens);
+          return await requestAICompletion(prompt, maxTokens);
         } catch (error) {
-          if (error instanceof GroqClientError && error.code === "missing-api-key") {
+          if (error instanceof AIClientError && error.code === "authentication-error") {
             throw new Error(uiText(
-              "Chave API Groq não configurada. Abra as Configurações.",
-              "Groq API key is not configured. Open Settings.",
-              "La clave API de Groq no está configurada. Abre Configuración."
+              "Sua sessão expirou. Entre novamente.",
+              "Your session has expired. Sign in again.",
+              "Tu sesión ha expirado. Inicia sesión de nuevo."
             ));
           }
-          if (error instanceof GroqClientError && error.code === "api-error") {
-            throw new Error(error.providerMessage || uiText("Erro na API Groq", "Groq API error", "Error en la API de Groq"));
+          if (error instanceof AIClientError && error.code === "rate-limited") {
+            throw new Error(uiText(
+              "A IA está temporariamente ocupada. Tente novamente em instantes.",
+              "AI is temporarily busy. Try again shortly.",
+              "La IA está ocupada temporalmente. Inténtalo de nuevo en unos instantes."
+            ));
+          }
+          if (error instanceof AIClientError) {
+            throw new Error(uiText(
+              "A IA está temporariamente indisponível. Tente novamente.",
+              "AI is temporarily unavailable. Try again.",
+              "La IA no está disponible temporalmente. Inténtalo de nuevo."
+            ));
           }
           throw error;
         }
@@ -4348,8 +4359,8 @@
         },
         menuActions: onOpenSettings ? [{
             key: "settings",
-            icon: "🔑",
-            label: uiText("IA / Chave de API", "AI / API key", "IA / Clave de API"),
+            icon: "⚙",
+            label: uiText("Configurações", "Settings", "Configuración"),
             onClick: () => { onOpenSettings(); setMenuOpen(false); }
           }, ...(onOpenBackup ? [{
             key: "backup",
