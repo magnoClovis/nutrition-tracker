@@ -12,6 +12,22 @@ Estado consolidado em 31/07/2026. Este documento reúne os itens C01–C25 e N01
 
 G01 fica fora da numeração dos 34 itens porque é um defeito ativo e bloqueante, não uma nova entrega de roadmap.
 
+## Fases sugeridas
+
+As fases abaixo acrescentam uma camada de planejamento sobre a sequência aprovada. Elas não alteram a ordem numérica nem as dependências registradas na tabela.
+
+| Fase | Posições | Objetivo | Sugestão de PRs/fatias |
+|---|---:|---|---|
+| Fase 0 — Fundação entregue | 1–5 | Registrar as bases já concluídas: secrets, startup, CI, Métricas mobile e backend de IA. | Nenhum PR novo; os itens permanecem como referência histórica. |
+| Fase 1 — Integridade, compliance e gate de versão | 6–14 | Resolver as pendências que impedem uma base segura e verificável. | G01 em PR urgente próprio; C01 em PR pequeno; C06 separado por envolver texto e aprovação; C05 e C07 em PRs sequenciais; C22 e C23 separados pelo risco; C14, C16 e C25 podem fechar a fase em um PR documental/de verificação se a Tarefa 0 confirmar escopo pequeno. |
+| Fase 2 — Motor nutricional e critérios de IA | 15–18 | Estabilizar pontuação, avaliação, prompts e porções. | C20 e C19 podem compartilhar um PR com fatias distintas; C08 em fatia ou PR próprio; C21 provavelmente em PR próprio devido ao impacto transversal. |
+| Fase 3 — Funcionalidades incrementais e serviços | 19–24 | Entregar recursos relativamente isolados e preparar relatórios e compartilhamento. | N01 e N09 em PRs próprios; C17 separado por infraestrutura externa; C10 pode exigir várias fatias no mesmo PR; N07 somente depois de C10; C13 em PR próprio. |
+| Fase 4 — Dados nutricionais e inteligência adaptativa | 25–27 | Ampliar formas de entrada, profundidade dos dados e personalização das metas. | N03 em PR próprio; N02 provavelmente dividido em vários PRs — fonte/licença, normalização, cache e integração; N05 também pode exigir vários PRs — cálculo, histórico, UX e validação longitudinal. |
+| Fase 5 — Arquitetura, receitas e planejamento | 28–30 | Preparar a arquitetura para domínios mais complexos e implementar receitas e planejamento. | C15 deve ser um programa com vários PRs pequenos de extração/cutover; N04 provavelmente vários PRs por fases; N06 somente depois da base de receitas e também pode ser faseado. |
+| Fase 6 — Expansão nativa, multimodal e saúde | 31–34 | Ampliar plataformas, reconhecimento visual, integrações de saúde e atividade física. | C12 em vários PRs de preparação, build e publicação; C24 dividido entre captura, IA, revisão e persistência; C18 separado por plataforma; N08 em vários PRs após estabilizar N05 e C18. |
+
+> **Aviso de planejamento:** as fases e sugestões de PRs/fatias são apenas uma estrutura de planejamento. A divisão real continua sendo decidida item a item, durante a Tarefa 0 correspondente, considerando a auditoria do código, os riscos, as dependências e os critérios de validação. Uma fase não representa necessariamente uma única versão ou um único PR.
+
 ## Sequência única de implementação
 
 | Posição | ID | Item | Estado atual | Motivo da posição |
@@ -67,4 +83,3 @@ G01 fica fora da numeração dos 34 itens porque é um defeito ativo e bloqueant
 - **Dependem de ação ou decisão do desenvolvedor:** C06 (texto e publicação da política), C10 (infraestrutura HTTPS), C12 (conta, certificados e publicação Apple), C17 (domínio, provedor e consentimento de e-mail), C18 (contas e configuração das plataformas de saúde) e qualquer recurso que introduza custo, credenciais ou novos termos de uso.
 - **Podem avançar tecnicamente de forma autônoma após seus gates:** C01, C05, C07, C08, C14, C15, C16, C19–C25 e N01–N09, ressalvadas as aprovações de UX, conteúdo, fornecedores e escopo já indicadas em cada auditoria.
 - **Não remover automaticamente do roadmap:** itens cujo valor possa ter mudado devem ser reavaliados no início da respectiva fatia. C12 pode continuar parcial enquanto não houver decisão de publicação iOS; C17 só deve avançar com uma necessidade transacional clara; N08 deve permanecer limitado ao escopo que não duplique plataformas de saúde ou transforme o Trofia em uma rede social/fitness genérica.
-
