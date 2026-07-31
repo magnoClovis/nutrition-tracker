@@ -11,9 +11,10 @@
  * The composition root injects stable services, domain APIs, screens, browser
  * capabilities, and constants. Input is the same App-owned prop contract used
  * before extraction; output is the same React tree. This is a mechanical module
- * boundary only and deliberately preserves every documented race and edge case,
+ * boundary only and preserves the established hook protocol and edge cases,
  * including tutorial sequencing, persistent global backup bridges, the language
- * submenu state, hydration timeout behavior, and autosave timing.
+ * submenu state and hydration timeout behavior. Backup restoration is the one
+ * coordinated exception: autosaves stay suspended through import and rehydration.
  *
  * @module NutritionTrackerController
  */
@@ -518,6 +519,26 @@
     async function persistMealRegistration({ storage, key, nextLog }) {
       await storage.set(key, JSON.stringify(nextLog));
       return nextLog;
+    }
+
+    async function restoreAccountBackupSafely({
+      suspendAutosaves,
+      resumeAutosaves,
+      clearHydratedKeys,
+      importBackup,
+      reloadData
+    }) {
+      await suspendAutosaves();
+      try {
+        clearHydratedKeys();
+        return await importBackup();
+      } finally {
+        try {
+          await reloadData();
+        } finally {
+          resumeAutosaves();
+        }
+      }
     }
 
     const AI_STATUS_STORAGE_KEY = "trofia.ai.last-status.v1";
@@ -1092,7 +1113,7 @@
       const [editEntryId, setEditEntryId] = useState(null);
       const [editEntryQty, setEditEntryQty] = useState("");
       const saveTimeout = useRef({});
-      const { scheduleSave } = window.AutosaveScheduler.createAutosaveScheduler({
+      const { scheduleSave, suspend: suspendAutosaves, resume: resumeAutosaves } = window.AutosaveScheduler.createAutosaveScheduler({
         storage,
         setTimer: (callback, delay) => setTimeout(callback, delay),
         clearTimer: handle => clearTimeout(handle),
@@ -1185,7 +1206,21 @@
         setSyncing(false);
         setLoaded(true);
       }
+      async function restoreFullAccountBackup(rawBackup, options) {
+        if (typeof window.importFullAccountBackup !== "function") {
+          throw new Error("Backup importer is unavailable");
+        }
+        setLoaded(false);
+        return restoreAccountBackupSafely({
+          suspendAutosaves,
+          resumeAutosaves,
+          clearHydratedKeys: () => hydratedStorageKeysRef.current.clear(),
+          importBackup: () => window.importFullAccountBackup(rawBackup, options),
+          reloadData: loadAll
+        });
+      }
       window._reloadNutritionData = loadAll;
+      window._restoreFullAccountBackup = restoreFullAccountBackup;
       useEffect(() => {
         loadAll();
       }, []);
@@ -5997,7 +6032,8 @@
       resolveMealRegistrationTime,
       applyMealRegistrationTime,
       createMealRegistrationOrigin,
-      persistMealRegistration
+      persistMealRegistration,
+      restoreAccountBackupSafely
     };
   }
 

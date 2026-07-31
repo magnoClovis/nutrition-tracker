@@ -289,7 +289,7 @@ contractTest("reports an export failure without announcing success", async creat
   assert.deepEqual(fixture.alerts, ["Export error: share failed"]);
 });
 
-contractTest("resolves separate current contexts for preview and confirmed import", async createBackupModal => {
+contractTest("resolves current contexts and prefers the coordinated backup restore bridge", async createBackupModal => {
   const rawBackup = { schema: "nutrition-tracker-account-backup", version: 3, data: { "notes_2026-07-16": "original" } };
   const getterCalls = [];
   const imported = [];
@@ -306,12 +306,12 @@ contractTest("resolves separate current contexts for preview and confirmed impor
       }
     },
     {
-      async importFullAccountBackup(value, options) {
+      async restoreFullAccountBackup(value, options) {
         imported.push({ value, options });
         return { imported: 1, skipped: 0 };
       },
       async reloadNutritionData() {
-        reloads.push("after-import");
+        reloads.push("must-not-run-after-coordinated-restore");
       },
       async reloadApplication() {
         applicationReloads.push("full-reload");
@@ -347,7 +347,7 @@ contractTest("resolves separate current contexts for preview and confirmed impor
     value: rawBackup,
     options: { categories: { notes: "replace" } }
   }]);
-  assert.deepEqual(reloads, ["after-import"]);
+  assert.deepEqual(reloads, []);
   tree = fixture.harness.render();
   assert.equal(elementText(tree).includes("Import complete: 1 records."), true);
   await findButton(tree, "Refresh data").props.onClick();

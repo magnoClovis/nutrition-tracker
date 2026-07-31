@@ -42,7 +42,9 @@ test.describe('authenticated critical data flows', () => {
   }
 
   async function restoreStorage(page, key, snapshot) {
+    if (page.isClosed()) return;
     await page.waitForTimeout(900);
+    if (page.isClosed()) return;
     await page.evaluate(async ([storageKey, previous]) => {
       if (previous.exists) await window.storage.set(storageKey, previous.value);
       else await window.storage.delete(storageKey);
@@ -51,7 +53,7 @@ test.describe('authenticated critical data flows', () => {
 
   async function replacePantry(page, foods) {
     const previous = await readStorage(page, 'pantry_v2');
-    await writeStorage(page, 'pantry_v2', JSON.stringify(foods));
+    await replaceStorage(page, 'pantry_v2', JSON.stringify(foods));
     await page.evaluate(async () => {
       const tutorialTypes = ['main', 'diario', 'adicionar', 'despensa', 'semana', 'metricas'];
       await Promise.all(tutorialTypes.map(type => window.storage.set(`tutorialSeen_${type}`, 'true')));
@@ -79,13 +81,6 @@ test.describe('authenticated critical data flows', () => {
     const mealCard = page.locator('[data-diary-meal-card]:visible').filter({ hasText: /Pré-treino/i }).first();
     await mealCard.getByRole('button', { name: /Adicionar/i }).evaluate(button => button.click());
     await expect(page.locator('[data-app-main="adicionar"]:visible')).toBeVisible();
-  }
-
-  async function closeStagedMeal(page) {
-    const stagedMeal = page.locator('[data-app-main="adicionar"]:visible');
-    await page.locator('[data-add-meal-backdrop="true"]').click({ position: { x: 5, y: 5 } });
-    await expect(stagedMeal).toBeHidden();
-    await dismissTutorialIfVisible(page);
   }
 
   test('exports, previews, imports, and verifies a real backup round trip', async ({ page }) => {
@@ -169,7 +164,8 @@ test.describe('authenticated critical data flows', () => {
         const current = await readStorage(page, logKey);
         return current.value || '';
       }, { timeout: 30000 }).toContain(fixture.name);
-      await closeStagedMeal(page);
+      await expect(stagedMeal).toBeHidden();
+      await dismissTutorialIfVisible(page);
       await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
       await clickByTutorialKeyOrText(page, 'tab-semana', /Semana/i);
 
@@ -229,7 +225,8 @@ test.describe('authenticated critical data flows', () => {
       const secondScore = await modal.getByText(/^\d\.\d{2}$/).first().textContent();
       expect(secondScore).not.toBe(firstScore);
       await modal.getByRole('button', { name: /Registrar mesmo assim/i }).click();
-      await closeStagedMeal(page);
+      await expect(stagedMeal).toBeHidden();
+      await dismissTutorialIfVisible(page);
       await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
       await expect.poll(async () => {
         const current = await readStorage(page, logKey);

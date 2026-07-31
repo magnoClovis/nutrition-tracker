@@ -10,7 +10,9 @@
  * DATA-SAFETY CONTRACT: this component can trigger real account writes. It does
  * not own or duplicate backup schemas, categorization, validation, persistence,
  * or legacy meal-key repair. `normalizeMealKeys` remains outside this module and
- * is applied to imported diary data only when NutritionTracker reloads it.
+ * is applied to imported diary data only when NutritionTracker reloads it. When
+ * available, the controller's coordinated restore bridge owns autosave suspension,
+ * import and rehydration as one operation.
  *
  * Known behaviors deliberately preserved for future backlog work:
  * - full exports may precede debounced persistence of the latest React state;
@@ -343,7 +345,8 @@
         if (!pendingImportBackup) return;
         const backupContext = getBackupContext() || {};
         const importFullAccountBackup = backupContext.importFullAccountBackup;
-        if (!importFullAccountBackup) return;
+        const restoreFullAccountBackup = backupContext.restoreFullAccountBackup;
+        if (!restoreFullAccountBackup && !importFullAccountBackup) return;
     
         const selected = Object.fromEntries(
           Object.entries(importSelections).filter(([, strategy]) => strategy === 'append' || strategy === 'replace')
@@ -356,10 +359,13 @@
     
         setImportingBackup(true);
         try {
-          const result = await importFullAccountBackup(pendingImportBackup, {categories: selected});
+          const importOptions = {categories: selected};
+          const result = typeof restoreFullAccountBackup === 'function'
+            ? await restoreFullAccountBackup(pendingImportBackup, importOptions)
+            : await importFullAccountBackup(pendingImportBackup, importOptions);
           const count = Number(result?.imported ?? 0);
           const reloadNutritionData = backupContext.reloadNutritionData;
-          if (typeof reloadNutritionData === 'function') {
+          if (typeof restoreFullAccountBackup !== 'function' && typeof reloadNutritionData === 'function') {
             try {
               await reloadNutritionData();
             } catch (_) {}
