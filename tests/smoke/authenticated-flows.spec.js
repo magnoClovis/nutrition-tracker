@@ -78,8 +78,11 @@ test.describe('authenticated critical data flows', () => {
   }
 
   async function openStagedMeal(page) {
-    const mealCard = page.locator('[data-diary-meal-card]:visible').filter({ hasText: /Pré-treino/i }).first();
-    await mealCard.getByRole('button', { name: /Adicionar/i }).evaluate(button => button.click());
+    const globalAddButton = page.locator(
+      '[data-diary-global-add]:visible [data-tutorial="open-log-sheet"]'
+    ).first();
+    await expect(globalAddButton).toBeVisible();
+    await globalAddButton.click();
     await expect(page.locator('[data-app-main="adicionar"]:visible')).toBeVisible();
   }
 
