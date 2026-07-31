@@ -12,10 +12,8 @@
  * introducing any new connection to the active meal-ga.js flow.
  *
  * Known preserved behavior: dish-description and review requests can resolve
- * out of order; closing the pseudo-screen does not cancel work or clear staged
- * state; and confirmMealReview/addToLog use an activeLog snapshot while
- * commitStaged uses a functional update. These integration inconsistencies are
- * backlog items and are not corrected here.
+ * out of order, and closing the pseudo-screen does not cancel work or clear
+ * staged state. Those request-lifecycle inconsistencies remain backlog items.
  *
  * @module AddScreen
  */
@@ -110,7 +108,8 @@
         lang,
         isMobileView,
         text,
-        openTab,
+        closeMealRegistration,
+        helpNode,
         showRecentMeals,
         setShowRecentMeals,
         recentMeals,
@@ -128,6 +127,11 @@
         describeMode,
         pantry,
         selectAddMode,
+        mealTimeOpen,
+        mealTimeValue,
+        openMealTimeControl,
+        setSelectedMealTime,
+        mealRegistrationSaving,
         mealTemplates,
         addTemplateSearch,
         setAddTemplateSearch,
@@ -195,7 +199,12 @@
       background: "var(--surface)",
       zIndex: 3
     }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "1 1 auto",
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 14,
       letterSpacing: 1,
@@ -208,8 +217,19 @@
       fontSize: 13,
       color: "var(--text3)"
     }
-  }, uiText("Escolha um método e salve no diário de hoje.", "Choose a method and save it to today's diary.", "Elige un método y guárdalo en el diario de hoy."))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => openTab("diario"),
+  }, uiText("Escolha um método e salve no diário de hoje.", "Choose a method and save it to today's diary.", "Elige un método y guárdalo en el diario de hoy."))), /*#__PURE__*/React.createElement("div", {
+    "data-add-header-actions": "true",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flex: "0 0 auto"
+    }
+  }, helpNode, /*#__PURE__*/React.createElement("button", {
+    "data-add-close": "true",
+    "aria-label": uiText("Fechar registro de refeição", "Close meal logging", "Cerrar registro de comida"),
+    onClick: closeMealRegistration,
+    disabled: mealRegistrationSaving,
     style: {
       background: "var(--btn-inactive)",
       border: "1px solid var(--btn-inactive-border)",
@@ -217,11 +237,12 @@
       borderRadius: 999,
       width: 34,
       height: 34,
-      cursor: "pointer",
+      cursor: mealRegistrationSaving ? "wait" : "pointer",
+      opacity: mealRegistrationSaving ? 0.65 : 1,
       fontSize: 18,
       lineHeight: "30px"
     }
-  }, "\u00D7"));
+  }, "\u00D7")));
       }
 
       function renderRecentMeals() {
@@ -398,7 +419,50 @@
         opacity: unavailable ? 0.55 : 1
       }
     }, m === "describe" ? "\u2726 " + l : m === "saved" ? "\u2630 " + l : l);
-  })), addTemplatesOpen && /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
+    "data-meal-time-control": mealTimeOpen ? "open" : "closed",
+    style: {
+      margin: "-4px 0 12px"
+    }
+  }, mealTimeOpen ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    htmlFor: "meal-registration-time",
+    style: {
+      color: "var(--muted)",
+      fontSize: 12
+    }
+  }, uiText("Horário da refeição (opcional)", "Meal time (optional)", "Hora de la comida (opcional)")), /*#__PURE__*/React.createElement("input", {
+    id: "meal-registration-time",
+    type: "time",
+    value: mealTimeValue,
+    onChange: event => setSelectedMealTime(event.target.value),
+    "aria-label": uiText("Horário da refeição", "Meal time", "Hora de la comida"),
+    style: {
+      ...inp,
+      width: 112,
+      marginTop: 0,
+      padding: "5px 8px",
+      fontSize: 13
+    }
+  })) : /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: openMealTimeControl,
+    style: {
+      background: "none",
+      border: "none",
+      color: "var(--muted)",
+      padding: "2px 0",
+      fontSize: 12,
+      fontFamily: "inherit",
+      cursor: "pointer"
+    }
+  }, "+ ", uiText("Informar horário", "Set meal time", "Indicar hora"))), addTemplatesOpen && /*#__PURE__*/React.createElement("div", {
     "data-add-saved-meals": "true",
     style: {
       marginTop: -4,
@@ -606,12 +670,15 @@
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: addDescribedToLog,
+    disabled: mealRegistrationSaving,
     style: {
       ...btn,
       marginTop: 0,
       background: "var(--btn-ok)",
       border: "1px solid var(--btn-ok-border)",
-      color: "var(--btn-ok-text)"
+      color: "var(--btn-ok-text)",
+      opacity: mealRegistrationSaving ? 0.65 : 1,
+      cursor: mealRegistrationSaving ? "wait" : "pointer"
     }
   }, uiText('Registrar', 'Log meal', 'Registrar')), /*#__PURE__*/React.createElement("button", {
     onClick: evaluateDescribedMeal,
@@ -783,7 +850,12 @@
   })(), !batchMode ? /*#__PURE__*/React.createElement("button", {
     "data-tutorial": "add-log-button",
     onClick: addToLog,
-    style: btn
+    disabled: mealRegistrationSaving,
+    style: {
+      ...btn,
+      opacity: mealRegistrationSaving ? 0.65 : 1,
+      cursor: mealRegistrationSaving ? "wait" : "pointer"
+    }
   }, text('logToDiary')) : /*#__PURE__*/React.createElement("button", {
     onClick: addToStaged,
     style: {
@@ -937,12 +1009,15 @@
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: commitStaged,
+    disabled: mealRegistrationSaving,
     style: {
       ...btn,
       marginTop: 0,
       background: "var(--btn-ok)",
       border: "1px solid var(--btn-ok-border)",
-      color: "var(--btn-ok-text)"
+      color: "var(--btn-ok-text)",
+      opacity: mealRegistrationSaving ? 0.65 : 1,
+      cursor: mealRegistrationSaving ? "wait" : "pointer"
     }
   }, uiText("Registrar", "Log meal", "Registrar")), /*#__PURE__*/React.createElement("button", {
     onClick: evaluateStagedMeal,

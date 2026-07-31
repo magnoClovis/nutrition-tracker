@@ -37,7 +37,7 @@
    * @param {Function} dependencies.Ring Circular metric primitive from ui-primitives.js.
    * @param {Function} dependencies.Bar Linear metric primitive from ui-primitives.js.
    * @param {Function} dependencies.GaResultCard Active GA result card component.
-   * @returns {{DiaryScreen: Function}} Controlled Diary component API.
+   * @returns {Object} Controlled Diary component API and meal-ordering helper.
    */
   function createDiaryScreen({ React, pickLang, sortLocaleForLang, localeForLang, addDays, monthDays, shiftMonth, calendarMonthStats, Ring, Bar, GaResultCard }) {
     if (!React || typeof React.createElement !== "function"
@@ -56,6 +56,40 @@
     const proteinColor = "var(--protein)";
     const caloriesColor = "var(--calories)";
     function sBtn(bg, border, color, extra = {}) { return { background: bg, border: "1px solid " + border, color, borderRadius: 4, padding: "6px 10px", fontSize: 14, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", ...extra }; }
+    function mealEntryTimeMinutes(value) {
+      const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(String(value || "").trim());
+      if (!match) return null;
+      const hours = Number(match[1]);
+      const minutes = Number(match[2]);
+      if (hours > 23 || minutes > 59) return null;
+      return hours * 60 + minutes;
+    }
+    function getVisibleMealCategories(meals, activeLog) {
+      return (meals || [])
+        .map((meal, historicalIndex) => {
+          const entries = Array.isArray(activeLog?.[meal]) ? activeLog[meal] : [];
+          const timedEntries = entries
+            .map(entry => mealEntryTimeMinutes(entry?.time))
+            .filter(time => time != null);
+          return {
+            meal,
+            historicalIndex,
+            entries,
+            firstTime: timedEntries.length ? Math.min(...timedEntries) : null
+          };
+        })
+        .filter(category => category.entries.length > 0)
+        .sort((left, right) => {
+          if (left.firstTime != null && right.firstTime != null) {
+            return left.firstTime - right.firstTime
+              || left.historicalIndex - right.historicalIndex;
+          }
+          if (left.firstTime != null) return -1;
+          if (right.firstTime != null) return 1;
+          return left.historicalIndex - right.historicalIndex;
+        })
+        .map(category => category.meal);
+    }
 
     /**
      * Renders one original, non-contiguous Diary region without owning state.
@@ -64,7 +98,8 @@
      * @returns {Object|null} React element tree for ticker, summary, or content.
      */
     function DiaryScreen(props) {
-      const { section, tab, lang, isMobileView, darkMode, text, uiText, tickerPhase, tickerDirection, safeTickerIndex, activeTickerSlide, tickerTimerReset, handleTickerPointerDown, handleTickerPointerMove, finishTickerPointer, tickerToneColor, tickerDragOffset, tickerSlides, setTickerTimerReset, moveTicker, greetingText, greetingLine, tot, goals, remainProtein, remainKcal, allEntries, dayProteinPct, dayKcalPct, openMealSuggestions, gaRunning, suggestLoading, showGA, setShowGA, gaTolerance, setGATolerance, gaTargetMeal, setGATargetMeal, MEALS, mealLabel, gaUseAll, setGAUseAll, runGASafely, gaProgress, gaResults, gaHasSearched, expandMicros, setExpandMicros, dailyMicros, hasMicros, getAutomaticMealSuggestionLimits, gaKcalMin, setGAKcalMin, gaProtMin, setGAProtMin, gaKcalMax, setGAKcalMax, gaProtMax, setGAProtMax, gaFoodSearch, setGAFoodSearch, pantry, gaSelIds, setGASelIds, gaAdvancedOpen, setGAAdvancedOpen, gaGlobalMax, setGAGlobalMax, gaUseProtTol, setGAUseProtTol, gaProtTolerance, setGAProtTolerance, activeLog, evaluateMealItems, mealScoreBrief, mealScoreEvaluationText, addGAResultToDiary, TODAY, diaryStatus, dateLabel, viewDate, calendarOpen, setCalendarOpen, changeViewDate, setCalendarMonth, calendarMonth, calendarData, calendarLoading, isToday, viewWeight, isTraining, totalWater, editWaterGoal, setEditWaterGoal, waterGoalInput, setWaterGoalInput, setWaterGoal, addWater, waterCustomPreset, configureWaterCustomPreset, waterInput, setWaterInput, waterIntake, removeWater, suppLog, removeSuppLog, entryMenuId, editEntryId, editEntryQty, setEditEntryQty, saveEntryEdit, setEditEntryId, openAddForMeal, setEntryMenuId, detailFood, setDetailFood, startEditEntry, duplicateEntry, removeEntry, notesOpen, setNotesOpen, todayNote, historyNote, setTodayNote, setHistoryNote, suppPantry, showSuppAdd, setShowSuppAdd, suppAddId, setSuppAddId, suppAddDose, setSuppAddDose, logSupp, feedbackLoading, feedbackPeriod, generateFeedback, feedbackText, feedbackSaved, saveFeedbackAsNote, setTab, opaqueTrailingNode } = props;
+      const { section, tab, lang, isMobileView, darkMode, text, uiText, tickerPhase, tickerDirection, safeTickerIndex, activeTickerSlide, tickerTimerReset, handleTickerPointerDown, handleTickerPointerMove, finishTickerPointer, tickerToneColor, tickerDragOffset, tickerSlides, setTickerTimerReset, moveTicker, greetingText, greetingLine, tot, goals, remainProtein, remainKcal, allEntries, dayProteinPct, dayKcalPct, openMealSuggestions, gaRunning, suggestLoading, showGA, setShowGA, gaTolerance, setGATolerance, gaTargetMeal, setGATargetMeal, MEALS, mealLabel, gaUseAll, setGAUseAll, runGASafely, gaProgress, gaResults, gaHasSearched, expandMicros, setExpandMicros, dailyMicros, hasMicros, getAutomaticMealSuggestionLimits, gaKcalMin, setGAKcalMin, gaProtMin, setGAProtMin, gaKcalMax, setGAKcalMax, gaProtMax, setGAProtMax, gaFoodSearch, setGAFoodSearch, pantry, gaSelIds, setGASelIds, gaAdvancedOpen, setGAAdvancedOpen, gaGlobalMax, setGAGlobalMax, gaUseProtTol, setGAUseProtTol, gaProtTolerance, setGAProtTolerance, activeLog, evaluateMealItems, mealScoreBrief, mealScoreEvaluationText, addGAResultToDiary, TODAY, diaryStatus, dateLabel, viewDate, calendarOpen, setCalendarOpen, changeViewDate, setCalendarMonth, calendarMonth, calendarData, calendarLoading, isToday, viewWeight, isTraining, totalWater, waterExpanded, setWaterExpanded, editWaterGoal, setEditWaterGoal, waterGoalInput, setWaterGoalInput, setWaterGoal, addWater, waterCustomPreset, configureWaterCustomPreset, waterInput, setWaterInput, waterIntake, removeWater, suppLog, removeSuppLog, entryMenuId, editEntryId, editEntryQty, setEditEntryQty, saveEntryEdit, setEditEntryId, openAddForMeal, setEntryMenuId, detailFood, setDetailFood, startEditEntry, duplicateEntry, removeEntry, notesOpen, setNotesOpen, todayNote, historyNote, setTodayNote, setHistoryNote, suppPantry, showSuppAdd, setShowSuppAdd, suppAddId, setSuppAddId, suppAddDose, setSuppAddDose, logSupp, feedbackLoading, feedbackPeriod, generateFeedback, feedbackText, feedbackSaved, saveFeedbackAsNote, setTab, opaqueTrailingNode } = props;
+      const visibleMealCategories = getVisibleMealCategories(MEALS, activeLog);
     function renderDailyMicros() {
         if (!hasMicros) return null;
         return /*#__PURE__*/React.createElement("div", {
@@ -840,9 +875,11 @@
       letterSpacing: 1,
       textTransform: "uppercase",
       cursor: "pointer",
-      textAlign: "left",
+      textAlign: "center",
       display: "flex",
-      justifyContent: "space-between",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
       fontFamily: "inherit"
     }
   }, /*#__PURE__*/React.createElement("span", null, uiText("Nutrientes", "Nutrients", "Nutrientes")), /*#__PURE__*/React.createElement("span", null, expandMicros ? "\u25B2" : "\u25BC")), expandMicros && /*#__PURE__*/React.createElement("div", {
@@ -941,12 +978,12 @@
       padding: "8px 12px"
     }
   }, /*#__PURE__*/React.createElement("div", {
+    "data-diary-date-primary": "true",
     style: {
-      display: "flex",
+      display: "grid",
+      gridTemplateColumns: "36px minmax(0, 1fr) 36px",
       alignItems: "center",
-      justifyContent: "space-between",
-      gap: 8,
-      flexWrap: "wrap"
+      gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => changeViewDate(addDays(viewDate, -1)),
@@ -966,7 +1003,8 @@
       textAlign: "center",
       cursor: "pointer",
       fontFamily: "inherit",
-      flex: "1 1 180px"
+      width: "100%",
+      minWidth: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -985,14 +1023,20 @@
       fontSize: 18,
       padding: "0 8px"
     }
-  }, "\u203A"), /*#__PURE__*/React.createElement("button", {
+  }, "\u203A")), !isToday && /*#__PURE__*/React.createElement("div", {
+    "data-diary-today-row": "true",
+    style: {
+      display: "flex",
+      justifyContent: "center",
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
     onClick: () => changeViewDate(TODAY),
-    disabled: isToday,
     style: {
       ...sBtn("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)"),
-      display: isToday ? "none" : "inline-flex",
-      opacity: isToday ? 0.45 : 1,
-      cursor: isToday ? "default" : "pointer"
+      display: "inline-flex",
+      justifyContent: "center",
+      cursor: "pointer"
     }
   }, uiText("Hoje", "Today", "Hoy"))), calendarOpen && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1188,12 +1232,23 @@
       marginBottom: 14,
       animation: "softIn 240ms ease-out both"
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "data-water-summary": "true",
+    "aria-expanded": waterExpanded,
+    onClick: () => setWaterExpanded(expanded => !expanded),
     style: {
+      width: "100%",
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 8
+      gap: 12,
+      padding: 0,
+      background: "none",
+      border: "none",
+      fontFamily: "inherit",
+      cursor: "pointer",
+      textAlign: "left"
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -1202,42 +1257,33 @@
       color: darkMode ? "#3ab88a" : "#1a8a6a",
       textTransform: "uppercase"
     }
-    }, text('water')), /*#__PURE__*/React.createElement("div", {
+  }, text('water')), /*#__PURE__*/React.createElement("span", {
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
+      gap: 6,
+      color: totalWater >= goals.water ? "#6ec8a9" : caloriesColor,
       fontSize: 14,
-      color: totalWater >= goals.water ? "#6ec8a9" : caloriesColor
+      fontWeight: 650
     }
-  }, totalWater, "ml"), /*#__PURE__*/React.createElement("span", {
+  }, totalWater, " / ", goals.water, " ml", /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true",
     style: {
-      fontSize: 14,
-      color: "var(--dim)"
+      color: "var(--muted)",
+      fontSize: 12,
+      display: "inline-block",
+      transform: waterExpanded ? "rotate(180deg)" : "rotate(0deg)",
+      transition: "transform 180ms ease"
     }
-  }, "/ ", goals.water, "ml"), /*#__PURE__*/React.createElement("span", {
+  }, "\u25BC"))), /*#__PURE__*/React.createElement("div", {
+    "data-water-progress": "true",
     style: {
-      fontSize: 14,
-      color: "var(--faint)"
-    }
-  }, "(", viewWeight ? `${isTraining ? 40 : 35}ml/kg` : uiText('padrão', 'default', 'predeterminado'), ")"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setEditWaterGoal(e => !e),
-    style: {
-      background: "none",
-      border: "none",
-      color: "var(--dim)",
-      cursor: "pointer",
-      fontSize: 11
-    }
-  }, "\u2699"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 7,
+      height: 4,
       background: "var(--track)",
       borderRadius: 999,
-      marginBottom: 10
+      marginTop: 8,
+      marginBottom: waterExpanded ? 10 : 0,
+      overflow: "hidden"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1247,7 +1293,37 @@
       background: totalWater >= goals.water ? "#6ec8a9" : caloriesColor,
       transition: "width 420ms cubic-bezier(0.2,0.8,0.2,1), background-color 220ms ease"
     }
-  })), editWaterGoal && /*#__PURE__*/React.createElement("div", {
+  })), waterExpanded && /*#__PURE__*/React.createElement("div", {
+    "data-water-details": "true",
+    style: {
+      animation: "softIn 180ms ease-out both"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--faint)"
+    }
+  }, viewWeight ? `${isTraining ? 40 : 35}ml/kg` : uiText('padrão', 'default', 'predeterminado')), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "aria-label": uiText("Ajustar meta de água", "Adjust water goal", "Ajustar meta de agua"),
+    onClick: () => setEditWaterGoal(e => !e),
+    style: {
+      background: "none",
+      border: "none",
+      color: "var(--dim)",
+      cursor: "pointer",
+      fontSize: 13,
+      padding: 2
+    }
+  }, "\u2699")), editWaterGoal && /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
@@ -1255,6 +1331,7 @@
       animation: "softIn 180ms ease-out both"
     }
   }, /*#__PURE__*/React.createElement("input", {
+    "data-water-goal-input": "true",
     type: "number",
     value: waterGoalInput,
     onChange: e => setWaterGoalInput(e.target.value),
@@ -1293,6 +1370,7 @@
     }
   }, [150, 200, 250, 330, 500].map(ml => /*#__PURE__*/React.createElement("button", {
     key: ml,
+    "data-water-quick": ml,
     onClick: () => addWater(ml),
     style: {
       background: "var(--btn-teal)",
@@ -1305,6 +1383,7 @@
     }
   }, ml, "ml")).concat(waterCustomPreset ? /*#__PURE__*/React.createElement("button", {
     key: "custom-water-preset",
+    "data-water-quick": waterCustomPreset,
     onClick: () => addWater(waterCustomPreset),
     onDoubleClick: configureWaterCustomPreset,
     title: uiText("Medida personalizada. Clique duas vezes para editar.", "Custom bottle size. Double-click to edit.", "Medida personalizada. Haz doble clic para editar."),
@@ -1320,6 +1399,7 @@
     }
   }, waterCustomPreset, "ml") : []).concat(/*#__PURE__*/React.createElement("button", {
     key: "configure-water-preset",
+    "data-water-configure": "true",
     onClick: configureWaterCustomPreset,
     title: uiText("Salvar uma medida rápida personalizada", "Save a custom quick amount", "Guardar una medida rápida personalizada"),
     style: {
@@ -1338,6 +1418,7 @@
       gap: 6
     }
   }, /*#__PURE__*/React.createElement("input", {
+    "data-water-custom-value": "true",
     type: "number",
     value: waterInput,
     onChange: e => setWaterInput(e.target.value),
@@ -1350,6 +1431,7 @@
       fontSize: 12
     }
   }), /*#__PURE__*/React.createElement("button", {
+    "data-water-add-custom": "true",
     onClick: () => addWater(),
     style: {
       background: "var(--btn-teal)",
@@ -1361,6 +1443,7 @@
       cursor: "pointer"
     }
   }, "+")), waterIntake.length > 0 && /*#__PURE__*/React.createElement("div", {
+    "data-water-records": "true",
     style: {
       marginTop: 8,
       display: "flex",
@@ -1381,6 +1464,7 @@
       alignItems: "center"
     }
   }, /*#__PURE__*/React.createElement("span", null, e.ml, "ml ", e.time), /*#__PURE__*/React.createElement("button", {
+    "data-water-remove": e.id,
     onClick: () => removeWater(e.id),
     style: {
       background: "none",
@@ -1390,7 +1474,7 @@
       fontSize: 14,
       padding: 0
     }
-  }, "\xD7"))))), suppLog.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, "\xD7")))))), suppLog.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 20
     }
@@ -1445,7 +1529,30 @@
       cursor: "pointer",
       fontSize: 16
     }
-  }, "\xD7")))), MEALS.map(meal => {
+  }, "\xD7")))), /*#__PURE__*/React.createElement("div", {
+    "data-diary-global-add": visibleMealCategories.length ? "with-meals" : "empty-day",
+    style: {
+      display: "flex",
+      justifyContent: visibleMealCategories.length ? "flex-start" : "center",
+      marginBottom: 12,
+      padding: visibleMealCategories.length ? 0 : "18px 0"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    "data-tutorial": "open-log-sheet",
+    onClick: () => openAddForMeal(MEALS[0]),
+    style: {
+      background: "var(--btn-ok)",
+      border: "1px solid var(--btn-ok-border)",
+      color: "var(--btn-ok-text)",
+      borderRadius: 999,
+      padding: isMobileView ? "8px 14px" : "8px 16px",
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: "pointer",
+      whiteSpace: "nowrap",
+      fontFamily: "inherit"
+    }
+  }, "+ ", uiText("Adicionar", "Add", "Agregar"))), visibleMealCategories.map(meal => {
     const entries = activeLog[meal] || [];
     const mp = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
     const mk = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
@@ -1453,6 +1560,7 @@
     return /*#__PURE__*/React.createElement("div", {
       key: meal,
       "data-diary-meal-card": "true",
+      "data-diary-meal": meal,
       className: "meal-section-card",
       style: {
         display: "block",
@@ -1476,8 +1584,8 @@
         alignItems: "center",
         flexWrap: "wrap",
         gap: 12,
-        paddingBottom: entries.length ? 9 : 0,
-        borderBottom: entries.length ? "1px solid var(--border3)" : "none"
+        paddingBottom: 9,
+        borderBottom: "1px solid var(--border3)"
       }
     }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1490,16 +1598,16 @@
     }, mealLabel(meal)), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 12,
-        color: entries.length ? "var(--muted)" : "var(--faint)"
+        color: "var(--muted)"
       }
-    }, entries.length ? entries.length + " item" + (entries.length !== 1 ? "s" : "") : uiText("Sem alimentos registrados", "No food logged", "Sin alimentos registrados"))), /*#__PURE__*/React.createElement("div", {
+    }, entries.length + " item" + (entries.length !== 1 ? "s" : ""))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
         gap: 10,
         marginLeft: "auto"
       }
-    }, entries.length > 0 && /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: "right",
         fontSize: 12,
@@ -1516,36 +1624,14 @@
         color: caloriesColor,
         fontWeight: 700
       }
-    }, Math.round(mk), " kcal")), /*#__PURE__*/React.createElement("button", {
-      "data-tutorial": "open-log-sheet",
-      onClick: () => openAddForMeal(meal),
-      style: {
-        background: "var(--btn-ok)",
-        border: "1px solid var(--btn-ok-border)",
-        color: "var(--btn-ok-text)",
-        borderRadius: 999,
-        padding: isMobileView ? "7px 10px" : "7px 12px",
-        fontSize: 12,
-        fontWeight: 700,
-        cursor: "pointer",
-        whiteSpace: "nowrap",
-        fontFamily: "inherit"
-      }
-    }, "+ ", uiText("Adicionar", "Add", "Agregar"))), /*#__PURE__*/React.createElement("div", {
+    }, Math.round(mk), " kcal"))), /*#__PURE__*/React.createElement("div", {
       "data-diary-meal-items": "true",
       style: {
         display: "block",
         width: "100%",
         clear: "both"
       }
-    }, entries.length === 0 ? /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: "var(--faint)",
-        fontSize: 13,
-        paddingTop: 10,
-        lineHeight: 1.4
-      }
-    }, uiText("Use + Adicionar para registrar algo aqui.", "Use + Add to log something here.", "Usa + Agregar para registrar algo aquí.")) : entries.map(e => /*#__PURE__*/React.createElement("div", {
+    }, entries.map(e => /*#__PURE__*/React.createElement("div", {
       key: e.id,
       style: {
         position: "relative",
@@ -1693,49 +1779,7 @@
         fontSize: 13
       }
     }, label))))))))))
-  }), false && allEntries.length === 0 && isToday && /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center", padding: "32px 16px 16px",
-    }
-  },
-    /*#__PURE__*/React.createElement("div", { style: { fontSize: 40, marginBottom: 12 } }, "\uD83C\uDF7D\uFE0F"),
-    /*#__PURE__*/React.createElement("p", { style: {
-      color: "var(--text2)", fontSize: 15, fontWeight: 500, margin: "0 0 6px"
-    } }, uiText("Nenhum alimento registrado hoje", "Nothing logged yet today", "Ningún alimento registrado hoy")),
-    /*#__PURE__*/React.createElement("p", { style: {
-      color: "var(--muted)", fontSize: 14, margin: "0 0 20px", lineHeight: 1.5
-    } }, uiText(
-      "Toque em + para registrar o que você comeu",
-      "Tap + to add what you've eaten",
-      "Toca + para registrar lo que comiste"
-    )),
-    pantry.length === 0 && /*#__PURE__*/React.createElement("div", {
-      style: {
-        background: "var(--btn-ok)", border: "1px solid var(--btn-ok-border)",
-        borderRadius: 12, padding: "14px 16px", marginBottom: 12, textAlign: "left"
-      }
-    },
-      /*#__PURE__*/React.createElement("p", { style: {
-        color: "var(--btn-ok-text)", fontSize: 14, margin: "0 0 10px", fontWeight: 500
-      } }, "\uD83D\uDCA1 " + uiText("Dica: Comece adicionando alimentos em Alimentos", "Tip: Start by adding foods to Foods", "Consejo: empieza agregando alimentos en Alimentos")),
-      /*#__PURE__*/React.createElement("button", {
-        onClick: () => setTab("despensa"),
-        style: {
-          background: "var(--btn-ok-text)", border: "none", color: "#fff",
-          borderRadius: 8, padding: "8px 16px", fontSize: 14,
-          cursor: "pointer", fontFamily: "inherit", fontWeight: 500
-        }
-      }, uiText("Ir para Alimentos \u2192", "Go to Foods \u2192", "Ir a Alimentos \u2192"))
-    ),
-    /*#__PURE__*/React.createElement("button", {
-      onClick: () => openAddForMeal(MEALS[0]),
-      style: {
-        background: "var(--accent, #4a9a4a)", border: "none", color: "#fff",
-        borderRadius: 10, padding: "12px 24px", fontSize: 14, fontWeight: 600,
-        cursor: "pointer", fontFamily: "inherit"
-      }
-    }, uiText("+ Adicionar alimento", "+ Add food", "+ Agregar alimento"))
-  ), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     style: { marginTop: 20 }
   },
     /*#__PURE__*/React.createElement("button", {
@@ -1887,7 +1931,7 @@
       return null;
     }
 
-    return { DiaryScreen };
+    return { DiaryScreen, getVisibleMealCategories };
   }
 
   return { createDiaryScreen };

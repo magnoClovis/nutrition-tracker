@@ -61,6 +61,7 @@
      * @param {function(): void} props.onToggleHelp Help-toggle callback.
      * @param {function(): void} props.onReevaluate Re-evaluation callback.
      * @param {function(): void} props.onConfirm Confirmation callback.
+     * @param {boolean} props.saving Whether final persistence is in progress.
      * @returns {Object|null} Modal React element, or null without a review.
      */
     function MealReviewModal({
@@ -78,7 +79,8 @@
       onClose,
       onToggleHelp,
       onReevaluate,
-      onConfirm
+      onConfirm,
+      saving
     }) {
       if (!review) return null;
       const uiText = (pt, en, es) => pickLang(lang, pt, en, es);
@@ -161,7 +163,15 @@
       React.createElement("div", { style: { display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "1fr 1fr 1.3fr", gap: 8 } },
         React.createElement("button", { onClick: onClose, style: buttonStyle("transparent", "var(--border2)", "var(--text2)") }, uiText("Editar", "Edit", "Editar")),
         React.createElement("button", { onClick: onReevaluate, style: buttonStyle("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)") }, uiText("Reavaliar", "Re-evaluate", "Reevaluar")),
-        React.createElement("button", { onClick: onConfirm, style: buttonStyle("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)") }, uiText("Registrar mesmo assim", "Log anyway", "Registrar igualmente"))
+        React.createElement("button", {
+          onClick: onConfirm,
+          disabled: saving,
+          style: {
+            ...buttonStyle("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)"),
+            opacity: saving ? 0.65 : 1,
+            cursor: saving ? "wait" : "pointer"
+          }
+        }, uiText("Registrar mesmo assim", "Log anyway", "Registrar igualmente"))
       )));
     }
 

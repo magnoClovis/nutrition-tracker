@@ -414,6 +414,7 @@ const {
     windowObject: window,
     documentObject: document,
     localStorageObject: localStorage,
+    sessionStorageObject: sessionStorage,
     navigatorObject: navigator,
     FileReaderClass: window.FileReader,
     BlobClass: window.Blob,

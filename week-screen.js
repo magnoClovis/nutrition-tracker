@@ -144,6 +144,31 @@
         calorieBankDays
       } = weekSummary;
       const uiText = (pt, en, es) => pickLang(lang, pt, en, es);
+      function renderMetricTooltip({ active, payload, label }, metric) {
+        if (!active || !Array.isArray(payload)) return null;
+        const firstValue = payload.find(item => item && item.value != null);
+        if (!firstValue) return null;
+        return /*#__PURE__*/React.createElement("div", {
+          "data-week-tooltip": metric.key,
+          style: {
+            background: CT.bg,
+            border: "1px solid " + CT.border,
+            borderRadius: 4,
+            padding: "8px 10px",
+            fontSize: 14,
+            color: CT.label
+          }
+        }, /*#__PURE__*/React.createElement("div", {
+          style: {
+            color: CT.label,
+            marginBottom: 4
+          }
+        }, label), /*#__PURE__*/React.createElement("div", {
+          style: {
+            color: metric.color
+          }
+        }, metric.label, ": ", firstValue.value, metric.unit));
+      }
       return React.createElement("div", {
     "data-screen": "semana"
   }, weekData.length === 0 ? /*#__PURE__*/React.createElement("div", {
@@ -319,20 +344,12 @@
     domain: [0, "auto"],
     width: 30
   }), /*#__PURE__*/React.createElement(Tooltip, {
-    contentStyle: {
-      background: CT.bg,
-      border: "1px solid " + CT.border,
-      borderRadius: 4,
-      fontSize: 14,
-      color: CT.label
-    },
-    labelStyle: {
-      color: CT.label
-    },
-    itemStyle: {
+    content: tooltipProps => renderMetricTooltip(tooltipProps, {
+      key: "protein",
+      label: text('protein'),
+      unit: "g",
       color: "#c8a96e"
-    },
-    formatter: v => [`${v}g`, text('protein')]
+    })
   }), latestWeekPoint && /*#__PURE__*/React.createElement(ReferenceLine, {
     y: latestWeekPoint.proteinGoal,
     stroke: "#c8a96e",
@@ -413,20 +430,12 @@
     domain: [0, "auto"],
     width: 35
   }), /*#__PURE__*/React.createElement(Tooltip, {
-    contentStyle: {
-      background: CT.bg,
-      border: "1px solid " + CT.border,
-      borderRadius: 4,
-      fontSize: 14,
-      color: CT.label
-    },
-    labelStyle: {
-      color: CT.label
-    },
-    itemStyle: {
+    content: tooltipProps => renderMetricTooltip(tooltipProps, {
+      key: "calories",
+      label: text('calories'),
+      unit: " kcal",
       color: "#8ec8c8"
-    },
-    formatter: v => [`${v} kcal`, text('calories')]
+    })
   }), latestWeekPoint && /*#__PURE__*/React.createElement(ReferenceLine, {
     y: latestWeekPoint.kcalGoal,
     stroke: "#8ec8c8",

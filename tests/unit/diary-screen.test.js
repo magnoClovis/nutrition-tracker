@@ -178,6 +178,8 @@ function baseProps(overrides = {}) {
     viewWeight: 70,
     isTraining: true,
     totalWater: 500,
+    waterExpanded: false,
+    setWaterExpanded: noOp,
     editWaterGoal: false,
     setEditWaterGoal: noOp,
     waterGoalInput: "",
@@ -235,7 +237,7 @@ function contractTest(name, callback) {
   implementations.forEach(([format, load]) => {
     test(`${format}: ${name}`, async () => {
       const { createDiaryScreen } = await load();
-      const { DiaryScreen } = createDiaryScreen({
+      const api = createDiaryScreen({
         React,
         pickLang: (lang, pt, en, es) => lang === "en" ? en : lang === "es" ? es : pt,
         sortLocaleForLang: () => "en",
@@ -258,7 +260,7 @@ function contractTest(name, callback) {
         Bar,
         GaResultCard
       });
-      return callback(DiaryScreen);
+      return callback(api.DiaryScreen, api);
     });
   });
 }
@@ -268,10 +270,206 @@ contractTest("renders meals, water, supplements, notes, and the opaque legacy ta
   const content = textContent(view);
 
   assert.match(content, /Rice/);
-  assert.match(content, /500ml/);
+  assert.match(content, /500 \/ 2500 ml/);
   assert.match(content, /Creatine/);
   assert.equal(findNodes(view, node => node.type === "textarea")[0].props.value, "Remember vegetables");
   assert.equal(findNodes(view, node => node.props && node.props["data-opaque-tail"]).length, 1);
+});
+
+contractTest("keeps water compact by default with only summary and thin progress visible", DiaryScreen => {
+  let toggle = null;
+  const view = DiaryScreen(baseProps({
+    waterExpanded: false,
+    setWaterExpanded: updater => { toggle = updater; }
+  }));
+  const summary = findNodes(
+    view,
+    node => node.props?.["data-water-summary"] === "true"
+  )[0];
+  const progress = findNodes(
+    view,
+    node => node.props?.["data-water-progress"] === "true"
+  )[0];
+
+  assert.equal(summary.props["aria-expanded"], false);
+  assert.match(textContent(summary), /Water500 \/ 2500 ml/);
+  assert.equal(progress.props.style.height, 4);
+  assert.equal(progress.props.style.marginBottom, 0);
+  assert.equal(findNodes(view, node => node.props?.["data-water-details"] === "true").length, 0);
+  assert.doesNotMatch(textContent(view), /150ml|other value in ml|500ml 09:00/);
+  summary.props.onClick();
+  assert.equal(typeof toggle, "function");
+  assert.equal(toggle(false), true);
+});
+
+contractTest("expands all existing water controls and delegates their actions", DiaryScreen => {
+  const added = [];
+  const removed = [];
+  let configured = 0;
+  let customValue = null;
+  let goalValue = null;
+  let goalDraft = null;
+  const editChanges = [];
+  const view = DiaryScreen(baseProps({
+    waterExpanded: true,
+    editWaterGoal: true,
+    waterGoalInput: "3000",
+    addWater: value => added.push(value),
+    removeWater: id => removed.push(id),
+    configureWaterCustomPreset: () => { configured += 1; },
+    setWaterInput: value => { customValue = value; },
+    setWaterGoal: value => { goalValue = value; },
+    setWaterGoalInput: value => { goalDraft = value; },
+    setEditWaterGoal: updater => { editChanges.push(updater); }
+  }));
+  const summary = findNodes(view, node => node.props?.["data-water-summary"] === "true")[0];
+  const details = findNodes(view, node => node.props?.["data-water-details"] === "true")[0];
+  const goalInput = findNodes(details, node => node.props?.["data-water-goal-input"] === "true")[0];
+  const customInput = findNodes(details, node => node.props?.["data-water-custom-value"] === "true")[0];
+  const quick150 = findNodes(details, node => node.props?.["data-water-quick"] === 150)[0];
+  const quickCustom = findNodes(details, node => node.props?.["data-water-quick"] === 750)[0];
+  const configure = findNodes(details, node => node.props?.["data-water-configure"] === "true")[0];
+  const addCustom = findNodes(details, node => node.props?.["data-water-add-custom"] === "true")[0];
+  const remove = findNodes(details, node => node.props?.["data-water-remove"] === "water-1")[0];
+  const adjustGoal = findNodes(
+    details,
+    node => node.type === "button" && node.props?.["aria-label"] === "Adjust water goal"
+  )[0];
+  const confirmGoal = findNodes(details, node => node.type === "button" && textContent(node) === "ok")[0];
+
+  assert.equal(summary.props["aria-expanded"], true);
+  assert.ok(details);
+  assert.match(textContent(details), /150ml/);
+  assert.match(textContent(details), /500ml 09:00/);
+  quick150.props.onClick();
+  quickCustom.props.onClick();
+  configure.props.onClick();
+  customInput.props.onChange({ target: { value: "425" } });
+  addCustom.props.onClick();
+  remove.props.onClick();
+  adjustGoal.props.onClick();
+  confirmGoal.props.onClick();
+
+  assert.deepEqual(added, [150, 750, undefined]);
+  assert.deepEqual(removed, ["water-1"]);
+  assert.equal(configured, 1);
+  assert.equal(customValue, "425");
+  assert.equal(goalValue, 3000);
+  assert.equal(goalDraft, "");
+  assert.equal(editChanges[0](false), true);
+  assert.equal(editChanges[1], false);
+  assert.equal(goalInput.props.value, "3000");
+});
+
+contractTest("orders visible meal categories by their oldest valid entry time", (_DiaryScreen, api) => {
+  const meals = ["Breakfast", "Lunch", "Snack", "Dinner", "Other"];
+  const activeLog = {
+    Breakfast: [{ id: "breakfast-legacy" }],
+    Lunch: [
+      { id: "lunch-late", time: "13:15" },
+      { id: "lunch-early", time: "12:05" }
+    ],
+    Snack: [],
+    Dinner: [{ id: "dinner", time: "19:30" }],
+    Other: [{ id: "other-invalid", time: "25:00" }]
+  };
+
+  assert.deepEqual(api.getVisibleMealCategories(meals, activeLog), [
+    "Lunch",
+    "Dinner",
+    "Breakfast",
+    "Other"
+  ]);
+  assert.deepEqual(api.getVisibleMealCategories(meals, {
+    Breakfast: [{ time: "08:00" }],
+    Lunch: [{ time: "08:00" }]
+  }), ["Breakfast", "Lunch"]);
+});
+
+contractTest("shows one centered global Add button and no cards on an empty day", DiaryScreen => {
+  const openedMeals = [];
+  const meals = ["Breakfast", "Lunch", "Dinner"];
+  const view = DiaryScreen(baseProps({
+    MEALS: meals,
+    activeLog: { Breakfast: [], Lunch: [], Dinner: [] },
+    allEntries: [],
+    openAddForMeal: meal => openedMeals.push(meal)
+  }));
+  const globalAdd = findNodes(
+    view,
+    node => node.props?.["data-diary-global-add"] === "empty-day"
+  )[0];
+  const addButtons = findNodes(
+    view,
+    node => node.type === "button" && node.props?.["data-tutorial"] === "open-log-sheet"
+  );
+
+  assert.equal(findNodes(view, node => node.props?.["data-diary-meal-card"] === "true").length, 0);
+  assert.equal(globalAdd.props.style.justifyContent, "center");
+  assert.equal(addButtons.length, 1);
+  assert.equal(textContent(addButtons[0]), "+ Add");
+  addButtons[0].props.onClick();
+  assert.deepEqual(openedMeals, ["Breakfast"]);
+});
+
+contractTest("renders filled categories chronologically after the sole global Add button", DiaryScreen => {
+  const meals = ["Breakfast", "Lunch", "Dinner"];
+  const activeLog = {
+    Breakfast: [{ id: "breakfast", name: "Oats", qty: 1, unit: "un", time: "09:00" }],
+    Lunch: [],
+    Dinner: [{ id: "dinner", name: "Soup", qty: 1, unit: "un", time: "08:30" }]
+  };
+  const view = DiaryScreen(baseProps({
+    MEALS: meals,
+    activeLog,
+    allEntries: [...activeLog.Breakfast, ...activeLog.Dinner]
+  }));
+  const globalAdd = findNodes(
+    view,
+    node => node.props?.["data-diary-global-add"] === "with-meals"
+  )[0];
+  const cards = findNodes(
+    view,
+    node => node.props?.["data-diary-meal-card"] === "true"
+  );
+  const addButtons = findNodes(
+    view,
+    node => node.type === "button" && node.props?.["data-tutorial"] === "open-log-sheet"
+  );
+  const mealLayout = findNodes(
+    view,
+    node => node.props?.["data-diary-global-add"]
+      || node.props?.["data-diary-meal-card"] === "true"
+  );
+
+  assert.equal(globalAdd.props.style.justifyContent, "flex-start");
+  assert.deepEqual(cards.map(card => card.props["data-diary-meal"]), ["Dinner", "Breakfast"]);
+  assert.equal(mealLayout[0].props["data-diary-global-add"], "with-meals");
+  assert.deepEqual(
+    mealLayout.slice(1).map(card => card.props["data-diary-meal"]),
+    ["Dinner", "Breakfast"]
+  );
+  assert.equal(addButtons.length, 1);
+  cards.forEach(card => {
+    assert.equal(findNodes(
+      card,
+      node => node.type === "button" && node.props?.["data-tutorial"] === "open-log-sheet"
+    ).length, 0);
+  });
+});
+
+contractTest("centers the Nutrients label and disclosure arrow as one group", DiaryScreen => {
+  const view = DiaryScreen(baseProps({ section: "summary" }));
+  const button = findNodes(
+    view,
+    node => node.type === "button" && node.props?.["data-tutorial"] === "microLabel"
+  )[0];
+
+  assert.equal(button.props.style.textAlign, "center");
+  assert.equal(button.props.style.alignItems, "center");
+  assert.equal(button.props.style.justifyContent, "center");
+  assert.equal(button.props.style.gap, 6);
+  assert.equal(textContent(button), "Nutrients▼");
 });
 
 contractTest("historical navigation remains callback-driven and keeps current supplements visible", DiaryScreen => {
@@ -286,12 +484,24 @@ contractTest("historical navigation remains callback-driven and keeps current su
 
   const previous = findNodes(view, node => node.type === "button" && textContent(node) === "‹")[0];
   const next = findNodes(view, node => node.type === "button" && textContent(node) === "›")[0];
+  const primaryRow = findNodes(view, node => node.props?.["data-diary-date-primary"] === "true")[0];
+  const todayRow = findNodes(view, node => node.props?.["data-diary-today-row"] === "true")[0];
+  const todayButton = findNodes(todayRow, node => node.type === "button" && textContent(node) === "Today")[0];
+
+  assert.equal(primaryRow.props.style.display, "grid");
+  assert.equal(primaryRow.props.style.gridTemplateColumns, "36px minmax(0, 1fr) 36px");
+  assert.equal(todayRow.props.style.display, "flex");
+  assert.equal(todayRow.props.style.justifyContent, "center");
   previous.props.onClick();
   next.props.onClick();
+  todayButton.props.onClick();
 
-  assert.deepEqual(dates, ["2026-07-19", "2026-07-21"]);
+  assert.deepEqual(dates, ["2026-07-19", "2026-07-21", "2026-07-23"]);
   assert.match(textContent(view), /Creatine/);
   assert.doesNotMatch(textContent(view), /500ml/);
+
+  const todayView = DiaryScreen(baseProps());
+  assert.equal(findNodes(todayView, node => node.props?.["data-diary-today-row"] === "true").length, 0);
 });
 
 contractTest("active GA result delegates execution, evaluation, and diary insertion callbacks", DiaryScreen => {

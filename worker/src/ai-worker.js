@@ -41,6 +41,13 @@ function errorResponse(status, code, origin) {
   return jsonResponse(status, { error: { code } }, origin);
 }
 
+function rateLimitScope(limit) {
+  if (limit === "uid-minute") return "user";
+  if (limit === "global-minute") return "global";
+  if (limit === "global-day") return "daily";
+  return null;
+}
+
 async function readBoundedText(request, maximumBytes) {
   const declaredLength = Number(request.headers.get("Content-Length"));
   if (Number.isFinite(declaredLength) && declaredLength > maximumBytes) {
@@ -205,7 +212,16 @@ export function createAIWorker({
       }
 
       if (!rateLimitResult.allowed) {
-        const response = errorResponse(429, "rate-limit-exceeded", origin);
+        const scope = rateLimitScope(rateLimitResult.limit);
+        if (!scope) {
+          return errorResponse(503, "rate-limit-unavailable", origin);
+        }
+        const response = jsonResponse(429, {
+          error: {
+            code: "rate-limit-exceeded",
+            scope
+          }
+        }, origin);
         response.headers.set(
           "Retry-After",
           String(Math.max(1, Math.ceil(rateLimitResult.retryAfterSeconds || 1)))

@@ -52,6 +52,7 @@ function baseProps(overrides = {}) {
     helpOpen: false,
     aiLoading: false,
     aiText: "",
+    saving: false,
     getMealLabel: value => value,
     getEvaluationText: () => "Nutrientes avaliados: 1 de 2",
     getBrief: () => "Pontos fortes: Prote\u00edna.",
@@ -105,4 +106,16 @@ contractTest("renders loading/help states and delegates all four actions", MealR
   buttons.find(button => textContent(button) === "Reavaliar").props.onClick();
   buttons.find(button => textContent(button) === "Registrar mesmo assim").props.onClick();
   assert.deepEqual(calls, ["help", "close", "reevaluate", "confirm"]);
+});
+
+contractTest("disables final confirmation while persistence is in progress", MealReviewModal => {
+  const modal = MealReviewModal(baseProps({ saving: true }));
+  const buttons = [];
+  walk(modal, node => {
+    if (node.type === "button") buttons.push(node);
+  });
+  const confirm = buttons.find(button => textContent(button) === "Registrar mesmo assim");
+
+  assert.equal(confirm.props.disabled, true);
+  assert.equal(confirm.props.style.cursor, "wait");
 });
