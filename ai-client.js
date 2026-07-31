@@ -21,11 +21,12 @@
    * Neutral error for expected managed-AI HTTP and response failures.
    */
   class AIClientError extends Error {
-    constructor(code, retryAfterSeconds) {
+    constructor(code, retryAfterSeconds, scope) {
       super(code);
       this.name = "AIClientError";
       this.code = code;
       this.retryAfterSeconds = retryAfterSeconds;
+      this.scope = scope;
     }
   }
 
@@ -77,9 +78,13 @@
 
       if (!response.ok) {
         const retryAfter = Number(response.headers?.get?.("Retry-After"));
+        const scope = ["user", "global", "daily"].includes(data?.error?.scope)
+          ? data.error.scope
+          : undefined;
         throw new AIClientError(
           responseErrorCode(response.status),
-          Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined
+          Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
+          response.status === 429 ? scope : undefined
         );
       }
       if (!data || typeof data.text !== "string") {

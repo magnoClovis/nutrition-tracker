@@ -1,8 +1,8 @@
 /**
  * MAXIMUM-CAUTION CONTROLLER CORE for the Trofia application.
  *
- * This UMD module owns the complete NutritionTracker controller: its 145 React
- * states, 35 effects, 14 refs, local callbacks, and the temporal hydration /
+ * This UMD module owns the complete NutritionTracker controller: its 151 React
+ * states, 36 effects, 19 refs, local callbacks, and the temporal hydration /
  * autosave protocol. Hook order and effect dependency arrays are behavioral
  * contracts. The eleven render-scoped factories below intentionally remain
  * inside NutritionTracker so they receive the current render closures; do not
@@ -34,7 +34,7 @@
    * @param {Object} dependencies.screens Presentational screens composed by app.js.
    * @param {Object} dependencies.browser Browser capabilities used by the controller.
    * @param {Object} dependencies.constants Stable application constants and gates.
-   * @returns {{NutritionTracker: function(Object): Object}} Controller component API.
+   * @returns {Object} Controller component API and pure registration helpers.
    */
   function createNutritionTrackerController({
     React,
@@ -126,6 +126,7 @@
       windowObject,
       documentObject,
       localStorageObject,
+      sessionStorageObject,
       navigatorObject,
       FileReaderClass,
       BlobClass,
@@ -148,6 +149,7 @@
     const window = windowObject || root;
     const document = documentObject || window.document;
     const localStorage = localStorageObject || window.localStorage;
+    const sessionStorage = sessionStorageObject || window.sessionStorage;
     const navigator = navigatorObject || window.navigator;
     const FileReader = FileReaderClass || window.FileReader;
     const Blob = BlobClass || window.Blob;
@@ -488,6 +490,88 @@
       return formatDateDMY(date);
     }
 
+    function formatMealRegistrationTime(date) {
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      return `${hours}:${minutes}`;
+    }
+    function isValidMealRegistrationTime(value) {
+      const match = /^(\d{2}):(\d{2})$/.exec(String(value || ""));
+      return !!match && Number(match[1]) < 24 && Number(match[2]) < 60;
+    }
+    function resolveMealRegistrationTime(control, now = new Date()) {
+      if (control?.open && isValidMealRegistrationTime(control.value)) {
+        return control.value;
+      }
+      return formatMealRegistrationTime(now);
+    }
+    function applyMealRegistrationTime(items, time) {
+      return (items || []).map(item => ({...item, time}));
+    }
+    function createMealRegistrationOrigin({ tab, viewDate, scrollY }) {
+      return {
+        tab,
+        viewDate,
+        scrollY: Number.isFinite(scrollY) && scrollY >= 0 ? scrollY : 0
+      };
+    }
+    async function persistMealRegistration({ storage, key, nextLog }) {
+      await storage.set(key, JSON.stringify(nextLog));
+      return nextLog;
+    }
+
+    const AI_STATUS_STORAGE_KEY = "trofia.ai.last-status.v1";
+    const AI_STATUS_VALUES = new Set([
+      "success",
+      "session-expired",
+      "service-unavailable",
+      "invalid-response",
+      "rate-limited"
+    ]);
+    const AI_RATE_LIMIT_SCOPES = new Set(["user", "global", "daily"]);
+
+    function normalizeAIStatus(value) {
+      if (!value || typeof value !== "object" || !AI_STATUS_VALUES.has(value.status)) {
+        return { status: "not-called" };
+      }
+      const normalized = {
+        status: value.status,
+        timestamp: typeof value.timestamp === "string" &&
+          Number.isFinite(Date.parse(value.timestamp))
+          ? value.timestamp
+          : null
+      };
+      if (value.status === "rate-limited") {
+        if (AI_RATE_LIMIT_SCOPES.has(value.scope)) normalized.scope = value.scope;
+        if (Number.isFinite(value.retryAfterSeconds) && value.retryAfterSeconds > 0) {
+          normalized.retryAfterSeconds = Math.ceil(value.retryAfterSeconds);
+        }
+      }
+      return normalized;
+    }
+
+    function readAIStatus(storageObject) {
+      try {
+        const raw = storageObject?.getItem?.(AI_STATUS_STORAGE_KEY);
+        return raw ? normalizeAIStatus(JSON.parse(raw)) : { status: "not-called" };
+      } catch (_) {
+        return { status: "not-called" };
+      }
+    }
+
+    function writeAIStatus(storageObject, value, now = () => new Date()) {
+      const status = normalizeAIStatus({
+        ...value,
+        timestamp: now().toISOString()
+      });
+      try {
+        storageObject?.setItem?.(AI_STATUS_STORAGE_KEY, JSON.stringify(status));
+      } catch (_) {
+        // AI availability must never depend on browser storage availability.
+      }
+      return status;
+    }
+
     function NutritionTracker({
       onOpenSettings,
       onLogout,
@@ -504,6 +588,7 @@
       const [lang, setLang] = useState(() => normalizeLanguage(externalLang || localStorage.getItem('appLang') || 'pt'));
       const [menuOpen, setMenuOpen] = useState(false);
       const [headerLanguageMenuOpen, setHeaderLanguageMenuOpen] = useState(false);
+      const [aiStatusModal, setAIStatusModal] = useState(null);
       const text = createTextGetter(lang, STRINGS);
       const {
         MACRO_FIELDS_BASE,
@@ -691,6 +776,9 @@
       const [log, setLog] = useState({});
       const [tab, setTab] = useState("diario");
       const tabHistoryRef = useRef([]);
+      const mealRegistrationOriginRef = useRef(null);
+      const pendingScrollRestoreRef = useRef(null);
+      const mealRegistrationSavingRef = useRef(false);
       function openTab(nextTab, opts = {}) {
         const normalizedTab = normalizeTabKey(nextTab);
         setTab(currentTab => {
@@ -711,6 +799,33 @@
       }
       function reopenTabTutorial() {
         onStartTutorial && onStartTutorial(tab);
+      }
+      function renderContextualHelpButton() {
+        return /*#__PURE__*/React.createElement("button", {
+          "data-contextual-help": tab,
+          onClick: reopenTabTutorial,
+          title: uiText("Ver tutorial desta aba", "Show this tab tutorial", "Ver tutorial de esta pestaña"),
+          "aria-label": uiText("Ver tutorial desta aba", "Show this tab tutorial", "Ver tutorial de esta pestaña"),
+          style: {
+            minWidth: isMobileView ? 24 : 64,
+            height: 24,
+            padding: isMobileView ? 0 : "0 9px",
+            borderRadius: 999,
+            border: "1px solid var(--border3)",
+            background: "var(--surface3)",
+            color: "var(--muted)",
+            fontSize: 11,
+            fontWeight: 600,
+            fontFamily: "inherit",
+            cursor: "pointer",
+            lineHeight: "22px",
+            textAlign: "center",
+            letterSpacing: 0.7,
+            textTransform: "uppercase",
+            opacity: 0.88,
+            boxShadow: "0 1px 4px rgba(0,0,0,0.04)"
+          }
+        }, isMobileView ? "i" : uiText("i Ajuda", "i Help", "i Ayuda"));
       }
       useEffect(() => {
         if (tab === "adicionar" && pantry.length === 0 && !describeMode) {
@@ -762,6 +877,11 @@
         meal: "Café da manhã",
         items: []
       });
+      const [mealTimeControl, setMealTimeControl] = useState({
+        open: false,
+        value: ""
+      });
+      const [mealRegistrationSaving, setMealRegistrationSaving] = useState(false);
       const [mealReview, setMealReview] = useState(null);
       const [mealReviewHelpOpen, setMealReviewHelpOpen] = useState(false);
       const [mealReviewAiText, setMealReviewAiText] = useState("");
@@ -937,6 +1057,7 @@
       const [waterGoalInput, setWaterGoalInput] = useState("");
       const [editWaterGoal, setEditWaterGoal] = useState(false);
       const [waterCustomPreset, setWaterCustomPreset] = useState(null);
+      const [waterExpanded, setWaterExpanded] = useState(false);
       // Supplements
       const [suppPantry, setSuppPantry] = useState([]);
       const [suppLog, setSuppLog] = useState([]);
@@ -988,6 +1109,8 @@
         if (tab === "adicionar") {
           setAddTemplatesOpen(false);
           setAddTemplateSearch("");
+        } else {
+          resetMealTimeControl();
         }
       }, [tab]);
       async function loadAll() {
@@ -1181,8 +1304,12 @@
         }).effectiveGoal;
       }
       useEffect(() => {
-        // Scroll to top when changing tabs
-        window.scrollTo({ top: 0, behavior: 'instant' });
+        const restoredScroll = pendingScrollRestoreRef.current;
+        pendingScrollRestoreRef.current = null;
+        window.scrollTo({
+          top: restoredScroll == null ? 0 : restoredScroll,
+          behavior: 'instant'
+        });
       }, [tab]);
       useEffect(() => {
         if (tab === "semana" && loaded) {
@@ -1520,6 +1647,28 @@
         }
         setAutoFillLoading(false);
       }
+      function openMealTimeControl() {
+        setMealTimeControl(current => current.open ? current : {
+          open: true,
+          value: formatMealRegistrationTime(new Date())
+        });
+      }
+      function setSelectedMealTime(value) {
+        setMealTimeControl(current => ({
+          ...current,
+          open: true,
+          value
+        }));
+      }
+      function resetMealTimeControl() {
+        setMealTimeControl({ open: false, value: "" });
+      }
+      function applySelectedMealTime(items) {
+        return applyMealRegistrationTime(
+          items,
+          resolveMealRegistrationTime(mealTimeControl)
+        );
+      }
       async function estimateMealDescription() {
         if (!mealDescription.trim()) {
           notify(pickLang(lang, "Descreva o prato primeiro.", "Describe the dish first.", "Describe el plato primero."));
@@ -1548,16 +1697,17 @@
         if (!entry) return;
         openMealReview(describeMeal, [entry], "described");
       }
-      function addDescribedToLog() {
+      async function addDescribedToLog() {
         const entry = buildDescribedEntry();
         if (!entry) return;
-        setActiveLog(previous => ({
-          ...previous,
-          [describeMeal]: [...(previous[describeMeal] || []), entry]
-        }));
+        const [savedEntry] = applySelectedMealTime([entry]);
+        const savedLog = await saveMealRegistration(describeMeal, [savedEntry]);
+        if (!savedLog) return;
         setDescribeResult(null);
         setMealDescription("");
+        resetMealTimeControl();
         notify(uiText("Refeição registrada.", "Meal logged.", "Comida registrada."));
+        await closeMealRegistration();
       }
 
       // Water
@@ -1801,6 +1951,8 @@
           items
         });
         setBatchMode(true);
+        resetMealTimeControl();
+        captureMealRegistrationOrigin();
         openTab("adicionar");
         notify(pickLang(lang, "\"" + sugg.name + "\" carregada. Ajuste e registre.", "\"" + sugg.name + "\" loaded. Adjust and log it.", "\"" + sugg.name + "\" cargada. Ajusta y registra."));
       }
@@ -2350,6 +2502,70 @@
           scheduleSave("log_v2_" + viewDate, resolvedLog);
         }
       }
+      function captureMealRegistrationOrigin() {
+        if (mealRegistrationOriginRef.current) return;
+        mealRegistrationOriginRef.current = createMealRegistrationOrigin({
+          tab,
+          viewDate,
+          scrollY: Number(window.scrollY ?? window.pageYOffset ?? 0)
+        });
+      }
+      async function closeMealRegistration() {
+        if (mealRegistrationSavingRef.current) return false;
+        const history = tabHistoryRef.current;
+        const fallbackTab = history.length ? history[history.length - 1] : "diario";
+        const origin = mealRegistrationOriginRef.current || createMealRegistrationOrigin({
+          tab: fallbackTab,
+          viewDate,
+          scrollY: 0
+        });
+        if (origin.viewDate && origin.viewDate !== viewDate) {
+          try {
+            await changeViewDate(origin.viewDate);
+          } catch (_) {
+            notify(uiText(
+              "Não foi possível restaurar a data anterior. Tente novamente.",
+              "Could not restore the previous date. Please try again.",
+              "No se pudo restaurar la fecha anterior. Inténtalo de nuevo."
+            ));
+            return false;
+          }
+        }
+        if (history[history.length - 1] === origin.tab) history.pop();
+        pendingScrollRestoreRef.current = origin.scrollY;
+        mealRegistrationOriginRef.current = null;
+        openTab(origin.tab, { skipTutorial: true, fromBack: true });
+        return true;
+      }
+      async function saveMealRegistration(meal, items) {
+        if (mealRegistrationSavingRef.current) return null;
+        const nextLog = {
+          ...activeLog,
+          [meal]: [...(activeLog[meal] || []), ...items]
+        };
+        mealRegistrationSavingRef.current = true;
+        setMealRegistrationSaving(true);
+        try {
+          await persistMealRegistration({
+            storage,
+            key: "log_v2_" + viewDate,
+            nextLog
+          });
+          hydratedStorageKeysRef.current.add("log_v2_" + viewDate);
+          setActiveLog(nextLog);
+          return nextLog;
+        } catch (_) {
+          notify(uiText(
+            "Não foi possível salvar a refeição. Verifique a conexão e tente novamente.",
+            "Could not save the meal. Check your connection and try again.",
+            "No se pudo guardar la comida. Comprueba la conexión e inténtalo de nuevo."
+          ), 8000);
+          return null;
+        } finally {
+          mealRegistrationSavingRef.current = false;
+          setMealRegistrationSaving(false);
+        }
+      }
 
       // Pantry
       function addFood() {
@@ -2443,9 +2659,11 @@
         setDescribeMeal(meal);
         setBatchMode(pantry.length > 0);
         setDescribeMode(pantry.length === 0);
+        resetMealTimeControl();
+        captureMealRegistrationOrigin();
         openTab("adicionar");
       }
-      function addToLog() {
+      async function addToLog() {
         if (!pantry.length) {
           notify(uiText(
             "Cadastre alimentos na despensa primeiro, ou use Descrever prato.",
@@ -2457,11 +2675,11 @@
         if (!addEntry.foodId || !addEntry.qty) return;
         const food = pantry.find(f => f.id === addEntry.foodId);
         if (!food) return;
-        const entry = buildEntry(food, parseFloat(addEntry.qty));
-        setActiveLog({
-          ...activeLog,
-          [addEntry.meal]: [...(activeLog[addEntry.meal] || []), entry]
-        });
+        const [entry] = applySelectedMealTime([
+          buildEntry(food, parseFloat(addEntry.qty))
+        ]);
+        const savedLog = await saveMealRegistration(addEntry.meal, [entry]);
+        if (!savedLog) return;
         setAddEntry(e => ({
           ...e,
           qty: "",
@@ -2469,6 +2687,7 @@
           foodId: ""
         }));
         notify(uiText(`${food.name} adicionado.`, `${food.name} added.`, `${food.name} añadido.`));
+        await closeMealRegistration();
       }
       function addToStaged() {
         if (!pantry.length) {
@@ -2499,7 +2718,7 @@
           items: s.items.filter((_, i) => i !== idx)
         }));
       }
-      function commitStaged() {
+      async function commitStaged() {
         if (!pantry.length) {
           notify(uiText(
             "Cadastre alimentos na despensa primeiro, ou use Descrever prato.",
@@ -2510,13 +2729,13 @@
         }
         if (!staged.items.length) return;
         const meal = staged.meal;
-        const items = [...staged.items];
-        setActiveLog(previous => ({
-          ...previous,
-          [meal]: [...(previous[meal] || []), ...items]
-        }));
+        const items = applySelectedMealTime(staged.items);
+        const savedLog = await saveMealRegistration(meal, items);
+        if (!savedLog) return;
         setStaged(current => ({...current, items: []}));
+        resetMealTimeControl();
         notify(uiText("Refeição registrada.", "Meal logged.", "Comida registrada."));
+        await closeMealRegistration();
       }
       function evaluateStagedMeal() {
         if (!staged.items.length) return;
@@ -2737,8 +2956,24 @@
       // Gemini AI helper
       async function callAI(prompt, maxTokens) {
         try {
-          return await requestAICompletion(prompt, maxTokens);
+          const result = await requestAICompletion(prompt, maxTokens);
+          writeAIStatus(sessionStorage, { status: "success" });
+          return result;
         } catch (error) {
+          const status = error instanceof AIClientError
+            ? {
+                "authentication-error": "session-expired",
+                "invalid-response": "invalid-response",
+                "rate-limited": "rate-limited"
+              }[error.code] || "service-unavailable"
+            : "service-unavailable";
+          writeAIStatus(sessionStorage, {
+            status,
+            scope: error instanceof AIClientError ? error.scope : undefined,
+            retryAfterSeconds: error instanceof AIClientError
+              ? error.retryAfterSeconds
+              : undefined
+          });
           if (error instanceof AIClientError && error.code === "authentication-error") {
             throw new Error(uiText(
               "Sua sessão expirou. Entre novamente.",
@@ -3274,19 +3509,17 @@
         setMealReview(review);
         generateMealReviewExplanation(review);
       }
-      function confirmMealReview() {
+      async function confirmMealReview() {
         if (!mealReview) return;
         const evaluationId = Date.now().toString() + Math.random();
         const snapshot = mealScoreSnapshot(mealReview.result);
-        const savedItems = mealReview.items.map(item => ({
+        const savedItems = applySelectedMealTime(mealReview.items).map(item => ({
           ...item,
           mealEvaluationId: evaluationId,
           mealScoreSnapshot: snapshot
         }));
-        setActiveLog({
-          ...activeLog,
-          [mealReview.meal]: [...(activeLog[mealReview.meal] || []), ...savedItems]
-        });
+        const savedLog = await saveMealRegistration(mealReview.meal, savedItems);
+        if (!savedLog) return;
         if (mealReview.source === "staged") {
           setStaged(current => ({...current, items: []}));
         }
@@ -3297,7 +3530,9 @@
         setMealReview(null);
         setMealReviewHelpOpen(false);
         setMealReviewAiText("");
+        resetMealTimeControl();
         notify(uiText("Refeição registrada.", "Meal logged.", "Comida registrada."));
+        await closeMealRegistration();
       }
       const stagedTot = {
         protein: staged.items.reduce((s, e) => s + (e.protein ?? 0), 0),
@@ -3960,6 +4195,7 @@
           helpOpen: mealReviewHelpOpen,
           aiLoading: mealReviewAiLoading,
           aiText: mealReviewAiText,
+          saving: mealRegistrationSaving,
           getMealLabel: mealLabel,
           getEvaluationText: mealScoreEvaluationText,
           getBrief: mealScoreBrief,
@@ -3971,6 +4207,184 @@
         });
       }
 
+      function renderAIStatusModal() {
+        if (!aiStatusModal) return null;
+        const timestamp = aiStatusModal.timestamp
+          ? new Intl.DateTimeFormat(localeForLang(lang), {
+              dateStyle: "short",
+              timeStyle: "medium"
+            }).format(new Date(aiStatusModal.timestamp))
+          : null;
+        const retryAfterSeconds = aiStatusModal.retryAfterSeconds;
+        const retryAfterText = retryAfterSeconds
+          ? retryAfterSeconds >= 60
+            ? uiText(
+                `${Math.ceil(retryAfterSeconds / 60)} min`,
+                `${Math.ceil(retryAfterSeconds / 60)} min`,
+                `${Math.ceil(retryAfterSeconds / 60)} min`
+              )
+            : uiText(
+                `${retryAfterSeconds} s`,
+                `${retryAfterSeconds} sec`,
+                `${retryAfterSeconds} s`
+              )
+          : null;
+        const scopeLabels = {
+          user: uiText("por usuário", "per-user", "por usuario"),
+          global: uiText("global", "global", "global"),
+          daily: uiText("diário", "daily", "diario")
+        };
+        const views = {
+          "not-called": {
+            title: uiText("Ainda não verificada", "Not checked yet", "Aún no verificada"),
+            detail: uiText(
+              "Nenhuma função de IA foi usada nesta sessão.",
+              "No AI feature has been used in this session.",
+              "No se ha usado ninguna función de IA en esta sesión."
+            ),
+            color: "var(--muted)"
+          },
+          success: {
+            title: uiText("Funcionando", "Working", "Funcionando"),
+            detail: timestamp
+              ? uiText(
+                  `Última chamada concluída em ${timestamp}.`,
+                  `Last call completed at ${timestamp}.`,
+                  `Última llamada completada el ${timestamp}.`
+                )
+              : uiText(
+                  "A última chamada foi concluída.",
+                  "The last call completed.",
+                  "La última llamada se completó."
+                ),
+            color: "var(--success, #4aa578)"
+          },
+          "session-expired": {
+            title: uiText("Sessão expirada", "Session expired", "Sesión expirada"),
+            detail: uiText(
+              "Entre novamente para usar a IA do Trofia.",
+              "Sign in again to use Trofia AI.",
+              "Inicia sesión de nuevo para usar la IA de Trofia."
+            ),
+            color: "var(--warning, #c8953f)"
+          },
+          "service-unavailable": {
+            title: uiText("Serviço indisponível", "Service unavailable", "Servicio no disponible"),
+            detail: uiText(
+              "A última chamada falhou. Tente novamente em instantes.",
+              "The last call failed. Try again shortly.",
+              "La última llamada falló. Inténtalo de nuevo en unos instantes."
+            ),
+            color: "var(--danger, #c86e6e)"
+          },
+          "invalid-response": {
+            title: uiText("Resposta inválida", "Invalid response", "Respuesta no válida"),
+            detail: uiText(
+              "O serviço respondeu, mas o conteúdo não pôde ser processado.",
+              "The service responded, but its content could not be processed.",
+              "El servicio respondió, pero no se pudo procesar el contenido."
+            ),
+            color: "var(--danger, #c86e6e)"
+          },
+          "rate-limited": {
+            title: uiText("Limite atingido", "Limit reached", "Límite alcanzado"),
+            detail: uiText(
+              `O limite ${scopeLabels[aiStatusModal.scope] || ""} foi atingido.${retryAfterText ? ` Tente novamente em ${retryAfterText}.` : ""}`,
+              `The ${scopeLabels[aiStatusModal.scope] || ""} limit was reached.${retryAfterText ? ` Try again in ${retryAfterText}.` : ""}`,
+              `Se alcanzó el límite ${scopeLabels[aiStatusModal.scope] || ""}.${retryAfterText ? ` Inténtalo de nuevo en ${retryAfterText}.` : ""}`
+            ).replace(/\s+/g, " ").trim(),
+            color: "var(--warning, #c8953f)"
+          }
+        };
+        const view = views[aiStatusModal.status] || views["not-called"];
+
+        return /*#__PURE__*/React.createElement("div", {
+          "data-ai-status-modal": "true",
+          role: "presentation",
+          onClick: () => setAIStatusModal(null),
+          style: {
+            position: "fixed",
+            inset: 0,
+            zIndex: 100006,
+            background: "rgba(0,0,0,.48)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 18
+          }
+        }, /*#__PURE__*/React.createElement("div", {
+          role: "dialog",
+          "aria-modal": "true",
+          "aria-labelledby": "trofia-ai-status-title",
+          onClick: event => event.stopPropagation(),
+          style: {
+            width: "min(430px, 94vw)",
+            background: "var(--bg)",
+            color: "var(--text)",
+            border: "1px solid var(--border)",
+            borderRadius: 14,
+            boxShadow: "0 20px 60px rgba(0,0,0,.32)",
+            padding: 22
+          }
+        }, /*#__PURE__*/React.createElement("div", {
+          style: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            marginBottom: 20
+          }
+        }, /*#__PURE__*/React.createElement("h2", {
+          id: "trofia-ai-status-title",
+          style: {
+            margin: 0,
+            fontSize: 21,
+            letterSpacing: .4
+          }
+        }, "Trofia IA"), /*#__PURE__*/React.createElement("button", {
+          type: "button",
+          "aria-label": uiText("Fechar", "Close", "Cerrar"),
+          onClick: () => setAIStatusModal(null),
+          style: {
+            ...btn,
+            width: 40,
+            minWidth: 40,
+            height: 40,
+            padding: 0,
+            fontSize: 22
+          }
+        }, "×")), /*#__PURE__*/React.createElement("div", {
+          style: {
+            display: "flex",
+            gap: 12,
+            alignItems: "flex-start"
+          }
+        }, /*#__PURE__*/React.createElement("span", {
+          "aria-hidden": "true",
+          style: {
+            width: 12,
+            height: 12,
+            marginTop: 5,
+            borderRadius: "50%",
+            background: view.color,
+            boxShadow: `0 0 0 4px color-mix(in srgb, ${view.color} 18%, transparent)`,
+            flex: "0 0 auto"
+          }
+        }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", {
+          style: {
+            display: "block",
+            color: view.color,
+            fontSize: 17,
+            marginBottom: 6
+          }
+        }, view.title), /*#__PURE__*/React.createElement("div", {
+          style: {
+            color: "var(--muted)",
+            lineHeight: 1.5
+          }
+        }, view.detail)))));
+      }
+
       const nutritionBackStateRef = useRef(null);
       nutritionBackStateRef.current = () => {
         const resolution = resolveBackAction({
@@ -3980,6 +4394,7 @@
           metricsProgressInfoOpen,
           backupImportPreview,
           barcodeModalOpen,
+          aiStatusModal,
           reportModalOpen,
           mealReview,
           detailFood,
@@ -4023,6 +4438,7 @@
           case "closeMetricsProgressInfo": setMetricsProgressInfoOpen(false); break;
           case "closeBackupImportPreview": closeBackupImportPreview(null); break;
           case "closeBarcodeModal": closeBarcodeModal(); break;
+          case "closeAIStatus": setAIStatusModal(null); break;
           case "closeReportModal": setReportModalOpen(false); break;
           case "closeMealReview":
             setMealReview(null);
@@ -4065,7 +4481,10 @@
           case "closeSupplementPantry": setSuppPantryOpen(false); break;
           case "closeAddTemplates": setAddTemplatesOpen(false); break;
           case "returnToToday": changeViewDate(TODAY); break;
-          case "leaveAddScreen":
+          case "leaveAddScreen": {
+            closeMealRegistration();
+            break;
+          }
           case "leaveSecondaryTab": {
             const destination = tabHistoryRef.current.pop() || "diario";
             openTab(destination, { skipTutorial: true, fromBack: true });
@@ -4099,7 +4518,8 @@
         lang,
         isMobileView,
         text,
-        openTab,
+        closeMealRegistration,
+        helpNode: renderContextualHelpButton(),
         showRecentMeals,
         setShowRecentMeals,
         recentMeals,
@@ -4117,6 +4537,11 @@
         describeMode,
         pantry,
         selectAddMode,
+        mealTimeOpen: mealTimeControl.open,
+        mealTimeValue: mealTimeControl.value,
+        openMealTimeControl,
+        setSelectedMealTime,
+        mealRegistrationSaving,
         mealTemplates,
         addTemplateSearch,
         setAddTemplateSearch,
@@ -4258,6 +4683,8 @@
         viewWeight,
         isTraining,
         totalWater,
+        waterExpanded,
+        setWaterExpanded,
         editWaterGoal,
         setEditWaterGoal,
         waterGoalInput,
@@ -4307,7 +4734,7 @@
         saveFeedbackAsNote,
         setTab
       };
-      return /*#__PURE__*/React.createElement(React.Fragment, null, renderMealReviewModal(), /*#__PURE__*/React.createElement("div", {
+      return /*#__PURE__*/React.createElement(React.Fragment, null, renderMealReviewModal(), renderAIStatusModal(), /*#__PURE__*/React.createElement("div", {
         "data-one-ui-root": "true",
         "data-theme": darkMode ? "dark" : "light",
         style: {
@@ -4358,6 +4785,14 @@
           setMenuOpen(false);
         },
         menuActions: onOpenSettings ? [{
+            key: "trofia-ai",
+            icon: "✦",
+            label: "Trofia IA",
+            onClick: () => {
+              setAIStatusModal(readAIStatus(sessionStorage));
+              setMenuOpen(false);
+            }
+          }, {
             key: "settings",
             icon: "⚙",
             label: uiText("Configurações", "Settings", "Configuración"),
@@ -4429,7 +4864,7 @@
         notification
       }), /*#__PURE__*/React.createElement("div", {
         "data-add-meal-backdrop": "true",
-        onClick: () => openTab("diario"),
+        onClick: closeMealRegistration,
         style: {
           display: tab === "adicionar" ? "block" : "none",
           position: "fixed",
@@ -4468,37 +4903,16 @@
       }, tab === "adicionar" && /*#__PURE__*/React.createElement(AddScreen, {
         ...addScreenProps,
         section: "header"
-      }), /*#__PURE__*/React.createElement("div", {
+      }), tab !== "adicionar" && /*#__PURE__*/React.createElement("div", {
+        "data-contextual-help-row": "true",
         style: {
-          position: "absolute",
-          top: 12,
-          right: "clamp(18px, 3vw, 34px)",
-          zIndex: 5
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          minHeight: 24,
+          marginBottom: 8
         }
-      }, /*#__PURE__*/React.createElement("button", {
-        onClick: reopenTabTutorial,
-        title: uiText("Ver tutorial desta aba", "Show this tab tutorial", "Ver tutorial de esta pestaña"),
-        "aria-label": uiText("Ver tutorial desta aba", "Show this tab tutorial", "Ver tutorial de esta pestaña"),
-        style: {
-          minWidth: isMobileView ? 24 : 64,
-          height: 24,
-          padding: isMobileView ? 0 : "0 9px",
-          borderRadius: 999,
-          border: "1px solid var(--border3)",
-          background: "var(--surface3)",
-          color: "var(--muted)",
-          fontSize: 11,
-          fontWeight: 600,
-          fontFamily: "inherit",
-          cursor: "pointer",
-          lineHeight: "22px",
-          textAlign: "center",
-          letterSpacing: 0.7,
-          textTransform: "uppercase",
-          opacity: 0.88,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.04)"
-        }
-      }, isMobileView ? "i" : uiText("i Ajuda", "i Help", "i Ayuda"))), tab === "diario" && /*#__PURE__*/React.createElement(DiaryScreen, { ...diaryScreenProps, section: "content", opaqueTrailingNode: /*#__PURE__*/React.createElement(React.Fragment, null, backupImportPreview && (() => {
+      }, renderContextualHelpButton()), tab === "diario" && /*#__PURE__*/React.createElement(DiaryScreen, { ...diaryScreenProps, section: "content", opaqueTrailingNode: /*#__PURE__*/React.createElement(React.Fragment, null, backupImportPreview && (() => {
         const preview = backupImportPreview.preview || {};
         const selections = backupImportPreview.selections || {};
         const previewLang = normalizeLanguage(lang);
@@ -5574,7 +5988,17 @@
       };
     }
 
-    return { NutritionTracker };
+    return {
+      NutritionTracker,
+      normalizeAIStatus,
+      readAIStatus,
+      writeAIStatus,
+      formatMealRegistrationTime,
+      resolveMealRegistrationTime,
+      applyMealRegistrationTime,
+      createMealRegistrationOrigin,
+      persistMealRegistration
+    };
   }
 
   return { createNutritionTrackerController };

@@ -161,6 +161,32 @@ contractTest("renders the complete weekly summary, charts, averages, and shared 
   assert.equal(findNodes(screen, node => node.type === "ReferenceLine").length, 2);
 });
 
+contractTest("deduplicates yesterday across the past and today tooltip segments", WeekScreen => {
+  const screen = WeekScreen(baseProps());
+  const tooltips = findNodes(screen, node => node.type === "Tooltip");
+  const proteinTooltip = tooltips[0].props.content({
+    active: true,
+    label: "Wed",
+    payload: [
+      { dataKey: "proteinPastLine", value: 100 },
+      { dataKey: "proteinTodayLine", value: 100 }
+    ]
+  });
+  const calorieTooltip = tooltips[1].props.content({
+    active: true,
+    label: "Wed",
+    payload: [
+      { dataKey: "kcalPastLine", value: 1800 },
+      { dataKey: "kcalTodayLine", value: 1800 }
+    ]
+  });
+
+  assert.equal(textContent(proteinTooltip), "WedProtein: 100g");
+  assert.equal(textContent(calorieTooltip), "WedCalories: 1800 kcal");
+  assert.equal(findNodes(proteinTooltip, node => node.props?.["data-week-tooltip"] === "protein").length, 1);
+  assert.equal(findNodes(calorieTooltip, node => node.props?.["data-week-tooltip"] === "calories").length, 1);
+});
+
 contractTest("preserves loading and empty-data rendering gates", WeekScreen => {
   const loading = WeekScreen(baseProps({ weekData: [], mealAverages: {}, latestWeekPoint: null }));
   assert.equal(textContent(loading), "Loading");

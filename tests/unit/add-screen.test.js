@@ -76,7 +76,7 @@ function baseProps(overrides = {}) {
     lang: "en",
     isMobileView: false,
     text,
-    openTab: noOp,
+    closeMealRegistration: noOp,
     showRecentMeals: false,
     setShowRecentMeals: noOp,
     recentMeals: [],
@@ -107,6 +107,11 @@ function baseProps(overrides = {}) {
     describeMode: false,
     pantry: [food],
     selectAddMode: noOp,
+    mealTimeOpen: false,
+    mealTimeValue: "",
+    openMealTimeControl: noOp,
+    setSelectedMealTime: noOp,
+    mealRegistrationSaving: false,
     mealTemplates: [],
     addTemplateSearch: "",
     setAddTemplateSearch: noOp,
@@ -200,6 +205,25 @@ contractTest("renders staged meal assembly and invokes its controlled callbacks"
   assert.equal(removed, 0);
 });
 
+contractTest("disables final registration while persistence is in progress", AddScreen => {
+  const view = AddScreen(baseProps({ mealRegistrationSaving: true }));
+  const logButton = findNodes(view, node =>
+    node.type === "button" && /Log meal/.test(textContent(node))
+  )[0];
+  const header = AddScreen(baseProps({
+    section: "header",
+    mealRegistrationSaving: true
+  }));
+  const closeButton = findNodes(
+    header,
+    node => node.props?.["data-add-close"] === "true"
+  )[0];
+
+  assert.equal(logButton.props.disabled, true);
+  assert.equal(logButton.props.style.cursor, "wait");
+  assert.equal(closeButton.props.disabled, true);
+});
+
 contractTest("passes saved-template state and loading callback to SavedMealCard", AddScreen => {
   const template = { id: "template-1", name: "Workout meal", items: [] };
   let loaded = null;
@@ -279,10 +303,50 @@ contractTest("keeps active GA absent and places the legacy transfer panel as an 
   assert.doesNotMatch(textContent(view), /active-ga-result|Should not render/);
 });
 
+contractTest("keeps meal time collapsed until requested and exposes one compact time input", AddScreen => {
+  let opened = 0;
+  let selected = null;
+  const collapsed = AddScreen(baseProps({
+    openMealTimeControl: () => { opened += 1; }
+  }));
+  const collapsedControl = findNodes(
+    collapsed,
+    node => node.props?.["data-meal-time-control"] === "closed"
+  )[0];
+  const openButton = findNodes(
+    collapsedControl,
+    node => node.type === "button" && textContent(node) === "+ Set meal time"
+  )[0];
+
+  assert.equal(findNodes(collapsedControl, node => node.type === "input").length, 0);
+  openButton.props.onClick();
+  assert.equal(opened, 1);
+
+  const expanded = AddScreen(baseProps({
+    mealTimeOpen: true,
+    mealTimeValue: "09:07",
+    setSelectedMealTime: value => { selected = value; }
+  }));
+  const expandedControl = findNodes(
+    expanded,
+    node => node.props?.["data-meal-time-control"] === "open"
+  )[0];
+  const timeInput = findNodes(
+    expandedControl,
+    node => node.type === "input" && node.props.type === "time"
+  )[0];
+
+  assert.equal(timeInput.props.value, "09:07");
+  assert.equal(timeInput.props.style.width, 112);
+  timeInput.props.onChange({ target: { value: "18:45" } });
+  assert.equal(selected, "18:45");
+});
+
 contractTest("recent meals and header remain controlled sections", AddScreen => {
   let toggled = 0;
   let loaded = null;
   let closed = 0;
+  let helped = 0;
   const recentMeal = {
     meal: "Café da manhã",
     date: "2026-07-23",
@@ -306,10 +370,22 @@ contractTest("recent meals and header remain controlled sections", AddScreen => 
 
   const header = AddScreen(baseProps({
     section: "header",
-    openTab: value => {
-      if (value === "diario") closed += 1;
-    }
+    helpNode: React.createElement("button", {
+      "data-contextual-help": "adicionar",
+      onClick: () => { helped += 1; }
+    }, "i"),
+    closeMealRegistration: () => { closed += 1; }
   }));
-  findNodes(header, node => node.type === "button")[0].props.onClick();
+  const actions = findNodes(header, node => node.props?.["data-add-header-actions"] === "true")[0];
+  const helpButton = findNodes(header, node => node.props?.["data-contextual-help"] === "adicionar")[0];
+  const closeButton = findNodes(header, node => node.props?.["data-add-close"] === "true")[0];
+  const actionButtons = findNodes(actions, node => node.type === "button");
+
+  assert.equal(actions.props.style.display, "flex");
+  assert.equal(actions.props.style.gap, 8);
+  assert.deepEqual(actionButtons, [helpButton, closeButton]);
+  helpButton.props.onClick();
+  closeButton.props.onClick();
+  assert.equal(helped, 1);
   assert.equal(closed, 1);
 });

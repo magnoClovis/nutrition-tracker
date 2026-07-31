@@ -90,20 +90,20 @@ contractTest("rejects a missing Firebase token before making a request", async m
   assert.equal(fixture.requests.length, 0);
 });
 
-contractTest("maps sanitized Worker HTTP failures to neutral errors", async module => {
+contractTest("maps sanitized Worker HTTP failures and rate-limit metadata to neutral errors", async module => {
   const { AIClientError } = module;
   const cases = [
-    [401, "authentication-error", undefined],
-    [429, "rate-limited", 17],
-    [500, "service-unavailable", undefined],
-    [503, "service-unavailable", undefined],
-    [400, "api-error", undefined]
+    [401, "authentication-error", undefined, undefined],
+    [429, "rate-limited", 17, "user"],
+    [500, "service-unavailable", undefined, undefined],
+    [503, "service-unavailable", undefined, undefined],
+    [400, "api-error", undefined, undefined]
   ];
 
-  for (const [status, code, retryAfterSeconds] of cases) {
+  for (const [status, code, retryAfterSeconds, scope] of cases) {
     const fixture = createFixture(module, {
       responses: [response(
-        { error: { code: "sanitized-worker-code" } },
+        { error: { code: "sanitized-worker-code", scope } },
         {
           ok: false,
           status,
@@ -116,9 +116,34 @@ contractTest("maps sanitized Worker HTTP failures to neutral errors", async modu
       fixture.api.callAI("prompt"),
       error => error instanceof AIClientError &&
         error.code === code &&
-        error.retryAfterSeconds === retryAfterSeconds
+        error.retryAfterSeconds === retryAfterSeconds &&
+        error.scope === scope
     );
   }
+});
+
+contractTest("ignores invalid or non-rate-limit scope metadata", async module => {
+  const invalidScope = createFixture(module, {
+    responses: [response(
+      { error: { code: "rate-limit-exceeded", scope: "private-limit-name" } },
+      { ok: false, status: 429 }
+    )]
+  });
+  await assert.rejects(
+    invalidScope.api.callAI("prompt"),
+    error => error.scope === undefined
+  );
+
+  const unrelatedScope = createFixture(module, {
+    responses: [response(
+      { error: { code: "provider-error", scope: "global" } },
+      { ok: false, status: 503 }
+    )]
+  });
+  await assert.rejects(
+    unrelatedScope.api.callAI("prompt"),
+    error => error.scope === undefined
+  );
 });
 
 contractTest("rejects malformed or structurally invalid Worker responses", async module => {

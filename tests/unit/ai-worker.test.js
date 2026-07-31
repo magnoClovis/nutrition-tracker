@@ -285,20 +285,45 @@ test("requires the Gemini secret only after authentication and input validation"
   assert.equal(fixture.rateLimiterChecks.length, 0);
 });
 
-test("returns 429 with Retry-After when the shared limiter rejects a call", async () => {
+test("returns 429 with public scope and Retry-After for every quota", async () => {
+  const cases = [
+    ["uid-minute", "user"],
+    ["global-minute", "global"],
+    ["global-day", "daily"]
+  ];
+
+  for (const [limit, scope] of cases) {
+    const fixture = await createFixture({
+      rateLimitResult: {
+        allowed: false,
+        limit,
+        retryAfterSeconds: 17
+      }
+    });
+    const response = await fixture.worker.fetch(request(), fixture.env);
+
+    assert.equal(response.status, 429);
+    assert.equal(response.headers.get("Retry-After"), "17");
+    assert.deepEqual(await responseBody(response), {
+      error: { code: "rate-limit-exceeded", scope }
+    });
+    assert.equal(fixture.providerRequests.length, 0);
+  }
+});
+
+test("fails closed when the limiter returns an unknown denied scope", async () => {
   const fixture = await createFixture({
     rateLimitResult: {
       allowed: false,
-      limit: "uid-minute",
+      limit: "unexpected-private-limit",
       retryAfterSeconds: 17
     }
   });
   const response = await fixture.worker.fetch(request(), fixture.env);
 
-  assert.equal(response.status, 429);
-  assert.equal(response.headers.get("Retry-After"), "17");
+  assert.equal(response.status, 503);
   assert.deepEqual(await responseBody(response), {
-    error: { code: "rate-limit-exceeded" }
+    error: { code: "rate-limit-unavailable" }
   });
   assert.equal(fixture.providerRequests.length, 0);
 });

@@ -821,3 +821,11 @@ Mais críticos para investigação antes de mudanças estruturais:
    perdida sem qualquer aviso.
 
 Este documento é somente inventário. Nenhum comportamento foi corrigido.
+
+
+BUGS RESOLVIDOS
+===============
+
+Nenhuma entrada deste inventário foi integralmente resolvida nesta rodada.
+Entradas apenas parcialmente relacionadas permanecem no corpo do documento e
+não são classificadas aqui como resolvidas.
