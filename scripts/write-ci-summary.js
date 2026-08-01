@@ -54,6 +54,7 @@ const unit = parseUnitResults();
 const playwright = parsePlaywrightResults();
 const preflightOutcome = process.env.PREFLIGHT_OUTCOME || 'skipped';
 const unitOutcome = process.env.UNIT_OUTCOME || 'skipped';
+const workerOutcome = process.env.WORKER_OUTCOME || 'skipped';
 const smokeOutcome = process.env.SMOKE_OUTCOME || 'skipped';
 
 const summary = [
@@ -63,6 +64,7 @@ const summary = [
   '|---|---:|---:|---:|---:|---:|',
   `| Preflight | ${statusIcon(preflightOutcome)} ${preflightOutcome} | — | — | — | — |`,
   `| Unitários | ${statusIcon(unitOutcome)} ${unitOutcome} | ${unit.passed} | ${unit.failed} | ${unit.skipped} | ${unit.total} |`,
+  `| Worker | ${statusIcon(workerOutcome)} ${workerOutcome} | — | — | — | — |`,
   `| Playwright | ${statusIcon(smokeOutcome)} ${smokeOutcome} | ${playwright.passed} | ${playwright.failed} | ${playwright.skipped} | ${playwright.total} |`,
   '',
   playwright.skipped > 0
