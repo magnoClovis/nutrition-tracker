@@ -59,6 +59,11 @@ jobs:
           npm run test:unit 2>&1 | Tee-Object -FilePath .ci-results/unit-output.txt
           exit $LASTEXITCODE
 
+      - name: Run Worker tests
+        id: worker
+        continue-on-error: true
+        run: npm --prefix worker test
+
       - name: Run Playwright smoke tests
         id: smoke
         continue-on-error: true
@@ -73,11 +78,12 @@ jobs:
         env:
           PREFLIGHT_OUTCOME: ${{ steps.preflight.outcome }}
           UNIT_OUTCOME: ${{ steps.unit.outcome }}
+          WORKER_OUTCOME: ${{ steps.worker.outcome }}
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
         run: node scripts/write-ci-summary.js
 
       - name: Upload failure diagnostics
-        if: ${{ always() && (steps.preflight.outcome == 'failure' || steps.unit.outcome == 'failure' || steps.smoke.outcome == 'failure') }}
+        if: ${{ always() && (steps.preflight.outcome == 'failure' || steps.unit.outcome == 'failure' || steps.worker.outcome == 'failure' || steps.smoke.outcome == 'failure') }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-failure-${{ github.run_id }}-${{ github.run_attempt }}
@@ -95,6 +101,7 @@ jobs:
           $failed = @(
             '${{ steps.preflight.outcome }}',
             '${{ steps.unit.outcome }}',
+            '${{ steps.worker.outcome }}',
             '${{ steps.smoke.outcome }}'
           ) -contains 'failure'
 

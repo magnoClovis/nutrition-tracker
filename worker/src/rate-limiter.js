@@ -1,6 +1,10 @@
 import { DurableObject } from "cloudflare:workers";
 
 const WINDOW_MS = 60_000;
+const POLICY_MAX_METADATA_RETENTION_MS = 24 * 60 * 60 * 1_000;
+const ALARM_DELIVERY_SAFETY_MARGIN_MS = 60 * 60 * 1_000;
+const INDIVIDUAL_METADATA_RETENTION_MS =
+  POLICY_MAX_METADATA_RETENTION_MS - ALARM_DELIVERY_SAFETY_MARGIN_MS;
 const UID_REQUESTS_PER_MINUTE = 5;
 const GLOBAL_REQUESTS_PER_MINUTE = 12;
 const GLOBAL_REQUESTS_PER_DAY = 400;
@@ -62,7 +66,55 @@ export class AIRateLimiter extends DurableObject {
         );
         INSERT OR IGNORE INTO _sql_schema_migrations (version) VALUES (1);
       `);
+      this.cleanupExpiredMetadata(Date.now());
+      await this.scheduleCleanup(Date.now());
     });
+  }
+
+  cleanupExpiredMetadata(timestampMs) {
+    this.sql.exec(
+      "DELETE FROM recent_requests WHERE timestamp_ms <= ?",
+      timestampMs - INDIVIDUAL_METADATA_RETENTION_MS
+    );
+    this.sql.exec(
+      "DELETE FROM daily_usage WHERE day_key <> ?",
+      pacificDay(timestampMs)
+    );
+  }
+
+  async scheduleCleanup(timestampMs) {
+    const nextRecent = [...this.sql.exec(
+      "SELECT MIN(timestamp_ms) AS timestamp_ms FROM recent_requests"
+    )][0]?.timestamp_ms;
+    const hasDailyUsage = [...this.sql.exec(
+      "SELECT 1 AS present FROM daily_usage LIMIT 1"
+    )].length > 0;
+    const candidates = [];
+
+    if (Number.isSafeInteger(nextRecent)) {
+      candidates.push(nextRecent + INDIVIDUAL_METADATA_RETENTION_MS);
+    }
+    if (hasDailyUsage) {
+      candidates.push(
+        timestampMs + (secondsUntilNextPacificDay(
+          timestampMs,
+          pacificDay(timestampMs)
+        ) * 1_000)
+      );
+    }
+    if (candidates.length === 0) return;
+
+    const requestedAlarm = Math.min(...candidates);
+    const currentAlarm = await this.ctx.storage.getAlarm();
+    if (currentAlarm === null || requestedAlarm < currentAlarm) {
+      await this.ctx.storage.setAlarm(requestedAlarm);
+    }
+  }
+
+  async alarm() {
+    const timestampMs = Date.now();
+    this.cleanupExpiredMetadata(timestampMs);
+    await this.scheduleCleanup(timestampMs);
   }
 
   async check(uid, timestampMs = Date.now()) {
@@ -71,7 +123,7 @@ export class AIRateLimiter extends DurableObject {
       throw new TypeError("invalid rate limit input");
     }
 
-    return this.ctx.storage.transactionSync(() => {
+    const result = this.ctx.storage.transactionSync(() => {
       const windowStart = timestampMs - WINDOW_MS;
       const dayKey = pacificDay(timestampMs);
 
@@ -133,5 +185,7 @@ export class AIRateLimiter extends DurableObject {
       );
       return { allowed: true };
     });
+    await this.scheduleCleanup(timestampMs);
+    return result;
   }
 }
