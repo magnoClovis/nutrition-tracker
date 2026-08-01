@@ -384,3 +384,21 @@ contractTest("keeps Spanish on the English path with the DELETE confirmation phr
   assert.match(elementText(fixture.harness.tree), /This action is irreversible/);
   assert.equal(findInput(fixture.harness.tree, "Type DELETE to confirm").props.value, "");
 });
+
+contractTest("links to the canonical public privacy policy in Portuguese, English, and Spanish", async createPrivacyPanel => {
+  const labels = {
+    pt: "Ler a política de privacidade",
+    en: "Read the privacy policy",
+    es: "Leer la política de privacidad"
+  };
+
+  for (const [lang, label] of Object.entries(labels)) {
+    const fixture = createFixture(createPrivacyPanel, { lang });
+    fixture.harness.render();
+    const link = elementsByType(fixture.harness.tree, "a").find(element => elementText(element).includes(label));
+    assert.ok(link, `missing policy link for ${lang}`);
+    assert.equal(link.props.href, "https://magnoclovis.github.io/nutrition-tracker/privacy/");
+    assert.equal(link.props.target, "_blank");
+    assert.equal(link.props.rel, "noopener noreferrer");
+  }
+});

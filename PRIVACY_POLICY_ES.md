@@ -1,0 +1,166 @@
+# Política de Privacidad y Eliminación de Datos de Trofia
+
+**Aplicación:** Trofia (`com.hermegas.trofia`)  
+**Responsable:** Hermegas  
+**Versión de referencia:** Trofia 0.8.1 Beta  
+**Última actualización del texto:** 1 de agosto de 2026  
+**Vigencia:** a partir de su publicación  
+**Contacto de privacidad y solicitudes externas de eliminación:** nutritiontracker.beta@gmail.com  
+**URL pública:** https://magnoclovis.github.io/nutrition-tracker/privacy/
+
+## 1. Alcance y responsable
+
+Esta política explica cómo Trofia recopila, utiliza, almacena, comparte y elimina datos personales. Trofia es una aplicación beta de seguimiento nutricional para registrar comidas, objetivos, consumo de agua, suplementos, métricas corporales e información relacionada.
+
+El responsable del tratamiento es **Hermegas**. Esta política tiene en cuenta los derechos y principios del Reglamento General de Protección de Datos de la Unión Europea (**RGPD**) y de la Ley General de Protección de Datos Personales de Brasil (**LGPD**), según resulten aplicables al usuario y al tratamiento realizado.
+
+## 2. Datos tratados
+
+Trofia puede tratar:
+
+- datos de cuenta: dirección de correo electrónico, identificador de Firebase, nombre visible, estado de verificación y fechas de acceso;
+- datos de perfil: fecha de nacimiento, género, altura, idioma, nivel de actividad y preferencias;
+- datos nutricionales: comidas, horarios, alimentos, nutrientes, despensa, plantillas, notas, agua, suplementos y objetivos;
+- métricas corporales: peso, IMC calculado, porcentaje de grasa, cintura, masa muscular e historial;
+- información sobre días de entrenamiento o descanso e historial de objetivos;
+- prompts enviados a funciones de inteligencia artificial, contexto nutricional necesario y respuestas generadas;
+- códigos de barras consultados mediante el escáner;
+- contenido y archivos enviados voluntariamente mediante el formulario de comentarios;
+- configuración, cachés y estado de sesión almacenados en el dispositivo;
+- metadatos técnicos necesarios para autenticación, seguridad y límites de uso de IA.
+
+La contraseña es procesada por Firebase Authentication y no está disponible para Hermegas.
+
+## 3. Finalidades
+
+Los datos se utilizan para:
+
+- crear, autenticar y mantener cuentas;
+- sincronizar información entre sesiones y dispositivos;
+- registrar y mostrar el diario nutricional;
+- calcular objetivos, totales, gráficos e historiales;
+- generar sugerencias y estimaciones mediante IA cuando se soliciten;
+- consultar productos mediante código de barras;
+- exportar, importar y restaurar copias de seguridad;
+- aplicar límites de uso y proteger el servicio;
+- responder a comentarios, solicitudes de privacidad e incidentes;
+- cumplir obligaciones legales y mantener la seguridad.
+
+## 4. Bases jurídicas
+
+De acuerdo con el RGPD, la LGPD y otras normas aplicables, el tratamiento podrá basarse en:
+
+- la prestación del servicio solicitado por el usuario;
+- el consentimiento, cuando sea necesario para funciones opcionales;
+- el interés legítimo en la seguridad, estabilidad y prevención de abusos, después de considerar los derechos del usuario;
+- el cumplimiento de obligaciones legales o reglamentarias;
+- el ejercicio de derechos y la atención de solicitudes del titular.
+
+Cuando el tratamiento se base en el consentimiento, este podrá retirarse en cualquier momento sin afectar al tratamiento realizado lícitamente antes de su retirada.
+
+## 5. Inteligencia artificial
+
+Cuando el usuario inicia una función de IA, Trofia envía el prompt y el contexto nutricional necesario a un Cloudflare Worker. El Worker valida la sesión de Firebase, aplica límites de uso y reenvía el contenido a la API Gemini de Google.
+
+El código del Worker no guarda prompts ni respuestas en una base de datos y la observabilidad está desactivada. Para controlar los límites, el Durable Object mantiene registros técnicos con el identificador de Firebase y horarios recientes, además de contadores diarios agregados. Estos registros no contienen el texto del prompt ni de la respuesta. La política técnica definida para la publicación limita los metadatos individualizados a un máximo de 24 horas.
+
+Durante las pruebas beta, Trofia puede utilizar la cuota no pagada de la API Gemini. Según los términos de Google, en usos no pagados fuera del Espacio Económico Europeo, Suiza y el Reino Unido, las entradas y respuestas pueden utilizarse para ofrecer, mejorar y desarrollar productos de Google y pueden ser procesadas por revisores humanos. Los términos de Google aplican condiciones diferentes en el Espacio Económico Europeo, Suiza y el Reino Unido y exigen un servicio de pago para clientes de API puestos a disposición de usuarios en esas regiones. Trofia deberá migrar a un proyecto con facturación activa antes del lanzamiento público en dichas regiones.
+
+Las respuestas de IA pueden contener errores y no sustituyen el asesoramiento médico o nutricional profesional. El usuario no debe incluir diagnósticos, historiales clínicos, recetas u otra información confidencial innecesaria en los prompts.
+
+## 6. Código de barras y cámara
+
+La cámara se utiliza únicamente cuando el usuario inicia el escáner. Las imágenes de vídeo se procesan localmente para identificar el código y Trofia no las almacena ni las envía.
+
+El código detectado puede enviarse a Open Food Facts para consultar información pública del producto. La precisión y disponibilidad dependen de esa base externa.
+
+## 7. Comentarios
+
+Cuando el usuario selecciona “Enviar comentarios”, Trofia abre una página de Google Forms. El formulario puede recibir textos, datos de contacto e imágenes que el usuario decida proporcionar.
+
+Esta información está sujeta a las políticas de Google. Hermegas pretende conservar las respuestas durante un máximo de **12 meses**, salvo que una necesidad legítima requiera un periodo mayor, y podrá eliminarlas antes a petición válida del usuario.
+
+## 8. Proveedores y servicios externos
+
+Trofia utiliza:
+
+- Firebase Authentication para la autenticación;
+- Cloud Firestore para tratar y almacenar los datos de cuenta en la región `europe-southwest1` (Madrid, España, Unión Europea);
+- Cloudflare Workers y Durable Objects para intermediar y limitar las llamadas de IA;
+- Gemini API para procesar las funciones de IA;
+- GitHub Pages para ofrecer la aplicación web y la política pública;
+- Open Food Facts para las consultas de productos;
+- Google Forms cuando se envían comentarios;
+- Google Play para la distribución Android y el tratamiento propio de Google relacionado con instalación, seguridad y diagnóstico.
+
+Cloud Firestore trata y almacena los datos de cuenta en la región `europe-southwest1`, en Madrid, España, dentro de la Unión Europea. Fuera de Cloud Firestore, Firebase Authentication opera desde centros de datos situados en Estados Unidos, y servicios globales como Gemini API, Cloudflare Workers, GitHub Pages, Google Forms y Google Play pueden tratar información fuera de la Unión Europea de acuerdo con la naturaleza de sus servicios, sus términos, políticas y mecanismos legales de transferencia internacional. A la API de Gemini también se aplican las condiciones específicas descritas en la sección 5.
+
+Trofia no integra actualmente Firebase Analytics ni Firebase Crashlytics. Los datos de instalación o diagnóstico tratados directamente por Google Play siguen las políticas de Google y no significan necesariamente que Hermegas reciba datos individualizados.
+
+## 9. Comunicación de datos
+
+Trofia no vende datos personales ni los utiliza para publicidad comportamental.
+
+Los datos se comunican únicamente cuando es necesario para prestar funciones solicitadas, operar la infraestructura, proteger el servicio, atender solicitudes o cumplir obligaciones legales.
+
+## 10. Conservación
+
+Los datos de cuenta permanecen en Firebase mientras exista la cuenta o hasta su eliminación.
+
+El estado local de sesión y determinados cachés permanecen en el dispositivo hasta que sean sustituidos, eliminados por la aplicación o el sistema, o borrados al limpiar los datos o desinstalar la aplicación.
+
+El código del Worker no almacena prompts ni respuestas. La conservación realizada por Gemini y otros proveedores se rige por sus términos. Los metadatos individualizados usados para limitar llamadas de IA deberán conservarse durante un máximo de 24 horas; los contadores globales agregados podrán conservarse durante el día de cuota correspondiente y durante el periodo técnico necesario para sustituirlos.
+
+Las respuestas del formulario de comentarios se conservan durante un máximo de 12 meses, salvo que el cumplimiento legal, la seguridad, la investigación de un incidente o una solicitud válida de eliminación anticipada requieran otra cosa.
+
+Las copias de seguridad exportadas permanecen bajo control del usuario. Trofia no puede eliminar archivos ya descargados, copiados o compartidos por el usuario.
+
+Tras una solicitud válida de eliminación, Hermegas no pretende conservar deliberadamente datos asociados a la cuenta, excepto cuando la conservación sea necesaria para cumplir la ley, ejercer derechos, prevenir fraude o proteger la seguridad. Los proveedores pueden conservar copias transitorias o registros conforme a sus propios plazos legales y técnicos.
+
+## 11. Copias de seguridad y exportación
+
+El usuario puede exportar datos en JSON y otros formatos disponibles. Estos archivos pueden contener información personal y nutricional y deben almacenarse de forma segura.
+
+La importación puede añadir o sustituir categorías seleccionadas según la opción mostrada en la aplicación.
+
+## 12. Eliminación de cuenta y datos
+
+Dentro de la aplicación, la ruta es:
+
+**Configuración → Privacidad y seguridad → Eliminar cuenta.**
+
+El usuario debe volver a introducir su contraseña y confirmar la operación. El flujo solicita primero la eliminación de los documentos asociados en Firestore y después la eliminación de la cuenta de Firebase Authentication.
+
+Si falla una etapa detectable, la aplicación muestra un error y la eliminación puede haber sido parcial. En ese caso, el usuario debe contactar con **nutritiontracker.beta@gmail.com**.
+
+También se puede solicitar la eliminación sin acceso a la aplicación enviando un mensaje a **nutritiontracker.beta@gmail.com** desde la dirección de la cuenta o proporcionando información suficiente para verificar la identidad. La solicitud será respondida y atendida en un plazo máximo de **30 días**, salvo que la legislación aplicable exija un plazo diferente.
+
+Las copias de seguridad descargadas y otras copias conservadas por el usuario no se eliminan. Los datos locales residuales pueden requerir borrar los datos de la aplicación o desinstalarla. Los proveedores pueden conservar copias transitorias o registros necesarios por seguridad u obligaciones legales según sus políticas.
+
+## 13. Derechos del usuario
+
+Según corresponda conforme al RGPD, la LGPD u otra legislación, el usuario puede solicitar acceso, confirmación del tratamiento, rectificación, exportación, portabilidad, eliminación, anonimización, limitación u oposición, así como información sobre comunicaciones y bases jurídicas.
+
+El usuario también puede retirar su consentimiento cuando esta sea la base utilizada y presentar una reclamación ante la autoridad de protección de datos competente.
+
+Las solicitudes deben enviarse a **nutritiontracker.beta@gmail.com** y serán respondidas en un plazo máximo de 30 días, salvo que resulte aplicable otro plazo legal.
+
+## 14. Seguridad
+
+Trofia utiliza autenticación Firebase, tokens de sesión, reglas de acceso y conexiones HTTPS. El proxy de IA exige autenticación y aplica límites individuales y globales.
+
+Ningún sistema está completamente libre de riesgos. El usuario debe proteger su contraseña y sus archivos de copia de seguridad.
+
+## 15. Niños y menores
+
+Trofia no está destinada a menores de **16 años**. Las personas de 16 o 17 años deberán utilizar el servicio de acuerdo con la legislación aplicable y, cuando sea necesario, con autorización y supervisión de un representante legal.
+
+## 16. Limitaciones nutricionales
+
+Trofia ofrece cálculos y estimaciones con fines informativos. Los resultados pueden variar debido a porciones, marcas, preparación, información introducida, bases externas y limitaciones de la IA.
+
+La aplicación no proporciona diagnóstico, tratamiento ni seguimiento clínico y no sustituye a profesionales sanitarios.
+
+## 17. Modificaciones
+
+Esta política podrá actualizarse cuando cambien el producto, los proveedores o la legislación. Los cambios relevantes se comunicarán mediante la aplicación, la página pública u otro canal apropiado.

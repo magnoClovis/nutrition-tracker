@@ -21,11 +21,21 @@ function response(body, contentType, status = 200) {
   };
 }
 
+const validPrivacyHtml = [
+  '<nav data-language-selector></nav>',
+  '<article data-policy="pt"></article>',
+  '<article data-policy="en"></article>',
+  '<article data-policy="es"></article>',
+].join('');
+
 function createFetch(indexHtml, overrides = {}) {
   return async requestedUrl => {
     const url = String(requestedUrl);
     if (url.endsWith('/nutrition-tracker/')) {
       return response(indexHtml, 'text/html; charset=utf-8');
+    }
+    if (url.endsWith('/nutrition-tracker/privacy/')) {
+      return overrides.privacy || response(validPrivacyHtml, 'text/html; charset=utf-8');
     }
     if (url.endsWith('.js')) {
       return overrides.script || response('', 'text/javascript; charset=utf-8');
@@ -52,7 +62,24 @@ test('accepts a deployed relative hashed bundle with correct MIME types', async 
     pageUrl: 'https://example.test/nutrition-tracker/',
     scriptUrl: 'https://example.test/nutrition-tracker/assets/index-AbC123.js',
     styleUrl: 'https://example.test/nutrition-tracker/assets/index-DeF456.css',
+    privacyUrl: 'https://example.test/nutrition-tracker/privacy/',
   });
+});
+
+test('rejects a deployed privacy page without all three synchronized language documents', async () => {
+  await assert.rejects(
+    verifyPagesDeployment(
+      'https://example.test/nutrition-tracker/',
+      {
+        fetchRequest: createFetch(validHtml, {
+          privacy: response('<nav data-language-selector></nav><article data-policy="pt"></article>', 'text/html'),
+        }),
+        attempts: 1,
+        delayMs: 0,
+      },
+    ),
+    /privacy page is missing the EN policy/,
+  );
 });
 
 test('rejects source entries, legacy runtimes, and manual cache busting', async t => {

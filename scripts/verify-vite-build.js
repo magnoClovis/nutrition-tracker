@@ -12,6 +12,7 @@ const STATIC_FILES = [
   'trofia-icon-512.png',
   'trofia-favicon-32.png',
   'trofia-apple-touch-icon.png',
+  'privacy/index.html',
 ];
 
 const REQUIRED_OUTPUT_FILES = [...STATIC_FILES, ...BASELINE_RUNTIME_FILES];
@@ -103,6 +104,19 @@ function verifyBuildDirectory(directory) {
     }
     if (/\?v=/i.test(indexHtml)) {
       errors.push('manual cache-busting query detected in built index.html');
+    }
+  }
+
+  const privacyPath = path.join(directory, 'privacy', 'index.html');
+  if (fileSet.has('privacy/index.html')) {
+    const privacyHtml = fs.readFileSync(privacyPath, 'utf8');
+    for (const language of ['pt', 'en', 'es']) {
+      if (!new RegExp(`data-policy=["']${language}["']`, 'i').test(privacyHtml)) {
+        errors.push(`privacy page is missing the ${language.toUpperCase()} policy`);
+      }
+    }
+    if (!/data-language-selector/i.test(privacyHtml)) {
+      errors.push('privacy page is missing its language selector');
     }
   }
 

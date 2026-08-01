@@ -67,6 +67,7 @@
     const fetch = fetchRequest;
     const FB_KEY = firebaseApiKey;
     const setTimeout = timers.setTimeout;
+    const PRIVACY_POLICY_URL = 'https://magnoclovis.github.io/nutrition-tracker/privacy/';
     const window = {};
     Object.defineProperties(window, {
       _saveSession: { get: accountService.getSaveSession },
@@ -84,6 +85,16 @@
      */
     function PrivacyPanel({ lang, onClose, onLogout }) {
       const isPt = lang === 'pt';
+      const policyLabel = lang === 'pt'
+        ? 'Ler a política de privacidade'
+        : lang === 'es'
+          ? 'Leer la política de privacidad'
+          : 'Read the privacy policy';
+      const policyHint = lang === 'pt'
+        ? 'Abre a página pública em português, inglês ou espanhol.'
+        : lang === 'es'
+          ? 'Abre la página pública en portugués, inglés o español.'
+          : 'Opens the public page in Portuguese, English, or Spanish.';
       const [section, setSection] = React.useState('main'); // main | changePassword | deleteAccount
       const [status, setStatus]   = React.useState('');
       const [err, setErr]         = React.useState('');
@@ -252,6 +263,24 @@
             isPt
               ? 'Aqui voc\xea pode gerenciar as configura\xe7\xf5es de seguran\xe7a e privacidade da sua conta.'
               : 'Here you can manage your account security and privacy settings.'),
+
+          React.createElement('a', {
+            href:PRIVACY_POLICY_URL,
+            target:'_blank',
+            rel:'noopener noreferrer',
+            style:{
+              width:'100%', padding:'13px 16px', borderRadius:10, marginBottom:10,
+              background:'var(--bg)', border:'1px solid var(--border2)',
+              color:'var(--text1)', fontSize:13, cursor:'pointer', boxSizing:'border-box',
+              fontFamily:'inherit', display:'flex', alignItems:'center', gap:12, textAlign:'left', textDecoration:'none'
+            }
+          },
+            React.createElement('span', {style:{fontSize:20}}, '\uD83D\uDCC4'),
+            React.createElement('div', null,
+              React.createElement('div', {style:{fontWeight:600, marginBottom:2}}, policyLabel),
+              React.createElement('div', {style:{fontSize:11, color:'var(--text2)'}}, policyHint)
+            )
+          ),
 
           // Change password
           React.createElement('button', {
