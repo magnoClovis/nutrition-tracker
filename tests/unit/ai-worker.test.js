@@ -6,6 +6,43 @@ const path = require("node:path");
 const ENDPOINT = "https://trofia-ai-proxy.example/v1/ai/completion";
 const WEB_ORIGIN = "https://magnoclovis.github.io";
 const ANDROID_ORIGIN = "https://localhost";
+const JPEG_BASE64 = Buffer.from([0xff, 0xd8, 0xff, 0xd9]).toString("base64");
+
+function imageRequestBody(overrides = {}) {
+  return JSON.stringify({
+    image: {
+      mimeType: "image/jpeg",
+      data: JPEG_BASE64
+    },
+    language: "pt",
+    ...overrides
+  });
+}
+
+function imageEstimate(overrides = {}) {
+  return {
+    status: "identified",
+    dishName: "Arroz com frango",
+    overallConfidence: "medium",
+    assumptions: ["Porção estimada visualmente"],
+    items: [{
+      name: "Arroz",
+      quantity: 120,
+      unit: "g",
+      estimatedGrams: 120,
+      protein: 3,
+      kcal: 156,
+      carbs: 34,
+      fat: 0.4,
+      fiber: 0.5,
+      salt: null,
+      sugars: null,
+      satfat: null,
+      confidence: "medium"
+    }],
+    ...overrides
+  };
+}
 
 function request({
   origin = WEB_ORIGIN,
@@ -70,8 +107,8 @@ async function createFixture({
       getByName(name) {
         rateLimiterNames.push(name);
         return {
-          async check(uid, timestampMs) {
-            rateLimiterChecks.push([uid, timestampMs]);
+          async check(uid, timestampMs, requestKind) {
+            rateLimiterChecks.push([uid, timestampMs, requestKind]);
             if (rateLimitError) throw rateLimitError;
             return rateLimitResult;
           }
@@ -93,9 +130,15 @@ async function createFixture({
 test("accepts the web and Capacitor HTTPS origins in CORS preflight", async () => {
   const fixture = await createFixture();
 
-  for (const origin of [WEB_ORIGIN, ANDROID_ORIGIN]) {
+  for (const [origin, pathName] of [
+    [WEB_ORIGIN, "/v1/ai/completion"],
+    [ANDROID_ORIGIN, "/v1/ai/completion"],
+    [WEB_ORIGIN, "/v1/ai/image-meal"],
+    [ANDROID_ORIGIN, "/v1/ai/image-meal"]
+  ]) {
     const response = await fixture.worker.fetch(request({
       origin,
+      pathName,
       method: "OPTIONS",
       token: null,
       contentType: null,
@@ -163,7 +206,7 @@ test("sends the exact stable Gemini generateContent request", async () => {
   assert.deepEqual(await responseBody(response), { text: "Expected answer" });
   assert.deepEqual(fixture.verifiedTokens, ["firebase-id-token"]);
   assert.deepEqual(fixture.rateLimiterNames, ["gemini-project-quota"]);
-  assert.deepEqual(fixture.rateLimiterChecks, [["firebase-user-1", 123_456]]);
+  assert.deepEqual(fixture.rateLimiterChecks, [["firebase-user-1", 123_456, "text"]]);
   assert.equal(fixture.providerRequests.length, 1);
   assert.equal(
     fixture.providerRequests[0][0],
@@ -188,6 +231,146 @@ test("sends the exact stable Gemini generateContent request", async () => {
   });
   assert.equal(response.headers.get("Access-Control-Allow-Origin"), WEB_ORIGIN);
   assert.equal(response.headers.get("Cache-Control"), "no-store");
+});
+
+test("sends an inline JPEG with high resolution and a strict structured response schema", async () => {
+  const estimate = imageEstimate();
+  const fixture = await createFixture({
+    providerResponse: new Response(JSON.stringify({
+      candidates: [{
+        content: {
+          parts: [
+            { thoughtSignature: "provider-private-signature" },
+            { text: JSON.stringify(estimate) }
+          ]
+        }
+      }]
+    }), { status: 200 })
+  });
+  const schemaModule = await import("../../worker/src/image-meal.js");
+  const response = await fixture.worker.fetch(request({
+    pathName: "/v1/ai/image-meal",
+    body: imageRequestBody()
+  }), fixture.env);
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await responseBody(response), { estimate });
+  assert.deepEqual(fixture.rateLimiterChecks, [["firebase-user-1", 123_456, "image"]]);
+  assert.equal(fixture.providerRequests[0][0],
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent");
+
+  const providerBody = JSON.parse(fixture.providerRequests[0][1].body);
+  assert.deepEqual(providerBody.contents[0].parts[0], {
+    inlineData: {
+      mimeType: "image/jpeg",
+      data: JPEG_BASE64
+    },
+    mediaResolution: {
+      level: "MEDIA_RESOLUTION_HIGH"
+    }
+  });
+  assert.match(providerBody.contents[0].parts[1].text, /Brazilian Portuguese/);
+  assert.deepEqual(providerBody.generationConfig, {
+    maxOutputTokens: 1_200,
+    responseMimeType: "application/json",
+    responseJsonSchema: schemaModule.IMAGE_MEAL_RESPONSE_SCHEMA
+  });
+});
+
+test("enforces the image JSON, MIME, language, JPEG, and decoded-size contracts", async () => {
+  const fixture = await createFixture();
+  const oversizedBytes = Buffer.alloc(1_500_001);
+  oversizedBytes[0] = 0xff;
+  oversizedBytes[1] = 0xd8;
+  oversizedBytes[2] = 0xff;
+  const invalidBodies = [
+    imageRequestBody({ language: "fr" }),
+    imageRequestBody({ image: { mimeType: "image/png", data: JPEG_BASE64 } }),
+    imageRequestBody({ image: { mimeType: "image/jpeg", data: "not-base64" } }),
+    imageRequestBody({ image: { mimeType: "image/jpeg", data: Buffer.from("text").toString("base64") } }),
+    imageRequestBody({ image: {
+      mimeType: "image/jpeg",
+      data: oversizedBytes.toString("base64")
+    } }),
+    JSON.stringify({
+      image: { mimeType: "image/jpeg", data: JPEG_BASE64 },
+      language: "pt",
+      extra: true
+    })
+  ];
+
+  for (const body of invalidBodies) {
+    const response = await fixture.worker.fetch(request({
+      pathName: "/v1/ai/image-meal",
+      body
+    }), fixture.env);
+    assert.equal(response.status, 400);
+    assert.deepEqual(await responseBody(response), { error: { code: "invalid-request" } });
+  }
+  assert.equal(fixture.providerRequests.length, 0);
+  assert.equal(fixture.rateLimiterChecks.length, 0);
+});
+
+test("stops reading image JSON bodies above 2.2 MB", async () => {
+  const fixture = await createFixture();
+  const response = await fixture.worker.fetch(request({
+    pathName: "/v1/ai/image-meal",
+    body: JSON.stringify({
+      image: { mimeType: "image/jpeg", data: "A".repeat(2_200_000) },
+      language: "pt"
+    })
+  }), fixture.env);
+
+  assert.equal(response.status, 413);
+  assert.deepEqual(await responseBody(response), { error: { code: "request-too-large" } });
+  assert.equal(fixture.providerRequests.length, 0);
+});
+
+test("rejects malformed or structurally unsafe Gemini image estimates", async () => {
+  const invalidEstimates = [
+    "not-json",
+    JSON.stringify(imageEstimate({ items: [] })),
+    JSON.stringify(imageEstimate({ items: [{ ...imageEstimate().items[0], protein: null }] })),
+    JSON.stringify(imageEstimate({ unexpected: true }))
+  ];
+
+  for (const text of invalidEstimates) {
+    const fixture = await createFixture({
+      providerResponse: new Response(JSON.stringify({
+        candidates: [{ content: { parts: [{ text }] } }]
+      }), { status: 200 })
+    });
+    const response = await fixture.worker.fetch(request({
+      pathName: "/v1/ai/image-meal",
+      body: imageRequestBody()
+    }), fixture.env);
+
+    assert.equal(response.status, 502);
+    assert.deepEqual(await responseBody(response), {
+      error: { code: "invalid-provider-response" }
+    });
+  }
+});
+
+test("returns the image-specific public scope and Retry-After", async () => {
+  const fixture = await createFixture({
+    rateLimitResult: {
+      allowed: false,
+      limit: "uid-image-minute",
+      retryAfterSeconds: 42
+    }
+  });
+  const response = await fixture.worker.fetch(request({
+    pathName: "/v1/ai/image-meal",
+    body: imageRequestBody()
+  }), fixture.env);
+
+  assert.equal(response.status, 429);
+  assert.equal(response.headers.get("Retry-After"), "42");
+  assert.deepEqual(await responseBody(response), {
+    error: { code: "rate-limit-exceeded", scope: "image-user" }
+  });
+  assert.equal(fixture.providerRequests.length, 0);
 });
 
 test("enforces the endpoint path, method, and JSON content type", async () => {
@@ -375,4 +558,9 @@ test("returns sanitized provider failures without logging payloads", async () =>
     "utf8"
   );
   assert.doesNotMatch(rateLimiterSource, /\bconsole\./);
+  const imageMealSource = fs.readFileSync(
+    path.join(__dirname, "..", "..", "worker", "src", "image-meal.js"),
+    "utf8"
+  );
+  assert.doesNotMatch(imageMealSource, /\bconsole\./);
 });

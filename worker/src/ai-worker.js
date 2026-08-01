@@ -2,8 +2,14 @@ import {
   createFirebaseIdTokenVerifier,
   FirebaseIdTokenError
 } from "./firebase-id-token.js";
+import {
+  geminiImageMealRequest,
+  validateImageMealEstimate,
+  validateImageMealRequest
+} from "./image-meal.js";
 
 const COMPLETION_PATH = "/v1/ai/completion";
+const IMAGE_MEAL_PATH = "/v1/ai/image-meal";
 const FIREBASE_PROJECT_ID = "nutrition-tracker-780b3";
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_ENDPOINT =
@@ -15,6 +21,7 @@ const ALLOWED_ORIGINS = new Set([
 const MAX_PROMPT_CHARACTERS = 40_000;
 const MAX_OUTPUT_TOKENS = 1_200;
 const MAX_REQUEST_BODY_BYTES = (MAX_PROMPT_CHARACTERS * 4) + 4_096;
+const MAX_IMAGE_REQUEST_BODY_BYTES = 2_200_000;
 
 function corsHeaders(origin) {
   return {
@@ -43,6 +50,7 @@ function errorResponse(status, code, origin) {
 
 function rateLimitScope(limit) {
   if (limit === "uid-minute") return "user";
+  if (limit === "uid-image-minute") return "image-user";
   if (limit === "global-minute") return "global";
   if (limit === "global-day") return "daily";
   return null;
@@ -129,7 +137,9 @@ export function createAIWorker({
   return {
     async fetch(request, env) {
       const url = new URL(request.url);
-      if (url.pathname !== COMPLETION_PATH) {
+      const isCompletion = url.pathname === COMPLETION_PATH;
+      const isImageMeal = url.pathname === IMAGE_MEAL_PATH;
+      if (!isCompletion && !isImageMeal) {
         return errorResponse(404, "not-found");
       }
 
@@ -179,7 +189,10 @@ export function createAIWorker({
 
       let body;
       try {
-        const rawBody = await readBoundedText(request, MAX_REQUEST_BODY_BYTES);
+        const maximumBodyBytes = isImageMeal
+          ? MAX_IMAGE_REQUEST_BODY_BYTES
+          : MAX_REQUEST_BODY_BYTES;
+        const rawBody = await readBoundedText(request, maximumBodyBytes);
         body = JSON.parse(rawBody);
       } catch (error) {
         if (error instanceof RangeError && error.message === "request-too-large") {
@@ -188,7 +201,8 @@ export function createAIWorker({
         return errorResponse(400, "invalid-json", origin);
       }
 
-      if (!isCompletionBody(body)) {
+      if ((isCompletion && !isCompletionBody(body)) ||
+          (isImageMeal && !validateImageMealRequest(body))) {
         return errorResponse(400, "invalid-request", origin);
       }
       if (!env?.GEMINI_API_KEY || typeof env.GEMINI_API_KEY !== "string") {
@@ -202,7 +216,11 @@ export function createAIWorker({
           throw new TypeError("missing rate limiter binding");
         }
         const limiter = env.AI_RATE_LIMITER.getByName("gemini-project-quota");
-        rateLimitResult = await limiter.check(identity.uid, now());
+        rateLimitResult = await limiter.check(
+          identity.uid,
+          now(),
+          isImageMeal ? "image" : "text"
+        );
         if (!rateLimitResult ||
             typeof rateLimitResult.allowed !== "boolean") {
           throw new TypeError("invalid rate limiter response");
@@ -239,14 +257,16 @@ export function createAIWorker({
             "x-goog-api-key": env.GEMINI_API_KEY
           },
           body: JSON.stringify({
-            contents: [{
-              role: "user",
-              parts: [{ text: body.prompt }]
-            }],
-            generationConfig: {
-              maxOutputTokens: body.maxTokens,
-              temperature: 0
-            }
+            ...(isImageMeal ? geminiImageMealRequest(body) : {
+              contents: [{
+                role: "user",
+                parts: [{ text: body.prompt }]
+              }],
+              generationConfig: {
+                maxOutputTokens: body.maxTokens,
+                temperature: 0
+              }
+            })
           })
         });
         providerPayload = await providerResponse.json();
@@ -260,6 +280,18 @@ export function createAIWorker({
       const text = geminiText(providerPayload);
       if (text === null) {
         return errorResponse(502, "invalid-provider-response", origin);
+      }
+      if (isImageMeal) {
+        let estimate;
+        try {
+          estimate = JSON.parse(text);
+        } catch (_) {
+          return errorResponse(502, "invalid-provider-response", origin);
+        }
+        if (!validateImageMealEstimate(estimate)) {
+          return errorResponse(502, "invalid-provider-response", origin);
+        }
+        return jsonResponse(200, { estimate }, origin);
       }
       return jsonResponse(200, { text }, origin);
     }
