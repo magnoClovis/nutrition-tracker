@@ -97,7 +97,8 @@ const {
     exportData: window._exportData || {},
     exportFullBackup: window._exportFullBackup,
     previewFullAccountBackupImport: window.previewFullAccountBackupImport,
-    importFullAccountBackup: window.importFullAccountBackup
+    importFullAccountBackup: window.importFullAccountBackup,
+    restoreFullAccountBackup: window._restoreFullAccountBackup
   }),
   FileReader: window.FileReader,
   alertUser: window.alert.bind(window),

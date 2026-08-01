@@ -139,6 +139,50 @@ contractTest("keeps fired timer handles in the shared map without cleanup", asyn
   assert.equal(timersByKey.key, 1);
 });
 
+contractTest("suspends stale saves until a backup import can safely win", async ({ createAutosaveScheduler }) => {
+  const timer = createTimerHarness();
+  const timersByKey = {};
+  let remoteValue = "initial";
+  let releaseInFlightWrite;
+  const { scheduleSave, suspend, resume } = createAutosaveScheduler({
+    storage: {
+      set(key, value) {
+        assert.equal(key, "notes_today");
+        return new Promise(resolve => {
+          releaseInFlightWrite = () => {
+            remoteValue = value;
+            resolve();
+          };
+        });
+      }
+    },
+    setTimer: timer.setTimer,
+    clearTimer: timer.clearTimer,
+    timersByKey,
+    onPersisted: () => {}
+  });
+
+  scheduleSave("notes_today", "stale-before-import");
+  timer.fire(1);
+  await Promise.resolve();
+  const suspended = suspend();
+  scheduleSave("notes_today", "must-not-be-scheduled");
+
+  assert.deepEqual(timer.cleared, [1]);
+  assert.deepEqual(timersByKey, {});
+  assert.equal(timer.scheduled.length, 1);
+  assert.equal(remoteValue, "initial");
+
+  releaseInFlightWrite();
+  await suspended;
+  remoteValue = "restored-backup";
+  resume();
+  await flushPromises();
+
+  assert.equal(remoteValue, "restored-backup");
+  assert.equal(timer.pending.size, 0);
+});
+
 contractTest("publishes the same factory and requires every scheduler dependency", ({ createAutosaveScheduler }) => {
   assert.equal(typeof createAutosaveScheduler, "function");
   assert.throws(

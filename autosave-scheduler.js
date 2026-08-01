@@ -10,9 +10,10 @@
  * The UMD module exposes a `createAutosaveScheduler` factory. The host injects
  * storage, set/clear timer functions, the persistent `saveTimeout.current`
  * handle map, and an `onPersisted` callback. The returned scheduler keeps the
- * existing 800 ms default, accepts the existing 1500 ms notes override, never
- * cleans up on unmount, never removes fired handles, and swallows rejected
- * writes. It owns no React state and does not decide which keys require a guard.
+ * existing 800 ms default, accepts the existing 1500 ms notes override, and
+ * swallows rejected writes. It also coordinates backup restoration: suspension
+ * cancels every queued timer, blocks new schedules and waits for writes already
+ * in flight before the importer is allowed to replace remote data.
  *
  * @module AutosaveScheduler
  */
@@ -23,6 +24,17 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
+  const schedulerStateByTimerMap = new WeakMap();
+
+  function stateFor(timersByKey) {
+    let state = schedulerStateByTimerMap.get(timersByKey);
+    if (!state) {
+      state = { suspensionDepth: 0, inFlightWrites: new Set() };
+      schedulerStateByTimerMap.set(timersByKey, state);
+    }
+    return state;
+  }
+
   /**
    * Creates the existing per-key debounce mechanism with environmental services supplied by the host.
    *
@@ -32,7 +44,7 @@
    * @param {function(*): void} dependencies.clearTimer Clears a previous timer handle.
    * @param {Object<string, *>} dependencies.timersByKey Persistent timer handles keyed by storage key.
    * @param {function(string): void} dependencies.onPersisted Marks a key only after a successful write.
-   * @returns {{scheduleSave: function(string, *, number=): void}} Autosave scheduler API.
+   * @returns {{scheduleSave: function(string, *, number=): void, suspend: function(): Promise<void>, resume: function(): void}} Autosave scheduler API.
    */
   function createAutosaveScheduler({ storage, setTimer, clearTimer, timersByKey, onPersisted }) {
     if (
@@ -44,6 +56,24 @@
     ) {
       throw new TypeError("AutosaveScheduler requires storage, timer services, a timer map, and onPersisted");
     }
+    const state = stateFor(timersByKey);
+
+    function cancelPendingSaves() {
+      Object.keys(timersByKey).forEach(key => {
+        clearTimer(timersByKey[key]);
+        delete timersByKey[key];
+      });
+    }
+
+    async function suspend() {
+      state.suspensionDepth += 1;
+      cancelPendingSaves();
+      await Promise.allSettled([...state.inFlightWrites]);
+    }
+
+    function resume() {
+      state.suspensionDepth = Math.max(0, state.suspensionDepth - 1);
+    }
 
     /**
      * Replaces the pending timer for one key and persists the captured value after its delay.
@@ -54,15 +84,25 @@
      * @returns {void}
      */
     function scheduleSave(key, value, delay = 800) {
+      if (state.suspensionDepth > 0) return;
       if (timersByKey[key]) clearTimer(timersByKey[key]);
       timersByKey[key] = setTimer(() => {
-        storage.set(key, typeof value === "string" ? value : JSON.stringify(value))
+        if (state.suspensionDepth > 0) return;
+        let storageWrite;
+        try {
+          storageWrite = storage.set(key, typeof value === "string" ? value : JSON.stringify(value));
+        } catch (error) {
+          storageWrite = Promise.reject(error);
+        }
+        const write = Promise.resolve(storageWrite)
           .then(() => onPersisted(key))
           .catch(() => {});
+        state.inFlightWrites.add(write);
+        write.finally(() => state.inFlightWrites.delete(write));
       }, delay);
     }
 
-    return { scheduleSave };
+    return { scheduleSave, suspend, resume };
   }
 
   return { createAutosaveScheduler };

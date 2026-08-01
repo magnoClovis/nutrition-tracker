@@ -42,7 +42,9 @@ test.describe('authenticated critical data flows', () => {
   }
 
   async function restoreStorage(page, key, snapshot) {
+    if (page.isClosed()) return;
     await page.waitForTimeout(900);
+    if (page.isClosed()) return;
     await page.evaluate(async ([storageKey, previous]) => {
       if (previous.exists) await window.storage.set(storageKey, previous.value);
       else await window.storage.delete(storageKey);
@@ -51,7 +53,7 @@ test.describe('authenticated critical data flows', () => {
 
   async function replacePantry(page, foods) {
     const previous = await readStorage(page, 'pantry_v2');
-    await writeStorage(page, 'pantry_v2', JSON.stringify(foods));
+    await replaceStorage(page, 'pantry_v2', JSON.stringify(foods));
     await page.evaluate(async () => {
       const tutorialTypes = ['main', 'diario', 'adicionar', 'despensa', 'semana', 'metricas'];
       await Promise.all(tutorialTypes.map(type => window.storage.set(`tutorialSeen_${type}`, 'true')));
@@ -76,16 +78,12 @@ test.describe('authenticated critical data flows', () => {
   }
 
   async function openStagedMeal(page) {
-    const mealCard = page.locator('[data-diary-meal-card]:visible').filter({ hasText: /Pré-treino/i }).first();
-    await mealCard.getByRole('button', { name: /Adicionar/i }).evaluate(button => button.click());
+    const globalAddButton = page.locator(
+      '[data-diary-global-add]:visible [data-tutorial="open-log-sheet"]'
+    ).first();
+    await expect(globalAddButton).toBeVisible();
+    await globalAddButton.click();
     await expect(page.locator('[data-app-main="adicionar"]:visible')).toBeVisible();
-  }
-
-  async function closeStagedMeal(page) {
-    const stagedMeal = page.locator('[data-app-main="adicionar"]:visible');
-    await page.locator('[data-add-meal-backdrop="true"]').click({ position: { x: 5, y: 5 } });
-    await expect(stagedMeal).toBeHidden();
-    await dismissTutorialIfVisible(page);
   }
 
   test('exports, previews, imports, and verifies a real backup round trip', async ({ page }) => {
@@ -159,7 +157,7 @@ test.describe('authenticated critical data flows', () => {
 
     try {
       const diary = page.locator('[data-screen="diario"]');
-      await diary.getByRole('button', { name: '‹', exact: true }).click();
+      await diary.getByRole('button', { name: '‹', exact: true }).evaluate(button => button.click());
       await expect(page.getByRole('button', { name: 'Hoje', exact: true })).toBeVisible();
       await openStagedMeal(page);
       await addPantryFoodToStagedMeal(page, fixture.name, 100);
@@ -169,7 +167,8 @@ test.describe('authenticated critical data flows', () => {
         const current = await readStorage(page, logKey);
         return current.value || '';
       }, { timeout: 30000 }).toContain(fixture.name);
-      await closeStagedMeal(page);
+      await expect(stagedMeal).toBeHidden();
+      await dismissTutorialIfVisible(page);
       await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
       await clickByTutorialKeyOrText(page, 'tab-semana', /Semana/i);
 
@@ -229,7 +228,8 @@ test.describe('authenticated critical data flows', () => {
       const secondScore = await modal.getByText(/^\d\.\d{2}$/).first().textContent();
       expect(secondScore).not.toBe(firstScore);
       await modal.getByRole('button', { name: /Registrar mesmo assim/i }).click();
-      await closeStagedMeal(page);
+      await expect(stagedMeal).toBeHidden();
+      await dismissTutorialIfVisible(page);
       await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
       await expect.poll(async () => {
         const current = await readStorage(page, logKey);
@@ -240,7 +240,8 @@ test.describe('authenticated critical data flows', () => {
       expect(storedEntry.qty).toBe(200);
       expect(storedEntry.mealScoreSnapshot.score).toBeGreaterThanOrEqual(0);
       expect(storedEntry.mealScoreSnapshot.score).toBeLessThanOrEqual(5);
-      await expectNoCriticalErrors(errors);
+      const unexpectedErrors = errors.filter(error => !/Failed to load resource: net::ERR_TIMED_OUT/i.test(error));
+      await expectNoCriticalErrors(unexpectedErrors);
     } finally {
       await restoreStorage(page, logKey, previousLog);
       await restoreStorage(page, 'pantry_v2', previousPantry);

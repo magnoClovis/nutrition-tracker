@@ -233,6 +233,29 @@ contractTest("captures a stable meal origin and surfaces persistence failures", 
   );
 });
 
+contractTest("keeps autosaves suspended until backup import and rehydration finish", async createNutritionTrackerController => {
+  const { restoreAccountBackupSafely, NutritionTracker } = createController(createNutritionTrackerController);
+  const events = [];
+
+  const result = await restoreAccountBackupSafely({
+    async suspendAutosaves() { events.push("suspend"); },
+    resumeAutosaves() { events.push("resume"); },
+    clearHydratedKeys() { events.push("clear-hydrated"); },
+    async importBackup() {
+      events.push("import");
+      return { imported: 3 };
+    },
+    async reloadData() { events.push("reload"); }
+  });
+
+  assert.deepEqual(result, { imported: 3 });
+  assert.deepEqual(events, ["suspend", "clear-hydrated", "import", "reload", "resume"]);
+
+  const source = NutritionTracker.toString();
+  assert.ok(source.includes("window._restoreFullAccountBackup = restoreFullAccountBackup"));
+  assert.ok(source.indexOf("setLoaded(false)") < source.indexOf("restoreAccountBackupSafely({"));
+});
+
 contractTest("applies the selected time at every final meal-registration path", createNutritionTrackerController => {
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();

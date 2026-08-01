@@ -196,6 +196,7 @@ const {
     exportFullBackup: window._exportFullBackup,
     previewFullAccountBackupImport: window.previewFullAccountBackupImport,
     importFullAccountBackup: window.importFullAccountBackup,
+    restoreFullAccountBackup: window._restoreFullAccountBackup,
     reloadNutritionData: window._reloadNutritionData,
     reloadApplication: () => window.location.reload(),
   }),
