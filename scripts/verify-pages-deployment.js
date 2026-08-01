@@ -64,10 +64,23 @@ async function verifyPagesDeployment(
       await verifyResponse(fetchRequest, new URL(scriptPath, normalizedPageUrl), /(?:java|ecma)script/i);
       await verifyResponse(fetchRequest, new URL(stylePath, normalizedPageUrl), /text\/css/i);
 
+      const privacyUrl = new URL('privacy/', normalizedPageUrl).href;
+      const privacyResponse = await verifyResponse(fetchRequest, privacyUrl, /text\/html/i);
+      const privacyHtml = await privacyResponse.text();
+      for (const language of ['pt', 'en', 'es']) {
+        if (!new RegExp(`data-policy=["']${language}["']`, 'i').test(privacyHtml)) {
+          throw new Error(`deployed privacy page is missing the ${language.toUpperCase()} policy`);
+        }
+      }
+      if (!/data-language-selector/i.test(privacyHtml)) {
+        throw new Error('deployed privacy page is missing its language selector');
+      }
+
       return {
         pageUrl: normalizedPageUrl,
         scriptUrl: new URL(scriptPath, normalizedPageUrl).href,
         styleUrl: new URL(stylePath, normalizedPageUrl).href,
+        privacyUrl,
       };
     } catch (error) {
       lastError = error;
@@ -87,6 +100,7 @@ if (require.main === module) {
       console.log(`Verified Pages deployment: ${result.pageUrl}`);
       console.log(`JavaScript: ${result.scriptUrl}`);
       console.log(`CSS: ${result.styleUrl}`);
+      console.log(`Privacy: ${result.privacyUrl}`);
     })
     .catch(error => {
       console.error(error.message);

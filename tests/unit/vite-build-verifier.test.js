@@ -21,6 +21,8 @@ function createValidBuildFixture() {
       absolutePath,
       relativePath === 'index.html'
         ? '<link rel="stylesheet" href="./assets/style-abc123.css"><style>body{color:black}</style><script type="module" src="./assets/baseline-abc123.js"></script>'
+        : relativePath === 'privacy/index.html'
+          ? '<nav data-language-selector></nav><article data-policy="pt"></article><article data-policy="en"></article><article data-policy="es"></article>'
         : '',
     );
   }

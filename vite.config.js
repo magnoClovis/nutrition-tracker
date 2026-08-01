@@ -3,6 +3,9 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import privacyPageRenderer from './scripts/render-privacy-page.js';
+
+const { renderPrivacyPage } = privacyPageRenderer;
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 const outputDirectory = resolve(projectRoot, 'dist');
@@ -27,6 +30,16 @@ function copyExplicitStaticFiles() {
         await mkdir(dirname(destination), { recursive: true });
         await copyFile(resolve(projectRoot, relativePath), destination);
       }
+    },
+  };
+}
+
+function buildPrivacyPage() {
+  return {
+    name: 'build-privacy-page',
+    apply: 'build',
+    async closeBundle() {
+      renderPrivacyPage({ projectRoot, outputDirectory });
     },
   };
 }
@@ -65,6 +78,7 @@ export default defineConfig({
     react({ jsxRuntime: 'classic' }),
     preserveLegacyCssCascadeOrder(),
     copyExplicitStaticFiles(),
+    buildPrivacyPage(),
   ],
   build: {
     cssMinify: false,
