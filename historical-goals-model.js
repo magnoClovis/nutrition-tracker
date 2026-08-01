@@ -11,15 +11,14 @@
  * `calculatedGoals` from `viewDate` but always writes that snapshot under
  * `goalHistory[TODAY]`. This module does not cause or correct that bug; it only
  * returns values for the date requested by its caller. Any future change to the
- * host effect must investigate that key mismatch together with two related
- * preserved behaviors: historical calculations omit `referenceDate` and use
- * the user's current age, while normal daily snapshots and manually refreshed
- * past-day snapshots have different shapes.
+ * host effect must investigate that key mismatch together with the different
+ * shapes used by normal daily snapshots and manually refreshed past-day
+ * snapshots. Historical recalculation uses the requested civil date as its age
+ * reference without rewriting any existing frozen snapshot.
  *
  * Known behavior intentionally preserved: numeric zero custom goals do not
  * override because selection uses `||`; TODAY ignores a frozen goal; the goal
- * profile deliberately omits `referenceDate`; and frozen objects are overlaid
- * without schema normalization.
+ * frozen objects are overlaid without schema normalization.
  *
  * @module HistoricalGoalsModel
  */
@@ -76,7 +75,8 @@
         height: weightEntry?.height || currentHeight,
         birthDate: profileData.birthDate,
         gender: profileData.gender,
-        prefs: nutritionPrefs
+        prefs: nutritionPrefs,
+        referenceDate: date
       });
       const computedGoal = {
         ...rawGoal,

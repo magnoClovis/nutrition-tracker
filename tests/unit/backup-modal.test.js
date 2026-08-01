@@ -2,12 +2,18 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
+const { createDateUtils } = require("../../date-utils.js");
 const implementations = [
   ["UMD", () => Promise.resolve(require("../../backup-modal.js"))],
   ["ESM", () => import("../../src/components/backup-modal.js")]
 ];
 
 const { normalizeLanguage, pickLang } = createI18n();
+const { localToday, addCivilDays } = createDateUtils({
+  normalizeLanguage,
+  pickLang,
+  localeForLang: () => "en-US"
+});
 const currentDispatcher = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentDispatcher;
 
 function createHookHarness(Component, props) {
@@ -116,7 +122,9 @@ function createFixture(createBackupModal, {
     getBackupContext: getBackupContext || (() => ({})),
     FileReader: FakeFileReader,
     alertUser(message) { alerts.push(message); },
-    reportError(...args) { errors.push(args); }
+    reportError(...args) { errors.push(args); },
+    localToday,
+    addCivilDays
   });
   return {
     harness: createHookHarness(BackupModal, { lang, darkMode: false, onClose() {} }),

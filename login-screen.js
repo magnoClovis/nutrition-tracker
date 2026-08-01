@@ -13,7 +13,8 @@
  * double-click guard; registration writes have no transaction or rollback;
  * pending verification returns without resetting loading; and the local login
  * language can later be replaced by App.afterAuthenticated. Partial profile
- * write failures remain swallowed, and UTC-derived dates remain unchanged.
+ * write failures remain swallowed. Registration and birth-date bounds use the
+ * shared local civil-date helper.
  * Any regression in this module can block entry to the entire product.
  *
  * @module LoginScreen
@@ -39,6 +40,7 @@
    * @param {{getItem: function(string): (string|null), setItem: function(string,string): void}} dependencies.localStorage Browser-local storage service.
    * @param {{dataset: Object}} dependencies.documentElement Root document element whose theme dataset is written.
    * @param {function(new: Date, ...*): Date} dependencies.Date Native Date constructor supplied by the host.
+   * @param {function(Date=): string} dependencies.localToday Shared local civil-date formatter.
    * @returns {{LoginScreen: function(Object): Object}} Configured login-screen component API.
    */
   function createLoginScreen({
@@ -51,7 +53,8 @@
     readPreferredDarkMode,
     localStorage: localStorageService,
     documentElement,
-    Date: DateCtor
+    Date: DateCtor,
+    localToday
   }) {
     if (!React || typeof React.createElement !== "function" ||
         typeof React.useState !== "function" || typeof React.useEffect !== "function" ||
@@ -66,7 +69,8 @@
         typeof readPreferredDarkMode !== "function" ||
         !localStorageService || typeof localStorageService.getItem !== "function" ||
         typeof localStorageService.setItem !== "function" ||
-        !documentElement || !documentElement.dataset || typeof DateCtor !== "function") {
+        !documentElement || !documentElement.dataset || typeof DateCtor !== "function" ||
+        typeof localToday !== "function") {
       throw new TypeError("LoginScreen requires React, i18n, profile validation, Firebase, theme, storage, document, and Date services");
     }
 
@@ -216,7 +220,7 @@
             await fbSignUp(email, password);
             localStorage.setItem('fb_email', email);
             await fbUpdateProfile(regName.trim()).catch(()=>{});
-            const today = new Date().toISOString().split('T')[0];
+            const today = localToday(new Date());
             if (regWeight || regHeight) {
               const entry = {
                 id: Date.now().toString(),
@@ -324,7 +328,7 @@
             mode === 'login' && React.createElement('button', {type:'button',onClick:handlePasswordReset,disabled:resetLoading || loading,style:{width:'100%',background:'none',border:'none',color:'var(--btn-info-text)',cursor:(resetLoading||loading)?'default':'pointer',fontSize:12,fontFamily:'inherit',textAlign:'right',padding:'0 2px 14px',opacity:(resetLoading||loading)?0.65:1}}, resetLoading ? S.resetSending : S.forgotPassword),
             mode === 'register' && renderPasswordInput({value:password2,onChange:e=>setPassword2(e.target.value),placeholder:S.confirm,visible:password2Visible,onToggle:()=>setPassword2Visible(visible=>!visible),autoComplete:'new-password',marginBottom:12,testId:'password-confirmation-visibility'}),
             mode === 'register' && React.createElement('input', {type:'text',value:regName,onChange:e=>setRegName(e.target.value),placeholder:S.name,style:{...inp,marginBottom:12},autoComplete:'name'}),
-            mode === 'register' && React.createElement('input', {type:'date',value:regBirthDate,onChange:e=>setRegBirthDate(e.target.value),required:true,max:new Date().toISOString().split('T')[0],min:'1900-01-01',title:S.birthTitle,style:{...inp,marginBottom:12},autoComplete:'bday'}),
+            mode === 'register' && React.createElement('input', {type:'date',value:regBirthDate,onChange:e=>setRegBirthDate(e.target.value),required:true,max:localToday(new Date()),min:'1900-01-01',title:S.birthTitle,style:{...inp,marginBottom:12},autoComplete:'bday'}),
             mode === 'register' && React.createElement('select', {value:regGender,onChange:e=>setRegGender(e.target.value),required:true,style:{...inp,marginBottom:12}},
               React.createElement('option', {value:''}, S.genderPlaceholder),
               React.createElement('option', {value:'male'}, S.male),

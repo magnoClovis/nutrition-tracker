@@ -5,7 +5,7 @@
  * The UMD module exposes a `createHistoryLoaders` factory. The host injects the
  * public storage facade, the monolith's persisted-meal normalizer, pure APIs
  * from week-aggregator.js, historical-goals-model.js, and calendar-model.js,
- * plus a fresh-Date factory and warning callback. Every exported loader returns
+ * plus the shared civil-date shifter and warning callback. Every exported loader returns
  * data through a Promise and never calls React setters.
  *
  * KNOWN RACES INTENTIONALLY PRESERVED: rapid historical-date changes have no
@@ -18,10 +18,10 @@
  * calendar JSON is warned and represented exactly like a missing or empty day.
  *
  * Timing is part of the contract: historical log and note reads are parallel;
- * weekly and 30-day reads are sequential; monthly reads are parallel; and a
- * fresh local Date is created inside every weekly/30-day iteration before
- * `toISOString()`. No timeout, request cancellation, or stale-result check is
- * introduced here.
+ * weekly and 30-day reads are sequential; and monthly reads are parallel. All
+ * rolling windows are anchored to the host's supplied civil `today`, without
+ * local-time/UTC conversion. No timeout, request cancellation, or stale-result
+ * check is introduced here.
  *
  * @module HistoryLoaders
  */
@@ -43,7 +43,7 @@
    * @param {function(string): Array<string|null>} dependencies.monthDays Builds one Sunday-first month grid.
    * @param {function(Object, Object): Object} dependencies.calendarMarkerFor Builds one calendar marker.
    * @param {function(Object): Object} dependencies.resolveHistoricalGoals Resolves effective goals for one date.
-   * @param {function(): Date} dependencies.createDate Returns a fresh current Date for each loader iteration.
+   * @param {function(string, number): string} dependencies.addCivilDays Shifts a civil date without timezone conversion.
    * @param {function(...*): void} dependencies.warn Reports invalid calendar JSON without rejecting the month.
    * @returns {Object} Four asynchronous data loaders with no setter side effects.
    */
@@ -55,7 +55,7 @@
     monthDays,
     calendarMarkerFor,
     resolveHistoricalGoals,
-    createDate,
+    addCivilDays,
     warn
   }) {
     if (
@@ -66,7 +66,7 @@
       typeof monthDays !== "function" ||
       typeof calendarMarkerFor !== "function" ||
       typeof resolveHistoricalGoals !== "function" ||
-      typeof createDate !== "function" ||
+      typeof addCivilDays !== "function" ||
       typeof warn !== "function"
     ) {
       throw new TypeError("HistoryLoaders requires storage and all history-loader dependency functions");
@@ -107,15 +107,13 @@
       const dayDescriptors = [];
       const logsByDate = {};
       for (let i = 7; i >= 0; i--) {
-        const dateObject = createDate();
-        dateObject.setDate(dateObject.getDate() - i);
-        const date = dateObject.toISOString().split("T")[0];
+        const date = addCivilDays(today, -i);
         let dayLog = date === today ? todayLog : {};
         if (date !== today) {
           const record = await storage.get("log_v2_" + date).catch(() => null);
           if (record) dayLog = normalizeMealKeys(JSON.parse(record.value));
         }
-        dayDescriptors.push({ date, day: dateObject.getDate() });
+        dayDescriptors.push({ date, day: Number(date.slice(8, 10)) });
         logsByDate[date] = dayLog;
       }
       return aggregateWeekRows({
@@ -131,15 +129,14 @@
      * Reads the prior 30 days sequentially and returns unnormalized per-meal averages.
      *
      * @param {Object} input Loader input.
+     * @param {string} input.today Current local civil date.
      * @param {Array<string>} input.mealKeys Fixed persisted PT meal keys.
      * @returns {Promise<Object>} Per-meal averages from the injected pure aggregator.
      */
-    async function loadMealAnalysisData({ mealKeys }) {
+    async function loadMealAnalysisData({ today, mealKeys }) {
       const dailyLogs = [];
       for (let i = 1; i <= 30; i++) {
-        const dateObject = createDate();
-        dateObject.setDate(dateObject.getDate() - i);
-        const date = dateObject.toISOString().split("T")[0];
+        const date = addCivilDays(today, -i);
         const record = await storage.get("log_v2_" + date).catch(() => null);
         if (!record) continue;
         dailyLogs.push(JSON.parse(record.value));

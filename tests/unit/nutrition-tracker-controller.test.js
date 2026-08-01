@@ -396,7 +396,7 @@ contractTest("keeps every render-scoped factory argument and current-render clos
         "monthDays",
         "calendarMarkerFor",
         "resolveHistoricalGoals",
-        "createDate: () => new Date()",
+        "addCivilDays",
         "warn: (...args) => console.warn(...args)"
       ]
     },

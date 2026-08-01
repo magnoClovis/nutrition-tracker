@@ -1,6 +1,24 @@
 import '../../date-utils.js';
 import { readLegacyNamespace } from '../leaf/read-legacy-namespace.js';
 
-const { createDateUtils } = readLegacyNamespace(globalThis, 'DateUtils', ['createDateUtils']);
+const {
+  createDateUtils,
+  localToday,
+  addCivilDays,
+  differenceInCivilDays,
+  lastCivilDayOfMonth,
+} = readLegacyNamespace(globalThis, 'DateUtils', [
+  'createDateUtils',
+  'localToday',
+  'addCivilDays',
+  'differenceInCivilDays',
+  'lastCivilDayOfMonth',
+]);
 
-export { createDateUtils };
+export {
+  createDateUtils,
+  localToday,
+  addCivilDays,
+  differenceInCivilDays,
+  lastCivilDayOfMonth,
+};

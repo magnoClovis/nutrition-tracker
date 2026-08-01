@@ -1,5 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const { addCivilDays } = require("../../date-utils.js");
 const implementations = [
   ["UMD", () => Promise.resolve(require("../../firebase-migration-internal.js"))],
   ["ESM", () => import("../../src/firebase/firebase-migration-internal.js")]
@@ -142,7 +143,9 @@ function loadMigration(createFirebaseMigration, {
       ok: !failures.v2List,
       async json() { return {documents: v2Documents}; }
     }),
-    firestoreSupport
+    firestoreSupport,
+    localToday: () => "2026-07-22",
+    addCivilDays
   });
 
   return {
@@ -188,6 +191,8 @@ contractTest("generates exactly four historical keys for each of 120 calculated 
   const historical = keys.filter(key => /^(log_v2|notes|waterIntake|suppLog)_\d{4}-\d{2}-\d{2}$/.test(key));
   assert.equal(historical.length, 480);
   assert.equal(new Set(historical.map(key => key.slice(key.lastIndexOf("_") + 1))).size, 120);
+  assert.ok(keys.includes("log_v2_2026-07-22"));
+  assert.ok(keys.includes("log_v2_2026-03-25"));
   for (const prefix of ["log_v2_", "notes_", "waterIntake_", "suppLog_"]) {
     assert.equal(historical.filter(key => key.startsWith(prefix)).length, 120);
   }

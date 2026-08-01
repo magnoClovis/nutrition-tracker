@@ -80,16 +80,43 @@
      * Calculates age using local calendar fields at an optional reference date.
      *
      * @param {string} birthDate Birth date in `YYYY-MM-DD` format.
-     * @param {Date} [refDate=new Date()] Reference date whose local fields are used.
+     * @param {Date|string} [refDate=new Date()] Reference Date or civil `YYYY-MM-DD` string.
      * @returns {number|null} Positive age in completed years, or `null` when unavailable.
      */
     function calculateAge(birthDate, refDate = new Date()) {
       if (!birthDate) return null;
-      const d = new Date(birthDate + "T00:00:00");
-      if (Number.isNaN(d.getTime())) return null;
-      let age = refDate.getFullYear() - d.getFullYear();
-      const m = refDate.getMonth() - d.getMonth();
-      if (m < 0 || (m === 0 && refDate.getDate() < d.getDate())) age--;
+      const birthMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(birthDate));
+      if (!birthMatch) return null;
+      const birthYear = Number(birthMatch[1]);
+      const birthMonth = Number(birthMatch[2]);
+      const birthDay = Number(birthMatch[3]);
+      const birthCheck = new Date(Date.UTC(birthYear, birthMonth - 1, birthDay));
+      if (
+        birthCheck.getUTCFullYear() !== birthYear ||
+        birthCheck.getUTCMonth() !== birthMonth - 1 ||
+        birthCheck.getUTCDate() !== birthDay
+      ) return null;
+
+      let referenceYear;
+      let referenceMonth;
+      let referenceDay;
+      if (typeof refDate === "string") {
+        const referenceMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(refDate);
+        if (!referenceMatch) return null;
+        referenceYear = Number(referenceMatch[1]);
+        referenceMonth = Number(referenceMatch[2]);
+        referenceDay = Number(referenceMatch[3]);
+      } else if (refDate && typeof refDate.getFullYear === "function") {
+        referenceYear = refDate.getFullYear();
+        referenceMonth = refDate.getMonth() + 1;
+        referenceDay = refDate.getDate();
+      } else {
+        return null;
+      }
+
+      let age = referenceYear - birthYear;
+      const monthDifference = referenceMonth - birthMonth;
+      if (monthDifference < 0 || (monthDifference === 0 && referenceDay < birthDay)) age--;
       return age > 0 ? age : null;
     }
     /**
@@ -143,7 +170,7 @@
      */
     function computeGoals(weight, train, profile = {}) {
       const height = Number(profile.height);
-      const referenceDate = profile.referenceDate ? new Date(profile.referenceDate + "T12:00:00") : new Date();
+      const referenceDate = profile.referenceDate || new Date();
       const age = calculateAge(profile.birthDate, referenceDate);
       const gender = profile.gender;
       const prefs = profile.prefs || {};

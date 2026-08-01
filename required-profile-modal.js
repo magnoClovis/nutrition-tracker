@@ -11,8 +11,8 @@
  * Persistence contract: the component writes exactly `birthDate`, `gender`,
  * `activityLevel`, `goalType`, `goalKg`, and `goalWeeks`. Maintenance profiles
  * persist empty strings for `goalKg` and `goalWeeks`. These names and semantics
- * must not change without a data-migration plan. The birth-date maximum keeps
- * the existing UTC `toISOString()` behavior intentionally.
+ * must not change without a data-migration plan. The birth-date maximum uses
+ * the shared local civil-date helper.
  *
  * @module RequiredProfileModal
  */
@@ -37,6 +37,7 @@
    * @param {function(Object): boolean} dependencies.isValidGoalProfile Goal-profile validator from `profile-validation.js`.
    * @param {function(): Promise<Object>} dependencies.getRequiredProfileData Persisted-profile reader from `profile-validation.js`.
    * @param {function(Object): boolean} dependencies.hasRequiredProfileData Required-profile completeness check from `profile-validation.js`.
+   * @param {function(Date=): string} dependencies.localToday Shared local civil-date formatter.
    * @returns {{RequiredProfileModal: function(Object): Object}} Configured React component API.
    */
   function createRequiredProfileModal({
@@ -49,14 +50,15 @@
     isValidGender,
     isValidGoalProfile,
     getRequiredProfileData,
-    hasRequiredProfileData
+    hasRequiredProfileData,
+    localToday
   }) {
     if (!React || typeof React.createElement !== "function" || typeof React.useState !== "function" ||
         typeof normalizeLanguage !== "function" || typeof pickLang !== "function" ||
         !activityLevels || typeof activityLevels !== "object" || !storage || typeof storage.set !== "function" ||
         typeof isValidBirthDate !== "function" || typeof isValidGender !== "function" ||
         typeof isValidGoalProfile !== "function" || typeof getRequiredProfileData !== "function" ||
-        typeof hasRequiredProfileData !== "function") {
+        typeof hasRequiredProfileData !== "function" || typeof localToday !== "function") {
       throw new TypeError("RequiredProfileModal requires React, localization, activity, storage, and profile-validation dependencies");
     }
 
@@ -119,7 +121,7 @@
           React.createElement('div', {style:{fontSize:20,color:'#3a3733',marginBottom:8}}, S.title),
           React.createElement('div', {style:{fontSize:13,color:'#6a6662',lineHeight:1.5,marginBottom:20}}, S.text),
           React.createElement('label', {style:labelStyle}, S.birth),
-          React.createElement('input', {type:'date', value:birthDate, onChange:e=>setBirthDate(e.target.value), required:true, max:new Date().toISOString().split('T')[0], min:'1900-01-01', style:inp}),
+          React.createElement('input', {type:'date', value:birthDate, onChange:e=>setBirthDate(e.target.value), required:true, max:localToday(), min:'1900-01-01', style:inp}),
           React.createElement('label', {style:labelStyle}, S.gender),
           React.createElement('select', {value:gender, onChange:e=>setGender(e.target.value), required:true, style:inp},
             React.createElement('option', {value:'', style:{background:'#f5f3ef',color:'#252220'}}, S.choose),

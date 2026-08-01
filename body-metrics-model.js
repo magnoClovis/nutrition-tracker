@@ -2,16 +2,16 @@
  * Pure weight-history, BMR, weekly-progress, and body-composition model.
  *
  * The UMD module exposes a `createBodyMetricsModel` factory. The host injects
- * `computeGoals` from goal-calculator.js, `formatDateDM` from date-utils.js,
+ * `computeGoals` from goal-calculator.js, civil-date helpers from date-utils.js,
  * and `createMeasurementId` (production uses `Date.now().toString()`). Inputs
  * are explicit measurement/context snapshots; outputs are normalized records,
  * chart series, availability flags, and progress/body-composition summaries.
  *
  * Known behavior intentionally preserved: 7/14 and 6-item windows count
  * records rather than calendar days; zero is treated as absent by the existing
- * field-specific truthiness rules; dates sort lexically; rates subtract local
- * noon `Date` values and divide by 86,400,000, so DST can yield fractional day
- * spans. Normalization deliberately retains its existing ID generation and is
+ * field-specific truthiness rules; and dates sort lexically. Rate intervals use
+ * calendar-day differences, so DST transitions do not distort projections.
+ * Normalization deliberately retains its existing ID generation and is
  * repeated for each render-derived consumer instead of being optimized here.
  *
  * @module BodyMetricsModel
@@ -32,13 +32,14 @@
    * @param {function(): string} dependencies.createMeasurementId Creates a measurement ID; production injects `Date.now().toString()`.
    * @returns {Object} Weight-history and body-metrics model helpers.
    */
-  function createBodyMetricsModel({ computeGoals, formatDateDM, createMeasurementId }) {
+  function createBodyMetricsModel({ computeGoals, formatDateDM, differenceInCivilDays, createMeasurementId }) {
     if (
       typeof computeGoals !== "function" ||
       typeof formatDateDM !== "function" ||
+      typeof differenceInCivilDays !== "function" ||
       typeof createMeasurementId !== "function"
     ) {
-      throw new TypeError("BodyMetricsModel requires computeGoals, formatDateDM, and createMeasurementId functions");
+      throw new TypeError("BodyMetricsModel requires computeGoals, civil-date helpers, and createMeasurementId");
     }
 
     /**
@@ -206,7 +207,7 @@
       if (recent.length >= 2) {
         const first = recent[0];
         const last = recent[recent.length - 1];
-        const days = Math.max(1, (new Date(last.date + "T12:00:00") - new Date(first.date + "T12:00:00")) / 86400000);
+        const days = Math.max(1, differenceInCivilDays(first.date, last.date));
         weeklyRate = (Number(last.weight) - Number(first.weight)) / days * 7;
       }
       const goalKg = Number(nutritionPrefs.goalKg || 0);
@@ -238,7 +239,7 @@
       if (recentFat.length >= 3) {
         const first = recentFat[0];
         const last = recentFat[recentFat.length - 1];
-        const days = Math.max(1, (new Date(last.date + "T12:00:00") - new Date(first.date + "T12:00:00")) / 86400000);
+        const days = Math.max(1, differenceInCivilDays(first.date, last.date));
         fatWeeklyRate = (last.fatKg - first.fatKg) / days * 7;
       }
       const fatWeeksRemaining = fatToLose && fatWeeklyRate < -0.03 ? fatToLose / Math.abs(fatWeeklyRate) : null;

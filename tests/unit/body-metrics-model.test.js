@@ -9,13 +9,14 @@ const implementations = [
 ];
 
 const { normalizeLanguage, pickLang, localeForLang } = createI18n();
-const { formatDateDM } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
+const { formatDateDM, differenceInCivilDays } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
 const { computeGoals } = createGoalCalculator();
 
 function createModel(createBodyMetricsModel, overrides = {}) {
   return createBodyMetricsModel({
     computeGoals,
     formatDateDM,
+    differenceInCivilDays,
     createMeasurementId: () => "generated-id",
     ...overrides
   });
@@ -225,6 +226,17 @@ contractTest("uses only the last six valid fat measurements and requires three",
   }));
   assert.equal(insufficient.bodyComposition.fatWeeklyRate, 0);
   assert.equal(insufficient.bodyComposition.hasEnoughFatTrend, false);
+});
+
+contractTest("uses civil-day spans for trends across a DST boundary", ({ createModel }) => {
+  const model = createModel().buildBodyMetricsModel(baseSnapshot({
+    weightHistory: [
+      { id: "before-dst", date: "2024-03-09", weight: 80 },
+      { id: "after-dst", date: "2024-03-11", weight: 82 }
+    ]
+  }));
+
+  assert.equal(model.weightTrend.weeklyRate, 7);
 });
 
 contractTest("preserves every field-specific zero-as-absence rule", ({ createModel }) => {

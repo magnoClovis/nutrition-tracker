@@ -2,15 +2,22 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createGoalCalculator } = require("../../goal-calculator.js");
 const { createBodyMetricsModel } = require("../../body-metrics-model.js");
+const { createDateUtils } = require("../../date-utils.js");
 const implementations = [
   ["UMD", () => Promise.resolve(require("../../historical-goals-model.js"))],
   ["ESM", () => import("../../src/composite/historical-goals-model.js")]
 ];
 
 const { computeGoals } = createGoalCalculator();
+const { differenceInCivilDays } = createDateUtils({
+  normalizeLanguage: value => value,
+  pickLang: (_lang, pt) => pt,
+  localeForLang: () => "pt-BR"
+});
 const { getWeightForDate } = createBodyMetricsModel({
   computeGoals,
   formatDateDM: date => date,
+  differenceInCivilDays,
   createMeasurementId: () => "measurement-id"
 });
 function contractTest(name, callback) {
@@ -59,7 +66,8 @@ contractTest("recalculates a historical date with current preferences when no sn
     height: 179,
     birthDate: snapshot.profileData.birthDate,
     gender: snapshot.profileData.gender,
-    prefs: snapshot.nutritionPrefs
+    prefs: snapshot.nutritionPrefs,
+    referenceDate: snapshot.date
   });
 
   assert.deepEqual(result.weightEntry, snapshot.weightHistory[0]);
@@ -119,7 +127,7 @@ contractTest("numeric zero custom goals do not override while string zero does",
   assert.equal(result.computedGoal.salt, result.rawGoal.salt);
 });
 
-contractTest("historical calculations keep using current age instead of the requested date", ({ resolveHistoricalGoals }) => {
+contractTest("historical calculations use the requested civil date for age", ({ resolveHistoricalGoals }) => {
   const snapshot = baseSnapshot({
     date: "2010-01-01",
     weightHistory: [{ id: "historical", date: "2009-12-31", weight: 80, height: 180 }],
@@ -141,8 +149,8 @@ contractTest("historical calculations keep using current age instead of the requ
     referenceDate: "2010-01-01"
   });
 
-  assert.equal(result.rawGoal.bmr, currentAgeGoal.bmr);
-  assert.notEqual(result.rawGoal.bmr, historicalAgeGoal.bmr);
+  assert.notEqual(result.rawGoal.bmr, currentAgeGoal.bmr);
+  assert.equal(result.rawGoal.bmr, historicalAgeGoal.bmr);
 });
 
 contractTest("preserves the richer manually refreshed snapshot shape without normalization", ({ resolveHistoricalGoals }) => {
@@ -179,7 +187,7 @@ contractTest("uses fallback weight and height and preserves the explicit day typ
   assert.equal(calls[0].weight, 75);
   assert.equal(calls[0].training, false);
   assert.equal(calls[0].profile.height, 175);
-  assert.equal(Object.hasOwn(calls[0].profile, "referenceDate"), false);
+  assert.equal(calls[0].profile.referenceDate, snapshot.date);
 });
 
 contractTest("publishes the factory and requires both injected dependencies", ({ createHistoricalGoalsModel }) => {
