@@ -99,7 +99,7 @@ test.describe('authenticated critical data flows', () => {
     const changedMarker = `${originalMarker}-changed`;
 
     try {
-      await writeStorage(page, noteKey, originalMarker);
+      await replaceStorage(page, noteKey, originalMarker);
       await page.reload({ waitUntil: 'domcontentloaded' });
       await dismissTutorialIfVisible(page);
       await clickByTutorialKeyOrText(page, 'menu-settings', /Configura/i);
@@ -112,7 +112,7 @@ test.describe('authenticated critical data flows', () => {
       const backup = JSON.parse(fs.readFileSync(downloadPath, 'utf8'));
       expect(JSON.stringify(backup)).toContain(originalMarker);
 
-      await writeStorage(page, noteKey, changedMarker);
+      await replaceStorage(page, noteKey, changedMarker);
       await page.locator('input[type="file"][accept=".json"]').last().setInputFiles(downloadPath);
       await expect(page.getByRole('heading', { name: /Revisar importação/i })).toBeVisible({ timeout: 20000 });
 
