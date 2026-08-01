@@ -167,7 +167,6 @@ const {
   lastCivilDayOfMonth,
   addDays,
 } = DateUtils.createDateUtils({ normalizeLanguage, pickLang, localeForLang });
-const TODAY = localToday();
 
 const {
   searchProducts: searchOpenFoodFactsProducts,
@@ -555,7 +554,6 @@ const {
   },
   constants: {
     APP_VERSION_LABEL,
-    TODAY,
     REPORT_SERVER_URL,
     REPORTS_ENABLED,
     tutorialSeenKey,

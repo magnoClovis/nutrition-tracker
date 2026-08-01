@@ -3,9 +3,9 @@
  *
  * TEMPORAL-PROTOCOL WARNING: this controller is only the timer mechanism inside
  * the hydration/autosave protocol. The host retains the 24-key hydration pass,
- * its 12-second fallback, every effect and guard condition, the static TODAY
- * keys, and all React setters. Changing scheduler timing in isolation can cause
- * startup defaults or stale historical values to overwrite real user data.
+ * its 12-second fallback, every effect and guard condition, the reactive local
+ * day keys, and all React setters. Changing scheduler timing in isolation can
+ * cause startup defaults or stale historical values to overwrite real user data.
  *
  * The UMD module exposes a `createAutosaveScheduler` factory. The host injects
  * storage, set/clear timer functions, the persistent `saveTimeout.current`

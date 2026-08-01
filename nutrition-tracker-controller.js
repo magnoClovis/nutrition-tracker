@@ -1,8 +1,8 @@
 /**
  * MAXIMUM-CAUTION CONTROLLER CORE for the Trofia application.
  *
- * This UMD module owns the complete NutritionTracker controller: its 151 React
- * states, 36 effects, 19 refs, local callbacks, and the temporal hydration /
+ * This UMD module owns the complete NutritionTracker controller: its 152 React
+ * states, 37 effects, 20 refs, local callbacks, and the temporal hydration /
  * autosave protocol. Hook order and effect dependency arrays are behavioral
  * contracts. The eleven render-scoped factories below intentionally remain
  * inside NutritionTracker so they receive the current render closures; do not
@@ -24,6 +24,172 @@
   if (root) root.NutritionTrackerController = api;
 })(typeof window !== "undefined" ? window : globalThis, function (root) {
   "use strict";
+
+  const DAILY_STORAGE_PREFIXES = Object.freeze({
+    log: "log_v2_",
+    note: "notes_",
+    waterIntake: "waterIntake_",
+    supplementLog: "suppLog_"
+  });
+
+  function millisecondsUntilNextLocalDay(now = new Date()) {
+    if (!(now instanceof Date) || Number.isNaN(now.getTime())) {
+      throw new TypeError("A valid local Date is required");
+    }
+    const nextMidnight = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1
+    );
+    return Math.max(1, nextMidnight.getTime() - now.getTime());
+  }
+
+  function createLocalDayClock({
+    initialDay,
+    readToday,
+    readNow = () => new Date(),
+    setTimer,
+    clearTimer,
+    onDayChange,
+    windowObject,
+    documentObject,
+    midnightBufferMs = 50,
+    retryDelayMs = 1000
+  }) {
+    if (
+      typeof initialDay !== "string" ||
+      typeof readToday !== "function" ||
+      typeof readNow !== "function" ||
+      typeof setTimer !== "function" ||
+      typeof clearTimer !== "function" ||
+      typeof onDayChange !== "function"
+    ) {
+      throw new TypeError("LocalDayClock requires a day, clock, timers, and transition callback");
+    }
+
+    let currentDay = initialDay;
+    let timer = null;
+    let disposed = false;
+    let transition = null;
+
+    function replaceTimer(callback, delay) {
+      if (timer != null) clearTimer(timer);
+      timer = setTimer(callback, delay);
+    }
+
+    function scheduleNextCheck() {
+      if (disposed) return;
+      replaceTimer(check, millisecondsUntilNextLocalDay(readNow()) + midnightBufferMs);
+    }
+
+    function check() {
+      if (disposed || transition) return transition || Promise.resolve(false);
+      const nextDay = readToday();
+      if (nextDay === currentDay) {
+        scheduleNextCheck();
+        return Promise.resolve(false);
+      }
+
+      const previousDay = currentDay;
+      transition = Promise.resolve(onDayChange(nextDay, previousDay))
+        .then(() => {
+          currentDay = nextDay;
+          scheduleNextCheck();
+          return true;
+        })
+        .catch(() => {
+          if (!disposed) replaceTimer(check, retryDelayMs);
+          return false;
+        })
+        .finally(() => {
+          transition = null;
+        });
+      return transition;
+    }
+
+    const onFocus = () => { check(); };
+    const onVisibilityChange = () => {
+      if (!documentObject || documentObject.visibilityState !== "hidden") check();
+    };
+    if (windowObject && typeof windowObject.addEventListener === "function") {
+      windowObject.addEventListener("focus", onFocus);
+    }
+    if (documentObject && typeof documentObject.addEventListener === "function") {
+      documentObject.addEventListener("visibilitychange", onVisibilityChange);
+    }
+
+    check();
+
+    return {
+      check,
+      dispose() {
+        disposed = true;
+        if (timer != null) clearTimer(timer);
+        if (windowObject && typeof windowObject.removeEventListener === "function") {
+          windowObject.removeEventListener("focus", onFocus);
+        }
+        if (documentObject && typeof documentObject.removeEventListener === "function") {
+          documentObject.removeEventListener("visibilitychange", onVisibilityChange);
+        }
+      }
+    };
+  }
+
+  function parseDailyJson(record, fallback) {
+    if (!record || typeof record.value !== "string") return fallback;
+    try {
+      return JSON.parse(record.value);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  async function readDailyStateForDate({ storage, date, normalizeMealKeys }) {
+    const keys = {
+      log: DAILY_STORAGE_PREFIXES.log + date,
+      note: DAILY_STORAGE_PREFIXES.note + date,
+      waterIntake: DAILY_STORAGE_PREFIXES.waterIntake + date,
+      supplementLog: DAILY_STORAGE_PREFIXES.supplementLog + date
+    };
+    const [logRecord, noteRecord, waterRecord, supplementRecord] = await Promise.all([
+      storage.get(keys.log),
+      storage.get(keys.note),
+      storage.get(keys.waterIntake),
+      storage.get(keys.supplementLog)
+    ]);
+    const parsedLog = parseDailyJson(logRecord, {});
+    return {
+      date,
+      keys,
+      hydratedKeys: Object.entries({
+        log: logRecord,
+        note: noteRecord,
+        waterIntake: waterRecord,
+        supplementLog: supplementRecord
+      }).filter(([, record]) => !!record).map(([name]) => keys[name]),
+      log: typeof normalizeMealKeys === "function" ? normalizeMealKeys(parsedLog) : parsedLog,
+      note: noteRecord && typeof noteRecord.value === "string" ? noteRecord.value : "",
+      waterIntake: parseDailyJson(waterRecord, []),
+      supplementLog: parseDailyJson(supplementRecord, [])
+    };
+  }
+
+  async function rolloverDailyStateSafely({
+    nextDate,
+    suspendAutosaves,
+    resumeAutosaves,
+    readDailyState,
+    applyDailyState
+  }) {
+    await suspendAutosaves();
+    try {
+      const dailyState = await readDailyState(nextDate);
+      await applyDailyState(dailyState);
+      return dailyState;
+    } finally {
+      resumeAutosaves();
+    }
+  }
 
   /**
    * Creates the final application controller from explicitly grouped dependencies.
@@ -143,7 +309,6 @@
     } = browser;
     const {
       APP_VERSION_LABEL,
-      TODAY,
       REPORT_SERVER_URL,
       REPORTS_ENABLED,
       tutorialSeenKey,
@@ -477,10 +642,10 @@
     const exportFile = typeof injectedExportFile === "function"
       ? injectedExportFile
       : async ({content, filename, mimeType}) => webExportFile(content, filename, mimeType);
-    function dateLabel(date, lang) {
+    function dateLabel(date, lang, today = localToday()) {
       const s = STRINGS[lang || 'pt'];
-      if (date === TODAY) return `${s.today} ${formatDateDMY(date)}`;
-      if (date === addCivilDays(TODAY, -1)) return `${s.yesterday} ${formatDateDMY(date)}`;
+      if (date === today) return `${s.today} ${formatDateDMY(date)}`;
+      if (date === addCivilDays(today, -1)) return `${s.yesterday} ${formatDateDMY(date)}`;
       return formatDateDMY(date);
     }
 
@@ -599,6 +764,7 @@
       registerBackHandler,
       backHandlerPriority
     }) {
+      const [TODAY, setToday] = useState(() => localToday());
       const [lang, setLang] = useState(() => normalizeLanguage(externalLang || localStorage.getItem('appLang') || 'pt'));
       const [menuOpen, setMenuOpen] = useState(false);
       const [headerLanguageMenuOpen, setHeaderLanguageMenuOpen] = useState(false);
@@ -1055,6 +1221,7 @@
         weeks: ""
       });
       const [viewDate, setViewDate] = useState(TODAY);
+      const viewDateRef = useRef(TODAY);
       const [historyLog, setHistoryLog] = useState({});
       const [todayNote, setTodayNote] = useState("");
       const [historyNote, setHistoryNote] = useState("");
@@ -1217,6 +1384,54 @@
       useEffect(() => {
         loadAll();
       }, []);
+      useEffect(() => {
+        if (!loaded) return undefined;
+        const clock = createLocalDayClock({
+          initialDay: TODAY,
+          readToday: () => localToday(),
+          readNow: () => new Date(),
+          setTimer: (callback, delay) => setTimeout(callback, delay),
+          clearTimer: handle => clearTimeout(handle),
+          windowObject: window,
+          documentObject: document,
+          onDayChange: async (nextDate, previousDate) => {
+            setSyncing(true);
+            setLoaded(false);
+            try {
+              await rolloverDailyStateSafely({
+                nextDate,
+                suspendAutosaves,
+                resumeAutosaves,
+                readDailyState: date => readDailyStateForDate({
+                  storage,
+                  date,
+                  normalizeMealKeys
+                }),
+                applyDailyState: dailyState => {
+                  dailyState.hydratedKeys.forEach(key => hydratedStorageKeysRef.current.add(key));
+                  setLog(dailyState.log);
+                  setTodayNote(dailyState.note);
+                  setWaterIntake(dailyState.waterIntake);
+                  setSuppLog(dailyState.supplementLog);
+                  if (viewDateRef.current === previousDate) {
+                    viewDateRef.current = nextDate;
+                    setViewDate(nextDate);
+                    setCalendarMonth(nextDate.slice(0, 7));
+                  }
+                  setWeightForm(current => current.date === previousDate
+                    ? {...current, date: nextDate}
+                    : current);
+                  setToday(nextDate);
+                }
+              });
+            } finally {
+              setSyncing(false);
+              setLoaded(true);
+            }
+          }
+        });
+        return () => clock.dispose();
+      }, [loaded]);
       // Hydrates the body-fat goal editor from persisted nutrition preferences.
       // The form stays editable after hydration; user input is only committed when
       // the explicit save action syncs body composition with the nutrition goal.
@@ -1247,7 +1462,7 @@
       }, [pantry, loaded]);
       useEffect(() => {
         if (loaded) scheduleSave("log_v2_" + TODAY, log);
-      }, [log, loaded]);
+      }, [log, loaded, TODAY]);
       useEffect(() => {
         if (loaded && canPersistHydratedKey("trainingByDate", trainingByDate, hydratedStorageKeysRef.current)) scheduleSave("trainingByDate", trainingByDate);
       }, [trainingByDate, loaded]);
@@ -1263,7 +1478,7 @@
       }, [mealTemplates, loaded]);
       useEffect(() => {
         if (loaded) scheduleSave("notes_" + TODAY, todayNote, 1500);
-      }, [todayNote, loaded]);
+      }, [todayNote, loaded, TODAY]);
       useEffect(() => {
         if (loaded && viewDate !== TODAY) scheduleSave("notes_" + viewDate, historyNote, 1500);
       }, [historyNote, loaded]);
@@ -1275,13 +1490,13 @@
       }, [waterCustomPreset, loaded]);
       useEffect(() => {
         if (loaded) scheduleSave("waterIntake_" + TODAY, waterIntake);
-      }, [waterIntake, loaded]);
+      }, [waterIntake, loaded, TODAY]);
       useEffect(() => {
         if (loaded && canPersistHydratedKey("suppPantry", suppPantry, hydratedStorageKeysRef.current)) scheduleSave("suppPantry", suppPantry);
       }, [suppPantry, loaded]);
       useEffect(() => {
         if (loaded) scheduleSave("suppLog_" + TODAY, suppLog);
-      }, [suppLog, loaded]);
+      }, [suppLog, loaded, TODAY]);
       useEffect(() => {
         if (loaded && canPersistHydratedKey("customGoals", customGoals, hydratedStorageKeysRef.current)) scheduleSave("customGoals", customGoals);
       }, [customGoals, loaded]);
@@ -1289,6 +1504,7 @@
         if (loaded && canPersistHydratedKey("goalHistory", goalHistory, hydratedStorageKeysRef.current)) scheduleSave("goalHistory", goalHistory);
       }, [goalHistory, loaded]);
       async function changeViewDate(date) {
+        viewDateRef.current = date;
         setViewDate(date);
         if (date) setCalendarMonth(date.slice(0, 7));
         setEditEntryId(null);
@@ -2501,7 +2717,7 @@
           if (JSON.stringify(current) === JSON.stringify(snapshot)) return prev;
           return {...prev, [TODAY]: snapshot};
         });
-      }, [loaded, calculatedGoals.protein, calculatedGoals.kcal, calculatedGoals.carbs, calculatedGoals.fat, calculatedGoals.fiber, calculatedGoals.salt, calculatedGoals.water]);
+      }, [loaded, TODAY, calculatedGoals.protein, calculatedGoals.kcal, calculatedGoals.carbs, calculatedGoals.fat, calculatedGoals.fiber, calculatedGoals.salt, calculatedGoals.water]);
       const bmiNum = currentWeight && currentHeight ? currentWeight / (currentHeight / 100) ** 2 : null;
       const bmi = bmiNum ? bmiNum.toFixed(1) : null;
       const activeLog = isToday ? log : historyLog;
@@ -6015,7 +6231,11 @@
       applyMealRegistrationTime,
       createMealRegistrationOrigin,
       persistMealRegistration,
-      restoreAccountBackupSafely
+      restoreAccountBackupSafely,
+      millisecondsUntilNextLocalDay,
+      createLocalDayClock,
+      readDailyStateForDate,
+      rolloverDailyStateSafely
     };
   }
 

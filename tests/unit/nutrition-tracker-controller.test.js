@@ -43,9 +43,174 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
 
-  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 151);
-  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 36);
-  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 19);
+  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 152);
+  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 37);
+  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 20);
+});
+
+contractTest("computes the next real local midnight across DST transitions", createNutritionTrackerController => {
+  const { millisecondsUntilNextLocalDay } = createController(createNutritionTrackerController);
+  const originalTimezone = process.env.TZ;
+  try {
+    const cases = [
+      ["America/New_York", new Date(2026, 2, 8, 0, 0, 0), 23],
+      ["America/New_York", new Date(2026, 10, 1, 0, 0, 0), 25],
+      ["Europe/Madrid", new Date(2026, 2, 29, 0, 0, 0), 23],
+      ["Europe/Madrid", new Date(2026, 9, 25, 0, 0, 0), 25]
+    ];
+    for (const [timezone, , expectedHours] of cases) {
+      process.env.TZ = timezone;
+      const localMidnight = timezone === "America/New_York"
+        ? new Date(2026, expectedHours === 23 ? 2 : 10, expectedHours === 23 ? 8 : 1, 0, 0, 0)
+        : new Date(2026, expectedHours === 23 ? 2 : 9, expectedHours === 23 ? 29 : 25, 0, 0, 0);
+      assert.equal(millisecondsUntilNextLocalDay(localMidnight), expectedHours * 60 * 60 * 1000);
+    }
+  } finally {
+    if (originalTimezone == null) delete process.env.TZ;
+    else process.env.TZ = originalTimezone;
+  }
+});
+
+contractTest("reacts to a fake midnight clock and foreground checks without duplicate transitions", async createNutritionTrackerController => {
+  const { createLocalDayClock } = createController(createNutritionTrackerController);
+  let now = new Date(2026, 6, 31, 23, 59, 59, 900);
+  let today = "2026-07-31";
+  let nextTimerId = 0;
+  const timers = new Map();
+  const cleared = [];
+  const windowListeners = new Map();
+  const documentListeners = new Map();
+  const transitions = [];
+  const clock = createLocalDayClock({
+    initialDay: today,
+    readToday: () => today,
+    readNow: () => now,
+    setTimer(callback, delay) {
+      const id = ++nextTimerId;
+      timers.set(id, {callback, delay});
+      return id;
+    },
+    clearTimer(id) {
+      cleared.push(id);
+      timers.delete(id);
+    },
+    async onDayChange(nextDay, previousDay) {
+      transitions.push([previousDay, nextDay]);
+    },
+    windowObject: {
+      addEventListener(name, callback) { windowListeners.set(name, callback); },
+      removeEventListener(name) { windowListeners.delete(name); }
+    },
+    documentObject: {
+      visibilityState: "visible",
+      addEventListener(name, callback) { documentListeners.set(name, callback); },
+      removeEventListener(name) { documentListeners.delete(name); }
+    }
+  });
+
+  assert.equal(timers.size, 1);
+  assert.equal([...timers.values()][0].delay, 150);
+  now = new Date(2026, 7, 1, 0, 0, 0, 50);
+  today = "2026-08-01";
+  await [...timers.values()][0].callback();
+  assert.deepEqual(transitions, [["2026-07-31", "2026-08-01"]]);
+
+  await windowListeners.get("focus")();
+  await documentListeners.get("visibilitychange")();
+  assert.equal(transitions.length, 1);
+  assert.equal(timers.size, 1);
+
+  clock.dispose();
+  assert.equal(timers.size, 0);
+  assert.equal(windowListeners.size, 0);
+  assert.equal(documentListeners.size, 0);
+  assert.ok(cleared.length >= 1);
+});
+
+contractTest("rehydrates only the new civil day's log, water, supplements, and note", async createNutritionTrackerController => {
+  const {
+    readDailyStateForDate,
+    rolloverDailyStateSafely
+  } = createController(createNutritionTrackerController);
+  const records = new Map([
+    ["log_v2_2026-08-01", {value: JSON.stringify({Lunch: [{id: "new-meal"}]})}],
+    ["notes_2026-08-01", {value: "new note"}],
+    ["waterIntake_2026-08-01", {value: JSON.stringify([{id: "new-water", ml: 250}])}],
+    ["suppLog_2026-08-01", {value: JSON.stringify([{id: "new-supplement"}])}]
+  ]);
+  const reads = [];
+  const events = [];
+  let applied = null;
+
+  const result = await rolloverDailyStateSafely({
+    nextDate: "2026-08-01",
+    async suspendAutosaves() { events.push("suspend"); },
+    resumeAutosaves() { events.push("resume"); },
+    readDailyState: date => readDailyStateForDate({
+      storage: {
+        async get(key) {
+          reads.push(key);
+          return records.get(key) || null;
+        }
+      },
+      date,
+      normalizeMealKeys: log => ({...log, normalized: true})
+    }),
+    async applyDailyState(dailyState) {
+      events.push("apply");
+      applied = dailyState;
+    }
+  });
+
+  assert.deepEqual(reads, [
+    "log_v2_2026-08-01",
+    "notes_2026-08-01",
+    "waterIntake_2026-08-01",
+    "suppLog_2026-08-01"
+  ]);
+  assert.deepEqual(events, ["suspend", "apply", "resume"]);
+  assert.deepEqual(applied.log, {Lunch: [{id: "new-meal"}], normalized: true});
+  assert.equal(applied.note, "new note");
+  assert.deepEqual(applied.waterIntake, [{id: "new-water", ml: 250}]);
+  assert.deepEqual(applied.supplementLog, [{id: "new-supplement"}]);
+  assert.equal(result, applied);
+
+  const empty = await readDailyStateForDate({
+    storage: {async get() { return null; }},
+    date: "2026-08-02",
+    normalizeMealKeys: log => log
+  });
+  assert.deepEqual({
+    log: empty.log,
+    note: empty.note,
+    waterIntake: empty.waterIntake,
+    supplementLog: empty.supplementLog
+  }, {log: {}, note: "", waterIntake: [], supplementLog: []});
+});
+
+contractTest("keeps autosaves suspended when daily hydration fails and retries safely", async createNutritionTrackerController => {
+  const { rolloverDailyStateSafely, NutritionTracker } = createController(createNutritionTrackerController);
+  const events = [];
+  await assert.rejects(rolloverDailyStateSafely({
+    nextDate: "2026-08-01",
+    async suspendAutosaves() { events.push("suspend"); },
+    resumeAutosaves() { events.push("resume"); },
+    async readDailyState() {
+      events.push("read");
+      throw new Error("offline");
+    },
+    async applyDailyState() { events.push("apply"); }
+  }), /offline/);
+  assert.deepEqual(events, ["suspend", "read", "resume"]);
+
+  const source = NutritionTracker.toString();
+  assert.ok(source.includes("const [TODAY, setToday] = useState(() => localToday())"));
+  assert.ok(source.indexOf("await rolloverDailyStateSafely") < source.indexOf("setToday(nextDate)"));
+  assert.ok(source.includes("setLog(dailyState.log)"));
+  assert.ok(source.includes("setTodayNote(dailyState.note)"));
+  assert.ok(source.includes("setWaterIntake(dailyState.waterIntake)"));
+  assert.ok(source.includes("setSuppLog(dailyState.supplementLog)"));
+  assert.ok(source.includes("viewDateRef.current === previousDate"));
 });
 
 contractTest("keeps all eleven render-scoped factories in their original order", createNutritionTrackerController => {
