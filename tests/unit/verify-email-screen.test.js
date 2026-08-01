@@ -137,7 +137,7 @@ function contractTest(name, callback) {
   });
 }
 
-contractTest("renders Portuguese and English, while Spanish intentionally follows Portuguese", createVerifyEmailScreen => {
+contractTest("renders independent Portuguese, English, and Spanish verification copy", createVerifyEmailScreen => {
   const portuguese = createFixture(createVerifyEmailScreen, { lang: "pt" });
   assert.match(elementText(portuguese.harness.render()), /Verifique seu email/);
   assert.match(elementText(portuguese.harness.tree), /Aguardando verificação/);
@@ -149,8 +149,9 @@ contractTest("renders Portuguese and English, while Spanish intentionally follow
   english.harness.unmount();
 
   const spanish = createFixture(createVerifyEmailScreen, { lang: "es" });
-  assert.match(elementText(spanish.harness.render()), /Verifique seu email/);
-  assert.match(elementText(spanish.harness.tree), /Aguardando verificação/);
+  assert.match(elementText(spanish.harness.render()), /Verifica tu correo electr\u00f3nico/);
+  assert.match(elementText(spanish.harness.tree), /Esperando la verificaci\u00f3n/);
+  assert.doesNotMatch(elementText(spanish.harness.tree), /Verifique seu email/);
   assert.doesNotMatch(elementText(spanish.harness.tree), /Verify your email/);
   spanish.harness.unmount();
 });
@@ -194,6 +195,16 @@ contractTest("resends the verification email through the injected service", asyn
   assert.equal(fixture.sendCount, 1);
   assert.match(elementText(fixture.harness.tree), /Email resent!/);
   fixture.harness.unmount();
+
+  const spanish = createFixture(createVerifyEmailScreen, { lang: "es" });
+  spanish.harness.render();
+  const spanishResend = findButton(spanish.harness.tree, "Reenviar correo de verificaci\u00f3n");
+  assert.ok(spanishResend);
+  await spanishResend.props.onClick();
+  spanish.harness.render();
+  assert.equal(spanish.sendCount, 1);
+  assert.match(elementText(spanish.harness.tree), /Correo reenviado!/);
+  spanish.harness.unmount();
 });
 
 contractTest("clears polling on unmount and the active guard prevents late verification", async createVerifyEmailScreen => {
