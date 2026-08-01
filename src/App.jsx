@@ -46,6 +46,7 @@ import * as HistoricalGoalsModel from './composite/historical-goals-model.js';
 import * as HistoryLoaders from './composite/history-loaders.js';
 import * as MealGA from './composite/meal-ga.js';
 import * as MealReviewAI from './composite/meal-review-ai.js';
+import * as MealImageCaptureRuntime from './composite/meal-image-capture-runtime.js';
 import * as NutritionFeedbackAI from './composite/nutrition-feedback-ai.js';
 import * as ProfileValidation from './composite/profile-validation.js';
 import * as WeekAggregator from './composite/week-aggregator.js';
@@ -475,6 +476,7 @@ const {
   services: {
     storage,
     exportFile,
+    mealImageCapture: MealImageCaptureRuntime,
     resolveNutritionBackAction,
     resolveTabHistoryAfterNavigation,
   },
