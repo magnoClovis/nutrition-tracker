@@ -4,12 +4,18 @@ const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
 const { createGoalCalculator } = require("../../goal-calculator.js");
 const { createProfileValidation } = require("../../profile-validation.js");
+const { createDateUtils } = require("../../date-utils.js");
 const implementations = [
   ["UMD", () => Promise.resolve(require("../../login-screen.js"))],
   ["ESM", () => import("../../src/components/login-screen.js")]
 ];
 
 const { LANGUAGE_OPTIONS, normalizeLanguage } = createI18n();
+const { localToday } = createDateUtils({
+  normalizeLanguage,
+  pickLang: (_lang, pt) => pt,
+  localeForLang: () => "en-US"
+});
 const { ACTIVITY_LEVELS } = createGoalCalculator();
 const { isValidBirthDate, isValidGender } = createProfileValidation({
   storage: { async get() { return null; } },
@@ -139,7 +145,8 @@ function createFixture(createLoginScreen, { stored = {}, auth = {}, initialDark 
     readPreferredDarkMode() { calls.push(["readPreferredDarkMode"]); return initialDark; },
     localStorage,
     documentElement,
-    Date: fixedDateConstructor()
+    Date: fixedDateConstructor(),
+    localToday
   });
   const harness = createHookHarness(LoginScreen, {
     onLogin(isNew) { calls.push(["onLogin", isNew]); loggedIn.push(isNew); },
@@ -262,6 +269,7 @@ contractTest("preserves the lack of a synchronous double-submit guard", async cr
 contractTest("registers with real profile validators and writes the exact persistence keys in order", async createLoginScreen => {
   const fixture = createFixture(createLoginScreen);
   switchToRegistration(fixture);
+  assert.equal(findInput(fixture.harness.tree, props => props.type === "date").props.max, "2026-07-16");
   fillRegistration(fixture);
   await submit(fixture);
 

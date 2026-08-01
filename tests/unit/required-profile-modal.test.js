@@ -80,7 +80,8 @@ function createFixture(createRequiredProfileModal, profile = {}, persisted = {})
     isValidGender: validation.isValidGender,
     isValidGoalProfile: validation.isValidGoalProfile,
     getRequiredProfileData: validation.getRequiredProfileData,
-    hasRequiredProfileData: validation.hasRequiredProfileData
+    hasRequiredProfileData: validation.hasRequiredProfileData,
+    localToday: () => "2026-07-31"
   });
   const harness = createHookHarness(RequiredProfileModal, {
     lang: "pt",
@@ -112,7 +113,7 @@ contractTest("renders empty, partial, and complete persisted profile values", cr
   let tree = empty.harness.render();
   assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), [""]);
   assert.deepEqual(elementsByType(tree, "select").map(select => select.props.value), ["", "", ""]);
-  assert.equal(elementsByType(tree, "input")[0].props.max, new Date().toISOString().split("T")[0]);
+  assert.equal(elementsByType(tree, "input")[0].props.max, "2026-07-31");
 
   const partial = createFixture(createRequiredProfileModal, { birthDate: "1990-06-15", gender: "female" });
   tree = partial.harness.render();

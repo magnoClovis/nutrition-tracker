@@ -47,6 +47,8 @@
    * @param {function(): Object} dependencies.FileReader Browser FileReader constructor.
    * @param {function(string): void} dependencies.alertUser Browser alert service.
    * @param {function(...*): void} dependencies.reportError Error logger, normally `console.error`.
+   * @param {function(Date=): string} dependencies.localToday Shared local civil-date formatter.
+   * @param {function(string, number): string} dependencies.addCivilDays Shared calendar-day shifter.
    * @returns {{BackupModal: function(Object): Object}} Configured backup-modal component API.
    */
   function createBackupModal({
@@ -60,7 +62,9 @@
     getBackupContext,
     FileReader: FileReaderCtor,
     alertUser,
-    reportError
+    reportError,
+    localToday,
+    addCivilDays
   }) {
     if (!React || typeof React.createElement !== "function" || typeof React.useState !== "function" ||
         typeof normalizeLanguage !== "function" || typeof pickLang !== "function" ||
@@ -69,7 +73,8 @@
         (exportFile !== undefined && typeof exportFile !== "function") ||
         typeof supportsNativeFileDestinations !== "boolean" ||
         typeof getBackupContext !== "function" || typeof FileReaderCtor !== "function" ||
-        typeof alertUser !== "function" || typeof reportError !== "function") {
+        typeof alertUser !== "function" || typeof reportError !== "function" ||
+        typeof localToday !== "function" || typeof addCivilDays !== "function") {
       throw new TypeError("BackupModal requires React, i18n, storage, browser services, and getBackupContext");
     }
 
@@ -146,7 +151,7 @@
           if (typeof activeExportFile !== "function") {
             throw new Error(L('App ainda não está pronto', 'App not ready', 'La app aún no está lista'));
           }
-          const today = TODAY || new Date().toISOString().split('T')[0];
+          const today = TODAY || localToday();
           const exportLang = normalizeLanguage(lang || normalizedLang || 'pt');
           const E = (pt, en, es) => pickLang(exportLang, pt, en, es);
           const exportRequest = request => activeExportFile({
@@ -191,8 +196,7 @@
             const n = key === 'week' ? 7 : 30;
             const days = [];
             for (let i = n-1; i >= 0; i--) {
-              const dt = new Date(); dt.setDate(dt.getDate()-i);
-              const date = dt.toISOString().split('T')[0];
+              const date = addCivilDays(today, -i);
               let dayLog = date === today ? (log||{}) : {};
               if (date !== today) {
                 const l = await storage.get('log_v2_'+date).catch(()=>null);

@@ -11,6 +11,7 @@ const MIGRATION_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "fireb
 const BACKUP_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-backup-internal.js"), "utf8");
 const ACCOUNT_DATA_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-account-data-internal.js"), "utf8");
 const SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-storage.js"), "utf8");
+const DATE_UTILS_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "date-utils.js"), "utf8");
 const FB_BASE = "https://firestore.googleapis.com/v1/projects/nutrition-tracker-780b3/databases/(default)/documents/nutrition";
 
 function plain(value) {
@@ -193,6 +194,7 @@ function loadFirebaseStorage({ local = {}, reportConfig, fetchRequest } = {}) {
   vm.runInContext(MIGRATION_SOURCE, context, { filename: "firebase-migration-internal.js" });
   vm.runInContext(BACKUP_SOURCE, context, { filename: "firebase-backup-internal.js" });
   vm.runInContext(ACCOUNT_DATA_SOURCE, context, { filename: "firebase-account-data-internal.js" });
+  vm.runInContext(DATE_UTILS_SOURCE, context, { filename: "date-utils.js" });
   vm.runInContext(SOURCE, context, { filename: "firebase-storage.js" });
 
   return {

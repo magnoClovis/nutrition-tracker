@@ -104,7 +104,9 @@ _firebaseMigration = window.FirebaseMigrationInternal.createFirebaseMigration({
   getUid: _getUid,
   getAuthHeaders: () => _firebaseAuth.fbHeaders(),
   fetchRequest: (...args) => fetch(...args),
-  firestoreSupport: _firebaseFirestore.support
+  firestoreSupport: _firebaseFirestore.support,
+  localToday: (...args) => window.DateUtils.localToday(...args),
+  addCivilDays: (...args) => window.DateUtils.addCivilDays(...args)
 });
 
 const {

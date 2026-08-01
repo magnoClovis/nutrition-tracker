@@ -90,6 +90,9 @@
       divisor,
       formatDateDMY,
       formatHeaderDate,
+      localToday,
+      addCivilDays,
+      lastCivilDayOfMonth,
       canPersistHydratedKey,
       monthDays,
       calendarMarkerFor,
@@ -314,13 +317,6 @@
       }
     };
 
-    function getLocalDateKey(date = new Date()) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    }
-
     function hashString(text) {
       let hash = 0;
       for (let i = 0; i < text.length; i++) {
@@ -336,7 +332,7 @@
      */
     function getDailyGreetingPhrase(lang, period) {
       const language = GREETING_PHRASES[normalizeLanguage(lang)] ? normalizeLanguage(lang) : "pt";
-      const dateKey = getLocalDateKey();
+      const dateKey = localToday();
       const storageKey = `dailyGreetingPhrase_${language}_${period}_${dateKey}`;
       const pool = [
         ...(GREETING_PHRASES[language][period] || []),
@@ -484,10 +480,7 @@
     function dateLabel(date, lang) {
       const s = STRINGS[lang || 'pt'];
       if (date === TODAY) return `${s.today} ${formatDateDMY(date)}`;
-      const d = new Date(date + "T12:00:00");
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      if (d.toDateString() === yesterday.toDateString()) return `${s.yesterday} ${formatDateDMY(date)}`;
+      if (date === addCivilDays(TODAY, -1)) return `${s.yesterday} ${formatDateDMY(date)}`;
       return formatDateDMY(date);
     }
 
@@ -759,7 +752,7 @@
         monthDays,
         calendarMarkerFor,
         resolveHistoricalGoals,
-        createDate: () => new Date(),
+        addCivilDays,
         warn: (...args) => console.warn(...args)
       });
       // Maps storage key -> display name
@@ -1374,15 +1367,13 @@
         setWeekData(days);
       }
       async function loadMealAnalysis() {
-        const avgs = await loadMealAnalysisData({ mealKeys: MEALS });
+        const avgs = await loadMealAnalysisData({ today: TODAY, mealKeys: MEALS });
         setMealAverages(avgs);
       }
       async function loadRecentMeals() {
         const dailyLogs = [];
         for (let i = 0; i <= 14; i++) {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          const date = d.toISOString().split("T")[0];
+          const date = addCivilDays(TODAY, -i);
           const dayLog = date === TODAY ? log : (() => {
             return null;
           })();
@@ -1882,9 +1873,7 @@
         try {
           const days = [];
           for (let i = 1; i <= 30; i++) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const date = d.toISOString().split("T")[0];
+            const date = addCivilDays(TODAY, -i);
             const l = await storage.get("log_v2_" + date).catch(() => null);
             if (!l) continue;
             const dayLog = JSON.parse(l.value);
@@ -1992,9 +1981,7 @@
         notify(pickLang(lang, "\"" + sugg.name + "\" carregada. Ajuste e registre.", "\"" + sugg.name + "\" loaded. Adjust and log it.", "\"" + sugg.name + "\" cargada. Ajusta y registra."));
       }
       function reportDateShift(date, days) {
-        const d = new Date(date + "T12:00:00");
-        d.setDate(d.getDate() + days);
-        return d.toISOString().split("T")[0];
+        return addCivilDays(date, days);
       }
       function reportDateRange(start, end) {
         const dates = [];
@@ -2039,10 +2026,7 @@
           dates = reportDateRange(reportDateShift(anchor, -6), anchor);
         } else if (type === "month") {
           const first = anchor.slice(0, 8) + "01";
-          const lastDate = new Date(anchor.slice(0, 7) + "-01T12:00:00");
-          lastDate.setMonth(lastDate.getMonth() + 1);
-          lastDate.setDate(0);
-          const last = lastDate.toISOString().split("T")[0];
+          const last = lastCivilDayOfMonth(anchor);
           dates = reportDateRange(first, last);
         } else {
           const listed = await storage.list("log_v2_").catch(() => ({keys: []}));
@@ -2175,9 +2159,7 @@
           // Week
           const days = [];
           for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const date = d.toISOString().split("T")[0];
+            const date = addCivilDays(TODAY, -i);
             let dayLog = date === TODAY ? log : {};
             if (date !== TODAY) {
               const l = await storage.get("log_v2_" + date).catch(() => null);
@@ -2428,7 +2410,8 @@
         height: viewHeight,
         birthDate: profileData.birthDate,
         gender: profileData.gender,
-        prefs: nutritionPrefs
+        prefs: nutritionPrefs,
+        referenceDate: viewDate
       };
       const baseGoals = computeGoals(viewWeight, isTraining, goalProfile);
       const dailyGoalModel = buildDailyGoalModel({
@@ -3254,8 +3237,7 @@
             const days_n = type === 'week' ? 7 : 30;
             const days = [];
             for (let i = days_n-1; i >= 0; i--) {
-              const d = new Date(); d.setDate(d.getDate()-i);
-              const date = d.toISOString().split('T')[0];
+              const date = addCivilDays(today, -i);
               let dayLog = date === TODAY ? log : {};
               if (date !== TODAY) {
                 const l = await storage.get('log_v2_'+date).catch(()=>null);

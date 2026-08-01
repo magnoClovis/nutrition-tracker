@@ -4,7 +4,8 @@
  * Internal legacy-schema migration service for Trofia.
  *
  * Historical migration keys cover only today plus the previous 119 local
- * calendar days, converted to UTC with `toISOString()`. The separate legacy
+ * civil dates. Existing keys are discovered and copied as-is; this module does
+ * not rename or rewrite historical dates. The separate legacy
  * cleanup later lists and deletes EVERY remaining `nutrition/{uid}_{key}`
  * document, including documents outside that 120-day window that were never
  * promoted. Old diary, notes, water, or supplement records can therefore be
@@ -40,6 +41,8 @@
    * @param {Function} dependencies.getAuthHeaders Async authenticated-header provider.
    * @param {Function} dependencies.fetchRequest Fetch-compatible HTTP function.
    * @param {Object} dependencies.firestoreSupport Narrow support port from FirebaseFirestoreInternal.
+   * @param {function(Date=): string} dependencies.localToday Shared local civil-date formatter.
+   * @param {function(string, number): string} dependencies.addCivilDays Shared calendar-day shifter.
    * @returns {{migrateLegacyNutritionDocsV2: Function, migrateStorageToFirestoreV3: Function, cleanupLegacyNutritionDocsV3: Function, mergeHelpers: Object, support: Object}} Migration operations, shared merge helpers, and testable internal support.
    */
   function createFirebaseMigration({
@@ -47,8 +50,13 @@
     getUid,
     getAuthHeaders,
     fetchRequest,
-    firestoreSupport
+    firestoreSupport,
+    localToday,
+    addCivilDays
   }) {
+    if (typeof localToday !== "function" || typeof addCivilDays !== "function") {
+      throw new TypeError("FirebaseMigrationInternal requires civil-date helpers");
+    }
     const {
       stripLegacyUid2: _stripLegacyUid2,
       decodeFsValue2: _decodeFsValue2,
@@ -131,10 +139,9 @@
         "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
       ];
       const dateKeys = [];
+      const today = localToday();
       for (let i = 0; i < 120; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const date = d.toISOString().split("T")[0];
+        const date = addCivilDays(today, -i);
         dateKeys.push("log_v2_" + date, "notes_" + date, "waterIntake_" + date, "suppLog_" + date);
       }
       return Array.from(new Set([...base, ...dateKeys]));

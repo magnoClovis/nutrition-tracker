@@ -69,6 +69,35 @@ contractTest("adds days across month, year, and leap-day boundaries", ({ addDays
   assert.equal(addDays("2024-03-01", -1), "2024-02-29");
 });
 
+contractTest("formats today from local calendar fields instead of UTC", ({ localToday }) => {
+  const localDate = {
+    getFullYear: () => 2026,
+    getMonth: () => 6,
+    getDate: () => 31
+  };
+  assert.equal(localToday(localDate), "2026-07-31");
+});
+
+contractTest("keeps civil arithmetic stable across DST and month boundaries", ({
+  addCivilDays,
+  differenceInCivilDays,
+  lastCivilDayOfMonth
+}) => {
+  assert.equal(addCivilDays("2024-03-09", 1), "2024-03-10");
+  assert.equal(addCivilDays("2024-03-10", 1), "2024-03-11");
+  assert.equal(addCivilDays("2024-11-03", -1), "2024-11-02");
+  assert.equal(differenceInCivilDays("2024-03-09", "2024-03-11"), 2);
+  assert.equal(differenceInCivilDays("2024-11-04", "2024-11-02"), -2);
+  assert.equal(lastCivilDayOfMonth("2024-02-10"), "2024-02-29");
+  assert.equal(lastCivilDayOfMonth("2025-02-10"), "2025-02-28");
+});
+
+contractTest("rejects malformed civil dates and fractional offsets", ({ addCivilDays, differenceInCivilDays }) => {
+  assert.throws(() => addCivilDays("2024-02-30", 1), /Invalid civil date/);
+  assert.throws(() => addCivilDays("2024-02-29", 0.5), /integer/);
+  assert.throws(() => differenceInCivilDays("2024/02/29", "2024-03-01"), /YYYY-MM-DD/);
+});
+
 contractTest("capitalizes empty, accented, and special-character strings consistently", ({ capitalizeFirst }) => {
   assert.equal(capitalizeFirst(""), "");
   assert.equal(capitalizeFirst("árvore"), "Árvore");

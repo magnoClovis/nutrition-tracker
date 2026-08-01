@@ -40,7 +40,6 @@ function hasSeenTutorial(record) {
   return record && (record.value === true || record.value === "true");
 }
 
-const TODAY = new Date().toISOString().split("T")[0];
 const {
   LANGUAGE_OPTIONS,
   normalizeLanguage,
@@ -56,6 +55,23 @@ const {
   getMealLabelsForLanguage,
   normalizeTabKey
 } = window.I18n.createI18n();
+
+const {
+  rnd,
+  quickQtys,
+  divisor,
+  portionLabel,
+  formatDateDMY,
+  formatDateDM,
+  formatHeaderDate,
+  capitalizeFirst,
+  localToday,
+  addCivilDays,
+  differenceInCivilDays,
+  lastCivilDayOfMonth,
+  addDays
+} = window.DateUtils.createDateUtils({ normalizeLanguage, pickLang, localeForLang });
+const TODAY = localToday();
 
 const {
   searchProducts: searchOpenFoodFactsProducts,
@@ -102,7 +118,9 @@ const {
   }),
   FileReader: window.FileReader,
   alertUser: window.alert.bind(window),
-  reportError: (...args) => console.error(...args)
+  reportError: (...args) => console.error(...args),
+  localToday,
+  addCivilDays
 });
 
 const {
@@ -126,18 +144,6 @@ const {
   formatTickerAmount,
   buildNutrientTickerSlide
 } = window.DiaryTicker.createDiaryTicker({ localeForLang, pickLang });
-
-const {
-  rnd,
-  quickQtys,
-  divisor,
-  portionLabel,
-  formatDateDMY,
-  formatDateDM,
-  formatHeaderDate,
-  capitalizeFirst,
-  addDays
-} = window.DateUtils.createDateUtils({ normalizeLanguage, pickLang, localeForLang });
 
 const { canPersistHydratedKey } = window.HydrationGuard;
 
@@ -184,6 +190,7 @@ const {
 } = window.BodyMetricsModel.createBodyMetricsModel({
   computeGoals,
   formatDateDM,
+  differenceInCivilDays,
   createMeasurementId: () => Date.now().toString()
 });
 
@@ -231,7 +238,8 @@ const {
   readPreferredDarkMode,
   localStorage,
   documentElement: document.documentElement,
-  Date
+  Date,
+  localToday
 });
 
 const {
@@ -265,7 +273,8 @@ const {
   isValidGender,
   isValidGoalProfile,
   getRequiredProfileData,
-  hasRequiredProfileData
+  hasRequiredProfileData,
+  localToday
 });
 
 const {
@@ -378,6 +387,9 @@ const {
     divisor,
     formatDateDMY,
     formatHeaderDate,
+    localToday,
+    addCivilDays,
+    lastCivilDayOfMonth,
     canPersistHydratedKey,
     monthDays,
     calendarMarkerFor,

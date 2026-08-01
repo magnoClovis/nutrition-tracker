@@ -1,5 +1,5 @@
 /**
- * Numeric rounding, quantity, unit-label, and calendar-date helpers.
+ * Numeric rounding, quantity, unit-label, and civil-date helpers.
  *
  * The UMD module exposes a `createDateUtils` factory. The host application
  * injects `normalizeLanguage`, `pickLang`, and `localeForLang` from its language
@@ -14,6 +14,56 @@
   if (root) root.DateUtils = api;
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
+
+  const CIVIL_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+  const MILLISECONDS_PER_DAY = 86400000;
+
+  function parseCivilDate(date) {
+    const match = CIVIL_DATE_PATTERN.exec(String(date || ""));
+    if (!match) throw new TypeError("Expected a civil date in YYYY-MM-DD format");
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const normalized = new Date(Date.UTC(year, month - 1, day));
+    if (
+      normalized.getUTCFullYear() !== year ||
+      normalized.getUTCMonth() !== month - 1 ||
+      normalized.getUTCDate() !== day
+    ) {
+      throw new RangeError("Invalid civil date");
+    }
+    return { year, month, day };
+  }
+
+  function formatCivilFields(year, month, day) {
+    return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  function localToday(date = new Date()) {
+    return formatCivilFields(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  }
+
+  function civilEpochMilliseconds(date) {
+    const { year, month, day } = parseCivilDate(date);
+    return Date.UTC(year, month - 1, day);
+  }
+
+  function addCivilDays(date, amount) {
+    const days = Number(amount);
+    if (!Number.isInteger(days)) throw new TypeError("Civil day offset must be an integer");
+    const shifted = new Date(civilEpochMilliseconds(date) + days * MILLISECONDS_PER_DAY);
+    return formatCivilFields(shifted.getUTCFullYear(), shifted.getUTCMonth() + 1, shifted.getUTCDate());
+  }
+
+  function differenceInCivilDays(start, end) {
+    return (civilEpochMilliseconds(end) - civilEpochMilliseconds(start)) / MILLISECONDS_PER_DAY;
+  }
+
+  function lastCivilDayOfMonth(date) {
+    const { year, month } = parseCivilDate(date);
+    const last = new Date(Date.UTC(year, month, 0));
+    return formatCivilFields(last.getUTCFullYear(), last.getUTCMonth() + 1, last.getUTCDate());
+  }
 
   /**
    * Creates the date-and-unit API with language helpers supplied by the host.
@@ -124,11 +174,13 @@
     function formatHeaderDate(date, lang) {
       if (!date || typeof date !== "string") return "—";
       const locale = localeForLang(lang);
-      const d = new Date(date + "T12:00:00");
+      const { year, month, day } = parseCivilDate(date);
+      const d = new Date(Date.UTC(year, month - 1, day));
       const formatted = d.toLocaleDateString(locale, {
         weekday: "long",
         day: "numeric",
-        month: "long"
+        month: "long",
+        timeZone: "UTC"
       });
       return capitalizeFirst(formatted);
     }
@@ -141,9 +193,7 @@
      * @returns {string} Resulting date in `YYYY-MM-DD` format.
      */
     function addDays(date, n) {
-      const d = new Date(date + "T12:00:00");
-      d.setDate(d.getDate() + n);
-      return d.toISOString().split("T")[0];
+      return addCivilDays(date, n);
     }
 
     return {
@@ -155,9 +205,19 @@
       formatDateDM,
       formatHeaderDate,
       capitalizeFirst,
+      localToday,
+      addCivilDays,
+      differenceInCivilDays,
+      lastCivilDayOfMonth,
       addDays
     };
   }
 
-  return { createDateUtils };
+  return {
+    createDateUtils,
+    localToday,
+    addCivilDays,
+    differenceInCivilDays,
+    lastCivilDayOfMonth
+  };
 });

@@ -4,6 +4,12 @@ const implementations = [
   ["UMD", () => Promise.resolve(require("../../history-loaders.js"))],
   ["ESM", () => import("../../src/composite/history-loaders.js")]
 ];
+const { createDateUtils } = require("../../date-utils.js");
+const civilDates = createDateUtils({
+  normalizeLanguage: value => value,
+  pickLang: (_lang, pt) => pt,
+  localeForLang: () => "pt-BR"
+});
 
 function deferred() {
   let resolve;
@@ -24,7 +30,7 @@ function baseDependencies(overrides = {}) {
     monthDays: () => [],
     calendarMarkerFor: (log, goal) => ({ log, goal }),
     resolveHistoricalGoals: snapshot => ({ effectiveGoal: { date: snapshot.date } }),
-    createDate: () => new Date("2026-07-22T12:00:00.000Z"),
+    addCivilDays: civilDates.addCivilDays,
     warn: () => {},
     ...overrides
   };
@@ -94,10 +100,9 @@ contractTest("keeps invalid historical JSON as a rejected loader promise", async
   );
 });
 
-contractTest("reads weekly history sequentially with a fresh Date per iteration", async createHistoryLoaders => {
+contractTest("reads weekly history sequentially from the supplied civil today", async createHistoryLoaders => {
   let activeReads = 0;
   let maxActiveReads = 0;
-  let dateCreations = 0;
   const readKeys = [];
   let aggregateInput;
   const { loadWeekRows } = createHistoryLoaders(baseDependencies({
@@ -110,10 +115,6 @@ contractTest("reads weekly history sequentially with a fresh Date per iteration"
         activeReads--;
         return { value: JSON.stringify({ Outro: [{ protein: readKeys.length }] }) };
       }
-    },
-    createDate() {
-      dateCreations++;
-      return new Date("2026-07-22T12:00:00.000Z");
     },
     aggregateWeekRows(snapshot) {
       aggregateInput = snapshot;
@@ -131,10 +132,10 @@ contractTest("reads weekly history sequentially with a fresh Date per iteration"
   });
 
   assert.deepEqual(result, [{ aggregated: true }]);
-  assert.equal(dateCreations, 8);
   assert.equal(readKeys.length, 7);
   assert.equal(maxActiveReads, 1);
   assert.equal(aggregateInput.dayDescriptors.length, 8);
+  assert.deepEqual(aggregateInput.dayDescriptors[0], { date: "2026-07-15", day: 15 });
   assert.deepEqual(aggregateInput.dayDescriptors.at(-1), { date: "2026-07-22", day: 22 });
   assert.strictEqual(aggregateInput.logsByDate["2026-07-22"], todayLog);
   assert.strictEqual(aggregateInput.goalContext, goalContext);
@@ -166,7 +167,7 @@ contractTest("reads 30 meal-analysis days sequentially without normalizing meal 
     }
   }));
 
-  assert.deepEqual(await loadMealAnalysisData({ mealKeys: ["Café da manhã"] }), { done: true });
+  assert.deepEqual(await loadMealAnalysisData({ today: "2026-07-22", mealKeys: ["Café da manhã"] }), { done: true });
   assert.equal(maxActiveReads, 1);
   assert.equal(normalizeCalls, 0);
   assert.deepEqual(aggregateInput, {
@@ -185,7 +186,7 @@ contractTest("keeps invalid weekly and meal JSON as rejected promises", async cr
     loadWeekRows({ today: "2026-07-22", todayLog: {}, trainingByDate: {}, goalContext: {} }),
     SyntaxError
   );
-  await assert.rejects(loadMealAnalysisData({ mealKeys: [] }), SyntaxError);
+  await assert.rejects(loadMealAnalysisData({ today: "2026-07-22", mealKeys: [] }), SyntaxError);
 });
 
 contractTest("loads calendar days in parallel and keeps present, missing, invalid, and TODAY markers distinct only by input", async createHistoryLoaders => {
@@ -258,7 +259,7 @@ contractTest("loads calendar days in parallel and keeps present, missing, invali
 contractTest("publishes the factory and requires every loader dependency", createHistoryLoaders => {
   assert.equal(typeof createHistoryLoaders, "function");
   assert.throws(
-    () => createHistoryLoaders(baseDependencies({ createDate: null })),
+    () => createHistoryLoaders(baseDependencies({ addCivilDays: null })),
     /requires storage and all history-loader dependency functions/
   );
 });
