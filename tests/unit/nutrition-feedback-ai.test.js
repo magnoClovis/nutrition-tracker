@@ -134,7 +134,7 @@ contractTest("builds the Portuguese daily prompt from the explicit snapshot", as
   assert.ok(fixture.calls[0].prompt.includes("Calorias: 451kcal (23% da meta)"));
 });
 
-contractTest("keeps the Spanish activity-description quirk and factor fallback", async createFixture => {
+contractTest("uses the Spanish activity description and preserves the factor fallback", async createFixture => {
   const fixture = createFixture();
   const snapshot = baseSnapshot({
     lang: "es",
@@ -147,9 +147,10 @@ contractTest("keeps the Spanish activity-description quirk and factor fallback",
   const prompt = fixture.calls[0].prompt;
   assert.equal(prompt.includes("Nombre:"), false);
   assert.ok(prompt.includes(
-    "Nivel de actividad física: Moderately active - Moderate exercise 3 to 5 times per week | FA: 1.55"
+    "Nivel de actividad física: " + ACTIVITY_LEVELS.moderate.es + " - "
+      + ACTIVITY_LEVELS.moderate.descEs + " | FA: 1.55"
   ));
-  assert.equal(prompt.includes(ACTIVITY_LEVELS.moderate.descEs), false);
+  assert.equal(prompt.includes(ACTIVITY_LEVELS.moderate.descEn), false);
   assert.ok(prompt.includes("Fecha: 2026-07-18 | DÍA DE DESCANSO"));
 });
 

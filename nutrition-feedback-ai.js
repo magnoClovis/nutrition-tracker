@@ -9,11 +9,10 @@
  * The module returns either generated text or the neutral `no-week-data` status
  * and never reads React state, storage, or UI callbacks directly.
  *
- * KNOWN BEHAVIOR DELIBERATELY PRESERVED: Spanish prompts use the English
- * activity name and description; the activity factor uses the historical
- * `baseActivityFactor || activityInfo.factor` fallback. Requests have no
- * cancellation or ordering, so older results may overwrite newer feedback and
- * period state in the React host.
+ * Activity names and descriptions follow the normalized prompt language. The
+ * activity factor keeps the historical `baseActivityFactor ||
+ * activityInfo.factor` fallback. Requests have no cancellation or ordering, so
+ * older results may overwrite newer feedback and period state in the React host.
  *
  * @module NutritionFeedbackAI
  */
@@ -120,7 +119,7 @@
         activityInfo ? fbText(
           "Nível de atividade física: " + activityInfo.pt + " - " + activityInfo.descPt + " | FA: ",
           "Physical activity level: " + activityInfo.en + " - " + activityInfo.descEn + " | AF: ",
-          "Nivel de actividad física: " + activityInfo.en + " - " + activityInfo.descEn + " | FA: "
+          "Nivel de actividad física: " + activityInfo.es + " - " + activityInfo.descEs + " | FA: "
         ) + (baseGoals.fa || activityInfo.factor) : "",
         fbText("Dia analisado como: ", "Day classified as: ", "Día analizado como: ") + (isTraining ? fbText("dia de treino/atividade", "training/activity day", "día de entrenamiento/actividad") : fbText("dia de descanso", "rest day", "día de descanso")),
         fbText("Calorias de base calculadas antes do ajuste: ", "Calculated base calories before adjustment: ", "Calorías base calculadas antes del ajuste: ") + (calorieBase || "—") + " kcal",

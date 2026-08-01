@@ -1,6 +1,7 @@
 const fs = require("fs");
 const vm = require("vm");
 const crypto = require("crypto");
+const { findMojibake } = require("./encoding-audit.js");
 
 const APP_FILE = "app.js";
 const JSX_FILE = "nutrition-tracker.jsx";
@@ -124,44 +125,6 @@ function flattenKeys(value, prefix = "") {
 
 function hashFile(file) {
   return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
-}
-
-/**
- * Detects the mojibake patterns that have actually broken this project before.
- * The values are written with Unicode escapes so valid Portuguese/Spanish glyphs
- * such as "Ã" in uppercase words are not treated as errors by accident.
- */
-function findMojibake(source) {
-  const lines = source.split(/\r?\n/);
-  const badSequences = [
-    { label: "replacement character", value: "\uFFFD" },
-    { label: "UTF-8 decoded as latin-1", value: "\u00C3\u00A1" },
-    { label: "UTF-8 decoded as latin-1", value: "\u00C3\u00A9" },
-    { label: "UTF-8 decoded as latin-1", value: "\u00C3\u00AD" },
-    { label: "UTF-8 decoded as latin-1", value: "\u00C3\u00B3" },
-    { label: "UTF-8 decoded as latin-1", value: "\u00C3\u00BA" },
-    { label: "UTF-8 decoded as latin-1", value: "\u00C3\u00A7" },
-    { label: "UTF-8 decoded as latin-1", value: "\u00C3\u00A3" },
-    { label: "UTF-8 decoded as latin-1", value: "\u00C3\u00B5" },
-    { label: "broken emoji prefix", value: "\u00F0\u0178" },
-    { label: "broken punctuation prefix", value: "\u00E2\u20AC" },
-    { label: "double-encoded UTF-8 prefix", value: "\u00C3\u0192" },
-    { label: "double-encoded latin-1 marker", value: "\u00C3\u201A" },
-    { label: "double-encoded smart punctuation", value: "\u00C3\u00A2" },
-  ];
-
-  const findings = [];
-  for (const badSequence of badSequences) {
-    let index = source.indexOf(badSequence.value);
-    while (index >= 0) {
-      const line = source.slice(0, index).split(/\r?\n/).length;
-      const preview = lines[line - 1].trim().slice(0, 180);
-      findings.push({ line, label: badSequence.label, preview });
-      if (findings.length >= 20) return findings;
-      index = source.indexOf(badSequence.value, index + badSequence.value.length);
-    }
-  }
-  return findings;
 }
 
 function main() {
