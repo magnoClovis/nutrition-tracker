@@ -15,7 +15,9 @@ import * as BackupModalModule from './components/backup-modal.js';
 import * as BodyMetricsCharts from './components/body-metrics-charts.js';
 import * as DiaryScreenModule from './components/diary-screen.js';
 import * as GaResultCardModule from './components/ga-result-card.js';
+import * as ImageMealScreenModule from './components/image-meal-screen.js';
 import * as LoginScreenModule from './components/login-screen.js';
+import * as MealEstimateEditorModule from './components/meal-estimate-editor.js';
 import * as MealReviewModalModule from './components/meal-review-modal.js';
 import * as MetricsScreenModule from './components/metrics-screen.js';
 import * as PantryScreenModule from './components/pantry-screen.js';
@@ -44,7 +46,9 @@ import {
 } from './composite/file-export-runtime.js';
 import * as HistoricalGoalsModel from './composite/historical-goals-model.js';
 import * as HistoryLoaders from './composite/history-loaders.js';
+import * as ImageMealFlow from './composite/image-meal-flow.js';
 import * as MealGA from './composite/meal-ga.js';
+import * as MealEstimate from './composite/meal-estimate.js';
 import * as MealReviewAI from './composite/meal-review-ai.js';
 import * as MealImageCaptureRuntime from './composite/meal-image-capture-runtime.js';
 import * as NutritionFeedbackAI from './composite/nutrition-feedback-ai.js';
@@ -78,6 +82,7 @@ import * as AutosaveScheduler from './leaf/autosave-scheduler.js';
 import * as CalendarModel from './leaf/calendar-model.js';
 import * as GoalCalculator from './leaf/goal-calculator.js';
 import * as HydrationGuard from './leaf/hydration-guard.js';
+import * as ImageMealClient from './leaf/image-meal-client.js';
 import * as I18n from './leaf/i18n.js';
 import * as MealScore from './leaf/meal-score.js';
 import * as OpenFoodFacts from './leaf/open-food-facts.js';
@@ -184,6 +189,47 @@ const {
   getIdToken: () => fbToken(),
 });
 const { AIClientError } = AIClient;
+
+const imageMealClient = ImageMealClient.createImageMealClient({
+  fetchRequest: (...args) => window.fetch(...args),
+  getIdToken: () => fbToken(),
+});
+
+const mealEstimateDomain = MealEstimate.createMealEstimate({
+  createItemId: () => (
+    typeof window.crypto?.randomUUID === 'function'
+      ? window.crypto.randomUUID()
+      : `image-meal-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  ),
+});
+
+const { MealEstimateEditor } = MealEstimateEditorModule.createMealEstimateEditor({
+  React,
+  pickLang,
+  createEmptyItem: mealEstimateDomain.createEmptyItem,
+  calculateTotals: mealEstimateDomain.calculateTotals,
+});
+
+const { ImageMealScreen } = ImageMealScreenModule.createImageMealScreen({
+  React,
+  pickLang,
+  MealEstimateEditor,
+});
+
+const imageMealFeature = Object.freeze({
+  ImageMealScreen,
+  createFlow: ({ onConfirm }) => ImageMealFlow.createImageMealFlow({
+    captureFromCamera: MealImageCaptureRuntime.captureMealImageFromCamera,
+    chooseFromGallery: MealImageCaptureRuntime.chooseMealImageFromGallery,
+    analyzeImageMeal: imageMealClient.analyzeImageMeal,
+    normalizeMealEstimate: mealEstimateDomain.normalizeMealEstimate,
+    validateMealEstimate: MealEstimate.validateMealEstimate,
+    onConfirm,
+    createAbortController: () => new AbortController(),
+    ImageMealClientError: ImageMealClient.ImageMealClientError,
+    MealEstimateValidationError: MealEstimate.MealEstimateValidationError,
+  }),
+});
 
 const {
   SettingsPanel,
@@ -476,7 +522,7 @@ const {
   services: {
     storage,
     exportFile,
-    mealImageCapture: MealImageCaptureRuntime,
+    imageMealFeature,
     resolveNutritionBackAction,
     resolveTabHistoryAfterNavigation,
   },
