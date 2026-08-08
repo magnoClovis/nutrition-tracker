@@ -92,8 +92,10 @@ test.describe('authenticated critical data flows', () => {
     const errors = await openApp(page);
     await setAppLanguage(page, 'pt');
 
-    const today = await page.evaluate(() => new Date().toISOString().split('T')[0]);
-    const noteKey = `notes_${today}`;
+    // Keep the backup fixture away from the actively hydrated civil day.
+    // The app autosaves today's note, which can otherwise race this direct
+    // Firestore setup on slower authenticated runners.
+    const noteKey = 'notes_2000-01-01';
     const previousNote = await readStorage(page, noteKey);
     const originalMarker = `backup-e2e-${Date.now()}`;
     const changedMarker = `${originalMarker}-changed`;
