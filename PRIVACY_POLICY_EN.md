@@ -3,7 +3,7 @@
 **App:** Trofia (`com.hermegas.trofia`)  
 **Controller:** Hermegas  
 **Reference version:** Trofia 0.8.1 Beta  
-**Text last updated:** August 1, 2026  
+**Text last updated:** August 9, 2026  
 **Effective date:** upon publication  
 **Privacy contact and external deletion requests:** nutritiontracker.beta@gmail.com  
 **Public URL:** https://magnoclovis.github.io/nutrition-tracker/privacy/
@@ -23,7 +23,7 @@ Trofia may process:
 - nutrition data: meals, times, foods, nutrients, pantry, meal templates, notes, water, supplements, and goals;
 - body metrics: weight, calculated BMI, body-fat percentage, waist measurement, muscle mass, and history;
 - training or rest-day information and goal history;
-- prompts submitted to artificial-intelligence features, nutrition context needed for the request, and generated responses;
+- prompts, meal photos voluntarily submitted to artificial-intelligence features, nutrition context needed for the request, and generated responses;
 - barcodes queried through the scanner;
 - content and attachments voluntarily submitted through the feedback form;
 - settings, caches, and session state stored on the device;
@@ -39,7 +39,7 @@ Data is used to:
 - synchronize information across sessions and devices;
 - record and display the nutrition diary;
 - calculate goals, totals, charts, and history;
-- generate AI suggestions and estimates when requested;
+- generate AI suggestions and estimates, including identifying foods and estimating nutrients from meal photos, when requested;
 - retrieve product information by barcode;
 - export, import, and restore backups;
 - enforce usage limits and protect the service;
@@ -60,19 +60,23 @@ Where processing relies on consent, consent may be withdrawn at any time without
 
 ## 5. Artificial intelligence
 
-When a user starts an AI feature, Trofia sends the prompt and necessary nutrition context to a Cloudflare Worker. The Worker validates the Firebase session, enforces usage limits, and forwards the content to Google's Gemini API.
+When a user starts an AI feature, Trofia sends the prompt and necessary nutrition context to a Cloudflare Worker. For image-based meal recognition, the content also includes the photo captured or selected by the user. The Worker validates the Firebase session, enforces usage limits, and forwards the content to Google's Gemini API.
 
-The Worker application code does not store prompts or responses in a database, and observability is disabled. For rate limiting, the Durable Object holds technical records containing the Firebase identifier and recent timestamps, as well as aggregate daily counters. These records do not contain prompt or response text. The technical policy set for publication limits individualized metadata to a maximum of 24 hours.
+The Worker application code does not store prompts, photos, or responses in a database, and observability is disabled. For rate limiting, the Durable Object holds technical records containing the Firebase identifier and recent timestamps, as well as aggregate daily counters. These records do not contain prompt text, photos, or responses. The technical policy set for publication limits individualized metadata to a maximum of 24 hours.
 
-During beta testing, Trofia may use the unpaid Gemini API quota. Under Google's terms, for unpaid use outside the European Economic Area, Switzerland, and the United Kingdom, inputs and responses may be used to provide, improve, and develop Google products and may be processed by human reviewers. Google's terms apply different conditions in the European Economic Area, Switzerland, and the United Kingdom and require a paid service for API clients made available to users in those regions. Trofia must migrate to a project with active billing before public launch in those regions.
+During beta testing, Trofia may use the unpaid Gemini API quota. Under Google's terms, for unpaid use outside the European Economic Area, Switzerland, and the United Kingdom, inputs, submitted files — including images — and responses may be used to provide, improve, and develop Google products and may be processed by human reviewers. Google's terms apply different conditions to paid services and to users in the European Economic Area, Switzerland, and the United Kingdom. As an additional privacy decision, Trofia requires active billing on the Gemini project before image-based meal recognition is made available to any real tester in those regions; for paid services, Google states that it does not use prompts, files, or responses to improve its products, although it may retain limited logs for safety, abuse prevention, and legal obligations.
 
 AI responses may be inaccurate and do not replace professional medical or nutrition advice. Users should not include diagnoses, medical records, prescriptions, or unnecessary confidential information in AI prompts.
 
-## 6. Barcode scanning and camera
+## 6. Barcode scanning, camera, and meal photos
 
-The camera is accessed only when the user starts the scanner. Video frames are processed locally to identify the barcode and are not stored or uploaded by Trofia.
+For barcode scanning, the camera is accessed only when the user starts the scanner. Video frames are processed locally to identify the barcode and are not stored or uploaded by Trofia.
 
 The detected code may be sent to Open Food Facts to retrieve public product information. Accuracy and availability depend on that external database.
+
+For image-based meal recognition, the user expressly chooses to take a photo or select an image from the gallery. Before upload, the application corrects orientation, resizes the image to a maximum of 1,280 pixels, converts it to JPEG at approximately 80% quality, and re-encodes it to remove embedded metadata. The processed version is sent over HTTPS through Trofia's authenticated Worker to the Gemini API, which identifies foods and estimates quantities and nutrients.
+
+The photo is not saved to the Trofia account, diary, or backups, and the Worker does not persist or log it. The application discards its preview and temporary copy after the flow. The operating system, browser, or native plugin may temporarily retain capture files under their own rules, and an original selected from the gallery remains under the user's control. If the user reviews and accepts the result, only the derived and edited nutrition data is saved to the diary. This feature is optional; other meal-registration methods remain available without submitting a photo.
 
 ## 7. Feedback
 
@@ -87,7 +91,7 @@ Trofia uses:
 - Firebase Authentication for authentication;
 - Cloud Firestore to process and store account data in the `europe-southwest1` region (Madrid, Spain, European Union);
 - Cloudflare Workers and Durable Objects to relay and rate-limit AI calls;
-- Gemini API to process AI features;
+- Gemini API to process AI features, including meal photos voluntarily submitted by users;
 - GitHub Pages to provide the web application and public policy;
 - Open Food Facts for product queries;
 - Google Forms when feedback is submitted;
@@ -109,7 +113,7 @@ Account data remains in Firebase while the account exists or until it is deleted
 
 Local session state and certain caches remain on the device until replaced, deleted by the application or operating system, or removed by clearing app data or uninstalling the app.
 
-Prompts and responses are not stored by the Worker application code. Retention by Gemini and other providers is governed by their terms. Individualized metadata used to rate-limit AI calls must be kept for no longer than 24 hours; aggregate global counters may be kept for the relevant quota day and for the technical period needed to replace them.
+Prompts, meal photos, and responses are not stored by the Worker application code. The application holds a photo only during the flow needed to process and review the result and then discards it, except for temporary caches controlled by the operating system, browser, or native plugin. Retention by Gemini and other providers is governed by their terms, including limited periods applicable to safety, abuse prevention, and legal obligations. Individualized metadata used to rate-limit AI calls must be kept for no longer than 24 hours; aggregate global counters may be kept for the relevant quota day and for the technical period needed to replace them.
 
 Feedback-form responses are retained for up to 12 months unless legal compliance, security, incident investigation, or a valid early-deletion request requires otherwise.
 
@@ -122,6 +126,8 @@ Following a valid deletion request, Hermegas does not intend to deliberately ret
 Users can export data as JSON and other available formats. These files may contain personal and nutrition information and should be stored securely.
 
 Imports may append or replace selected categories according to the option shown in the application.
+
+Meal photos are not included in backups. When a user accepts an image analysis, a backup may contain only the derived nutrition entries that were reviewed and saved to the diary.
 
 ## 12. Account and data deletion
 

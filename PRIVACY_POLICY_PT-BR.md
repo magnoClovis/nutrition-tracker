@@ -3,7 +3,7 @@
 **Aplicativo:** Trofia (`com.hermegas.trofia`)  
 **Responsável:** Hermegas  
 **Versão de referência:** Trofia 0.8.1 Beta  
-**Última atualização do texto:** 1 de agosto de 2026  
+**Última atualização do texto:** 9 de agosto de 2026  
 **Vigência:** a partir da publicação  
 **Contato de privacidade e solicitações externas de exclusão:** nutritiontracker.beta@gmail.com  
 **URL pública:** https://magnoclovis.github.io/nutrition-tracker/privacy/
@@ -23,7 +23,7 @@ O Trofia pode tratar:
 - dados nutricionais: refeições, horários, alimentos, nutrientes, despensa, modelos de refeições, notas, água, suplementos e metas;
 - métricas corporais: peso, IMC calculado, percentual de gordura, cintura, massa muscular e histórico;
 - informações sobre dias de treino ou descanso e histórico de objetivos;
-- prompts enviados às funcionalidades de inteligência artificial, contexto nutricional necessário ao pedido e respostas geradas;
+- prompts, fotos de refeição enviadas voluntariamente às funcionalidades de inteligência artificial, contexto nutricional necessário ao pedido e respostas geradas;
 - códigos de barras consultados quando o usuário utiliza o scanner;
 - conteúdo e anexos enviados voluntariamente pelo formulário de feedback;
 - configurações, caches e estado de sessão armazenados no dispositivo;
@@ -39,7 +39,7 @@ Os dados são usados para:
 - sincronizar dados entre sessões e dispositivos;
 - registrar e apresentar o diário nutricional;
 - calcular metas, totais, gráficos e históricos;
-- gerar sugestões e estimativas por IA quando solicitadas;
+- gerar sugestões e estimativas por IA, inclusive reconhecer alimentos e estimar nutrientes em fotos de refeição, quando solicitado;
 - consultar informações de produtos por código de barras;
 - exportar, importar e restaurar backups;
 - aplicar limites de uso e proteger o serviço;
@@ -60,19 +60,23 @@ Quando o tratamento depender de consentimento, ele poderá ser retirado a qualqu
 
 ## 5. Inteligência artificial
 
-Quando o usuário aciona uma funcionalidade de IA, o Trofia envia o prompt e o contexto nutricional necessário para um Cloudflare Worker. O Worker valida a sessão Firebase, aplica limites de uso e encaminha o conteúdo para a Gemini API do Google.
+Quando o usuário aciona uma funcionalidade de IA, o Trofia envia o prompt e o contexto nutricional necessário para um Cloudflare Worker. No reconhecimento de refeição por imagem, o conteúdo também inclui a foto que o próprio usuário capturou ou escolheu. O Worker valida a sessão Firebase, aplica limites de uso e encaminha o conteúdo para a Gemini API do Google.
 
-O código do Worker não grava prompts nem respostas em banco de dados e sua observabilidade está desabilitada. Para controlar limites, o Durable Object mantém registros técnicos contendo o identificador Firebase e horários recentes, além de contadores diários agregados. Esses registros não contêm o texto do prompt nem da resposta. A política técnica definida para publicação limita metadados individualizados a no máximo 24 horas.
+O código do Worker não grava prompts, fotos ou respostas em banco de dados e sua observabilidade está desabilitada. Para controlar limites, o Durable Object mantém registros técnicos contendo o identificador Firebase e horários recentes, além de contadores diários agregados. Esses registros não contêm o texto do prompt, a foto nem a resposta. A política técnica definida para publicação limita metadados individualizados a no máximo 24 horas.
 
-Durante o teste beta, o Trofia pode utilizar a cota não paga da Gemini API. Conforme os termos do Google, em utilizações não pagas e fora do Espaço Econômico Europeu, Suíça e Reino Unido, entradas e respostas podem ser utilizadas para fornecer, melhorar e desenvolver produtos do Google e podem ser processadas por revisores humanos. Os termos do Google aplicam condições diferentes no Espaço Econômico Europeu, Suíça e Reino Unido e exigem serviço pago para clientes de API disponibilizados a usuários nessas regiões. O Trofia deverá migrar para um projeto com faturamento ativo antes do lançamento público nessas regiões.
+Durante o teste beta, o Trofia pode utilizar a cota não paga da Gemini API. Conforme os termos do Google, em utilizações não pagas e fora do Espaço Econômico Europeu, Suíça e Reino Unido, entradas, arquivos enviados — inclusive imagens — e respostas podem ser utilizados para fornecer, melhorar e desenvolver produtos do Google e podem ser processados por revisores humanos. Os termos do Google aplicam condições diferentes ao serviço pago e aos usuários do Espaço Econômico Europeu, Suíça e Reino Unido. Como decisão adicional de privacidade, o Trofia exige faturamento ativo no projeto Gemini antes de disponibilizar o reconhecimento por foto a qualquer tester real nessas regiões; com o serviço pago, o Google declara que não utiliza prompts, arquivos ou respostas para melhorar seus produtos, embora possa manter registros limitados para segurança, prevenção de abuso e obrigações legais.
 
 As respostas de IA podem conter erros e não substituem aconselhamento médico ou nutricional profissional. O usuário não deve incluir diagnósticos, prontuários, prescrições ou outros dados confidenciais desnecessários no texto enviado à IA.
 
-## 6. Código de barras e câmera
+## 6. Código de barras, câmera e fotos de refeição
 
-A câmera é acessada somente quando o usuário inicia o scanner. As imagens de vídeo são processadas localmente para identificar o código e não são armazenadas nem enviadas pelo Trofia.
+No scanner de código de barras, a câmera é acessada somente quando o usuário inicia o scanner. As imagens de vídeo são processadas localmente para identificar o código e não são armazenadas nem enviadas pelo Trofia.
 
 O código detectado pode ser enviado ao Open Food Facts para consultar dados públicos do produto. A precisão e disponibilidade dessas informações dependem dessa base externa.
+
+No reconhecimento de refeição por imagem, o usuário escolhe expressamente tirar uma foto ou selecionar uma imagem da galeria. Antes do envio, o aplicativo corrige a orientação, redimensiona a imagem para no máximo 1.280 pixels, converte-a para JPEG com qualidade aproximada de 80% e a recodifica, removendo metadados incorporados. A versão processada é enviada por HTTPS, através do Worker autenticado do Trofia, para a Gemini API, que identifica alimentos e estima quantidades e nutrientes.
+
+A foto não é salva na conta, no diário nem nos backups do Trofia, e o Worker não a persiste nem a inclui em logs. O aplicativo descarta sua prévia e sua cópia temporária após o fluxo. O sistema operacional, o navegador ou o plugin nativo podem manter temporariamente arquivos de captura sob suas próprias regras, e a foto original escolhida da galeria permanece sob controle do usuário. Se o usuário revisar e aceitar o resultado, somente os dados nutricionais derivados e editados são gravados no diário. O uso desse recurso é opcional; as outras formas de registrar refeições continuam disponíveis sem envio de foto.
 
 ## 7. Feedback
 
@@ -87,7 +91,7 @@ O Trofia utiliza:
 - Firebase Authentication, para autenticação;
 - Cloud Firestore, para processar e armazenar os dados da conta na região `europe-southwest1` (Madrid, Espanha, União Europeia);
 - Cloudflare Workers e Durable Objects, para intermediar e limitar chamadas de IA;
-- Gemini API, para processar funcionalidades de IA;
+- Gemini API, para processar funcionalidades de IA, inclusive fotos de refeição enviadas voluntariamente;
 - GitHub Pages, para disponibilizar a aplicação web e a política pública;
 - Open Food Facts, para consultas de produtos;
 - Google Forms, quando o usuário envia feedback;
@@ -109,7 +113,7 @@ Os dados da conta permanecem no Firebase enquanto a conta existir ou até que se
 
 O estado local de sessão e determinados caches permanecem no dispositivo até serem substituídos, apagados pelo aplicativo ou pelo sistema, ou eliminados ao limpar os dados ou desinstalar o aplicativo.
 
-Prompts e respostas não são armazenados pelo código do Worker. A retenção realizada pelo Gemini e por outros prestadores segue seus próprios termos. Metadados individualizados usados para limitar chamadas de IA deverão ser mantidos por no máximo 24 horas; contadores globais agregados poderão ser mantidos durante o dia de cota correspondente e pelo tempo técnico necessário à sua substituição.
+Prompts, fotos de refeição e respostas não são armazenados pelo código do Worker. A foto é mantida pelo aplicativo apenas durante o fluxo necessário para processar e revisar o resultado e depois é descartada, ressalvados caches temporários controlados pelo sistema operacional, navegador ou plugin nativo. A retenção realizada pelo Gemini e por outros prestadores segue seus próprios termos, inclusive os períodos limitados aplicáveis à segurança, prevenção de abuso e obrigações legais. Metadados individualizados usados para limitar chamadas de IA deverão ser mantidos por no máximo 24 horas; contadores globais agregados poderão ser mantidos durante o dia de cota correspondente e pelo tempo técnico necessário à sua substituição.
 
 Respostas enviadas pelo formulário de feedback são mantidas por até 12 meses, salvo necessidade legal, segurança, investigação de incidente ou solicitação válida de exclusão antecipada.
 
@@ -122,6 +126,8 @@ Após uma solicitação válida de exclusão, a Hermegas não pretende conservar
 O usuário pode exportar dados em arquivos JSON e outros formatos disponíveis. Esses arquivos podem conter dados pessoais e nutricionais e devem ser guardados com segurança.
 
 A importação pode anexar ou substituir categorias selecionadas conforme a escolha apresentada no aplicativo.
+
+Fotos de refeição não são incluídas nos backups. Quando o usuário aceita uma análise por imagem, o backup pode conter somente as entradas nutricionais derivadas que foram revisadas e gravadas no diário.
 
 ## 12. Exclusão da conta e dos dados
 
