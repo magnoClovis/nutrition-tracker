@@ -3,7 +3,7 @@
 **Aplicación:** Trofia (`com.hermegas.trofia`)  
 **Responsable:** Hermegas  
 **Versión de referencia:** Trofia 0.8.1 Beta  
-**Última actualización del texto:** 1 de agosto de 2026  
+**Última actualización del texto:** 9 de agosto de 2026  
 **Vigencia:** a partir de su publicación  
 **Contacto de privacidad y solicitudes externas de eliminación:** nutritiontracker.beta@gmail.com  
 **URL pública:** https://magnoclovis.github.io/nutrition-tracker/privacy/
@@ -23,7 +23,7 @@ Trofia puede tratar:
 - datos nutricionales: comidas, horarios, alimentos, nutrientes, despensa, plantillas, notas, agua, suplementos y objetivos;
 - métricas corporales: peso, IMC calculado, porcentaje de grasa, cintura, masa muscular e historial;
 - información sobre días de entrenamiento o descanso e historial de objetivos;
-- prompts enviados a funciones de inteligencia artificial, contexto nutricional necesario y respuestas generadas;
+- prompts, fotos de comidas enviadas voluntariamente a funciones de inteligencia artificial, contexto nutricional necesario y respuestas generadas;
 - códigos de barras consultados mediante el escáner;
 - contenido y archivos enviados voluntariamente mediante el formulario de comentarios;
 - configuración, cachés y estado de sesión almacenados en el dispositivo;
@@ -39,7 +39,7 @@ Los datos se utilizan para:
 - sincronizar información entre sesiones y dispositivos;
 - registrar y mostrar el diario nutricional;
 - calcular objetivos, totales, gráficos e historiales;
-- generar sugerencias y estimaciones mediante IA cuando se soliciten;
+- generar sugerencias y estimaciones mediante IA, incluido el reconocimiento de alimentos y la estimación de nutrientes a partir de fotos de comidas, cuando se soliciten;
 - consultar productos mediante código de barras;
 - exportar, importar y restaurar copias de seguridad;
 - aplicar límites de uso y proteger el servicio;
@@ -60,19 +60,23 @@ Cuando el tratamiento se base en el consentimiento, este podrá retirarse en cua
 
 ## 5. Inteligencia artificial
 
-Cuando el usuario inicia una función de IA, Trofia envía el prompt y el contexto nutricional necesario a un Cloudflare Worker. El Worker valida la sesión de Firebase, aplica límites de uso y reenvía el contenido a la API Gemini de Google.
+Cuando el usuario inicia una función de IA, Trofia envía el prompt y el contexto nutricional necesario a un Cloudflare Worker. Para el reconocimiento de comidas mediante imagen, el contenido también incluye la foto capturada o seleccionada por el usuario. El Worker valida la sesión de Firebase, aplica límites de uso y reenvía el contenido a la API Gemini de Google.
 
-El código del Worker no guarda prompts ni respuestas en una base de datos y la observabilidad está desactivada. Para controlar los límites, el Durable Object mantiene registros técnicos con el identificador de Firebase y horarios recientes, además de contadores diarios agregados. Estos registros no contienen el texto del prompt ni de la respuesta. La política técnica definida para la publicación limita los metadatos individualizados a un máximo de 24 horas.
+El código del Worker no guarda prompts, fotos ni respuestas en una base de datos y la observabilidad está desactivada. Para controlar los límites, el Durable Object mantiene registros técnicos con el identificador de Firebase y horarios recientes, además de contadores diarios agregados. Estos registros no contienen el texto del prompt, la foto ni la respuesta. La política técnica definida para la publicación limita los metadatos individualizados a un máximo de 24 horas.
 
-Durante las pruebas beta, Trofia puede utilizar la cuota no pagada de la API Gemini. Según los términos de Google, en usos no pagados fuera del Espacio Económico Europeo, Suiza y el Reino Unido, las entradas y respuestas pueden utilizarse para ofrecer, mejorar y desarrollar productos de Google y pueden ser procesadas por revisores humanos. Los términos de Google aplican condiciones diferentes en el Espacio Económico Europeo, Suiza y el Reino Unido y exigen un servicio de pago para clientes de API puestos a disposición de usuarios en esas regiones. Trofia deberá migrar a un proyecto con facturación activa antes del lanzamiento público en dichas regiones.
+Durante las pruebas beta, Trofia puede utilizar la cuota no pagada de la API Gemini. Según los términos de Google, en usos no pagados fuera del Espacio Económico Europeo, Suiza y el Reino Unido, las entradas, los archivos enviados — incluidas las imágenes — y las respuestas pueden utilizarse para ofrecer, mejorar y desarrollar productos de Google y pueden ser procesados por revisores humanos. Los términos de Google aplican condiciones diferentes a los servicios de pago y a los usuarios del Espacio Económico Europeo, Suiza y el Reino Unido. Como decisión adicional de privacidad, Trofia exige que la facturación esté activa en el proyecto Gemini antes de ofrecer el reconocimiento mediante foto a cualquier tester real de esas regiones; en los servicios de pago, Google declara que no utiliza prompts, archivos ni respuestas para mejorar sus productos, aunque puede conservar registros limitados por motivos de seguridad, prevención de abusos y obligaciones legales.
 
 Las respuestas de IA pueden contener errores y no sustituyen el asesoramiento médico o nutricional profesional. El usuario no debe incluir diagnósticos, historiales clínicos, recetas u otra información confidencial innecesaria en los prompts.
 
-## 6. Código de barras y cámara
+## 6. Código de barras, cámara y fotos de comidas
 
-La cámara se utiliza únicamente cuando el usuario inicia el escáner. Las imágenes de vídeo se procesan localmente para identificar el código y Trofia no las almacena ni las envía.
+Para escanear códigos de barras, la cámara se utiliza únicamente cuando el usuario inicia el escáner. Las imágenes de vídeo se procesan localmente para identificar el código y Trofia no las almacena ni las envía.
 
 El código detectado puede enviarse a Open Food Facts para consultar información pública del producto. La precisión y disponibilidad dependen de esa base externa.
+
+Para reconocer una comida mediante imagen, el usuario elige expresamente tomar una foto o seleccionar una imagen de la galería. Antes del envío, la aplicación corrige la orientación, redimensiona la imagen a un máximo de 1.280 píxeles, la convierte a JPEG con una calidad aproximada del 80% y la recodifica para eliminar metadatos incorporados. La versión procesada se envía por HTTPS, a través del Worker autenticado de Trofia, a la API Gemini, que identifica alimentos y estima cantidades y nutrientes.
+
+La foto no se guarda en la cuenta, el diario ni las copias de seguridad de Trofia, y el Worker no la conserva ni la incluye en registros. La aplicación descarta su vista previa y su copia temporal al finalizar el flujo. El sistema operativo, el navegador o el plugin nativo pueden conservar temporalmente archivos de captura conforme a sus propias reglas, y la foto original seleccionada de la galería permanece bajo control del usuario. Si el usuario revisa y acepta el resultado, solo se guardan en el diario los datos nutricionales derivados y editados. Esta función es opcional; las demás formas de registrar comidas siguen disponibles sin enviar una foto.
 
 ## 7. Comentarios
 
@@ -87,7 +91,7 @@ Trofia utiliza:
 - Firebase Authentication para la autenticación;
 - Cloud Firestore para tratar y almacenar los datos de cuenta en la región `europe-southwest1` (Madrid, España, Unión Europea);
 - Cloudflare Workers y Durable Objects para intermediar y limitar las llamadas de IA;
-- Gemini API para procesar las funciones de IA;
+- Gemini API para procesar funciones de IA, incluidas las fotos de comidas enviadas voluntariamente;
 - GitHub Pages para ofrecer la aplicación web y la política pública;
 - Open Food Facts para las consultas de productos;
 - Google Forms cuando se envían comentarios;
@@ -109,7 +113,7 @@ Los datos de cuenta permanecen en Firebase mientras exista la cuenta o hasta su 
 
 El estado local de sesión y determinados cachés permanecen en el dispositivo hasta que sean sustituidos, eliminados por la aplicación o el sistema, o borrados al limpiar los datos o desinstalar la aplicación.
 
-El código del Worker no almacena prompts ni respuestas. La conservación realizada por Gemini y otros proveedores se rige por sus términos. Los metadatos individualizados usados para limitar llamadas de IA deberán conservarse durante un máximo de 24 horas; los contadores globales agregados podrán conservarse durante el día de cuota correspondiente y durante el periodo técnico necesario para sustituirlos.
+El código del Worker no almacena prompts, fotos de comidas ni respuestas. La aplicación mantiene una foto únicamente durante el flujo necesario para procesar y revisar el resultado y después la descarta, salvo los cachés temporales controlados por el sistema operativo, el navegador o el plugin nativo. La conservación realizada por Gemini y otros proveedores se rige por sus términos, incluidos los periodos limitados aplicables a seguridad, prevención de abusos y obligaciones legales. Los metadatos individualizados usados para limitar llamadas de IA deberán conservarse durante un máximo de 24 horas; los contadores globales agregados podrán conservarse durante el día de cuota correspondiente y durante el periodo técnico necesario para sustituirlos.
 
 Las respuestas del formulario de comentarios se conservan durante un máximo de 12 meses, salvo que el cumplimiento legal, la seguridad, la investigación de un incidente o una solicitud válida de eliminación anticipada requieran otra cosa.
 
@@ -122,6 +126,8 @@ Tras una solicitud válida de eliminación, Hermegas no pretende conservar delib
 El usuario puede exportar datos en JSON y otros formatos disponibles. Estos archivos pueden contener información personal y nutricional y deben almacenarse de forma segura.
 
 La importación puede añadir o sustituir categorías seleccionadas según la opción mostrada en la aplicación.
+
+Las fotos de comidas no se incluyen en las copias de seguridad. Cuando el usuario acepta un análisis mediante imagen, la copia de seguridad solo puede contener las entradas nutricionales derivadas que fueron revisadas y guardadas en el diario.
 
 ## 12. Eliminación de cuenta y datos
 

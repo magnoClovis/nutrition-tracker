@@ -31,6 +31,15 @@ test('renders the approved PT, EN, and ES policies into one stable public page',
   assert.match(html, /Madrid, Espanha, União Europeia/);
   assert.match(html, /Account and data deletion/);
   assert.match(html, /Eliminación de cuenta y datos/);
+  assert.match(html, /fotos de refeição enviadas voluntariamente/);
+  assert.match(html, /meal photos voluntarily submitted/);
+  assert.match(html, /fotos de comidas enviadas voluntariamente/);
+  assert.match(html, /Fotos de refeição não são incluídas nos backups/);
+  assert.match(html, /Meal photos are not included in backups/);
+  assert.match(html, /Las fotos de comidas no se incluyen en las copias de seguridad/);
+  assert.doesNotMatch(html, /A câmera é acessada somente quando o usuário inicia o scanner/);
+  assert.doesNotMatch(html, /The camera is accessed only when the user starts the scanner/);
+  assert.doesNotMatch(html, /La cámara se utiliza únicamente cuando el usuario inicia el escáner/);
   assert.doesNotMatch(html, /URL pública planejada|Planned public URL|URL pública prevista/);
 });
 
