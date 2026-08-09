@@ -398,6 +398,42 @@ contractTest("captures a stable meal origin and surfaces persistence failures", 
   );
 });
 
+contractTest("persists image entries before closing and keeps the screen open on failure", async createNutritionTrackerController => {
+  const { completeImageMealRegistration } = createController(createNutritionTrackerController);
+  const calls = [];
+  const savedLog = { Lunch: [{ id: "image-1" }] };
+  const result = await completeImageMealRegistration({
+    buildRegistration: selection => {
+      calls.push(["build", selection]);
+      return { meal: "Lunch", items: [{ id: "image-1" }] };
+    },
+    estimate: { items: [{}] },
+    meal: "Lunch",
+    time: "13:10",
+    saveMealRegistration: async (meal, items) => {
+      calls.push(["save", meal, items]);
+      return savedLog;
+    },
+    closeMealRegistration: async () => {
+      calls.push(["close"]);
+      return true;
+    }
+  });
+  assert.equal(result, savedLog);
+  assert.deepEqual(calls.map(call => call[0]), ["build", "save", "close"]);
+
+  let closeCalls = 0;
+  await assert.rejects(completeImageMealRegistration({
+    buildRegistration: () => ({ meal: "Lunch", items: [{ id: "image-1" }] }),
+    estimate: { items: [{}] },
+    meal: "Lunch",
+    time: "13:10",
+    saveMealRegistration: async () => null,
+    closeMealRegistration: async () => { closeCalls += 1; return true; }
+  }), /image-meal-persistence-failed/);
+  assert.equal(closeCalls, 0);
+});
+
 contractTest("keeps autosaves suspended until backup import and rehydration finish", async createNutritionTrackerController => {
   const { restoreAccountBackupSafely, NutritionTracker } = createController(createNutritionTrackerController);
   const events = [];
@@ -460,6 +496,7 @@ contractTest("restores the captured tab, date, and scroll only after successful 
   const openAdd = functionBlock("openAddForMeal", "async function addToLog");
   const close = functionBlock("closeMealRegistration", "async function saveMealRegistration");
   const save = functionBlock("saveMealRegistration", "// Pantry");
+  const imageSave = functionBlock("saveImageMealRegistration", "// Pantry");
 
   assert.ok(suggestion.indexOf("captureMealRegistrationOrigin()") < suggestion.indexOf('openTab("adicionar")'));
   assert.ok(openAdd.indexOf("captureMealRegistrationOrigin()") < openAdd.indexOf('openTab("adicionar")'));
@@ -471,6 +508,10 @@ contractTest("restores the captured tab, date, and scroll only after successful 
   assert.ok(save.indexOf("await persistMealRegistration") < save.indexOf("setActiveLog(nextLog)"));
   assert.match(save, /catch \(_\)/);
   assert.match(save, /return null/);
+  assert.match(imageSave, /completeImageMealRegistration/);
+  assert.match(imageSave, /buildRegistration: imageMealFeature\.buildRegistration/);
+  assert.match(imageSave, /saveMealRegistration/);
+  assert.match(imageSave, /closeMealRegistration/);
   assert.ok(source.includes("onClick: closeMealRegistration"));
   assert.ok(source.includes('case "leaveAddScreen"'));
 

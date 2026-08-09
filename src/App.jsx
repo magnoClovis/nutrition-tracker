@@ -47,6 +47,7 @@ import {
 import * as HistoricalGoalsModel from './composite/historical-goals-model.js';
 import * as HistoryLoaders from './composite/history-loaders.js';
 import * as ImageMealFlow from './composite/image-meal-flow.js';
+import * as ImageMealRegistration from './composite/image-meal-registration.js';
 import * as MealGA from './composite/meal-ga.js';
 import * as MealEstimate from './composite/meal-estimate.js';
 import * as MealReviewAI from './composite/meal-review-ai.js';
@@ -216,8 +217,14 @@ const { ImageMealScreen } = ImageMealScreenModule.createImageMealScreen({
   MealEstimateEditor,
 });
 
+const imageMealRegistration = ImageMealRegistration.createImageMealRegistration({
+  createEntryId: () => Date.now().toString() + Math.random().toString(16).slice(2),
+  mealKeys: MEAL_KEYS,
+});
+
 const imageMealFeature = Object.freeze({
   ImageMealScreen,
+  buildRegistration: imageMealRegistration.buildImageMealRegistration,
   createFlow: ({ onConfirm }) => ImageMealFlow.createImageMealFlow({
     captureFromCamera: MealImageCaptureRuntime.captureMealImageFromCamera,
     chooseFromGallery: MealImageCaptureRuntime.chooseMealImageFromGallery,

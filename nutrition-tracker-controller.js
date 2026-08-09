@@ -219,6 +219,7 @@
     const {
       storage,
       exportFile: injectedExportFile,
+      imageMealFeature,
       resolveNutritionBackAction,
       resolveTabHistoryAfterNavigation
     } = services;
@@ -677,6 +678,27 @@
     async function persistMealRegistration({ storage, key, nextLog }) {
       await storage.set(key, JSON.stringify(nextLog));
       return nextLog;
+    }
+
+    async function completeImageMealRegistration({
+      buildRegistration,
+      estimate,
+      meal,
+      time,
+      saveMealRegistration,
+      closeMealRegistration
+    }) {
+      if (typeof buildRegistration !== "function" ||
+          typeof saveMealRegistration !== "function" ||
+          typeof closeMealRegistration !== "function") {
+        throw new TypeError("Image meal persistence requires build, save, and close operations");
+      }
+      const registration = buildRegistration({ estimate, meal, time });
+      const savedLog = await saveMealRegistration(registration.meal, registration.items);
+      if (!savedLog) throw new Error("image-meal-persistence-failed");
+      const closed = await closeMealRegistration();
+      if (!closed) throw new Error("image-meal-close-failed");
+      return savedLog;
     }
 
     async function restoreAccountBackupSafely({
@@ -2799,6 +2821,20 @@
           mealRegistrationSavingRef.current = false;
           setMealRegistrationSaving(false);
         }
+      }
+
+      async function saveImageMealRegistration({ estimate, meal, time }) {
+        if (!imageMealFeature || typeof imageMealFeature.buildRegistration !== "function") {
+          throw new Error("image-meal-persistence-unavailable");
+        }
+        return completeImageMealRegistration({
+          buildRegistration: imageMealFeature.buildRegistration,
+          estimate,
+          meal,
+          time,
+          saveMealRegistration,
+          closeMealRegistration
+        });
       }
 
       // Pantry
@@ -6231,6 +6267,7 @@
       applyMealRegistrationTime,
       createMealRegistrationOrigin,
       persistMealRegistration,
+      completeImageMealRegistration,
       restoreAccountBackupSafely,
       millisecondsUntilNextLocalDay,
       createLocalDayClock,
