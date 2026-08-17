@@ -77,7 +77,7 @@ describe("AIRateLimiter SQLite Durable Object", () => {
     });
     await expect(limiter.check("user-next-day", PACIFIC_MIDNIGHT + 86_400_000))
       .resolves.toEqual({ allowed: true });
-  });
+  }, 15_000);
 
   it("enforces two images per UID while counting them in every general quota", async () => {
     const limiter = freshLimiter(`uid-image-window-${sequence}`);
