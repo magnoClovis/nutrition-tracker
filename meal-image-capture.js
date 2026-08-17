@@ -20,6 +20,11 @@
   const JPEG_QUALITY = 0.8;
   const MIN_RETRY_DIMENSION = 320;
   const GRANTED_PERMISSIONS = new Set(["granted", "limited"]);
+  const NATIVE_CAPTURE_CANCEL_CODES = new Set([
+    "OS-PLUG-CAMR-0006",
+    "OS-PLUG-CAMR-0013",
+    "OS-PLUG-CAMR-0020"
+  ]);
 
   class MealImageCaptureError extends Error {
     constructor(code, cause) {
@@ -28,6 +33,16 @@
       this.code = code;
       if (cause !== undefined) this.cause = cause;
     }
+  }
+
+  function normalizeNativeCaptureError(error) {
+    const message = String(error && error.message || "").trim().toLowerCase();
+    if (NATIVE_CAPTURE_CANCEL_CODES.has(error && error.code) ||
+        message === "user cancelled photos app" ||
+        message === "user canceled photos app") {
+      return new MealImageCaptureError("capture-cancelled", error);
+    }
+    return error;
   }
 
   function calculateContainedDimensions(width, height, maximum = MAX_IMAGE_DIMENSION) {
@@ -212,33 +227,43 @@
     async function captureFromCamera() {
       if (!isNativePlatform()) return preprocess(await selectWebImage({ capture: true }));
       await ensureCameraPermission();
-      const result = await cameraPlugin.takePhoto({
-        quality: 100,
-        targetWidth: MAX_IMAGE_DIMENSION,
-        targetHeight: MAX_IMAGE_DIMENSION,
-        correctOrientation: true,
-        encodingType: jpegEncodingType,
-        saveToGallery: false,
-        cameraDirection: cameraDirectionRear,
-        editable: "no",
-        includeMetadata: false
-      });
+      let result;
+      try {
+        result = await cameraPlugin.takePhoto({
+          quality: 100,
+          targetWidth: MAX_IMAGE_DIMENSION,
+          targetHeight: MAX_IMAGE_DIMENSION,
+          correctOrientation: true,
+          encodingType: jpegEncodingType,
+          saveToGallery: false,
+          cameraDirection: cameraDirectionRear,
+          editable: "no",
+          includeMetadata: false
+        });
+      } catch (error) {
+        throw normalizeNativeCaptureError(error);
+      }
       return preprocess(await resultToBlob(result));
     }
 
     async function chooseFromGallery() {
       if (!isNativePlatform()) return preprocess(await selectWebImage({ capture: false }));
-      const selected = await cameraPlugin.chooseFromGallery({
-        mediaType: photoMediaType,
-        allowMultipleSelection: false,
-        limit: 1,
-        includeMetadata: false,
-        editable: "no",
-        quality: 100,
-        targetWidth: MAX_IMAGE_DIMENSION,
-        targetHeight: MAX_IMAGE_DIMENSION,
-        correctOrientation: true
-      });
+      let selected;
+      try {
+        selected = await cameraPlugin.chooseFromGallery({
+          mediaType: photoMediaType,
+          allowMultipleSelection: false,
+          limit: 1,
+          includeMetadata: false,
+          editable: "no",
+          quality: 100,
+          targetWidth: MAX_IMAGE_DIMENSION,
+          targetHeight: MAX_IMAGE_DIMENSION,
+          correctOrientation: true
+        });
+      } catch (error) {
+        throw normalizeNativeCaptureError(error);
+      }
       const result = selected && selected.results && selected.results[0];
       if (!result) throw new MealImageCaptureError("capture-cancelled");
       return preprocess(await resultToBlob(result));
@@ -252,6 +277,7 @@
     MAX_PROCESSED_IMAGE_BYTES,
     JPEG_QUALITY,
     MealImageCaptureError,
+    normalizeNativeCaptureError,
     calculateContainedDimensions,
     createMealImageCapture
   };
