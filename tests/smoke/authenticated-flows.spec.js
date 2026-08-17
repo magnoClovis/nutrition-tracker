@@ -89,6 +89,8 @@ test.describe('authenticated critical data flows', () => {
   test('opens the dedicated image-recognition flow from the real Add navigation', async ({ page }) => {
     await interceptOptionalExternalApis(page);
     const errors = await openApp(page);
+    const usesFrozenLegacyLoader = await page.locator('script[src*="app.js"]').count() > 0;
+    test.skip(usesFrozenLegacyLoader, 'C24 is composed only by the production Vite runtime');
     await setAppLanguage(page, 'pt');
     await openStagedMeal(page);
 
