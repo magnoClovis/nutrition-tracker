@@ -86,6 +86,24 @@ test.describe('authenticated critical data flows', () => {
     await expect(page.locator('[data-app-main="adicionar"]:visible')).toBeVisible();
   }
 
+  test('opens the dedicated image-recognition flow from the real Add navigation', async ({ page }) => {
+    await interceptOptionalExternalApis(page);
+    const errors = await openApp(page);
+    await setAppLanguage(page, 'pt');
+    await openStagedMeal(page);
+
+    const addModal = page.locator('[data-app-main="adicionar"]:visible');
+    await addModal.locator('[data-add-mode="image"]').click();
+
+    const imageScreen = addModal.locator('[data-image-meal-screen="true"]');
+    await expect(imageScreen).toBeVisible();
+    await expect(imageScreen.getByRole('heading', { name: /Reconhecer refeição por foto/i })).toBeVisible();
+    await expect(imageScreen.getByRole('button', { name: 'Tirar foto', exact: true })).toBeVisible();
+    await expect(imageScreen.getByRole('button', { name: 'Escolher da galeria', exact: true })).toBeVisible();
+    await expect(addModal.locator('#image-meal-category')).toBeVisible();
+    await expectNoCriticalErrors(errors);
+  });
+
   test('exports, previews, imports, and verifies a real backup round trip', async ({ page }) => {
     test.setTimeout(90000);
     await interceptOptionalExternalApis(page);

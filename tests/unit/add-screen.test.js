@@ -105,6 +105,8 @@ function baseProps(overrides = {}) {
     saveTemplate: noOp,
     addTemplatesOpen: false,
     describeMode: false,
+    imageMealOpen: false,
+    imageMealNode: null,
     pantry: [food],
     selectAddMode: noOp,
     mealTimeOpen: false,
@@ -285,6 +287,39 @@ contractTest("renders dish-description loading/result states and delegates actio
     describeResult: null
   }));
   assert.doesNotMatch(textContent(neutralAfterError), /Estimated plate|Approximate/);
+});
+
+contractTest("exposes photo recognition as a real Add mode and renders its dedicated screen", AddScreen => {
+  let selectedMode = null;
+  const imageNode = React.createElement("div", { "data-image-meal-fixture": "true" }, "image-flow");
+  const view = AddScreen(baseProps({
+    imageMealOpen: true,
+    imageMealNode: imageNode,
+    describeMode: false,
+    addTemplatesOpen: false,
+    selectAddMode: mode => { selectedMode = mode; }
+  }));
+
+  const photoButton = findNodes(
+    view,
+    node => node.type === "button" && node.props?.["data-add-mode"] === "image"
+  )[0];
+  assert.ok(photoButton);
+  assert.match(textContent(photoButton), /Recognize by photo/);
+  photoButton.props.onClick();
+  assert.equal(selectedMode, "image");
+  assert.equal(findNodes(view, node => node.props?.["data-image-meal-fixture"] === "true").length, 1);
+  assert.doesNotMatch(textContent(view), /Search food|Describe what you ate/);
+
+  const mobile = AddScreen(baseProps({
+    isMobileView: true,
+    imageMealOpen: false
+  }));
+  const mobilePhotoButton = findNodes(
+    mobile,
+    node => node.type === "button" && node.props?.["data-add-mode"] === "image"
+  )[0];
+  assert.match(textContent(mobilePhotoButton), /Photo/);
 });
 
 contractTest("keeps active GA absent and places the legacy transfer panel as an opaque node", AddScreen => {

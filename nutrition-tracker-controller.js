@@ -981,6 +981,11 @@
       const mealRegistrationOriginRef = useRef(null);
       const pendingScrollRestoreRef = useRef(null);
       const mealRegistrationSavingRef = useRef(false);
+      const [imageMealOpen, setImageMealOpen] = useState(false);
+      const [imageMealState, setImageMealState] = useState(null);
+      const imageMealFlowRef = useRef(null);
+      const imageMealUnsubscribeRef = useRef(null);
+      const imageMealRegistrationRef = useRef(null);
       function openTab(nextTab, opts = {}) {
         const normalizedTab = normalizeTabKey(nextTab);
         setTab(currentTab => {
@@ -1030,12 +1035,17 @@
         }, isMobileView ? "i" : uiText("i Ajuda", "i Help", "i Ayuda"));
       }
       useEffect(() => {
-        if (tab === "adicionar" && pantry.length === 0 && !describeMode) {
+        if (tab === "adicionar" && pantry.length === 0 && !describeMode && !imageMealOpen) {
           setDescribeMode(true);
           setBatchMode(false);
         }
-      }, [tab, pantry.length]);
+      }, [tab, pantry.length, imageMealOpen]);
       function selectAddMode(mode) {
+        if (mode === "image") {
+          openImageMealMode();
+          return;
+        }
+        if (imageMealOpen) closeImageMealMode();
         if (mode === "saved") {
           setDescribeMode(false);
           setBatchMode(true);
@@ -1927,6 +1937,58 @@
       function resetMealTimeControl() {
         setMealTimeControl({ open: false, value: "" });
       }
+      imageMealRegistrationRef.current = {
+        meal: staged.meal,
+        mealTimeControl
+      };
+      function closeImageMealMode() {
+        const unsubscribe = imageMealUnsubscribeRef.current;
+        const flow = imageMealFlowRef.current;
+        imageMealUnsubscribeRef.current = null;
+        imageMealFlowRef.current = null;
+        if (typeof unsubscribe === "function") unsubscribe();
+        if (flow && typeof flow.destroy === "function") flow.destroy();
+        setImageMealState(null);
+        setImageMealOpen(false);
+      }
+      function openImageMealMode() {
+        if (!imageMealFeature || typeof imageMealFeature.createFlow !== "function" ||
+            typeof imageMealFeature.ImageMealScreen !== "function") {
+          notify(uiText(
+            "O reconhecimento por foto não está disponível nesta versão.",
+            "Photo recognition is not available in this version.",
+            "El reconocimiento por foto no está disponible en esta versión."
+          ));
+          return;
+        }
+        if (!imageMealFlowRef.current) {
+          const flow = imageMealFeature.createFlow({
+            onConfirm: estimate => {
+              const selection = imageMealRegistrationRef.current;
+              return saveImageMealRegistration({
+                estimate,
+                meal: selection.meal,
+                time: resolveMealRegistrationTime(selection.mealTimeControl)
+              });
+            }
+          });
+          imageMealFlowRef.current = flow;
+          imageMealUnsubscribeRef.current = flow.subscribe(setImageMealState);
+          setImageMealState(flow.getState());
+        }
+        setAddTemplatesOpen(false);
+        setDescribeMode(false);
+        setBatchMode(false);
+        setImageMealOpen(true);
+      }
+      useEffect(() => () => {
+        const unsubscribe = imageMealUnsubscribeRef.current;
+        const flow = imageMealFlowRef.current;
+        imageMealUnsubscribeRef.current = null;
+        imageMealFlowRef.current = null;
+        if (typeof unsubscribe === "function") unsubscribe();
+        if (flow && typeof flow.destroy === "function") flow.destroy();
+      }, []);
       function applySelectedMealTime(items) {
         return applyMealRegistrationTime(
           items,
@@ -2768,6 +2830,7 @@
       }
       async function closeMealRegistration() {
         if (mealRegistrationSavingRef.current) return false;
+        closeImageMealMode();
         const history = tabHistoryRef.current;
         const fallbackTab = history.length ? history[history.length - 1] : "diario";
         const origin = mealRegistrationOriginRef.current || createMealRegistrationOrigin({
@@ -4783,6 +4846,43 @@
         // loading user data. This avoids the old intermediate blank/dark screens.
         return null;
       }
+      const imageMealNode = imageMealOpen && imageMealState && imageMealFeature?.ImageMealScreen
+        ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+            "data-image-meal-registration-options": "true",
+            style: { marginBottom: 10 }
+          }, /*#__PURE__*/React.createElement("label", {
+            htmlFor: "image-meal-category",
+            style: { display: "block", color: "var(--muted)", fontSize: 12, marginBottom: 5 }
+          }, uiText("Categoria da refeição", "Meal category", "Categoría de la comida")), /*#__PURE__*/React.createElement("select", {
+            id: "image-meal-category",
+            value: staged.meal,
+            onChange: event => setStaged(current => ({ ...current, meal: event.target.value })),
+            style: {
+              width: "100%",
+              boxSizing: "border-box",
+              padding: "9px 10px",
+              borderRadius: 7,
+              border: "1px solid var(--border)",
+              background: "var(--input)",
+              color: "var(--text)"
+            }
+          }, MEALS.map(meal => /*#__PURE__*/React.createElement("option", {
+            key: meal,
+            value: meal
+          }, mealLabel(meal))))), /*#__PURE__*/React.createElement(imageMealFeature.ImageMealScreen, {
+            state: imageMealState,
+            lang,
+            isMobileView,
+            onClose: closeImageMealMode,
+            onCapture: () => imageMealFlowRef.current?.captureFromCamera(),
+            onChoose: () => imageMealFlowRef.current?.chooseFromGallery(),
+            onProcess: () => imageMealFlowRef.current?.process(lang),
+            onCancelProcessing: () => imageMealFlowRef.current?.cancelProcessing(),
+            onDiscard: () => imageMealFlowRef.current?.discard(),
+            onEstimateChange: estimate => imageMealFlowRef.current?.updateEstimate(estimate),
+            onConfirm: () => imageMealFlowRef.current?.confirm()
+          }))
+        : null;
       const addScreenProps = {
         lang,
         isMobileView,
@@ -4804,6 +4904,8 @@
         saveTemplate,
         addTemplatesOpen,
         describeMode,
+        imageMealOpen,
+        imageMealNode,
         pantry,
         selectAddMode,
         mealTimeOpen: mealTimeControl.open,

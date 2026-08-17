@@ -125,6 +125,8 @@
         saveTemplate,
         addTemplatesOpen,
         describeMode,
+        imageMealOpen,
+        imageMealNode,
         pantry,
         selectAddMode,
         mealTimeOpen,
@@ -396,20 +398,22 @@
       padding: 4,
       background: "var(--surface3)",
       border: "1px solid var(--border3)",
-      borderRadius: 999
+      borderRadius: isMobileView ? 14 : 999,
+      flexWrap: isMobileView ? "wrap" : "nowrap"
     }
-  }, [["batch", text('modeBatch')], ["describe", text('modeDescribe')], ["saved", isMobileView ? uiText("Salvas", "Saved", "Guardadas") : uiText("Refeições salvas", "Saved meals", "Comidas guardadas")]].map(([m, l]) => {
-    const active = m === "saved" ? addTemplatesOpen : m === "describe" ? describeMode : !describeMode && !addTemplatesOpen;
-    const unavailable = m !== "saved" && pantry.length === 0 && m !== "describe";
+  }, [["batch", text('modeBatch')], ["describe", text('modeDescribe')], ["image", isMobileView ? uiText("Foto", "Photo", "Foto") : uiText("Reconhecer por foto", "Recognize by photo", "Reconocer por foto")], ["saved", isMobileView ? uiText("Salvas", "Saved", "Guardadas") : uiText("Refeições salvas", "Saved meals", "Comidas guardadas")]].map(([m, l]) => {
+    const active = m === "saved" ? addTemplatesOpen : m === "describe" ? describeMode : m === "image" ? imageMealOpen : !describeMode && !addTemplatesOpen && !imageMealOpen;
+    const unavailable = m === "batch" && pantry.length === 0;
     return /*#__PURE__*/React.createElement("button", {
       key: m,
       onClick: () => selectAddMode(m),
+      "data-add-mode": m,
       style: {
-        flex: 1,
+        flex: isMobileView ? "1 1 calc(50% - 4px)" : 1,
         padding: isMobileView ? "9px 8px" : "9px 12px",
-        background: active ? (m === "describe" ? "var(--ai-bg)" : "var(--btn-ok)") : "transparent",
-        border: "1px solid " + (active ? (m === "describe" ? "var(--ai-border)" : "var(--btn-ok-border)") : "transparent"),
-        color: active ? (m === "describe" ? "var(--ai-text)" : "var(--btn-ok-text)") : "var(--muted)",
+        background: active ? (m === "describe" || m === "image" ? "var(--ai-bg)" : "var(--btn-ok)") : "transparent",
+        border: "1px solid " + (active ? (m === "describe" || m === "image" ? "var(--ai-border)" : "var(--btn-ok-border)") : "transparent"),
+        color: active ? (m === "describe" || m === "image" ? "var(--ai-text)" : "var(--btn-ok-text)") : "var(--muted)",
         borderRadius: 999,
         fontSize: isMobileView ? 12 : 14,
         fontWeight: active ? 700 : 500,
@@ -418,7 +422,7 @@
         whiteSpace: "nowrap",
         opacity: unavailable ? 0.55 : 1
       }
-    }, m === "describe" ? "\u2726 " + l : m === "saved" ? "\u2630 " + l : l);
+    }, m === "describe" ? "\u2726 " + l : m === "image" ? "\ud83d\udcf7 " + l : m === "saved" ? "\u2630 " + l : l);
   })), /*#__PURE__*/React.createElement("div", {
     "data-meal-time-control": mealTimeOpen ? "open" : "closed",
     style: {
@@ -462,7 +466,7 @@
       fontFamily: "inherit",
       cursor: "pointer"
     }
-  }, "+ ", uiText("Informar horário", "Set meal time", "Indicar hora"))), addTemplatesOpen && /*#__PURE__*/React.createElement("div", {
+  }, "+ ", uiText("Informar horário", "Set meal time", "Indicar hora"))), imageMealOpen && imageMealNode, addTemplatesOpen && /*#__PURE__*/React.createElement("div", {
     "data-add-saved-meals": "true",
     style: {
       marginTop: -4,
@@ -526,7 +530,7 @@
       onAddItem: addTemplateDraftItem,
       onCancelEdit: cancelTemplateEdit,
       onSaveEdit: saveTemplateEdit
-    }))))), describeMode && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    }))))), describeMode && !imageMealOpen && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 8
     }
@@ -690,7 +694,7 @@
       border: "1px solid var(--btn-info-border)",
       color: "var(--btn-info-text)"
     }
-  }, uiText('Avaliar refeição', 'Evaluate meal', 'Evaluar comida'))))), !describeMode && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, uiText('Avaliar refeição', 'Evaluate meal', 'Evaluar comida'))))), !describeMode && !imageMealOpen && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 8
     }
