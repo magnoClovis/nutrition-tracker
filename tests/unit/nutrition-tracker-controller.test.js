@@ -43,9 +43,9 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
 
-  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 152);
-  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 37);
-  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 20);
+  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 154);
+  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 38);
+  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 23);
 });
 
 contractTest("computes the next real local midnight across DST transitions", createNutritionTrackerController => {
@@ -530,6 +530,27 @@ contractTest("restores the captured tab, date, and scroll only after successful 
     assert.ok(guardIndex > saveIndex, `${name} must preserve the modal after persistence failure`);
     assert.ok(closeIndex > guardIndex, `${name} must close only after success`);
   });
+});
+
+contractTest("wires the image flow into Add navigation without changing its persistence contract", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+  const openStart = source.indexOf("function openImageMealMode");
+  const openEnd = source.indexOf("useEffect(() => () =>", openStart);
+  const closeStart = source.indexOf("function closeImageMealMode");
+  const closeEnd = source.indexOf("function openImageMealMode", closeStart);
+  const openBlock = source.slice(openStart, openEnd);
+  const closeBlock = source.slice(closeStart, closeEnd);
+
+  assert.ok(openStart >= 0);
+  assert.match(openBlock, /imageMealFeature\.createFlow/);
+  assert.match(openBlock, /saveImageMealRegistration/);
+  assert.match(openBlock, /resolveMealRegistrationTime/);
+  assert.match(openBlock, /setImageMealOpen\(true\)/);
+  assert.match(closeBlock, /flow\.destroy\(\)/);
+  assert.match(source, /mode === "image"/);
+  assert.match(source, /data-image-meal-registration-options/);
+  assert.match(source, /imageMealFeature\.ImageMealScreen/);
 });
 
 test("ESM exports the exact UMD controller factory reference", async () => {
