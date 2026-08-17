@@ -3,7 +3,8 @@ import {
   FirebaseIdTokenError
 } from "./firebase-id-token.js";
 import {
-  geminiImageMealRequest,
+  geminiImageMealInteractionRequest,
+  geminiImageMealInteractionText,
   validateImageMealEstimate,
   validateImageMealRequest
 } from "./image-meal.js";
@@ -12,8 +13,11 @@ const COMPLETION_PATH = "/v1/ai/completion";
 const IMAGE_MEAL_PATH = "/v1/ai/image-meal";
 const FIREBASE_PROJECT_ID = "nutrition-tracker-780b3";
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const GEMINI_ENDPOINT =
+const GEMINI_COMPLETION_ENDPOINT =
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const GEMINI_INTERACTIONS_ENDPOINT =
+  "https://generativelanguage.googleapis.com/v1beta/interactions";
+const GEMINI_INTERACTIONS_REVISION = "2026-05-20";
 const ALLOWED_ORIGINS = new Set([
   "https://magnoclovis.github.io",
   "https://localhost"
@@ -250,25 +254,32 @@ export function createAIWorker({
       let providerResponse;
       let providerPayload;
       try {
-        providerResponse = await fetchRequest(GEMINI_ENDPOINT, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": env.GEMINI_API_KEY
-          },
-          body: JSON.stringify({
-            ...(isImageMeal ? geminiImageMealRequest(body) : {
-              contents: [{
-                role: "user",
-                parts: [{ text: body.prompt }]
-              }],
-              generationConfig: {
-                maxOutputTokens: body.maxTokens,
-                temperature: 0
-              }
+        const providerHeaders = {
+          "Content-Type": "application/json",
+          "x-goog-api-key": env.GEMINI_API_KEY
+        };
+        if (isImageMeal) {
+          providerHeaders["Api-Revision"] = GEMINI_INTERACTIONS_REVISION;
+        }
+        providerResponse = await fetchRequest(
+          isImageMeal ? GEMINI_INTERACTIONS_ENDPOINT : GEMINI_COMPLETION_ENDPOINT,
+          {
+            method: "POST",
+            headers: providerHeaders,
+            body: JSON.stringify({
+              ...(isImageMeal ? geminiImageMealInteractionRequest(body, GEMINI_MODEL, "medium") : {
+                contents: [{
+                  role: "user",
+                  parts: [{ text: body.prompt }]
+                }],
+                generationConfig: {
+                  maxOutputTokens: body.maxTokens,
+                  temperature: 0
+                }
+              })
             })
-          })
-        });
+          }
+        );
         providerPayload = await providerResponse.json();
       } catch (_) {
         return errorResponse(502, "provider-unavailable", origin);
@@ -277,7 +288,9 @@ export function createAIWorker({
       if (!providerResponse.ok) {
         return errorResponse(502, "provider-error", origin);
       }
-      const text = geminiText(providerPayload);
+      const text = isImageMeal
+        ? geminiImageMealInteractionText(providerPayload)
+        : geminiText(providerPayload);
       if (text === null) {
         return errorResponse(502, "invalid-provider-response", origin);
       }

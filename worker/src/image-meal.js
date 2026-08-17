@@ -92,6 +92,53 @@ export const IMAGE_MEAL_RESPONSE_SCHEMA = Object.freeze({
   }
 });
 
+export const GEMINI_IMAGE_MEAL_PROVIDER_SCHEMA = Object.freeze({
+  type: "object",
+  required: ["status", "dishName", "overallConfidence", "assumptions", "items"],
+  properties: {
+    status: { type: "string", enum: [...IMAGE_MEAL_STATUSES] },
+    dishName: { type: "string" },
+    overallConfidence: { type: "string", enum: [...CONFIDENCE_LEVELS] },
+    assumptions: { type: "array", items: { type: "string" } },
+    items: {
+      type: "array",
+      items: {
+        type: "object",
+        required: [
+          "name",
+          "quantity",
+          "unit",
+          "estimatedGrams",
+          "protein",
+          "kcal",
+          "carbs",
+          "fat",
+          "fiber",
+          "salt",
+          "sugars",
+          "satfat",
+          "confidence"
+        ],
+        properties: {
+          name: { type: "string" },
+          quantity: { type: "number" },
+          unit: { type: "string" },
+          estimatedGrams: { type: ["number", "null"] },
+          protein: { type: "number" },
+          kcal: { type: "number" },
+          carbs: { type: ["number", "null"] },
+          fat: { type: ["number", "null"] },
+          fiber: { type: ["number", "null"] },
+          salt: { type: ["number", "null"] },
+          sugars: { type: ["number", "null"] },
+          satfat: { type: ["number", "null"] },
+          confidence: { type: "string", enum: [...CONFIDENCE_LEVELS] }
+        }
+      }
+    }
+  }
+});
+
 const languageNames = Object.freeze({
   pt: "Brazilian Portuguese",
   en: "English",
@@ -146,34 +193,47 @@ export function imageMealPrompt(language) {
     "Use status 'not-food' when the image is not food and 'not-identifiable' when food cannot be assessed reliably.",
     "Use status 'uncertain' when a meal is visible but important details are ambiguous.",
     "For identified or uncertain meals, include at least one item and state every material visual assumption.",
+    "Every item must contain exactly these fields: name, quantity, unit, estimatedGrams, protein, kcal, carbs, fat, fiber, salt, sugars, satfat, confidence.",
+    "Use confidence values high, medium, or low. Use numeric values for quantity, protein, and kcal.",
     "Protein and kcal must be numeric. Use null, never an invented zero, for optional nutrients that cannot be estimated.",
     `Write dishName, food names, units, and assumptions in ${languageNames[language]}.`,
     "Return only the structured response requested by the schema."
   ].join(" ");
 }
 
-export function geminiImageMealRequest(body) {
+export function geminiImageMealInteractionRequest(body, model, resolution = "high") {
   return {
-    contents: [{
-      role: "user",
-      parts: [{
-        inlineData: {
-          mimeType: body.image.mimeType,
-          data: body.image.data
-        },
-        mediaResolution: {
-          level: "MEDIA_RESOLUTION_HIGH"
-        }
-      }, {
-        text: imageMealPrompt(body.language)
-      }]
+    model,
+    store: false,
+    input: [{
+      type: "text",
+      text: imageMealPrompt(body.language)
+    }, {
+      type: "image",
+      data: body.image.data,
+      mime_type: body.image.mimeType,
+      resolution
     }],
-    generationConfig: {
-      maxOutputTokens: MAX_IMAGE_OUTPUT_TOKENS,
-      responseMimeType: "application/json",
-      responseJsonSchema: IMAGE_MEAL_RESPONSE_SCHEMA
+    generation_config: {
+      max_output_tokens: MAX_IMAGE_OUTPUT_TOKENS
+    },
+    response_format: {
+      type: "text",
+      mime_type: "application/json",
+      schema: GEMINI_IMAGE_MEAL_PROVIDER_SCHEMA
     }
   };
+}
+
+export function geminiImageMealInteractionText(payload) {
+  if (!payload || payload.status !== "completed" || !Array.isArray(payload.steps)) return null;
+  const text = payload.steps
+    .filter(step => step?.type === "model_output" && Array.isArray(step.content))
+    .flatMap(step => step.content)
+    .filter(content => content?.type === "text" && typeof content.text === "string")
+    .map(content => content.text)
+    .join("");
+  return text || null;
 }
 
 function validText(value, maximumCharacters, { allowEmpty = false } = {}) {

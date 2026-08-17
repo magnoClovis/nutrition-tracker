@@ -6,6 +6,7 @@ const {
   MAX_PROCESSED_IMAGE_BYTES,
   JPEG_QUALITY,
   MealImageCaptureError,
+  normalizeNativeCaptureError,
   calculateContainedDimensions,
   createMealImageCapture,
 } = readLegacyNamespace(globalThis, 'MealImageCapture', [
@@ -13,6 +14,7 @@ const {
   'MAX_PROCESSED_IMAGE_BYTES',
   'JPEG_QUALITY',
   'MealImageCaptureError',
+  'normalizeNativeCaptureError',
   'calculateContainedDimensions',
   'createMealImageCapture',
 ]);
@@ -22,6 +24,7 @@ export {
   MAX_PROCESSED_IMAGE_BYTES,
   JPEG_QUALITY,
   MealImageCaptureError,
+  normalizeNativeCaptureError,
   calculateContainedDimensions,
   createMealImageCapture,
 };

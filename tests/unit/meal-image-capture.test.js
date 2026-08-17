@@ -263,3 +263,38 @@ contractTest('rejects an empty native gallery result without preprocessing', asy
   );
   assert.equal(fixture.calls.canvases.length, 0);
 });
+
+contractTest('normalizes native camera and gallery cancellation without showing a service error', async api => {
+  for (const nativeError of [
+    Object.assign(new Error('User cancelled photos app'), { code: 'CAPACITOR_EXCEPTION' }),
+    Object.assign(new Error('cancelled'), { code: 'OS-PLUG-CAMR-0006' }),
+    Object.assign(new Error('cancelled'), { code: 'OS-PLUG-CAMR-0020' }),
+  ]) {
+    const normalized = api.normalizeNativeCaptureError(nativeError);
+    assert.ok(normalized instanceof api.MealImageCaptureError);
+    assert.equal(normalized.code, 'capture-cancelled');
+    assert.equal(normalized.cause, nativeError);
+  }
+
+  const cameraPlugin = {
+    checkPermissions: async () => ({ camera: 'granted' }),
+    requestPermissions: async () => ({ camera: 'granted' }),
+    takePhoto: async () => { throw new Error('User cancelled photos app'); },
+    chooseFromGallery: async () => {
+      throw Object.assign(new Error('cancelled'), { code: 'OS-PLUG-CAMR-0020' });
+    },
+  };
+  const service = api.createMealImageCapture({
+    cameraPlugin,
+    isNativePlatform: () => true,
+    documentObject: { body: {}, createElement() {} },
+    fetchRequest: async () => { throw new Error('unexpected fetch'); },
+    decodeImage: async () => { throw new Error('unexpected decode'); },
+    createCanvas: () => { throw new Error('unexpected canvas'); },
+    URLObject: { createObjectURL() {}, revokeObjectURL() {} },
+    blobToBase64: async () => '',
+  });
+
+  await assert.rejects(service.captureFromCamera(), error => error.code === 'capture-cancelled');
+  await assert.rejects(service.chooseFromGallery(), error => error.code === 'capture-cancelled');
+});

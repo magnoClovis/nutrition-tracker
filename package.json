@@ -14,6 +14,7 @@
     "test:smoke": "npm.cmd run test:smoke:legacy && npm.cmd run test:smoke:vite",
     "test:cutover": "npm.cmd run build:vite && playwright test --config=playwright.cutover.config.js",
     "test:pages": "playwright test --config=playwright.pages.config.js",
+    "verify:image-worker": "node scripts/verify-image-worker-deployment.js",
     "test": "npm.cmd run preflight && npm.cmd run test:unit && npm.cmd run test:smoke && npm.cmd run test:cutover"
   },
   "dependencies": {

@@ -233,17 +233,20 @@ test("sends the exact stable Gemini generateContent request", async () => {
   assert.equal(response.headers.get("Cache-Control"), "no-store");
 });
 
-test("sends an inline JPEG with high resolution and a strict structured response schema", async () => {
+test("sends an inline JPEG through Interactions without storage and validates the full result", async () => {
   const estimate = imageEstimate();
   const fixture = await createFixture({
     providerResponse: new Response(JSON.stringify({
-      candidates: [{
-        content: {
-          parts: [
-            { thoughtSignature: "provider-private-signature" },
-            { text: JSON.stringify(estimate) }
-          ]
-        }
+      status: "completed",
+      steps: [{ type: "thought", signature: "provider-private-signature" }, {
+        type: "model_output",
+        content: [
+          { type: "image", data: "ignored-provider-content" },
+          { type: "text", text: JSON.stringify(estimate).slice(0, 40) }
+        ]
+      }, {
+        type: "model_output",
+        content: [{ type: "text", text: JSON.stringify(estimate).slice(40) }]
       }]
     }), { status: 200 })
   });
@@ -257,24 +260,47 @@ test("sends an inline JPEG with high resolution and a strict structured response
   assert.deepEqual(await responseBody(response), { estimate });
   assert.deepEqual(fixture.rateLimiterChecks, [["firebase-user-1", 123_456, "image"]]);
   assert.equal(fixture.providerRequests[0][0],
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent");
+    "https://generativelanguage.googleapis.com/v1beta/interactions");
+  assert.equal(fixture.providerRequests[0][1].headers["Api-Revision"], "2026-05-20");
 
   const providerBody = JSON.parse(fixture.providerRequests[0][1].body);
-  assert.deepEqual(providerBody.contents[0].parts[0], {
-    inlineData: {
-      mimeType: "image/jpeg",
-      data: JPEG_BASE64
-    },
-    mediaResolution: {
-      level: "MEDIA_RESOLUTION_HIGH"
-    }
+  assert.equal(providerBody.model, "gemini-3.5-flash-lite");
+  assert.equal(providerBody.store, false);
+  assert.match(providerBody.input[0].text, /Brazilian Portuguese/);
+  assert.deepEqual(providerBody.input[1], {
+    type: "image",
+    data: JPEG_BASE64,
+    mime_type: "image/jpeg",
+    resolution: "medium"
   });
-  assert.match(providerBody.contents[0].parts[1].text, /Brazilian Portuguese/);
-  assert.deepEqual(providerBody.generationConfig, {
-    maxOutputTokens: 1_200,
-    responseMimeType: "application/json",
-    responseJsonSchema: schemaModule.IMAGE_MEAL_RESPONSE_SCHEMA
+  assert.deepEqual(providerBody.generation_config, {
+    max_output_tokens: 1_200
   });
+  assert.deepEqual(providerBody.response_format, {
+    type: "text",
+    mime_type: "application/json",
+    schema: schemaModule.GEMINI_IMAGE_MEAL_PROVIDER_SCHEMA
+  });
+  assert.notDeepEqual(providerBody.response_format.schema, schemaModule.IMAGE_MEAL_RESPONSE_SCHEMA);
+  const providerItemSchema = providerBody.response_format.schema.properties.items.items;
+  assert.deepEqual(providerItemSchema.required, [
+    "name",
+    "quantity",
+    "unit",
+    "estimatedGrams",
+    "protein",
+    "kcal",
+    "carbs",
+    "fat",
+    "fiber",
+    "salt",
+    "sugars",
+    "satfat",
+    "confidence"
+  ]);
+  assert.deepEqual(providerItemSchema.properties.carbs, { type: ["number", "null"] });
+  assert.equal(providerItemSchema.additionalProperties, undefined);
+  assert.equal(providerItemSchema.properties.kcal.maximum, undefined);
 });
 
 test("enforces the image JSON, MIME, language, JPEG, and decoded-size contracts", async () => {
@@ -337,8 +363,41 @@ test("rejects malformed or structurally unsafe Gemini image estimates", async ()
   for (const text of invalidEstimates) {
     const fixture = await createFixture({
       providerResponse: new Response(JSON.stringify({
-        candidates: [{ content: { parts: [{ text }] } }]
+        status: "completed",
+        steps: [{ type: "model_output", content: [{ type: "text", text }] }]
       }), { status: 200 })
+    });
+    const response = await fixture.worker.fetch(request({
+      pathName: "/v1/ai/image-meal",
+      body: imageRequestBody()
+    }), fixture.env);
+
+    assert.equal(response.status, 502);
+    assert.deepEqual(await responseBody(response), {
+      error: { code: "invalid-provider-response" }
+    });
+  }
+});
+
+test("rejects incomplete Interactions responses and responses without model text", async () => {
+  const estimateText = JSON.stringify(imageEstimate());
+  const invalidPayloads = [{
+    status: "failed",
+    steps: [{ type: "model_output", content: [{ type: "text", text: estimateText }] }]
+  }, {
+    status: "incomplete",
+    steps: [{ type: "model_output", content: [{ type: "text", text: estimateText }] }]
+  }, {
+    status: "completed",
+    steps: [{ type: "thought", content: [{ type: "text", text: estimateText }] }]
+  }, {
+    status: "completed",
+    steps: [{ type: "model_output", content: [{ type: "image", data: "ignored" }] }]
+  }];
+
+  for (const providerPayload of invalidPayloads) {
+    const fixture = await createFixture({
+      providerResponse: new Response(JSON.stringify(providerPayload), { status: 200 })
     });
     const response = await fixture.worker.fetch(request({
       pathName: "/v1/ai/image-meal",
