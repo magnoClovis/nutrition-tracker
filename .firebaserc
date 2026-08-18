@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "production": "nutrition-tracker-780b3",
+    "emulator": "demo-trofia-c22"
+  }
+}
