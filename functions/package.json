@@ -1,0 +1,21 @@
+{
+  "name": "trofia-account-deletion-functions",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Administrative account-deletion backend for Trofia.",
+  "main": "src/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "test:emulators": "firebase emulators:exec --config ../firebase.json --project demo-trofia-c22 --only auth,firestore,functions \"npm.cmd test\""
+  },
+  "dependencies": {
+    "firebase-admin": "14.2.0",
+    "firebase-functions": "7.3.2"
+  },
+  "devDependencies": {
+    "firebase-tools": "15.27.0"
+  }
+}

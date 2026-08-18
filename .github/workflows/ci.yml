@@ -31,12 +31,22 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             worker/package-lock.json
+            functions/package-lock.json
+
+      - name: Set up Java for Firebase emulators
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
 
       - name: Install dependencies
         run: npm ci
 
       - name: Install Worker dependencies
         run: npm --prefix worker ci
+
+      - name: Install Functions dependencies
+        run: npm --prefix functions ci
 
       - name: Install Playwright Chromium
         run: npx playwright install chromium
@@ -64,6 +74,11 @@ jobs:
         continue-on-error: true
         run: npm --prefix worker test
 
+      - name: Run Functions emulator tests
+        id: functions
+        continue-on-error: true
+        run: npm --prefix functions run test:emulators
+
       - name: Run Playwright smoke tests
         id: smoke
         continue-on-error: true
@@ -79,11 +94,12 @@ jobs:
           PREFLIGHT_OUTCOME: ${{ steps.preflight.outcome }}
           UNIT_OUTCOME: ${{ steps.unit.outcome }}
           WORKER_OUTCOME: ${{ steps.worker.outcome }}
+          FUNCTIONS_OUTCOME: ${{ steps.functions.outcome }}
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
         run: node scripts/write-ci-summary.js
 
       - name: Upload failure diagnostics
-        if: ${{ always() && (steps.preflight.outcome == 'failure' || steps.unit.outcome == 'failure' || steps.worker.outcome == 'failure' || steps.smoke.outcome == 'failure') }}
+        if: ${{ always() && (steps.preflight.outcome == 'failure' || steps.unit.outcome == 'failure' || steps.worker.outcome == 'failure' || steps.functions.outcome == 'failure' || steps.smoke.outcome == 'failure') }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-failure-${{ github.run_id }}-${{ github.run_attempt }}
@@ -102,6 +118,7 @@ jobs:
             '${{ steps.preflight.outcome }}',
             '${{ steps.unit.outcome }}',
             '${{ steps.worker.outcome }}',
+            '${{ steps.functions.outcome }}',
             '${{ steps.smoke.outcome }}'
           ) -contains 'failure'
 
