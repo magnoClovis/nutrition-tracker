@@ -39,7 +39,10 @@ function createBackend({ root = {}, data = {}, legacy = {}, failV2Writes = false
         data[key] = options.body ? JSON.parse(options.body).fields.value.stringValue : "";
         return response({});
       }
-      if (method === "DELETE") return response({}, { status: 200 });
+      if (method === "DELETE") {
+        delete data[key];
+        return response({}, { status: 200 });
+      }
       return Object.prototype.hasOwnProperty.call(data, key)
         ? response({ fields: { value: encoded(data[key]) } })
         : response({}, { ok: false, status: 404 });
@@ -191,6 +194,85 @@ contractTest("preserves silent read failures and sticky empty root cache", async
   assert.equal(rootReads, 1);
   assert.equal(warnings.some(args => args[0] === "Firestore data read failed"), true);
   assert.equal(warnings.some(args => args[0] === "Firestore root read failed"), true);
+});
+
+contractTest("coalesces concurrent root reads into one authenticated request", async loadFirestore => {
+  let releaseRoot;
+  let rootReads = 0;
+  const rootResponse = new Promise(resolve => { releaseRoot = resolve; });
+  const { firestore } = loadFirestore({
+    fetchRequest: async urlValue => {
+      if (String(urlValue) === ROOT) {
+        rootReads++;
+        return rootResponse;
+      }
+      return response({}, { ok: false, status: 404 });
+    }
+  });
+
+  const language = firestore.fbGet3("language");
+  const birthDate = firestore.fbGet3("birthDate");
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(rootReads, 1);
+  releaseRoot(response({ fields: { language: encoded("pt"), birthDate: encoded("2000-01-01") } }));
+  assert.equal((await language).value, "pt");
+  assert.equal((await birthDate).value, "2000-01-01");
+});
+
+contractTest("skips verified legacy reads and redundant promotion for active non-critical data", async loadFirestore => {
+  const backend = createBackend({
+    root: { _storageSchemaVerified: true },
+    data: { "log_v2_2026-08-18": "active" },
+    legacy: { "log_v2_2026-08-18": "legacy" }
+  });
+  const { firestore } = loadFirestore({ fetchRequest: backend.fetchRequest });
+
+  assert.equal((await firestore.fbGet3("log_v2_2026-08-18")).value, "active");
+  assert.equal(backend.requests.some(request => request.url.includes(`${UID}_log_v2_2026-08-18`)), false);
+  assert.equal(backend.requests.some(request => request.method === "PATCH" && request.url.includes("/data/log_v2_2026-08-18")), false);
+});
+
+contractTest("keeps critical multi-source recovery after schema verification", async loadFirestore => {
+  const backend = createBackend({
+    root: { _storageSchemaVerified: true },
+    data: { pantry_v2: "[]" },
+    legacy: { pantry_v2: JSON.stringify([{ id: "one" }, { id: "two" }]) }
+  });
+  const { firestore } = loadFirestore({ fetchRequest: backend.fetchRequest });
+
+  assert.equal((await firestore.fbGet3("pantry_v2")).value, JSON.stringify([{ id: "one" }, { id: "two" }]));
+  assert.equal(backend.requests.some(request => request.url.includes(`${UID}_pantry_v2`)), true);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(backend.requests.some(request => request.method === "PATCH" && request.url.includes("/data/pantry_v2")), true);
+});
+
+contractTest("coalesces and caches data reads while writes, deletes and auth resets invalidate safely", async loadFirestore => {
+  const backend = createBackend({
+    root: { _storageSchemaVerified: true },
+    data: { "log_v2_2026-08-18": "first" }
+  });
+  const { firestore } = loadFirestore({ fetchRequest: backend.fetchRequest });
+  const key = "log_v2_2026-08-18";
+
+  const [first, concurrent] = await Promise.all([firestore.fbGet3(key), firestore.fbGet3(key)]);
+  assert.equal(first.value, "first");
+  assert.equal(concurrent.value, "first");
+  assert.equal(backend.requests.filter(request => request.method === "GET" && request.url.includes(`/data/${key}`)).length, 1);
+
+  assert.equal((await firestore.fbGet3(key)).value, "first");
+  assert.equal(backend.requests.filter(request => request.method === "GET" && request.url.includes(`/data/${key}`)).length, 1);
+
+  await firestore.fbSet3(key, "second");
+  assert.equal((await firestore.fbGet3(key)).value, "second");
+  assert.equal(backend.requests.filter(request => request.method === "GET" && request.url.includes(`/data/${key}`)).length, 1);
+
+  await firestore.fbDel3(key);
+  assert.equal(await firestore.fbGet3(key), null);
+  assert.equal(backend.requests.filter(request => request.method === "GET" && request.url.includes(`/data/${key}`)).length, 1);
+
+  firestore.resetStorageCaches();
+  assert.equal(await firestore.fbGet3(key), null);
+  assert.equal(backend.requests.filter(request => request.method === "GET" && request.url.includes(`/data/${key}`)).length, 2);
 });
 
 contractTest("keeps partial data-key cache and root/data underscore inconsistency", async loadFirestore => {

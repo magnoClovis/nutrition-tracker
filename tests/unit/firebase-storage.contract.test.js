@@ -512,7 +512,7 @@ test("preserves data-document CRUD, JSON stringification, 404 deletion and prefi
   assert.equal(await fixture.context.storage.get("pantry_v2"), null);
 });
 
-test("preserves root, legacy and local fallbacks plus richest-candidate selection for critical keys", async () => {
+test("gates verified non-critical legacy fallback while preserving root, local and critical recovery", async () => {
   const backend = createFirestoreBackend({
     root: { customText: "root-value", pantry_v2: "[]", _storageSchemaVerified: true },
     data: { pantry_v2: '[{"id":"cloud"}]' },
@@ -526,7 +526,7 @@ test("preserves root, legacy and local fallbacks plus richest-candidate selectio
   fixture.suppressAutomaticMigration();
 
   assert.deepEqual(plain(await fixture.context.storage.get("customText")), { value: "root-value" });
-  assert.deepEqual(plain(await fixture.context.storage.get("legacyOnly")), { value: "legacy-value" });
+  assert.equal(await fixture.context.storage.get("legacyOnly"), null);
   assert.deepEqual(plain(await fixture.context.storage.get("localOnly")), { value: "local-value" });
   assert.deepEqual(plain(await fixture.context.storage.get("pantry_v2")), { value: '[{"id":"local"},{"id":"local-2"},{"id":"local-3"}]' });
 });

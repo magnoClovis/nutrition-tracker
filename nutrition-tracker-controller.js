@@ -1301,6 +1301,7 @@
       const [calendarMonth, setCalendarMonth] = useState(TODAY.slice(0, 7));
       const [calendarData, setCalendarData] = useState({});
       const [calendarLoading, setCalendarLoading] = useState(false);
+      const calendarLoadInputsRef = useRef({});
       const [suppPantryOpen, setSuppPantryOpen] = useState(false);
       const [editEntryId, setEditEntryId] = useState(null);
       const [editEntryQty, setEditEntryQty] = useState("");
@@ -1590,13 +1591,17 @@
       useEffect(() => {
         if (tab === "semana" && loaded) {
           loadWeekData();
-          loadMealAnalysis();
         }
         if (tab === "metricas" && loaded) {
           loadWeekData();
         }
-        if (tab === "adicionar" && loaded) loadRecentMeals();
       }, [tab, loaded, log, trainingByDate, goalHistory, weightHistory, customGoals, nutritionPrefs]);
+      useEffect(() => {
+        if (tab === "semana" && loaded) loadMealAnalysis();
+      }, [tab, loaded, TODAY]);
+      useEffect(() => {
+        if (tab === "adicionar" && loaded) loadRecentMeals();
+      }, [tab, loaded, log, TODAY]);
       async function loadWeekData() {
         const days = await loadWeekRows({
           today: TODAY,
@@ -2752,6 +2757,14 @@
       const goals = !isToday && frozenGoals ? {...calculatedGoals, ...frozenGoals} : calculatedGoals;
       useEffect(() => {
         if (!loaded || !calendarOpen) return;
+        const loadInputs = [log, goalHistory, trainingByDate, weightHistory, customGoals, nutritionPrefs, TODAY];
+        const previousInputs = calendarLoadInputsRef.current[calendarMonth];
+        if (
+          calendarData[calendarMonth] &&
+          previousInputs &&
+          previousInputs.length === loadInputs.length &&
+          previousInputs.every((value, index) => Object.is(value, loadInputs[index]))
+        ) return;
         let cancelled = false;
         async function loadCalendarMonth() {
           setCalendarLoading(true);
@@ -2773,6 +2786,7 @@
             });
             if (!cancelled) {
               setCalendarData(prev => ({...prev, [calendarMonth]: nextData}));
+              calendarLoadInputsRef.current[calendarMonth] = loadInputs;
             }
           } catch (error) {
             console.error("Falha ao carregar dados do calendário mensal:", calendarMonth, error);

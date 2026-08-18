@@ -44,8 +44,18 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
   const source = NutritionTracker.toString();
 
   assert.equal((source.match(/\buseState\s*\(/g) || []).length, 154);
-  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 38);
-  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 23);
+  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 40);
+  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 24);
+});
+
+contractTest("keeps expensive history reads behind narrow effects and reuses unchanged calendar months", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+
+  assert.match(source, /if \(tab === "semana" && loaded\) loadMealAnalysis\(\);\s*\}, \[tab, loaded, TODAY\]\);/);
+  assert.match(source, /if \(tab === "adicionar" && loaded\) loadRecentMeals\(\);\s*\}, \[tab, loaded, log, TODAY\]\);/);
+  assert.match(source, /calendarData\[calendarMonth\][\s\S]*previousInputs\.every\(\(value, index\) => Object\.is\(value, loadInputs\[index\]\)\)/);
+  assert.match(source, /calendarLoadInputsRef\.current\[calendarMonth\] = loadInputs/);
 });
 
 contractTest("computes the next real local midnight across DST transitions", createNutritionTrackerController => {

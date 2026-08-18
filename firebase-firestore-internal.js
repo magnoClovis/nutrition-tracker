@@ -12,10 +12,13 @@
  * than duplicating persistence primitives. `firebase-storage.js` remains the
  * sole public facade for `fbGet`/`fbSet`/`fbDel`/`fbList` and `window.storage`.
  *
- * Known behavior is intentionally preserved: migration starts in the background
- * on the first v3 get, read failures often become absence, fallback promotion is
- * fire-and-forget, and root underscore fields are hidden by list while data
- * subcollection underscore keys remain visible.
+ * Migration starts in the background on the first v3 get. Verified non-critical
+ * keys use the active schema without repeating legacy reads, while critical keys
+ * retain multi-source recovery. Short-lived value caching coalesces navigation
+ * reads and is updated by every write/delete path, including backup operations.
+ * Read failures often become absence, fallback promotion remains fire-and-forget,
+ * and root underscore fields are hidden by list while data-subcollection
+ * underscore keys remain visible.
  *
  * @module FirebaseFirestoreInternal
  */
@@ -56,6 +59,8 @@
       "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
       "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
     ]);
+    const DATA_VALUE_CACHE_TTL_MS3 = 60 * 1000;
+    const DATA_MISSING_CACHE_TTL_MS3 = 10 * 1000;
 
     let _userDocCache = null;
     let _userDocLoaded = false;
@@ -64,16 +69,26 @@
     let _rootDocLoaded3 = false;
     let _dataKeyCache3 = null;
     let _migrationPromise3 = null;
+    let _rootDocLoadPromise3 = null;
+    const _dataValueCache3 = new Map();
+    const _dataValuePending3 = new Map();
+    const _dataValueVersion3 = new Map();
+    let _storageCacheGeneration3 = 0;
 
     /** Resets every root, data-key, and migration cache after auth changes. @returns {void} */
     function resetStorageCaches() {
+      _storageCacheGeneration3++;
       _userDocCache = null;
       _userDocLoaded = false;
       _migrationPromise = null;
       _rootDocCache3 = null;
       _rootDocLoaded3 = false;
+      _rootDocLoadPromise3 = null;
       _dataKeyCache3 = null;
       _migrationPromise3 = null;
+      _dataValueCache3.clear();
+      _dataValuePending3.clear();
+      _dataValueVersion3.clear();
     }
 
     function _legacyKey2(k) { const uid = getUid(); return uid ? uid + "_" + k : k; }
@@ -282,11 +297,25 @@
       return out;
     }
     async function _loadRootFields3() {
-      if (!_rootDocLoaded3) {
-        _rootDocCache3 = await _fetchRootFields3().catch(() => ({}));
-        _rootDocLoaded3 = true;
+      if (_rootDocLoaded3) return _rootDocCache3 || {};
+      if (!_rootDocLoadPromise3) {
+        const loadGeneration = _storageCacheGeneration3;
+        let loadPromise;
+        loadPromise = _fetchRootFields3()
+          .catch(() => ({}))
+          .then(fields => {
+            if (loadGeneration === _storageCacheGeneration3) {
+              _rootDocCache3 = fields;
+              _rootDocLoaded3 = true;
+            }
+            return fields;
+          })
+          .finally(() => {
+            if (_rootDocLoadPromise3 === loadPromise) _rootDocLoadPromise3 = null;
+          });
+        _rootDocLoadPromise3 = loadPromise;
       }
-      return _rootDocCache3 || {};
+      return _rootDocLoadPromise3;
     }
     async function _patchRootFields3(fields, deleteKeys) {
       await _patchUserFields2(fields, deleteKeys);
@@ -310,18 +339,29 @@
       }
     }
     async function _setDataDoc3(k, v) {
+      const storedValue = typeof v === "string" ? v : JSON.stringify(v);
       const r = await fetchRequest(_dataDocUrl3(k), {
         method: "PATCH",
         headers: await getAuthHeaders(),
-        body: JSON.stringify({fields: {value: _encodeFsValue2(typeof v === "string" ? v : JSON.stringify(v))}})
+        body: JSON.stringify({fields: {value: _encodeFsValue2(storedValue)}})
       });
       if (!r.ok) throw new Error("Firestore data write failed");
       if (_dataKeyCache3) _dataKeyCache3.add(k);
+      _dataValueVersion3.set(k, (_dataValueVersion3.get(k) || 0) + 1);
+      _dataValueCache3.set(k, {
+        record: {value: storedValue},
+        expiresAt: Date.now() + DATA_VALUE_CACHE_TTL_MS3
+      });
     }
     async function _deleteDataDoc3(k) {
       const r = await fetchRequest(_dataDocUrl3(k), {method: "DELETE", headers: await getAuthHeaders()});
       if (!r.ok && r.status !== 404) throw new Error("Firestore data delete failed");
       if (_dataKeyCache3) _dataKeyCache3.delete(k);
+      _dataValueVersion3.set(k, (_dataValueVersion3.get(k) || 0) + 1);
+      _dataValueCache3.set(k, {
+        record: null,
+        expiresAt: Date.now() + DATA_MISSING_CACHE_TTL_MS3
+      });
     }
     async function _listDataKeys3() {
       if (_dataKeyCache3) return Array.from(_dataKeyCache3);
@@ -381,17 +421,42 @@
           return _storageRecord3(k, normalized);
         }
       } else {
-        const data = await _getDataDoc3(k).catch(() => null);
-        const fields = await _loadRootFields3();
-        const root = fields[k] !== undefined && fields[k] !== null ? {value: _storageValue2(fields[k])} : null;
-        const legacy = await _legacyGet2(k).catch(() => null);
-        const local = _localFallbackGet3(k);
-        const best = _isCriticalStorageKey3(k) ? _bestStorageCandidate3([data, root, legacy, local]) : data || root || legacy || local;
-        if (best) {
-          if (!_isEmptyStoredValue3(best.value)) _setDataDoc3(k, best.value).catch(() => {});
-          return best;
-        }
-        return null;
+        const cached = _dataValueCache3.get(k);
+        if (cached && cached.expiresAt > Date.now()) return cached.record;
+        if (_dataValuePending3.has(k)) return _dataValuePending3.get(k);
+
+        const readGeneration = _storageCacheGeneration3;
+        const readVersion = _dataValueVersion3.get(k) || 0;
+        let readPromise;
+        readPromise = (async () => {
+          const data = await _getDataDoc3(k).catch(() => null);
+          const fields = await _loadRootFields3();
+          const root = fields[k] !== undefined && fields[k] !== null ? {value: _storageValue2(fields[k])} : null;
+          const schemaVerified = fields._storageSchemaVerified === true || fields._storageSchemaVerified === "true";
+          const legacy = !schemaVerified || _isCriticalStorageKey3(k)
+            ? await _legacyGet2(k).catch(() => null)
+            : null;
+          const local = _localFallbackGet3(k);
+          const best = _isCriticalStorageKey3(k) ? _bestStorageCandidate3([data, root, legacy, local]) : data || root || legacy || local;
+          if (best && best !== data && !_isEmptyStoredValue3(best.value)) _setDataDoc3(k, best.value).catch(() => {});
+
+          if (
+            readGeneration !== _storageCacheGeneration3 ||
+            (_dataValueVersion3.get(k) || 0) !== readVersion
+          ) {
+            const currentCached = _dataValueCache3.get(k);
+            return currentCached ? currentCached.record : best || null;
+          }
+          _dataValueCache3.set(k, {
+            record: best || null,
+            expiresAt: Date.now() + (best ? DATA_VALUE_CACHE_TTL_MS3 : DATA_MISSING_CACHE_TTL_MS3)
+          });
+          return best || null;
+        })().finally(() => {
+          if (_dataValuePending3.get(k) === readPromise) _dataValuePending3.delete(k);
+        });
+        _dataValuePending3.set(k, readPromise);
+        return readPromise;
       }
       const legacy = await _legacyGet2(k).catch(() => null);
       if (legacy && !(_isCriticalStorageKey3(k) && _isEmptyStoredValue3(legacy.value))) fbSet3(k, legacy.value).catch(() => {});
