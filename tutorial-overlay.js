@@ -355,6 +355,7 @@
         }),
         // Tooltip
         React.createElement('div', {
+          'data-tutorial-overlay': 'true',
           style:{
             position:'fixed', zIndex:100002,
             top: tooltipTop, left: tooltipLeft,
