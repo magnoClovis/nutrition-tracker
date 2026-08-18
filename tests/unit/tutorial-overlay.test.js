@@ -163,6 +163,11 @@ contractTest("opens, calls onDone, and restores the previous body scroll value o
   const harness = createHookHarness(TutorialOverlay, { lang: "pt", type: "main", onDone: () => { doneCalls += 1; } });
   try {
     const tree = harness.render();
+    let overlayCount = 0;
+    walkElements(tree, node => {
+      if (node.props?.["data-tutorial-overlay"] === "true") overlayCount += 1;
+    });
+    assert.equal(overlayCount, 1);
     assert.equal(tree.type, React.Fragment);
     assert.equal(env.body.style.overflow, "hidden");
     findButton(tree, "Pular").props.onClick();

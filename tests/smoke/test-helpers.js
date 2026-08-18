@@ -37,26 +37,29 @@ async function expectNoCriticalErrors(errors) {
 async function dismissTutorialIfVisible(page) {
   const closePattern = /Pular|Skip|Saltar|Fechar|Close|Cerrar|Concluir|Finish|Finalizar/i;
   const nextPattern = /Pr[oó]ximo|Next|Siguiente|Ir ao tutorial|Go to tutorial|Ir al tutorial/i;
+  const overlay = page.locator('[data-tutorial-overlay="true"]:visible').first();
 
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const closeButton = page.getByRole('button', { name: closePattern }).filter({ visible: true }).first();
+    if (!await overlay.isVisible({ timeout: 300 }).catch(() => false)) break;
+
+    const closeButton = overlay.getByRole('button', { name: closePattern }).first();
     if (await closeButton.isVisible({ timeout: 300 }).catch(() => false)) {
       await closeButton.click({ force: true });
-      await page.waitForTimeout(150);
+      await overlay.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
       continue;
     }
 
-    const nextButton = page.getByRole('button', { name: nextPattern }).filter({ visible: true }).first();
+    const nextButton = overlay.getByRole('button', { name: nextPattern }).first();
     if (await nextButton.isVisible({ timeout: 300 }).catch(() => false)) {
       await nextButton.click({ force: true });
       await page.waitForTimeout(150);
       continue;
     }
 
-    await page.keyboard.press('Escape').catch(() => {});
-    await page.waitForTimeout(100);
     break;
   }
+
+  await expect(page.locator('[data-tutorial-overlay="true"]:visible')).toHaveCount(0, { timeout: 3000 });
 }
 
 async function clickFirstButtonMatching(page, pattern) {
