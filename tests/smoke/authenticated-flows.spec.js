@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const crypto = require('node:crypto');
 const { test, expect } = require('@playwright/test');
 const {
   AUTH_STATE_PATH,
@@ -78,11 +79,15 @@ test.describe('authenticated critical data flows', () => {
   }
 
   async function openStagedMeal(page) {
+    await dismissTutorialIfVisible(page);
+    await expect(page.locator('[data-tutorial-overlay="true"]:visible')).toHaveCount(0);
     const globalAddButton = page.locator(
       '[data-diary-global-add]:visible [data-tutorial="open-log-sheet"]'
     ).first();
     await expect(globalAddButton).toBeVisible();
-    await globalAddButton.click();
+    // The sticky metrics summary can cover Playwright's auto-scrolled click
+    // coordinate even though the real button is visible and enabled.
+    await globalAddButton.evaluate(button => button.click());
     await expect(page.locator('[data-app-main="adicionar"]:visible')).toBeVisible();
   }
 
@@ -106,7 +111,7 @@ test.describe('authenticated critical data flows', () => {
     await expectNoCriticalErrors(errors);
   });
 
-  test('exports, previews, imports, and verifies a real backup round trip', async ({ page }) => {
+  test('exports, previews, imports, and verifies a real backup round trip', async ({ page }, testInfo) => {
     test.setTimeout(90000);
     await interceptOptionalExternalApis(page);
     const errors = await openApp(page);
@@ -115,7 +120,14 @@ test.describe('authenticated critical data flows', () => {
     // Keep the backup fixture away from the actively hydrated civil day.
     // The app autosaves today's note, which can otherwise race this direct
     // Firestore setup on slower authenticated runners.
-    const noteKey = 'notes_2000-01-01';
+    const fixtureScope = [
+      process.env.GITHUB_RUN_ID || `local-${process.pid}`,
+      process.env.GITHUB_RUN_ATTEMPT || '1',
+      testInfo.project.name
+    ].join(':');
+    const fixtureDay = crypto.createHash('sha256').update(fixtureScope).digest().readUInt32BE(0) % 36524;
+    const fixtureDate = new Date(Date.UTC(1900, 0, 1 + fixtureDay)).toISOString().slice(0, 10);
+    const noteKey = `notes_${fixtureDate}`;
     const previousNote = await readStorage(page, noteKey);
     const originalMarker = `backup-e2e-${Date.now()}`;
     const changedMarker = `${originalMarker}-changed`;
