@@ -37,6 +37,13 @@ async function expectNoCriticalErrors(errors) {
 async function dismissTutorialIfVisible(page) {
   const closePattern = /Pular|Skip|Saltar|Fechar|Close|Cerrar|Concluir|Finish|Finalizar/i;
   const nextPattern = /Pr[oó]ximo|Next|Siguiente|Ir ao tutorial|Go to tutorial|Ir al tutorial/i;
+  const releaseNotice = page.locator('[data-release-notice="true"]:visible').first();
+  if (await releaseNotice.isVisible({ timeout: 300 }).catch(() => false)) {
+    const continueButton = releaseNotice.getByRole('button').first();
+    await expect(continueButton).toBeVisible();
+    await continueButton.click({ force: true });
+    await expect(releaseNotice).toBeHidden({ timeout: 3000 });
+  }
   const overlay = page.locator('[data-tutorial-overlay="true"]:visible').first();
 
   for (let attempt = 0; attempt < 10; attempt += 1) {

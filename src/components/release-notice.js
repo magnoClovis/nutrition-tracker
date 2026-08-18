@@ -1,10 +1,25 @@
 import '../../release-notice.js';
 import { readLegacyNamespace } from '../leaf/read-legacy-namespace.js';
 
-const { createReleaseNotice } = readLegacyNamespace(
+const {
+  CURRENT_RELEASE,
+  createReleaseNotice,
+  hasSeenRelease,
+  resolveReleaseTutorialType,
+} = readLegacyNamespace(
   globalThis,
   'ReleaseNotice',
-  ['createReleaseNotice'],
+  [
+    'CURRENT_RELEASE',
+    'createReleaseNotice',
+    'hasSeenRelease',
+    'resolveReleaseTutorialType',
+  ],
 );
 
-export { createReleaseNotice };
+export {
+  CURRENT_RELEASE,
+  createReleaseNotice,
+  hasSeenRelease,
+  resolveReleaseTutorialType,
+};
