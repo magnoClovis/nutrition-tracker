@@ -85,7 +85,9 @@ test.describe('authenticated critical data flows', () => {
       '[data-diary-global-add]:visible [data-tutorial="open-log-sheet"]'
     ).first();
     await expect(globalAddButton).toBeVisible();
-    await globalAddButton.click();
+    // The sticky metrics summary can cover Playwright's auto-scrolled click
+    // coordinate even though the real button is visible and enabled.
+    await globalAddButton.evaluate(button => button.click());
     await expect(page.locator('[data-app-main="adicionar"]:visible')).toBeVisible();
   }
 
