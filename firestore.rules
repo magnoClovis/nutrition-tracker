@@ -2,30 +2,44 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /nutrition/{uid} {
-      function signedIn() {
-        return request.auth != null;
-      }
+    function signedIn() {
+      return request.auth != null;
+    }
 
+    function isOwnUser(uid) {
+      return signedIn() && uid == request.auth.uid;
+    }
+
+    function accountDeletionLocked(uid) {
+      return exists(
+        /databases/$(database)/documents/accountDeletionLocks/$(uid)
+      );
+    }
+
+    // Only the administrative deletion backend may create or inspect locks.
+    match /accountDeletionLocks/{uid} {
+      allow read, write: if false;
+    }
+
+    match /nutrition/{uid} {
       function isOwnUserDoc() {
-        return signedIn() && uid == request.auth.uid;
+        return isOwnUser(uid);
       }
 
       // User profile/preferences live at nutrition/{uid}.
       allow read: if isOwnUserDoc();
-      allow create, update, delete: if isOwnUserDoc();
+      allow create, update, delete: if isOwnUserDoc()
+        && !accountDeletionLocked(uid);
 
       // Growing app data lives here to avoid an oversized user document.
       match /data/{key} {
-        allow read, create, update, delete: if isOwnUserDoc();
+        allow read: if isOwnUserDoc();
+        allow create, update, delete: if isOwnUserDoc()
+          && !accountDeletionLocked(uid);
       }
     }
 
     match /nutrition/{docId} {
-      function signedIn() {
-        return request.auth != null;
-      }
-
       function isOwnLegacyDoc() {
         return signedIn() && docId.matches('^' + request.auth.uid + '_.*$');
       }
@@ -33,7 +47,9 @@ service cloud.firestore {
       // Temporary beta migration window. The app may copy and then delete only
       // the signed-in user's own legacy nutrition/{uid}_{field} documents.
       // Remove this delete permission after old accounts have normalized.
-      allow read, delete: if isOwnLegacyDoc();
+      allow read: if isOwnLegacyDoc();
+      allow delete: if isOwnLegacyDoc()
+        && !accountDeletionLocked(request.auth.uid);
       allow create, update: if false;
     }
   }

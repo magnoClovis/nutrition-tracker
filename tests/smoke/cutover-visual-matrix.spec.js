@@ -258,6 +258,14 @@ async function renderCase(page, origin, screen) {
           -webkit-backdrop-filter: none !important;
           backdrop-filter: none !important;
         }
+        html, body, * {
+          scrollbar-width: none !important;
+        }
+        *::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+        }
       `
     });
     await page.waitForTimeout(200);
