@@ -117,10 +117,10 @@ Object.assign(globalThis, {
   SavedMealCardModule,
 });
 
-const APP_VERSION_LABEL = window.APP_VERSION_LABEL || 'Trofia v0.8.1 Beta';
+const CURRENT_RELEASE = ReleaseNotice.CURRENT_RELEASE;
+const APP_VERSION_LABEL = window.APP_VERSION_LABEL || CURRENT_RELEASE.label;
 const MOST_RECENT_TUTORIAL_KEY = 'tutorial_most_recent_version_seen';
-const CURRENT_RELEASE_TUTORIAL_VERSION = '0.8.0-beta';
-const RELEASE_TUTORIAL_TYPE = 'release080';
+const CURRENT_RELEASE_ID = CURRENT_RELEASE.id;
 const VISUAL_UPDATE_NOTICE_KEY = 'seenVisualUpdateNotice_0.8.1';
 const tutorialSeenKey = type => `tutorialSeen_${type}`;
 const DARK_THEME_DEFAULT_MIGRATION_KEY = 'appThemeDefaultDarkV1';
@@ -617,11 +617,11 @@ const {
 });
 
 function hasSeenCurrentRelease(record) {
-  return !!record && record.value === CURRENT_RELEASE_TUTORIAL_VERSION;
+  return ReleaseNotice.hasSeenRelease(record, CURRENT_RELEASE_ID);
 }
 
 async function markCurrentReleaseSeen() {
-  await storage.set(MOST_RECENT_TUTORIAL_KEY, CURRENT_RELEASE_TUTORIAL_VERSION).catch(() => {});
+  await storage.set(MOST_RECENT_TUTORIAL_KEY, CURRENT_RELEASE_ID).catch(() => {});
 }
 
 export function App() {
@@ -640,6 +640,7 @@ export function App() {
   const [showReleaseNotice, setShowReleaseNotice] = React.useState(false);
   const [showVisualUpdateNotice, setShowVisualUpdateNotice] = React.useState(false);
   const [darkMode, setDarkMode] = React.useState(readPreferredDarkMode);
+  const releaseAudienceRef = React.useRef(null);
   const backDispatcherRef = React.useRef(null);
   if (!backDispatcherRef.current) {
     backDispatcherRef.current = createBackNavigationDispatcher({
@@ -713,6 +714,7 @@ export function App() {
     setShowTutorial(false);
     setShowReleaseNotice(false);
     setShowVisualUpdateNotice(false);
+    releaseAudienceRef.current = null;
   }
 
   React.useEffect(() => registerBackHandler({
@@ -727,10 +729,12 @@ export function App() {
       }
       if (showTutorial) {
         setShowTutorial(false);
+        releaseAudienceRef.current = null;
         return true;
       }
       if (showReleaseNotice) {
         setShowReleaseNotice(false);
+        releaseAudienceRef.current = null;
         return true;
       }
       if (showVisualUpdateNotice) {
@@ -825,14 +829,8 @@ export function App() {
     await checkRequiredProfile();
     await checkVisualUpdateNotice(isNew);
     const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(() => null);
-    if (isNew) {
-      await markCurrentReleaseSeen();
-      setTutorialType('main');
-      setShowTutorial(true);
-      return;
-    }
     if (!hasSeenCurrentRelease(tutorialVersion)) {
-      await markCurrentReleaseSeen();
+      releaseAudienceRef.current = isNew ? 'new' : 'existing';
       setShowReleaseNotice(true);
       return;
     }
@@ -877,7 +875,7 @@ export function App() {
         await checkVisualUpdateNotice(false);
         const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(() => null);
         if (!hasSeenCurrentRelease(tutorialVersion)) {
-          await markCurrentReleaseSeen();
+          releaseAudienceRef.current = 'existing';
           setShowReleaseNotice(true);
         }
         setChecking(false);
@@ -992,9 +990,14 @@ export function App() {
           <ReleaseNoticeModal
             lang={lang}
             onStartTutorial={() => {
+              const nextTutorialType = ReleaseNotice.resolveReleaseTutorialType(releaseAudienceRef.current, CURRENT_RELEASE);
               setShowReleaseNotice(false);
-              setTutorialType(RELEASE_TUTORIAL_TYPE);
-              setShowTutorial(true);
+              if (nextTutorialType) {
+                setTutorialType(nextTutorialType);
+                setShowTutorial(true);
+              } else {
+                setShowReleaseNotice(true);
+              }
             }}
           />
         ) : null}
@@ -1010,6 +1013,10 @@ export function App() {
             type={tutorialType}
             onDone={() => {
               storage.set(tutorialSeenKey(tutorialType), 'true').catch(() => {});
+              if (releaseAudienceRef.current) {
+                markCurrentReleaseSeen();
+                releaseAudienceRef.current = null;
+              }
               setShowTutorial(false);
             }}
           />

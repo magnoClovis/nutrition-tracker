@@ -91,7 +91,7 @@ async function installDeterministicServices(page) {
   await page.evaluate(() => {
     window.__cutoverProfile = {
       'seenVisualUpdateNotice_0.8.1': 'true',
-      tutorial_most_recent_version_seen: '0.8.0-beta',
+      tutorial_most_recent_version_seen: '0.9.0-beta',
       tutorialSeen_main: 'true',
       tutorialSeen_diario: 'true',
       tutorialSeen_adicionar: 'true',

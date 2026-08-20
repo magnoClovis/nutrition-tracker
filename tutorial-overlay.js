@@ -68,7 +68,7 @@
         main: [
           { title: 'Visão geral', text: 'O app é dividido em abas. Este primeiro guia é curto; cada aba terá uma explicação própria quando você abrir pela primeira vez.', highlight: null },
           { title: 'Diário', text: 'Aqui você acompanha o dia: refeições, água, metas, progresso e sugestões do que comer.', highlight: 'tab-diario' },
-          { title: 'Registrar', text: 'Use os botões de adicionar nas refeições para montar uma refeição com vários itens ou descrever um prato.', highlight: 'open-log-sheet' },
+          { title: 'Registrar', text: 'Use o botão global + Adicionar para montar uma refeição, descrever um prato, repetir uma refeição salva ou reconhecer alimentos por foto.', highlight: 'open-log-sheet' },
           { title: 'Alimentos', text: 'Consulte alimentos salvos, crie novos itens, leia códigos de barras, organize refeições salvas e acompanhe suplementos.', highlight: 'tab-despensa' },
           { title: 'Semana', text: 'Veja tendências recentes, o banco de calorias, gráficos e médias por refeição.', highlight: 'tab-semana' },
           { title: 'Métricas', text: 'Registre medidas, acompanhe peso, IMC e TMB, ajuste metas e gere relatórios.', highlight: 'tab-metricas' },
@@ -82,7 +82,8 @@
           { title: 'Micronutrientes', text: 'Abra esta área para conferir vitaminas e minerais registrados pelos alimentos do dia.', tab: 'diario', highlight: 'microLabel' }
         ],
         adicionar: [
-          { title: 'Adicionar refeições', text: 'Escolha entre montar uma refeição com vários itens ou descrever um prato.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'Adicionar refeições', text: 'Escolha entre montar uma refeição, descrever um prato, usar uma refeição salva ou reconhecer por foto.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'Reconhecer por foto', text: 'Tire uma foto ou escolha uma imagem, aguarde a análise e revise sempre os alimentos, quantidades e nutrientes estimados antes de registrar.', tab: 'adicionar', highlight: 'add-modes' },
           { title: 'Registrar ou avaliar', text: 'Registrar envia a refeição diretamente ao diário. Avaliar refeição é opcional e calcula uma nota de 0 a 5 antes do registro.', tab: 'adicionar', highlight: 'add-modes' },
           { title: 'Entender e ajustar', text: 'Ao avaliar, a explicação destaca pontos positivos e o principal desvio. Você pode editar ingredientes ou quantidades, reavaliar ou registrar mesmo assim.', tab: 'adicionar', highlight: null }
         ],
@@ -112,18 +113,17 @@
           { title: 'Memória de cálculo', text: 'O resumo mostra TMB, base do dia, ajuste do objetivo, meta final e proteína calculada para manter transparência.', tab: 'metricas', highlight: 'metrics-target-summary' },
           { title: 'Relatórios', text: 'Gere relatórios HTML ou PDF para dia, semana, mês ou histórico completo.', tab: 'metricas', highlight: 'advanced-reports' }
         ],
-        release080: [
-          { title: 'Avaliação opcional', text: 'Refeições montadas e pratos descritos podem receber uma nota de 0 a 5 antes do registro. Se não quiser avaliar, use Registrar para enviá-las diretamente ao diário.', tab: 'adicionar', highlight: 'add-modes' },
-          { title: 'Sugestões com nota', text: 'As sugestões de refeição também mostram uma nota breve, indicando o que está puxando cada opção para cima ou para baixo.', tab: 'diario', highlight: 'suggest-meal-button' },
-          { title: 'Banco de calorias', text: 'O resumo da Semana mostra sua folga ou excesso calórico nos sete dias concluídos, respeitando a meta individual de cada dia.', tab: 'semana', highlight: 'week-summary' },
-          { title: 'TMB nas métricas', text: 'Acompanhamento agora destaca sua TMB atual e, quando houver registros suficientes, mostra também a evolução desse valor.', tab: 'metricas', highlight: 'metrics-current' },
-          { title: 'Espanhol e feedback', text: 'O app agora está disponível em espanhol. Use a engrenagem para trocar o idioma e abra Configurações quando quiser enviar sugestões ou reportar erros.', highlight: 'menu-settings', action: 'menu-settings', done: 'Abrir menu' }
+        'release-highlights': [
+          { title: 'Reconhecer por foto', text: 'Em + Adicionar, escolha Reconhecer por foto para fotografar a refeição ou selecionar uma imagem da galeria.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'Revise as estimativas', text: 'Antes de registrar, confira e edite o nome do prato, os alimentos, as quantidades, os nutrientes, a confiança e as suposições da análise.', tab: 'adicionar', highlight: null },
+          { title: 'Adicionar mais simples', text: 'O Diário agora usa um único botão global + Adicionar. As categorias vazias ficam ocultas para deixar o dia mais claro.', tab: 'diario', highlight: 'open-log-sheet' },
+          { title: 'Seu Diário preservado', text: 'Ao concluir um registro, o Trofia fecha o fluxo e devolve você à mesma aba, data e posição de onde começou.', tab: 'diario', highlight: null }
         ]
       } : {
         main: [
           { title: 'Overview', text: 'The app is organized into tabs. This first guide is short; each tab has its own tutorial the first time you open it.', highlight: null },
           { title: 'Diary', text: "Track today's meals, water, goals, progress, and food suggestions.", highlight: 'tab-diario' },
-          { title: 'Log', text: 'Use the add buttons inside meals to build a multi-item meal or describe a dish.', highlight: 'open-log-sheet' },
+          { title: 'Log', text: 'Use the global + Add button to build a meal, describe a dish, repeat a saved meal, or recognize foods from a photo.', highlight: 'open-log-sheet' },
           { title: 'Foods', text: 'Search saved foods, create new items, scan barcodes, organize saved meals, and track supplements.', highlight: 'tab-despensa' },
           { title: 'Week', text: 'Review recent trends, the calorie bank, charts, and meal averages.', highlight: 'tab-semana' },
           { title: 'Metrics', text: 'Log measurements, follow weight, BMI, and BMR, adjust goals, and generate reports.', highlight: 'tab-metricas' },
@@ -137,7 +137,8 @@
           { title: 'Micronutrients', text: "Open this area to review vitamins and minerals logged from the day's foods.", tab: 'diario', highlight: 'microLabel' }
         ],
         adicionar: [
-          { title: 'Add meals', text: 'Choose between building a multi-item meal or describing a dish.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'Add meals', text: 'Choose between building a meal, describing a dish, using a saved meal, or recognizing one from a photo.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'Recognize from a photo', text: 'Take a photo or choose an image, wait for the analysis, and always review the estimated foods, amounts, and nutrients before logging.', tab: 'adicionar', highlight: 'add-modes' },
           { title: 'Log or evaluate', text: 'Log meal sends it directly to the diary. Evaluate meal is optional and calculates a 0-to-5 score first.', tab: 'adicionar', highlight: 'add-modes' },
           { title: 'Understand and adjust', text: 'When you evaluate, the explanation highlights strengths and the main deviation. You can edit amounts, re-evaluate, or log anyway.', tab: 'adicionar', highlight: null }
         ],
@@ -167,19 +168,18 @@
           { title: 'Calculation memory', text: 'The summary shows BMR, day base, goal adjustment, final target, and calculated protein for transparency.', tab: 'metricas', highlight: 'metrics-target-summary' },
           { title: 'Reports', text: 'Generate HTML or PDF reports for day, week, month, or full history.', tab: 'metricas', highlight: 'advanced-reports' }
         ],
-        release080: [
-          { title: 'Optional assessment', text: 'Built meals and described dishes can receive a 0-to-5 score before logging. If you do not want an assessment, use Log meal to send it directly to the diary.', tab: 'adicionar', highlight: 'add-modes' },
-          { title: 'Scored suggestions', text: 'Meal suggestions now include a brief score showing what pulls each option up or down.', tab: 'diario', highlight: 'suggest-meal-button' },
-          { title: 'Calorie bank', text: 'The Week summary shows your calorie buffer or excess across the seven completed days while respecting each day\'s individual target.', tab: 'semana', highlight: 'week-summary' },
-          { title: 'BMR in Metrics', text: 'Tracking now highlights your current BMR and, when enough records exist, its trend over time.', tab: 'metricas', highlight: 'metrics-current' },
-          { title: 'Spanish and feedback', text: 'The app is now available in Spanish. Use the gear to change language, and open Settings whenever you want to send suggestions or report a problem.', highlight: 'menu-settings', action: 'menu-settings', done: 'Open menu' }
+        'release-highlights': [
+          { title: 'Recognize from a photo', text: 'Under + Add, choose Recognize from photo to photograph your meal or select an image from the gallery.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'Review the estimates', text: 'Before logging, check and edit the dish name, foods, amounts, nutrients, confidence, and analysis assumptions.', tab: 'adicionar', highlight: null },
+          { title: 'A simpler Add flow', text: 'The Diary now uses one global + Add button. Empty meal categories stay hidden so the day is easier to read.', tab: 'diario', highlight: 'open-log-sheet' },
+          { title: 'Your place is preserved', text: 'After logging, Trofia closes the flow and returns you to the same tab, date, and scroll position where you started.', tab: 'diario', highlight: null }
         ]
       };
       const spanishStepSets = {
         main: [
           { title: 'Vista general', text: 'La app est\u00e1 organizada por pesta\u00f1as. Esta primera gu\u00eda es corta; cada pesta\u00f1a tendr\u00e1 su propia explicaci\u00f3n la primera vez que la abras.', highlight: null },
           { title: 'Diario', text: 'Aqu\u00ed sigues el d\u00eda: comidas, agua, metas, progreso y sugerencias de qu\u00e9 comer.', highlight: 'tab-diario' },
-          { title: 'Registrar', text: 'Usa los botones de a\u00f1adir en las comidas para montar una comida con varios \u00edtems o describir un plato.', highlight: 'open-log-sheet' },
+          { title: 'Registrar', text: 'Usa el bot\u00f3n global + A\u00f1adir para montar una comida, describir un plato, repetir una comida guardada o reconocer alimentos por foto.', highlight: 'open-log-sheet' },
           { title: 'Alimentos', text: 'Consulta alimentos guardados, crea nuevos, escanea c\u00f3digos de barras, organiza comidas guardadas y registra suplementos.', highlight: 'tab-despensa' },
           { title: 'Semana', text: 'Revisa tendencias recientes, el banco de calor\u00edas, gr\u00e1ficos y promedios por comida.', highlight: 'tab-semana' },
           { title: 'M\u00e9tricas', text: 'Registra medidas, sigue peso, IMC y TMB, ajusta metas y genera informes.', highlight: 'tab-metricas' },
@@ -193,7 +193,8 @@
           { title: 'Micronutrientes', text: 'Abre esta zona para revisar vitaminas y minerales registrados por los alimentos del d\u00eda.', tab: 'diario', highlight: 'microLabel' }
         ],
         adicionar: [
-          { title: 'A\u00f1adir comidas', text: 'Elige entre montar una comida con varios \u00edtems o describir un plato.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'A\u00f1adir comidas', text: 'Elige entre montar una comida, describir un plato, usar una comida guardada o reconocerla por foto.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'Reconocer por foto', text: 'Toma una foto o elige una imagen, espera el an\u00e1lisis y revisa siempre los alimentos, cantidades y nutrientes estimados antes de registrar.', tab: 'adicionar', highlight: 'add-modes' },
           { title: 'Registrar o evaluar', text: 'Registrar env\u00eda la comida directamente al diario. Evaluar comida es opcional y calcula antes una nota de 0 a 5.', tab: 'adicionar', highlight: 'add-modes' },
           { title: 'Entender y ajustar', text: 'Al evaluar, la explicaci\u00f3n destaca puntos fuertes y el principal desv\u00edo. Puedes editar cantidades, reevaluar o registrar igualmente.', tab: 'adicionar', highlight: null }
         ],
@@ -223,12 +224,11 @@
           { title: 'Memoria de c\u00e1lculo', text: 'El resumen muestra TMB, base del d\u00eda, ajuste del objetivo, meta final y prote\u00edna calculada para mantener transparencia.', tab: 'metricas', highlight: 'metrics-target-summary' },
           { title: 'Informes', text: 'Genera informes HTML o PDF para d\u00eda, semana, mes o historial completo.', tab: 'metricas', highlight: 'advanced-reports' }
         ],
-        release080: [
-          { title: 'Evaluaci\u00f3n opcional', text: 'Las comidas montadas y los platos descritos pueden recibir una nota de 0 a 5 antes del registro. Si no quieres evaluarlas, usa Registrar para enviarlas directamente al diario.', tab: 'adicionar', highlight: 'add-modes' },
-          { title: 'Sugerencias con nota', text: 'Las sugerencias de comida ahora incluyen una nota breve que indica qu\u00e9 mejora o perjudica cada opci\u00f3n.', tab: 'diario', highlight: 'suggest-meal-button' },
-          { title: 'Banco de calor\u00edas', text: 'El resumen de Semana muestra tu margen o exceso cal\u00f3rico en los siete d\u00edas completados, respetando la meta individual de cada d\u00eda.', tab: 'semana', highlight: 'week-summary' },
-          { title: 'TMB en M\u00e9tricas', text: 'Seguimiento ahora destaca tu TMB actual y, cuando haya registros suficientes, tambi\u00e9n muestra su evoluci\u00f3n.', tab: 'metricas', highlight: 'metrics-current' },
-          { title: 'Espa\u00f1ol y comentarios', text: 'La app ya est\u00e1 disponible en espa\u00f1ol. Usa el engranaje para cambiar el idioma y abre Configuraci\u00f3n cuando quieras enviar sugerencias o reportar errores.', highlight: 'menu-settings', action: 'menu-settings', done: 'Abrir men\u00fa' }
+        'release-highlights': [
+          { title: 'Reconocer por foto', text: 'En + A\u00f1adir, elige Reconocer por foto para fotografiar la comida o seleccionar una imagen de la galer\u00eda.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'Revisa las estimaciones', text: 'Antes de registrar, comprueba y edita el nombre del plato, los alimentos, las cantidades, los nutrientes, la confianza y las suposiciones del an\u00e1lisis.', tab: 'adicionar', highlight: null },
+          { title: 'Un flujo m\u00e1s sencillo', text: 'El Diario ahora usa un \u00fanico bot\u00f3n global + A\u00f1adir. Las categor\u00edas vac\u00edas permanecen ocultas para mostrar el d\u00eda con mayor claridad.', tab: 'diario', highlight: 'open-log-sheet' },
+          { title: 'Tu posici\u00f3n se conserva', text: 'Al terminar un registro, Trofia cierra el flujo y te devuelve a la misma pesta\u00f1a, fecha y posici\u00f3n donde comenzaste.', tab: 'diario', highlight: null }
         ]
       };
       const activeStepSets = isEs ? spanishStepSets : stepSets;

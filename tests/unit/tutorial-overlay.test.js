@@ -236,23 +236,18 @@ contractTest("keeps a missing tutorial target unhighlighted without retrying", T
   }
 });
 
-contractTest("finishes before the existing zero-delay action click", TutorialOverlay => {
-  const settings = targetElement();
-  const env = createDomEnvironment({ '[data-tutorial="menu-settings"]': settings });
+contractTest("finishes the version-neutral release highlights after four focused steps", TutorialOverlay => {
+  const env = createDomEnvironment();
   let doneCalls = 0;
-  const harness = createHookHarness(TutorialOverlay, { lang: "pt", type: "release080", onDone: () => { doneCalls += 1; } });
+  const harness = createHookHarness(TutorialOverlay, { lang: "pt", type: "release-highlights", onDone: () => { doneCalls += 1; } });
   try {
-    for (let step = 0; step < 4; step += 1) {
+    for (let step = 0; step < 3; step += 1) {
       const tree = harness.render();
       findButton(tree, "Próximo").props.onClick();
     }
     const finalTree = harness.render();
-    findButton(finalTree, "Abrir menu").props.onClick();
+    findButton(finalTree, "Concluir").props.onClick();
     assert.equal(doneCalls, 1);
-    assert.equal(settings.clicks, 0);
-    assert.ok(env.timers.some(timer => timer.delay === 0));
-    env.runDelay(0);
-    assert.equal(settings.clicks, 1);
   } finally {
     harness.unmount();
     env.restore();

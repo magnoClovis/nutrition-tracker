@@ -15,6 +15,23 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
+  const CURRENT_RELEASE = Object.freeze({
+    id: "0.9.0-beta",
+    versionName: "0.9.0-beta",
+    label: "Trofia v0.9.0 Beta",
+    tutorialType: "release-highlights"
+  });
+
+  function hasSeenRelease(record, releaseId = CURRENT_RELEASE.id) {
+    return !!record && record.value === releaseId;
+  }
+
+  function resolveReleaseTutorialType(audience, release = CURRENT_RELEASE) {
+    if (audience === "new") return "main";
+    if (audience === "existing") return release.tutorialType || null;
+    return null;
+  }
+
   /**
    * Creates the release-notice component with React and language normalization supplied by the host.
    *
@@ -40,23 +57,24 @@
       const normalizedLang = normalizeLanguage(lang);
       const textByLang = {
         pt: {
-          title: "Bem-vindo \u00e0 vers\u00e3o 0.8.0 Beta! \ud83c\udf89\ud83e\udd73",
-          body: "A Trofia agora tamb\u00e9m est\u00e1 dispon\u00edvel em espanhol e ganhou novas ferramentas para ajudar nas suas decis\u00f5es: voc\u00ea pode avaliar uma refei\u00e7\u00e3o antes de registr\u00e1-la, acompanhar melhor sua semana e suas m\u00e9tricas corporais e enviar feedback diretamente pelas Configura\u00e7\u00f5es. Preparamos um guia r\u00e1pido com as principais novidades.",
+          title: "Bem-vindo \u00e0 vers\u00e3o 0.9.0 Beta! \ud83c\udf89\ud83e\udd73",
+          body: "Agora voc\u00ea pode reconhecer refei\u00e7\u00f5es por foto, revisar as estimativas antes de registrar e usar um Di\u00e1rio mais claro, com datas, backups e privacidade refor\u00e7ados.",
           btn: "Ver novidades"
         },
         en: {
-          title: "Welcome to version 0.8.0 Beta! \ud83c\udf89\ud83e\udd73",
-          body: "Trofia is now also available in Spanish and includes new tools to support your daily decisions: you can evaluate a meal before logging it, follow your weekly and body metrics more clearly, and send feedback directly from Settings. We prepared a quick tour of the main updates.",
+          title: "Welcome to version 0.9.0 Beta! \ud83c\udf89\ud83e\udd73",
+          body: "You can now recognize meals from photos, review estimates before logging, and use a clearer Diary with more reliable dates, backups, and privacy protections.",
           btn: "See what's new"
         },
         es: {
-          title: "\u00a1Bienvenido a la versi\u00f3n 0.8.0 Beta! \ud83c\udf89\ud83e\udd73",
-          body: "Trofia ya est\u00e1 disponible en espa\u00f1ol e incluye nuevas herramientas para ayudarte en tus decisiones diarias: puedes evaluar una comida antes de registrarla, seguir con m\u00e1s claridad tu semana y tus m\u00e9tricas corporales y enviar comentarios directamente desde Configuraci\u00f3n. Preparamos una gu\u00eda r\u00e1pida con las principales novedades.",
+          title: "\u00a1Bienvenido a la versi\u00f3n 0.9.0 Beta! \ud83c\udf89\ud83e\udd73",
+          body: "Ahora puedes reconocer comidas por foto, revisar las estimaciones antes de registrarlas y usar un Diario m\u00e1s claro, con fechas, copias de seguridad y privacidad reforzadas.",
           btn: "Ver novedades"
         }
       };
       const text = textByLang[normalizedLang] || textByLang.pt;
       return React.createElement("div", {
+        "data-release-notice": "true",
         "data-safe-area-dialog": "18",
         style: {
           position: "fixed",
@@ -114,5 +132,10 @@
     return { ReleaseNoticeModal };
   }
 
-  return { createReleaseNotice };
+  return {
+    CURRENT_RELEASE,
+    createReleaseNotice,
+    hasSeenRelease,
+    resolveReleaseTutorialType
+  };
 });

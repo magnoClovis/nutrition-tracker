@@ -218,7 +218,7 @@ test.describe('authenticated app smoke tests', () => {
     const errors = await openApp(page);
 
     await clickByTutorialKeyOrText(page, 'menu-settings', /Settings|Configura/i);
-    await clickFirstButtonMatching(page, /Sair|Sign out|Log out/i);
+    await clickFirstButtonMatching(page, /Sair|Sign out|Log out|Cerrar sesión/i);
 
     await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('button', { name: /Entrar|Sign in/i }).last()).toBeVisible();

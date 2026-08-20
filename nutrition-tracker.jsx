@@ -4,10 +4,10 @@
 // calculation helpers documented where inputs/outputs are not immediately obvious.
 const {useState,useEffect,useRef}=React;
 const {LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,ReferenceLine}=Recharts;
-const APP_VERSION_LABEL = window.APP_VERSION_LABEL || "Trofia v0.8.1 Beta";
+const CURRENT_RELEASE = window.ReleaseNotice.CURRENT_RELEASE;
+const APP_VERSION_LABEL = window.APP_VERSION_LABEL || CURRENT_RELEASE.label;
 const MOST_RECENT_TUTORIAL_KEY = "tutorial_most_recent_version_seen";
-const CURRENT_RELEASE_TUTORIAL_VERSION = "0.8.0-beta";
-const RELEASE_TUTORIAL_TYPE = "release080";
+const CURRENT_RELEASE_ID = CURRENT_RELEASE.id;
 const VISUAL_UPDATE_NOTICE_KEY = "seenVisualUpdateNotice_0.8.1";
 const tutorialSeenKey = type => "tutorialSeen_" + type;
 const DARK_THEME_DEFAULT_MIGRATION_KEY = "appThemeDefaultDarkV1";
@@ -449,14 +449,14 @@ const {
 /**
  * Release notices use an explicit version marker. Legacy boolean values mean
  * that an older release was acknowledged, so existing users still receive the
- * 0.8.0 welcome once without resetting their completed tab tutorials.
+ * current release welcome once without resetting their completed tab tutorials.
  */
 function hasSeenCurrentRelease(record) {
-  return !!record && record.value === CURRENT_RELEASE_TUTORIAL_VERSION;
+  return window.ReleaseNotice.hasSeenRelease(record, CURRENT_RELEASE_ID);
 }
 
 async function markCurrentReleaseSeen() {
-  await storage.set(MOST_RECENT_TUTORIAL_KEY, CURRENT_RELEASE_TUTORIAL_VERSION).catch(() => {});
+  await storage.set(MOST_RECENT_TUTORIAL_KEY, CURRENT_RELEASE_ID).catch(() => {});
 }
 
 // Login / Register Screen
@@ -481,6 +481,7 @@ function App() {
   const [showReleaseNotice, setShowReleaseNotice] = React.useState(false);
   const [showVisualUpdateNotice, setShowVisualUpdateNotice] = React.useState(false);
   const [darkMode, setDarkMode] = React.useState(readPreferredDarkMode);
+  const releaseAudienceRef = React.useRef(null);
   React.useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
   }, [darkMode]);
@@ -508,6 +509,7 @@ function App() {
     setShowTutorial(false);
     setShowReleaseNotice(false);
     setShowVisualUpdateNotice(false);
+    releaseAudienceRef.current = null;
   }
   async function checkRequiredProfile() {
     setProfileChecking(true);
@@ -570,14 +572,8 @@ function App() {
     await checkRequiredProfile();
     await checkVisualUpdateNotice(isNew);
     const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(()=>null);
-    if (isNew) {
-      await markCurrentReleaseSeen();
-      setTutorialType('main');
-      setShowTutorial(true);
-      return;
-    }
     if (!hasSeenCurrentRelease(tutorialVersion)) {
-      await markCurrentReleaseSeen();
+      releaseAudienceRef.current = isNew ? 'new' : 'existing';
       setShowReleaseNotice(true);
       return;
     }
@@ -612,7 +608,7 @@ function App() {
         await checkVisualUpdateNotice(false);
         const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(()=>null);
         if (!hasSeenCurrentRelease(tutorialVersion)) {
-          await markCurrentReleaseSeen();
+          releaseAudienceRef.current = 'existing';
           setShowReleaseNotice(true);
         }
         setChecking(false);
@@ -697,9 +693,14 @@ function App() {
       showReleaseNotice && !requiredProfile ? React.createElement(ReleaseNoticeModal, {
         lang,
         onStartTutorial: () => {
+          const nextTutorialType = window.ReleaseNotice.resolveReleaseTutorialType(releaseAudienceRef.current, CURRENT_RELEASE);
           setShowReleaseNotice(false);
-          setTutorialType(RELEASE_TUTORIAL_TYPE);
-          setShowTutorial(true);
+          if (nextTutorialType) {
+            setTutorialType(nextTutorialType);
+            setShowTutorial(true);
+          } else {
+            setShowReleaseNotice(true);
+          }
         }
       }) : null,
       showVisualUpdateNotice && !requiredProfile ? React.createElement(VisualUpdateNotice, {
@@ -711,6 +712,10 @@ function App() {
         type: tutorialType,
         onDone: () => {
           storage.set(tutorialSeenKey(tutorialType), 'true').catch(()=>{});
+          if (releaseAudienceRef.current) {
+            markCurrentReleaseSeen();
+            releaseAudienceRef.current = null;
+          }
           setShowTutorial(false);
         }
       }) : null,
