@@ -27,7 +27,22 @@ for (const [format, load] of implementations) {
     ]);
   });
 
-  test(`${format}: fails closed on web until reCAPTCHA Enterprise is configured`, async () => {
+  test(`${format}: initializes reCAPTCHA Enterprise once and returns a validated web token`, async () => {
+    const { createAppCheckClient } = await load();
+    const calls = [];
+    const client = createAppCheckClient({
+      getPlugin: () => null,
+      isNativePlatform: () => false,
+      async initializeWeb() { calls.push('initializeWeb'); },
+      async getWebToken() { calls.push('getWebToken'); return 'web-app-check-token'; },
+    });
+
+    await Promise.all([client.initialize(), client.initialize()]);
+    assert.equal(await client.getToken(), 'web-app-check-token');
+    assert.deepEqual(calls, ['initializeWeb', 'getWebToken']);
+  });
+
+  test(`${format}: fails closed when the web provider configuration is absent`, async () => {
     const { AppCheckClientError, createAppCheckClient } = await load();
     const client = createAppCheckClient({
       getPlugin: () => null,
@@ -37,6 +52,21 @@ for (const [format, load] of implementations) {
       client.getToken(),
       error => error instanceof AppCheckClientError &&
         error.code === 'app-check-web-not-configured',
+    );
+  });
+
+  test(`${format}: rejects an invalid web token`, async () => {
+    const { AppCheckClientError, createAppCheckClient } = await load();
+    const client = createAppCheckClient({
+      getPlugin: () => null,
+      isNativePlatform: () => false,
+      async initializeWeb() {},
+      async getWebToken() { return ' '; },
+    });
+    await assert.rejects(
+      client.getToken(),
+      error => error instanceof AppCheckClientError &&
+        error.code === 'app-check-token-invalid',
     );
   });
 }

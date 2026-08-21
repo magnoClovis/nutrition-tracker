@@ -102,7 +102,7 @@ const accountDeletionClient = window.AccountDeletionClient.createAccountDeletion
   functionUrl: ACCOUNT_DELETION_FUNCTION_URL
 });
 void appCheckClient.initialize().catch(() => {
-  // Web remains deliberately fail-closed until its reCAPTCHA provider exists.
+  // The legacy runtime remains native-only; Vite owns the web provider.
 });
 
 const {

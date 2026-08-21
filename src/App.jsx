@@ -207,7 +207,7 @@ const accountDeletionClient = createAccountDeletionClient({
   functionUrl: ACCOUNT_DELETION_FUNCTION_URL,
 });
 void initializeAppCheck().catch(() => {
-  // Web remains deliberately fail-closed until its reCAPTCHA provider exists.
+  // Account deletion remains fail-closed if platform attestation is unavailable.
 });
 
 const imageMealClient = ImageMealClient.createImageMealClient({

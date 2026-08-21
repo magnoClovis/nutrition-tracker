@@ -1,9 +1,9 @@
 /**
- * Firebase App Check adapter for the Capacitor runtime.
+ * Firebase App Check adapter shared by Capacitor and the web runtime.
  *
- * Android uses the native Play Integrity provider. The web path intentionally
- * fails closed until the production web app is registered with an approved
- * reCAPTCHA Enterprise provider.
+ * Android uses the native Play Integrity provider. Web uses the modular
+ * Firebase SDK with reCAPTCHA Enterprise. Provider-specific SDK objects stay
+ * outside this adapter so the security contract remains unit-testable.
  */
 (function (root, factory) {
   const api = factory();
@@ -20,18 +20,27 @@
     }
   }
 
-  function createAppCheckClient({getPlugin, isNativePlatform} = {}) {
+  function createAppCheckClient({
+    getPlugin,
+    isNativePlatform,
+    initializeWeb,
+    getWebToken,
+  } = {}) {
     if (typeof getPlugin !== "function" || typeof isNativePlatform !== "function") {
-      throw new TypeError("AppCheckClient requires plugin and platform adapters");
+      throw new TypeError("AppCheckClient requires native plugin and platform adapters");
     }
     let initialization = null;
 
     function initialize() {
-      if (!isNativePlatform()) {
-        return Promise.reject(new AppCheckClientError("app-check-web-not-configured"));
-      }
       if (initialization) return initialization;
       initialization = Promise.resolve().then(async () => {
+        if (!isNativePlatform()) {
+          if (typeof initializeWeb !== "function" || typeof getWebToken !== "function") {
+            throw new AppCheckClientError("app-check-web-not-configured");
+          }
+          await initializeWeb();
+          return;
+        }
         const plugin = getPlugin();
         if (!plugin || typeof plugin.initialize !== "function") {
           throw new AppCheckClientError("app-check-plugin-unavailable");
@@ -47,6 +56,18 @@
 
     async function getToken() {
       await initialize();
+      if (!isNativePlatform()) {
+        try {
+          const token = await getWebToken();
+          if (typeof token !== "string" || !token.trim()) {
+            throw new AppCheckClientError("app-check-token-invalid");
+          }
+          return token;
+        } catch (error) {
+          if (error instanceof AppCheckClientError) throw error;
+          throw new AppCheckClientError("app-check-token-unavailable", {cause: error});
+        }
+      }
       const plugin = getPlugin();
       if (!plugin || typeof plugin.getToken !== "function") {
         throw new AppCheckClientError("app-check-plugin-unavailable");

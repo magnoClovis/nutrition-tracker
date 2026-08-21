@@ -20,9 +20,10 @@ const {createAccountDeletionRequestService} = require(
 );
 const {
   ACCOUNT_DELETION_TASK_FUNCTION,
+  CALLABLE_REGION,
   DELETION_TASK_OPTIONS,
   PRODUCTION_PROJECT_ID,
-  REGION,
+  TASK_REGION,
 } = require("./config.js");
 const {createFirestoreAccountDeletionOperations} = require(
   "./firestore-account-deletion.js",
@@ -34,7 +35,7 @@ const app = getApps()[0] || initializeApp({
 const firestore = getFirestore(app);
 const auth = getAuth(app);
 const taskQueue = getFunctions(app).taskQueue(
-  `locations/${REGION}/functions/${ACCOUNT_DELETION_TASK_FUNCTION}`,
+  `locations/${TASK_REGION}/functions/${ACCOUNT_DELETION_TASK_FUNCTION}`,
 );
 const jobRepository = createAccountDeletionJobRepository({firestore});
 const deletionOperations = createFirestoreAccountDeletionOperations({
@@ -62,7 +63,7 @@ const requestService = createAccountDeletionRequestService({
 
 const requestAccountDeletion = onCall(
   {
-    region: REGION,
+    region: CALLABLE_REGION,
     enforceAppCheck: true,
     timeoutSeconds: 30,
     maxInstances: 10,
@@ -107,7 +108,7 @@ const processAccountDeletionTask = onTaskDispatched(
 
 const reconcileAccountDeletionJobs = onSchedule(
   {
-    region: REGION,
+    region: TASK_REGION,
     schedule: "every 60 minutes",
     timeZone: "Etc/UTC",
     timeoutSeconds: 9 * 60,

@@ -25,12 +25,13 @@ const functionsIndexSource = fs.readFileSync(
 );
 const runtimeConfig = require("../src/config.js");
 
-test("pins the C22 backend to Node 22 in Madrid", () => {
+test("pins the callable to Madrid and queue processing to Belgium", () => {
   assert.equal(functionsPackage.engines.node, "22");
   assert.equal(firebaseConfig.functions.length, 1);
   assert.equal(firebaseConfig.functions[0].runtime, "nodejs22");
   assert.equal(firebaseConfig.functions[0].source, "functions");
-  assert.equal(runtimeConfig.REGION, "europe-southwest1");
+  assert.equal(runtimeConfig.CALLABLE_REGION, "europe-southwest1");
+  assert.equal(runtimeConfig.TASK_REGION, "europe-west1");
 });
 
 test("keeps production deployment and emulator identities explicit", () => {
@@ -68,7 +69,7 @@ test("exposes only the reviewed callable, task and reconciliation handlers", () 
   ]);
 
   const taskEndpoint = exportedFunctions.processAccountDeletionTask.__endpoint;
-  assert.deepEqual(taskEndpoint.region, [runtimeConfig.REGION]);
+  assert.deepEqual(taskEndpoint.region, [runtimeConfig.TASK_REGION]);
   assert.deepEqual(
     taskEndpoint.taskQueueTrigger.retryConfig,
     runtimeConfig.DELETION_TASK_OPTIONS.retryConfig,
@@ -80,12 +81,12 @@ test("exposes only the reviewed callable, task and reconciliation handlers", () 
 
   const scheduleEndpoint =
     exportedFunctions.reconcileAccountDeletionJobs.__endpoint;
-  assert.deepEqual(scheduleEndpoint.region, [runtimeConfig.REGION]);
+  assert.deepEqual(scheduleEndpoint.region, [runtimeConfig.TASK_REGION]);
   assert.equal(scheduleEndpoint.scheduleTrigger.schedule, "every 60 minutes");
   assert.equal(scheduleEndpoint.scheduleTrigger.timeZone, "Etc/UTC");
 
   const callableEndpoint = exportedFunctions.requestAccountDeletion.__endpoint;
-  assert.deepEqual(callableEndpoint.region, [runtimeConfig.REGION]);
+  assert.deepEqual(callableEndpoint.region, [runtimeConfig.CALLABLE_REGION]);
   assert.deepEqual(callableEndpoint.callableTrigger, {});
   assert.match(functionsIndexSource, /requestAccountDeletion\s*=\s*onCall\([\s\S]*?enforceAppCheck:\s*true/);
 });

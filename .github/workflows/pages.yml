@@ -19,6 +19,9 @@ jobs:
     name: Full Windows verification
     runs-on: windows-2022
     timeout-minutes: 45
+    env:
+      VITE_FIREBASE_WEB_APP_ID: ${{ vars.VITE_FIREBASE_WEB_APP_ID }}
+      VITE_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY }}
 
     steps:
       - name: Checkout repository
@@ -80,6 +83,9 @@ jobs:
     needs: quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      VITE_FIREBASE_WEB_APP_ID: ${{ vars.VITE_FIREBASE_WEB_APP_ID }}
+      VITE_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY }}
 
     steps:
       - name: Checkout repository

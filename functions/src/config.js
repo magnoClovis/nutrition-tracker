@@ -1,6 +1,7 @@
 "use strict";
 
-const REGION = "europe-southwest1";
+const CALLABLE_REGION = "europe-southwest1";
+const TASK_REGION = "europe-west1";
 const PRODUCTION_PROJECT_ID = "nutrition-tracker-780b3";
 const EMULATOR_PROJECT_ID = "demo-trofia-c22";
 const ACCOUNT_DELETION_JOBS_COLLECTION = "accountDeletionJobs";
@@ -12,7 +13,7 @@ const RECONCILIATION_LEASE_MS = 15 * 60 * 1000;
 const RECONCILIATION_RETRY_MS = 5 * 60 * 1000;
 
 const DELETION_TASK_OPTIONS = Object.freeze({
-  region: REGION,
+  region: TASK_REGION,
   retryConfig: Object.freeze({
     maxAttempts: DELETION_MAX_ATTEMPTS,
     maxRetrySeconds: 24 * 60 * 60,
@@ -30,9 +31,10 @@ const DELETION_TASK_OPTIONS = Object.freeze({
 module.exports = Object.freeze({
   ACCOUNT_DELETION_JOBS_COLLECTION,
   ACCOUNT_DELETION_TASK_FUNCTION,
+  CALLABLE_REGION,
   DELETION_MAX_ATTEMPTS,
   DELETION_TASK_OPTIONS,
-  REGION,
+  TASK_REGION,
   PRODUCTION_PROJECT_ID,
   EMULATOR_PROJECT_ID,
   FAILED_JOB_RETENTION_MS,
