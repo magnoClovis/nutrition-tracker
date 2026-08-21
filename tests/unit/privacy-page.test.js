@@ -28,7 +28,21 @@ test('renders the approved PT, EN, and ES policies into one stable public page',
   assert.match(html, /data-policy="en" lang="en"/);
   assert.match(html, /data-policy="es" lang="es"/);
   assert.match(html, /europe-southwest1/);
+  assert.match(html, /europe-west1/);
   assert.match(html, /Madrid, Espanha, União Europeia/);
+  assert.match(html, /Firebase App Check/);
+  assert.match(html, /Play Integrity/);
+  assert.match(html, /reCAPTCHA Enterprise/);
+  assert.match(html, /Exclusão iniciada/);
+  assert.match(html, /Deletion started/);
+  assert.match(html, /Eliminación iniciada/);
+  assert.match(html, /dados nutricionais atuais e históricos/);
+  assert.match(html, /current and historical nutrition data/);
+  assert.match(html, /datos nutricionales actuales e históricos/);
+  assert.match(html, /expirar em sete dias/);
+  assert.match(html, /expire after seven days/);
+  assert.match(html, /expirar a los siete días/);
+  assert.match(html, /Hermegas · Trofia 0\.9\.0 Beta/);
   assert.match(html, /Account and data deletion/);
   assert.match(html, /Eliminación de cuenta y datos/);
   assert.match(html, /fotos de refeição enviadas voluntariamente/);
@@ -40,7 +54,30 @@ test('renders the approved PT, EN, and ES policies into one stable public page',
   assert.doesNotMatch(html, /A câmera é acessada somente quando o usuário inicia o scanner/);
   assert.doesNotMatch(html, /The camera is accessed only when the user starts the scanner/);
   assert.doesNotMatch(html, /La cámara se utiliza únicamente cuando el usuario inicia el escáner/);
+  assert.doesNotMatch(html, /exclusão pode ter sido parcial/);
+  assert.doesNotMatch(html, /deletion may have been partial/);
+  assert.doesNotMatch(html, /eliminación puede haber sido parcial/);
   assert.doesNotMatch(html, /URL pública planejada|Planned public URL|URL pública prevista/);
+});
+
+test('keeps the administrative-deletion policy structure aligned across all languages', () => {
+  const projectRoot = path.resolve(__dirname, '..', '..');
+  const policies = [
+    fs.readFileSync(path.join(projectRoot, 'PRIVACY_POLICY_PT-BR.md'), 'utf8'),
+    fs.readFileSync(path.join(projectRoot, 'PRIVACY_POLICY_EN.md'), 'utf8'),
+    fs.readFileSync(path.join(projectRoot, 'PRIVACY_POLICY_ES.md'), 'utf8'),
+  ];
+
+  for (const policy of policies) {
+    assert.equal((policy.match(/^## \d+\./gm) || []).length, 17);
+    assert.match(policy, /0\.9\.0 Beta/);
+    assert.match(policy, /Firebase App Check/);
+    assert.match(policy, /Play Integrity/);
+    assert.match(policy, /reCAPTCHA Enterprise/);
+    assert.match(policy, /europe-southwest1/);
+    assert.match(policy, /europe-west1/);
+    assert.match(policy, /seven days|sete dias|siete días/);
+  }
 });
 
 test('escapes policy text before applying the supported inline Markdown subset', () => {

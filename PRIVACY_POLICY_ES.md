@@ -2,8 +2,8 @@
 
 **Aplicación:** Trofia (`com.hermegas.trofia`)  
 **Responsable:** Hermegas  
-**Versión de referencia:** Trofia 0.8.1 Beta  
-**Última actualización del texto:** 9 de agosto de 2026  
+**Versión de referencia:** Trofia 0.9.0 Beta
+**Última actualización del texto:** 21 de agosto de 2026
 **Vigencia:** a partir de su publicación  
 **Contacto de privacidad y solicitudes externas de eliminación:** nutritiontracker.beta@gmail.com  
 **URL pública:** https://magnoclovis.github.io/nutrition-tracker/privacy/
@@ -27,7 +27,8 @@ Trofia puede tratar:
 - códigos de barras consultados mediante el escáner;
 - contenido y archivos enviados voluntariamente mediante el formulario de comentarios;
 - configuración, cachés y estado de sesión almacenados en el dispositivo;
-- metadatos técnicos necesarios para autenticación, seguridad y límites de uso de IA.
+- metadatos técnicos necesarios para autenticación, seguridad y límites de uso de IA;
+- material de atestación de integridad de la aplicación, tokens de Firebase App Check y metadatos técnicos de jobs administrativos de eliminación.
 
 La contraseña es procesada por Firebase Authentication y no está disponible para Hermegas.
 
@@ -43,6 +44,7 @@ Los datos se utilizan para:
 - consultar productos mediante código de barras;
 - exportar, importar y restaurar copias de seguridad;
 - aplicar límites de uso y proteger el servicio;
+- verificar que las solicitudes administrativas sensibles proceden de la aplicación legítima y procesar la eliminación segura de la cuenta;
 - responder a comentarios, solicitudes de privacidad e incidentes;
 - cumplir obligaciones legales y mantener la seguridad.
 
@@ -89,7 +91,10 @@ Esta información está sujeta a las políticas de Google. Hermegas pretende con
 Trofia utiliza:
 
 - Firebase Authentication para la autenticación;
+- Firebase App Check, con Play Integrity en Android y reCAPTCHA Enterprise en la Web, para atestiguar el origen de solicitudes administrativas sensibles;
 - Cloud Firestore para tratar y almacenar los datos de cuenta en la región `europe-southwest1` (Madrid, España, Unión Europea);
+- Cloud Functions for Firebase para aceptar solicitudes autenticadas de eliminación en la región `europe-southwest1` (Madrid, España, Unión Europea);
+- Google Cloud Tasks y Cloud Scheduler para procesar, reintentar y reconciliar jobs de eliminación en la región `europe-west1` (Bélgica, Unión Europea);
 - Cloudflare Workers y Durable Objects para intermediar y limitar las llamadas de IA;
 - Gemini API para procesar funciones de IA, incluidas las fotos de comidas enviadas voluntariamente;
 - GitHub Pages para ofrecer la aplicación web y la política pública;
@@ -97,7 +102,7 @@ Trofia utiliza:
 - Google Forms cuando se envían comentarios;
 - Google Play para la distribución Android y el tratamiento propio de Google relacionado con instalación, seguridad y diagnóstico.
 
-Cloud Firestore trata y almacena los datos de cuenta en la región `europe-southwest1`, en Madrid, España, dentro de la Unión Europea. Fuera de Cloud Firestore, Firebase Authentication opera desde centros de datos situados en Estados Unidos, y servicios globales como Gemini API, Cloudflare Workers, GitHub Pages, Google Forms y Google Play pueden tratar información fuera de la Unión Europea de acuerdo con la naturaleza de sus servicios, sus términos, políticas y mecanismos legales de transferencia internacional. A la API de Gemini también se aplican las condiciones específicas descritas en la sección 5.
+Cloud Firestore y la función que acepta solicitudes de eliminación tratan datos en la región `europe-southwest1`, en Madrid, España. La cola y el reconciliador de esas solicitudes operan en la región `europe-west1`, en Bélgica. Estas regiones se encuentran dentro de la Unión Europea. Fuera de esos servicios regionales, Firebase Authentication y servicios globales como Firebase App Check y sus proveedores de atestación, Gemini API, Cloudflare Workers, GitHub Pages, Google Forms y Google Play pueden tratar información fuera de la Unión Europea de acuerdo con la naturaleza de sus servicios, sus términos, políticas y mecanismos legales de transferencia internacional. A la API de Gemini también se aplican las condiciones específicas descritas en la sección 5.
 
 Trofia no integra actualmente Firebase Analytics ni Firebase Crashlytics. Los datos de instalación o diagnóstico tratados directamente por Google Play siguen las políticas de Google y no significan necesariamente que Hermegas reciba datos individualizados.
 
@@ -114,6 +119,10 @@ Los datos de cuenta permanecen en Firebase mientras exista la cuenta o hasta su 
 El estado local de sesión y determinados cachés permanecen en el dispositivo hasta que sean sustituidos, eliminados por la aplicación o el sistema, o borrados al limpiar los datos o desinstalar la aplicación.
 
 El código del Worker no almacena prompts, fotos de comidas ni respuestas. La aplicación mantiene una foto únicamente durante el flujo necesario para procesar y revisar el resultado y después la descarta, salvo los cachés temporales controlados por el sistema operativo, el navegador o el plugin nativo. La conservación realizada por Gemini y otros proveedores se rige por sus términos, incluidos los periodos limitados aplicables a seguridad, prevención de abusos y obligaciones legales. Los metadatos individualizados usados para limitar llamadas de IA deberán conservarse durante un máximo de 24 horas; los contadores globales agregados podrán conservarse durante el día de cuota correspondiente y durante el periodo técnico necesario para sustituirlos.
+
+Firebase App Check no conserva el material de atestación recibido, pero lo envía al proveedor configurado para validarlo conforme a los términos de dicho proveedor. Los tokens App Check correctos tienen una validez configurada de una hora y se renuevan automáticamente; como Trofia no utiliza protección contra repetición, los servicios Firebase no conservan esos tokens después de la validación ordinaria.
+
+Un job de eliminación completado se elimina inmediatamente. Si fallan todos los intentos automáticos, el job conserva únicamente el identificador Firebase, el identificador de la solicitud, la etapa y el código técnico saneado del fallo, para reconciliación y soporte, y queda marcado para expirar a los siete días. Tras una eliminación completada, el lock administrativo sellado también queda marcado para expirar a los siete días. La eliminación física mediante TTL puede producirse de forma asíncrona. Estos registros no contienen contraseñas ni datos nutricionales.
 
 Las respuestas del formulario de comentarios se conservan durante un máximo de 12 meses, salvo que el cumplimiento legal, la seguridad, la investigación de un incidente o una solicitud válida de eliminación anticipada requieran otra cosa.
 
@@ -135,13 +144,15 @@ Dentro de la aplicación, la ruta es:
 
 **Configuración → Privacidad y seguridad → Eliminar cuenta.**
 
-El usuario debe volver a introducir su contraseña y confirmar la operación. El flujo solicita primero la eliminación de los documentos asociados en Firestore y después la eliminación de la cuenta de Firebase Authentication.
+El usuario debe volver a introducir su contraseña y escribir la confirmación mostrada. Después de una reautenticación reciente, la aplicación envía a la función administrativa una solicitud protegida por Firebase Authentication y Firebase App Check. Cuando el backend acepta el job, la aplicación suspende nuevas escrituras, borra los datos locales asociados a la cuenta — conservando únicamente las preferencias neutras de idioma y tema — y cierra la sesión. El mensaje “Eliminación iniciada” indica que el procesamiento continuará en segundo plano.
 
-Si falla una etapa detectable, la aplicación muestra un error y la eliminación puede haber sido parcial. En ese caso, el usuario debe contactar con **nutritiontracker.beta@gmail.com**.
+El backend aplica un lock que bloquea nuevas escrituras, elimina recursivamente de Firestore los datos nutricionales actuales e históricos del usuario, verifica que se hayan eliminado y solo entonces elimina la cuenta de Firebase Authentication. El procesamiento es idempotente, utiliza reintentos con backoff y dispone de un reconciliador periódico. Los jobs completados se eliminan inmediatamente; los fallos permanentes conservan únicamente los metadatos técnicos saneados descritos en la sección 10 y quedan marcados para expirar a los siete días.
+
+Si la solicitud no puede aceptarse, no se borran datos locales y el usuario puede volver a intentarlo. Si un job ya aceptado no puede completarse automáticamente, el usuario debe contactar con **nutritiontracker.beta@gmail.com** para su investigación dentro del plazo aplicable.
 
 También se puede solicitar la eliminación sin acceso a la aplicación enviando un mensaje a **nutritiontracker.beta@gmail.com** desde la dirección de la cuenta o proporcionando información suficiente para verificar la identidad. La solicitud será respondida y atendida en un plazo máximo de **30 días**, salvo que la legislación aplicable exija un plazo diferente.
 
-Las copias de seguridad descargadas y otras copias conservadas por el usuario no se eliminan. Los datos locales residuales pueden requerir borrar los datos de la aplicación o desinstalarla. Los proveedores pueden conservar copias transitorias o registros necesarios por seguridad u obligaciones legales según sus políticas.
+Las copias de seguridad descargadas y otras copias conservadas por el usuario no se eliminan. El flujo aceptado borra de la aplicación los datos locales vinculados a la cuenta y conserva únicamente idioma y tema; los cachés del sistema operativo o las copias externas aún pueden requerir borrar los datos de la aplicación, desinstalarla o una acción del usuario. Los proveedores pueden conservar copias transitorias o registros necesarios por seguridad u obligaciones legales según sus políticas.
 
 ## 13. Derechos del usuario
 
@@ -153,7 +164,7 @@ Las solicitudes deben enviarse a **nutritiontracker.beta@gmail.com** y serán re
 
 ## 14. Seguridad
 
-Trofia utiliza autenticación Firebase, tokens de sesión, reglas de acceso y conexiones HTTPS. El proxy de IA exige autenticación y aplica límites individuales y globales.
+Trofia utiliza autenticación Firebase, reautenticación reciente para operaciones sensibles, Firebase App Check, tokens de sesión, reglas de acceso, un lock administrativo de escritura y conexiones HTTPS. El proxy de IA exige autenticación y aplica límites individuales y globales.
 
 Ningún sistema está completamente libre de riesgos. El usuario debe proteger su contraseña y sus archivos de copia de seguridad.
 

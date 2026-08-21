@@ -2,7 +2,7 @@
 
 const {getApps, initializeApp} = require("firebase-admin/app");
 const {getAuth} = require("firebase-admin/auth");
-const {getFirestore} = require("firebase-admin/firestore");
+const {FieldPath, getFirestore} = require("firebase-admin/firestore");
 const {getFunctions} = require("firebase-admin/functions");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {onTaskDispatched} = require("firebase-functions/v2/tasks");
@@ -40,6 +40,7 @@ const taskQueue = getFunctions(app).taskQueue(
 const jobRepository = createAccountDeletionJobRepository({firestore});
 const deletionOperations = createFirestoreAccountDeletionOperations({
   firestore,
+  documentIdField: FieldPath.documentId(),
 });
 const taskProcessor = createAccountDeletionTaskProcessor({
   jobRepository,

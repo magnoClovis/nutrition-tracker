@@ -152,7 +152,7 @@ function buildPrivacyPageHtml(policies) {
     </div>
   </header>
   <main>${articles}</main>
-  <footer>Hermegas · Trofia 0.8.1 Beta · nutritiontracker.beta@gmail.com</footer>
+  <footer>Hermegas · Trofia 0.9.0 Beta · nutritiontracker.beta@gmail.com</footer>
   <script>
     (() => {
       const supported = ['pt', 'en', 'es'];

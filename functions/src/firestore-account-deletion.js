@@ -1,5 +1,7 @@
 "use strict";
 
+const {SEALED_LOCK_RETENTION_MS} = require("./config.js");
+
 const LOCK_COLLECTION = "accountDeletionLocks";
 const NUTRITION_COLLECTION = "nutrition";
 
@@ -43,9 +45,14 @@ function validateFirestore(firestore) {
 
 function createFirestoreAccountDeletionOperations({
   firestore,
+  documentIdField,
   now = () => new Date(),
+  sealedLockRetentionMs = SEALED_LOCK_RETENTION_MS,
 } = {}) {
   validateFirestore(firestore);
+  if (!documentIdField) {
+    throw new FirestoreDeletionError("invalid-document-id-field");
+  }
 
   function lockReference(uid) {
     return firestore.collection(LOCK_COLLECTION).doc(uid);
@@ -53,6 +60,17 @@ function createFirestoreAccountDeletionOperations({
 
   function nutritionReference(uid) {
     return firestore.collection(NUTRITION_COLLECTION).doc(uid);
+  }
+
+  async function legacyNutritionReferences(uid) {
+    const prefix = `${uid}_`;
+    const snapshot = await firestore.collection(NUTRITION_COLLECTION)
+      .where(documentIdField, ">=", prefix)
+      .where(documentIdField, "<", `${prefix}\uf8ff`)
+      .get();
+    return snapshot.docs
+      .filter(document => document.id.startsWith(prefix))
+      .map(document => document.ref);
   }
 
   async function acquireWriteLock(job) {
@@ -86,6 +104,10 @@ function createFirestoreAccountDeletionOperations({
   async function deleteFirestoreData(job) {
     validateOperationJob(job);
     await firestore.recursiveDelete(nutritionReference(job.uid));
+    const legacyReferences = await legacyNutritionReferences(job.uid);
+    for (const reference of legacyReferences) {
+      await firestore.recursiveDelete(reference);
+    }
   }
 
   async function verifyFirestoreEmpty(job) {
@@ -99,6 +121,8 @@ function createFirestoreAccountDeletionOperations({
       const childSnapshot = await collectionRef.limit(1).get();
       if (!childSnapshot.empty) return false;
     }
+
+    if ((await legacyNutritionReferences(job.uid)).length > 0) return false;
 
     return true;
   }
@@ -126,6 +150,7 @@ function createFirestoreAccountDeletionOperations({
       transaction.update(lockRef, {
         state: LOCK_STATES.SEALED,
         sealedAt: timestamp,
+        expiresAt: new Date(timestamp.getTime() + sealedLockRetentionMs),
         updatedAt: timestamp,
       });
     });
