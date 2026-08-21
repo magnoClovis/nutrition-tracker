@@ -3,6 +3,7 @@ const { expect } = require('@playwright/test');
 function isIgnorableConsoleError(text, locationUrl = '') {
   return /favicon/i.test(text)
     || /Failed to load resource: the server responded with a status of 404 \(\)/i.test(text)
+    || /^Framing 'https:\/\/www\.google\.com\/' violates the following report-only Content Security Policy directive: "frame-ancestors 'self'"\./i.test(text)
     || (
       /Failed to load resource: the server responded with a status of 403 \(\)/i.test(text)
       && /firestore\.googleapis\.com\/v1\/projects\/[^/]+\/databases\/\(default\)\/documents\/nutrition\?pageSize=1000$/i.test(locationUrl)
@@ -113,6 +114,7 @@ module.exports = {
   collectCriticalErrors,
   dismissTutorialIfVisible,
   expectNoCriticalErrors,
+  isIgnorableConsoleError,
   interceptOptionalExternalApis,
   openApp,
   setAppLanguage
