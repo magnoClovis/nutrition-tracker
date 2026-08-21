@@ -56,11 +56,14 @@ test("write lock blocks owner mutations while preserving reads", {
   const dataRef = doc(ownerDb, "nutrition", uid, "data", "today");
   const legacyRef = doc(ownerDb, "nutrition", `${uid}_pantry`);
   const lockRef = doc(ownerDb, "accountDeletionLocks", uid);
+  const jobRef = doc(ownerDb, "accountDeletionJobs", "request_rules_123456789");
 
   await assertSucceeds(setDoc(userRef, {profile: true}));
   await assertSucceeds(setDoc(dataRef, {value: "before-lock"}));
   await assertSucceeds(getDoc(userRef));
   await assertFails(getDoc(lockRef));
+  await assertFails(getDoc(jobRef));
+  await assertFails(setDoc(jobRef, {status: "queued"}));
 
   await environment.withSecurityRulesDisabled(async (adminContext) => {
     await setDoc(doc(adminContext.firestore(), "accountDeletionLocks", uid), {

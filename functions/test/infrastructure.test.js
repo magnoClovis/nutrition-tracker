@@ -13,6 +13,9 @@ const firebaseConfig = JSON.parse(
 const firebaseProjects = JSON.parse(
   fs.readFileSync(path.join(repositoryRoot, ".firebaserc"), "utf8"),
 );
+const firestoreIndexes = JSON.parse(
+  fs.readFileSync(path.join(repositoryRoot, "firestore.indexes.json"), "utf8"),
+);
 const functionsPackage = JSON.parse(
   fs.readFileSync(path.join(functionsRoot, "package.json"), "utf8"),
 );
@@ -40,7 +43,10 @@ test("keeps production deployment and emulator identities explicit", () => {
 });
 
 test("configures isolated Auth, Firestore and Functions emulators", () => {
-  assert.deepEqual(firebaseConfig.firestore, {rules: "firestore.rules"});
+  assert.deepEqual(firebaseConfig.firestore, {
+    rules: "firestore.rules",
+    indexes: "firestore.indexes.json",
+  });
   assert.equal(firebaseConfig.emulators.auth.port, 9099);
   assert.equal(firebaseConfig.emulators.firestore.port, 8080);
   assert.equal(firebaseConfig.emulators.functions.port, 5001);
@@ -49,7 +55,39 @@ test("configures isolated Auth, Firestore and Functions emulators", () => {
   assert.equal(firebaseConfig.emulators.singleProjectMode, true);
 });
 
-test("does not expose a callable or task handler before the destructive slice", () => {
+test("exposes only the reviewed task and reconciliation handlers", () => {
   const exportedFunctions = require("../src/index.js");
-  assert.deepEqual(exportedFunctions, {});
+  assert.deepEqual(Object.keys(exportedFunctions).sort(), [
+    "processAccountDeletionTask",
+    "reconcileAccountDeletionJobs",
+  ]);
+
+  const taskEndpoint = exportedFunctions.processAccountDeletionTask.__endpoint;
+  assert.deepEqual(taskEndpoint.region, [runtimeConfig.REGION]);
+  assert.deepEqual(
+    taskEndpoint.taskQueueTrigger.retryConfig,
+    runtimeConfig.DELETION_TASK_OPTIONS.retryConfig,
+  );
+  assert.deepEqual(
+    taskEndpoint.taskQueueTrigger.rateLimits,
+    runtimeConfig.DELETION_TASK_OPTIONS.rateLimits,
+  );
+
+  const scheduleEndpoint =
+    exportedFunctions.reconcileAccountDeletionJobs.__endpoint;
+  assert.deepEqual(scheduleEndpoint.region, [runtimeConfig.REGION]);
+  assert.equal(scheduleEndpoint.scheduleTrigger.schedule, "every 60 minutes");
+  assert.equal(scheduleEndpoint.scheduleTrigger.timeZone, "Etc/UTC");
+});
+
+test("enables seven-day job expiry through a Firestore TTL field", () => {
+  assert.deepEqual(firestoreIndexes.indexes, []);
+  assert.deepEqual(firestoreIndexes.fieldOverrides, [
+    {
+      collectionGroup: runtimeConfig.ACCOUNT_DELETION_JOBS_COLLECTION,
+      fieldPath: "expiresAt",
+      ttl: true,
+      indexes: [],
+    },
+  ]);
 });

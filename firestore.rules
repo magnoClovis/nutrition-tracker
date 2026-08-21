@@ -21,6 +21,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Jobs contain administrative state and sanitized failure metadata only.
+    match /accountDeletionJobs/{requestId} {
+      allow read, write: if false;
+    }
+
     match /nutrition/{uid} {
       function isOwnUserDoc() {
         return isOwnUser(uid);
