@@ -91,9 +91,15 @@ test("exposes only the reviewed callable, task and reconciliation handlers", () 
   assert.match(functionsIndexSource, /requestAccountDeletion\s*=\s*onCall\([\s\S]*?enforceAppCheck:\s*true/);
 });
 
-test("enables seven-day job expiry through a Firestore TTL field", () => {
+test("enables seven-day expiry for failed jobs and completed locks", () => {
   assert.deepEqual(firestoreIndexes.indexes, []);
   assert.deepEqual(firestoreIndexes.fieldOverrides, [
+    {
+      collectionGroup: "accountDeletionLocks",
+      fieldPath: "expiresAt",
+      ttl: true,
+      indexes: [],
+    },
     {
       collectionGroup: runtimeConfig.ACCOUNT_DELETION_JOBS_COLLECTION,
       fieldPath: "expiresAt",

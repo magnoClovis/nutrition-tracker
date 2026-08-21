@@ -2,8 +2,8 @@
 
 **App:** Trofia (`com.hermegas.trofia`)  
 **Controller:** Hermegas  
-**Reference version:** Trofia 0.8.1 Beta  
-**Text last updated:** August 9, 2026  
+**Reference version:** Trofia 0.9.0 Beta
+**Text last updated:** August 21, 2026
 **Effective date:** upon publication  
 **Privacy contact and external deletion requests:** nutritiontracker.beta@gmail.com  
 **Public URL:** https://magnoclovis.github.io/nutrition-tracker/privacy/
@@ -27,7 +27,8 @@ Trofia may process:
 - barcodes queried through the scanner;
 - content and attachments voluntarily submitted through the feedback form;
 - settings, caches, and session state stored on the device;
-- technical metadata necessary for authentication, security, and AI rate limiting.
+- technical metadata necessary for authentication, security, and AI rate limiting;
+- application-integrity attestation material, Firebase App Check tokens, and technical metadata for administrative deletion jobs.
 
 Passwords are processed by Firebase Authentication and are not available to Hermegas.
 
@@ -43,6 +44,7 @@ Data is used to:
 - retrieve product information by barcode;
 - export, import, and restore backups;
 - enforce usage limits and protect the service;
+- verify that sensitive administrative requests come from the legitimate application and process secure account deletion;
 - respond to feedback, privacy requests, and incidents;
 - comply with legal obligations and maintain security.
 
@@ -89,7 +91,10 @@ This information is subject to Google's policies. Hermegas intends to retain res
 Trofia uses:
 
 - Firebase Authentication for authentication;
+- Firebase App Check, using Play Integrity on Android and reCAPTCHA Enterprise on the Web, to attest the origin of sensitive administrative requests;
 - Cloud Firestore to process and store account data in the `europe-southwest1` region (Madrid, Spain, European Union);
+- Cloud Functions for Firebase to accept authenticated deletion requests in the `europe-southwest1` region (Madrid, Spain, European Union);
+- Google Cloud Tasks and Cloud Scheduler to process, retry, and reconcile deletion jobs in the `europe-west1` region (Belgium, European Union);
 - Cloudflare Workers and Durable Objects to relay and rate-limit AI calls;
 - Gemini API to process AI features, including meal photos voluntarily submitted by users;
 - GitHub Pages to provide the web application and public policy;
@@ -97,7 +102,7 @@ Trofia uses:
 - Google Forms when feedback is submitted;
 - Google Play for Android distribution and Google's own installation, security, and diagnostic processing.
 
-Cloud Firestore processes and stores account data in the `europe-southwest1` region, in Madrid, Spain, within the European Union. Outside Cloud Firestore, Firebase Authentication is operated from data centers in the United States, and global services such as Gemini API, Cloudflare Workers, GitHub Pages, Google Forms, and Google Play may process information outside the European Union according to the nature of their services, their terms, policies, and lawful international-transfer mechanisms. The specific conditions described in Section 5 also apply to the Gemini API.
+Cloud Firestore and the function that accepts deletion requests process data in the `europe-southwest1` region, in Madrid, Spain. The queue and reconciler for those requests operate in the `europe-west1` region, in Belgium. These regions are within the European Union. Outside those regional services, Firebase Authentication and global services such as Firebase App Check and its attestation providers, Gemini API, Cloudflare Workers, GitHub Pages, Google Forms, and Google Play may process information outside the European Union according to the nature of their services, their terms, policies, and lawful international-transfer mechanisms. The specific conditions described in Section 5 also apply to the Gemini API.
 
 Trofia does not currently integrate Firebase Analytics or Firebase Crashlytics. Installation or diagnostic data processed directly by Google Play follows Google's policies and does not necessarily mean that Hermegas receives individualized data.
 
@@ -114,6 +119,10 @@ Account data remains in Firebase while the account exists or until it is deleted
 Local session state and certain caches remain on the device until replaced, deleted by the application or operating system, or removed by clearing app data or uninstalling the app.
 
 Prompts, meal photos, and responses are not stored by the Worker application code. The application holds a photo only during the flow needed to process and review the result and then discards it, except for temporary caches controlled by the operating system, browser, or native plugin. Retention by Gemini and other providers is governed by their terms, including limited periods applicable to safety, abuse prevention, and legal obligations. Individualized metadata used to rate-limit AI calls must be kept for no longer than 24 hours; aggregate global counters may be kept for the relevant quota day and for the technical period needed to replace them.
+
+Firebase App Check does not retain received attestation material, but sends it to the configured attestation provider for validation under that provider's terms. Successful App Check tokens have a configured one-hour lifetime and are refreshed automatically; because Trofia does not use replay protection, Firebase services do not retain those tokens after ordinary validation.
+
+A completed deletion job is removed immediately. If every automatic attempt fails, the job retains only the Firebase identifier, request identifier, stage, and sanitized technical failure code for reconciliation and support, and is marked to expire after seven days. After a completed deletion, the sealed administrative lock is also marked to expire after seven days. Physical TTL removal may occur asynchronously. These records do not contain passwords or nutrition data.
 
 Feedback-form responses are retained for up to 12 months unless legal compliance, security, incident investigation, or a valid early-deletion request requires otherwise.
 
@@ -135,13 +144,15 @@ Inside the application, the path is:
 
 **Settings → Privacy & security → Delete account.**
 
-The user must re-enter the account password and confirm the operation. The flow first requests deletion of associated Firestore documents and then deletion of the Firebase Authentication account.
+The user must re-enter the account password and type the displayed confirmation. After recent reauthentication, the application sends a request protected by Firebase Authentication and Firebase App Check to the administrative function. When the backend accepts the job, the application suspends new writes, clears local account-related data — preserving only neutral language and theme preferences — and signs out. The “Deletion started” message means processing will continue in the background.
 
-If a detectable step fails, the application displays an error and deletion may have been partial. The user should then contact **nutritiontracker.beta@gmail.com**.
+The backend applies a lock that blocks new writes, recursively deletes the user's current and historical nutrition data from Firestore, verifies that the data was removed, and only then deletes the Firebase Authentication account. Processing is idempotent, uses retries with backoff, and has a periodic reconciler. Completed jobs are removed immediately; permanent failures retain only the sanitized technical metadata described in Section 10 and are marked to expire after seven days.
+
+If the request cannot be accepted, no local data is cleared and the user may retry. If an accepted job cannot be completed automatically, the user should contact **nutritiontracker.beta@gmail.com** for investigation within the applicable period.
 
 Deletion can also be requested without access to the application by emailing **nutritiontracker.beta@gmail.com** from the account address or by providing enough information to verify identity. The request will be answered and handled within **30 days**, unless applicable law requires a different period.
 
-Downloaded backup files and other user-held copies are not deleted. Residual local data may require clearing app data or uninstalling the application. Providers may retain transient copies or security and legally required records according to their policies.
+Downloaded backup files and other user-held copies are not deleted. An accepted flow clears account-linked data from the application and preserves only language and theme; operating-system caches or external copies may still require clearing app data, uninstalling the application, or action by the user. Providers may retain transient copies or security and legally required records according to their policies.
 
 ## 13. User rights
 
@@ -153,7 +164,7 @@ Requests should be sent to **nutritiontracker.beta@gmail.com** and will be answe
 
 ## 14. Security
 
-Trofia uses Firebase authentication, session tokens, access rules, and HTTPS connections. The AI proxy requires authentication and applies per-user and global limits.
+Trofia uses Firebase authentication, recent reauthentication for sensitive operations, Firebase App Check, session tokens, access rules, an administrative write lock, and HTTPS connections. The AI proxy requires authentication and applies per-user and global limits.
 
 No system is completely risk-free. Users should protect their passwords and backup files.
 

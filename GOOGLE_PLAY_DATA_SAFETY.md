@@ -30,16 +30,42 @@ Antes de disponibilizar o recurso a qualquer tester real, atualizar o formulári
 
 ## Gates de publicação
 
-- [ ] Cloud Billing ativo no projeto Gemini usado pelo Trofia.
+- [x] Cloud Billing ativo no projeto Gemini usado pelo Trofia.
 - [x] Política PT/EN/ES atualizada no código-fonte.
-- [ ] Política atualizada publicada em `https://magnoclovis.github.io/nutrition-tracker/privacy/`.
-- [ ] Respostas acima enviadas e aprovadas no Google Play Console.
-- [ ] Somente depois dos itens anteriores: deploy do endpoint de imagem e exposição da interface a testers reais.
+- [x] Política atualizada publicada em `https://magnoclovis.github.io/nutrition-tracker/privacy/`.
+- [x] Respostas acima enviadas no Google Play Console.
+- [x] Endpoint de imagem publicado e interface exposta somente após os gates anteriores.
+
+## Alteração do C22 — App Check e exclusão administrativa
+
+O C22 adiciona Firebase App Check com Play Integrity no Android e reCAPTCHA Enterprise na Web para proteger a callable de exclusão. O SDK Android transmite o user agent Firebase e, quando a exclusão é solicitada, um token de integridade do Play Integrity. Segundo a documentação oficial do Firebase, esse token não é vinculado a um identificador de usuário ou dispositivo pelo App Check e é usado para prevenção de fraude, segurança e conformidade.
+
+Antes de distribuir o primeiro AAB que contenha o C22, revisar o formulário atual no **Google Play Console > Conteúdo do app > Segurança dos dados** e registrar o comportamento abaixo conforme as opções efetivamente apresentadas pelo Console naquele momento:
+
+| Campo | Declaração operacional do C22 |
+|---|---|
+| Dado técnico | Token de integridade do Play Integrity e user agent Firebase. |
+| Finalidade | Prevenção de fraude, segurança e conformidade; autorizar uma operação administrativa sensível. |
+| Vinculado ao usuário/dispositivo | Não pelo Firebase App Check, conforme a documentação do SDK; revalidar o tratamento próprio do Play Integrity no formulário vigente. |
+| Compartilhado | Não; Firebase/Google atua como prestador da infraestrutura de segurança, sujeito aos termos aplicáveis. |
+| Obrigatório | Somente ao iniciar a exclusão da conta; a callable rejeita pedidos sem atestação válida. |
+| Retenção no App Check | Material de atestação não é retido pelo App Check; tokens normais sem replay protection não são retidos depois da validação e têm TTL de uma hora no Trofia. O prestador de atestação segue seus próprios termos. |
+
+### Gate de rollout do C22
+
+- [ ] Política C22 publicada na URL pública.
+- [ ] Revisão do formulário Data Safety confirmada no Play Console.
+- [ ] Novo AAB instalado a partir da faixa interna do Google Play para validar `PLAY_RECOGNIZED` e `LICENSED`.
+- [ ] Exclusão destrutiva validada com uma conta descartável Android.
+- [ ] Só então disponibilizar a atualização a todos os testers internos.
 
 ## Fontes de referência
 
 - Google Play Console Help — “Provide information for Google Play's Data safety section”: https://support.google.com/googleplay/android-developer/answer/10787469
 - Google Play Console Help — “User Data”: https://support.google.com/googleplay/android-developer/answer/10144311
 - Gemini API Additional Terms of Service: https://ai.google.dev/gemini-api/terms
+- Firebase — Privacy and Security in Firebase: https://firebase.google.com/support/privacy
+- Firebase — Prepare for Google Play's data disclosure requirements: https://firebase.google.com/docs/android/play-data-disclosure
+- Firebase App Check with Play Integrity: https://firebase.google.com/docs/app-check/android/play-integrity-provider
 
 Revalidar estas respostas sempre que os termos dos prestadores, o fluxo técnico ou a finalidade do recurso mudar.

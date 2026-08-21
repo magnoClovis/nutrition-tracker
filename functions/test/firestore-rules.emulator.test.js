@@ -11,7 +11,10 @@ const {
   initializeTestEnvironment,
 } = require("@firebase/rules-unit-testing");
 const {deleteApp, initializeApp} = require("firebase-admin/app");
-const {getFirestore: getAdminFirestore} = require("firebase-admin/firestore");
+const {
+  FieldPath,
+  getFirestore: getAdminFirestore,
+} = require("firebase-admin/firestore");
 const {
   deleteDoc,
   doc,
@@ -105,6 +108,7 @@ test("a racing write cannot survive recursive deletion after lock commit", {
   const adminDb = getAdminFirestore(adminApp);
   const operations = createFirestoreAccountDeletionOperations({
     firestore: adminDb,
+    documentIdField: FieldPath.documentId(),
   });
   await adminDb.doc(nestedPath).set({value: "nested"});
 

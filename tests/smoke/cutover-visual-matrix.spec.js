@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const { test, expect } = require('@playwright/test');
+const { isIgnorableConsoleError } = require('./test-helpers');
 
 const ORIGINS = {
   legacy: 'http://127.0.0.1:8775',
@@ -217,7 +218,10 @@ async function captureStableScreenshot(page) {
 async function renderCase(page, origin, screen) {
   const errors = [];
   const handleConsole = message => {
-    if (message.type() === 'error' && !/favicon|403/.test(message.text())) {
+    if (
+      message.type() === 'error'
+      && !isIgnorableConsoleError(message.text(), message.location().url)
+    ) {
       errors.push(message.text());
     }
   };

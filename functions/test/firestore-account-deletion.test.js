@@ -24,6 +24,7 @@ function createSnapshot(value) {
 function createFakeFirestore() {
   const locks = new Map();
   const nutrition = new Map();
+  const legacyNutrition = new Map();
   const calls = [];
   let transactionQueue = Promise.resolve();
 
@@ -63,11 +64,33 @@ function createFakeFirestore() {
           if (name === "nutrition") return nutritionRef(uid);
           throw new Error("unexpected collection");
         },
+        where(_field, operator, value) {
+          const filters = [[operator, value]];
+          return {
+            where(_nextField, nextOperator, nextValue) {
+              filters.push([nextOperator, nextValue]);
+              return this;
+            },
+            async get() {
+              const lower = filters.find(([entry]) => entry === ">=")?.[1] || "";
+              const upper = filters.find(([entry]) => entry === "<")?.[1] || "\uf8ff";
+              return {
+                docs: Array.from(legacyNutrition.keys())
+                  .filter(id => id >= lower && id < upper)
+                  .map(id => ({
+                    id,
+                    ref: {id, path: `nutrition/${id}`},
+                  })),
+              };
+            },
+          };
+        },
       };
     },
     async recursiveDelete(reference) {
       calls.push(`recursiveDelete:${reference.path}`);
-      nutrition.delete(reference.id);
+      if (reference.id) nutrition.delete(reference.id);
+      legacyNutrition.delete(reference.id);
     },
     runTransaction(callback) {
       const operation = transactionQueue.then(async () => {
@@ -98,14 +121,21 @@ function createFakeFirestore() {
     },
   };
 
-  return {calls, firestore, locks, nutrition};
+  return {calls, firestore, legacyNutrition, locks, nutrition};
+}
+
+function createOperations(fixture, options = {}) {
+  return createFirestoreAccountDeletionOperations({
+    firestore: fixture.firestore,
+    documentIdField: "__document_id__",
+    ...options,
+  });
 }
 
 test("acquires one idempotent lock under concurrent retries", async () => {
   const fixture = createFakeFirestore();
   const instant = new Date("2026-08-21T10:00:00.000Z");
-  const operations = createFirestoreAccountDeletionOperations({
-    firestore: fixture.firestore,
+  const operations = createOperations(fixture, {
     now: () => instant,
   });
 
@@ -124,9 +154,7 @@ test("acquires one idempotent lock under concurrent retries", async () => {
 
 test("rejects a competing deletion request without replacing its lock", async () => {
   const fixture = createFakeFirestore();
-  const operations = createFirestoreAccountDeletionOperations({
-    firestore: fixture.firestore,
-  });
+  const operations = createOperations(fixture);
   await operations.acquireWriteLock(JOB);
 
   await assert.rejects(
@@ -137,14 +165,14 @@ test("rejects a competing deletion request without replacing its lock", async ()
   assert.equal(fixture.locks.get(JOB.uid).requestId, JOB.requestId);
 });
 
-test("recursively deletes the user tree and verifies root plus children", async () => {
+test("recursively deletes current and legacy user data and verifies both namespaces", async () => {
   const fixture = createFakeFirestore();
   fixture.nutrition.set(JOB.uid, {
     children: [{key: "orphaned-descendant"}],
   });
-  const operations = createFirestoreAccountDeletionOperations({
-    firestore: fixture.firestore,
-  });
+  fixture.legacyNutrition.set(`${JOB.uid}_pantry`, {legacy: true});
+  fixture.legacyNutrition.set("user-10_pantry", {otherUser: true});
+  const operations = createOperations(fixture);
 
   assert.equal(await operations.verifyFirestoreEmpty(JOB), false);
 
@@ -156,14 +184,17 @@ test("recursively deletes the user tree and verifies root plus children", async 
   assert.equal(await operations.verifyFirestoreEmpty(JOB), false);
   await operations.deleteFirestoreData(JOB);
   assert.equal(await operations.verifyFirestoreEmpty(JOB), true);
-  assert.deepEqual(fixture.calls, ["recursiveDelete:nutrition/user-1"]);
+  assert.equal(fixture.legacyNutrition.has("user-10_pantry"), true);
+  assert.deepEqual(fixture.calls, [
+    "recursiveDelete:nutrition/user-1",
+    "recursiveDelete:nutrition/user-1_pantry",
+  ]);
 });
 
 test("seals only the matching lock and treats a repeated seal as success", async () => {
   const fixture = createFakeFirestore();
   const sealedAt = new Date("2026-08-21T11:00:00.000Z");
-  const operations = createFirestoreAccountDeletionOperations({
-    firestore: fixture.firestore,
+  const operations = createOperations(fixture, {
     now: () => sealedAt,
   });
   await operations.acquireWriteLock(JOB);
@@ -176,14 +207,13 @@ test("seals only the matching lock and treats a repeated seal as success", async
     createdAt: sealedAt,
     updatedAt: sealedAt,
     sealedAt,
+    expiresAt: new Date("2026-08-28T11:00:00.000Z"),
   });
 });
 
 test("fails closed for missing, corrupt, or foreign locks", async () => {
   const fixture = createFakeFirestore();
-  const operations = createFirestoreAccountDeletionOperations({
-    firestore: fixture.firestore,
-  });
+  const operations = createOperations(fixture);
 
   await assert.rejects(operations.sealWriteLock(JOB), {
     code: "deletion-lock-missing",

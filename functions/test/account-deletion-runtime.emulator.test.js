@@ -32,6 +32,7 @@ test("task runtime deletes one account and safely accepts duplicate delivery", {
   await firestore
     .doc(`nutrition/${uid}/data/today/details/deep`)
     .set({value: "nested"});
+  await firestore.doc(`nutrition/${uid}_legacy`).set({pantry: true});
 
   const request = {
     data: {uid, requestId},
@@ -50,12 +51,18 @@ test("task runtime deletes one account and safely accepts duplicate delivery", {
     false,
   );
   assert.equal(
-    (await firestore.doc(`accountDeletionJobs/${requestId}`).get()).exists,
+    (await firestore.doc(`nutrition/${uid}_legacy`).get()).exists,
     false,
   );
   assert.equal(
-    (await firestore.doc(`accountDeletionLocks/${uid}`).get()).data().state,
-    "sealed",
+    (await firestore.doc(`accountDeletionJobs/${requestId}`).get()).exists,
+    false,
+  );
+  const lock = (await firestore.doc(`accountDeletionLocks/${uid}`).get()).data();
+  assert.equal(lock.state, "sealed");
+  assert.equal(
+    lock.expiresAt.toMillis() - lock.sealedAt.toMillis(),
+    FAILED_JOB_RETENTION_MS,
   );
 
   await runtime.processAccountDeletionTask.run({...request, retryCount: 2});
