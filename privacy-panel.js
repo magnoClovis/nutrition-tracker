@@ -3,22 +3,19 @@
  *
  * THIS MODULE EXECUTES DESTRUCTIVE AND IRREVERSIBLE OPERATIONS against real
  * user data: password reauthentication, direct Firebase password updates,
- * Firestore account-data deletion, Firebase Auth account deletion, and logout.
+ * administrative account-deletion requests, local cleanup, and logout.
  * Any future change requires explicit data-safety review at the same level as
  * this extraction.
  *
  * The UMD module exposes a `createPrivacyPanel` factory. The host injects React,
- * named account/session operations from `firebase-storage.js`, optional dynamic
- * getters for the existing window bridges, localStorage, fetch, the Firebase
+ * named account/session operations from `firebase-storage.js`, the protected
+ * administrative deletion client, localStorage, fetch, the Firebase
  * API-key configuration value, and timers. The component accepts `lang`,
  * `onClose`, and `onLogout` and returns a React element tree.
  *
- * CRITICAL PRE-EXISTING RISKS DELIBERATELY PRESERVED: Firestore listing failures
- * can behave like empty lists inside the external deletion bridge, and missing
- * Firestore cleanup skips directly to Auth deletion. Partial deletion has no
- * transaction or rollback. Spanish and every non-`pt` language continue to use
- * English copy except for the account-deletion failure message added explicitly
- * in all three supported languages.
+ * Account deletion is asynchronous and fail-closed. The browser never deletes
+ * Firestore or Auth directly: the App-Check-protected backend must durably
+ * accept an idempotent job before local account data is cleared.
  *
  * @module PrivacyPanel
  */
@@ -34,7 +31,7 @@
    *
    * @param {Object} dependencies Injected privacy-panel dependencies.
    * @param {Object} dependencies.React React runtime already loaded by the host.
-   * @param {{signIn: function(string,string): Promise<*>, getToken: function(): Promise<string>, signOut: function(): void, getSaveSession: function(): (function(Object): void|undefined), getDeleteFirestoreData: function(): (function(): Promise<*>|undefined)}} dependencies.accountService Named account/session services and optional dynamic bridge getters.
+   * @param {{signIn: function(string,string): Promise<*>, getToken: function(): Promise<string>, signOut: function(): void, getSaveSession: function(): (function(Object): void|undefined), requestDeletion: function(): Promise<*>, suspendAutosaves: function(): Promise<void>, resumeAutosaves: function(): void, clearLocalAccountData: function(): void}} dependencies.accountService Account/session and administrative deletion services.
    * @param {{getItem: function(string): (string|null)}} dependencies.localStorage Browser-local storage service.
    * @param {function(string,Object): Promise<Object>} dependencies.fetchRequest Browser fetch service.
    * @param {string} dependencies.firebaseApiKey Firebase web API-key configuration value from `firebase-storage.js`.
@@ -53,7 +50,10 @@
         !accountService || typeof accountService.signIn !== "function" ||
         typeof accountService.getToken !== "function" || typeof accountService.signOut !== "function" ||
         typeof accountService.getSaveSession !== "function" ||
-        typeof accountService.getDeleteFirestoreData !== "function" ||
+        typeof accountService.requestDeletion !== "function" ||
+        typeof accountService.suspendAutosaves !== "function" ||
+        typeof accountService.resumeAutosaves !== "function" ||
+        typeof accountService.clearLocalAccountData !== "function" ||
         !localStorageService || typeof localStorageService.getItem !== "function" ||
         typeof fetchRequest !== "function" || typeof firebaseApiKey !== "string" ||
         !timers || typeof timers.setTimeout !== "function") {
@@ -69,10 +69,7 @@
     const setTimeout = timers.setTimeout;
     const PRIVACY_POLICY_URL = 'https://magnoclovis.github.io/nutrition-tracker/privacy/';
     const window = {};
-    Object.defineProperties(window, {
-      _saveSession: { get: accountService.getSaveSession },
-      deleteCurrentUserFirestoreData: { get: accountService.getDeleteFirestoreData }
-    });
+    Object.defineProperty(window, "_saveSession", {get: accountService.getSaveSession});
 
     /**
      * Renders password-management and irreversible account-deletion controls.
@@ -107,17 +104,24 @@
       // Delete account
       const [delPwd,  setDelPwd]  = React.useState('');
       const [delConf, setDelConf] = React.useState('');
-
-      const accountDeletionFailureMessage = (firestoreDataRemoved) => {
-        if (lang === 'pt') return firestoreDataRemoved
-          ? 'Falha ao excluir a conta. Seus dados do Firestore j\u00e1 foram removidos, mas a conta n\u00e3o foi exclu\u00edda. Tente novamente ou entre em contato com o suporte.'
-          : 'Falha ao excluir a conta. A conta n\u00e3o foi exclu\u00edda. Tente novamente ou entre em contato com o suporte.';
-        if (lang === 'es') return firestoreDataRemoved
-          ? 'No se pudo eliminar la cuenta. Tus datos de Firestore ya se eliminaron, pero la cuenta no. Int\u00e9ntalo de nuevo o contacta con soporte.'
-          : 'No se pudo eliminar la cuenta. La cuenta no se elimin\u00f3. Int\u00e9ntalo de nuevo o contacta con soporte.';
-        return firestoreDataRemoved
-          ? 'Account deletion failed. Your Firestore data has already been removed, but your account was not deleted. Try again or contact support.'
-          : 'Account deletion failed. Your account was not deleted. Try again or contact support.';
+      const [deleting, setDeleting] = React.useState(false);
+      const [deletionAccepted, setDeletionAccepted] = React.useState(false);
+      const deletionText = {
+        accepted: lang === 'pt'
+          ? 'Exclus\u00e3o iniciada. Seus dados ser\u00e3o removidos com seguran\u00e7a em segundo plano.'
+          : lang === 'es'
+            ? 'Eliminaci\u00f3n iniciada. Tus datos se eliminar\u00e1n de forma segura en segundo plano.'
+            : 'Deletion started. Your data will be safely removed in the background.',
+        failed: lang === 'pt'
+          ? 'N\u00e3o foi poss\u00edvel iniciar a exclus\u00e3o. Nenhum dado local foi apagado. Tente novamente.'
+          : lang === 'es'
+            ? 'No se pudo iniciar la eliminaci\u00f3n. No se borr\u00f3 ning\u00fan dato local. Int\u00e9ntalo de nuevo.'
+            : 'Deletion could not be started. No local data was erased. Try again.',
+        unavailable: lang === 'pt'
+          ? 'A verifica\u00e7\u00e3o de seguran\u00e7a n\u00e3o est\u00e1 dispon\u00edvel neste dispositivo.'
+          : lang === 'es'
+            ? 'La verificaci\u00f3n de seguridad no est\u00e1 disponible en este dispositivo.'
+            : 'Security verification is not available on this device.'
       };
 
       const overlay = {
@@ -173,39 +177,33 @@
       }
 
       async function deleteAccount() {
+        if (deleting || deletionAccepted) return;
         setErr(''); setStatus('');
         if (!delPwd) { setErr(isPt?'Digite sua senha para confirmar.':'Enter your password to confirm.'); return; }
         if (delConf !== (isPt?'APAGAR':'DELETE')) { setErr(isPt?'Digite APAGAR para confirmar.':'Type DELETE to confirm.'); return; }
-        let firestoreDataRemoved = false;
+        let autosavesSuspended = false;
+        setDeleting(true);
         try {
           const email = localStorage.getItem('fb_email') || '';
           await fbSignIn(email, delPwd); // throws if wrong password
-          // Firestore data must be deleted before Auth deletion; Firebase Auth does
-          // not cascade-delete user documents after accounts:delete.
-          if (typeof window.deleteCurrentUserFirestoreData === 'function') {
-            await window.deleteCurrentUserFirestoreData();
-            firestoreDataRemoved = true;
-          }
-          // Delete account via REST
-          const token = await fbToken();
-          let response;
-          try {
-            response = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + FB_KEY, {
-              method: 'POST', headers: {'Content-Type':'application/json'},
-              body: JSON.stringify({idToken: token})
-            });
-          } catch(e) {
-            setErr(accountDeletionFailureMessage(firestoreDataRemoved));
-            return;
-          }
-          if (!response.ok) {
-            setErr(accountDeletionFailureMessage(firestoreDataRemoved));
-            return;
-          }
+          await accountService.suspendAutosaves();
+          autosavesSuspended = true;
+          await accountService.requestDeletion();
+          accountService.clearLocalAccountData();
           fbSignOut();
-          onLogout();
+          setDeletionAccepted(true);
+          setStatus(deletionText.accepted);
+          setTimeout(onLogout, 1500);
         } catch(e) {
-          setErr(isPt?'Senha incorreta ou erro ao apagar conta.':'Incorrect password or error deleting account.');
+          if (autosavesSuspended) accountService.resumeAutosaves();
+          const unavailable = String(e?.code || '').startsWith('app-check-');
+          setErr(unavailable
+            ? deletionText.unavailable
+            : String(e?.message || '').includes('INVALID_LOGIN_CREDENTIALS')
+              ? (isPt?'Senha incorreta.':lang === 'es'?'Contrase\u00f1a incorrecta.':'Incorrect password.')
+              : deletionText.failed);
+        } finally {
+          setDeleting(false);
         }
       }
 
@@ -214,8 +212,9 @@
       },
         React.createElement('h2', {style:{margin:0, fontSize:16, color:'var(--text1)'}}, title),
         React.createElement('button', {
-          onClick: section==='main' ? onClose : ()=>{ setSection('main'); setErr(''); setStatus(''); },
-          style:{background:'none', border:'none', color:'var(--text2)', fontSize:20, cursor:'pointer'}
+          onClick: deletionAccepted || deleting ? undefined : section==='main' ? onClose : ()=>{ setSection('main'); setErr(''); setStatus(''); },
+          disabled: deletionAccepted || deleting,
+          style:{background:'none', border:'none', color:'var(--text2)', fontSize:20, cursor:deletionAccepted||deleting?'default':'pointer', opacity:deletionAccepted||deleting?0.4:1}
         }, section==='main' ? '\u00D7' : '\u2190')
       );
 
@@ -241,16 +240,23 @@
           React.createElement('p', {style:{color:'#c87e7e', fontSize:13, marginBottom:12, lineHeight:1.5}},
             isPt
               ? 'Esta ação é irreversível. Todos os seus dados serão permanentemente excluídos.'
-              : 'This action is irreversible. All your data will be permanently deleted.'),
+              : lang === 'es'
+                ? 'Esta acción es irreversible. Todos tus datos se eliminarán permanentemente.'
+                : 'This action is irreversible. All your data will be permanently deleted.'),
           err && React.createElement('p', {style:{color:'#c87e7e', fontSize:12, marginBottom:10}}, err),
-          React.createElement('input', {type:'password', value:delPwd, onChange:e=>setDelPwd(e.target.value),
-            placeholder:isPt?'Sua senha':'Your password', style:inp}),
-          React.createElement('input', {type:'text', value:delConf, onChange:e=>setDelConf(e.target.value),
-            placeholder:isPt?'Digite APAGAR para confirmar':'Type DELETE to confirm',
+          status && React.createElement('p', {style:{color:'#7ec87e', fontSize:12, marginBottom:10}}, status),
+          React.createElement('input', {type:'password', value:delPwd, disabled:deleting||deletionAccepted, onChange:e=>setDelPwd(e.target.value),
+            placeholder:isPt?'Sua senha':lang === 'es'?'Tu contraseña':'Your password', style:inp}),
+          React.createElement('input', {type:'text', value:delConf, disabled:deleting||deletionAccepted, onChange:e=>setDelConf(e.target.value),
+            placeholder:isPt?'Digite APAGAR para confirmar':lang === 'es'?'Escribe DELETE para confirmar':'Type DELETE to confirm',
             style:{...inp, marginBottom:16}}),
-          React.createElement('button', {onClick:deleteAccount,
-            style:{...btn('#8b1a1a'), border:'1px solid #c87e7e'}},
-            isPt?'\uD83D\uDDD1 Apagar conta permanentemente':'\uD83D\uDDD1 Delete account permanently')
+          React.createElement('button', {onClick:deleteAccount, disabled:deleting||deletionAccepted,
+            style:{...btn('#8b1a1a'), border:'1px solid #c87e7e', opacity:deleting?0.65:1}},
+            deletionAccepted
+              ? deletionText.accepted
+              : deleting
+                ? (isPt?'Iniciando exclusão…':lang === 'es'?'Iniciando eliminación…':'Starting deletion…')
+                : isPt?'\uD83D\uDDD1 Apagar conta permanentemente':lang === 'es'?'\uD83D\uDDD1 Eliminar cuenta permanentemente':'\uD83D\uDDD1 Delete account permanently')
         )
       );
 

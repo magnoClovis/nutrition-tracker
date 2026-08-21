@@ -19,6 +19,10 @@ const firestoreIndexes = JSON.parse(
 const functionsPackage = JSON.parse(
   fs.readFileSync(path.join(functionsRoot, "package.json"), "utf8"),
 );
+const functionsIndexSource = fs.readFileSync(
+  path.join(functionsRoot, "src", "index.js"),
+  "utf8",
+);
 const runtimeConfig = require("../src/config.js");
 
 test("pins the C22 backend to Node 22 in Madrid", () => {
@@ -55,11 +59,12 @@ test("configures isolated Auth, Firestore and Functions emulators", () => {
   assert.equal(firebaseConfig.emulators.singleProjectMode, true);
 });
 
-test("exposes only the reviewed task and reconciliation handlers", () => {
+test("exposes only the reviewed callable, task and reconciliation handlers", () => {
   const exportedFunctions = require("../src/index.js");
   assert.deepEqual(Object.keys(exportedFunctions).sort(), [
     "processAccountDeletionTask",
     "reconcileAccountDeletionJobs",
+    "requestAccountDeletion",
   ]);
 
   const taskEndpoint = exportedFunctions.processAccountDeletionTask.__endpoint;
@@ -78,6 +83,11 @@ test("exposes only the reviewed task and reconciliation handlers", () => {
   assert.deepEqual(scheduleEndpoint.region, [runtimeConfig.REGION]);
   assert.equal(scheduleEndpoint.scheduleTrigger.schedule, "every 60 minutes");
   assert.equal(scheduleEndpoint.scheduleTrigger.timeZone, "Etc/UTC");
+
+  const callableEndpoint = exportedFunctions.requestAccountDeletion.__endpoint;
+  assert.deepEqual(callableEndpoint.region, [runtimeConfig.REGION]);
+  assert.deepEqual(callableEndpoint.callableTrigger, {});
+  assert.match(functionsIndexSource, /requestAccountDeletion\s*=\s*onCall\([\s\S]*?enforceAppCheck:\s*true/);
 });
 
 test("enables seven-day job expiry through a Firestore TTL field", () => {

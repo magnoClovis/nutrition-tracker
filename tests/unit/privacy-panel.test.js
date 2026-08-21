@@ -71,13 +71,16 @@ function change(element, value) {
   element.props.onChange({ target: { value } });
 }
 
-function createFixture(createPrivacyPanel, { lang = "en", signInError, deleteData, fetchBehavior, saveSession } = {}) {
+function createFixture(createPrivacyPanel, {
+  lang = "en",
+  signInError,
+  requestDeletionError,
+  fetchBehavior,
+  saveSession,
+} = {}) {
   const events = [];
   const timers = [];
   const savedSessions = [];
-  const deleteFirestoreData = deleteData === undefined
-    ? async () => { events.push("deleteFirestoreData"); }
-    : deleteData;
   const { PrivacyPanel } = createPrivacyPanel({
     React,
     accountService: {
@@ -100,9 +103,14 @@ function createFixture(createPrivacyPanel, { lang = "en", signInError, deleteDat
           if (typeof saveSession === "function") saveSession(data);
         };
       },
-      getDeleteFirestoreData() {
-        return deleteFirestoreData === null ? undefined : deleteFirestoreData;
-      }
+      async requestDeletion() {
+        events.push("requestDeletion");
+        if (requestDeletionError) throw requestDeletionError;
+        return {status: "accepted", requestId: "request_0123456789"};
+      },
+      async suspendAutosaves() { events.push("suspendAutosaves"); },
+      resumeAutosaves() { events.push("resumeAutosaves"); },
+      clearLocalAccountData() { events.push("clearLocalAccountData"); },
     },
     localStorage: {
       getItem(key) {
@@ -235,28 +243,31 @@ contractTest("requires both password and the exact confirmation phrase before de
   assert.equal(fixture.events.length, 0);
 });
 
-contractTest("deletes Firestore then Auth and logs out in the exact successful order", async createPrivacyPanel => {
+contractTest("accepts the backend job before local cleanup and logout", async createPrivacyPanel => {
   const fixture = createFixture(createPrivacyPanel);
   openDeleteAccount(fixture);
   fillDeleteConfirmation(fixture);
   await findButton(fixture.harness.tree, "Delete account permanently").props.onClick();
+  fixture.harness.render();
 
   assert.deepEqual(fixture.events, [
     "signIn:person@example.com:current123",
-    "deleteFirestoreData",
-    "getToken",
-    "fetch:delete",
+    "suspendAutosaves",
+    "requestDeletion",
+    "clearLocalAccountData",
     "signOut",
-    "onLogout"
+    "setTimeout:1500",
   ]);
+  assert.match(elementText(fixture.harness.tree), /Deletion started/);
+  fixture.timers[0].callback();
+  assert.equal(fixture.events.at(-1), "onLogout");
 });
 
-contractTest("stops after a Firestore deletion failure without Auth deletion or logout", async createPrivacyPanel => {
+contractTest("resumes autosaves and preserves local data when the backend rejects", async createPrivacyPanel => {
   const fixture = createFixture(createPrivacyPanel, {
-    deleteData: async () => {
-      fixture.events.push("deleteFirestoreData");
-      throw new Error("PARTIAL_FIRESTORE_DELETE");
-    }
+    requestDeletionError: Object.assign(new Error("rejected"), {
+      code: "deletion-request-rejected",
+    }),
   });
   openDeleteAccount(fixture);
   fillDeleteConfirmation(fixture);
@@ -265,124 +276,50 @@ contractTest("stops after a Firestore deletion failure without Auth deletion or 
 
   assert.deepEqual(fixture.events, [
     "signIn:person@example.com:current123",
-    "deleteFirestoreData"
+    "suspendAutosaves",
+    "requestDeletion",
+    "resumeAutosaves",
   ]);
-  assert.match(elementText(fixture.harness.tree), /Incorrect password or error deleting account\./);
+  assert.match(elementText(fixture.harness.tree), /No local data was erased/);
 });
 
-contractTest("reports a network failure after Firestore deletion, keeps the panel open, and does not log out", async createPrivacyPanel => {
+contractTest("fails closed with a specific App Check message", async createPrivacyPanel => {
   const fixture = createFixture(createPrivacyPanel, {
-    fetchBehavior: async operation => {
-      assert.equal(operation, "delete");
-      throw new Error("NETWORK_FAILURE");
-    }
+    requestDeletionError: Object.assign(new Error("web unavailable"), {
+      code: "app-check-web-not-configured",
+    }),
   });
   openDeleteAccount(fixture);
   fillDeleteConfirmation(fixture);
   await findButton(fixture.harness.tree, "Delete account permanently").props.onClick();
   fixture.harness.render();
 
-  assert.deepEqual(fixture.events, [
-    "signIn:person@example.com:current123",
-    "deleteFirestoreData",
-    "getToken",
-    "fetch:delete"
-  ]);
-  const text = elementText(fixture.harness.tree);
-  assert.match(text, /Firestore data has already been removed/);
-  assert.match(text, /account was not deleted/);
-  assert.ok(findButton(fixture.harness.tree, "Delete account permanently"));
+  assert.match(elementText(fixture.harness.tree), /Security verification is not available/);
+  assert.equal(fixture.events.includes("clearLocalAccountData"), false);
+  assert.equal(fixture.events.includes("signOut"), false);
 });
 
-for (const status of [400, 401, 500]) {
-  contractTest(`blocks logout and keeps the panel open when Auth deletion returns HTTP ${status}`, async createPrivacyPanel => {
-    const fixture = createFixture(createPrivacyPanel, {
-      fetchBehavior: async operation => {
-        assert.equal(operation, "delete");
-        return { ok: false, status, async json() { return { error: { message: "AUTH_DELETE_FAILED" } }; } };
-      }
-    });
-    openDeleteAccount(fixture);
-    fillDeleteConfirmation(fixture);
-    await findButton(fixture.harness.tree, "Delete account permanently").props.onClick();
-    fixture.harness.render();
-
-    assert.deepEqual(fixture.events.slice(-2), ["getToken", "fetch:delete"]);
-    assert.equal(fixture.events.includes("signOut"), false);
-    assert.equal(fixture.events.includes("onLogout"), false);
-    const text = elementText(fixture.harness.tree);
-    assert.match(text, /Firestore data has already been removed/);
-    assert.match(text, /account was not deleted/);
-    assert.ok(findButton(fixture.harness.tree, "Delete account permanently"));
-  });
-}
-
-contractTest("shows the Auth deletion failure message in Portuguese, English, and Spanish", async createPrivacyPanel => {
+contractTest("localizes the asynchronous acceptance message in PT, EN and ES", async createPrivacyPanel => {
   const cases = [
-    { lang: "pt", phrase: "APAGAR", expected: /Seus dados do Firestore j\u00e1 foram removidos, mas a conta n\u00e3o foi exclu\u00edda/ },
-    { lang: "en", phrase: "DELETE", expected: /Your Firestore data has already been removed, but your account was not deleted/ },
-    { lang: "es", phrase: "DELETE", expected: /Tus datos de Firestore ya se eliminaron, pero la cuenta no/ }
+    {lang: "pt", phrase: "APAGAR", button: "Apagar conta permanentemente", expected: /Exclusão iniciada/},
+    {lang: "en", phrase: "DELETE", button: "Delete account permanently", expected: /Deletion started/},
+    {lang: "es", phrase: "DELETE", button: "Eliminar cuenta permanentemente", expected: /Eliminación iniciada/},
   ];
-
-  for (const { lang, phrase, expected } of cases) {
-    const fixture = createFixture(createPrivacyPanel, {
-      lang,
-      fetchBehavior: async operation => {
-        assert.equal(operation, "delete");
-        return { ok: false, status: 500, async json() { return {}; } };
-      }
-    });
+  for (const item of cases) {
+    const fixture = createFixture(createPrivacyPanel, {lang: item.lang});
     openDeleteAccount(fixture);
-    fillDeleteConfirmation(fixture, "current123", phrase);
-    await findButton(fixture.harness.tree, lang === "pt" ? "Apagar conta permanentemente" : "Delete account permanently").props.onClick();
+    fillDeleteConfirmation(fixture, "current123", item.phrase);
+    await findButton(fixture.harness.tree, item.button).props.onClick();
     fixture.harness.render();
-
-    assert.match(elementText(fixture.harness.tree), expected);
-    assert.equal(fixture.events.includes("signOut"), false);
-    assert.equal(fixture.events.includes("onLogout"), false);
+    assert.match(elementText(fixture.harness.tree), item.expected);
   }
 });
 
-contractTest("deliberately skips missing Firestore cleanup and continues Auth deletion", async createPrivacyPanel => {
-  const fixture = createFixture(createPrivacyPanel, { deleteData: null });
-  openDeleteAccount(fixture);
-  fillDeleteConfirmation(fixture);
-  await findButton(fixture.harness.tree, "Delete account permanently").props.onClick();
-
-  assert.deepEqual(fixture.events, [
-    "signIn:person@example.com:current123",
-    "getToken",
-    "fetch:delete",
-    "signOut",
-    "onLogout"
-  ]);
-});
-
-contractTest("does not claim Firestore removal when optional cleanup was missing and Auth deletion fails", async createPrivacyPanel => {
-  const fixture = createFixture(createPrivacyPanel, {
-    deleteData: null,
-    fetchBehavior: async operation => {
-      assert.equal(operation, "delete");
-      return { ok: false, status: 500, async json() { return {}; } };
-    }
-  });
-  openDeleteAccount(fixture);
-  fillDeleteConfirmation(fixture);
-  await findButton(fixture.harness.tree, "Delete account permanently").props.onClick();
-  fixture.harness.render();
-
-  const text = elementText(fixture.harness.tree);
-  assert.match(text, /Your account was not deleted/);
-  assert.doesNotMatch(text, /Firestore data has already been removed/);
-  assert.equal(fixture.events.includes("signOut"), false);
-  assert.equal(fixture.events.includes("onLogout"), false);
-});
-
-contractTest("keeps Spanish on the English path with the DELETE confirmation phrase", async createPrivacyPanel => {
+contractTest("uses the DELETE confirmation phrase in Spanish", async createPrivacyPanel => {
   const fixture = createFixture(createPrivacyPanel, { lang: "es" });
   openDeleteAccount(fixture);
-  assert.match(elementText(fixture.harness.tree), /This action is irreversible/);
-  assert.equal(findInput(fixture.harness.tree, "Type DELETE to confirm").props.value, "");
+  assert.match(elementText(fixture.harness.tree), /Esta acción es irreversible/);
+  assert.equal(findInput(fixture.harness.tree, "Escribe DELETE para confirmar").props.value, "");
 });
 
 contractTest("links to the canonical public privacy policy in Portuguese, English, and Spanish", async createPrivacyPanel => {

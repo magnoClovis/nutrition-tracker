@@ -2,6 +2,7 @@
 serviceAccountKey.json
 *service-account*.json
 firebase-adminsdk-*.json
+android/app/google-services.json
 
 # User/account exports and debug dumps can contain private nutrition data.
 backup*.json

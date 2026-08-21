@@ -78,6 +78,11 @@ import {
   fbToken,
   storage,
 } from './firebase/firebase-storage.js';
+import { getAppCheckToken, initializeAppCheck } from './firebase/app-check-client.js';
+import {
+  clearLocalAccountData,
+  createAccountDeletionClient,
+} from './firebase/account-deletion-client.js';
 import * as AIClient from './leaf/ai-client.js';
 import * as AutosaveScheduler from './leaf/autosave-scheduler.js';
 import * as CalendarModel from './leaf/calendar-model.js';
@@ -190,6 +195,20 @@ const {
   getIdToken: () => fbToken(),
 });
 const { AIClientError } = AIClient;
+
+const ACCOUNT_DELETION_FUNCTION_URL =
+  'https://europe-southwest1-nutrition-tracker-780b3.cloudfunctions.net/requestAccountDeletion';
+const accountDeletionClient = createAccountDeletionClient({
+  fetchRequest: (...args) => window.fetch(...args),
+  getIdToken: () => fbToken(),
+  getAppCheckToken,
+  sessionStorage: window.sessionStorage,
+  randomUUID: () => window.crypto.randomUUID(),
+  functionUrl: ACCOUNT_DELETION_FUNCTION_URL,
+});
+void initializeAppCheck().catch(() => {
+  // Web remains deliberately fail-closed until its reCAPTCHA provider exists.
+});
 
 const imageMealClient = ImageMealClient.createImageMealClient({
   fetchRequest: (...args) => window.fetch(...args),
@@ -407,7 +426,18 @@ const {
     getToken: (...args) => window.fbToken(...args),
     signOut: (...args) => window.fbSignOut(...args),
     getSaveSession: () => window._saveSession,
-    getDeleteFirestoreData: () => window.deleteCurrentUserFirestoreData,
+    requestDeletion: () => accountDeletionClient.requestDeletion(),
+    suspendAutosaves: () => {
+      if (typeof window._accountDeletionAutosaves?.suspend !== 'function') {
+        throw new Error('Autosave coordinator is unavailable');
+      }
+      return window._accountDeletionAutosaves.suspend();
+    },
+    resumeAutosaves: () => window._accountDeletionAutosaves?.resume?.(),
+    clearLocalAccountData: () => clearLocalAccountData({
+      localStorage: window.localStorage,
+      sessionStorage: window.sessionStorage,
+    }),
   },
   localStorage,
   fetchRequest: (...args) => window.fetch(...args),

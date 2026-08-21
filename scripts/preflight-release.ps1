@@ -18,6 +18,20 @@ function Add-Ok([string]$message) {
   Write-Host "[OK] $message" -ForegroundColor Green
 }
 
+function Get-Sha256([string]$path) {
+  $stream = [System.IO.File]::OpenRead($path)
+  try {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+      return [System.BitConverter]::ToString($sha.ComputeHash($stream)).Replace("-", "")
+    } finally {
+      $sha.Dispose()
+    }
+  } finally {
+    $stream.Dispose()
+  }
+}
+
 Push-Location $root
 try {
   Write-Host "Trofia release preflight" -ForegroundColor Cyan
@@ -30,8 +44,8 @@ try {
   $app = Join-Path $root "app.js"
   $jsx = Join-Path $root "nutrition-tracker.jsx"
   if ((Test-Path -LiteralPath $app) -and (Test-Path -LiteralPath $jsx)) {
-    $appHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $app).Hash
-    $jsxHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $jsx).Hash
+    $appHash = Get-Sha256 $app
+    $jsxHash = Get-Sha256 $jsx
     if ($appHash -ne $jsxHash) {
       Add-Issue "app.js and nutrition-tracker.jsx are not synchronized"
     } else {
