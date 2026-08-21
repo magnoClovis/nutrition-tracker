@@ -87,6 +87,23 @@ const {
   getIdToken: () => fbToken()
 });
 const { AIClientError } = window.AIClient;
+const ACCOUNT_DELETION_FUNCTION_URL =
+  'https://europe-southwest1-nutrition-tracker-780b3.cloudfunctions.net/requestAccountDeletion';
+const appCheckClient = window.AppCheckClient.createAppCheckClient({
+  getPlugin: () => window.Capacitor?.Plugins?.FirebaseAppCheck,
+  isNativePlatform: () => Boolean(window.Capacitor?.isNativePlatform?.())
+});
+const accountDeletionClient = window.AccountDeletionClient.createAccountDeletionClient({
+  fetchRequest: (...args) => window.fetch(...args),
+  getIdToken: () => fbToken(),
+  getAppCheckToken: () => appCheckClient.getToken(),
+  sessionStorage: window.sessionStorage,
+  randomUUID: () => window.crypto.randomUUID(),
+  functionUrl: ACCOUNT_DELETION_FUNCTION_URL
+});
+void appCheckClient.initialize().catch(() => {
+  // The legacy runtime remains native-only; Vite owns the web provider.
+});
 
 const {
   SettingsPanel
@@ -250,7 +267,18 @@ const {
     getToken: (...args) => window.fbToken(...args),
     signOut: (...args) => window.fbSignOut(...args),
     getSaveSession: () => window._saveSession,
-    getDeleteFirestoreData: () => window.deleteCurrentUserFirestoreData
+    requestDeletion: () => accountDeletionClient.requestDeletion(),
+    suspendAutosaves: () => {
+      if (typeof window._accountDeletionAutosaves?.suspend !== 'function') {
+        throw new Error('Autosave coordinator is unavailable');
+      }
+      return window._accountDeletionAutosaves.suspend();
+    },
+    resumeAutosaves: () => window._accountDeletionAutosaves?.resume?.(),
+    clearLocalAccountData: () => window.AccountDeletionClient.clearLocalAccountData({
+      localStorage: window.localStorage,
+      sessionStorage: window.sessionStorage
+    })
   },
   localStorage,
   fetchRequest: (...args) => window.fetch(...args),

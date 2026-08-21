@@ -106,8 +106,8 @@ test('keeps the native scanner overlay viewport-bound and theme-aware', () => {
 test('keeps one production ESM entry and a separate frozen legacy loader', () => {
   assert.equal((productionHtmlSource.match(/<script\b/g) || []).length, 3);
   assert.equal((productionHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 1);
-  assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 60);
-  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 58);
+  assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 62);
+  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 60);
   assert.match(legacyHtmlSource, /src="vendor\/react\.production\.min\.js"/);
   assert.match(legacyHtmlSource, /src="app\.js\?v=/);
 });

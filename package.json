@@ -18,6 +18,7 @@
     "test": "npm.cmd run preflight && npm.cmd run test:unit && npm.cmd run test:smoke && npm.cmd run test:cutover"
   },
   "dependencies": {
+    "@capacitor-firebase/app-check": "8.4.0",
     "@capacitor-mlkit/barcode-scanning": "8.1.0",
     "@capacitor/android": "8.4.2",
     "@capacitor/app": "8.1.1",
@@ -25,6 +26,7 @@
     "@capacitor/core": "8.4.2",
     "@capacitor/filesystem": "8.1.2",
     "@capacitor/share": "8.0.1",
+    "firebase": "12.18.0",
     "prop-types": "15.8.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",

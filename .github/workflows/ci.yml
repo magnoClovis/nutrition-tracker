@@ -18,6 +18,9 @@ jobs:
     name: Preflight, unit and Playwright
     runs-on: windows-2022
     timeout-minutes: 30
+    env:
+      VITE_FIREBASE_WEB_APP_ID: ${{ vars.VITE_FIREBASE_WEB_APP_ID }}
+      VITE_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY }}
 
     steps:
       - name: Checkout repository

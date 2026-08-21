@@ -63,6 +63,8 @@ import * as I18n from './leaf/i18n.js';
 import * as MealScore from './leaf/meal-score.js';
 import * as OpenFoodFacts from './leaf/open-food-facts.js';
 import * as RecentMealsModel from './leaf/recent-meals-model.js';
+import '../app-check-client.js';
+import '../account-deletion-client.js';
 
 const ReactDOM = { createRoot };
 const Recharts = {

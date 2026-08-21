@@ -1312,6 +1312,10 @@
         timersByKey: saveTimeout.current,
         onPersisted: key => hydratedStorageKeysRef.current.add(key)
       });
+      window._accountDeletionAutosaves = Object.freeze({
+        suspend: suspendAutosaves,
+        resume: resumeAutosaves
+      });
       useEffect(() => {
         if (tab === "despensa") {
           setPantryItemsOpen(false);
