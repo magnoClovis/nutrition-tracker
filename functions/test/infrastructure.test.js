@@ -30,6 +30,7 @@ test("pins the callable to Madrid and queue processing to Belgium", () => {
   assert.equal(firebaseConfig.functions.length, 1);
   assert.equal(firebaseConfig.functions[0].runtime, "nodejs22");
   assert.equal(firebaseConfig.functions[0].source, "functions");
+  assert.equal(firebaseConfig.functions[0].ignore.includes("scripts"), true);
   assert.equal(runtimeConfig.CALLABLE_REGION, "europe-southwest1");
   assert.equal(runtimeConfig.TASK_REGION, "europe-west1");
 });
