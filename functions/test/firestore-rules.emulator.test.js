@@ -83,6 +83,79 @@ test("write lock blocks owner mutations while preserving reads", {
   await assertFails(deleteDoc(userRef));
   await assertFails(deleteDoc(legacyRef));
   await assertSucceeds(getDoc(userRef));
+  await assertSucceeds(getDoc(dataRef));
+  await assertSucceeds(getDoc(legacyRef));
+});
+
+test("legacy documents are owner-readable but immutable to every client", {
+  skip: !RUN_EMULATOR_TESTS,
+}, async (context) => {
+  const environment = await createEnvironment();
+  context.after(() => environment.cleanup());
+  await environment.clearFirestore();
+
+  const uid = "legacy-rules-owner";
+  const ownerDb = environment.authenticatedContext(uid).firestore();
+  const otherDb = environment.authenticatedContext("legacy-rules-other").firestore();
+  const ownerLegacyRef = doc(ownerDb, "nutrition", `${uid}_pantry`);
+  const ownerNewLegacyRef = doc(ownerDb, "nutrition", `${uid}_newKey`);
+  const otherLegacyRef = doc(otherDb, "nutrition", `${uid}_pantry`);
+
+  await environment.withSecurityRulesDisabled(async (adminContext) => {
+    await setDoc(doc(adminContext.firestore(), "nutrition", `${uid}_pantry`), {
+      value: "legacy",
+    });
+  });
+
+  await assertSucceeds(getDoc(ownerLegacyRef));
+  await assertFails(setDoc(ownerLegacyRef, {value: "changed"}, {merge: true}));
+  await assertFails(setDoc(ownerNewLegacyRef, {value: "created"}));
+  await assertFails(deleteDoc(ownerLegacyRef));
+
+  await assertFails(getDoc(otherLegacyRef));
+  await assertFails(setDoc(otherLegacyRef, {value: "changed"}, {merge: true}));
+  await assertFails(deleteDoc(otherLegacyRef));
+
+  await environment.withSecurityRulesDisabled(async (adminContext) => {
+    const snapshot = await getDoc(
+      doc(adminContext.firestore(), "nutrition", `${uid}_pantry`),
+    );
+    assert.equal(snapshot.exists(), true);
+    assert.equal(snapshot.data().value, "legacy");
+  });
+});
+
+test("canonical schema keeps owner CRUD and rejects every other user", {
+  skip: !RUN_EMULATOR_TESTS,
+}, async (context) => {
+  const environment = await createEnvironment();
+  context.after(() => environment.cleanup());
+  await environment.clearFirestore();
+
+  const uid = "canonical-rules-owner";
+  const ownerDb = environment.authenticatedContext(uid).firestore();
+  const otherDb = environment.authenticatedContext("canonical-rules-other").firestore();
+  const ownerRoot = doc(ownerDb, "nutrition", uid);
+  const ownerData = doc(ownerDb, "nutrition", uid, "data", "today");
+  const otherRoot = doc(otherDb, "nutrition", uid);
+  const otherData = doc(otherDb, "nutrition", uid, "data", "today");
+
+  await assertSucceeds(setDoc(ownerRoot, {profile: true}));
+  await assertSucceeds(setDoc(ownerData, {value: "created"}));
+  await assertSucceeds(setDoc(ownerRoot, {profile: false}, {merge: true}));
+  await assertSucceeds(setDoc(ownerData, {value: "updated"}, {merge: true}));
+  await assertSucceeds(getDoc(ownerRoot));
+  await assertSucceeds(getDoc(ownerData));
+
+  await assertFails(getDoc(otherRoot));
+  await assertFails(getDoc(otherData));
+  await assertFails(setDoc(otherRoot, {profile: "other"}, {merge: true}));
+  await assertFails(setDoc(otherData, {value: "other"}, {merge: true}));
+  await assertFails(deleteDoc(otherData));
+  await assertFails(deleteDoc(otherRoot));
+
+  await assertSucceeds(deleteDoc(ownerData));
+  await assertSucceeds(deleteDoc(ownerRoot));
 });
 
 test("a racing write cannot survive recursive deletion after lock commit", {
