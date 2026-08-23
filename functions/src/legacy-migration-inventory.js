@@ -180,6 +180,30 @@ function parseStoredValue(value) {
   }
 }
 
+function normalizeProfileValue(key, value) {
+  const parsed = parseStoredValue(value);
+  const normalized = String(parsed ?? "").trim().toLowerCase();
+  const aliases = {
+    activityLevel: {
+      sedentario: "sedentary", sedentary: "sedentary",
+      light: "light", leve: "light",
+      moderate: "moderate", moderado: "moderate",
+      very: "very", muito: "very",
+      extreme: "extreme", extremo: "extreme",
+    },
+    gender: {
+      masculino: "male", male: "male", m: "male",
+      feminino: "female", female: "female", f: "female",
+    },
+    goalType: {
+      lose: "loss", loss: "loss", lose_weight: "loss", weight_loss: "loss",
+      gain: "gain", gain_weight: "gain", weight_gain: "gain",
+      maintain: "maintenance", maintenance: "maintenance",
+    },
+  };
+  return aliases[key]?.[normalized] ?? parsed;
+}
+
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
   if (value && typeof value === "object") {
@@ -334,7 +358,11 @@ async function buildLegacyMigrationInventory({
       for (const target of classification.targets) {
         const sourceValue = extracted[target];
         if (sourceValue === undefined) continue;
-        increment(byConflict, classifyTargetConflict(sourceValue, root[target]));
+        increment(byConflict, classifyTargetConflict(
+          normalizeProfileValue(target, sourceValue),
+          root[target] === undefined ? undefined :
+            normalizeProfileValue(target, root[target]),
+        ));
       }
       continue;
     }
@@ -348,7 +376,11 @@ async function buildLegacyMigrationInventory({
       targetReads++;
       targetValue = snapshot?.exists ? snapshot.data?.value : undefined;
     }
-    increment(byConflict, classifyTargetConflict(legacy.value, targetValue));
+    const sourceValue = classification.location === "root" ?
+      normalizeProfileValue(target, legacy.value) : legacy.value;
+    const comparableTarget = classification.location === "root" &&
+      targetValue !== undefined ? normalizeProfileValue(target, targetValue) : targetValue;
+    increment(byConflict, classifyTargetConflict(sourceValue, comparableTarget));
   }
 
   const blockingConflicts = (byConflict["scalar-conflict"] || 0) +
@@ -446,4 +478,9 @@ module.exports = {
   collectCompletePages,
   createAdminReadAdapter,
   extractLegacyIdentity,
+  extractUserGoalTargets,
+  normalizeProfileValue,
+  parseStoredValue,
+  valueKind,
+  valuesEqual,
 };

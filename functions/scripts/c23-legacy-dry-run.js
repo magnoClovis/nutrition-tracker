@@ -9,13 +9,19 @@ const {
   createAdminReadAdapter,
 } = require("../src/legacy-migration-inventory.js");
 
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const {randomUUID} = require("node:crypto");
+
 function usage() {
   return [
     "Usage:",
-    "  npm --prefix functions run c23:inventory -- --project <project-id> [--page-size 200]",
+    "  npm --prefix functions run c23:inventory -- --project <project-id> [--page-size 200] [--firebase-cli-session]",
     "",
     "Read-only C23 inventory. It never writes or deletes Firestore data.",
-    "Authentication uses Application Default Credentials; do not pass tokens on the command line.",
+    "Authentication uses Application Default Credentials by default.",
+    "--firebase-cli-session reuses the local Firebase CLI login in memory; it never prints or persists an access token.",
   ].join("\n");
 }
 
@@ -29,6 +35,8 @@ function parseArguments(argv) {
       options.projectId = argv[++index];
     } else if (argument === "--page-size") {
       options.pageSize = Number(argv[++index]);
+    } else if (argument === "--firebase-cli-session") {
+      options.firebaseCliSession = true;
     } else {
       throw new Error("unknown-argument");
     }
@@ -44,6 +52,26 @@ function parseArguments(argv) {
     throw new Error("invalid-page-size");
   }
   return options;
+}
+
+function createFirebaseCliApplicationDefault() {
+  const firebaseCliAuth = require("firebase-tools/lib/auth.js");
+  const {clientId, clientSecret} = require("firebase-tools/lib/api.js");
+  const account = firebaseCliAuth.getGlobalDefaultAccount();
+  const refreshToken = account?.tokens?.refresh_token;
+  if (!refreshToken) throw new LegacyInventoryError("firebase-cli-login-required");
+
+  const credentialPath = path.join(
+    os.tmpdir(),
+    `trofia-c23-adc-${randomUUID()}.json`,
+  );
+  fs.writeFileSync(credentialPath, JSON.stringify({
+    type: "authorized_user",
+    client_id: clientId(),
+    client_secret: clientSecret(),
+    refresh_token: refreshToken,
+  }), {encoding: "utf8", flag: "wx", mode: 0o600});
+  return credentialPath;
 }
 
 function sanitizedErrorCategory(error) {
@@ -64,26 +92,53 @@ async function main(argv = process.argv.slice(2)) {
     return 0;
   }
 
-  const {getApps, initializeApp} = require("firebase-admin/app");
+  const {applicationDefault, deleteApp, getApps, initializeApp} =
+    require("firebase-admin/app");
   const {getAuth} = require("firebase-admin/auth");
   const {FieldPath, getFirestore} = require("firebase-admin/firestore");
-  const app = getApps()[0] || initializeApp({projectId: options.projectId});
-  const reader = createAdminReadAdapter({
-    auth: getAuth(app),
-    firestore: getFirestore(app),
-    documentIdField: FieldPath.documentId(),
-  });
-  const report = await buildLegacyMigrationInventory({
-    reader,
-    pageSize: options.pageSize,
-  });
+  const previousCredentialPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  let temporaryCredentialPath = null;
+  let existingApp = null;
+  let app = null;
+  try {
+    if (options.firebaseCliSession) {
+      temporaryCredentialPath = createFirebaseCliApplicationDefault();
+      process.env.GOOGLE_APPLICATION_CREDENTIALS = temporaryCredentialPath;
+    }
+    const appOptions = {projectId: options.projectId};
+    if (temporaryCredentialPath) appOptions.credential = applicationDefault();
+    existingApp = getApps()[0] || null;
+    app = existingApp || initializeApp(appOptions);
+    const reader = createAdminReadAdapter({
+      auth: getAuth(app),
+      firestore: getFirestore(app),
+      documentIdField: FieldPath.documentId(),
+    });
+    const report = await buildLegacyMigrationInventory({
+      reader,
+      pageSize: options.pageSize,
+    });
 
-  process.stdout.write(`${JSON.stringify({
-    projectId: options.projectId,
-    generatedAt: new Date().toISOString(),
-    ...report,
-  }, null, 2)}\n`);
-  return report.complete ? 0 : 2;
+    process.stdout.write(`${JSON.stringify({
+      projectId: options.projectId,
+      generatedAt: new Date().toISOString(),
+      ...report,
+    }, null, 2)}\n`);
+    return report.complete ? 0 : 2;
+  } finally {
+    try {
+      if (app && !existingApp) await deleteApp(app);
+    } finally {
+      if (temporaryCredentialPath) {
+        fs.rmSync(temporaryCredentialPath, {force: true});
+        if (previousCredentialPath === undefined) {
+          delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+        } else {
+          process.env.GOOGLE_APPLICATION_CREDENTIALS = previousCredentialPath;
+        }
+      }
+    }
+  }
 }
 
 if (require.main === module) {
@@ -96,4 +151,10 @@ if (require.main === module) {
   );
 }
 
-module.exports = {main, parseArguments, sanitizedErrorCategory, usage};
+module.exports = {
+  createFirebaseCliApplicationDefault,
+  main,
+  parseArguments,
+  sanitizedErrorCategory,
+  usage,
+};
