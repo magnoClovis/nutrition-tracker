@@ -57,7 +57,12 @@ function listTrackedRuntimeFiles(rootDirectory) {
 function scanFiles(rootDirectory, relativePaths) {
   const findings = [];
   for (const relativePath of relativePaths) {
-    const source = fs.readFileSync(path.join(rootDirectory, relativePath), "utf8");
+    const absolutePath = path.join(rootDirectory, relativePath);
+    // A pre-commit cutover may remove a tracked runtime before Git records the
+    // deletion. Missing paths are not runtime sources and must not crash the
+    // encoding audit for the remaining files.
+    if (!fs.existsSync(absolutePath)) continue;
+    const source = fs.readFileSync(absolutePath, "utf8");
     for (const finding of findMojibake(source)) {
       findings.push({ file: normalizePath(relativePath), ...finding });
     }

@@ -33,8 +33,6 @@ test('preserves the login, verification, required-profile, and authenticated-app
     };
     window.fbSignIn = async (email) => localStorage.setItem('fb_email', email);
     window.fbCheckEmailVerified = async () => true;
-    window.normalizeCurrentUserStorage = async () => ({ skipped: 0 });
-    window.cleanupLegacyNutritionDocs = async () => null;
     window.storage.get = async key => (
       Object.prototype.hasOwnProperty.call(window.__smokeProfile, key)
         ? { value: window.__smokeProfile[key] }

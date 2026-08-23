@@ -34,9 +34,8 @@ import * as NutritionTrackerController from './controller/nutrition-tracker-cont
 import * as FirebaseConfigInternal from './leaf/firebase-config-internal.js';
 import * as FirebaseAuthInternal from './firebase/firebase-auth-internal.js';
 import * as FirebaseFirestoreInternal from './firebase/firebase-firestore-internal.js';
-import * as FirebaseMigrationInternal from './firebase/firebase-migration-internal.js';
+import * as FirebaseBackupMergeInternal from './firebase/firebase-backup-merge-internal.js';
 import * as FirebaseBackupInternal from './firebase/firebase-backup-internal.js';
-import * as FirebaseAccountDataInternal from './firebase/firebase-account-data-internal.js';
 import './firebase/firebase-storage.js';
 import * as BarcodeScanner from './composite/barcode-scanner.js';
 import * as BodyMetricsModel from './composite/body-metrics-model.js';
@@ -101,9 +100,8 @@ function installNpmRuntime(target) {
     FirebaseConfigInternal,
     FirebaseAuthInternal,
     FirebaseFirestoreInternal,
-    FirebaseMigrationInternal,
+    FirebaseBackupMergeInternal,
     FirebaseBackupInternal,
-    FirebaseAccountDataInternal,
     FoodAutofillAI,
     FoodEntry,
     GoalCalculator,

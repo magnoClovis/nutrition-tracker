@@ -7,9 +7,8 @@ const vm = require("node:vm");
 const CONFIG_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-config-internal.js"), "utf8");
 const AUTH_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-auth-internal.js"), "utf8");
 const FIRESTORE_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-firestore-internal.js"), "utf8");
-const MIGRATION_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-migration-internal.js"), "utf8");
+const BACKUP_MERGE_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-backup-merge-internal.js"), "utf8");
 const BACKUP_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-backup-internal.js"), "utf8");
-const ACCOUNT_DATA_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-account-data-internal.js"), "utf8");
 const SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "firebase-storage.js"), "utf8");
 const DATE_UTILS_SOURCE = fs.readFileSync(path.join(__dirname, "..", "..", "date-utils.js"), "utf8");
 const FB_BASE = "https://firestore.googleapis.com/v1/projects/nutrition-tracker-780b3/databases/(default)/documents/nutrition";
@@ -191,9 +190,8 @@ function loadFirebaseStorage({ local = {}, reportConfig, fetchRequest } = {}) {
   vm.runInContext(CONFIG_SOURCE, context, { filename: "firebase-config-internal.js" });
   vm.runInContext(AUTH_SOURCE, context, { filename: "firebase-auth-internal.js" });
   vm.runInContext(FIRESTORE_SOURCE, context, { filename: "firebase-firestore-internal.js" });
-  vm.runInContext(MIGRATION_SOURCE, context, { filename: "firebase-migration-internal.js" });
+  vm.runInContext(BACKUP_MERGE_SOURCE, context, { filename: "firebase-backup-merge-internal.js" });
   vm.runInContext(BACKUP_SOURCE, context, { filename: "firebase-backup-internal.js" });
-  vm.runInContext(ACCOUNT_DATA_SOURCE, context, { filename: "firebase-account-data-internal.js" });
   vm.runInContext(DATE_UTILS_SOURCE, context, { filename: "date-utils.js" });
   vm.runInContext(SOURCE, context, { filename: "firebase-storage.js" });
 
@@ -212,9 +210,6 @@ function loadFirebaseStorage({ local = {}, reportConfig, fetchRequest } = {}) {
         expiresIn: "3600",
         ...overrides
       });
-    },
-    suppressAutomaticMigration() {
-      vm.runInContext("_firebaseFirestore.support.setStorageMigrationPromiseForTesting(Promise.resolve({ skipped: 1 }))", context);
     }
   };
 }
@@ -242,10 +237,6 @@ test("publishes the complete intentional Firebase contract with stable arities a
     fbSet3: 2,
     fbDel3: 1,
     fbList3: 1,
-    fbGetLegacyInactive: 1,
-    fbSetLegacyInactive: 2,
-    fbDelLegacyInactive: 1,
-    fbListLegacyInactive: 1,
     _saveSession: 1
   };
 
@@ -260,11 +251,6 @@ test("publishes the complete intentional Firebase contract with stable arities a
   assert.equal(context.storage.list, context.fbList);
 
   const publicOperations = [
-    "migrateStorageToFirestoreV3",
-    "migrateLegacyNutritionDocs",
-    "normalizeCurrentUserStorage",
-    "cleanupLegacyNutritionDocs",
-    "deleteCurrentUserFirestoreData",
     "exportFullAccountBackup",
     "validateFullAccountBackup",
     "previewFullAccountBackupImport",
@@ -272,8 +258,6 @@ test("publishes the complete intentional Firebase contract with stable arities a
     "debugNutritionStorage"
   ];
   publicOperations.forEach(name => assert.equal(typeof context[name], "function", name));
-  assert.equal(context.migrateLegacyNutritionDocs, context.migrateStorageToFirestoreV3);
-  assert.equal(context.normalizeCurrentUserStorage, context.migrateStorageToFirestoreV3);
 
   const configNames = [
     "FB_PROJECT",
@@ -299,14 +283,6 @@ test("publishes the complete intentional Firebase contract with stable arities a
     assert.equal(context.FirebaseStorage[name], fixture.evaluate(name), `FirebaseStorage.${name}`);
   });
   assert.equal(context.FirebaseStorage.storage, context.storage);
-});
-
-test("preserves the exposed inactive-legacy fb* stub contract", async () => {
-  const { context } = loadFirebaseStorage();
-  assert.equal(await context.fbGetLegacyInactive("key"), null);
-  assert.equal(await context.fbSetLegacyInactive("key", "value"), undefined);
-  assert.equal(await context.fbDelLegacyInactive("key"), undefined);
-  assert.deepEqual(plain(await context.fbListLegacyInactive("prefix")), { keys: [] });
 });
 
 test("keeps the Firebase constants and one-time report configuration behavior", () => {
@@ -484,7 +460,6 @@ test("normalizes profile values while preserving storage {value} string records"
     }
   });
   fixture.saveSession();
-  fixture.suppressAutomaticMigration();
 
   assert.equal(await fixture.context.storage.set("goalType", "lose_weight"), undefined);
   assert.deepEqual(plain(await fixture.context.storage.get("goalType")), { value: "loss" });
@@ -500,7 +475,6 @@ test("preserves data-document CRUD, JSON stringification, 404 deletion and prefi
   const backend = createFirestoreBackend({ root: { language: "pt", _storageSchemaVerified: true } });
   const fixture = loadFirebaseStorage({ fetchRequest: backend.fetchRequest });
   fixture.saveSession();
-  fixture.suppressAutomaticMigration();
 
   await fixture.context.storage.set("pantry_v2", [{ id: "food-1" }]);
   assert.equal(backend.dataDocs.get("pantry_v2"), '[{"id":"food-1"}]');
@@ -512,7 +486,7 @@ test("preserves data-document CRUD, JSON stringification, 404 deletion and prefi
   assert.equal(await fixture.context.storage.get("pantry_v2"), null);
 });
 
-test("preserves root, legacy and local fallbacks plus richest-candidate selection for critical keys", async () => {
+test("reads only canonical destinations after the client cutover", async () => {
   const backend = createFirestoreBackend({
     root: { customText: "root-value", pantry_v2: "[]", _storageSchemaVerified: true },
     data: { pantry_v2: '[{"id":"cloud"}]' },
@@ -523,12 +497,13 @@ test("preserves root, legacy and local fallbacks plus richest-candidate selectio
     fetchRequest: backend.fetchRequest
   });
   fixture.saveSession();
-  fixture.suppressAutomaticMigration();
 
-  assert.deepEqual(plain(await fixture.context.storage.get("customText")), { value: "root-value" });
-  assert.deepEqual(plain(await fixture.context.storage.get("legacyOnly")), { value: "legacy-value" });
-  assert.deepEqual(plain(await fixture.context.storage.get("localOnly")), { value: "local-value" });
-  assert.deepEqual(plain(await fixture.context.storage.get("pantry_v2")), { value: '[{"id":"local"},{"id":"local-2"},{"id":"local-3"}]' });
+  assert.equal(await fixture.context.storage.get("customText"), null);
+  assert.equal(await fixture.context.storage.get("legacyOnly"), null);
+  assert.equal(await fixture.context.storage.get("localOnly"), null);
+  assert.deepEqual(plain(await fixture.context.storage.get("pantry_v2")), { value: '[{"id":"cloud"}]' });
+  assert.equal(backend.calls.some(call => String(call.url).startsWith(`${FB_BASE}/user-1_`)), false);
+  assert.equal(backend.calls.some(call => String(call.url) === FB_BASE + "?pageSize=1000"), false);
 });
 
 test("preserves storage read-null/list-empty behavior and write/delete rejection semantics", async t => {
@@ -536,7 +511,6 @@ test("preserves storage read-null/list-empty behavior and write/delete rejection
     const backend = createFirestoreBackend({ failures: { rootRead: true, dataRead: "weightHistory", dataList: true, legacyList: true } });
     const fixture = loadFirebaseStorage({ fetchRequest: backend.fetchRequest });
     fixture.saveSession();
-    fixture.suppressAutomaticMigration();
     assert.equal(await fixture.context.storage.get("weightHistory"), null);
     assert.deepEqual(plain(await fixture.context.storage.list()), { keys: [] });
   });
@@ -545,21 +519,10 @@ test("preserves storage read-null/list-empty behavior and write/delete rejection
     const backend = createFirestoreBackend({ failures: { dataWrite: "pantry_v2", dataDelete: "weightHistory", rootWrite: true } });
     const fixture = loadFirebaseStorage({ fetchRequest: backend.fetchRequest });
     fixture.saveSession();
-    fixture.suppressAutomaticMigration();
     await assert.rejects(fixture.context.storage.set("pantry_v2", "[]"), /Firestore data write failed/);
     await assert.rejects(fixture.context.storage.delete("weightHistory"), /Firestore data delete failed/);
     await assert.rejects(fixture.context.storage.set("language", "en"), /Firestore write failed/);
   });
-});
-
-test("keeps migration aliases and the already-verified early-return format", async () => {
-  const backend = createFirestoreBackend({ root: { _storageSchemaVerified: true } });
-  const fixture = loadFirebaseStorage({ fetchRequest: backend.fetchRequest });
-  fixture.saveSession();
-  assert.deepEqual(
-    plain(await fixture.context.normalizeCurrentUserStorage({ cleanup: true })),
-    { migrated: 0, cleaned: 0, skipped: 1 }
-  );
 });
 
 test("preserves backup validation, preview and import return shapes", async () => {
@@ -569,12 +532,12 @@ test("preserves backup validation, preview and import return shapes", async () =
   });
   const fixture = loadFirebaseStorage({ fetchRequest: backend.fetchRequest });
   fixture.saveSession();
-  fixture.suppressAutomaticMigration();
 
   const backup = await fixture.context.exportFullAccountBackup();
   assert.equal(backup.schema, "nutrition-tracker-account-backup");
   assert.equal(backup.version, 3);
-  assert.deepEqual(plain(backup.counts), { root: 1, data: 1, legacy: 0 });
+  assert.equal("legacy" in backup, false);
+  assert.deepEqual(plain(backup.counts), { root: 1, data: 1 });
   assert.deepEqual(plain(fixture.context.validateFullAccountBackup(backup)), {
     ok: true,
     errors: [],
@@ -604,21 +567,4 @@ test("preserves backup validation, preview and import return shapes", async () =
   assert.match(backend.dataDocs.get("pantry_v2"), /new/);
   assert.equal(fixture.localStorage.getItem("user-1_pantry_v2"), null);
   assert.equal(fixture.localStorage.getItem("pantry_v2"), null);
-});
-
-test("preserves destructive deletion behavior when child listings fail", async () => {
-  const backend = createFirestoreBackend({
-    root: { userName: "Person" },
-    data: { pantry_v2: '[{"id":"food"}]' },
-    legacy: { weightHistory: "[]" },
-    failures: { dataList: true, legacyList: true }
-  });
-  const fixture = loadFirebaseStorage({ fetchRequest: backend.fetchRequest });
-  fixture.saveSession();
-  fixture.suppressAutomaticMigration();
-
-  assert.deepEqual(plain(await fixture.context.deleteCurrentUserFirestoreData()), { deleted: 1, failed: 0 });
-  assert.equal(backend.dataDocs.has("pantry_v2"), true);
-  assert.equal(backend.legacyDocs.has("weightHistory"), true);
-  assert.deepEqual(backend.rootFields, {});
 });
