@@ -44,16 +44,7 @@ service cloud.firestore {
       }
     }
 
-    match /nutrition/{docId} {
-      function isOwnLegacyDoc() {
-        return signedIn() && docId.matches('^' + request.auth.uid + '_.*$');
-      }
-
-      // Transitional C23 window. Legacy nutrition/{uid}_{field} documents are
-      // temporarily readable by their owner while migration verification is
-      // active, but every client-side mutation is permanently disabled.
-      allow read: if isOwnLegacyDoc();
-      allow create, update, delete: if false;
-    }
+    // No client access exists outside the canonical nutrition/{uid} tree.
+    // The C22 Admin SDK cleanup still removes defensive legacy/orphan paths.
   }
 }

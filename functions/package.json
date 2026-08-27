@@ -9,6 +9,7 @@
   },
   "scripts": {
     "c23:copy": "node scripts/c23-legacy-copy.js",
+    "c23:delete": "node scripts/c23-legacy-delete.js",
     "c23:inventory": "node scripts/c23-legacy-dry-run.js",
     "test": "node --test test/*.test.js",
     "test:emulators": "firebase emulators:exec --config ../firebase.json --project demo-trofia-c22 --only auth,firestore,functions \"npm.cmd test\""

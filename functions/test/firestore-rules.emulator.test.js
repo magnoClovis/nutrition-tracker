@@ -84,10 +84,10 @@ test("write lock blocks owner mutations while preserving reads", {
   await assertFails(deleteDoc(legacyRef));
   await assertSucceeds(getDoc(userRef));
   await assertSucceeds(getDoc(dataRef));
-  await assertSucceeds(getDoc(legacyRef));
+  await assertFails(getDoc(legacyRef));
 });
 
-test("legacy documents are owner-readable but immutable to every client", {
+test("legacy documents are inaccessible and immutable to every client", {
   skip: !RUN_EMULATOR_TESTS,
 }, async (context) => {
   const environment = await createEnvironment();
@@ -107,7 +107,7 @@ test("legacy documents are owner-readable but immutable to every client", {
     });
   });
 
-  await assertSucceeds(getDoc(ownerLegacyRef));
+  await assertFails(getDoc(ownerLegacyRef));
   await assertFails(setDoc(ownerLegacyRef, {value: "changed"}, {merge: true}));
   await assertFails(setDoc(ownerNewLegacyRef, {value: "created"}));
   await assertFails(deleteDoc(ownerLegacyRef));
