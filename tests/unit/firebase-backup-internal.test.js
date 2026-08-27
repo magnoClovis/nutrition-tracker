@@ -4,6 +4,7 @@ const implementations = [
   ["UMD", () => Promise.resolve(require("../../firebase-backup-internal.js"))],
   ["ESM", () => import("../../src/firebase/firebase-backup-internal.js")]
 ];
+const mergeHelpers = require("../../firebase-backup-merge-internal.js");
 
 function plain(value) {
   return JSON.parse(JSON.stringify(value));
@@ -17,52 +18,10 @@ function parseStorageJson(value) {
   try { return JSON.parse(text); } catch (_) { return value; }
 }
 
-function richnessScore(value) {
-  if (value === null || value === undefined) return 0;
-  if (Array.isArray(value)) return value.length * 10 + value.reduce((sum, item) => sum + richnessScore(item), 0);
-  if (typeof value === "object") return Object.keys(value).length + Object.values(value).reduce((sum, item) => sum + richnessScore(item), 0);
-  return String(value).trim() ? 1 : 0;
-}
-
-function normalizedIdentity(item) {
-  if (!item || typeof item !== "object") return JSON.stringify(item);
-  if (item.date) return "date:" + item.date;
-  if (item.id) return "id:" + item.id;
-  if (item.name) return "name:" + String(item.name).trim().toLowerCase();
-  return JSON.stringify(item);
-}
-
-function mergeArrayValues(values) {
-  const byKey = new Map();
-  values.flat().forEach(item => {
-    if (item === null || item === undefined) return;
-    const identity = normalizedIdentity(item);
-    const current = byKey.get(identity);
-    if (!current || richnessScore(item) >= richnessScore(current)) byKey.set(identity, item);
-  });
-  return Array.from(byKey.values());
-}
-
-function mergeObjectValues(values) {
-  const out = {};
-  values.forEach(value => {
-    Object.entries(value || {}).forEach(([key, nextValue]) => {
-      const currentValue = out[key];
-      if (currentValue && typeof currentValue === "object" && nextValue && typeof nextValue === "object" && !Array.isArray(currentValue) && !Array.isArray(nextValue)) {
-        out[key] = richnessScore(nextValue) >= richnessScore(currentValue) ? {...currentValue, ...nextValue} : {...nextValue, ...currentValue};
-      } else if (currentValue === undefined || richnessScore(nextValue) >= richnessScore(currentValue)) {
-        out[key] = nextValue;
-      }
-    });
-  });
-  return out;
-}
-
 function loadBackup(createFirebaseBackup, {
   uid = "user-1",
   root = {},
   data = {},
-  legacy = {},
   current = {},
   failures = {}
 } = {}) {
@@ -94,25 +53,17 @@ function loadBackup(createFirebaseBackup, {
       if (failures.dataList) throw new Error("data list failed");
       return Object.keys(data);
     },
-    async listLegacyKeys3() {
-      if (failures.legacyList) throw new Error("legacy list failed");
-      return new Set(Object.keys(legacy));
-    },
     async getDataDoc3(key) {
       if (failures.dataRead === true || failures.dataRead === key) throw new Error("data read failed");
       return Object.prototype.hasOwnProperty.call(data, key) ? {value: data[key]} : null;
-    },
-    async legacyGet2(key) {
-      if (failures.legacyRead === true || failures.legacyRead === key) throw new Error("legacy read failed");
-      return Object.prototype.hasOwnProperty.call(legacy, key) ? {value: legacy[key]} : null;
     },
     async patchRootFields3(fields, deleteKeys) {
       if (failures.patch) throw new Error("patch failed");
       patches.push({fields, deleteKeys});
     },
-    normalizedIdentity,
-    mergeArrayValues,
-    mergeObjectValues
+    normalizedIdentity: mergeHelpers.normalizedIdentity,
+    mergeArrayValues: mergeHelpers.mergeArrayValues,
+    mergeObjectValues: mergeHelpers.mergeObjectValues
   });
 
   return { service, stored, writes, patches, clearedFallbacks };
@@ -136,11 +87,10 @@ contractTest("publishes the namespaced factory and four exact backup operations"
   assert.equal(service.importFullAccountBackup3.length, 2);
 });
 
-contractTest("exports root, data, and legacy shapes while preserving silent omissions", async loadBackup => {
+contractTest("exports only canonical root and data shapes while preserving silent omissions", async loadBackup => {
   const fixture = loadBackup({
     root: {activityLevel: "moderate", userName: "Private", _schemaVersion: 4},
     data: {pantry_v2: '[{"id":"food"}]', "notes_2026-07-18": "note"},
-    legacy: {weightHistory: '[{"date":"2026-07-18","weight":70}]'},
     failures: {dataRead: "notes_2026-07-18"}
   });
   const backup = await fixture.service.exportFullAccountBackup3();
@@ -148,17 +98,16 @@ contractTest("exports root, data, and legacy shapes while preserving silent omis
   assert.equal(backup.version, 3);
   assert.deepEqual(plain(backup.root), {activityLevel: "moderate"});
   assert.deepEqual(plain(backup.data), {pantry_v2: '[{"id":"food"}]'});
-  assert.deepEqual(plain(backup.legacy), {weightHistory: '[{"date":"2026-07-18","weight":70}]'});
-  assert.deepEqual(plain(backup.counts), {root: 1, data: 1, legacy: 1});
+  assert.equal("legacy" in backup, false);
+  assert.deepEqual(plain(backup.counts), {root: 1, data: 1});
 
   const failedLists = loadBackup({
     root: {height: 180},
     data: {pantry_v2: "[]"},
-    legacy: {weightHistory: "[]"},
-    failures: {root: true, dataList: true, legacyList: true}
+    failures: {root: true, dataList: true}
   });
   const incomplete = await failedLists.service.exportFullAccountBackup3();
-  assert.deepEqual(plain(incomplete.counts), {root: 0, data: 0, legacy: 0});
+  assert.deepEqual(plain(incomplete.counts), {root: 0, data: 0});
 });
 
 contractTest("accepts legacy-flat backups and preserves legacy-root-data collision order", async loadBackup => {

@@ -6,10 +6,9 @@
  * injected through narrow callbacks; the module never reads browser globals or
  * publishes the public backup functions itself.
  *
- * TEMPORARY SHARED CONTRACT: migration still owns the production merge and
- * identity helpers in `firebase-storage.js`. The facade injects exactly
- * `normalizedIdentity`, `mergeArrayValues`, and `mergeObjectValues` here so the
- * two workflows share behavior without duplicating or moving migration logic.
+ * Merge behavior is supplied by the dedicated backup merge module. New exports
+ * contain only canonical root/data sections; import remains compatible with
+ * historical flat and versioned backups that contain a `legacy` section.
  *
  * Known behavior is intentionally preserved: failed export reads become absent
  * data, preview read errors look like new data, flat legacy backups remain
@@ -37,9 +36,7 @@
    * @param {Function} dependencies.parseStorageJson3 Storage-compatible parser.
    * @param {Function} dependencies.loadRootFields3 Root-document reader.
    * @param {Function} dependencies.listDataKeys3 Active data-key lister.
-   * @param {Function} dependencies.listLegacyKeys3 Legacy data-key lister.
    * @param {Function} dependencies.getDataDoc3 Active data-document reader.
-   * @param {Function} dependencies.legacyGet2 Legacy data-document reader.
    * @param {Function} dependencies.patchRootFields3 Root schema-marker writer.
    * @param {Function} dependencies.normalizedIdentity Temporary facade-owned identity callback.
    * @param {Function} dependencies.mergeArrayValues Temporary facade-owned array merge callback.
@@ -55,9 +52,7 @@
     parseStorageJson3,
     loadRootFields3,
     listDataKeys3,
-    listLegacyKeys3,
     getDataDoc3,
-    legacyGet2,
     patchRootFields3,
     normalizedIdentity,
     mergeArrayValues,
@@ -177,16 +172,15 @@
     }
 
     /**
-     * Builds a complete account backup from every supported storage shape.
+     * Builds a complete account backup from the canonical storage shape.
      *
-     * @returns {Promise<Object>} Versioned backup with root, data, legacy, and count sections.
+     * @returns {Promise<Object>} Versioned backup with root, data, and count sections.
      */
     async function exportFullAccountBackup3() {
       if (!getUid()) throw new Error("No authenticated user");
 
       const rootFields = await loadRootFields3().catch(() => ({}));
       const dataKeys = await listDataKeys3().catch(() => []);
-      const legacyKeys = Array.from(await listLegacyKeys3().catch(() => new Set()));
 
       const root = {};
       Object.entries(rootFields || {}).forEach(([key, value]) => {
@@ -201,25 +195,15 @@
         }));
       }
 
-      const legacy = {};
-      for (let i = 0; i < legacyKeys.length; i += 20) {
-        await Promise.all(legacyKeys.slice(i, i + 20).map(async key => {
-          const doc = await legacyGet2(key).catch(() => null);
-          if (_backupCategoryForKey3(key) && doc && doc.value !== undefined && doc.value !== null) legacy[key] = doc.value;
-        }));
-      }
-
       return {
         schema: ACCOUNT_BACKUP_SCHEMA,
         version: ACCOUNT_BACKUP_VERSION,
         exportedAt: new Date().toISOString(),
         root,
         data,
-        legacy,
         counts: {
           root: Object.keys(root).length,
-          data: Object.keys(data).length,
-          legacy: Object.keys(legacy).length
+          data: Object.keys(data).length
         }
       };
     }

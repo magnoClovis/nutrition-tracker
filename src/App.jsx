@@ -811,33 +811,6 @@ export function App() {
     setProfileChecking(false);
   }
 
-  async function normalizeStorageAfterLogin() {
-    if (typeof window.normalizeCurrentUserStorage !== 'function') return null;
-    try {
-      const migration = window.normalizeCurrentUserStorage({ cleanup: true });
-      const result = await Promise.race([
-        migration,
-        new Promise(resolve => setTimeout(() => resolve({ skipped: 0, background: true }), 2500)),
-      ]);
-      migration.catch(error => console.warn('Background storage normalization failed', error));
-      migration
-        .then(() => {
-          if (typeof window.cleanupLegacyNutritionDocs === 'function') {
-            return window.cleanupLegacyNutritionDocs();
-          }
-          return null;
-        })
-        .catch(error => console.warn('Background legacy cleanup failed', error));
-      if (result?.error || result?.cleanupFailures) {
-        console.warn('Storage normalization completed with warnings', result);
-      }
-      return result;
-    } catch (error) {
-      console.warn('Storage normalization failed', error);
-      return null;
-    }
-  }
-
   async function checkVisualUpdateNotice(isNew) {
     const seen = await storage.get(VISUAL_UPDATE_NOTICE_KEY).catch(() => null);
     if (seen?.value === 'true') return;
@@ -847,7 +820,6 @@ export function App() {
 
   async function afterAuthenticated(isNew) {
     setAuthed(true);
-    await normalizeStorageAfterLogin();
     storage.set('lastLoginAt', new Date().toISOString()).catch(() => {});
     const savedLang = await storage.get('language').catch(() => null);
     const normalizedSavedLang = normalizeLanguage(savedLang?.value || localStorage.getItem('appLang') || lang || 'pt');
@@ -893,7 +865,6 @@ export function App() {
           setProfileChecking(false);
           return;
         }
-        await normalizeStorageAfterLogin();
         const savedLang = await storage.get('language').catch(() => null);
         const normalizedSavedLang = normalizeLanguage(savedLang?.value || localStorage.getItem('appLang') || 'pt');
         localStorage.setItem('appLang', normalizedSavedLang);

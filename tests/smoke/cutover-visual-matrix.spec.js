@@ -102,8 +102,6 @@ async function installDeterministicServices(page) {
     };
     window.fbSignIn = async email => localStorage.setItem('fb_email', email);
     window.fbCheckEmailVerified = async () => true;
-    window.normalizeCurrentUserStorage = async () => ({ skipped: 0 });
-    window.cleanupLegacyNutritionDocs = async () => null;
     window.storage.get = async key => (
       Object.prototype.hasOwnProperty.call(window.__cutoverProfile, key)
         ? { value: window.__cutoverProfile[key] }

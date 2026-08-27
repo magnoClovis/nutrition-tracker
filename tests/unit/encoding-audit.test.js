@@ -47,3 +47,11 @@ test("reports the tracked file and line containing corrupted runtime text", t =>
   assert.equal(findings[0].file, "src/bad.js");
   assert.equal(findings[0].line, 2);
 });
+
+test("ignores tracked runtime paths removed by the current pre-commit cutover", t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "trofia-encoding-audit-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, "active.js"), "const title = 'Nutrição';\n", "utf8");
+
+  assert.deepEqual(scanFiles(root, ["active.js", "removed-runtime.js"]), []);
+});

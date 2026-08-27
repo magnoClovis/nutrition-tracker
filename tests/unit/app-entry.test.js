@@ -7,6 +7,8 @@ const test = require('node:test');
 
 const repositoryRoot = path.resolve(__dirname, '..', '..');
 const appSource = fs.readFileSync(path.join(repositoryRoot, 'src', 'App.jsx'), 'utf8');
+const legacyAppSource = fs.readFileSync(path.join(repositoryRoot, 'app.js'), 'utf8');
+const legacyMirrorSource = fs.readFileSync(path.join(repositoryRoot, 'nutrition-tracker.jsx'), 'utf8');
 const mainSource = fs.readFileSync(path.join(repositoryRoot, 'src', 'main.jsx'), 'utf8');
 const nativeScannerCssSource = fs.readFileSync(
   path.join(repositoryRoot, 'src', 'native-barcode-scanner.css'),
@@ -28,14 +30,13 @@ test('preserves the App hook and helper-function contract', () => {
   assert.equal(matches(/React\.useEffect\(/g).length, 5);
 
   assert.deepEqual(
-    matches(/(?:async\s+)?function\s+(toggleLang|toggleDark|handleLogout|checkRequiredProfile|normalizeStorageAfterLogin|checkVisualUpdateNotice|afterAuthenticated)\s*\(/g)
+    matches(/(?:async\s+)?function\s+(toggleLang|toggleDark|handleLogout|checkRequiredProfile|checkVisualUpdateNotice|afterAuthenticated)\s*\(/g)
       .map(match => match[1]),
     [
       'toggleLang',
       'toggleDark',
       'handleLogout',
       'checkRequiredProfile',
-      'normalizeStorageAfterLogin',
       'checkVisualUpdateNotice',
       'afterAuthenticated',
     ],
@@ -49,9 +50,10 @@ test('preserves the App hook and helper-function contract', () => {
   );
 });
 
-test('preserves the frozen authentication, migration, and profile gates', () => {
-  assert.match(appSource, /window\.normalizeCurrentUserStorage\(\{ cleanup: true \}\)/);
-  assert.match(appSource, /background: true \}\), 2500/);
+test('preserves the authentication and profile gates without legacy normalization', () => {
+  for (const source of [appSource, legacyAppSource, legacyMirrorSource]) {
+    assert.doesNotMatch(source, /normalizeStorageAfterLogin|normalizeCurrentUserStorage|cleanupLegacyNutritionDocs/);
+  }
   assert.match(appSource, /const timeout = setTimeout\(\(\) => \{[\s\S]*?\}, 8000\);/);
   assert.match(appSource, /if \(checking \|\| profileChecking\) return null;/);
   assert.match(appSource, /if \(pendingEmail\) \{/);
@@ -106,8 +108,8 @@ test('keeps the native scanner overlay viewport-bound and theme-aware', () => {
 test('keeps one production ESM entry and a separate frozen legacy loader', () => {
   assert.equal((productionHtmlSource.match(/<script\b/g) || []).length, 3);
   assert.equal((productionHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 1);
-  assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 62);
-  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 60);
+  assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 61);
+  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 59);
   assert.match(legacyHtmlSource, /src="vendor\/react\.production\.min\.js"/);
   assert.match(legacyHtmlSource, /src="app\.js\?v=/);
 });
