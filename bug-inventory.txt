@@ -829,3 +829,23 @@ BUGS RESOLVIDOS
 Nenhuma entrada deste inventário foi integralmente resolvida nesta rodada.
 Entradas apenas parcialmente relacionadas permanecem no corpo do documento e
 não são classificadas aqui como resolvidas.
+
+[A01] Resolvido — PRs #107–#111, C23 Fatias 1–7.
+O inventário administrativo percorreu todo o conjunto legado sem janela de 120
+dias, classificou as chaves, copiou/mesclou os 54 documentos reais e verificou
+cada destino canônico antes da exclusão. Após 7 dias de observação e um export
+gerenciado confirmado, somente os documentos individualmente verificados foram
+excluídos; a contagem final de documentos legados foi zero.
+
+[A02] Resolvido — PRs #107–#111, C23 Fatias 1–7.
+A listagem administrativa passou a ter paginação completa e comportamento
+fail-closed: erro, página incompleta, chave desconhecida ou conflito não
+resolvido interrompem a operação. O fechamento não depende mais de
+_storageSchemaVerified nem interpreta falha de listagem como coleção vazia.
+
+[A03] Resolvido — PRs #107–#111, C23 Fatias 1–7.
+A migração foi substituída por fases administrativas idempotentes, com política
+de conflito conservadora, verificação individual dos destinos e retomada segura.
+A exclusão física final foi executada atomicamente apenas sobre o conjunto
+verificado, depois do export e da janela de observação; falha de qualquer
+pré-condição impede a remoção.

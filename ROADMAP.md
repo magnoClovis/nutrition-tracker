@@ -48,8 +48,8 @@ As fases acrescentam uma camada de planejamento sobre a sequência. Elas não tr
 | 8 | C05 | Backup seguro e round-trip real | Concluído | G01 corrigido no PR #82; round-trip autenticado estabilizado nos PRs #88 e #93. |
 | 9 | C07 | Testes autenticados e CI verde | Concluído | Suite autenticada estabilizada no PR #88 e mantida verde nas entregas posteriores. |
 | 10 | C24 | Reconhecimento de refeição por imagem | Concluído fora de ordem | Priorizado explicitamente; PRs #89–#97 cobrem contrato, Worker, captura, revisão, persistência, compliance, validação física e navegação real. |
-| 11 | C22 | Exclusão completa e idempotente da conta | Parcial | Próximo gate de integridade e privacidade; risco crítico foi corrigido no PR #18, mas falta garantir remoção integral e repetível. |
-| 12 | C23 | Corte da migração legada e fechamento das rules | Parcial | Depende da exclusão completa de C22 e do encerramento seguro dos caminhos antigos. |
+| 11 | C22 | Exclusão completa e idempotente da conta | Concluído | Saga administrativa idempotente, App Check, fila/reconciliação e validação destrutiva em produção concluídas nos PRs #99–#106. |
+| 12 | C23 | Corte da migração legada e fechamento das rules | Concluído | Inventário e migração administrativos, corte do cliente, observação de 7 dias, export de segurança, exclusão verificada e fechamento definitivo das rules concluídos nos PRs #107–#111. |
 | 13 | C14 | Revisão geral de segurança | Parcial | Consolida autenticação, exclusão, rules, Worker e superfícies nativas após C23. |
 | 14 | C16 | Documentação técnica e de manutenção | Parcial | Deve documentar os contratos finais de segurança e operação após C14. |
 | 15 | C25 | Gate da próxima versão beta/estável | Parcial | C05, C06 e C07 estão fechados; depende principalmente de C14 e C16. |
@@ -74,6 +74,19 @@ As fases acrescentam uma camada de planejamento sobre a sequência. Elas não tr
 | 34 | C12 | Aplicativo iOS via Capacitor | Parcial | A base Capacitor está madura no Android; iOS permanece após C15 por exigir nova plataforma, assinatura e publicação. |
 | 35 | C18 | Health Connect, HealthKit e Samsung Health | Não iniciado | HealthKit depende de C12; integrações devem evitar fontes duplicadas. |
 | 36 | N08 | Exercícios, rotinas e hábitos | Não iniciado | Depende de N05 e C18 para não duplicar gasto vindo de atividade declarada, sensores e integrações. |
+
+## C23 — Fechamento concluído e compatibilidade preservada
+
+O corte do armazenamento legado foi concluído administrativamente, sem depender do login dos usuários. O inventário paginado e fail-closed classificou todos os documentos; 54 documentos legados foram copiados ou mesclados e tiveram seus destinos canônicos verificados individualmente. Depois da janela de observação de 7 dias, um export gerenciado completo foi confirmado antes da exclusão transacional desses mesmos 54 documentos. A verificação final encontrou zero documentos legados, e as rules de produção passaram a negar leitura e escrita nos caminhos antigos.
+
+O export de segurança está em `gs://trofia-firestore-exports-128834310181/c23-before-legacy-delete-20260827T163200Z`. O bucket dedicado fica em Madrid (`EUROPE-SOUTHWEST1`) e possui lifecycle de exclusão automática para objetos com 90 dias.
+
+A compatibilidade necessária permanece deliberadamente isolada dos caminhos ativos:
+
+- novos backups exportam somente as seções canônicas `root` e `data`;
+- a importação continua aceitando backups históricos em formato plano e backups versionados que contenham a seção `legacy`, promovendo seu conteúdo aos destinos canônicos;
+- a exclusão administrativa do C22 continua procurando, removendo e verificando documentos órfãos no padrão legado `nutrition/{uid}_*`, como defesa para contas ou resíduos fora do inventário conhecido;
+- essas garantias não reabrem leitura, escrita, migração automática nem exclusão legada pelo cliente.
 
 ## C26 — Escopo aprovado de notificações
 
