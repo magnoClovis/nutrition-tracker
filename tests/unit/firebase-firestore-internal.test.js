@@ -101,6 +101,47 @@ contractTest("reads profile fields only from root and application data only from
   assert.equal(backend.requests.some(request => request.url === BASE || request.url.startsWith(`${BASE}?`)), false);
 });
 
+contractTest("coalesces concurrent profile reads into one root request", async create => {
+  const backend = createBackend({root: {gender: "female", height: "170", goalType: "loss"}});
+  const firestore = create({fetchRequest: backend.fetchRequest});
+
+  assert.deepEqual(await Promise.all([
+    firestore.fbGet3("gender"),
+    firestore.fbGet3("height"),
+    firestore.fbGet3("goalType")
+  ]), [
+    {value: "female"},
+    {value: "170"},
+    {value: "loss"}
+  ]);
+  assert.equal(backend.requests.filter(request => request.method === "GET" && request.url === ROOT).length, 1);
+});
+
+contractTest("coalesces data reads and keeps the value cache coherent after writes and deletes", async create => {
+  const backend = createBackend({data: {pantry_v2: '[{"id":"initial"}]'}});
+  const firestore = create({fetchRequest: backend.fetchRequest});
+
+  assert.deepEqual(await Promise.all([
+    firestore.fbGet3("pantry_v2"),
+    firestore.fbGet3("pantry_v2"),
+    firestore.fbGet3("pantry_v2")
+  ]), [
+    {value: '[{"id":"initial"}]'},
+    {value: '[{"id":"initial"}]'},
+    {value: '[{"id":"initial"}]'}
+  ]);
+  const pantryReads = () => backend.requests.filter(request => request.method === "GET" && request.url === `${ROOT}/data/pantry_v2`).length;
+  assert.equal(pantryReads(), 1);
+
+  await firestore.fbSet3("pantry_v2", '[{"id":"updated"}]');
+  assert.deepEqual(await firestore.fbGet3("pantry_v2"), {value: '[{"id":"updated"}]'});
+  assert.equal(pantryReads(), 1);
+
+  await firestore.fbDel3("pantry_v2");
+  assert.equal(await firestore.fbGet3("pantry_v2"), null);
+  assert.equal(pantryReads(), 1);
+});
+
 contractTest("preserves canonical CRUD, prefix listing, profile normalization, and 404 deletion", async create => {
   const backend = createBackend({root: {language: "pt"}, data: {pantry_v2: "[]"}});
   const firestore = create({fetchRequest: backend.fetchRequest});
