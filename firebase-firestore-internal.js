@@ -29,7 +29,7 @@
     let rootDocCache = null;
     let rootDocLoaded = false;
     let rootDocLoadPromise = null;
-    let rootDocVersion = 0;
+    const rootFieldVersion = new Map();
     let dataKeyCache = null;
     const dataValueCache = new Map();
     const dataValuePending = new Map();
@@ -41,7 +41,7 @@
       rootDocCache = null;
       rootDocLoaded = false;
       rootDocLoadPromise = null;
-      rootDocVersion = 0;
+      rootFieldVersion.clear();
       dataKeyCache = null;
       dataValueCache.clear();
       dataValuePending.clear();
@@ -145,20 +145,25 @@
       if (rootDocLoaded) return rootDocCache || {};
       if (!rootDocLoadPromise) {
         const loadGeneration = storageCacheGeneration;
-        const loadVersion = rootDocVersion;
+        const loadFieldVersions = new Map(rootFieldVersion);
         let loadPromise;
         loadPromise = fetchRootFields()
           .catch(() => ({}))
           .then(fields => {
-            if (
-              loadGeneration !== storageCacheGeneration ||
-              loadVersion !== rootDocVersion
-            ) {
-              return rootDocCache || {};
-            }
-            rootDocCache = fields;
+            if (loadGeneration !== storageCacheGeneration) return rootDocCache || {};
+
+            const mergedFields = {...fields};
+            rootFieldVersion.forEach((version, key) => {
+              if (version === (loadFieldVersions.get(key) || 0)) return;
+              if (rootDocCache && Object.prototype.hasOwnProperty.call(rootDocCache, key)) {
+                mergedFields[key] = rootDocCache[key];
+              } else {
+                delete mergedFields[key];
+              }
+            });
+            rootDocCache = mergedFields;
             rootDocLoaded = true;
-            return fields;
+            return mergedFields;
           })
           .finally(() => {
             if (rootDocLoadPromise === loadPromise) rootDocLoadPromise = null;
@@ -181,9 +186,14 @@
         body: JSON.stringify({fields: bodyFields})
       });
       if (!response.ok) throw new Error("Firestore write failed");
-      rootDocVersion++;
       rootDocCache = {...(rootDocCache || {}), ...setFields};
-      deletes.forEach(key => { if (rootDocCache) delete rootDocCache[key]; });
+      Object.keys(setFields).forEach(key => {
+        rootFieldVersion.set(key, (rootFieldVersion.get(key) || 0) + 1);
+      });
+      deletes.forEach(key => {
+        rootFieldVersion.set(key, (rootFieldVersion.get(key) || 0) + 1);
+        if (rootDocCache) delete rootDocCache[key];
+      });
       rootDocLoaded = true;
     }
 

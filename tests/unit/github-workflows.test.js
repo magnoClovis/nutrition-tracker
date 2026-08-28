@@ -10,6 +10,8 @@ const pages = fs.readFileSync(path.join(root, '.github', 'workflows', 'pages.yml
 test('runs authenticated verification only in CI for each SHA', () => {
   assert.match(ci, /NUTRITION_TEST_EMAIL:\s*\$\{\{ secrets\.NUTRITION_TEST_EMAIL \}\}/);
   assert.match(ci, /npm run test:smoke/);
+  assert.match(ci, /group:\s*nutrition-authenticated-suite/);
+  assert.match(ci, /cancel-in-progress:\s*false/);
   assert.doesNotMatch(pages, /NUTRITION_TEST_(?:EMAIL|PASSWORD)/);
   assert.doesNotMatch(pages, /test:smoke|Full Windows verification|pull_request:/);
 });
