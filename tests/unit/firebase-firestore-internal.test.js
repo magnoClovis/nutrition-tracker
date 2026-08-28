@@ -101,6 +101,81 @@ contractTest("reads profile fields only from root and application data only from
   assert.equal(backend.requests.some(request => request.url === BASE || request.url.startsWith(`${BASE}?`)), false);
 });
 
+contractTest("coalesces concurrent profile reads into one root request", async create => {
+  const backend = createBackend({root: {gender: "female", height: "170", goalType: "loss"}});
+  const firestore = create({fetchRequest: backend.fetchRequest});
+
+  assert.deepEqual(await Promise.all([
+    firestore.fbGet3("gender"),
+    firestore.fbGet3("height"),
+    firestore.fbGet3("goalType")
+  ]), [
+    {value: "female"},
+    {value: "170"},
+    {value: "loss"}
+  ]);
+  assert.equal(backend.requests.filter(request => request.method === "GET" && request.url === ROOT).length, 1);
+});
+
+contractTest("merges profile reads with root writes that finish while the read is in flight", async create => {
+  let releaseRootRead;
+  const rootReadStarted = new Promise(resolve => { releaseRootRead = resolve; });
+  let finishRootRead;
+  const rootReadFinished = new Promise(resolve => { finishRootRead = resolve; });
+  const requests = [];
+  const fetchRequest = async (urlValue, options = {}) => {
+    const url = String(urlValue);
+    const method = options.method || "GET";
+    requests.push({url, method, options});
+    if (url !== ROOT && !url.startsWith(`${ROOT}?`)) throw new Error(`Unexpected request: ${method} ${url}`);
+    if (method === "PATCH") return response({});
+    releaseRootRead();
+    await rootReadFinished;
+    return response({fields: {
+      birthDate: encoded("1990-01-01"),
+      gender: encoded("female"),
+      activityLevel: encoded("moderate"),
+      goalType: encoded("maintenance")
+    }});
+  };
+  const firestore = create({fetchRequest});
+
+  const birthDate = firestore.fbGet3("birthDate");
+  await rootReadStarted;
+  await firestore.fbSet3("lastLoginAt", "2026-08-28T11:40:55.000Z");
+  finishRootRead();
+
+  assert.deepEqual(await birthDate, {value: "1990-01-01"});
+  assert.deepEqual(await firestore.fbGet3("gender"), {value: "female"});
+  assert.deepEqual(await firestore.fbGet3("lastLoginAt"), {value: "2026-08-28T11:40:55.000Z"});
+  assert.equal(requests.filter(request => request.method === "GET").length, 1);
+});
+
+contractTest("coalesces data reads and keeps the value cache coherent after writes and deletes", async create => {
+  const backend = createBackend({data: {pantry_v2: '[{"id":"initial"}]'}});
+  const firestore = create({fetchRequest: backend.fetchRequest});
+
+  assert.deepEqual(await Promise.all([
+    firestore.fbGet3("pantry_v2"),
+    firestore.fbGet3("pantry_v2"),
+    firestore.fbGet3("pantry_v2")
+  ]), [
+    {value: '[{"id":"initial"}]'},
+    {value: '[{"id":"initial"}]'},
+    {value: '[{"id":"initial"}]'}
+  ]);
+  const pantryReads = () => backend.requests.filter(request => request.method === "GET" && request.url === `${ROOT}/data/pantry_v2`).length;
+  assert.equal(pantryReads(), 1);
+
+  await firestore.fbSet3("pantry_v2", '[{"id":"updated"}]');
+  assert.deepEqual(await firestore.fbGet3("pantry_v2"), {value: '[{"id":"updated"}]'});
+  assert.equal(pantryReads(), 1);
+
+  await firestore.fbDel3("pantry_v2");
+  assert.equal(await firestore.fbGet3("pantry_v2"), null);
+  assert.equal(pantryReads(), 1);
+});
+
 contractTest("preserves canonical CRUD, prefix listing, profile normalization, and 404 deletion", async create => {
   const backend = createBackend({root: {language: "pt"}, data: {pantry_v2: "[]"}});
   const firestore = create({fetchRequest: backend.fetchRequest});

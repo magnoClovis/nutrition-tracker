@@ -23,15 +23,29 @@
       "tutorialSeen_main", "tutorialSeen_diario", "tutorialSeen_adicionar",
       "tutorialSeen_despensa", "tutorialSeen_semana", "tutorialSeen_metricas"
     ]);
+    const DATA_VALUE_CACHE_TTL_MS = 60 * 1000;
+    const DATA_MISSING_CACHE_TTL_MS = 10 * 1000;
 
     let rootDocCache = null;
     let rootDocLoaded = false;
+    let rootDocLoadPromise = null;
+    const rootFieldVersion = new Map();
     let dataKeyCache = null;
+    const dataValueCache = new Map();
+    const dataValuePending = new Map();
+    const dataValueVersion = new Map();
+    let storageCacheGeneration = 0;
 
     function resetStorageCaches() {
+      storageCacheGeneration++;
       rootDocCache = null;
       rootDocLoaded = false;
+      rootDocLoadPromise = null;
+      rootFieldVersion.clear();
       dataKeyCache = null;
+      dataValueCache.clear();
+      dataValuePending.clear();
+      dataValueVersion.clear();
     }
 
     function userDocUrl() { return firestoreBase + "/" + encodeURIComponent(getUid()); }
@@ -128,11 +142,35 @@
       return fields;
     }
     async function loadRootFields() {
-      if (!rootDocLoaded) {
-        rootDocCache = await fetchRootFields().catch(() => ({}));
-        rootDocLoaded = true;
+      if (rootDocLoaded) return rootDocCache || {};
+      if (!rootDocLoadPromise) {
+        const loadGeneration = storageCacheGeneration;
+        const loadFieldVersions = new Map(rootFieldVersion);
+        let loadPromise;
+        loadPromise = fetchRootFields()
+          .catch(() => ({}))
+          .then(fields => {
+            if (loadGeneration !== storageCacheGeneration) return rootDocCache || {};
+
+            const mergedFields = {...fields};
+            rootFieldVersion.forEach((version, key) => {
+              if (version === (loadFieldVersions.get(key) || 0)) return;
+              if (rootDocCache && Object.prototype.hasOwnProperty.call(rootDocCache, key)) {
+                mergedFields[key] = rootDocCache[key];
+              } else {
+                delete mergedFields[key];
+              }
+            });
+            rootDocCache = mergedFields;
+            rootDocLoaded = true;
+            return mergedFields;
+          })
+          .finally(() => {
+            if (rootDocLoadPromise === loadPromise) rootDocLoadPromise = null;
+          });
+        rootDocLoadPromise = loadPromise;
       }
-      return rootDocCache || {};
+      return rootDocLoadPromise;
     }
     async function patchRootFields(fields, deleteKeys) {
       if (!getUid()) return;
@@ -149,14 +187,20 @@
       });
       if (!response.ok) throw new Error("Firestore write failed");
       rootDocCache = {...(rootDocCache || {}), ...setFields};
-      deletes.forEach(key => { if (rootDocCache) delete rootDocCache[key]; });
+      Object.keys(setFields).forEach(key => {
+        rootFieldVersion.set(key, (rootFieldVersion.get(key) || 0) + 1);
+      });
+      deletes.forEach(key => {
+        rootFieldVersion.set(key, (rootFieldVersion.get(key) || 0) + 1);
+        if (rootDocCache) delete rootDocCache[key];
+      });
       rootDocLoaded = true;
     }
 
     function isCriticalStorageKey(key) {
       return ["pantry_v2", "suppPantry", "weightHistory", "goalHistory", "mealTemplates", "customGoals", "trainingByDate"].includes(key);
     }
-    async function getDataDoc(key) {
+    async function fetchDataDoc(key) {
       try {
         const response = await fetchRequest(dataDocUrl(key), {headers: await getAuthHeaders()});
         if (!response.ok) {
@@ -175,19 +219,58 @@
         return null;
       }
     }
+    async function getDataDoc(key) {
+      const cached = dataValueCache.get(key);
+      if (cached && cached.expiresAt > Date.now()) return cached.record;
+      if (dataValuePending.has(key)) return dataValuePending.get(key);
+
+      const readGeneration = storageCacheGeneration;
+      const readVersion = dataValueVersion.get(key) || 0;
+      let readPromise;
+      readPromise = fetchDataDoc(key)
+        .then(record => {
+          if (
+            readGeneration !== storageCacheGeneration ||
+            readVersion !== (dataValueVersion.get(key) || 0)
+          ) {
+            return dataValueCache.get(key)?.record || null;
+          }
+          dataValueCache.set(key, {
+            record,
+            expiresAt: Date.now() + (record ? DATA_VALUE_CACHE_TTL_MS : DATA_MISSING_CACHE_TTL_MS)
+          });
+          return record;
+        })
+        .finally(() => {
+          if (dataValuePending.get(key) === readPromise) dataValuePending.delete(key);
+        });
+      dataValuePending.set(key, readPromise);
+      return readPromise;
+    }
     async function setDataDoc(key, value) {
+      const stored = typeof value === "string" ? value : JSON.stringify(value);
       const response = await fetchRequest(dataDocUrl(key), {
         method: "PATCH",
         headers: await getAuthHeaders(),
-        body: JSON.stringify({fields: {value: encodeFirestoreValue(typeof value === "string" ? value : JSON.stringify(value))}})
+        body: JSON.stringify({fields: {value: encodeFirestoreValue(stored)}})
       });
       if (!response.ok) throw new Error("Firestore data write failed");
       if (dataKeyCache) dataKeyCache.add(key);
+      dataValueVersion.set(key, (dataValueVersion.get(key) || 0) + 1);
+      dataValueCache.set(key, {
+        record: {value: stored},
+        expiresAt: Date.now() + DATA_VALUE_CACHE_TTL_MS
+      });
     }
     async function deleteDataDoc(key) {
       const response = await fetchRequest(dataDocUrl(key), {method: "DELETE", headers: await getAuthHeaders()});
       if (!response.ok && response.status !== 404) throw new Error("Firestore data delete failed");
       if (dataKeyCache) dataKeyCache.delete(key);
+      dataValueVersion.set(key, (dataValueVersion.get(key) || 0) + 1);
+      dataValueCache.set(key, {
+        record: null,
+        expiresAt: Date.now() + DATA_MISSING_CACHE_TTL_MS
+      });
     }
     async function listDataKeys() {
       if (dataKeyCache) return Array.from(dataKeyCache);

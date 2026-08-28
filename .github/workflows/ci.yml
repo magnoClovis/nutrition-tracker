@@ -10,7 +10,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: nutrition-validation-${{ github.ref }}
+  # Authenticated smoke tests share one disposable Firebase account. Serialize
+  # every branch and main run so their mutable fixtures cannot overlap.
+  group: nutrition-authenticated-suite
   cancel-in-progress: false
 
 jobs:
