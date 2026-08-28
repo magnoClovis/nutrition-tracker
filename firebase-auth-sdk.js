@@ -12,14 +12,22 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
-  function createFirebaseAuthSdk({ auth, sdk, localStorage, resetStorageCaches } = {}) {
+  function createFirebaseAuthSdk({
+    auth,
+    sdk,
+    localStorage,
+    resetStorageCaches,
+    userLifecycle = null,
+  } = {}) {
     const required = [
       "setPersistence", "signInWithEmailAndPassword", "createUserWithEmailAndPassword",
       "updateProfile", "sendEmailVerification", "sendPasswordResetEmail", "reload", "signOut",
       "emailCredential", "reauthenticateWithCredential", "updatePassword",
     ];
     if (!auth || !sdk || required.some(name => typeof sdk[name] !== "function") ||
-        !localStorage || typeof resetStorageCaches !== "function") {
+        !localStorage || typeof resetStorageCaches !== "function" ||
+        (userLifecycle && ["synchronizeUser", "clearForSignOut", "flushBeforeAccountDeletion", "sealAccountDeletion"]
+          .some(name => typeof userLifecycle[name] !== "function"))) {
       throw new TypeError("FirebaseAuthSdk requires Auth, modular SDK operations, storage, and cache reset");
     }
 
@@ -57,6 +65,7 @@
         .then(async () => {
           if (typeof auth.authStateReady === "function") await auth.authStateReady();
           knownUid = auth.currentUser?.uid || null;
+          if (userLifecycle) await userLifecycle.synchronizeUser(knownUid);
           clearLegacySessionKeys();
           return auth.currentUser;
         })
@@ -72,7 +81,10 @@
       const previousUid = auth.currentUser?.uid || knownUid;
       const result = await operation();
       const nextUid = auth.currentUser?.uid || result?.user?.uid || null;
-      if (previousUid !== nextUid) resetStorageCaches();
+      if (previousUid !== nextUid) {
+        if (userLifecycle) await userLifecycle.synchronizeUser(nextUid);
+        else resetStorageCaches();
+      }
       knownUid = nextUid;
       clearLegacySessionKeys();
       return result;
@@ -157,9 +169,11 @@
 
     async function fbSignOut() {
       await initialize();
+      const signingOutUid = auth.currentUser?.uid || knownUid;
+      if (userLifecycle) await userLifecycle.clearForSignOut(signingOutUid);
       await sdk.signOut(auth);
       knownUid = null;
-      resetStorageCaches();
+      if (!userLifecycle) resetStorageCaches();
       clearLegacySessionKeys();
       localStorage.removeItem("fb_email");
     }
@@ -170,6 +184,16 @@
 
     function getUid() {
       return auth.currentUser?.uid || null;
+    }
+
+    async function flushBeforeAccountDeletion() {
+      await initialize();
+      if (userLifecycle) await userLifecycle.flushBeforeAccountDeletion();
+    }
+
+    async function sealAccountDeletion() {
+      const currentUser = await requireUser();
+      if (userLifecycle) await userLifecycle.sealAccountDeletion(currentUser.uid);
     }
 
     return Object.freeze({
@@ -187,6 +211,8 @@
       fbSignOut,
       fbIsLoggedIn,
       getUid,
+      flushBeforeAccountDeletion,
+      sealAccountDeletion,
     });
   }
 
