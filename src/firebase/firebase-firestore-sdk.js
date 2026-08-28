@@ -5,12 +5,11 @@ import {
   doc,
   getDoc,
   getDocs,
-  getFirestore,
   setDoc,
 } from 'firebase/firestore';
 import '../../firebase-firestore-sdk.js';
 import { readLegacyNamespace } from '../leaf/read-legacy-namespace.js';
-import { getSharedFirebaseApp } from './firebase-app-client.js';
+import { createModularFirestoreLifecycle } from './firebase-firestore-lifecycle.js';
 
 const { createFirebaseFirestoreSdk } = readLegacyNamespace(
   globalThis,
@@ -18,10 +17,22 @@ const { createFirebaseFirestoreSdk } = readLegacyNamespace(
   ['createFirebaseFirestoreSdk'],
 );
 
-function createModularFirestoreClient({getUid}) {
-  return createFirebaseFirestoreSdk({
-    firestore: getFirestore(getSharedFirebaseApp()),
+function createModularFirestoreRuntime({
+  getUid,
+  localStorage = globalThis.localStorage,
+  BroadcastChannelCtor = globalThis.BroadcastChannel,
+} = {}) {
+  let client;
+  const lifecycle = createModularFirestoreLifecycle({
     getUid,
+    localStorage,
+    BroadcastChannelCtor,
+    resetStorageCaches: () => client?.resetStorageCaches(),
+  });
+  client = createFirebaseFirestoreSdk({
+    firestore: lifecycle.getFirestore,
+    getUid,
+    assertWritesAllowed: lifecycle.assertWritesAllowed,
     sdk: {
       collection,
       deleteDoc,
@@ -32,6 +43,15 @@ function createModularFirestoreClient({getUid}) {
       setDoc,
     },
   });
+  return Object.freeze({client, lifecycle});
 }
 
-export { createFirebaseFirestoreSdk, createModularFirestoreClient };
+function createModularFirestoreClient(options) {
+  return createModularFirestoreRuntime(options).client;
+}
+
+export {
+  createFirebaseFirestoreSdk,
+  createModularFirestoreClient,
+  createModularFirestoreRuntime,
+};

@@ -25,7 +25,7 @@ function user(uid, extra = {}) {
   };
 }
 
-function fixture(createFirebaseAuthSdk, {currentUser = null, local = {}} = {}) {
+function fixture(createFirebaseAuthSdk, {currentUser = null, local = {}, userLifecycle = null} = {}) {
   const calls = [];
   const auth = {
     currentUser,
@@ -64,6 +64,7 @@ function fixture(createFirebaseAuthSdk, {currentUser = null, local = {}} = {}) {
     sdk,
     localStorage,
     resetStorageCaches() { cacheResets++; },
+    userLifecycle,
   });
   return {auth, calls, client, localStorage, cacheResets: () => cacheResets};
 }
@@ -158,5 +159,56 @@ for (const [format, load] of implementations) {
     assert.equal(f.client.fbIsLoggedIn(), false);
     assert.equal(f.cacheResets(), 1);
     await assert.rejects(f.client.fbToken(), /Sem sessão/);
+  });
+
+  test(`${format}: coordinates persistent data lifecycle on login, deletion, and logout`, async () => {
+    const {createFirebaseAuthSdk} = await load();
+    const lifecycleCalls = [];
+    let f;
+    const userLifecycle = {
+      async synchronizeUser(uid) { lifecycleCalls.push(['synchronize', uid]); },
+      async clearForSignOut(uid) {
+        lifecycleCalls.push(['clear', uid]);
+        f.calls.push(['persistentCleanup']);
+      },
+      async flushBeforeAccountDeletion() { lifecycleCalls.push(['flush']); },
+      async sealAccountDeletion(uid) { lifecycleCalls.push(['seal', uid]); },
+    };
+    f = fixture(createFirebaseAuthSdk, {userLifecycle});
+    await f.client.fbSignIn('person@example.test', 'secret');
+    await f.client.flushBeforeAccountDeletion();
+    await f.client.sealAccountDeletion();
+    await f.client.fbSignOut();
+
+    assert.deepEqual(lifecycleCalls, [
+      ['synchronize', null],
+      ['synchronize', 'signed-in'],
+      ['flush'],
+      ['seal', 'signed-in'],
+      ['clear', 'signed-in'],
+    ]);
+    assert.equal(f.cacheResets(), 0);
+    assert.equal(
+      f.calls.findIndex(call => call[0] === 'persistentCleanup') <
+        f.calls.findIndex(call => call[0] === 'signOut'),
+      true,
+    );
+  });
+
+  test(`${format}: refuses to sign out if persistent cleanup cannot complete`, async () => {
+    const {createFirebaseAuthSdk} = await load();
+    const cleanupError = new Error('firestore-cache-cleanup-failed');
+    const f = fixture(createFirebaseAuthSdk, {
+      currentUser: user('existing'),
+      userLifecycle: {
+        async synchronizeUser() {},
+        async clearForSignOut() { throw cleanupError; },
+        async flushBeforeAccountDeletion() {},
+        async sealAccountDeletion() {},
+      },
+    });
+    await assert.rejects(f.client.fbSignOut(), error => error === cleanupError);
+    assert.equal(f.calls.some(call => call[0] === 'signOut'), false);
+    assert.equal(f.client.fbIsLoggedIn(), true);
   });
 }

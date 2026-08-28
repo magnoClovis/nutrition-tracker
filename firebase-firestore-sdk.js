@@ -78,10 +78,17 @@
     return parsed !== undefined && parsed !== null ? {value: storageValue(parsed)} : null;
   }
 
-  function createFirebaseFirestoreSdk({firestore, getUid, sdk, now = Date.now}) {
+  function createFirebaseFirestoreSdk({
+    firestore,
+    getUid,
+    sdk,
+    now = Date.now,
+    assertWritesAllowed = () => {},
+  }) {
     const required = ["doc", "collection", "getDoc", "setDoc", "deleteDoc", "getDocs", "deleteField"];
     if (!firestore || typeof getUid !== "function" || !sdk ||
-        required.some(name => typeof sdk[name] !== "function") || typeof now !== "function") {
+        required.some(name => typeof sdk[name] !== "function") || typeof now !== "function" ||
+        typeof assertWritesAllowed !== "function") {
       throw new TypeError("FirebaseFirestoreSdk requires Firestore, UID, and modular SDK operations");
     }
 
@@ -94,6 +101,10 @@
     const dataValuePending = new Map();
     const dataValueVersion = new Map();
     let storageCacheGeneration = 0;
+
+    function currentFirestore() {
+      return typeof firestore === "function" ? firestore() : firestore;
+    }
 
     function resetStorageCaches() {
       storageCacheGeneration++;
@@ -108,15 +119,15 @@
     }
 
     function userDocRef() {
-      return sdk.doc(firestore, "nutrition", String(getUid()));
+      return sdk.doc(currentFirestore(), "nutrition", String(getUid()));
     }
 
     function dataCollectionRef() {
-      return sdk.collection(firestore, "nutrition", String(getUid()), "data");
+      return sdk.collection(currentFirestore(), "nutrition", String(getUid()), "data");
     }
 
     function dataDocRef(key) {
-      return sdk.doc(firestore, "nutrition", String(getUid()), "data", String(key));
+      return sdk.doc(currentFirestore(), "nutrition", String(getUid()), "data", String(key));
     }
 
     async function fetchRootFields() {
@@ -165,6 +176,7 @@
 
     async function patchRootFields(fields, deleteKeys) {
       if (!getUid()) return;
+      assertWritesAllowed();
       const setFields = fields || {};
       const deletes = deleteKeys || [];
       const patch = {...setFields};
@@ -231,6 +243,7 @@
     }
 
     async function setDataDoc(key, value) {
+      assertWritesAllowed();
       const stored = typeof value === "string" ? value : JSON.stringify(value);
       try {
         await sdk.setDoc(dataDocRef(key), {value: stored});
@@ -246,6 +259,7 @@
     }
 
     async function deleteDataDoc(key) {
+      assertWritesAllowed();
       try {
         await sdk.deleteDoc(dataDocRef(key));
       } catch (error) {

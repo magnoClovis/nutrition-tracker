@@ -83,12 +83,14 @@ function createFixture(createFirebaseFirestoreSdk, {
   uid = UID,
   backend = createBackend(),
   now = () => Date.now(),
+  assertWritesAllowed = () => {},
 } = {}) {
   const client = createFirebaseFirestoreSdk({
     firestore: {name: 'shared-firestore'},
     getUid: () => uid,
     sdk: backend.sdk,
     now,
+    assertWritesAllowed,
   });
   return {client, backend};
 }
@@ -260,4 +262,17 @@ contractTest('clears adapter caches on account changes', async create => {
   assert.deepEqual(await client.fbGet3('pantry_v2'), {value: 'first'});
   client.resetStorageCaches();
   assert.deepEqual(await client.fbGet3('pantry_v2'), {value: 'second'});
+});
+
+contractTest('rejects writes before enqueueing them after the C22 lock', async create => {
+  const backend = createBackend();
+  const blocked = Object.assign(new Error('firestore-writes-blocked'), {
+    code: 'firestore-writes-blocked',
+  });
+  const {client} = create({backend, assertWritesAllowed() { throw blocked; }});
+
+  await assert.rejects(client.fbSet3('language', 'pt'), error => error === blocked);
+  await assert.rejects(client.fbSet3('pantry_v2', '[]'), error => error === blocked);
+  await assert.rejects(client.fbDel3('pantry_v2'), error => error === blocked);
+  assert.equal(backend.calls.some(call => ['setDoc', 'deleteDoc'].includes(call.operation)), false);
 });

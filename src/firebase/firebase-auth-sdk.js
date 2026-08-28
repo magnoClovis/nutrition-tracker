@@ -23,7 +23,7 @@ const { createFirebaseAuthSdk } = readLegacyNamespace(
   ['createFirebaseAuthSdk'],
 );
 
-function createModularAuthClient({ localStorage, resetStorageCaches }) {
+function createModularAuthClient({ localStorage, resetStorageCaches, userLifecycle = null }) {
   return createFirebaseAuthSdk({
     auth: getAuth(getSharedFirebaseApp()),
     sdk: {
@@ -42,6 +42,7 @@ function createModularAuthClient({ localStorage, resetStorageCaches }) {
     },
     localStorage,
     resetStorageCaches,
+    userLifecycle,
   });
 }
 
