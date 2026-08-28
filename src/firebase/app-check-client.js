@@ -1,62 +1,65 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
-import { getApps, initializeApp } from 'firebase/app';
 import {
+  CustomProvider,
   getToken as getFirebaseAppCheckToken,
   initializeAppCheck as initializeFirebaseAppCheck,
   ReCaptchaEnterpriseProvider,
 } from 'firebase/app-check';
 import '../../app-check-client.js';
 import { readLegacyNamespace } from '../leaf/read-legacy-namespace.js';
-import { createFirebaseConfig } from '../leaf/firebase-config-internal.js';
+import { getSharedFirebaseApp } from './firebase-app-client.js';
 
-const { createAppCheckClient } = readLegacyNamespace(
+const { createAppCheckClient, normalizeNativeAppCheckToken } = readLegacyNamespace(
   globalThis,
   'AppCheckClient',
-  ['createAppCheckClient'],
+  ['createAppCheckClient', 'normalizeNativeAppCheckToken'],
 );
 const FirebaseAppCheck = registerPlugin('FirebaseAppCheck');
-const WEB_APP_NAME = 'trofia-web-app-check';
-let webAppCheck = null;
+let sharedAppCheck = null;
 
 function readRequiredWebConfig() {
-  const appId = import.meta.env?.VITE_FIREBASE_WEB_APP_ID?.trim();
   const siteKey = import.meta.env?.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY?.trim();
-  if (!appId || !siteKey) {
+  if (!siteKey) {
     const error = new Error('app-check-web-not-configured');
     error.code = 'app-check-web-not-configured';
     throw error;
   }
-  return {appId, siteKey};
+  return {siteKey};
 }
 
 function initializeWeb() {
-  if (webAppCheck) return;
-  const {FB_KEY: apiKey, FB_PROJECT: projectId} = createFirebaseConfig();
-  const {appId, siteKey} = readRequiredWebConfig();
-  const existingApp = getApps().find(app => app.name === WEB_APP_NAME);
-  const firebaseApp = existingApp || initializeApp({
-    apiKey,
-    appId,
-    authDomain: `${projectId}.firebaseapp.com`,
-    projectId,
-  }, WEB_APP_NAME);
-  webAppCheck = initializeFirebaseAppCheck(firebaseApp, {
+  if (sharedAppCheck) return;
+  const {siteKey} = readRequiredWebConfig();
+  sharedAppCheck = initializeFirebaseAppCheck(getSharedFirebaseApp(), {
     provider: new ReCaptchaEnterpriseProvider(siteKey),
     isTokenAutoRefreshEnabled: true,
   });
 }
 
-async function getWebToken() {
-  if (!webAppCheck) initializeWeb();
-  const result = await getFirebaseAppCheckToken(webAppCheck, false);
-  return result?.token;
+async function readNativeToken() {
+  const result = await FirebaseAppCheck.getToken({forceRefresh: false});
+  return normalizeNativeAppCheckToken(result);
+}
+
+async function initializeNativeBridge() {
+  if (sharedAppCheck) return;
+  await FirebaseAppCheck.initialize({isTokenAutoRefreshEnabled: true});
+  sharedAppCheck = initializeFirebaseAppCheck(getSharedFirebaseApp(), {
+    provider: new CustomProvider({getToken: readNativeToken}),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
+
+async function getSdkToken() {
+  const result = await getFirebaseAppCheckToken(sharedAppCheck, false);
+  return result;
 }
 
 const client = createAppCheckClient({
-  getPlugin: () => FirebaseAppCheck,
   isNativePlatform: () => Capacitor.isNativePlatform(),
   initializeWeb,
-  getWebToken,
+  initializeNativeBridge,
+  getSdkToken,
 });
 
 const initializeAppCheck = () => client.initialize();
