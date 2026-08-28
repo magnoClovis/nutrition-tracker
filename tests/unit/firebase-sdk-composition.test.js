@@ -6,14 +6,26 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..', '..');
 const read = relativePath => fs.readFileSync(path.join(root, relativePath), 'utf8');
 
-test('App Check and modular Auth depend on the same lazy Firebase app', () => {
+test('App Check, modular Auth, and modular Firestore depend on the same lazy Firebase app', () => {
   const appCheck = read('src/firebase/app-check-client.js');
   const auth = read('src/firebase/firebase-auth-sdk.js');
+  const firestore = read('src/firebase/firebase-firestore-sdk.js');
   assert.match(appCheck, /getSharedFirebaseApp\(\)/);
   assert.match(auth, /getAuth\(getSharedFirebaseApp\(\)\)/);
+  assert.match(firestore, /getFirestore\(getSharedFirebaseApp\(\)\)/);
   assert.match(appCheck, /new CustomProvider\(\{getToken: readNativeToken\}\)/);
   assert.match(appCheck, /new ReCaptchaEnterpriseProvider\(siteKey\)/);
   assert.match(appCheck, /normalizeNativeAppCheckToken\(result\)/);
+});
+
+test('the modular Firestore adapter uses SDK operations instead of raw REST fetches', () => {
+  const adapter = read('firebase-firestore-sdk.js');
+  const composition = read('src/firebase/firebase-firestore-sdk.js');
+  assert.doesNotMatch(adapter, /fetchRequest|firestore\.googleapis\.com|Authorization:\s*["']Bearer/);
+  assert.doesNotMatch(composition, /fetch\s*\(/);
+  for (const operation of ['getDoc', 'setDoc', 'deleteDoc', 'getDocs']) {
+    assert.match(adapter, new RegExp(`sdk\\.${operation}\\(`));
+  }
 });
 
 test('the modular Auth adapter remains staged and does not cut over active sessions yet', () => {
@@ -22,4 +34,10 @@ test('the modular Auth adapter remains staged and does not cut over active sessi
   assert.doesNotMatch(activeFacade, /firebase-auth-sdk/);
   assert.doesNotMatch(app, /createModularAuthClient/);
   assert.match(activeFacade, /firebase-auth-internal/);
+});
+
+test('the modular Firestore adapter remains staged until the coordinated Auth cutover', () => {
+  const activeFacade = read('src/firebase/firebase-storage.js');
+  assert.doesNotMatch(activeFacade, /firebase-firestore-sdk/);
+  assert.match(activeFacade, /firebase-firestore-internal/);
 });
