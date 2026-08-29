@@ -109,8 +109,18 @@ test('keeps the native scanner overlay viewport-bound and theme-aware', () => {
 test('keeps one production ESM entry and a separate frozen legacy loader', () => {
   assert.equal((productionHtmlSource.match(/<script\b/g) || []).length, 3);
   assert.equal((productionHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 1);
-  assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 61);
-  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 59);
+  assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 62);
+  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 60);
   assert.match(legacyHtmlSource, /src="vendor\/react\.production\.min\.js"/);
+  assert.match(legacyHtmlSource, /src="daily-entry-model\.js\?v=/);
   assert.match(legacyHtmlSource, /src="app\.js\?v=/);
+});
+
+test('loads the daily entry mutation runtime before the legacy controller', () => {
+  const dailyEntryPosition = legacyHtmlSource.indexOf('src="daily-entry-model.js');
+  const controllerPosition = legacyHtmlSource.indexOf('src="nutrition-tracker-controller.js');
+
+  assert.notEqual(dailyEntryPosition, -1);
+  assert.notEqual(controllerPosition, -1);
+  assert.ok(dailyEntryPosition < controllerPosition);
 });
