@@ -20,6 +20,7 @@ function createBackend({root = {}, data = {}, granular = {}, failures = {}, dela
   const DELETE_FIELD = Symbol('delete-field');
   const SERVER_TIMESTAMP = Object.freeze({__serverTimestamp: true});
   const snapshotListeners = new Map();
+  let granularWriteCount = 0;
 
   function ref(type, segments) {
     return {type, path: segments.join('/')};
@@ -98,7 +99,11 @@ function createBackend({root = {}, data = {}, granular = {}, failures = {}, dela
         return;
       }
       if (reference.path.includes('/days/')) {
+        granularWriteCount++;
         if (failures.granularWrite) throw Object.assign(new Error('granular write'), {code: 'unavailable'});
+        if (failures.granularWriteAt === granularWriteCount) {
+          throw Object.assign(new Error('granular write'), {code: 'unavailable'});
+        }
         granularDocs.set(reference.path, clone(value));
         return;
       }
@@ -184,9 +189,11 @@ contractTest('requires explicit modular SDK operations', (_create, createFirebas
 contractTest('publishes the canonical CRUD contract and narrow backup support port', create => {
   const {client} = create();
   assert.deepEqual(Object.keys(client).sort(), [
-    'fbDel3', 'fbDelDailyEntry3', 'fbGet3', 'fbGetMany3', 'fbList3',
-    'fbListDailyEntries3', 'fbSet3', 'fbSetDailyEntry3', 'fbSubscribeMany3',
-    'resetStorageCaches', 'support',
+    'fbDel3', 'fbDelDailyEntry3', 'fbGet3', 'fbGetDailyMigration3',
+    'fbGetMany3', 'fbList3', 'fbListDailyEntries3',
+    'fbListDailyEntriesCompatible3', 'fbMigrateDailyEntries3',
+    'fbReadDailyStateCompatible3', 'fbSet3', 'fbSetDailyEntry3',
+    'fbSubscribeMany3', 'resetStorageCaches', 'support',
   ]);
   assert.equal(typeof client.support.loadRootFields, 'function');
   assert.equal(typeof client.support.listDataKeys, 'function');
@@ -440,6 +447,151 @@ contractTest('fails closed when a granular document does not match its path enve
     client.fbListDailyEntries3('water', '2026-08-29'),
     /Invalid granular daily entry document/,
   );
+});
+
+contractTest('merges legacy aggregates with granular entries and lets granular IDs win', async create => {
+  const date = '2026-08-29';
+  const backend = createBackend({
+    data: {
+      [`log_v2_${date}`]: JSON.stringify({
+        'Almoço': [
+          {id: 'meal-shared', name: 'Arroz antigo', kcal: 100},
+          {name: 'Feijão', kcal: 90},
+          {id: 'meal-shared', name: 'Arroz duplicado antigo', kcal: 80},
+        ],
+      }),
+    },
+    granular: {
+      [`nutrition/${UID}/days/${date}/meals/meal-shared`]: {
+        schemaVersion: 1,
+        id: 'meal-shared',
+        date,
+        mealKey: 'Almoço',
+        entry: {id: 'meal-shared', name: 'Arroz editado', kcal: 130},
+        updatedAt: null,
+      },
+      [`nutrition/${UID}/days/${date}/meals/meal-new`]: {
+        schemaVersion: 1,
+        id: 'meal-new',
+        date,
+        mealKey: 'Jantar',
+        entry: {id: 'meal-new', name: 'Sopa', kcal: 180},
+        updatedAt: null,
+      },
+    },
+  });
+  const {client} = create({backend});
+
+  const first = await client.fbListDailyEntriesCompatible3('meal', date);
+  const second = await client.fbListDailyEntriesCompatible3('meal', date);
+  assert.deepEqual(first.map(document => document.entry.name), [
+    'Arroz editado', 'Feijão', 'Arroz duplicado antigo', 'Sopa',
+  ]);
+  assert.equal(first[0].id, 'meal-shared');
+  assert.match(first[1].id, /^legacy_meal_[a-f0-9]{16}$/);
+  assert.equal(first[1].id, second[1].id);
+  assert.match(first[2].id, /^legacy_meal_[a-f0-9]{16}$/);
+  assert.equal(new Set(first.map(document => document.id)).size, first.length);
+});
+
+contractTest('migrates missing legacy entries before marking a kind complete', async create => {
+  const date = '2026-08-29';
+  const backend = createBackend({data: {
+    [`waterIntake_${date}`]: JSON.stringify([
+      {id: 'water-existing', ml: 250},
+      {ml: 500},
+    ]),
+  }, granular: {
+    [`nutrition/${UID}/days/${date}/water/water-existing`]: {
+      schemaVersion: 1,
+      id: 'water-existing',
+      date,
+      entry: {id: 'water-existing', ml: 250},
+      updatedAt: null,
+    },
+  }});
+  const {client} = create({backend});
+
+  assert.deepEqual(await client.fbMigrateDailyEntries3('water', date), {
+    migrated: 1,
+    alreadyComplete: false,
+  });
+  const markerPath = `nutrition/${UID}/days/${date}/migrations/water`;
+  assert.equal(backend.granularDocs.get(markerPath).complete, true);
+  assert.equal((await client.fbListDailyEntriesCompatible3('water', date)).length, 2);
+
+  const migratedId = Array.from(backend.granularDocs.keys())
+    .find(path => path.includes(`days/${date}/water/legacy_water_`))
+    .split('/').pop();
+  await client.fbDelDailyEntry3('water', date, migratedId);
+  assert.deepEqual(
+    (await client.fbListDailyEntriesCompatible3('water', date)).map(item => item.id),
+    ['water-existing'],
+    'completed migration must not resurrect an entry from the aggregate',
+  );
+  assert.deepEqual(await client.fbMigrateDailyEntries3('water', date), {
+    migrated: 0,
+    alreadyComplete: true,
+  });
+});
+
+contractTest('reconstructs the controller daily shape from compatible documents', async create => {
+  const date = '2026-08-29';
+  const backend = createBackend({data: {
+    [`log_v2_${date}`]: JSON.stringify({'Café da manhã': [{name: 'Aveia'}]}),
+    [`waterIntake_${date}`]: JSON.stringify([{ml: 250}]),
+    [`suppLog_${date}`]: JSON.stringify([{name: 'Creatina'}]),
+  }});
+  const {client} = create({backend});
+
+  const state = await client.fbReadDailyStateCompatible3(date);
+  assert.equal(state.log['Café da manhã'][0].name, 'Aveia');
+  assert.match(state.log['Café da manhã'][0].id, /^legacy_meal_/);
+  assert.equal(state.waterIntake[0].ml, 250);
+  assert.match(state.waterIntake[0].id, /^legacy_water_/);
+  assert.equal(state.supplementLog[0].name, 'Creatina');
+  assert.match(state.supplementLog[0].id, /^legacy_supplement_/);
+});
+
+contractTest('does not write the completion marker after a partial migration failure', async create => {
+  const date = '2026-08-29';
+  const failures = {granularWriteAt: 2};
+  const backend = createBackend({data: {
+    [`suppLog_${date}`]: JSON.stringify([
+      {name: 'Creatina', dose: 5},
+      {name: 'Vitamina D', dose: 1},
+    ]),
+  }, failures});
+  const {client} = create({backend});
+  const markerPath = `nutrition/${UID}/days/${date}/migrations/supplement`;
+
+  await assert.rejects(
+    client.fbMigrateDailyEntries3('supplement', date),
+    /Firestore granular entry write failed/,
+  );
+  assert.equal(backend.granularDocs.has(markerPath), false);
+  assert.equal((await client.fbListDailyEntriesCompatible3('supplement', date)).length, 2);
+
+  failures.granularWriteAt = null;
+  assert.deepEqual(await client.fbMigrateDailyEntries3('supplement', date), {
+    migrated: 1,
+    alreadyComplete: false,
+  });
+  assert.equal(backend.granularDocs.get(markerPath).complete, true);
+});
+
+contractTest('fails closed on malformed aggregate data before migration writes', async create => {
+  const date = '2026-08-29';
+  const backend = createBackend({data: {
+    [`waterIntake_${date}`]: JSON.stringify({unexpected: true}),
+  }});
+  const {client} = create({backend});
+
+  await assert.rejects(
+    client.fbMigrateDailyEntries3('water', date),
+    /Invalid legacy daily aggregate/,
+  );
+  assert.equal(backend.calls.some(call => call.operation === 'setDoc'), false);
 });
 
 contractTest('loads grouped records from cache before falling back to network', async create => {

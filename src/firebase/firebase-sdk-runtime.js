@@ -34,6 +34,9 @@ function createModularFirebaseRuntime({
       setDailyEntry: firestoreRuntime.client.fbSetDailyEntry3,
       deleteDailyEntry: firestoreRuntime.client.fbDelDailyEntry3,
       listDailyEntries: firestoreRuntime.client.fbListDailyEntries3,
+      listDailyEntriesCompatible: firestoreRuntime.client.fbListDailyEntriesCompatible3,
+      readDailyStateCompatible: firestoreRuntime.client.fbReadDailyStateCompatible3,
+      migrateDailyEntries: firestoreRuntime.client.fbMigrateDailyEntries3,
     }),
     lifecycle: firestoreRuntime.lifecycle,
   });

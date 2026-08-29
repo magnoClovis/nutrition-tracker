@@ -17,11 +17,19 @@ import { createModularFirestoreLifecycle } from './firebase-firestore-lifecycle.
 const {
   buildDailyEntryDocument,
   createFirebaseFirestoreSdk,
+  mergeCompatibleDailyEntries,
   normalizeDailyEntryIdentity,
+  normalizeLegacyDailyEntries,
 } = readLegacyNamespace(
   globalThis,
   'FirebaseFirestoreSdk',
-  ['createFirebaseFirestoreSdk', 'buildDailyEntryDocument', 'normalizeDailyEntryIdentity'],
+  [
+    'createFirebaseFirestoreSdk',
+    'buildDailyEntryDocument',
+    'normalizeDailyEntryIdentity',
+    'normalizeLegacyDailyEntries',
+    'mergeCompatibleDailyEntries',
+  ],
 );
 
 function createModularFirestoreRuntime({
@@ -65,5 +73,7 @@ export {
   createFirebaseFirestoreSdk,
   createModularFirestoreClient,
   createModularFirestoreRuntime,
+  mergeCompatibleDailyEntries,
   normalizeDailyEntryIdentity,
+  normalizeLegacyDailyEntries,
 };

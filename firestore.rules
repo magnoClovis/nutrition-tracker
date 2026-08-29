@@ -113,6 +113,25 @@ service cloud.firestore {
           allow delete: if isOwnUserDoc()
             && !accountDeletionLocked(uid);
         }
+
+        // A marker is written only after every legacy aggregate entry for one
+        // kind has been copied successfully. Once present, readers can ignore
+        // the old aggregate without resurrecting a deleted granular entry.
+        match /migrations/{kind} {
+          allow read: if isOwnUserDoc();
+          allow create, update: if isOwnUserDoc()
+            && !accountDeletionLocked(uid)
+            && kind.matches('^(meal|water|supplement)$')
+            && request.resource.data.keys().hasOnly([
+              'schemaVersion', 'kind', 'date', 'complete', 'updatedAt'
+            ])
+            && request.resource.data.schemaVersion == 1
+            && request.resource.data.kind == kind
+            && request.resource.data.date == date
+            && request.resource.data.complete == true
+            && request.resource.data.updatedAt == request.time;
+          allow delete: if false;
+        }
       }
     }
 
