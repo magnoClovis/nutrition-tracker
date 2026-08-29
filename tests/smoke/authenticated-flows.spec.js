@@ -324,7 +324,7 @@ test.describe('authenticated critical data flows', () => {
 
       const modal = page.locator('[data-meal-review-modal="true"]');
       await expect(modal).toBeVisible();
-      const firstScore = await modal.getByText(/^\d\.\d{2}$/).first().textContent();
+      await expect(modal.getByText(/^\d\.\d{2}$/).first()).toBeVisible();
       await modal.getByRole('button', { name: 'Editar', exact: true }).click();
 
       const stagedItem = stagedMeal.locator('[data-tutorial="pantry-food-name"]').filter({ hasText: fixture.name });
@@ -334,8 +334,7 @@ test.describe('authenticated critical data flows', () => {
       await stagedMeal.getByRole('button', { name: /Avaliar refeição/i }).click();
 
       await expect(modal).toBeVisible();
-      const secondScore = await modal.getByText(/^\d\.\d{2}$/).first().textContent();
-      expect(secondScore).not.toBe(firstScore);
+      await expect(modal.getByText(/^\d\.\d{2}$/).first()).toBeVisible();
       await modal.getByRole('button', { name: /Registrar mesmo assim/i }).click();
       await expect(stagedMeal).toBeHidden();
       await dismissTutorialIfVisible(page);
@@ -349,6 +348,8 @@ test.describe('authenticated critical data flows', () => {
       expect(storedEntry.qty).toBe(200);
       expect(storedEntry.mealScoreSnapshot.score).toBeGreaterThanOrEqual(0);
       expect(storedEntry.mealScoreSnapshot.score).toBeLessThanOrEqual(5);
+      expect(storedEntry.mealScoreSnapshot.components.protein.mealAmount).toBe(50);
+      expect(storedEntry.mealScoreSnapshot.components.kcal.mealAmount).toBe(360);
       const unexpectedErrors = errors.filter(error => !/Failed to load resource: net::ERR_TIMED_OUT/i.test(error));
       await expectNoCriticalErrors(unexpectedErrors);
     } finally {
