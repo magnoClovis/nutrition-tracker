@@ -18,7 +18,7 @@ function memoryStorage(initial = {}) {
 }
 
 function fixture(api, {
-  uid = 'user-a', initial = {}, clearFailure = null, native = false,
+  uid = 'user-a', initial = {}, clearFailure = null, native = false, online = true,
 } = {}) {
   const calls = [];
   const localStorage = memoryStorage(initial);
@@ -70,6 +70,7 @@ function fixture(api, {
     BroadcastChannelCtor: FakeBroadcastChannel,
     settleTabs: async () => { calls.push(['settle']); },
     isNativePlatform: () => native,
+    isOnline: () => online,
   });
   return {
     api, calls, instances, lifecycle, localStorage, listeners,
@@ -133,6 +134,23 @@ for (const [format, load] of implementations) {
     assert.equal(JSON.parse(f.localStorage.getItem(api.WRITE_BLOCK_KEY)).reason, 'account-deletion');
     assert.equal(f.calls.some(call => call[0] === 'clear'), true);
     assert.equal(f.syncResetCount(), 1);
+  });
+
+  test(`${format}: backup flushes online writes and marks offline snapshots without waiting`, async () => {
+    const api = await load();
+    const online = fixture(api, {online: true});
+    const onlineState = await online.lifecycle.prepareBackupExport();
+    assert.deepEqual(onlineState, {mode: 'online', pendingWrites: 'flushed'});
+    assert.equal(online.calls.filter(call => call[0] === 'wait').length, 1);
+
+    const offline = fixture(api, {online: false});
+    const offlineState = await offline.lifecycle.prepareBackupExport();
+    assert.deepEqual(offlineState, {mode: 'offline', pendingWrites: 'included-from-local-cache'});
+    assert.equal(offline.calls.some(call => call[0] === 'wait'), false);
+
+    const restored = await offline.lifecycle.completeBackupRestore();
+    assert.deepEqual(restored, {mode: 'offline', pendingWrites: 'queued'});
+    assert.equal(offline.calls.some(call => call[0] === 'wait'), false);
   });
 
   test(`${format}: a failed purge remains fail-closed and does not clear ownership`, async () => {

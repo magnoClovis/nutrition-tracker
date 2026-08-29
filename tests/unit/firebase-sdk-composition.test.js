@@ -29,6 +29,8 @@ test('the staged lifecycle clears persistent data and guards writes across accou
   assert.match(lifecycle, /clearIndexedDbPersistence/);
   assert.match(lifecycle, /sealAccountDeletion/);
   assert.match(lifecycle, /flushBeforeAccountDeletion/);
+  assert.match(lifecycle, /prepareBackupExport/);
+  assert.match(lifecycle, /completeBackupRestore/);
   assert.match(lifecycle, /BroadcastChannelCtor/);
   assert.match(lifecycle, /resetSyncState/);
   assert.match(adapter, /assertWritesAllowed\(\)/);
@@ -42,6 +44,9 @@ test('the staged lifecycle clears persistent data and guards writes across accou
   assert.match(runtime, /migrateDailyEntries:\s*firestoreRuntime\.client\.fbMigrateDailyEntries3/);
   assert.match(runtime, /applyDailyEntryBatch:\s*firestoreRuntime\.client\.fbApplyDailyEntryBatch3/);
   assert.match(runtime, /sync:\s*firestoreRuntime\.syncState/);
+  assert.match(runtime, /backup,/);
+  assert.match(runtime, /prepareExport:\s*firestoreRuntime\.lifecycle\.prepareBackupExport/);
+  assert.match(runtime, /completeRestore:\s*firestoreRuntime\.lifecycle\.completeBackupRestore/);
 });
 
 test('the staged runtime owns one sync-state coordinator and clears it with account data', () => {

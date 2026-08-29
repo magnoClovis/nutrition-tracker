@@ -3724,8 +3724,16 @@
             ...(options.destination ? {destination: options.destination} : {})
           });
           if (exportResult?.cancelled) return exportResult;
-          notify(text('notifBackupDone'));
-          return exportResult;
+          if (backup?.consistency?.mode === 'offline') {
+            notify(uiText(
+              'Backup offline gerado com os dados disponíveis neste dispositivo; alterações pendentes serão sincronizadas ao reconectar.',
+              'Offline backup created with the data available on this device; pending changes will sync after reconnecting.',
+              'Backup sin conexión creado con los datos disponibles en este dispositivo; los cambios pendientes se sincronizarán al reconectar.'
+            ));
+          } else {
+            notify(text('notifBackupDone'));
+          }
+          return {...(exportResult || {}), consistency: backup?.consistency || null};
         } catch (e) {
           notify(uiText("Erro ao exportar: ", "Export error: ", "Error al exportar: ") + e.message);
           return {error: e};

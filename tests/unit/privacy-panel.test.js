@@ -108,6 +108,8 @@ function createFixture(createPrivacyPanel, {
         if (requestDeletionError) throw requestDeletionError;
         return {status: "accepted", requestId: "request_0123456789"};
       },
+      async prepareDeletion() { events.push("prepareDeletion"); },
+      async finalizeDeletion() { events.push("finalizeDeletion"); },
       async suspendAutosaves() { events.push("suspendAutosaves"); },
       resumeAutosaves() { events.push("resumeAutosaves"); },
       clearLocalAccountData() { events.push("clearLocalAccountData"); },
@@ -253,9 +255,10 @@ contractTest("accepts the backend job before local cleanup and logout", async cr
   assert.deepEqual(fixture.events, [
     "signIn:person@example.com:current123",
     "suspendAutosaves",
+    "prepareDeletion",
     "requestDeletion",
+    "finalizeDeletion",
     "clearLocalAccountData",
-    "signOut",
     "setTimeout:1500",
   ]);
   assert.match(elementText(fixture.harness.tree), /Deletion started/);
@@ -277,6 +280,7 @@ contractTest("resumes autosaves and preserves local data when the backend reject
   assert.deepEqual(fixture.events, [
     "signIn:person@example.com:current123",
     "suspendAutosaves",
+    "prepareDeletion",
     "requestDeletion",
     "resumeAutosaves",
   ]);

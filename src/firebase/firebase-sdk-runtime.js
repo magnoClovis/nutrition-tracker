@@ -1,5 +1,11 @@
 import { createModularAuthClient } from './firebase-auth-sdk.js';
 import { createModularFirestoreRuntime } from './firebase-firestore-sdk.js';
+import { createFirebaseBackup } from './firebase-backup-internal.js';
+import {
+  mergeArrayValues,
+  mergeObjectValues,
+  normalizedIdentity,
+} from './firebase-backup-merge-internal.js';
 
 /**
  * Builds the staged C28 SDK runtime with one account lifecycle shared by Auth
@@ -21,8 +27,26 @@ function createModularFirebaseRuntime({
     resetStorageCaches: firestoreRuntime.client.resetStorageCaches,
     userLifecycle: firestoreRuntime.lifecycle,
   });
+  const backup = createFirebaseBackup({
+    getUid: authClient.getUid,
+    fbGet3: firestoreRuntime.client.fbGet3,
+    fbSet3: firestoreRuntime.client.fbSet3,
+    clearLocalFallback: key => localStorage.removeItem(key),
+    storageValue2: firestoreRuntime.client.support.storageValue,
+    parseStorageJson3: firestoreRuntime.client.support.parseStorageJson,
+    loadRootFields3: firestoreRuntime.client.support.loadRootFields,
+    listDataKeys3: firestoreRuntime.client.support.listDataKeys,
+    getDataDoc3: firestoreRuntime.client.support.getDataDoc,
+    patchRootFields3: firestoreRuntime.client.support.patchRootFields,
+    normalizedIdentity,
+    mergeArrayValues,
+    mergeObjectValues,
+    prepareExport: firestoreRuntime.lifecycle.prepareBackupExport,
+    completeRestore: firestoreRuntime.lifecycle.completeBackupRestore,
+  });
   return Object.freeze({
     auth: authClient,
+    backup,
     firestore: firestoreRuntime.client,
     storage: Object.freeze({
       get: firestoreRuntime.client.fbGet3,

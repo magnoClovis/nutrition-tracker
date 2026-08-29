@@ -196,6 +196,16 @@
       if (userLifecycle) await userLifecycle.sealAccountDeletion(currentUser.uid);
     }
 
+    async function finalizeAccountDeletion() {
+      const currentUser = await requireUser();
+      if (userLifecycle) await userLifecycle.sealAccountDeletion(currentUser.uid);
+      await sdk.signOut(auth);
+      knownUid = null;
+      if (!userLifecycle) resetStorageCaches();
+      clearLegacySessionKeys();
+      localStorage.removeItem("fb_email");
+    }
+
     return Object.freeze({
       initialize,
       fbSignIn,
@@ -213,6 +223,7 @@
       getUid,
       flushBeforeAccountDeletion,
       sealAccountDeletion,
+      finalizeAccountDeletion,
     });
   }
 

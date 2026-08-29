@@ -56,7 +56,9 @@
     patchRootFields3,
     normalizedIdentity,
     mergeArrayValues,
-    mergeObjectValues
+    mergeObjectValues,
+    prepareExport = async () => null,
+    completeRestore = async () => null
   }) {
     const ACCOUNT_BACKUP_SCHEMA = "nutrition-tracker-account-backup";
     const ACCOUNT_BACKUP_VERSION = 3;
@@ -179,6 +181,8 @@
     async function exportFullAccountBackup3() {
       if (!getUid()) throw new Error("No authenticated user");
 
+      const consistency = await prepareExport();
+
       const rootFields = await loadRootFields3().catch(() => ({}));
       const dataKeys = await listDataKeys3().catch(() => []);
 
@@ -199,6 +203,7 @@
         schema: ACCOUNT_BACKUP_SCHEMA,
         version: ACCOUNT_BACKUP_VERSION,
         exportedAt: new Date().toISOString(),
+        ...(consistency ? {consistency} : {}),
         root,
         data,
         counts: {
@@ -420,9 +425,12 @@
         _legacyCleanupDone: true
       }, ["_legacyCleanupErrorAt"]);
 
+      const sync = await completeRestore();
+
       return {
         imported,
-        skipped
+        skipped,
+        ...(sync ? {sync} : {})
       };
     }
 
