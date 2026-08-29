@@ -40,6 +40,7 @@ test('the staged lifecycle clears persistent data and guards writes across accou
   assert.match(runtime, /listDailyEntriesCompatible:\s*firestoreRuntime\.client\.fbListDailyEntriesCompatible3/);
   assert.match(runtime, /readDailyStateCompatible:\s*firestoreRuntime\.client\.fbReadDailyStateCompatible3/);
   assert.match(runtime, /migrateDailyEntries:\s*firestoreRuntime\.client\.fbMigrateDailyEntries3/);
+  assert.match(runtime, /applyDailyEntryBatch:\s*firestoreRuntime\.client\.fbApplyDailyEntryBatch3/);
   assert.match(runtime, /sync:\s*firestoreRuntime\.syncState/);
 });
 
@@ -59,7 +60,7 @@ test('the modular Firestore adapter uses SDK operations instead of raw REST fetc
   const composition = read('src/firebase/firebase-firestore-sdk.js');
   assert.doesNotMatch(adapter, /fetchRequest|firestore\.googleapis\.com|Authorization:\s*["']Bearer/);
   assert.doesNotMatch(composition, /fetch\s*\(/);
-  for (const operation of ['getDoc', 'setDoc', 'deleteDoc', 'getDocs']) {
+  for (const operation of ['getDoc', 'setDoc', 'deleteDoc', 'getDocs', 'writeBatch']) {
     assert.match(adapter, new RegExp(`sdk\\.${operation}\\(`));
   }
 });

@@ -1,8 +1,8 @@
 /**
  * MAXIMUM-CAUTION CONTROLLER CORE for the Trofia application.
  *
- * This UMD module owns the complete NutritionTracker controller: its 152 React
- * states, 37 effects, 20 refs, local callbacks, and the temporal hydration /
+ * This UMD module owns the complete NutritionTracker controller: its 155 React
+ * states, 40 effects, 25 refs, local callbacks, and the temporal hydration /
  * autosave protocol. Hook order and effect dependency arrays are behavioral
  * contracts. The eleven render-scoped factories below intentionally remain
  * inside NutritionTracker so they receive the current render closures; do not
@@ -151,11 +151,28 @@
       waterIntake: DAILY_STORAGE_PREFIXES.waterIntake + date,
       supplementLog: DAILY_STORAGE_PREFIXES.supplementLog + date
     };
+    if (typeof storage.readDailyStateCompatible === "function") {
+      const [dailyState, noteRecord] = await Promise.all([
+        storage.readDailyStateCompatible(date),
+        storage.get(keys.note)
+      ]);
+      return {
+        date,
+        keys,
+        hydratedKeys: [keys.log, keys.waterIntake, keys.supplementLog].concat(
+          noteRecord ? [keys.note] : []
+        ),
+        log: typeof normalizeMealKeys === "function"
+          ? normalizeMealKeys(dailyState.log || {})
+          : (dailyState.log || {}),
+        note: noteRecord && typeof noteRecord.value === "string" ? noteRecord.value : "",
+        waterIntake: Array.isArray(dailyState.waterIntake) ? dailyState.waterIntake : [],
+        supplementLog: Array.isArray(dailyState.supplementLog) ? dailyState.supplementLog : []
+      };
+    }
     const [logRecord, noteRecord, waterRecord, supplementRecord] = await Promise.all([
-      storage.get(keys.log),
-      storage.get(keys.note),
-      storage.get(keys.waterIntake),
-      storage.get(keys.supplementLog)
+      storage.get(keys.log), storage.get(keys.note),
+      storage.get(keys.waterIntake), storage.get(keys.supplementLog)
     ]);
     const parsedLog = parseDailyJson(logRecord, {});
     return {
@@ -1290,6 +1307,7 @@
       const [showSuppAdd, setShowSuppAdd] = useState(false);
       const [suppAddId, setSuppAddId] = useState("");
       const [suppAddDose, setSuppAddDose] = useState("");
+      const dailyLogSnapshotsRef = useRef(new Map());
       // Custom goals
       const [customGoals, setCustomGoals] = useState({});
       const [editingGoals, setEditingGoals] = useState(false);
@@ -1311,6 +1329,11 @@
       const [editEntryId, setEditEntryId] = useState(null);
       const [editEntryQty, setEditEntryQty] = useState("");
       const saveTimeout = useRef({});
+      const dailyEntryPersistenceRef = useRef(null);
+      if (!dailyEntryPersistenceRef.current) {
+        dailyEntryPersistenceRef.current = window.DailyEntryPersistence.createDailyEntryPersistence({storage});
+      }
+      const dailyEntryPersistence = dailyEntryPersistenceRef.current;
       const { scheduleSave, suspend: suspendAutosaves, resume: resumeAutosaves } = window.AutosaveScheduler.createAutosaveScheduler({
         storage,
         setTimer: (callback, delay) => setTimeout(callback, delay),
@@ -1403,6 +1426,16 @@
             proteinMultiplier: pm && pm.value ? pm.value : "",
             bodyFatGoal: bfg && bfg.value ? bfg.value : ""
           });
+          if (dailyEntryPersistence.granular) {
+            const dailyState = await readDailyStateForDate({storage, date: TODAY, normalizeMealKeys});
+            setLog(dailyState.log);
+            setWaterIntake(dailyState.waterIntake);
+            setSuppLog(dailyState.supplementLog);
+            dailyLogSnapshotsRef.current.set(TODAY, dailyState.log);
+            dailyEntryPersistence.seed("meal", TODAY, dailyState.log);
+            dailyEntryPersistence.seed("water", TODAY, dailyState.waterIntake);
+            dailyEntryPersistence.seed("supplement", TODAY, dailyState.supplementLog);
+          }
         } catch (_) {}
         clearTimeout(_loadTimeout);
         setSyncing(false);
@@ -1455,6 +1488,12 @@
                   setTodayNote(dailyState.note);
                   setWaterIntake(dailyState.waterIntake);
                   setSuppLog(dailyState.supplementLog);
+                  dailyLogSnapshotsRef.current.set(nextDate, dailyState.log);
+                  if (dailyEntryPersistence.granular) {
+                    dailyEntryPersistence.seed("meal", nextDate, dailyState.log);
+                    dailyEntryPersistence.seed("water", nextDate, dailyState.waterIntake);
+                    dailyEntryPersistence.seed("supplement", nextDate, dailyState.supplementLog);
+                  }
                   if (viewDateRef.current === previousDate) {
                     viewDateRef.current = nextDate;
                     setViewDate(nextDate);
@@ -1503,7 +1542,12 @@
         if (loaded && canPersistHydratedKey("pantry_v2", pantry, hydratedStorageKeysRef.current)) scheduleSave("pantry_v2", pantry);
       }, [pantry, loaded]);
       useEffect(() => {
-        if (loaded) scheduleSave("log_v2_" + TODAY, log);
+        if (!loaded) return;
+        if (dailyEntryPersistence.granular) {
+          dailyEntryPersistence.persist("meal", TODAY, log).catch(() => {});
+        } else {
+          scheduleSave("log_v2_" + TODAY, log);
+        }
       }, [log, loaded, TODAY]);
       useEffect(() => {
         if (loaded && canPersistHydratedKey("trainingByDate", trainingByDate, hydratedStorageKeysRef.current)) scheduleSave("trainingByDate", trainingByDate);
@@ -1531,13 +1575,23 @@
         if (loaded && waterCustomPreset) scheduleSave("waterCustomPreset", waterCustomPreset);
       }, [waterCustomPreset, loaded]);
       useEffect(() => {
-        if (loaded) scheduleSave("waterIntake_" + TODAY, waterIntake);
+        if (!loaded) return;
+        if (dailyEntryPersistence.granular) {
+          dailyEntryPersistence.persist("water", TODAY, waterIntake).catch(() => {});
+        } else {
+          scheduleSave("waterIntake_" + TODAY, waterIntake);
+        }
       }, [waterIntake, loaded, TODAY]);
       useEffect(() => {
         if (loaded && canPersistHydratedKey("suppPantry", suppPantry, hydratedStorageKeysRef.current)) scheduleSave("suppPantry", suppPantry);
       }, [suppPantry, loaded]);
       useEffect(() => {
-        if (loaded) scheduleSave("suppLog_" + TODAY, suppLog);
+        if (!loaded) return;
+        if (dailyEntryPersistence.granular) {
+          dailyEntryPersistence.persist("supplement", TODAY, suppLog).catch(() => {});
+        } else {
+          scheduleSave("suppLog_" + TODAY, suppLog);
+        }
       }, [suppLog, loaded, TODAY]);
       useEffect(() => {
         if (loaded && canPersistHydratedKey("customGoals", customGoals, hydratedStorageKeysRef.current)) scheduleSave("customGoals", customGoals);
@@ -1555,6 +1609,10 @@
           const result = await loadHistoricalDate({ date, today: TODAY });
           setHistoryLog(result.historyLog);
           setHistoryNote(result.historyNote);
+          dailyLogSnapshotsRef.current.set(date, result.historyLog);
+          if (dailyEntryPersistence.granular) {
+            dailyEntryPersistence.seed("meal", date, result.historyLog);
+          }
         }
       }
       // Calculates the goal snapshot for one date and one explicit day type.
@@ -2856,6 +2914,7 @@
       const bmiNum = currentWeight && currentHeight ? currentWeight / (currentHeight / 100) ** 2 : null;
       const bmi = bmiNum ? bmiNum.toFixed(1) : null;
       const activeLog = isToday ? log : historyLog;
+      dailyLogSnapshotsRef.current.set(viewDate, activeLog);
       // Update data refs now that all derived state is available
       window._exportData = {
         activeLog, log, TODAY, isTraining, goals, goalHistory, trainingByDate,
@@ -2863,13 +2922,19 @@
         weightHistory
       };
       function setActiveLog(newLog) {
-        if (isToday) {
-          setLog(newLog);
-        } else {
-          const resolvedLog = typeof newLog === "function" ? newLog(historyLog) : newLog;
+        const previous = dailyLogSnapshotsRef.current.get(viewDate) || activeLog || {};
+        const resolvedLog = typeof newLog === "function" ? newLog(previous) : newLog;
+        dailyLogSnapshotsRef.current.set(viewDate, resolvedLog);
+        if (isToday) setLog(resolvedLog);
+        else {
           setHistoryLog(resolvedLog);
-          scheduleSave("log_v2_" + viewDate, resolvedLog);
+          if (dailyEntryPersistence.granular) {
+            dailyEntryPersistence.persist("meal", viewDate, resolvedLog).catch(() => {});
+          } else {
+            scheduleSave("log_v2_" + viewDate, resolvedLog);
+          }
         }
+        return resolvedLog;
       }
       function captureMealRegistrationOrigin() {
         if (mealRegistrationOriginRef.current) return;
@@ -2909,22 +2974,26 @@
       }
       async function saveMealRegistration(meal, items) {
         if (mealRegistrationSavingRef.current) return null;
+        const mutation = {type: "add", entries: items};
         const nextLog = window.DailyEntryModel.applyMealLogMutation(
-          activeLog,
+          dailyLogSnapshotsRef.current.get(viewDate) || activeLog,
           meal,
-          {type: "add", entries: items}
+          mutation
         );
         mealRegistrationSavingRef.current = true;
         setMealRegistrationSaving(true);
         try {
-          await persistMealRegistration({
-            storage,
-            key: "log_v2_" + viewDate,
-            nextLog
-          });
+          if (dailyEntryPersistence.granular) {
+            await dailyEntryPersistence.persist("meal", viewDate, nextLog);
+          } else {
+            await persistMealRegistration({storage, key: "log_v2_" + viewDate, nextLog});
+          }
           hydratedStorageKeysRef.current.add("log_v2_" + viewDate);
-          setActiveLog(nextLog);
-          return nextLog;
+          return setActiveLog(previous => window.DailyEntryModel.applyMealLogMutation(
+            previous,
+            meal,
+            mutation
+          ));
         } catch (_) {
           notify(uiText(
             "Não foi possível salvar a refeição. Verifique a conexão e tente novamente.",

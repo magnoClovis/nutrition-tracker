@@ -15,10 +15,9 @@
  *
  * KNOWN BEHAVIOR DELIBERATELY PRESERVED: `proteinTolerance` is accepted but has
  * no effect; closing the host UI does not cancel a running search; absent
- * pantry, active-log, or goals objects retain their existing TypeErrors; and
- * one functional log update is issued per suggested item, so a host updater
- * that resolves every callback against one historical snapshot can overwrite
- * earlier items. These are separate backlog items, not fixes in this module.
+ * pantry, active-log, or goals objects retain their existing TypeErrors.
+ * Applying a result is deliberately one functional update so all suggested
+ * items enter the same atomic granular persistence batch.
  *
  * @module MealGA
  */
@@ -409,7 +408,7 @@
     }
 
     /**
-     * Converts one GA result into diary entries and applies one functional update per item.
+     * Converts one GA result into diary entries and applies one functional batch update.
      *
      * @param {Object} input Diary-application inputs.
      * @param {{items:Array<{food:Object,gene:number}>}} input.result Selected GA result.
@@ -419,14 +418,14 @@
      */
     function addGAResultToDiary({ result, targetMeal, meals }) {
       const meal = targetMeal || meals[1];
-      result.items.forEach(({ food, gene }) => {
+      const entries = result.items.map(({ food, gene }) => {
         const quantity = food.unit === "un" ? gene : gene * 100;
-        const entry = buildEntry(food, quantity);
-        updateActiveLog(previous => ({
-          ...previous,
-          [meal]: [...(previous[meal] || []), entry]
-        }));
+        return buildEntry(food, quantity);
       });
+      updateActiveLog(previous => ({
+        ...previous,
+        [meal]: [...(previous[meal] || []), ...entries]
+      }));
       return meal;
     }
 

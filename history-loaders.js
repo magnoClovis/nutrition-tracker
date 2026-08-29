@@ -73,19 +73,33 @@
 
     async function readMany(keys) {
       const uniqueKeys = Array.from(new Set((keys || []).map(String)));
-      if (typeof storage.getMany === "function") {
-        return storage.getMany(uniqueKeys);
+      const granularLogKeys = typeof storage.readDailyStateCompatible === "function"
+        ? uniqueKeys.filter(key => /^log_v2_\d{4}-\d{2}-\d{2}$/.test(key))
+        : [];
+      const granularSet = new Set(granularLogKeys);
+      const regularKeys = uniqueKeys.filter(key => !granularSet.has(key));
+      let records = {};
+      if (regularKeys.length && typeof storage.getMany === "function") {
+        records = await storage.getMany(regularKeys);
+      } else if (regularKeys.length) {
+        records = Object.fromEntries(await Promise.all(regularKeys.map(async key => [
+          key,
+          await storage.get(key).catch(() => null)
+        ])));
       }
-      const entries = await Promise.all(uniqueKeys.map(async key => [
-        key,
-        await storage.get(key).catch(() => null)
-      ]));
-      return Object.fromEntries(entries);
+      const granularRecords = await Promise.all(granularLogKeys.map(async key => {
+        const date = key.slice("log_v2_".length);
+        const dailyState = await storage.readDailyStateCompatible(date);
+        return [key, {value: JSON.stringify(dailyState.log || {})}];
+      }));
+      return {...records, ...Object.fromEntries(granularRecords)};
     }
 
     function subscribeMany(keys, onValue, onError) {
       const uniqueKeys = Array.from(new Set((keys || []).map(String)));
-      if (typeof storage.subscribeMany === "function") {
+      const hasGranularLogs = typeof storage.readDailyStateCompatible === "function" &&
+        uniqueKeys.some(key => /^log_v2_\d{4}-\d{2}-\d{2}$/.test(key));
+      if (typeof storage.subscribeMany === "function" && !hasGranularLogs) {
         return storage.subscribeMany(uniqueKeys, onValue, onError);
       }
       let active = true;

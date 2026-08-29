@@ -33,6 +33,7 @@ function createModularFirebaseRuntime({
       subscribeMany: firestoreRuntime.client.fbSubscribeMany3,
       setDailyEntry: firestoreRuntime.client.fbSetDailyEntry3,
       deleteDailyEntry: firestoreRuntime.client.fbDelDailyEntry3,
+      applyDailyEntryBatch: firestoreRuntime.client.fbApplyDailyEntryBatch3,
       listDailyEntries: firestoreRuntime.client.fbListDailyEntries3,
       listDailyEntriesCompatible: firestoreRuntime.client.fbListDailyEntriesCompatible3,
       readDailyStateCompatible: firestoreRuntime.client.fbReadDailyStateCompatible3,

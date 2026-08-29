@@ -45,7 +45,18 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
 
   assert.equal((source.match(/\buseState\s*\(/g) || []).length, 155);
   assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 40);
-  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 23);
+  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 25);
+});
+
+contractTest("cuts aggregate daily autosaves only when granular persistence is available", createNutritionTrackerController => {
+  const {NutritionTracker} = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+
+  assert.match(source, /dailyEntryPersistence\.persist\("meal", TODAY, log\)/);
+  assert.match(source, /dailyEntryPersistence\.persist\("water", TODAY, waterIntake\)/);
+  assert.match(source, /dailyEntryPersistence\.persist\("supplement", TODAY, suppLog\)/);
+  assert.match(source, /if \(dailyEntryPersistence\.granular\)[\s\S]*?else \{[\s\S]*?scheduleSave\("log_v2_"/);
+  assert.match(source, /dailyEntryPersistence\.persist\("meal", viewDate, nextLog\)/);
 });
 
 contractTest("routes historical screens and reports through grouped cache-first loaders", createNutritionTrackerController => {
@@ -532,7 +543,10 @@ contractTest("restores the captured tab, date, and scroll only after successful 
   assert.match(close, /pendingScrollRestoreRef\.current = origin\.scrollY/);
   assert.match(close, /openTab\(origin\.tab, \{ skipTutorial: true, fromBack: true \}\)/);
   assert.match(save, /await persistMealRegistration/);
-  assert.ok(save.indexOf("await persistMealRegistration") < save.indexOf("setActiveLog(nextLog)"));
+  assert.match(save, /return setActiveLog\(previous => window\.DailyEntryModel\.applyMealLogMutation/);
+  const functionalUpdate = save.indexOf("return setActiveLog(previous");
+  assert.ok(save.indexOf("await dailyEntryPersistence.persist") < functionalUpdate);
+  assert.ok(save.indexOf("await persistMealRegistration") < functionalUpdate);
   assert.match(save, /catch \(_\)/);
   assert.match(save, /return null/);
   assert.match(imageSave, /completeImageMealRegistration/);
