@@ -108,6 +108,27 @@ test.describe('authenticated critical data flows', () => {
     }, [key, snapshot]);
   }
 
+  async function readDailyLog(page, date) {
+    return page.evaluate(async civilDate => {
+      if (typeof window.storage.readDailyStateCompatible === 'function') {
+        const state = await window.storage.readDailyStateCompatible(civilDate);
+        return state?.log || {};
+      }
+      const result = await window.storage.get(`log_v2_${civilDate}`).catch(() => null);
+      return JSON.parse(result?.value || '{}');
+    }, date);
+  }
+
+  async function replaceDailyLog(page, date, log) {
+    await page.evaluate(async ([civilDate, value]) => {
+      if (typeof window.storage.replaceDailyAggregate === 'function') {
+        await window.storage.replaceDailyAggregate('meal', civilDate, JSON.stringify(value));
+        return;
+      }
+      await window.storage.set(`log_v2_${civilDate}`, JSON.stringify(value));
+    }, [date, log]);
+  }
+
   async function replacePantry(page, foods) {
     const previous = await readStorage(page, 'pantry_v2');
     await replaceStorage(page, 'pantry_v2', JSON.stringify(foods));
@@ -240,9 +261,8 @@ test.describe('authenticated critical data flows', () => {
       date.setDate(date.getDate() - 1);
       return date.toISOString().split('T')[0];
     });
-    const logKey = `log_v2_${yesterday}`;
-    const previousLog = await readStorage(page, logKey);
-    await replaceStorage(page, logKey, JSON.stringify({}));
+    const previousLog = await readDailyLog(page, yesterday);
+    await replaceDailyLog(page, yesterday, {});
     const previousPantry = await replacePantry(page, [fixture]);
 
     try {
@@ -254,8 +274,8 @@ test.describe('authenticated critical data flows', () => {
       const stagedMeal = page.locator('[data-app-main="adicionar"]:visible');
       await stagedMeal.getByRole('button', { name: 'Registrar', exact: true }).click();
       await expect.poll(async () => {
-        const current = await readStorage(page, logKey);
-        return current.value || '';
+        const current = await readDailyLog(page, yesterday);
+        return JSON.stringify(current);
       }, { timeout: 30000 }).toContain(fixture.name);
       await expect(stagedMeal).toBeHidden();
       await dismissTutorialIfVisible(page);
@@ -269,7 +289,7 @@ test.describe('authenticated critical data flows', () => {
       await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
       await expectNoCriticalErrors(errors);
     } finally {
-      await restoreStorage(page, logKey, previousLog);
+      await replaceDailyLog(page, yesterday, previousLog);
       await restoreStorage(page, 'pantry_v2', previousPantry);
     }
   });
@@ -281,8 +301,7 @@ test.describe('authenticated critical data flows', () => {
     await setAppLanguage(page, 'pt');
 
     const today = await page.evaluate(() => new Date().toISOString().split('T')[0]);
-    const logKey = `log_v2_${today}`;
-    const previousLog = await readStorage(page, logKey);
+    const previousLog = await readDailyLog(page, today);
     const fixture = {
       id: `review-food-${Date.now()}`,
       name: `Avaliação local ${Date.now()}`,
@@ -294,7 +313,7 @@ test.describe('authenticated critical data flows', () => {
       fiber100: 4,
       salt100: 0.3
     };
-    await replaceStorage(page, logKey, JSON.stringify({}));
+    await replaceDailyLog(page, today, {});
     const previousPantry = await replacePantry(page, [fixture]);
 
     try {
@@ -322,10 +341,10 @@ test.describe('authenticated critical data flows', () => {
       await dismissTutorialIfVisible(page);
       await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
       await expect.poll(async () => {
-        const current = await readStorage(page, logKey);
-        return current.value || '';
+        const current = await readDailyLog(page, today);
+        return JSON.stringify(current);
       }, { timeout: 30000 }).toContain(fixture.name);
-      const storedLog = JSON.parse((await readStorage(page, logKey)).value || '{}');
+      const storedLog = await readDailyLog(page, today);
       const storedEntry = Object.values(storedLog).flat().find(item => item.name === fixture.name);
       expect(storedEntry.qty).toBe(200);
       expect(storedEntry.mealScoreSnapshot.score).toBeGreaterThanOrEqual(0);
@@ -333,7 +352,7 @@ test.describe('authenticated critical data flows', () => {
       const unexpectedErrors = errors.filter(error => !/Failed to load resource: net::ERR_TIMED_OUT/i.test(error));
       await expectNoCriticalErrors(unexpectedErrors);
     } finally {
-      await restoreStorage(page, logKey, previousLog);
+      await replaceDailyLog(page, today, previousLog);
       await restoreStorage(page, 'pantry_v2', previousPantry);
     }
   });
@@ -345,8 +364,7 @@ test.describe('authenticated critical data flows', () => {
     await setAppLanguage(page, 'pt');
 
     const today = await page.evaluate(() => new Date().toISOString().split('T')[0]);
-    const logKey = `log_v2_${today}`;
-    const previousLog = await readStorage(page, logKey);
+    const previousLog = await readDailyLog(page, today);
     const fixture = {
       id: `ga-food-${Date.now()}`,
       name: `Alimento GA ${Date.now()}`,
@@ -358,7 +376,7 @@ test.describe('authenticated critical data flows', () => {
       fiber100: 2,
       salt100: 0.1
     };
-    await replaceStorage(page, logKey, JSON.stringify({}));
+    await replaceDailyLog(page, today, {});
     const previousPantry = await replacePantry(page, [fixture]);
 
     try {
@@ -380,24 +398,19 @@ test.describe('authenticated critical data flows', () => {
       await addButton.click();
 
       const entry = await expect.poll(async () => {
-        const current = await readStorage(page, logKey);
-        if (!current.value) return null;
-        const parsed = JSON.parse(current.value);
-        return Object.values(parsed).flat().find(item => item.name === fixture.name) || null;
+        const current = await readDailyLog(page, today);
+        return Object.values(current).flat().find(item => item.name === fixture.name) || null;
       }, { timeout: 30000 }).not.toBeNull();
       void entry;
 
-      const savedEntry = await page.evaluate(async ([key, name]) => {
-        const current = await window.storage.get(key);
-        const parsed = JSON.parse(current.value || '{}');
-        return Object.values(parsed).flat().find(item => item.name === name);
-      }, [logKey, fixture.name]);
+      const savedLog = await readDailyLog(page, today);
+      const savedEntry = Object.values(savedLog).flat().find(item => item.name === fixture.name);
       expect(savedEntry.qty).toBe(suggestedQuantity);
       expect(savedEntry.protein).toBeCloseTo(fixture.protein100 * suggestedQuantity / 100, 6);
       expect(savedEntry.kcal).toBeCloseTo(fixture.kcal100 * suggestedQuantity / 100, 6);
       await expectNoCriticalErrors(errors);
     } finally {
-      await restoreStorage(page, logKey, previousLog);
+      await replaceDailyLog(page, today, previousLog);
       await restoreStorage(page, 'pantry_v2', previousPantry);
     }
   });
