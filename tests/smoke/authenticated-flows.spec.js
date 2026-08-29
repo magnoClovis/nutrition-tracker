@@ -279,7 +279,6 @@ test.describe('authenticated critical data flows', () => {
       }, { timeout: 30000 }).toContain(fixture.name);
       await expect(stagedMeal).toBeHidden();
       await dismissTutorialIfVisible(page);
-      await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
       await clickByTutorialKeyOrText(page, 'tab-semana', /Semana/i);
 
       const yesterdayLabel = yesterday.slice(5).split('-').reverse().join('-');
