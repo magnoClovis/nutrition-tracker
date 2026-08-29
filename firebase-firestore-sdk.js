@@ -33,6 +33,11 @@
     water: "water",
     supplement: "supplements"
   });
+  const DAILY_AGGREGATE_KEYS = Object.freeze({
+    meal: "log_v2_",
+    water: "waterIntake_",
+    supplement: "suppLog_"
+  });
   const CIVIL_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
   const ENTRY_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
@@ -94,6 +99,72 @@
       throw new TypeError("Only granular meal entries accept a category");
     }
     return Object.freeze(document);
+  }
+
+  function stableSerialize(value) {
+    if (value === null || typeof value !== "object") return JSON.stringify(value);
+    if (Array.isArray(value)) return `[${value.map(stableSerialize).join(",")}]`;
+    return `{${Object.keys(value).sort().map(key =>
+      `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(",")}}`;
+  }
+
+  function stableLegacyHash(value) {
+    const text = stableSerialize(value);
+    let first = 2166136261;
+    let second = 2246822519;
+    for (let index = 0; index < text.length; index++) {
+      const code = text.charCodeAt(index);
+      first = Math.imul(first ^ code, 16777619);
+      second = Math.imul(second ^ code, 3266489917);
+    }
+    return `${(first >>> 0).toString(16).padStart(8, "0")}${
+      (second >>> 0).toString(16).padStart(8, "0")}`;
+  }
+
+  function normalizeLegacyDailyEntries(kind, date, aggregate) {
+    const identity = normalizeDailyEntryIdentity(kind, date, "entry");
+    const rows = [];
+    if (identity.kind === "meal") {
+      if (aggregate === null || aggregate === undefined) return rows;
+      if (!aggregate || typeof aggregate !== "object" || Array.isArray(aggregate)) {
+        throw new TypeError("Invalid legacy meal aggregate");
+      }
+      Object.entries(aggregate).forEach(([mealKey, entries]) => {
+        if (!Array.isArray(entries)) throw new TypeError("Invalid legacy meal aggregate");
+        entries.forEach((entry, index) => rows.push({mealKey, entry, index}));
+      });
+    } else {
+      if (aggregate === null || aggregate === undefined) return rows;
+      if (!Array.isArray(aggregate)) throw new TypeError("Invalid legacy daily aggregate");
+      aggregate.forEach((entry, index) => rows.push({entry, index}));
+    }
+
+    const seenIds = new Set();
+    return rows.map(({mealKey, entry, index}) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        throw new TypeError("Invalid legacy daily entry");
+      }
+      const existingId = String(entry.id || "");
+      let id = ENTRY_ID_PATTERN.test(existingId) && !seenIds.has(existingId)
+        ? existingId
+        : `legacy_${identity.kind}_${stableLegacyHash({date, mealKey, index, entry})}`;
+      let collision = 1;
+      while (seenIds.has(id)) id = `${id}_${collision++}`;
+      seenIds.add(id);
+      return buildDailyEntryDocument(identity.kind, identity.date, {...entry, id}, {mealKey});
+    });
+  }
+
+  function mergeCompatibleDailyEntries(legacyEntries, granularEntries, migrationComplete = false) {
+    const granularById = new Map((granularEntries || []).map(document => [document.id, document]));
+    if (migrationComplete) return Array.from(granularById.values());
+    const merged = [];
+    (legacyEntries || []).forEach(document => {
+      merged.push(granularById.get(document.id) || document);
+      granularById.delete(document.id);
+    });
+    granularById.forEach(document => merged.push(document));
+    return merged;
   }
 
   function normalizeProfileValue(key, value) {
@@ -224,6 +295,14 @@
         currentFirestore(),
         "nutrition", String(getUid()), "days", identity.date,
         identity.collectionName, identity.entryId
+      );
+    }
+
+    function dailyMigrationDocRef(kind, date) {
+      const identity = normalizeDailyEntryIdentity(kind, date, "entry");
+      return sdk.doc(
+        currentFirestore(),
+        "nutrition", String(getUid()), "days", identity.date, "migrations", identity.kind
       );
     }
 
@@ -602,6 +681,98 @@
       }
     }
 
+    async function fbGetDailyMigration3(kind, date) {
+      if (!getUid()) return false;
+      const identity = normalizeDailyEntryIdentity(kind, date, "entry");
+      try {
+        const snapshot = await sdk.getDoc(dailyMigrationDocRef(identity.kind, identity.date));
+        if (!snapshot.exists()) return false;
+        const value = snapshot.data?.();
+        if (value?.schemaVersion !== 1 || value?.kind !== identity.kind ||
+            value?.date !== identity.date || value?.complete !== true) {
+          throw new TypeError("Invalid daily migration marker");
+        }
+        return true;
+      } catch (error) {
+        if (error instanceof TypeError) throw error;
+        throw new Error("Firestore daily migration read failed", {cause: error});
+      }
+    }
+
+    async function loadLegacyDailyEntries(kind, date) {
+      const identity = normalizeDailyEntryIdentity(kind, date, "entry");
+      const record = await fbGet3(`${DAILY_AGGREGATE_KEYS[identity.kind]}${identity.date}`);
+      return normalizeLegacyDailyEntries(
+        identity.kind,
+        identity.date,
+        record ? parseStorageJson(record.value) : null
+      );
+    }
+
+    async function fbListDailyEntriesCompatible3(kind, date) {
+      if (!getUid()) return [];
+      const identity = normalizeDailyEntryIdentity(kind, date, "entry");
+      const migrationComplete = await fbGetDailyMigration3(identity.kind, identity.date);
+      const granularEntries = await fbListDailyEntries3(identity.kind, identity.date);
+      if (migrationComplete) return granularEntries;
+      const legacyEntries = await loadLegacyDailyEntries(identity.kind, identity.date);
+      return mergeCompatibleDailyEntries(legacyEntries, granularEntries, false);
+    }
+
+    async function fbReadDailyStateCompatible3(date) {
+      if (!getUid()) return Object.freeze({log: {}, waterIntake: [], supplementLog: []});
+      const [meals, water, supplements] = await Promise.all([
+        fbListDailyEntriesCompatible3("meal", date),
+        fbListDailyEntriesCompatible3("water", date),
+        fbListDailyEntriesCompatible3("supplement", date)
+      ]);
+      const log = {};
+      meals.forEach(document => {
+        if (!log[document.mealKey]) log[document.mealKey] = [];
+        log[document.mealKey].push({...document.entry});
+      });
+      return Object.freeze({
+        log,
+        waterIntake: water.map(document => ({...document.entry})),
+        supplementLog: supplements.map(document => ({...document.entry}))
+      });
+    }
+
+    async function fbMigrateDailyEntries3(kind, date) {
+      if (!getUid()) return Object.freeze({migrated: 0, alreadyComplete: false});
+      assertWritesAllowed();
+      const identity = normalizeDailyEntryIdentity(kind, date, "entry");
+      if (await fbGetDailyMigration3(identity.kind, identity.date)) {
+        return Object.freeze({migrated: 0, alreadyComplete: true});
+      }
+      const [legacyEntries, granularEntries] = await Promise.all([
+        loadLegacyDailyEntries(identity.kind, identity.date),
+        fbListDailyEntries3(identity.kind, identity.date)
+      ]);
+      const granularIds = new Set(granularEntries.map(document => document.id));
+      const missing = legacyEntries.filter(document => !granularIds.has(document.id));
+      for (const document of missing) {
+        await fbSetDailyEntry3(
+          identity.kind,
+          identity.date,
+          document.entry,
+          identity.kind === "meal" ? {mealKey: document.mealKey} : {}
+        );
+      }
+      try {
+        await sdk.setDoc(dailyMigrationDocRef(identity.kind, identity.date), {
+          schemaVersion: 1,
+          kind: identity.kind,
+          date: identity.date,
+          complete: true,
+          updatedAt: sdk.serverTimestamp()
+        });
+      } catch (error) {
+        throw new Error("Firestore daily migration marker write failed", {cause: error});
+      }
+      return Object.freeze({migrated: missing.length, alreadyComplete: false});
+    }
+
     async function fbGetMany3(keys) {
       if (!getUid()) return {};
       const uniqueKeys = Array.from(new Set((keys || []).map(String)));
@@ -659,6 +830,10 @@
       fbSetDailyEntry3,
       fbDelDailyEntry3,
       fbListDailyEntries3,
+      fbGetDailyMigration3,
+      fbListDailyEntriesCompatible3,
+      fbReadDailyStateCompatible3,
+      fbMigrateDailyEntries3,
       support: Object.freeze({
         getUid,
         userDocRef,
@@ -672,6 +847,7 @@
         listDataKeys,
         dailyEntryCollectionRef,
         dailyEntryDocRef,
+        dailyMigrationDocRef,
         buildDailyEntryDocument,
         parseStorageJson,
         isProfileKey,
@@ -680,5 +856,11 @@
     });
   }
 
-  return {createFirebaseFirestoreSdk, buildDailyEntryDocument, normalizeDailyEntryIdentity};
+  return {
+    createFirebaseFirestoreSdk,
+    buildDailyEntryDocument,
+    normalizeDailyEntryIdentity,
+    normalizeLegacyDailyEntries,
+    mergeCompatibleDailyEntries
+  };
 });

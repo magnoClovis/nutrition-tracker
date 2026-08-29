@@ -59,6 +59,9 @@ test("write lock blocks owner mutations while preserving reads", {
   const userRef = doc(ownerDb, "nutrition", uid);
   const dataRef = doc(ownerDb, "nutrition", uid, "data", "today");
   const waterRef = doc(ownerDb, "nutrition", uid, "days", "2026-08-29", "water", "water-1");
+  const migrationRef = doc(
+    ownerDb, "nutrition", uid, "days", "2026-08-29", "migrations", "water",
+  );
   const legacyRef = doc(ownerDb, "nutrition", `${uid}_pantry`);
   const lockRef = doc(ownerDb, "accountDeletionLocks", uid);
   const jobRef = doc(ownerDb, "accountDeletionJobs", "request_rules_123456789");
@@ -70,6 +73,13 @@ test("write lock blocks owner mutations while preserving reads", {
     id: "water-1",
     date: "2026-08-29",
     entry: {id: "water-1", ml: 250},
+    updatedAt: serverTimestamp(),
+  }));
+  await assertSucceeds(setDoc(migrationRef, {
+    schemaVersion: 1,
+    kind: "water",
+    date: "2026-08-29",
+    complete: true,
     updatedAt: serverTimestamp(),
   }));
   await assertSucceeds(getDoc(userRef));
@@ -97,6 +107,13 @@ test("write lock blocks owner mutations while preserving reads", {
     updatedAt: serverTimestamp(),
   }));
   await assertFails(deleteDoc(waterRef));
+  await assertFails(setDoc(migrationRef, {
+    schemaVersion: 1,
+    kind: "water",
+    date: "2026-08-29",
+    complete: true,
+    updatedAt: serverTimestamp(),
+  }));
   await assertFails(deleteDoc(userRef));
   await assertFails(deleteDoc(legacyRef));
   await assertSucceeds(getDoc(userRef));
@@ -194,6 +211,9 @@ test("granular daily schema validates owner, path identity, and exact envelopes"
   const mealRef = doc(ownerDb, ...mealPath);
   const waterRef = doc(ownerDb, ...waterPath);
   const supplementRef = doc(ownerDb, ...supplementPath);
+  const migrationRef = doc(
+    ownerDb, "nutrition", uid, "days", "2026-08-29", "migrations", "meal",
+  );
 
   await assertSucceeds(setDoc(mealRef, {
     schemaVersion: 1,
@@ -218,6 +238,14 @@ test("granular daily schema validates owner, path identity, and exact envelopes"
     updatedAt: serverTimestamp(),
   }));
   await assertSucceeds(getDoc(mealRef));
+  await assertSucceeds(setDoc(migrationRef, {
+    schemaVersion: 1,
+    kind: "meal",
+    date: "2026-08-29",
+    complete: true,
+    updatedAt: serverTimestamp(),
+  }));
+  await assertSucceeds(getDoc(migrationRef));
 
   await assertFails(getDoc(doc(otherDb, ...mealPath)));
   await assertFails(setDoc(doc(otherDb, ...waterPath), {
@@ -227,6 +255,26 @@ test("granular daily schema validates owner, path identity, and exact envelopes"
     entry: {id: "water-1", ml: 500},
     updatedAt: serverTimestamp(),
   }));
+  await assertFails(getDoc(doc(
+    otherDb, "nutrition", uid, "days", "2026-08-29", "migrations", "meal",
+  )));
+  await assertFails(setDoc(doc(
+    ownerDb, "nutrition", uid, "days", "2026-08-29", "migrations", "unknown",
+  ), {
+    schemaVersion: 1,
+    kind: "unknown",
+    date: "2026-08-29",
+    complete: true,
+    updatedAt: serverTimestamp(),
+  }));
+  await assertFails(setDoc(migrationRef, {
+    schemaVersion: 1,
+    kind: "meal",
+    date: "2026-08-29",
+    complete: false,
+    updatedAt: serverTimestamp(),
+  }));
+  await assertFails(deleteDoc(migrationRef));
   await assertFails(setDoc(doc(ownerDb,
     "nutrition", uid, "days", "2026-08-29", "water", "water-2"), {
     schemaVersion: 1,
