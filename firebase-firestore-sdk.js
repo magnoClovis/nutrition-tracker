@@ -206,6 +206,7 @@
     sdk,
     now = Date.now,
     assertWritesAllowed = () => {},
+    dailyWriteCoordinator = null,
   }) {
     const required = [
       "doc", "collection", "getDoc", "setDoc", "deleteDoc", "getDocs", "deleteField",
@@ -213,7 +214,8 @@
     ];
     if (!firestore || typeof getUid !== "function" || !sdk ||
         required.some(name => typeof sdk[name] !== "function") || typeof now !== "function" ||
-        typeof assertWritesAllowed !== "function") {
+        typeof assertWritesAllowed !== "function" ||
+        (dailyWriteCoordinator && typeof dailyWriteCoordinator.execute !== "function")) {
       throw new TypeError("FirebaseFirestoreSdk requires Firestore, UID, and modular SDK operations");
     }
 
@@ -635,11 +637,20 @@
       if (!getUid()) return;
       assertWritesAllowed();
       const document = buildDailyEntryDocument(kind, date, entry, options);
-      try {
-        await sdk.setDoc(dailyEntryDocRef(kind, date, document.id), {
+      const reference = dailyEntryDocRef(kind, date, document.id);
+      const operation = async () => {
+        assertWritesAllowed();
+        return sdk.setDoc(reference, {
           ...document,
           updatedAt: sdk.serverTimestamp()
         });
+      };
+      try {
+        if (dailyWriteCoordinator) {
+          await dailyWriteCoordinator.execute({kind, date, entryId: document.id}, operation);
+        } else {
+          await operation();
+        }
       } catch (error) {
         throw new Error("Firestore granular entry write failed", {cause: error});
       }
@@ -648,8 +659,22 @@
     async function fbDelDailyEntry3(kind, date, entryId) {
       if (!getUid()) return;
       assertWritesAllowed();
+      const identity = normalizeDailyEntryIdentity(kind, date, entryId);
+      const reference = dailyEntryDocRef(identity.kind, identity.date, identity.entryId);
+      const operation = async () => {
+        assertWritesAllowed();
+        return sdk.deleteDoc(reference);
+      };
       try {
-        await sdk.deleteDoc(dailyEntryDocRef(kind, date, entryId));
+        if (dailyWriteCoordinator) {
+          await dailyWriteCoordinator.execute({
+            kind: identity.kind,
+            date: identity.date,
+            entryId: identity.entryId
+          }, operation);
+        } else {
+          await operation();
+        }
       } catch (error) {
         throw new Error("Firestore granular entry delete failed", {cause: error});
       }

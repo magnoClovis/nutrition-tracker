@@ -30,7 +30,9 @@ test('the staged lifecycle clears persistent data and guards writes across accou
   assert.match(lifecycle, /sealAccountDeletion/);
   assert.match(lifecycle, /flushBeforeAccountDeletion/);
   assert.match(lifecycle, /BroadcastChannelCtor/);
+  assert.match(lifecycle, /resetSyncState/);
   assert.match(adapter, /assertWritesAllowed\(\)/);
+  assert.match(adapter, /dailyWriteCoordinator\.execute/);
   assert.match(runtime, /userLifecycle:\s*firestoreRuntime\.lifecycle/);
   assert.match(runtime, /resetStorageCaches:\s*firestoreRuntime\.client\.resetStorageCaches/);
   assert.match(runtime, /getMany:\s*firestoreRuntime\.client\.fbGetMany3/);
@@ -38,6 +40,18 @@ test('the staged lifecycle clears persistent data and guards writes across accou
   assert.match(runtime, /listDailyEntriesCompatible:\s*firestoreRuntime\.client\.fbListDailyEntriesCompatible3/);
   assert.match(runtime, /readDailyStateCompatible:\s*firestoreRuntime\.client\.fbReadDailyStateCompatible3/);
   assert.match(runtime, /migrateDailyEntries:\s*firestoreRuntime\.client\.fbMigrateDailyEntries3/);
+  assert.match(runtime, /sync:\s*firestoreRuntime\.syncState/);
+});
+
+test('the staged runtime owns one sync-state coordinator and clears it with account data', () => {
+  const composition = read('src/firebase/firebase-firestore-sdk.js');
+  const syncState = read('firebase-sync-state.js');
+  assert.match(composition, /const syncState = createFirestoreSyncState\(\)/);
+  assert.match(composition, /resetSyncState:\s*syncState\.reset/);
+  assert.match(composition, /dailyWriteCoordinator:\s*syncState/);
+  assert.match(syncState, /status, attempt, errorCode, retryAt/);
+  assert.match(syncState, /write-cancelled/);
+  assert.doesNotMatch(syncState, /payload|uid|accountId/);
 });
 
 test('the modular Firestore adapter uses SDK operations instead of raw REST fetches', () => {
