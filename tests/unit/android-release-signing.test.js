@@ -29,6 +29,17 @@ test('release signing reads four local properties without affecting debug config
   assert.doesNotMatch(gradle, /buildTypes\s*\{[\s\S]*?debug\s*\{[\s\S]*?signingConfig/);
 });
 
+test('release bundles fail closed without Firebase variables or freshly synced Vite assets', () => {
+  const gradle = read('android/app/build.gradle');
+
+  assert.match(gradle, /VITE_FIREBASE_WEB_APP_ID/);
+  assert.match(gradle, /VITE_RECAPTCHA_ENTERPRISE_SITE_KEY/);
+  assert.match(gradle, /missingReleaseEnvironment/);
+  assert.match(gradle, /releaseWebBundles/);
+  assert.match(gradle, /staleReleaseEnvironment/);
+  assert.match(gradle, /Rebuild Vite and sync Capacitor first/);
+});
+
 test('local signing files are ignored and the committed example is placeholder-only', () => {
   const androidGitignore = read('android/.gitignore');
   const example = read('android/keystore.properties.example');

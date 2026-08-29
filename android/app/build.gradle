@@ -64,6 +64,34 @@ gradle.taskGraph.whenReady { taskGraph ->
     if (releaseArtifactRequested && releaseSigningError != null) {
         throw new GradleException("Trofia release signing is not configured. ${releaseSigningError}")
     }
+    if (releaseArtifactRequested) {
+        def requiredReleaseEnvironment = [
+            "VITE_FIREBASE_WEB_APP_ID",
+            "VITE_RECAPTCHA_ENTERPRISE_SITE_KEY"
+        ]
+        def missingReleaseEnvironment = requiredReleaseEnvironment.findAll {
+            !System.getenv(it)?.trim()
+        }
+        if (!missingReleaseEnvironment.isEmpty()) {
+            throw new GradleException(
+                "Trofia release Firebase configuration is missing: ${missingReleaseEnvironment.join(', ')}"
+            )
+        }
+
+        def releaseWebBundles = fileTree("src/main/assets/public/assets") {
+            include "*.js"
+        }.files
+        def staleReleaseEnvironment = requiredReleaseEnvironment.findAll { variableName ->
+            def expectedValue = System.getenv(variableName)?.trim()
+            !releaseWebBundles.any { bundle -> bundle.getText("UTF-8").contains(expectedValue) }
+        }
+        if (!staleReleaseEnvironment.isEmpty()) {
+            throw new GradleException(
+                "Trofia release web assets do not contain the configured Firebase values: " +
+                "${staleReleaseEnvironment.join(', ')}. Rebuild Vite and sync Capacitor first."
+            )
+        }
+    }
 }
 
 repositories {
