@@ -13,6 +13,7 @@ import * as AddScreenModule from './components/add-screen.js';
 import * as AppHeaderNavigationModule from './components/app-header-navigation.js';
 import * as BackupModalModule from './components/backup-modal.js';
 import * as BodyMetricsCharts from './components/body-metrics-charts.js';
+import * as ChoiceFieldModule from './components/choice-field.js';
 import * as DiaryScreenModule from './components/diary-screen.js';
 import * as GaResultCardModule from './components/ga-result-card.js';
 import * as ImageMealScreenModule from './components/image-meal-screen.js';
@@ -534,8 +535,12 @@ const {
 });
 
 const {
+  ChoiceField,
+} = ChoiceFieldModule.createChoiceField({ React });
+
+const {
   AddScreen,
-} = AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor });
+} = AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField });
 
 const {
   MetricsScreen,

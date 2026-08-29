@@ -4,8 +4,14 @@ const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
 const { createDateUtils } = require("../../date-utils.js");
 const implementations = [
-  ["UMD", () => Promise.resolve(require("../../add-screen.js"))],
-  ["ESM", () => import("../../src/components/add-screen.js")]
+  ["UMD", async () => ({
+    ...require("../../add-screen.js"),
+    ...require("../../choice-field.js")
+  })],
+  ["ESM", async () => ({
+    ...await import("../../src/components/add-screen.js"),
+    ...await import("../../src/components/choice-field.js")
+  })]
 ];
 
 const { pickLang, normalizeLanguage, localeForLang } = createI18n();
@@ -174,12 +180,51 @@ function baseProps(overrides = {}) {
 function contractTest(name, callback) {
   implementations.forEach(([format, load]) => {
     test(`${format}: ${name}`, async () => {
-      const { createAddScreen } = await load();
-      const { AddScreen } = createAddScreen({ React, pickLang, quickQtys, divisor });
+      const { createAddScreen, createChoiceField } = await load();
+      const { ChoiceField } = createChoiceField({ React });
+      const { AddScreen } = createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField });
       return callback(AddScreen);
     });
   });
 }
+
+contractTest("uses the reusable ChoiceField for controlled meal selection", AddScreen => {
+  let describedMeal = null;
+  const describeView = AddScreen(baseProps({
+    describeMode: true,
+    setDescribeMeal: value => { describedMeal = value; }
+  }));
+  const describeChoice = findNodes(
+    describeView,
+    node => typeof node.type === "function" && node.props?.id === "describe-meal-choice"
+  )[0];
+
+  assert.ok(describeChoice);
+  assert.equal(describeChoice.props.label, "Meal");
+  assert.deepEqual(describeChoice.props.options, [
+    { value: "Café da manhã", label: "Café da manhã" },
+    { value: "Almoço", label: "Almoço" }
+  ]);
+  assert.equal(findNodes(describeView, node => node.type === "select").length, 0);
+  describeChoice.props.onChange("Café da manhã");
+  assert.equal(describedMeal, "Café da manhã");
+
+  let stagedUpdater = null;
+  const manualView = AddScreen(baseProps({
+    batchMode: true,
+    setStaged: updater => { stagedUpdater = updater; }
+  }));
+  const manualChoice = findNodes(
+    manualView,
+    node => typeof node.type === "function" && node.props?.id === "manual-meal-choice"
+  )[0];
+
+  manualChoice.props.onChange("Almoço");
+  assert.deepEqual(stagedUpdater({ meal: "Café da manhã", items: [] }), {
+    meal: "Almoço",
+    items: []
+  });
+});
 
 contractTest("renders staged meal assembly and invokes its controlled callbacks", AddScreen => {
   let committed = 0;

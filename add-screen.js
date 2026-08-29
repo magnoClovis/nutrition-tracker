@@ -32,13 +32,14 @@
    * @param {function(string,string,string,string): string} dependencies.pickLang Language picker from i18n.js.
    * @param {function(string): Array<number>} dependencies.quickQtys Quantity presets from date-utils.js.
    * @param {function(string): number} dependencies.divisor Unit divisor from date-utils.js.
+   * @param {function(Object): Object} dependencies.ChoiceField Controlled app-local list selector.
    * @returns {{AddScreen: function(Object): Object}} Add-screen API.
    */
-  function createAddScreen({ React, pickLang, quickQtys, divisor }) {
+  function createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof quickQtys !== "function"
-      || typeof divisor !== "function") {
-      throw new TypeError("AddScreen requires React, pickLang, quickQtys, and divisor");
+      || typeof divisor !== "function" || typeof ChoiceField !== "function") {
+      throw new TypeError("AddScreen requires React, pickLang, quickQtys, divisor, and ChoiceField");
     }
 
     const inp = {
@@ -185,6 +186,18 @@
         legacyTransferPanel
       } = props;
       const uiText = (pt, en, es) => pickLang(lang, pt, en, es);
+
+      function renderMealChoice({ id, value, onChange }) {
+        return React.createElement(ChoiceField, {
+          id,
+          label: uiText("Refeição", "Meal", "Comida"),
+          value,
+          options: MEALS.map(meal => ({ value: meal, label: mealLabel(meal) })),
+          onChange,
+          helperText: uiText("Escolha uma opção", "Choose an option", "Elige una opción"),
+          closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector")
+        });
+      }
 
       function renderHeader() {
         return React.createElement("div", {
@@ -534,16 +547,11 @@
     style: {
       marginBottom: 8
     }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, "Refei\xE7\xE3o"), /*#__PURE__*/React.createElement("select", {
+  }, renderMealChoice({
+    id: "describe-meal-choice",
     value: describeMeal,
-    onChange: e => setDescribeMeal(e.target.value),
-    style: inp
-  }, MEALS.map(m => /*#__PURE__*/React.createElement("option", {
-    key: m,
-    value: m
-  }, mealLabel(m))))), /*#__PURE__*/React.createElement("div", {
+    onChange: setDescribeMeal
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 8
     }
@@ -698,22 +706,17 @@
     style: {
       marginBottom: 8
     }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, "Refei\xE7\xE3o"), /*#__PURE__*/React.createElement("select", {
+  }, renderMealChoice({
+    id: "manual-meal-choice",
     value: batchMode ? staged.meal : addEntry.meal,
-    onChange: e => batchMode ? setStaged(s => ({
+    onChange: value => batchMode ? setStaged(s => ({
       ...s,
-      meal: e.target.value
+      meal: value
     })) : setAddEntry(a => ({
       ...a,
-      meal: e.target.value
-    })),
-    style: inp
-  }, MEALS.map(m => /*#__PURE__*/React.createElement("option", {
-    key: m,
-    value: m
-  }, mealLabel(m))))), /*#__PURE__*/React.createElement("div", {
+      meal: value
+    }))
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 8
     }
