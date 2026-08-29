@@ -42,6 +42,78 @@ service cloud.firestore {
         allow create, update, delete: if isOwnUserDoc()
           && !accountDeletionLocked(uid);
       }
+
+      // High-concurrency daily records are stored one entry per document. The
+      // aggregate data/{key} documents remain readable during C28 migration,
+      // but new granular writes use these paths and immutable identities.
+      match /days/{date} {
+        function validCivilDate() {
+          return date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+        }
+
+        function validEntryId(entryId) {
+          return entryId.matches('^[A-Za-z0-9_-]{1,128}$');
+        }
+
+        function validBaseEntry(entryId) {
+          return validCivilDate()
+            && validEntryId(entryId)
+            && request.resource.data.schemaVersion == 1
+            && request.resource.data.id == entryId
+            && request.resource.data.date == date
+            && request.resource.data.entry is map
+            && request.resource.data.entry.id == entryId
+            && request.resource.data.updatedAt == request.time;
+        }
+
+        function validMealEntry(entryId) {
+          return validBaseEntry(entryId)
+            && request.resource.data.keys().hasOnly([
+              'schemaVersion', 'id', 'date', 'mealKey', 'entry', 'updatedAt'
+            ])
+            && request.resource.data.mealKey is string
+            && request.resource.data.mealKey.size() > 0
+            && request.resource.data.mealKey.size() <= 80;
+        }
+
+        function validNonMealEntry(entryId) {
+          return validBaseEntry(entryId)
+            && request.resource.data.keys().hasOnly([
+              'schemaVersion', 'id', 'date', 'entry', 'updatedAt'
+            ]);
+        }
+
+        // Day summary documents are intentionally absent; only their typed
+        // entry subcollections are client-visible.
+        allow read, write: if false;
+
+        match /meals/{entryId} {
+          allow read: if isOwnUserDoc();
+          allow create, update: if isOwnUserDoc()
+            && !accountDeletionLocked(uid)
+            && validMealEntry(entryId);
+          allow delete: if isOwnUserDoc()
+            && !accountDeletionLocked(uid);
+        }
+
+        match /water/{entryId} {
+          allow read: if isOwnUserDoc();
+          allow create, update: if isOwnUserDoc()
+            && !accountDeletionLocked(uid)
+            && validNonMealEntry(entryId);
+          allow delete: if isOwnUserDoc()
+            && !accountDeletionLocked(uid);
+        }
+
+        match /supplements/{entryId} {
+          allow read: if isOwnUserDoc();
+          allow create, update: if isOwnUserDoc()
+            && !accountDeletionLocked(uid)
+            && validNonMealEntry(entryId);
+          allow delete: if isOwnUserDoc()
+            && !accountDeletionLocked(uid);
+        }
+      }
     }
 
     // No client access exists outside the canonical nutrition/{uid} tree.

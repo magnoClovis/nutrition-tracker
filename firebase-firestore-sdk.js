@@ -28,6 +28,13 @@
   ]);
   const DATA_VALUE_CACHE_TTL_MS = 60 * 1000;
   const DATA_MISSING_CACHE_TTL_MS = 10 * 1000;
+  const DAILY_ENTRY_COLLECTIONS = Object.freeze({
+    meal: "meals",
+    water: "water",
+    supplement: "supplements"
+  });
+  const CIVIL_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+  const ENTRY_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
   function storageValue(value) {
     return typeof value === "string" ? value : JSON.stringify(value);
@@ -43,6 +50,50 @@
 
   function isProfileKey(key) {
     return PROFILE_FIELD_KEYS.has(key);
+  }
+
+  function normalizeDailyEntryIdentity(kind, date, entryId) {
+    const normalizedKind = String(kind || "");
+    const collectionName = DAILY_ENTRY_COLLECTIONS[normalizedKind];
+    const normalizedDate = String(date || "");
+    const normalizedEntryId = String(entryId || "");
+    if (!collectionName || !CIVIL_DATE_PATTERN.test(normalizedDate) ||
+        !ENTRY_ID_PATTERN.test(normalizedEntryId)) {
+      throw new TypeError("Invalid granular daily entry identity");
+    }
+    const parsedDate = new Date(`${normalizedDate}T00:00:00.000Z`);
+    if (Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== normalizedDate) {
+      throw new TypeError("Invalid granular daily entry identity");
+    }
+    return Object.freeze({
+      kind: normalizedKind,
+      collectionName,
+      date: normalizedDate,
+      entryId: normalizedEntryId
+    });
+  }
+
+  function buildDailyEntryDocument(kind, date, entry, {mealKey} = {}) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new TypeError("Granular daily entries require an object payload");
+    }
+    const identity = normalizeDailyEntryIdentity(kind, date, entry.id);
+    const document = {
+      schemaVersion: 1,
+      id: identity.entryId,
+      date: identity.date,
+      entry: {...entry, id: identity.entryId}
+    };
+    if (identity.kind === "meal") {
+      const normalizedMealKey = String(mealKey || "").trim();
+      if (!normalizedMealKey || normalizedMealKey.length > 80) {
+        throw new TypeError("Granular meal entries require a category");
+      }
+      document.mealKey = normalizedMealKey;
+    } else if (mealKey !== undefined) {
+      throw new TypeError("Only granular meal entries accept a category");
+    }
+    return Object.freeze(document);
   }
 
   function normalizeProfileValue(key, value) {
@@ -85,7 +136,10 @@
     now = Date.now,
     assertWritesAllowed = () => {},
   }) {
-    const required = ["doc", "collection", "getDoc", "setDoc", "deleteDoc", "getDocs", "deleteField"];
+    const required = [
+      "doc", "collection", "getDoc", "setDoc", "deleteDoc", "getDocs", "deleteField",
+      "serverTimestamp"
+    ];
     if (!firestore || typeof getUid !== "function" || !sdk ||
         required.some(name => typeof sdk[name] !== "function") || typeof now !== "function" ||
         typeof assertWritesAllowed !== "function") {
@@ -154,6 +208,23 @@
 
     function dataDocRef(key) {
       return sdk.doc(currentFirestore(), "nutrition", String(getUid()), "data", String(key));
+    }
+
+    function dailyEntryCollectionRef(kind, date) {
+      const identity = normalizeDailyEntryIdentity(kind, date, "entry");
+      return sdk.collection(
+        currentFirestore(),
+        "nutrition", String(getUid()), "days", identity.date, identity.collectionName
+      );
+    }
+
+    function dailyEntryDocRef(kind, date, entryId) {
+      const identity = normalizeDailyEntryIdentity(kind, date, entryId);
+      return sdk.doc(
+        currentFirestore(),
+        "nutrition", String(getUid()), "days", identity.date,
+        identity.collectionName, identity.entryId
+      );
     }
 
     async function fetchRootFields() {
@@ -481,6 +552,56 @@
       return {keys: prefix ? keys.filter(key => key.indexOf(prefix) === 0) : keys};
     }
 
+    async function fbSetDailyEntry3(kind, date, entry, options = {}) {
+      if (!getUid()) return;
+      assertWritesAllowed();
+      const document = buildDailyEntryDocument(kind, date, entry, options);
+      try {
+        await sdk.setDoc(dailyEntryDocRef(kind, date, document.id), {
+          ...document,
+          updatedAt: sdk.serverTimestamp()
+        });
+      } catch (error) {
+        throw new Error("Firestore granular entry write failed", {cause: error});
+      }
+    }
+
+    async function fbDelDailyEntry3(kind, date, entryId) {
+      if (!getUid()) return;
+      assertWritesAllowed();
+      try {
+        await sdk.deleteDoc(dailyEntryDocRef(kind, date, entryId));
+      } catch (error) {
+        throw new Error("Firestore granular entry delete failed", {cause: error});
+      }
+    }
+
+    async function fbListDailyEntries3(kind, date) {
+      if (!getUid()) return [];
+      const identity = normalizeDailyEntryIdentity(kind, date, "entry");
+      try {
+        const snapshot = await sdk.getDocs(dailyEntryCollectionRef(identity.kind, identity.date));
+        const documents = [];
+        snapshot.forEach(document => {
+          const value = document.data?.();
+          const validated = buildDailyEntryDocument(
+            identity.kind,
+            identity.date,
+            value?.entry,
+            identity.kind === "meal" ? {mealKey: value?.mealKey} : {}
+          );
+          if (value?.schemaVersion !== 1 || value?.id !== document.id || value?.date !== identity.date) {
+            throw new TypeError("Invalid granular daily entry document");
+          }
+          documents.push(Object.freeze({...validated, updatedAt: value.updatedAt ?? null}));
+        });
+        return documents.sort((left, right) => left.id.localeCompare(right.id));
+      } catch (error) {
+        if (error instanceof TypeError) throw error;
+        throw new Error("Firestore granular entry list failed", {cause: error});
+      }
+    }
+
     async function fbGetMany3(keys) {
       if (!getUid()) return {};
       const uniqueKeys = Array.from(new Set((keys || []).map(String)));
@@ -535,6 +656,9 @@
       fbList3,
       fbGetMany3,
       fbSubscribeMany3,
+      fbSetDailyEntry3,
+      fbDelDailyEntry3,
+      fbListDailyEntries3,
       support: Object.freeze({
         getUid,
         userDocRef,
@@ -546,6 +670,9 @@
         setDataDoc,
         deleteDataDoc,
         listDataKeys,
+        dailyEntryCollectionRef,
+        dailyEntryDocRef,
+        buildDailyEntryDocument,
         parseStorageJson,
         isProfileKey,
         normalizeProfileValue
@@ -553,5 +680,5 @@
     });
   }
 
-  return {createFirebaseFirestoreSdk};
+  return {createFirebaseFirestoreSdk, buildDailyEntryDocument, normalizeDailyEntryIdentity};
 });
