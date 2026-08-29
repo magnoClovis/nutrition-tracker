@@ -27,25 +27,25 @@ function contractTest(name, callback) {
   });
 }
 
-contractTest("renders the existing Portuguese release copy", ReleaseNoticeModal => {
+contractTest("renders the approved Portuguese 0.10.0 release copy", ReleaseNoticeModal => {
   const copy = renderedCopy(ReleaseNoticeModal, "pt");
-  assert.equal(copy.title, "Bem-vindo à versão 0.9.0 Beta! 🎉🥳");
-  assert.equal(copy.buttonLabel, "Ver novidades");
-  assert.equal(copy.body, "Agora voc\u00ea pode reconhecer refei\u00e7\u00f5es por foto, revisar as estimativas antes de registrar e usar um Di\u00e1rio mais claro, com datas, backups e privacidade refor\u00e7ados.");
+  assert.equal(copy.title, "Bem-vindo à versão 0.10.0 Beta! 🎉🥳");
+  assert.equal(copy.buttonLabel, "Continuar");
+  assert.equal(copy.body, "Seus dados agora funcionam melhor offline, sincronizam com mais seguran\u00e7a e podem ser exclu\u00eddos integralmente por um fluxo confi\u00e1vel.");
 });
 
-contractTest("renders the existing English release copy", ReleaseNoticeModal => {
+contractTest("renders the approved English 0.10.0 release copy", ReleaseNoticeModal => {
   const copy = renderedCopy(ReleaseNoticeModal, "en");
-  assert.equal(copy.title, "Welcome to version 0.9.0 Beta! 🎉🥳");
-  assert.equal(copy.buttonLabel, "See what's new");
-  assert.equal(copy.body, "You can now recognize meals from photos, review estimates before logging, and use a clearer Diary with more reliable dates, backups, and privacy protections.");
+  assert.equal(copy.title, "Welcome to version 0.10.0 Beta! 🎉🥳");
+  assert.equal(copy.buttonLabel, "Continue");
+  assert.equal(copy.body, "Your data now works better offline, syncs more safely, and can be fully deleted through a reliable account-deletion process.");
 });
 
-contractTest("renders the existing Spanish release copy", ReleaseNoticeModal => {
+contractTest("renders the approved Spanish 0.10.0 release copy", ReleaseNoticeModal => {
   const copy = renderedCopy(ReleaseNoticeModal, "es");
-  assert.equal(copy.title, "¡Bienvenido a la versión 0.9.0 Beta! 🎉🥳");
-  assert.equal(copy.buttonLabel, "Ver novedades");
-  assert.equal(copy.body, "Ahora puedes reconocer comidas por foto, revisar las estimaciones antes de registrarlas y usar un Diario m\u00e1s claro, con fechas, copias de seguridad y privacidad reforzadas.");
+  assert.equal(copy.title, "¡Bienvenido a la versión 0.10.0 Beta! 🎉🥳");
+  assert.equal(copy.buttonLabel, "Continuar");
+  assert.equal(copy.body, "Tus datos ahora funcionan mejor sin conexi\u00f3n, se sincronizan con mayor seguridad y pueden eliminarse por completo mediante un proceso fiable.");
 });
 
 contractTest("invokes onStartTutorial from the release action", ReleaseNoticeModal => {
@@ -66,16 +66,16 @@ implementations.forEach(([format, load]) => {
     } = await load();
 
     assert.deepEqual(CURRENT_RELEASE, {
-      id: "0.9.0-beta",
-      versionName: "0.9.0-beta",
-      label: "Trofia v0.9.0 Beta",
-      tutorialType: "release-highlights"
+      id: "0.10.0-beta",
+      versionName: "0.10.0-beta",
+      label: "Trofia v0.10.0 Beta",
+      tutorialType: null
     });
-    assert.equal(hasSeenRelease({ value: "0.9.0-beta" }), true);
-    assert.equal(hasSeenRelease({ value: "0.8.0-beta" }), false);
+    assert.equal(hasSeenRelease({ value: "0.10.0-beta" }), true);
+    assert.equal(hasSeenRelease({ value: "0.9.0-beta" }), false);
     assert.equal(hasSeenRelease(null), false);
     assert.equal(resolveReleaseTutorialType("new"), "main");
-    assert.equal(resolveReleaseTutorialType("existing"), "release-highlights");
+    assert.equal(resolveReleaseTutorialType("existing"), null);
     assert.equal(resolveReleaseTutorialType("unknown"), null);
   });
 });
