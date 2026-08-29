@@ -63,7 +63,7 @@ test('preserves the authentication and profile gates without legacy normalizatio
   assert.match(appSource, /<ErrorBoundary>[\s\S]*?<RequiredProfileModal/);
 });
 
-test('installs exactly the twelve ESM namespaces still resolved by the controller', () => {
+test('installs exactly the thirteen ESM namespaces still resolved by the controller', () => {
   const assignment = appSource.match(/Object\.assign\(globalThis, \{([\s\S]*?)\}\);/);
   assert.ok(assignment);
   assert.deepEqual(
@@ -72,6 +72,7 @@ test('installs exactly the twelve ESM namespaces still resolved by the controlle
       'AutosaveScheduler',
       'BarcodeScanner',
       'DishDescriptionAI',
+      'DailyEntryModel',
       'EatingPatternsAI',
       'FoodAutofillAI',
       'FoodEntry',
