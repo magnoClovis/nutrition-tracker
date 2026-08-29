@@ -38,6 +38,7 @@ function createModularFirebaseRuntime({
       readDailyStateCompatible: firestoreRuntime.client.fbReadDailyStateCompatible3,
       migrateDailyEntries: firestoreRuntime.client.fbMigrateDailyEntries3,
     }),
+    sync: firestoreRuntime.syncState,
     lifecycle: firestoreRuntime.lifecycle,
   });
 }

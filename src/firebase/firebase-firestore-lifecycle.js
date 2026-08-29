@@ -26,6 +26,7 @@ function createModularFirestoreLifecycle({
   getUid,
   localStorage = globalThis.localStorage,
   resetStorageCaches = () => {},
+  resetSyncState = () => {},
   BroadcastChannelCtor = globalThis.BroadcastChannel,
 } = {}) {
   return createFirebaseFirestoreLifecycle({
@@ -43,6 +44,7 @@ function createModularFirestoreLifecycle({
     localStorage,
     getUid,
     resetStorageCaches,
+    resetSyncState,
     BroadcastChannelCtor,
     isNativePlatform: () => Capacitor.isNativePlatform(),
   });

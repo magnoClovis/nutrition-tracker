@@ -51,6 +51,7 @@
     localStorage,
     getUid,
     resetStorageCaches,
+    resetSyncState = () => {},
     BroadcastChannelCtor,
     settleTabs = () => new Promise(resolve => setTimeout(resolve, 50)),
     isNativePlatform = () => false,
@@ -63,6 +64,7 @@
         !localStorage || typeof localStorage.getItem !== "function" ||
         typeof localStorage.setItem !== "function" || typeof localStorage.removeItem !== "function" ||
         typeof getUid !== "function" || typeof resetStorageCaches !== "function" ||
+        typeof resetSyncState !== "function" ||
         typeof settleTabs !== "function" || typeof isNativePlatform !== "function") {
       throw new TypeError("FirebaseFirestoreLifecycle requires app, SDK lifecycle operations, storage, UID, and cache reset");
     }
@@ -125,6 +127,7 @@
     async function destroyPersistentCache() {
       const current = firestore;
       transitionInProgress = true;
+      resetSyncState();
       resetStorageCaches();
       try {
         if (current) {

@@ -155,6 +155,7 @@ function createFixture(createFirebaseFirestoreSdk, {
   backend = createBackend(),
   now = () => Date.now(),
   assertWritesAllowed = () => {},
+  dailyWriteCoordinator = null,
 } = {}) {
   const client = createFirebaseFirestoreSdk({
     firestore: {name: 'shared-firestore'},
@@ -162,6 +163,7 @@ function createFixture(createFirebaseFirestoreSdk, {
     sdk: backend.sdk,
     now,
     assertWritesAllowed,
+    dailyWriteCoordinator,
   });
   return {client, backend};
 }
@@ -392,6 +394,32 @@ contractTest('writes, lists, and deletes typed granular daily entries by stable 
   await client.fbDelDailyEntry3('water', '2026-08-29', 'water-1');
   assert.equal(
     backend.granularDocs.has(`nutrition/${UID}/days/2026-08-29/water/water-1`),
+    false,
+  );
+});
+
+contractTest('coordinates granular writes and deletes with stable observable identities', async create => {
+  const backend = createBackend();
+  const identities = [];
+  const dailyWriteCoordinator = {
+    async execute(identity, operation) {
+      identities.push({...identity});
+      return operation();
+    },
+  };
+  const {client} = create({backend, dailyWriteCoordinator});
+
+  await client.fbSetDailyEntry3('meal', '2026-08-29', {
+    id: 'meal-1', name: 'Arroz', kcal: 130,
+  }, {mealKey: 'Almoço'});
+  await client.fbDelDailyEntry3('meal', '2026-08-29', 'meal-1');
+
+  assert.deepEqual(identities, [
+    {kind: 'meal', date: '2026-08-29', entryId: 'meal-1'},
+    {kind: 'meal', date: '2026-08-29', entryId: 'meal-1'},
+  ]);
+  assert.equal(
+    backend.granularDocs.has(`nutrition/${UID}/days/2026-08-29/meals/meal-1`),
     false,
   );
 });

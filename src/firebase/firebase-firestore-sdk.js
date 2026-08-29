@@ -13,6 +13,7 @@ import {
 import '../../firebase-firestore-sdk.js';
 import { readLegacyNamespace } from '../leaf/read-legacy-namespace.js';
 import { createModularFirestoreLifecycle } from './firebase-firestore-lifecycle.js';
+import { createFirestoreSyncState } from './firebase-sync-state.js';
 
 const {
   buildDailyEntryDocument,
@@ -38,16 +39,19 @@ function createModularFirestoreRuntime({
   BroadcastChannelCtor = globalThis.BroadcastChannel,
 } = {}) {
   let client;
+  const syncState = createFirestoreSyncState();
   const lifecycle = createModularFirestoreLifecycle({
     getUid,
     localStorage,
     BroadcastChannelCtor,
     resetStorageCaches: () => client?.resetStorageCaches(),
+    resetSyncState: syncState.reset,
   });
   client = createFirebaseFirestoreSdk({
     firestore: lifecycle.getFirestore,
     getUid,
     assertWritesAllowed: lifecycle.assertWritesAllowed,
+    dailyWriteCoordinator: syncState,
     sdk: {
       collection,
       deleteDoc,
@@ -61,7 +65,7 @@ function createModularFirestoreRuntime({
       setDoc,
     },
   });
-  return Object.freeze({client, lifecycle});
+  return Object.freeze({client, lifecycle, syncState});
 }
 
 function createModularFirestoreClient(options) {

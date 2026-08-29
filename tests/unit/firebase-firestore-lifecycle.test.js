@@ -25,6 +25,7 @@ function fixture(api, {
   const instances = [];
   let currentUid = uid;
   let resetCount = 0;
+  let syncResetCount = 0;
   const listeners = [];
   class FakeBroadcastChannel {
     constructor(name) { calls.push(['channel', name]); }
@@ -65,6 +66,7 @@ function fixture(api, {
     localStorage,
     getUid: () => currentUid,
     resetStorageCaches() { resetCount++; },
+    resetSyncState() { syncResetCount++; },
     BroadcastChannelCtor: FakeBroadcastChannel,
     settleTabs: async () => { calls.push(['settle']); },
     isNativePlatform: () => native,
@@ -72,6 +74,7 @@ function fixture(api, {
   return {
     api, calls, instances, lifecycle, localStorage, listeners,
     resetCount: () => resetCount,
+    syncResetCount: () => syncResetCount,
     setUid(value) { currentUid = value; },
   };
 }
@@ -114,6 +117,7 @@ for (const [format, load] of implementations) {
     assert.equal(f.localStorage.getItem(api.CACHE_OWNER_KEY), 'user-b');
     assert.equal(f.localStorage.getItem(api.WRITE_BLOCK_KEY), null);
     assert.notStrictEqual(f.lifecycle.getFirestore(), first);
+    assert.equal(f.syncResetCount(), 1);
   });
 
   test(`${format}: deletion waits for old writes, then blocks replay and retains the lock`, async () => {
@@ -128,6 +132,7 @@ for (const [format, load] of implementations) {
       error.code === 'firestore-writes-blocked');
     assert.equal(JSON.parse(f.localStorage.getItem(api.WRITE_BLOCK_KEY)).reason, 'account-deletion');
     assert.equal(f.calls.some(call => call[0] === 'clear'), true);
+    assert.equal(f.syncResetCount(), 1);
   });
 
   test(`${format}: a failed purge remains fail-closed and does not clear ownership`, async () => {
