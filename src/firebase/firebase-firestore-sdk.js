@@ -9,6 +9,7 @@ import {
   onSnapshot,
   serverTimestamp,
   setDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import '../../firebase-firestore-sdk.js';
 import { readLegacyNamespace } from '../leaf/read-legacy-namespace.js';
@@ -63,6 +64,7 @@ function createModularFirestoreRuntime({
       onSnapshot,
       serverTimestamp,
       setDoc,
+      writeBatch,
     },
   });
   return Object.freeze({client, lifecycle, syncState});

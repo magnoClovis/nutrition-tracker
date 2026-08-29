@@ -87,6 +87,23 @@ contractTest("returns a neutral TODAY result without reading storage", async cre
   assert.equal(reads, 0);
 });
 
+contractTest("uses the retrocompatible granular reader instead of stale aggregate logs", async createHistoryLoaders => {
+  const reads = [];
+  const {loadHistoricalDate} = createHistoryLoaders(baseDependencies({
+    storage: {
+      async get(key) { reads.push(`get:${key}`); return {value: "nota"}; },
+      async readDailyStateCompatible(date) {
+        reads.push(`daily:${date}`);
+        return {log: {Jantar: [{id: "granular"}]}};
+      }
+    }
+  }));
+
+  const result = await loadHistoricalDate({date: "2026-07-20", today: "2026-07-22"});
+  assert.deepEqual(result.historyLog, {normalized: {Jantar: [{id: "granular"}]}});
+  assert.deepEqual(reads, ["get:notes_2026-07-20", "daily:2026-07-20"]);
+});
+
 contractTest("keeps invalid historical JSON as a rejected loader promise", async createHistoryLoaders => {
   const { loadHistoricalDate } = createHistoryLoaders(baseDependencies({
     storage: {

@@ -245,7 +245,7 @@ contractTest("adds GA quantities through the real buildEntry nutrient transforma
   });
 
   assert.equal(selectedMeal, "Almo\u00e7o");
-  assert.equal(fixture.updateCount, 2);
+  assert.equal(fixture.updateCount, 1);
   assert.deepEqual(fixture.activeLog.Almo\u00e7o.map(entry => ({
     id: entry.id,
     qty: entry.qty,
@@ -258,7 +258,7 @@ contractTest("adds GA quantities through the real buildEntry nutrient transforma
   ]);
 });
 
-contractTest("preserves one updater call per item for historical host semantics", createFixture => {
+contractTest("applies a multi-item GA result through one functional update", createFixture => {
   const historicalSnapshot = { Almo\u00e7o: [] };
   const resolvedUpdates = [];
   const fixture = createFixture({
@@ -275,10 +275,7 @@ contractTest("preserves one updater call per item for historical host semantics"
     meals: ["Caf\u00e9 da manh\u00e3", "Almo\u00e7o"]
   });
 
-  assert.equal(fixture.updateCount, 2);
-  assert.equal(resolvedUpdates.length, 2);
-  assert.deepEqual(resolvedUpdates.map(log => log.Almo\u00e7o.map(entry => entry.foodId)), [
-    ["first"],
-    ["second"]
-  ]);
+  assert.equal(fixture.updateCount, 1);
+  assert.equal(resolvedUpdates.length, 1);
+  assert.deepEqual(resolvedUpdates[0].Almo\u00e7o.map(entry => entry.foodId), ["first", "second"]);
 });

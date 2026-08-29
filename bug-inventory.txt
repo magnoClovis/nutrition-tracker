@@ -849,3 +849,11 @@ de conflito conservadora, verificação individual dos destinos e retomada segur
 A exclusão física final foi executada atomicamente apenas sobre o conjunto
 verificado, depois do export e da janela de observação; falha de qualquer
 pré-condição impede a remoção.
+
+[A09] Resolvido — PRs #118–#122, C28 Fatias 6A–6E.
+Log, água e suplementos usam identidades estáveis e uma única API funcional de
+mutação por data. No runtime granular, cada alteração persiste somente os
+documentos afetados; operações com vários itens usam um único batch atômico,
+com estado pendente/sincronizado/erro e retries idempotentes. A leitura continua
+retrocompatível durante a migração, e os autosaves agregados deixam de ser
+usados assim que o facade modular é ativado.

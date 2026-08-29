@@ -146,12 +146,83 @@
       return runAttempt(identity, generation, operation, 1);
     }
 
+    function normalizeBatchIdentities(identityValues) {
+      if (!Array.isArray(identityValues) || identityValues.length === 0) {
+        throw new TypeError("Firestore sync batch requires identities");
+      }
+      const unique = new Map();
+      identityValues.forEach(value => {
+        const identity = normalizeIdentity(value);
+        unique.set(identity.key, identity);
+      });
+      return Array.from(unique.values());
+    }
+
+    async function runBatchAttempt(identities, batchGenerations, operation, attempt) {
+      if (identities.some(identity => generations.get(identity.key) !== batchGenerations.get(identity.key))) {
+        throw syncError("write-superseded");
+      }
+      identities.forEach(identity => publish(identity, "pending", attempt, null, null));
+      try {
+        const value = await operation();
+        if (identities.every(identity =>
+          generations.get(identity.key) === batchGenerations.get(identity.key))) {
+          identities.forEach(identity => {
+            operations.delete(identity.key);
+            publish(identity, "synced", attempt, null, null);
+          });
+        }
+        return value;
+      } catch (error) {
+        if (identities.some(identity =>
+          generations.get(identity.key) !== batchGenerations.get(identity.key))) throw error;
+        const code = sanitizedCode(error);
+        const delay = retryDelaysMs[attempt - 1];
+        if (delay !== undefined && isRetryable(error)) {
+          const retryAt = Number(now()) + delay;
+          identities.forEach(identity => publish(identity, "pending", attempt, code, retryAt));
+          const primary = identities[0];
+          return new Promise((resolve, reject) => {
+            const timerId = setTimeoutFn(() => {
+              timers.delete(primary.key);
+              runBatchAttempt(identities, batchGenerations, operation, attempt + 1).then(resolve, reject);
+            }, delay);
+            timers.set(primary.key, {timerId, reject});
+          });
+        }
+        identities.forEach(identity => publish(identity, "error", attempt, code, null));
+        throw error;
+      }
+    }
+
+    function executeBatch(identityValues, operation) {
+      if (typeof operation !== "function") throw new TypeError("Firestore sync operation is required");
+      const identities = normalizeBatchIdentities(identityValues);
+      identities.forEach(identity => invalidate(identity.key));
+      const batchGenerations = new Map(identities.map(identity => [
+        identity.key,
+        generations.get(identity.key)
+      ]));
+      const retained = {identities, operation, batch: true};
+      identities.forEach(identity => operations.set(identity.key, retained));
+      return runBatchAttempt(identities, batchGenerations, operation, 1);
+    }
+
     function retry(identityValue) {
       const identity = normalizeIdentity(identityValue);
       const state = states.get(identity.key);
       const retained = operations.get(identity.key);
       if (state?.status !== "error" || !retained) {
         throw new TypeError("Only failed Firestore writes can be retried manually");
+      }
+      if (retained.batch) {
+        retained.identities.forEach(item => invalidate(item.key));
+        const batchGenerations = new Map(retained.identities.map(item => [
+          item.key,
+          generations.get(item.key)
+        ]));
+        retained.identities.forEach(item => operations.set(item.key, retained));
+        return runBatchAttempt(retained.identities, batchGenerations, retained.operation, 1);
       }
       invalidate(identity.key);
       const generation = generations.get(identity.key);
@@ -181,7 +252,7 @@
       notify(null);
     }
 
-    return Object.freeze({execute, retry, get, list, subscribe, reset});
+    return Object.freeze({execute, executeBatch, retry, get, list, subscribe, reset});
   }
 
   return {

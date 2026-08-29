@@ -41,6 +41,23 @@ function createBackend({root = {}, data = {}, granular = {}, failures = {}, dela
     serverTimestamp() {
       return SERVER_TIMESTAMP;
     },
+    writeBatch() {
+      const writes = [];
+      return {
+        set(reference, value) { writes.push({type: 'set', reference, value}); },
+        delete(reference) { writes.push({type: 'delete', reference}); },
+        async commit() {
+          calls.push({operation: 'commitBatch', count: writes.length});
+          if (failures.granularBatch) {
+            throw Object.assign(new Error('granular batch'), {code: 'unavailable'});
+          }
+          writes.forEach(write => {
+            if (write.type === 'set') granularDocs.set(write.reference.path, clone(write.value));
+            else granularDocs.delete(write.reference.path);
+          });
+        },
+      };
+    },
     async getDoc(reference) {
       calls.push({operation: 'getDoc', path: reference.path});
       if (reference.path === `nutrition/${UID}`) {
@@ -191,7 +208,7 @@ contractTest('requires explicit modular SDK operations', (_create, createFirebas
 contractTest('publishes the canonical CRUD contract and narrow backup support port', create => {
   const {client} = create();
   assert.deepEqual(Object.keys(client).sort(), [
-    'fbDel3', 'fbDelDailyEntry3', 'fbGet3', 'fbGetDailyMigration3',
+    'fbApplyDailyEntryBatch3', 'fbDel3', 'fbDelDailyEntry3', 'fbGet3', 'fbGetDailyMigration3',
     'fbGetMany3', 'fbList3', 'fbListDailyEntries3',
     'fbListDailyEntriesCompatible3', 'fbMigrateDailyEntries3',
     'fbReadDailyStateCompatible3', 'fbSet3', 'fbSetDailyEntry3',
@@ -200,6 +217,41 @@ contractTest('publishes the canonical CRUD contract and narrow backup support po
   assert.equal(typeof client.support.loadRootFields, 'function');
   assert.equal(typeof client.support.listDataKeys, 'function');
   assert.equal('legacyGet2' in client.support, false);
+});
+
+contractTest('commits multi-entry mutations atomically and reports every identity', async create => {
+  const backend = createBackend({granular: {
+    [`nutrition/${UID}/days/2026-08-29/water/old-water`]: {
+      schemaVersion: 1, id: 'old-water', date: '2026-08-29',
+      entry: {id: 'old-water', ml: 100}, updatedAt: null,
+    },
+  }});
+  const batches = [];
+  const dailyWriteCoordinator = {
+    async execute() { throw new Error('single coordinator must not be used'); },
+    async executeBatch(identities, operation) {
+      batches.push(identities.map(identity => ({...identity})));
+      return operation();
+    },
+  };
+  const {client} = create({backend, dailyWriteCoordinator});
+
+  await client.fbApplyDailyEntryBatch3([
+    {type: 'set', kind: 'meal', date: '2026-08-29', mealKey: 'Almoço',
+      entry: {id: 'meal-a', name: 'Arroz'}},
+    {type: 'set', kind: 'meal', date: '2026-08-29', mealKey: 'Almoço',
+      entry: {id: 'meal-b', name: 'Feijão'}},
+    {type: 'delete', kind: 'water', date: '2026-08-29', entryId: 'old-water'},
+  ]);
+
+  assert.equal(backend.calls.filter(call => call.operation === 'commitBatch').length, 1);
+  assert.equal(backend.granularDocs.has(
+    `nutrition/${UID}/days/2026-08-29/water/old-water`), false);
+  assert.equal(backend.granularDocs.has(
+    `nutrition/${UID}/days/2026-08-29/meals/meal-a`), true);
+  assert.equal(backend.granularDocs.has(
+    `nutrition/${UID}/days/2026-08-29/meals/meal-b`), true);
+  assert.deepEqual(batches[0].map(identity => identity.entryId), ['meal-a', 'meal-b', 'old-water']);
 });
 
 contractTest('uses only the canonical root and data document paths', async create => {
@@ -357,6 +409,12 @@ contractTest('rejects writes before enqueueing them after the C22 lock', async c
   );
   await assert.rejects(
     client.fbDelDailyEntry3('water', '2026-08-29', 'water-1'),
+    error => error === blocked,
+  );
+  await assert.rejects(
+    client.fbApplyDailyEntryBatch3([
+      {type: 'set', kind: 'water', date: '2026-08-29', entry: {id: 'water-1', ml: 250}},
+    ]),
     error => error === blocked,
   );
   assert.equal(backend.calls.some(call => ['setDoc', 'deleteDoc'].includes(call.operation)), false);

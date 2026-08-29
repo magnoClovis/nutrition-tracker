@@ -210,7 +210,7 @@
   }) {
     const required = [
       "doc", "collection", "getDoc", "setDoc", "deleteDoc", "getDocs", "deleteField",
-      "serverTimestamp"
+      "serverTimestamp", "writeBatch"
     ];
     if (!firestore || typeof getUid !== "function" || !sdk ||
         required.some(name => typeof sdk[name] !== "function") || typeof now !== "function" ||
@@ -680,6 +680,63 @@
       }
     }
 
+    async function fbApplyDailyEntryBatch3(operations) {
+      if (!getUid()) return;
+      assertWritesAllowed();
+      if (!Array.isArray(operations) || operations.length === 0) {
+        throw new TypeError("Granular daily entry batch requires operations");
+      }
+      const normalized = operations.map(item => {
+        if (!item || !["set", "delete"].includes(item.type)) {
+          throw new TypeError("Invalid granular daily entry batch operation");
+        }
+        if (item.type === "set") {
+          const document = buildDailyEntryDocument(
+            item.kind,
+            item.date,
+            item.entry,
+            item.kind === "meal" ? {mealKey: item.mealKey} : {}
+          );
+          return Object.freeze({
+            type: "set",
+            identity: normalizeDailyEntryIdentity(item.kind, item.date, document.id),
+            reference: dailyEntryDocRef(item.kind, item.date, document.id),
+            document
+          });
+        }
+        const identity = normalizeDailyEntryIdentity(item.kind, item.date, item.entryId);
+        return Object.freeze({
+          type: "delete",
+          identity,
+          reference: dailyEntryDocRef(identity.kind, identity.date, identity.entryId)
+        });
+      });
+      const operation = async () => {
+        assertWritesAllowed();
+        const batch = sdk.writeBatch(currentFirestore());
+        normalized.forEach(item => {
+          if (item.type === "set") {
+            batch.set(item.reference, {...item.document, updatedAt: sdk.serverTimestamp()});
+          } else {
+            batch.delete(item.reference);
+          }
+        });
+        return batch.commit();
+      };
+      try {
+        const identities = normalized.map(item => item.identity);
+        if (dailyWriteCoordinator && typeof dailyWriteCoordinator.executeBatch === "function") {
+          await dailyWriteCoordinator.executeBatch(identities, operation);
+        } else if (dailyWriteCoordinator) {
+          await dailyWriteCoordinator.execute(identities[0], operation);
+        } else {
+          await operation();
+        }
+      } catch (error) {
+        throw new Error("Firestore granular entry batch failed", {cause: error});
+      }
+    }
+
     async function fbListDailyEntries3(kind, date) {
       if (!getUid()) return [];
       const identity = normalizeDailyEntryIdentity(kind, date, "entry");
@@ -854,6 +911,7 @@
       fbSubscribeMany3,
       fbSetDailyEntry3,
       fbDelDailyEntry3,
+      fbApplyDailyEntryBatch3,
       fbListDailyEntries3,
       fbGetDailyMigration3,
       fbListDailyEntriesCompatible3,
