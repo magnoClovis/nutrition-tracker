@@ -1,4 +1,5 @@
 import {
+  arrayUnion,
   collection,
   deleteDoc,
   deleteField,
@@ -54,6 +55,7 @@ function createModularFirestoreRuntime({
     assertWritesAllowed: lifecycle.assertWritesAllowed,
     dailyWriteCoordinator: syncState,
     sdk: {
+      arrayUnion,
       collection,
       deleteDoc,
       deleteField,

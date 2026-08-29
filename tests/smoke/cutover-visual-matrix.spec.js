@@ -115,6 +115,18 @@ async function installDeterministicServices(page) {
       delete window.__cutoverProfile[key];
       return true;
     };
+    window.storage.getMany = async keys => Object.fromEntries(
+      keys.map(key => [key, Object.prototype.hasOwnProperty.call(window.__cutoverProfile, key)
+        ? { value: window.__cutoverProfile[key] }
+        : null])
+    );
+    window.storage.readDailyStateCompatible = async () => ({
+      log: {},
+      waterIntake: [],
+      supplementLog: []
+    });
+    window.storage.migrateDailyEntries = async () => ({ migrated: false });
+    window.storage.subscribeMany = () => () => {};
   });
 }
 

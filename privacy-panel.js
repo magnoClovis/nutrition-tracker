@@ -155,6 +155,13 @@
         if (newPwd !== newPwd2) { setErr(isPt?'As senhas não coincidem.':'Passwords do not match.'); return; }
         if (newPwd.length < 6) { setErr(isPt?'A senha deve ter pelo menos 6 caracteres.':'Password must be at least 6 characters.'); return; }
         try {
+          if (typeof accountService.changePassword === 'function') {
+            await accountService.changePassword(curPwd, newPwd);
+            setStatus(isPt?'Senha alterada com sucesso!':'Password changed successfully!');
+            setCurPwd(''); setNewPwd(''); setNewPwd2('');
+            setTimeout(()=>setSection('main'),1500);
+            return;
+          }
           // Re-authenticate via REST to get fresh token
           const email = localStorage.getItem('fb_email') || '';
           await fbSignIn(email, curPwd); // throws if wrong password

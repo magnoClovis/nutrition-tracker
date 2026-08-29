@@ -26,12 +26,34 @@ test('authenticate disposable test account', async ({ page }) => {
   await page.locator('input[type="password"]').fill(password);
   await page.getByRole('button', { name: /Entrar|Sign in|Iniciar sesi[oó]n/i }).last().click();
 
-  await expect(
-    page.locator('button').filter({
-      hasText: /Di.rio|Diary|Alimentos|Foods|Semana|Week|M.tricas|Metrics|Métricas/i
-    }).first()
-  ).toBeVisible({ timeout: 20000 });
+  const appNavigation = page.locator('button').filter({
+    hasText: /Di.rio|Diary|Alimentos|Foods|Semana|Week|M.tricas|Metrics|Métricas/i
+  }).first();
+  const requiredProfile = page.getByText(
+    /Completar perfil nutricional|Complete nutrition profile/i
+  );
+  await expect.poll(async () => (
+    await appNavigation.isVisible() || await requiredProfile.isVisible()
+  ), { timeout: 20000 }).toBe(true);
+
+  // The authenticated fixture is disposable and may legitimately have no
+  // profile after the C28 one-time Auth cutover. Make setup self-contained
+  // instead of depending on data left by an earlier workflow run.
+  if (await requiredProfile.isVisible()) {
+    await page.locator('input[type="date"]:visible').fill('1990-06-15');
+    const selects = page.locator('select:visible');
+    await selects.nth(0).selectOption('female');
+    await selects.nth(1).selectOption('moderate');
+    await selects.nth(2).selectOption('maintenance');
+    await page.getByRole('button', {
+      name: /Salvar e continuar|Save and continue|Guardar y continuar/i
+    }).click();
+  }
+
+  await expect(appNavigation).toBeVisible({ timeout: 20000 });
 
   await dismissTutorialIfVisible(page);
-  await page.context().storageState({ path: AUTH_STATE_PATH });
+  // Modular Firebase Auth persists its session in IndexedDB. Preserve that
+  // database as part of the reusable authenticated state for Vite runs.
+  await page.context().storageState({ path: AUTH_STATE_PATH, indexedDB: true });
 });

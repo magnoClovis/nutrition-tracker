@@ -77,7 +77,7 @@ test("fifth failed attempt becomes permanent with an exact seven-day TTL", {
 }, async () => {
   require("../src/index.js");
   const firestore = getFirestore();
-  const instant = new Date("2026-08-21T12:00:00.000Z");
+  const instant = new Date();
   const repository = createAccountDeletionJobRepository({
     firestore,
     now: () => instant,
