@@ -17,11 +17,10 @@
  * Invalid historical/weekly/meal JSON keeps rejecting its loader, while invalid
  * calendar JSON is warned and represented exactly like a missing or empty day.
  *
- * Timing is part of the contract: historical log and note reads are parallel;
- * weekly and 30-day reads are sequential; and monthly reads are parallel. All
- * rolling windows are anchored to the host's supplied civil `today`, without
- * local-time/UTC conversion. No timeout, request cancellation, or stale-result
- * check is introduced here.
+ * Reads are grouped through the optional storage `getMany` port. The optional
+ * `subscribeMany` port lets overlapping screens reuse the same Firestore
+ * listeners and receive the cached snapshot before the controlled server
+ * refresh. REST compatibility falls back to parallel `get` calls.
  *
  * @module HistoryLoaders
  */
@@ -59,7 +58,7 @@
     warn
   }) {
     if (
-      !storage || typeof storage.get !== "function" ||
+      !storage || (typeof storage.get !== "function" && typeof storage.getMany !== "function") ||
       typeof normalizeMealKeys !== "function" ||
       typeof aggregateWeekRows !== "function" ||
       typeof aggregateMealAverages !== "function" ||
@@ -72,6 +71,45 @@
       throw new TypeError("HistoryLoaders requires storage and all history-loader dependency functions");
     }
 
+    async function readMany(keys) {
+      const uniqueKeys = Array.from(new Set((keys || []).map(String)));
+      if (typeof storage.getMany === "function") {
+        return storage.getMany(uniqueKeys);
+      }
+      const entries = await Promise.all(uniqueKeys.map(async key => [
+        key,
+        await storage.get(key).catch(() => null)
+      ]));
+      return Object.fromEntries(entries);
+    }
+
+    function subscribeMany(keys, onValue, onError) {
+      const uniqueKeys = Array.from(new Set((keys || []).map(String)));
+      if (typeof storage.subscribeMany === "function") {
+        return storage.subscribeMany(uniqueKeys, onValue, onError);
+      }
+      let active = true;
+      readMany(uniqueKeys).then(records => {
+        if (active) onValue({records, complete: true, fromCache: false, hasPendingWrites: false});
+      }).catch(error => {
+        if (active) onError?.(error);
+      });
+      return () => { active = false; };
+    }
+
+    function historicalDates(today, count, includeToday) {
+      const dates = [];
+      const start = includeToday ? 0 : 1;
+      for (let i = start; i < start + count; i++) dates.push(addCivilDays(today, -i));
+      return dates;
+    }
+
+    function parseLogRecord(record, normalize) {
+      if (!record) return null;
+      const parsed = typeof record.value === "string" ? JSON.parse(record.value) : record.value;
+      return normalize ? normalizeMealKeys(parsed || {}) : parsed;
+    }
+
     /**
      * Reads one historical diary log and note in parallel, or returns a neutral TODAY result.
      *
@@ -82,10 +120,11 @@
      */
     async function loadHistoricalDate({ date, today }) {
       if (date === today) return { isHistorical: false };
-      const [logRecord, noteRecord] = await Promise.all([
-        storage.get("log_v2_" + date).catch(() => null),
-        storage.get("notes_" + date).catch(() => null)
-      ]);
+      const logKey = "log_v2_" + date;
+      const noteKey = "notes_" + date;
+      const records = await readMany([logKey, noteKey]);
+      const logRecord = records[logKey];
+      const noteRecord = records[noteKey];
       return {
         isHistorical: true,
         historyLog: logRecord ? normalizeMealKeys(JSON.parse(logRecord.value)) : {},
@@ -104,18 +143,19 @@
      * @returns {Promise<Array<Object>>} Eight weekly rows from the injected pure aggregator.
      */
     async function loadWeekRows({ today, todayLog, trainingByDate, goalContext }) {
+      const dates = historicalDates(today, 8, true).reverse();
+      const records = await readMany(dates.filter(date => date !== today).map(date => "log_v2_" + date));
       const dayDescriptors = [];
       const logsByDate = {};
-      for (let i = 7; i >= 0; i--) {
-        const date = addCivilDays(today, -i);
+      dates.forEach(date => {
         let dayLog = date === today ? todayLog : {};
         if (date !== today) {
-          const record = await storage.get("log_v2_" + date).catch(() => null);
+          const record = records["log_v2_" + date];
           if (record) dayLog = normalizeMealKeys(JSON.parse(record.value));
         }
         dayDescriptors.push({ date, day: Number(date.slice(8, 10)) });
         logsByDate[date] = dayLog;
-      }
+      });
       return aggregateWeekRows({
         dayDescriptors,
         logsByDate,
@@ -134,13 +174,14 @@
      * @returns {Promise<Object>} Per-meal averages from the injected pure aggregator.
      */
     async function loadMealAnalysisData({ today, mealKeys }) {
+      const dates = historicalDates(today, 30, false);
+      const records = await readMany(dates.map(date => "log_v2_" + date));
       const dailyLogs = [];
-      for (let i = 1; i <= 30; i++) {
-        const date = addCivilDays(today, -i);
-        const record = await storage.get("log_v2_" + date).catch(() => null);
-        if (!record) continue;
+      dates.forEach(date => {
+        const record = records["log_v2_" + date];
+        if (!record) return;
         dailyLogs.push(JSON.parse(record.value));
-      }
+      });
       return aggregateMealAverages({ dailyLogs, mealKeys });
     }
 
@@ -164,10 +205,11 @@
     }) {
       const nextData = {};
       const dates = monthDays(calendarMonth).filter(Boolean).filter(date => date <= today);
-      await Promise.all(dates.map(async date => {
+      const records = await readMany(dates.filter(date => date !== today).map(date => "log_v2_" + date));
+      dates.forEach(date => {
         let dayLog = date === today ? todayLog : {};
         if (date !== today) {
-          const record = await storage.get("log_v2_" + date).catch(() => null);
+          const record = records["log_v2_" + date];
           if (record?.value) {
             try {
               const parsed = typeof record.value === "string" ? JSON.parse(record.value) : record.value;
@@ -191,15 +233,71 @@
           frozenGoal: goalContext.goalHistory[date]
         }).effectiveGoal;
         nextData[date] = calendarMarkerFor(dayLog, goal);
-      }));
+      });
       return nextData;
+    }
+
+    async function loadRecentMealDays({today, todayLog, days = 15}) {
+      const dates = historicalDates(today, days, true);
+      const records = await readMany(dates.filter(date => date !== today).map(date => "log_v2_" + date));
+      return dates.flatMap(date => {
+        const parsed = date === today ? todayLog : parseLogRecord(records["log_v2_" + date], false);
+        return parsed ? [{date, log: parsed}] : [];
+      });
+    }
+
+    async function loadEatingPatternDays({today, days = 30}) {
+      const dates = historicalDates(today, days, false);
+      const records = await readMany(dates.map(date => "log_v2_" + date));
+      return dates.flatMap(date => {
+        const parsed = parseLogRecord(records["log_v2_" + date], false);
+        return parsed ? [{date, log: parsed}] : [];
+      });
+    }
+
+    async function loadLogDays({dates, today, todayLog, normalize = true}) {
+      const historical = dates.filter(date => date !== today);
+      const records = await readMany(historical.map(date => "log_v2_" + date));
+      return dates.map(date => ({
+        date,
+        log: date === today
+          ? todayLog
+          : (parseLogRecord(records["log_v2_" + date], normalize) || {})
+      }));
+    }
+
+    async function loadReportDays({dates, today, todayRecords}) {
+      const prefixes = ["log_v2_", "notes_", "waterIntake_", "suppLog_"];
+      const historical = dates.filter(date => date !== today);
+      const records = await readMany(historical.flatMap(date => prefixes.map(prefix => prefix + date)));
+      return dates.map(date => {
+        if (date === today) return {date, ...(todayRecords || {})};
+        return {
+          date,
+          log: parseLogRecord(records["log_v2_" + date], true) || {},
+          note: records["notes_" + date]?.value || "",
+          water: records["waterIntake_" + date]?.value || "[]",
+          supplements: records["suppLog_" + date]?.value || "[]"
+        };
+      });
+    }
+
+    function subscribeHistoryWindow({dates, prefixes = ["log_v2_"], onValue, onError}) {
+      const keys = dates.flatMap(date => prefixes.map(prefix => prefix + date));
+      return subscribeMany(keys, onValue, onError);
     }
 
     return {
       loadHistoricalDate,
       loadWeekRows,
       loadMealAnalysisData,
-      loadCalendarMonthData
+      loadCalendarMonthData,
+      loadRecentMealDays,
+      loadEatingPatternDays,
+      loadLogDays,
+      loadReportDays,
+      subscribeHistoryWindow,
+      support: Object.freeze({readMany})
     };
   }
 

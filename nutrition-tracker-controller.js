@@ -931,7 +931,12 @@
         loadHistoricalDate,
         loadWeekRows,
         loadMealAnalysisData,
-        loadCalendarMonthData
+        loadCalendarMonthData,
+        loadRecentMealDays,
+        loadEatingPatternDays,
+        loadLogDays,
+        loadReportDays,
+        subscribeHistoryWindow
       } = window.HistoryLoaders.createHistoryLoaders({
         storage,
         normalizeMealKeys,
@@ -1260,6 +1265,7 @@
       const [weekData, setWeekData] = useState([]);
       const [mealAverages, setMealAverages] = useState({});
       const [recentMeals, setRecentMeals] = useState([]);
+      const [historyRevision, setHistoryRevision] = useState(0);
       const [showRecentMeals, setShowRecentMeals] = useState(false);
       const [editStagedIdx, setEditStagedIdx] = useState(null);
       const [editStagedQty, setEditStagedQty] = useState("");
@@ -1592,6 +1598,31 @@
         });
       }, [tab]);
       useEffect(() => {
+        if (!loaded || typeof storage.subscribeMany !== "function") return undefined;
+        let initialSnapshotSeen = false;
+        let refreshTimer = null;
+        const refreshOnChange = snapshot => {
+          if (!snapshot?.complete) return;
+          if (!initialSnapshotSeen) {
+            initialSnapshotSeen = true;
+            return;
+          }
+          if (refreshTimer !== null) return;
+          refreshTimer = setTimeoutFn(() => {
+            refreshTimer = null;
+            setHistoryRevision(revision => revision + 1);
+          }, 50);
+        };
+        const count = tab === "semana" ? 30 : tab === "adicionar" ? 14 : 0;
+        if (!count) return undefined;
+        const dates = Array.from({length: count}, (_, index) => addCivilDays(TODAY, -index - 1));
+        const unsubscribe = subscribeHistoryWindow({dates, onValue: refreshOnChange});
+        return () => {
+          if (refreshTimer !== null) clearTimeoutFn(refreshTimer);
+          unsubscribe();
+        };
+      }, [tab, loaded, TODAY]);
+      useEffect(() => {
         if (tab === "semana" && loaded) {
           loadWeekData();
           loadMealAnalysis();
@@ -1600,7 +1631,7 @@
           loadWeekData();
         }
         if (tab === "adicionar" && loaded) loadRecentMeals();
-      }, [tab, loaded, log, trainingByDate, goalHistory, weightHistory, customGoals, nutritionPrefs]);
+      }, [tab, loaded, log, trainingByDate, goalHistory, weightHistory, customGoals, nutritionPrefs, historyRevision]);
       async function loadWeekData() {
         const days = await loadWeekRows({
           today: TODAY,
@@ -1623,20 +1654,7 @@
         setMealAverages(avgs);
       }
       async function loadRecentMeals() {
-        const dailyLogs = [];
-        for (let i = 0; i <= 14; i++) {
-          const date = addCivilDays(TODAY, -i);
-          const dayLog = date === TODAY ? log : (() => {
-            return null;
-          })();
-          let parsed = dayLog;
-          if (!parsed) {
-            const l = await storage.get("log_v2_" + date).catch(() => null);
-            if (!l) continue;
-            parsed = JSON.parse(l.value);
-          }
-          dailyLogs.push({date, log: parsed});
-        }
+        const dailyLogs = await loadRecentMealDays({today: TODAY, todayLog: log});
         setRecentMeals(aggregateRecentMeals({dailyLogs, mealKeys: MEALS}));
       }
       function notify(msg, duration = 3000) {
@@ -2175,14 +2193,7 @@
         setPatternsText("");
         setPatternsSaved(false);
         try {
-          const days = [];
-          for (let i = 1; i <= 30; i++) {
-            const date = addCivilDays(TODAY, -i);
-            const l = await storage.get("log_v2_" + date).catch(() => null);
-            if (!l) continue;
-            const dayLog = JSON.parse(l.value);
-            days.push({ date, log: dayLog });
-          }
+          const days = await loadEatingPatternDays({today: TODAY});
           const snapshot = {
             lang,
             today: TODAY,
@@ -2296,17 +2307,9 @@
         }
         return dates;
       }
-      async function loadReportDay(date) {
-        let dayLog = date === TODAY ? log : {};
-        if (date !== TODAY) {
-          const saved = await storage.get("log_v2_" + date).catch(() => null);
-          if (saved) dayLog = normalizeMealKeys(JSON.parse(saved.value));
-        }
-        const [noteRes, waterRes, suppRes] = await Promise.all([
-          date === TODAY ? Promise.resolve({value: todayNote || ""}) : storage.get("notes_" + date).catch(() => null),
-          date === TODAY ? Promise.resolve({value: JSON.stringify(waterIntake || [])}) : storage.get("waterIntake_" + date).catch(() => null),
-          date === TODAY ? Promise.resolve({value: JSON.stringify(suppLog || [])}) : storage.get("suppLog_" + date).catch(() => null)
-        ]);
+      function buildReportDay(record) {
+        const date = record.date;
+        const dayLog = record.log || {};
         const weightEntry = getWeightForDate(weightHistory, date);
         return {
           date,
@@ -2316,9 +2319,9 @@
           goals: dayGoalForDate(date),
           totals: buildDayTotals(dayLog),
           meals: dayLog,
-          water: waterRes?.value ? JSON.parse(waterRes.value) : [],
-          supplements: suppRes?.value ? JSON.parse(suppRes.value) : [],
-          notes: noteRes?.value || ""
+          water: record.water ? JSON.parse(record.water) : [],
+          supplements: record.supplements ? JSON.parse(record.supplements) : [],
+          notes: record.note || ""
         };
       }
       async function buildAdvancedReportPayload(type, format) {
@@ -2340,7 +2343,17 @@
           if (!dates.includes(TODAY)) dates.push(TODAY);
           dates = Array.from(new Set(dates)).sort();
         }
-        const days = await Promise.all(dates.map(loadReportDay));
+        const reportRecords = await loadReportDays({
+          dates,
+          today: TODAY,
+          todayRecords: {
+            log,
+            note: todayNote || "",
+            water: JSON.stringify(waterIntake || []),
+            supplements: JSON.stringify(suppLog || [])
+          }
+        });
+        const days = reportRecords.map(buildReportDay);
         const nonEmptyDays = days.filter(d => Object.values(d.meals || {}).some(items => (items || []).length) || d.date === TODAY || type === "day");
         return {
           reportType: type,
@@ -2461,23 +2474,18 @@
           }
         } else {
           // Week
-          const days = [];
-          for (let i = 6; i >= 0; i--) {
-            const date = addCivilDays(TODAY, -i);
-            let dayLog = date === TODAY ? log : {};
-            if (date !== TODAY) {
-              const l = await storage.get("log_v2_" + date).catch(() => null);
-              if (l) dayLog = normalizeMealKeys(JSON.parse(l.value));
-            }
+          const dates = Array.from({length: 7}, (_, index) => addCivilDays(TODAY, index - 6));
+          const weeklyLogs = await loadLogDays({dates, today: TODAY, todayLog: log});
+          const days = weeklyLogs.map(({date, log: dayLog}) => {
             const totals = buildDayTotals(dayLog);
             const g = dayGoalForDate(date);
-            days.push({
+            return {
               date,
               isTraining: trainingByDate[date] ?? true,
               goals: g,
               totals
-            });
-          }
+            };
+          });
           filename = "semana_" + TODAY + "." + format;
           if (format === "json") {
             content = JSON.stringify(days, null, 2);
@@ -2755,6 +2763,31 @@
       const frozenGoals = goalHistory[viewDate];
       const goals = !isToday && frozenGoals ? {...calculatedGoals, ...frozenGoals} : calculatedGoals;
       useEffect(() => {
+        if (!loaded || !calendarOpen || typeof storage.subscribeMany !== "function") return undefined;
+        let initialSnapshotSeen = false;
+        let refreshTimer = null;
+        const dates = monthDays(calendarMonth).filter(Boolean).filter(date => date < TODAY);
+        const unsubscribe = subscribeHistoryWindow({
+          dates,
+          onValue: snapshot => {
+            if (!snapshot?.complete) return;
+            if (!initialSnapshotSeen) {
+              initialSnapshotSeen = true;
+              return;
+            }
+            if (refreshTimer !== null) return;
+            refreshTimer = setTimeoutFn(() => {
+              refreshTimer = null;
+              setHistoryRevision(revision => revision + 1);
+            }, 50);
+          }
+        });
+        return () => {
+          if (refreshTimer !== null) clearTimeoutFn(refreshTimer);
+          unsubscribe();
+        };
+      }, [loaded, calendarOpen, calendarMonth, TODAY]);
+      useEffect(() => {
         if (!loaded || !calendarOpen) return;
         let cancelled = false;
         async function loadCalendarMonth() {
@@ -2788,7 +2821,7 @@
         return () => {
           cancelled = true;
         };
-      }, [loaded, calendarOpen, calendarMonth, log, goalHistory, trainingByDate, weightHistory, customGoals, nutritionPrefs]);
+      }, [loaded, calendarOpen, calendarMonth, log, goalHistory, trainingByDate, weightHistory, customGoals, nutritionPrefs, historyRevision]);
       useEffect(() => {
         if (!loaded) return;
         const snapshot = {
@@ -3554,16 +3587,14 @@
 
           } else if (type === 'week' || type === 'month') {
             const days_n = type === 'week' ? 7 : 30;
-            const days = [];
-            for (let i = days_n-1; i >= 0; i--) {
-              const date = addCivilDays(today, -i);
-              let dayLog = date === TODAY ? log : {};
-              if (date !== TODAY) {
-                const l = await storage.get('log_v2_'+date).catch(()=>null);
-                if (l) dayLog = normalizeMealKeys(JSON.parse(l.value));
-              }
-              days.push({date, isTraining:trainingByDate[date] ?? true, totals:buildDayTotals(dayLog), meals:dayLog});
-            }
+            const dates = Array.from({length: days_n}, (_, index) => addCivilDays(today, index - days_n + 1));
+            const loadedDays = await loadLogDays({dates, today: TODAY, todayLog: log});
+            const days = loadedDays.map(({date, log: dayLog}) => ({
+              date,
+              isTraining: trainingByDate[date] ?? true,
+              totals: buildDayTotals(dayLog),
+              meals: dayLog
+            }));
             filename = (type==='week'?'semana':'mes') + '_' + today + '.json';
             await exportFile({
               content: JSON.stringify({exportedAt:new Date().toISOString(),type,days},null,2),

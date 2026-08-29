@@ -100,20 +100,17 @@ contractTest("keeps invalid historical JSON as a rejected loader promise", async
   );
 });
 
-contractTest("reads weekly history sequentially from the supplied civil today", async createHistoryLoaders => {
-  let activeReads = 0;
-  let maxActiveReads = 0;
-  const readKeys = [];
+contractTest("loads weekly history in one grouped request from the supplied civil today", async createHistoryLoaders => {
+  const groupedReads = [];
   let aggregateInput;
   const { loadWeekRows } = createHistoryLoaders(baseDependencies({
     storage: {
-      async get(key) {
-        readKeys.push(key);
-        activeReads++;
-        maxActiveReads = Math.max(maxActiveReads, activeReads);
-        await new Promise(resolve => setImmediate(resolve));
-        activeReads--;
-        return { value: JSON.stringify({ Outro: [{ protein: readKeys.length }] }) };
+      async getMany(keys) {
+        groupedReads.push(keys);
+        return Object.fromEntries(keys.map((key, index) => [
+          key,
+          { value: JSON.stringify({ Outro: [{ protein: index + 1 }] }) }
+        ]));
       }
     },
     aggregateWeekRows(snapshot) {
@@ -132,8 +129,8 @@ contractTest("reads weekly history sequentially from the supplied civil today", 
   });
 
   assert.deepEqual(result, [{ aggregated: true }]);
-  assert.equal(readKeys.length, 7);
-  assert.equal(maxActiveReads, 1);
+  assert.equal(groupedReads.length, 1);
+  assert.equal(groupedReads[0].length, 7);
   assert.equal(aggregateInput.dayDescriptors.length, 8);
   assert.deepEqual(aggregateInput.dayDescriptors[0], { date: "2026-07-15", day: 15 });
   assert.deepEqual(aggregateInput.dayDescriptors.at(-1), { date: "2026-07-22", day: 22 });
@@ -141,20 +138,18 @@ contractTest("reads weekly history sequentially from the supplied civil today", 
   assert.strictEqual(aggregateInput.goalContext, goalContext);
 });
 
-contractTest("reads 30 meal-analysis days sequentially without normalizing meal keys", async createHistoryLoaders => {
-  let activeReads = 0;
-  let maxActiveReads = 0;
+contractTest("loads 30 meal-analysis days as one group without normalizing meal keys", async createHistoryLoaders => {
+  const groupedReads = [];
   let normalizeCalls = 0;
   let aggregateInput;
   const { loadMealAnalysisData } = createHistoryLoaders(baseDependencies({
     storage: {
-      async get(key) {
-        activeReads++;
-        maxActiveReads = Math.max(maxActiveReads, activeReads);
-        await new Promise(resolve => setImmediate(resolve));
-        activeReads--;
-        if (key.endsWith("07-21")) return { value: JSON.stringify({ Breakfast: [{ protein: 20 }] }) };
-        return null;
+      async getMany(keys) {
+        groupedReads.push(keys);
+        return Object.fromEntries(keys.map(key => [
+          key,
+          key.endsWith("07-21") ? { value: JSON.stringify({ Breakfast: [{ protein: 20 }] }) } : null
+        ]));
       }
     },
     normalizeMealKeys(log) {
@@ -168,7 +163,8 @@ contractTest("reads 30 meal-analysis days sequentially without normalizing meal 
   }));
 
   assert.deepEqual(await loadMealAnalysisData({ today: "2026-07-22", mealKeys: ["Café da manhã"] }), { done: true });
-  assert.equal(maxActiveReads, 1);
+  assert.equal(groupedReads.length, 1);
+  assert.equal(groupedReads[0].length, 30);
   assert.equal(normalizeCalls, 0);
   assert.deepEqual(aggregateInput, {
     dailyLogs: [{ Breakfast: [{ protein: 20 }] }],
@@ -262,4 +258,79 @@ contractTest("publishes the factory and requires every loader dependency", creat
     () => createHistoryLoaders(baseDependencies({ addCivilDays: null })),
     /requires storage and all history-loader dependency functions/
   );
+});
+
+contractTest("groups recent, pattern, and report windows through the same port", async createHistoryLoaders => {
+  const groups = [];
+  const storage = {
+    async getMany(keys) {
+      groups.push(keys);
+      return Object.fromEntries(keys.map(key => {
+        if (key.startsWith("log_v2_")) return [key, {value: JSON.stringify({Outro: [{kcal: 1}]})}];
+        if (key.startsWith("notes_")) return [key, {value: "nota"}];
+        return [key, {value: "[]"}];
+      }));
+    }
+  };
+  const loaders = createHistoryLoaders(baseDependencies({storage}));
+  const recent = await loaders.loadRecentMealDays({today: "2026-07-22", todayLog: {Hoje: []}, days: 3});
+  const patterns = await loaders.loadEatingPatternDays({today: "2026-07-22", days: 2});
+  const logs = await loaders.loadLogDays({
+    dates: ["2026-07-21", "2026-07-22"],
+    today: "2026-07-22",
+    todayLog: {Hoje: []}
+  });
+  const reports = await loaders.loadReportDays({
+    dates: ["2026-07-21", "2026-07-22"],
+    today: "2026-07-22",
+    todayRecords: {log: {Hoje: []}, note: "hoje", water: "[]", supplements: "[]"}
+  });
+
+  assert.equal(groups.length, 4);
+  assert.equal(groups[0].length, 2);
+  assert.equal(groups[1].length, 2);
+  assert.equal(groups[2].length, 1);
+  assert.equal(groups[3].length, 4);
+  assert.equal(recent.length, 3);
+  assert.equal(patterns.length, 2);
+  assert.deepEqual(logs[0].log, {normalized: {Outro: [{kcal: 1}]}});
+  assert.deepEqual(logs[1].log, {Hoje: []});
+  assert.deepEqual(reports[0], {
+    date: "2026-07-21",
+    log: {normalized: {Outro: [{kcal: 1}]}},
+    note: "nota",
+    water: "[]",
+    supplements: "[]"
+  });
+  assert.equal(reports[1].note, "hoje");
+});
+
+contractTest("reuses the storage subscription port for a complete history window", async createHistoryLoaders => {
+  const calls = [];
+  let subscribedListener;
+  const stop = () => calls.push("stop");
+  const loaders = createHistoryLoaders(baseDependencies({
+    storage: {
+      get: async () => null,
+      subscribeMany(keys, listener) {
+        calls.push(keys);
+        subscribedListener = listener;
+        return stop;
+      }
+    }
+  }));
+  const values = [];
+  const unsubscribe = loaders.subscribeHistoryWindow({
+    dates: ["2026-07-20", "2026-07-21"],
+    prefixes: ["log_v2_", "notes_"],
+    onValue: value => values.push(value)
+  });
+  assert.deepEqual(calls[0], [
+    "log_v2_2026-07-20", "notes_2026-07-20",
+    "log_v2_2026-07-21", "notes_2026-07-21"
+  ]);
+  subscribedListener({records: {}, complete: true, fromCache: true});
+  assert.equal(values.length, 1);
+  unsubscribe();
+  assert.equal(calls.at(-1), "stop");
 });

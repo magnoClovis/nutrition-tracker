@@ -33,6 +33,8 @@ test('the staged lifecycle clears persistent data and guards writes across accou
   assert.match(adapter, /assertWritesAllowed\(\)/);
   assert.match(runtime, /userLifecycle:\s*firestoreRuntime\.lifecycle/);
   assert.match(runtime, /resetStorageCaches:\s*firestoreRuntime\.client\.resetStorageCaches/);
+  assert.match(runtime, /getMany:\s*firestoreRuntime\.client\.fbGetMany3/);
+  assert.match(runtime, /subscribeMany:\s*firestoreRuntime\.client\.fbSubscribeMany3/);
 });
 
 test('the modular Firestore adapter uses SDK operations instead of raw REST fetches', () => {
