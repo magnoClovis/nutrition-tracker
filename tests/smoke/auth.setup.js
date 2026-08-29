@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./app-check-fixture');
 const {
   AUTH_STATE_PATH,
   email,

@@ -11,6 +11,7 @@ const { defineConfig, devices } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: './tests/smoke',
   testIgnore: /cutover-visual-matrix\.spec\.js/,
+  globalSetup: require.resolve('./tests/smoke/app-check-global-setup.js'),
   timeout: 30000,
   fullyParallel: false,
   workers: 1,
@@ -21,7 +22,9 @@ module.exports = defineConfig({
   ],
   use: {
     baseURL: 'http://127.0.0.1:8765',
-    trace: 'retain-on-failure',
+    // The App Check debug secret is installed before page scripts in CI. Do
+    // not retain network traces that could capture that registered secret.
+    trace: process.env.FIREBASE_APPCHECK_DEBUG_TOKEN ? 'off' : 'retain-on-failure',
     screenshot: 'only-on-failure'
   },
   webServer: {
