@@ -33,5 +33,7 @@ test('authenticate disposable test account', async ({ page }) => {
   ).toBeVisible({ timeout: 20000 });
 
   await dismissTutorialIfVisible(page);
-  await page.context().storageState({ path: AUTH_STATE_PATH });
+  // Modular Firebase Auth persists its session in IndexedDB. Preserve that
+  // database as part of the reusable authenticated state for Vite runs.
+  await page.context().storageState({ path: AUTH_STATE_PATH, indexedDB: true });
 });

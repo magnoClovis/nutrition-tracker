@@ -19,6 +19,7 @@ function createBackend({root = {}, data = {}, granular = {}, failures = {}, dela
   const calls = [];
   const DELETE_FIELD = Symbol('delete-field');
   const SERVER_TIMESTAMP = Object.freeze({__serverTimestamp: true});
+  const arrayUnion = values => ({__arrayUnion: values});
   const snapshotListeners = new Map();
   let granularWriteCount = 0;
 
@@ -27,6 +28,9 @@ function createBackend({root = {}, data = {}, granular = {}, failures = {}, dela
   }
 
   const sdk = {
+    arrayUnion(...values) {
+      return arrayUnion(values);
+    },
     doc(_firestore, ...segments) {
       calls.push({operation: 'doc', path: segments.join('/')});
       return ref('doc', segments);
@@ -52,7 +56,19 @@ function createBackend({root = {}, data = {}, granular = {}, failures = {}, dela
             throw Object.assign(new Error('granular batch'), {code: 'unavailable'});
           }
           writes.forEach(write => {
-            if (write.type === 'set') granularDocs.set(write.reference.path, clone(write.value));
+            if (write.type === 'set' && write.reference.path === `nutrition/${UID}`) {
+              Object.entries(write.value).forEach(([key, item]) => {
+                if (item?.__arrayUnion) {
+                  rootFields[key] = Array.from(new Set([...(rootFields[key] || []), ...item.__arrayUnion]));
+                } else rootFields[key] = clone(item);
+              });
+            } else if (write.type === 'set') {
+              granularWriteCount++;
+              if (failures.granularWrite || failures.granularWriteAt === granularWriteCount) {
+                throw Object.assign(new Error('granular write'), {code: 'unavailable'});
+              }
+              granularDocs.set(write.reference.path, clone(write.value));
+            }
             else granularDocs.delete(write.reference.path);
           });
         },
@@ -111,6 +127,9 @@ function createBackend({root = {}, data = {}, granular = {}, failures = {}, dela
         if (failures.rootWrite) throw Object.assign(new Error('root write'), {code: 'permission-denied'});
         Object.entries(value).forEach(([key, item]) => {
           if (item === DELETE_FIELD) delete rootFields[key];
+          else if (item?.__arrayUnion) {
+            rootFields[key] = Array.from(new Set([...(rootFields[key] || []), ...item.__arrayUnion]));
+          }
           else rootFields[key] = clone(item);
         });
         return;
@@ -209,9 +228,9 @@ contractTest('publishes the canonical CRUD contract and narrow backup support po
   const {client} = create();
   assert.deepEqual(Object.keys(client).sort(), [
     'fbApplyDailyEntryBatch3', 'fbDel3', 'fbDelDailyEntry3', 'fbGet3', 'fbGetDailyMigration3',
-    'fbGetMany3', 'fbList3', 'fbListDailyEntries3',
-    'fbListDailyEntriesCompatible3', 'fbMigrateDailyEntries3',
-    'fbReadDailyStateCompatible3', 'fbSet3', 'fbSetDailyEntry3',
+    'fbGetMany3', 'fbList3', 'fbListDailyDates3', 'fbListDailyEntries3',
+    'fbListDailyEntriesCompatible3', 'fbMigrateDailyEntries3', 'fbReadDailyStateCompatible3',
+    'fbReplaceDailyAggregate3', 'fbSet3', 'fbSetDailyEntry3',
     'fbSubscribeMany3', 'resetStorageCaches', 'support',
   ]);
   assert.equal(typeof client.support.loadRootFields, 'function');
@@ -252,6 +271,30 @@ contractTest('commits multi-entry mutations atomically and reports every identit
   assert.equal(backend.granularDocs.has(
     `nutrition/${UID}/days/2026-08-29/meals/meal-b`), true);
   assert.deepEqual(batches[0].map(identity => identity.entryId), ['meal-a', 'meal-b', 'old-water']);
+  assert.deepEqual(backend.rootFields._dailyDates, ['2026-08-29']);
+});
+
+contractTest('indexes granular dates and replaces one daily aggregate atomically for backup restore', async create => {
+  const date = '2026-08-29';
+  const backend = createBackend({granular: {
+    [`nutrition/${UID}/days/${date}/water/old-water`]: {
+      schemaVersion: 1, id: 'old-water', date,
+      entry: {id: 'old-water', ml: 100}, updatedAt: null,
+    },
+  }});
+  const {client} = create({backend});
+
+  await client.fbReplaceDailyAggregate3('water', date, JSON.stringify([
+    {id: 'new-water', ml: 250},
+  ]));
+
+  assert.equal(backend.granularDocs.has(
+    `nutrition/${UID}/days/${date}/water/old-water`), false);
+  assert.equal(backend.granularDocs.has(
+    `nutrition/${UID}/days/${date}/water/new-water`), true);
+  assert.equal(backend.granularDocs.has(
+    `nutrition/${UID}/days/${date}/migrations/water`), true);
+  assert.deepEqual(await client.fbListDailyDates3(), [date]);
 });
 
 contractTest('uses only the canonical root and data document paths', async create => {
@@ -297,6 +340,27 @@ contractTest('coalesces profile and data reads and keeps writes coherent', async
   assert.deepEqual(await client.fbGet3('pantry_v2'), {value: '[{"id":"updated"}]'});
   await client.fbDel3('pantry_v2');
   assert.equal(await client.fbGet3('pantry_v2'), null);
+});
+
+contractTest('reports sanitized read metrics and proves repeated cached reads avoid a server request', async create => {
+  const backend = createBackend({data: {pantry_v2: '[]'}});
+  const {client} = create({backend});
+  client.support.resetReadMetrics();
+
+  await client.fbGet3('pantry_v2');
+  const first = client.support.readMetricsSnapshot();
+  await client.fbGet3('pantry_v2');
+  const second = client.support.readMetricsSnapshot();
+
+  assert.deepEqual(first, {
+    serverRequests: 1,
+    serverDocuments: 1,
+    cacheRequests: 0,
+    subscriptionSnapshots: 0,
+    cacheSnapshots: 0,
+  });
+  assert.deepEqual(second, first);
+  assert.equal(JSON.stringify(second).includes(UID), false);
 });
 
 contractTest('does not let an older in-flight root read overwrite a completed write', async create => {

@@ -27,6 +27,62 @@ test.describe('authenticated critical data flows', () => {
     }, key);
   }
 
+  test('Vite SDK serves a repeated unchanged record without another Firestore request', async ({ page }) => {
+    await interceptOptionalExternalApis(page);
+    await openApp(page);
+    const available = await page.evaluate(() => typeof window.debugFirestoreReadMetrics === 'function');
+    test.skip(!available, 'legacy runtime does not expose modular Firestore diagnostics');
+
+    const result = await page.evaluate(async () => {
+      window.debugFirestoreReadMetrics({reset: true});
+      await window.storage.get('c28_read_probe_missing');
+      const first = window.debugFirestoreReadMetrics();
+      await window.storage.get('c28_read_probe_missing');
+      const second = window.debugFirestoreReadMetrics();
+      return {first, second};
+    });
+
+    expect(result.first.serverRequests).toBeGreaterThanOrEqual(1);
+    expect(result.second.serverRequests).toBe(result.first.serverRequests);
+    expect(JSON.stringify(result)).not.toContain('uid');
+  });
+
+  test('Vite SDK reads cached data while offline and reconnects cleanly', async ({ page, context }) => {
+    await interceptOptionalExternalApis(page);
+    await openApp(page);
+    const available = await page.evaluate(() => typeof window.debugFirestoreReadMetrics === 'function');
+    test.skip(!available, 'legacy runtime does not use the modular persistent cache');
+
+    const online = await readStorage(page, 'pantry_v2');
+    let offline;
+    await context.setOffline(true);
+    try {
+      offline = await readStorage(page, 'pantry_v2');
+    } finally {
+      await context.setOffline(false);
+    }
+    const reconnected = await readStorage(page, 'pantry_v2');
+
+    expect(offline).toEqual(online);
+    expect(reconnected).toEqual(online);
+  });
+
+  test('Vite SDK restores the authenticated cache in a second tab', async ({ page, context }) => {
+    await interceptOptionalExternalApis(page);
+    await openApp(page);
+    const available = await page.evaluate(() => typeof window.debugFirestoreReadMetrics === 'function');
+    test.skip(!available, 'legacy runtime does not use modular multi-tab persistence');
+
+    const secondPage = await context.newPage();
+    await interceptOptionalExternalApis(secondPage);
+    await openApp(secondPage);
+    await expect(secondPage.locator('button').filter({
+      hasText: /Di.rio|Diary|Alimentos|Foods|Semana|Week|M.tricas|Metrics|Métricas/i,
+    }).first()).toBeVisible({timeout: 20000});
+    expect(await readStorage(secondPage, 'pantry_v2')).toEqual(await readStorage(page, 'pantry_v2'));
+    await secondPage.close();
+  });
+
   async function writeStorage(page, key, value) {
     await page.evaluate(([storageKey, storageValue]) => window.storage.set(storageKey, storageValue), [key, value]);
   }

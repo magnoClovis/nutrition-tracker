@@ -58,7 +58,10 @@
     mergeArrayValues,
     mergeObjectValues,
     prepareExport = async () => null,
-    completeRestore = async () => null
+    completeRestore = async () => null,
+    exportDailyData = async () => ({}),
+    readBackupValue = fbGet3,
+    restoreDailyValue = null
   }) {
     const ACCOUNT_BACKUP_SCHEMA = "nutrition-tracker-account-backup";
     const ACCOUNT_BACKUP_VERSION = 3;
@@ -198,6 +201,12 @@
           if (_backupCategoryForKey3(key) && doc && doc.value !== undefined && doc.value !== null) data[key] = doc.value;
         }));
       }
+      const granularDailyData = await exportDailyData();
+      Object.entries(granularDailyData || {}).forEach(([key, value]) => {
+        if (_backupCategoryForKey3(key) && value !== undefined && value !== null) {
+          data[key] = storageValue2(value);
+        }
+      });
 
       return {
         schema: ACCOUNT_BACKUP_SCHEMA,
@@ -318,7 +327,7 @@
       for (let i = 0; i < entries.length; i += 20) {
         const batch = entries.slice(i, i + 20);
         const rows = await Promise.all(batch.map(async entry => {
-          const current = await fbGet3(entry.targetKey).catch(() => null);
+          const current = await readBackupValue(entry.targetKey).catch(() => null);
           const currentValue = current && current.value !== undefined && current.value !== null ? current.value : null;
           const total = _backupItemCount3(entry.key, entry.value);
           const newItems = _backupNewItemCount3(entry.targetKey, entry.value, currentValue);
@@ -399,20 +408,28 @@
         await Promise.all(selectedEntries.slice(i, i + 15).map(async entry => {
           const strategy = selected[entry.category];
           if (strategy === "replace") {
-            await fbSet3(entry.targetKey, entry.value);
+            if (restoreDailyValue && /^(log_v2|waterIntake|suppLog)_\d{4}-\d{2}-\d{2}$/.test(entry.targetKey)) {
+              await restoreDailyValue(entry.targetKey, entry.value);
+            } else {
+              await fbSet3(entry.targetKey, entry.value);
+            }
             clearLocalFallback(entry.targetKey);
             imported++;
             return;
           }
 
-          const current = await fbGet3(entry.targetKey).catch(() => null);
+          const current = await readBackupValue(entry.targetKey).catch(() => null);
           const hasCurrent = !!(current && current.value !== undefined && current.value !== null);
           if (/^(log_v2|notes|waterIntake|suppLog)_\d{4}-\d{2}-\d{2}$/.test(entry.targetKey) && hasCurrent) {
             skipped++;
             return;
           }
           const merged = _mergeBackupValues3(entry.targetKey, hasCurrent ? current.value : null, entry.value);
-          await fbSet3(entry.targetKey, merged);
+          if (restoreDailyValue && /^(log_v2|waterIntake|suppLog)_\d{4}-\d{2}-\d{2}$/.test(entry.targetKey)) {
+            await restoreDailyValue(entry.targetKey, merged);
+          } else {
+            await fbSet3(entry.targetKey, merged);
+          }
           clearLocalFallback(entry.targetKey);
           imported++;
         }));

@@ -210,7 +210,7 @@
   }) {
     const required = [
       "doc", "collection", "getDoc", "setDoc", "deleteDoc", "getDocs", "deleteField",
-      "serverTimestamp", "writeBatch"
+      "serverTimestamp", "writeBatch", "arrayUnion"
     ];
     if (!firestore || typeof getUid !== "function" || !sdk ||
         required.some(name => typeof sdk[name] !== "function") || typeof now !== "function" ||
@@ -232,6 +232,22 @@
     const rootSubscriptions = new Set();
     let stopRootSubscription = null;
     let storageCacheGeneration = 0;
+    const readMetrics = {
+      serverRequests: 0,
+      serverDocuments: 0,
+      cacheRequests: 0,
+      subscriptionSnapshots: 0,
+      cacheSnapshots: 0,
+    };
+
+    function readMetricsSnapshot() {
+      return Object.freeze({...readMetrics});
+    }
+
+    function resetReadMetrics() {
+      Object.keys(readMetrics).forEach(key => { readMetrics[key] = 0; });
+      return readMetricsSnapshot();
+    }
 
     function currentFirestore() {
       return typeof firestore === "function" ? firestore() : firestore;
@@ -308,10 +324,34 @@
       );
     }
 
+    function dailyDatesPatch(dates) {
+      return {_dailyDates: sdk.arrayUnion(...Array.from(new Set(dates)).sort())};
+    }
+
+    function rememberDailyDates(dates) {
+      if (!rootDocLoaded) return;
+      rootDocCache = {
+        ...(rootDocCache || {}),
+        _dailyDates: Array.from(new Set([
+          ...(Array.isArray(rootDocCache?._dailyDates) ? rootDocCache._dailyDates : []),
+          ...dates,
+        ])).sort(),
+      };
+    }
+
+    async function fbListDailyDates3() {
+      if (!getUid()) return [];
+      const fields = await loadRootFields();
+      return Array.from(new Set((Array.isArray(fields._dailyDates) ? fields._dailyDates : [])
+        .map(String).filter(date => CIVIL_DATE_PATTERN.test(date)))).sort();
+    }
+
     async function fetchRootFields() {
       if (!getUid()) return {};
       try {
+        readMetrics.serverRequests++;
         const snapshot = await sdk.getDoc(userDocRef());
+        if (snapshot.exists()) readMetrics.serverDocuments++;
         return snapshot.exists() ? {...(snapshot.data() || {})} : {};
       } catch (error) {
         console.warn("Firestore root read failed", {
@@ -377,7 +417,9 @@
 
     async function fetchDataDoc(key) {
       try {
+        readMetrics.serverRequests++;
         const snapshot = await sdk.getDoc(dataDocRef(key));
+        if (snapshot.exists()) readMetrics.serverDocuments++;
         if (!snapshot.exists()) return null;
         const value = snapshot.data()?.value;
         return value !== undefined && value !== null ? {value: storageValue(value)} : null;
@@ -436,6 +478,7 @@
       readPromise = (async () => {
         if (typeof sdk.getDocFromCache === "function") {
           try {
+            readMetrics.cacheRequests++;
             const snapshot = await sdk.getDocFromCache(dataDocRef(key));
             const record = snapshotRecord(snapshot);
             if (readGeneration !== storageCacheGeneration ||
@@ -465,6 +508,9 @@
           userDocRef(),
           {includeMetadataChanges: true},
           snapshot => {
+            readMetrics.subscriptionSnapshots++;
+            if (snapshot?.metadata?.fromCache === true) readMetrics.cacheSnapshots++;
+            else if (snapshot.exists()) readMetrics.serverDocuments++;
             rootDocCache = snapshot.exists() ? {...(snapshot.data() || {})} : {};
             rootDocLoaded = true;
             const metadata = subscriptionMetadata(snapshot);
@@ -518,6 +564,9 @@
           dataDocRef(key),
           {includeMetadataChanges: true},
           snapshot => {
+            readMetrics.subscriptionSnapshots++;
+            if (snapshot?.metadata?.fromCache === true) readMetrics.cacheSnapshots++;
+            else if (snapshot.exists()) readMetrics.serverDocuments++;
             const record = snapshotRecord(snapshot);
             const metadata = subscriptionMetadata(snapshot);
             const changed = entry.latest === undefined || JSON.stringify(entry.latest) !== JSON.stringify(record);
@@ -584,9 +633,13 @@
     async function listDataKeys() {
       if (dataKeyCache) return Array.from(dataKeyCache);
       try {
+        readMetrics.serverRequests++;
         const snapshot = await sdk.getDocs(dataCollectionRef());
         const keys = new Set();
-        snapshot.forEach(document => keys.add(document.id));
+        snapshot.forEach(document => {
+          readMetrics.serverDocuments++;
+          keys.add(document.id);
+        });
         dataKeyCache = keys;
         return Array.from(keys);
       } catch (error) {
@@ -640,10 +693,14 @@
       const reference = dailyEntryDocRef(kind, date, document.id);
       const operation = async () => {
         assertWritesAllowed();
-        return sdk.setDoc(reference, {
+        const batch = sdk.writeBatch(currentFirestore());
+        batch.set(reference, {
           ...document,
           updatedAt: sdk.serverTimestamp()
         });
+        batch.set(userDocRef(), dailyDatesPatch([document.date]), {merge: true});
+        await batch.commit();
+        rememberDailyDates([document.date]);
       };
       try {
         if (dailyWriteCoordinator) {
@@ -721,7 +778,13 @@
             batch.delete(item.reference);
           }
         });
-        return batch.commit();
+        const writtenDates = normalized.filter(item => item.type === "set")
+          .map(item => item.identity.date);
+        if (writtenDates.length) {
+          batch.set(userDocRef(), dailyDatesPatch(writtenDates), {merge: true});
+        }
+        await batch.commit();
+        rememberDailyDates(writtenDates);
       };
       try {
         const identities = normalized.map(item => item.identity);
@@ -741,9 +804,11 @@
       if (!getUid()) return [];
       const identity = normalizeDailyEntryIdentity(kind, date, "entry");
       try {
+        readMetrics.serverRequests++;
         const snapshot = await sdk.getDocs(dailyEntryCollectionRef(identity.kind, identity.date));
         const documents = [];
         snapshot.forEach(document => {
+          readMetrics.serverDocuments++;
           const value = document.data?.();
           const validated = buildDailyEntryDocument(
             identity.kind,
@@ -767,7 +832,9 @@
       if (!getUid()) return false;
       const identity = normalizeDailyEntryIdentity(kind, date, "entry");
       try {
+        readMetrics.serverRequests++;
         const snapshot = await sdk.getDoc(dailyMigrationDocRef(identity.kind, identity.date));
+        if (snapshot.exists()) readMetrics.serverDocuments++;
         if (!snapshot.exists()) return false;
         const value = snapshot.data?.();
         if (value?.schemaVersion !== 1 || value?.kind !== identity.kind ||
@@ -820,6 +887,55 @@
       });
     }
 
+    async function fbReplaceDailyAggregate3(kind, date, aggregate) {
+      if (!getUid()) return;
+      assertWritesAllowed();
+      const identity = normalizeDailyEntryIdentity(kind, date, "entry");
+      const replacement = normalizeLegacyDailyEntries(
+        identity.kind,
+        identity.date,
+        parseStorageJson(aggregate)
+      );
+      const existing = await fbListDailyEntries3(identity.kind, identity.date);
+      if (existing.length + replacement.length > 497) {
+        throw new RangeError("Daily backup restore exceeds the atomic Firestore batch limit");
+      }
+      const operation = async () => {
+        assertWritesAllowed();
+        const batch = sdk.writeBatch(currentFirestore());
+        existing.forEach(document => batch.delete(
+          dailyEntryDocRef(identity.kind, identity.date, document.id)
+        ));
+        replacement.forEach(document => batch.set(
+          dailyEntryDocRef(identity.kind, identity.date, document.id),
+          {...document, updatedAt: sdk.serverTimestamp()}
+        ));
+        batch.set(dailyMigrationDocRef(identity.kind, identity.date), {
+          schemaVersion: 1,
+          kind: identity.kind,
+          date: identity.date,
+          complete: true,
+          updatedAt: sdk.serverTimestamp()
+        });
+        batch.set(userDocRef(), dailyDatesPatch([identity.date]), {merge: true});
+        await batch.commit();
+        rememberDailyDates([identity.date]);
+      };
+      const identities = replacement.map(document => ({
+        kind: identity.kind, date: identity.date, entryId: document.id
+      }));
+      const coordinationIdentity = identities[0] || {
+        kind: identity.kind, date: identity.date, entryId: "restore"
+      };
+      if (dailyWriteCoordinator && typeof dailyWriteCoordinator.executeBatch === "function") {
+        await dailyWriteCoordinator.executeBatch([coordinationIdentity, ...identities.slice(1)], operation);
+      } else if (dailyWriteCoordinator) {
+        await dailyWriteCoordinator.execute(coordinationIdentity, operation);
+      } else {
+        await operation();
+      }
+    }
+
     async function fbMigrateDailyEntries3(kind, date) {
       if (!getUid()) return Object.freeze({migrated: 0, alreadyComplete: false});
       assertWritesAllowed();
@@ -842,13 +958,17 @@
         );
       }
       try {
-        await sdk.setDoc(dailyMigrationDocRef(identity.kind, identity.date), {
+        const batch = sdk.writeBatch(currentFirestore());
+        batch.set(dailyMigrationDocRef(identity.kind, identity.date), {
           schemaVersion: 1,
           kind: identity.kind,
           date: identity.date,
           complete: true,
           updatedAt: sdk.serverTimestamp()
         });
+        batch.set(userDocRef(), dailyDatesPatch([identity.date]), {merge: true});
+        await batch.commit();
+        rememberDailyDates([identity.date]);
       } catch (error) {
         throw new Error("Firestore daily migration marker write failed", {cause: error});
       }
@@ -916,6 +1036,8 @@
       fbGetDailyMigration3,
       fbListDailyEntriesCompatible3,
       fbReadDailyStateCompatible3,
+      fbListDailyDates3,
+      fbReplaceDailyAggregate3,
       fbMigrateDailyEntries3,
       support: Object.freeze({
         getUid,
@@ -934,7 +1056,9 @@
         buildDailyEntryDocument,
         parseStorageJson,
         isProfileKey,
-        normalizeProfileValue
+        normalizeProfileValue,
+        readMetricsSnapshot,
+        resetReadMetrics
       })
     });
   }

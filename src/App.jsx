@@ -75,9 +75,9 @@ import {
   REPORT_SERVER_URL,
   fbCheckEmailVerified,
   fbIsLoggedIn,
-  fbRefreshToken,
   fbSignOut,
   fbToken,
+  initializeFirebase,
   storage,
 } from './firebase/firebase-storage.js';
 import { getAppCheckToken, initializeAppCheck } from './firebase/app-check-client.js';
@@ -210,9 +210,12 @@ const accountDeletionClient = createAccountDeletionClient({
   randomUUID: () => window.crypto.randomUUID(),
   functionUrl: ACCOUNT_DELETION_FUNCTION_URL,
 });
-void initializeAppCheck().catch(() => {
-  // Account deletion remains fail-closed if platform attestation is unavailable.
-});
+const firebaseRuntimeConfigured = Boolean(import.meta.env?.VITE_FIREBASE_WEB_APP_ID?.trim());
+const appCheckInitialization = firebaseRuntimeConfigured ? Promise.resolve()
+  .then(() => initializeAppCheck())
+  .catch(() => {
+    // Account deletion remains fail-closed if platform attestation is unavailable.
+  }) : Promise.resolve();
 
 const imageMealClient = ImageMealClient.createImageMealClient({
   fetchRequest: (...args) => window.fetch(...args),
@@ -427,6 +430,10 @@ const {
   React,
   accountService: {
     signIn: (...args) => window.fbSignIn(...args),
+    changePassword: async (currentPassword, newPassword) => {
+      await window.fbReauthenticate(currentPassword);
+      await window.fbUpdatePassword(newPassword);
+    },
     getToken: (...args) => window.fbToken(...args),
     signOut: (...args) => window.fbSignOut(...args),
     getSaveSession: () => window._saveSession,
@@ -665,8 +672,8 @@ async function markCurrentReleaseSeen() {
 }
 
 export function App() {
-  const [authed, setAuthed] = React.useState(fbIsLoggedIn());
-  const [checking, setChecking] = React.useState(fbIsLoggedIn());
+  const [authed, setAuthed] = React.useState(false);
+  const [checking, setChecking] = React.useState(true);
   const [showSettings, setShowSettings] = React.useState(false);
   const [showTutorial, setShowTutorial] = React.useState(false);
   const [tutorialType, setTutorialType] = React.useState('main');
@@ -675,7 +682,7 @@ export function App() {
   const [pendingEmail, setPendingEmail] = React.useState('');
   const [pendingName, setPendingName] = React.useState('');
   const [requiredProfile, setRequiredProfile] = React.useState(null);
-  const [profileChecking, setProfileChecking] = React.useState(fbIsLoggedIn());
+  const [profileChecking, setProfileChecking] = React.useState(false);
   const [lang, setLang] = React.useState(() => normalizeLanguage(localStorage.getItem('appLang') || 'pt'));
   const [showReleaseNotice, setShowReleaseNotice] = React.useState(false);
   const [showVisualUpdateNotice, setShowVisualUpdateNotice] = React.useState(false);
@@ -855,19 +862,32 @@ export function App() {
   }
 
   React.useEffect(() => {
-    if (!fbIsLoggedIn()) {
+    let active = true;
+    if (!firebaseRuntimeConfigured) {
       setChecking(false);
-      return;
+      return () => { active = false; };
     }
     const timeout = setTimeout(() => {
-      fbSignOut();
+      Promise.resolve().then(() => fbSignOut()).catch(() => {});
       setAuthed(false);
       setChecking(false);
     }, 8000);
-    fbRefreshToken()
+    Promise.all([
+      appCheckInitialization,
+      Promise.resolve().then(() => initializeFirebase()),
+    ])
+      .then(() => {
+        if (!active || !fbIsLoggedIn()) {
+          clearTimeout(timeout);
+          if (active) setChecking(false);
+          return null;
+        }
+        return null;
+      })
       .then(async () => {
+        if (!active || !fbIsLoggedIn()) return;
         clearTimeout(timeout);
-        const verified = await fbCheckEmailVerified();
+        const verified = await fbCheckEmailVerified({reload: false});
         if (!verified) {
           setAuthed(false);
           setPendingEmail(localStorage.getItem('fb_email') || '');
@@ -875,6 +895,7 @@ export function App() {
           setProfileChecking(false);
           return;
         }
+        setAuthed(true);
         const savedLang = await storage.get('language').catch(() => null);
         const normalizedSavedLang = normalizeLanguage(savedLang?.value || localStorage.getItem('appLang') || 'pt');
         localStorage.setItem('appLang', normalizedSavedLang);
@@ -894,11 +915,15 @@ export function App() {
       })
       .catch(() => {
         clearTimeout(timeout);
-        fbSignOut();
+        Promise.resolve().then(() => fbSignOut()).catch(() => {});
         setAuthed(false);
         setChecking(false);
         setProfileChecking(false);
       });
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
   }, []);
 
   React.useEffect(() => {

@@ -101,6 +101,7 @@ for (const [format, load] of implementations) {
     await f.client.fbUpdateProfile('New Person');
     await f.client.fbSendVerificationEmail();
     assert.equal(await f.client.fbCheckEmailVerified(), true);
+    assert.equal(await f.client.fbCheckEmailVerified({reload: false}), true);
     await f.client.fbSendPasswordResetEmail(' reset@example.test ');
     await f.client.fbReauthenticate('current-password');
     await f.client.fbUpdatePassword('new-password');

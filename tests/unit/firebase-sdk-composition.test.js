@@ -22,7 +22,7 @@ test('App Check, modular Auth, and modular Firestore depend on the same lazy Fir
   assert.match(appCheck, /normalizeNativeAppCheckToken\(result\)/);
 });
 
-test('the staged lifecycle clears persistent data and guards writes across account boundaries', () => {
+test('the active lifecycle clears persistent data and guards writes across account boundaries', () => {
   const lifecycle = read('firebase-firestore-lifecycle.js');
   const adapter = read('firebase-firestore-sdk.js');
   const runtime = read('src/firebase/firebase-sdk-runtime.js');
@@ -49,7 +49,7 @@ test('the staged lifecycle clears persistent data and guards writes across accou
   assert.match(runtime, /completeRestore:\s*firestoreRuntime\.lifecycle\.completeBackupRestore/);
 });
 
-test('the staged runtime owns one sync-state coordinator and clears it with account data', () => {
+test('the active runtime owns one sync-state coordinator and clears it with account data', () => {
   const composition = read('src/firebase/firebase-firestore-sdk.js');
   const syncState = read('firebase-sync-state.js');
   assert.match(composition, /const syncState = createFirestoreSyncState\(\)/);
@@ -70,16 +70,27 @@ test('the modular Firestore adapter uses SDK operations instead of raw REST fetc
   }
 });
 
-test('the modular Auth adapter remains staged and does not cut over active sessions yet', () => {
+test('the active Vite facade cuts Auth over to the shared modular runtime', () => {
   const activeFacade = read('src/firebase/firebase-storage.js');
   const app = read('src/App.jsx');
-  assert.doesNotMatch(activeFacade, /firebase-auth-sdk/);
-  assert.doesNotMatch(app, /createModularAuthClient/);
-  assert.match(activeFacade, /firebase-auth-internal/);
+  assert.match(activeFacade, /createModularFirebaseRuntime/);
+  assert.match(activeFacade, /initializeFirebase/);
+  assert.doesNotMatch(activeFacade, /firebase-auth-internal/);
+  assert.match(app, /Promise\.resolve\(\)\s*\.then\(\(\) => initializeAppCheck\(\)\)/);
+  assert.match(app, /if \(!firebaseRuntimeConfigured\)/);
+  assert.match(app, /Promise\.resolve\(\)\.then\(\(\) => initializeFirebase\(\)\)/);
+  assert.match(app, /fbCheckEmailVerified\(\{reload:\s*false\}\)/);
+  assert.doesNotMatch(app, /return fbRefreshToken\(\)/);
+  assert.match(app, /if \(!verified\)[\s\S]*?return;[\s\S]*?setAuthed\(true\);/);
+  assert.match(app, /fbReauthenticate/);
+  assert.match(app, /fbUpdatePassword/);
 });
 
-test('the modular Firestore adapter remains staged until the coordinated Auth cutover', () => {
+test('the active Vite facade cuts Firestore over without importing the REST adapter', () => {
   const activeFacade = read('src/firebase/firebase-storage.js');
-  assert.doesNotMatch(activeFacade, /firebase-firestore-sdk/);
-  assert.match(activeFacade, /firebase-firestore-internal/);
+  assert.match(activeFacade, /createModularFirebaseRuntime/);
+  assert.doesNotMatch(activeFacade, /firebase-firestore-internal/);
+  assert.doesNotMatch(activeFacade, /\.\.\/\.\.\/firebase-storage\.js/);
+  assert.match(activeFacade, /listDailyDates/);
+  assert.match(activeFacade, /replaceDailyAggregate/);
 });

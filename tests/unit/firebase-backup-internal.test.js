@@ -25,7 +25,10 @@ function loadBackup(createFirebaseBackup, {
   current = {},
   failures = {},
   prepareExport,
-  completeRestore
+  completeRestore,
+  exportDailyData,
+  readBackupValue,
+  restoreDailyValue
 } = {}) {
   const stored = new Map(Object.entries(current));
   const writes = [];
@@ -67,7 +70,10 @@ function loadBackup(createFirebaseBackup, {
     mergeArrayValues: mergeHelpers.mergeArrayValues,
     mergeObjectValues: mergeHelpers.mergeObjectValues,
     prepareExport,
-    completeRestore
+    completeRestore,
+    exportDailyData,
+    readBackupValue,
+    restoreDailyValue
   });
 
   return { service, stored, writes, patches, clearedFallbacks };
@@ -132,6 +138,43 @@ contractTest("records whether pending writes were flushed or the export was crea
     mode: "offline",
     pendingWrites: "included-from-local-cache"
   });
+});
+
+contractTest("exports granular daily state through the legacy-compatible backup shape", async loadBackup => {
+  const fixture = loadBackup({
+    data: {"log_v2_2026-08-29": '{"stale":[]}'},
+    exportDailyData: async () => ({
+      "log_v2_2026-08-29": {"Almoço": [{id: "meal-1"}]},
+      "waterIntake_2026-08-29": [{id: "water-1", ml: 250}],
+    }),
+  });
+
+  const backup = await fixture.service.exportFullAccountBackup3();
+  assert.deepEqual(JSON.parse(backup.data["log_v2_2026-08-29"]), {
+    "Almoço": [{id: "meal-1"}],
+  });
+  assert.deepEqual(JSON.parse(backup.data["waterIntake_2026-08-29"]), [
+    {id: "water-1", ml: 250},
+  ]);
+});
+
+contractTest("reads and restores granular daily values through dedicated backup ports", async loadBackup => {
+  const restored = [];
+  const fixture = loadBackup({
+    readBackupValue: async key => key === "waterIntake_2026-08-29"
+      ? {value: '[{"id":"old-water"}]'}
+      : null,
+    restoreDailyValue: async (key, value) => restored.push({key, value}),
+  });
+  const backup = {"waterIntake_2026-08-29": '[{"id":"new-water"}]'};
+  const preview = await fixture.service.previewFullAccountBackupImport3(backup);
+  assert.equal(preview.categories[0].existingKeys, 1);
+
+  await fixture.service.importFullAccountBackup3(backup, {categories: {water: "replace"}});
+  assert.deepEqual(restored, [{
+    key: "waterIntake_2026-08-29",
+    value: '[{"id":"new-water"}]',
+  }]);
 });
 
 contractTest("waits for restored SDK writes before reporting online completion", async loadBackup => {

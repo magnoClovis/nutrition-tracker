@@ -77,6 +77,7 @@ function createFixture(createPrivacyPanel, {
   requestDeletionError,
   fetchBehavior,
   saveSession,
+  modularChangePassword = false,
 } = {}) {
   const events = [];
   const timers = [];
@@ -113,6 +114,11 @@ function createFixture(createPrivacyPanel, {
       async suspendAutosaves() { events.push("suspendAutosaves"); },
       resumeAutosaves() { events.push("resumeAutosaves"); },
       clearLocalAccountData() { events.push("clearLocalAccountData"); },
+      ...(modularChangePassword ? {
+        async changePassword(currentPassword, newPassword) {
+          events.push(`changePassword:${currentPassword}:${newPassword}`);
+        },
+      } : {}),
     },
     localStorage: {
       getItem(key) {
@@ -183,6 +189,17 @@ function contractTest(name, callback) {
     });
   });
 }
+
+contractTest("uses the modular reauthentication password port when available", async createPrivacyPanel => {
+  const fixture = createFixture(createPrivacyPanel, {modularChangePassword: true});
+  openChangePassword(fixture);
+  fillChangePassword(fixture);
+  await findButton(fixture.harness.tree, "Save new password").props.onClick();
+  assert.deepEqual(fixture.events, [
+    "changePassword:current123:newpass123",
+    "setTimeout:1500",
+  ]);
+});
 
 contractTest("changes the password, saves returned tokens, and keeps the exact 1500 ms timer", async createPrivacyPanel => {
   const fixture = createFixture(createPrivacyPanel);

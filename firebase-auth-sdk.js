@@ -136,9 +136,9 @@
       return sdk.sendPasswordResetEmail(auth, String(email || "").trim());
     }
 
-    async function fbCheckEmailVerified() {
+    async function fbCheckEmailVerified({reload = true} = {}) {
       const user = await requireUser();
-      await sdk.reload(user);
+      if (reload) await sdk.reload(user);
       return auth.currentUser?.emailVerified === true;
     }
 
