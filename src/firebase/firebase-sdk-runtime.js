@@ -31,6 +31,9 @@ function createModularFirebaseRuntime({
       delete: firestoreRuntime.client.fbDel3,
       list: firestoreRuntime.client.fbList3,
       subscribeMany: firestoreRuntime.client.fbSubscribeMany3,
+      setDailyEntry: firestoreRuntime.client.fbSetDailyEntry3,
+      deleteDailyEntry: firestoreRuntime.client.fbDelDailyEntry3,
+      listDailyEntries: firestoreRuntime.client.fbListDailyEntries3,
     }),
     lifecycle: firestoreRuntime.lifecycle,
   });

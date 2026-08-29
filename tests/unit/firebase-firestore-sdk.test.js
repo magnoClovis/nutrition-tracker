@@ -12,11 +12,13 @@ function clone(value) {
   return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 }
 
-function createBackend({root = {}, data = {}, failures = {}, delayedRootRead = null} = {}) {
+function createBackend({root = {}, data = {}, granular = {}, failures = {}, delayedRootRead = null} = {}) {
   const rootFields = clone(root);
   const dataDocs = new Map(Object.entries(data));
+  const granularDocs = new Map(Object.entries(granular).map(([key, value]) => [key, clone(value)]));
   const calls = [];
   const DELETE_FIELD = Symbol('delete-field');
+  const SERVER_TIMESTAMP = Object.freeze({__serverTimestamp: true});
   const snapshotListeners = new Map();
 
   function ref(type, segments) {
@@ -35,6 +37,9 @@ function createBackend({root = {}, data = {}, failures = {}, delayedRootRead = n
     deleteField() {
       return DELETE_FIELD;
     },
+    serverTimestamp() {
+      return SERVER_TIMESTAMP;
+    },
     async getDoc(reference) {
       calls.push({operation: 'getDoc', path: reference.path});
       if (reference.path === `nutrition/${UID}`) {
@@ -42,6 +47,12 @@ function createBackend({root = {}, data = {}, failures = {}, delayedRootRead = n
         if (delayedRootRead) await delayedRootRead;
         const snapshot = clone(rootFields);
         return {exists: () => true, data: () => snapshot};
+      }
+      if (reference.path.includes('/days/')) {
+        const value = granularDocs.get(reference.path);
+        return value
+          ? {exists: () => true, data: () => clone(value)}
+          : {exists: () => false, data: () => undefined};
       }
       const key = reference.path.split('/').pop();
       if (failures.dataRead === key) throw Object.assign(new Error('data read'), {code: 'unavailable'});
@@ -86,12 +97,22 @@ function createBackend({root = {}, data = {}, failures = {}, delayedRootRead = n
         });
         return;
       }
+      if (reference.path.includes('/days/')) {
+        if (failures.granularWrite) throw Object.assign(new Error('granular write'), {code: 'unavailable'});
+        granularDocs.set(reference.path, clone(value));
+        return;
+      }
       const key = reference.path.split('/').pop();
       if (failures.dataWrite === key) throw Object.assign(new Error('data write'), {code: 'unavailable'});
       dataDocs.set(key, value.value);
     },
     async deleteDoc(reference) {
       calls.push({operation: 'deleteDoc', path: reference.path});
+      if (reference.path.includes('/days/')) {
+        if (failures.granularDelete) throw Object.assign(new Error('granular delete'), {code: 'permission-denied'});
+        granularDocs.delete(reference.path);
+        return;
+      }
       const key = reference.path.split('/').pop();
       if (failures.dataDelete === key) throw Object.assign(new Error('data delete'), {code: 'permission-denied'});
       dataDocs.delete(key);
@@ -99,7 +120,12 @@ function createBackend({root = {}, data = {}, failures = {}, delayedRootRead = n
     async getDocs(reference) {
       calls.push({operation: 'getDocs', path: reference.path});
       if (failures.dataList) throw Object.assign(new Error('data list'), {code: 'unavailable'});
-      const documents = Array.from(dataDocs.keys()).map(id => ({id}));
+      const documents = reference.path.includes('/days/')
+        ? Array.from(granularDocs.entries())
+            .filter(([path]) => path.startsWith(`${reference.path}/`) &&
+              path.slice(reference.path.length + 1).indexOf('/') === -1)
+            .map(([path, value]) => ({id: path.split('/').pop(), data: () => clone(value)}))
+        : Array.from(dataDocs.keys()).map(id => ({id}));
       return {forEach(callback) { documents.forEach(callback); }};
     },
   };
@@ -116,7 +142,7 @@ function createBackend({root = {}, data = {}, failures = {}, delayedRootRead = n
     }));
   }
 
-  return {sdk, calls, rootFields, dataDocs, emit};
+  return {sdk, calls, rootFields, dataDocs, granularDocs, emit};
 }
 
 function createFixture(createFirebaseFirestoreSdk, {
@@ -158,7 +184,8 @@ contractTest('requires explicit modular SDK operations', (_create, createFirebas
 contractTest('publishes the canonical CRUD contract and narrow backup support port', create => {
   const {client} = create();
   assert.deepEqual(Object.keys(client).sort(), [
-    'fbDel3', 'fbGet3', 'fbGetMany3', 'fbList3', 'fbSet3', 'fbSubscribeMany3',
+    'fbDel3', 'fbDelDailyEntry3', 'fbGet3', 'fbGetMany3', 'fbList3',
+    'fbListDailyEntries3', 'fbSet3', 'fbSetDailyEntry3', 'fbSubscribeMany3',
     'resetStorageCaches', 'support',
   ]);
   assert.equal(typeof client.support.loadRootFields, 'function');
@@ -315,7 +342,104 @@ contractTest('rejects writes before enqueueing them after the C22 lock', async c
   await assert.rejects(client.fbSet3('language', 'pt'), error => error === blocked);
   await assert.rejects(client.fbSet3('pantry_v2', '[]'), error => error === blocked);
   await assert.rejects(client.fbDel3('pantry_v2'), error => error === blocked);
+  await assert.rejects(
+    client.fbSetDailyEntry3('water', '2026-08-29', {id: 'water-1', ml: 250}),
+    error => error === blocked,
+  );
+  await assert.rejects(
+    client.fbDelDailyEntry3('water', '2026-08-29', 'water-1'),
+    error => error === blocked,
+  );
   assert.equal(backend.calls.some(call => ['setDoc', 'deleteDoc'].includes(call.operation)), false);
+});
+
+contractTest('writes, lists, and deletes typed granular daily entries by stable identity', async create => {
+  const backend = createBackend();
+  const {client} = create({backend});
+
+  await client.fbSetDailyEntry3('meal', '2026-08-29', {
+    id: 'meal-1', name: 'Arroz', kcal: 130,
+  }, {mealKey: 'Almoço'});
+  await client.fbSetDailyEntry3('water', '2026-08-29', {id: 'water-1', ml: 250});
+  await client.fbSetDailyEntry3('supplement', '2026-08-29', {
+    id: 'supplement-1', name: 'Creatina', dose: 5,
+  });
+
+  assert.deepEqual(
+    Array.from(backend.granularDocs.keys()).sort(),
+    [
+      `nutrition/${UID}/days/2026-08-29/meals/meal-1`,
+      `nutrition/${UID}/days/2026-08-29/supplements/supplement-1`,
+      `nutrition/${UID}/days/2026-08-29/water/water-1`,
+    ],
+  );
+  assert.deepEqual(await client.fbListDailyEntries3('meal', '2026-08-29'), [{
+    schemaVersion: 1,
+    id: 'meal-1',
+    date: '2026-08-29',
+    mealKey: 'Almoço',
+    entry: {id: 'meal-1', name: 'Arroz', kcal: 130},
+    updatedAt: {__serverTimestamp: true},
+  }]);
+
+  await client.fbDelDailyEntry3('water', '2026-08-29', 'water-1');
+  assert.equal(
+    backend.granularDocs.has(`nutrition/${UID}/days/2026-08-29/water/water-1`),
+    false,
+  );
+});
+
+contractTest('keeps concurrent entries independent and retries idempotent by document id', async create => {
+  const backend = createBackend();
+  const {client} = create({backend});
+
+  await Promise.all([
+    client.fbSetDailyEntry3('water', '2026-08-29', {id: 'water-a', ml: 250}),
+    client.fbSetDailyEntry3('water', '2026-08-29', {id: 'water-b', ml: 500}),
+    client.fbSetDailyEntry3('water', '2026-08-29', {id: 'water-a', ml: 250}),
+  ]);
+
+  assert.equal(backend.granularDocs.size, 2);
+  assert.deepEqual(
+    (await client.fbListDailyEntries3('water', '2026-08-29')).map(item => item.id),
+    ['water-a', 'water-b'],
+  );
+  assert.equal(
+    backend.calls.some(call => call.path === `nutrition/${UID}/data/waterIntake_2026-08-29`),
+    false,
+  );
+});
+
+contractTest('rejects invalid granular paths and malformed payloads before SDK writes', async create => {
+  const backend = createBackend();
+  const {client} = create({backend});
+  const invalidCalls = [
+    () => client.fbSetDailyEntry3('unknown', '2026-08-29', {id: 'entry-1'}),
+    () => client.fbSetDailyEntry3('water', '2026-02-30', {id: 'water-1', ml: 250}),
+    () => client.fbSetDailyEntry3('water', '2026-08-29', {id: 'bad/id', ml: 250}),
+    () => client.fbSetDailyEntry3('meal', '2026-08-29', {id: 'meal-1'}),
+    () => client.fbSetDailyEntry3('water', '2026-08-29', {id: 'water-1'}, {mealKey: 'Outro'}),
+  ];
+  for (const call of invalidCalls) await assert.rejects(call(), TypeError);
+  assert.equal(backend.calls.some(call => call.operation === 'setDoc'), false);
+});
+
+contractTest('fails closed when a granular document does not match its path envelope', async create => {
+  const path = `nutrition/${UID}/days/2026-08-29/water/water-1`;
+  const backend = createBackend({granular: {
+    [path]: {
+      schemaVersion: 1,
+      id: 'different-id',
+      date: '2026-08-29',
+      entry: {id: 'different-id', ml: 250},
+      updatedAt: null,
+    },
+  }});
+  const {client} = create({backend});
+  await assert.rejects(
+    client.fbListDailyEntries3('water', '2026-08-29'),
+    /Invalid granular daily entry document/,
+  );
 });
 
 contractTest('loads grouped records from cache before falling back to network', async create => {

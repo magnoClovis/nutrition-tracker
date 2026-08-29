@@ -7,16 +7,21 @@ import {
   getDocFromCache,
   getDocs,
   onSnapshot,
+  serverTimestamp,
   setDoc,
 } from 'firebase/firestore';
 import '../../firebase-firestore-sdk.js';
 import { readLegacyNamespace } from '../leaf/read-legacy-namespace.js';
 import { createModularFirestoreLifecycle } from './firebase-firestore-lifecycle.js';
 
-const { createFirebaseFirestoreSdk } = readLegacyNamespace(
+const {
+  buildDailyEntryDocument,
+  createFirebaseFirestoreSdk,
+  normalizeDailyEntryIdentity,
+} = readLegacyNamespace(
   globalThis,
   'FirebaseFirestoreSdk',
-  ['createFirebaseFirestoreSdk'],
+  ['createFirebaseFirestoreSdk', 'buildDailyEntryDocument', 'normalizeDailyEntryIdentity'],
 );
 
 function createModularFirestoreRuntime({
@@ -44,6 +49,7 @@ function createModularFirestoreRuntime({
       getDocFromCache,
       getDocs,
       onSnapshot,
+      serverTimestamp,
       setDoc,
     },
   });
@@ -55,7 +61,9 @@ function createModularFirestoreClient(options) {
 }
 
 export {
+  buildDailyEntryDocument,
   createFirebaseFirestoreSdk,
   createModularFirestoreClient,
   createModularFirestoreRuntime,
+  normalizeDailyEntryIdentity,
 };
