@@ -28,6 +28,7 @@ function createModularFirestoreLifecycle({
   resetStorageCaches = () => {},
   resetSyncState = () => {},
   BroadcastChannelCtor = globalThis.BroadcastChannel,
+  isOnline = () => globalThis.navigator?.onLine !== false,
 } = {}) {
   return createFirebaseFirestoreLifecycle({
     app: getSharedFirebaseApp(),
@@ -47,6 +48,7 @@ function createModularFirestoreLifecycle({
     resetSyncState,
     BroadcastChannelCtor,
     isNativePlatform: () => Capacitor.isNativePlatform(),
+    isOnline,
   });
 }
 

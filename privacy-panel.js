@@ -188,9 +188,16 @@
           await fbSignIn(email, delPwd); // throws if wrong password
           await accountService.suspendAutosaves();
           autosavesSuspended = true;
+          if (typeof accountService.prepareDeletion === 'function') {
+            await accountService.prepareDeletion();
+          }
           await accountService.requestDeletion();
+          if (typeof accountService.finalizeDeletion === 'function') {
+            await accountService.finalizeDeletion();
+          } else {
+            await fbSignOut();
+          }
           accountService.clearLocalAccountData();
-          fbSignOut();
           setDeletionAccepted(true);
           setStatus(deletionText.accepted);
           setTimeout(onLogout, 1500);

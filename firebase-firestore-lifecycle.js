@@ -55,6 +55,7 @@
     BroadcastChannelCtor,
     settleTabs = () => new Promise(resolve => setTimeout(resolve, 50)),
     isNativePlatform = () => false,
+    isOnline = () => true,
   } = {}) {
     const required = [
       "initializeFirestore", "memoryLocalCache", "persistentLocalCache", "persistentMultipleTabManager",
@@ -65,7 +66,8 @@
         typeof localStorage.setItem !== "function" || typeof localStorage.removeItem !== "function" ||
         typeof getUid !== "function" || typeof resetStorageCaches !== "function" ||
         typeof resetSyncState !== "function" ||
-        typeof settleTabs !== "function" || typeof isNativePlatform !== "function") {
+        typeof settleTabs !== "function" || typeof isNativePlatform !== "function" ||
+        typeof isOnline !== "function") {
       throw new TypeError("FirebaseFirestoreLifecycle requires app, SDK lifecycle operations, storage, UID, and cache reset");
     }
 
@@ -193,6 +195,24 @@
       if (firestore) await sdk.waitForPendingWrites(firestore);
     }
 
+    async function prepareBackupExport() {
+      assertWritesAllowed();
+      if (!isOnline()) {
+        return Object.freeze({mode: "offline", pendingWrites: "included-from-local-cache"});
+      }
+      await sdk.waitForPendingWrites(getFirestore());
+      return Object.freeze({mode: "online", pendingWrites: "flushed"});
+    }
+
+    async function completeBackupRestore() {
+      assertWritesAllowed();
+      if (!isOnline()) {
+        return Object.freeze({mode: "offline", pendingWrites: "queued"});
+      }
+      await sdk.waitForPendingWrites(getFirestore());
+      return Object.freeze({mode: "online", pendingWrites: "flushed"});
+    }
+
     async function sealAccountDeletion(uid = getUid()) {
       const normalized = normalizedUid(uid);
       if (!normalized) throw new FirestoreLifecycleError("firestore-deletion-user-missing");
@@ -267,6 +287,8 @@
       getFirestore,
       assertWritesAllowed,
       synchronizeUser,
+      prepareBackupExport,
+      completeBackupRestore,
       flushBeforeAccountDeletion,
       sealAccountDeletion,
       clearForSignOut,

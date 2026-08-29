@@ -23,7 +23,9 @@ function loadBackup(createFirebaseBackup, {
   root = {},
   data = {},
   current = {},
-  failures = {}
+  failures = {},
+  prepareExport,
+  completeRestore
 } = {}) {
   const stored = new Map(Object.entries(current));
   const writes = [];
@@ -63,7 +65,9 @@ function loadBackup(createFirebaseBackup, {
     },
     normalizedIdentity: mergeHelpers.normalizedIdentity,
     mergeArrayValues: mergeHelpers.mergeArrayValues,
-    mergeObjectValues: mergeHelpers.mergeObjectValues
+    mergeObjectValues: mergeHelpers.mergeObjectValues,
+    prepareExport,
+    completeRestore
   });
 
   return { service, stored, writes, patches, clearedFallbacks };
@@ -108,6 +112,42 @@ contractTest("exports only canonical root and data shapes while preserving silen
   });
   const incomplete = await failedLists.service.exportFullAccountBackup3();
   assert.deepEqual(plain(incomplete.counts), {root: 0, data: 0});
+});
+
+contractTest("records whether pending writes were flushed or the export was created offline", async loadBackup => {
+  const online = loadBackup({
+    root: {height: 180},
+    prepareExport: async () => ({mode: "online", pendingWrites: "flushed"})
+  });
+  assert.deepEqual(plain((await online.service.exportFullAccountBackup3()).consistency), {
+    mode: "online",
+    pendingWrites: "flushed"
+  });
+
+  const offline = loadBackup({
+    root: {height: 180},
+    prepareExport: async () => ({mode: "offline", pendingWrites: "included-from-local-cache"})
+  });
+  assert.deepEqual(plain((await offline.service.exportFullAccountBackup3()).consistency), {
+    mode: "offline",
+    pendingWrites: "included-from-local-cache"
+  });
+});
+
+contractTest("waits for restored SDK writes before reporting online completion", async loadBackup => {
+  const events = [];
+  const fixture = loadBackup({
+    completeRestore: async () => {
+      events.push("flush");
+      return {mode: "online", pendingWrites: "flushed"};
+    }
+  });
+  const result = await fixture.service.importFullAccountBackup3(
+    {pantry_v2: "[]"},
+    {categories: {pantry: "replace"}}
+  );
+  assert.deepEqual(events, ["flush"]);
+  assert.deepEqual(plain(result.sync), {mode: "online", pendingWrites: "flushed"});
 });
 
 contractTest("accepts legacy-flat backups and preserves legacy-root-data collision order", async loadBackup => {

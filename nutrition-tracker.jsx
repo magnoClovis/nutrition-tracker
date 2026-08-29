@@ -268,6 +268,12 @@ const {
     signOut: (...args) => window.fbSignOut(...args),
     getSaveSession: () => window._saveSession,
     requestDeletion: () => accountDeletionClient.requestDeletion(),
+    prepareDeletion: () => typeof window.fbPrepareAccountDeletion === 'function'
+      ? window.fbPrepareAccountDeletion()
+      : Promise.resolve(),
+    finalizeDeletion: () => typeof window.fbFinalizeAccountDeletion === 'function'
+      ? window.fbFinalizeAccountDeletion()
+      : window.fbSignOut(),
     suspendAutosaves: () => {
       if (typeof window._accountDeletionAutosaves?.suspend !== 'function') {
         throw new Error('Autosave coordinator is unavailable');

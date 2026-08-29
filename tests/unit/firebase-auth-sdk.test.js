@@ -195,6 +195,30 @@ for (const [format, load] of implementations) {
     );
   });
 
+  test(`${format}: seals deletion and terminates account persistence before SDK sign-out`, async () => {
+    const {createFirebaseAuthSdk} = await load();
+    const events = [];
+    const lifecycle = {
+      async synchronizeUser() {},
+      async clearForSignOut() { events.push('clear-sign-out'); },
+      async flushBeforeAccountDeletion() { events.push('flush'); },
+      async sealAccountDeletion(uid) { events.push(`seal:${uid}`); },
+    };
+    const f = fixture(createFirebaseAuthSdk, {
+      currentUser: user('disposable', {email: 'delete@example.test'}),
+      local: {fb_email: 'delete@example.test'},
+      userLifecycle: lifecycle,
+    });
+    const originalSignOut = f.calls;
+    await f.client.flushBeforeAccountDeletion();
+    await f.client.finalizeAccountDeletion();
+    assert.deepEqual(events, ['flush', 'seal:disposable']);
+    assert.equal(originalSignOut.some(call => call[0] === 'signOut'), true);
+    assert.equal(events.includes('clear-sign-out'), false);
+    assert.equal(f.client.fbIsLoggedIn(), false);
+    assert.equal(f.localStorage.getItem('fb_email'), null);
+  });
+
   test(`${format}: refuses to sign out if persistent cleanup cannot complete`, async () => {
     const {createFirebaseAuthSdk} = await load();
     const cleanupError = new Error('firestore-cache-cleanup-failed');
