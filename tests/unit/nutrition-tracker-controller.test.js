@@ -43,9 +43,25 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
 
-  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 154);
-  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 38);
+  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 155);
+  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 40);
   assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 23);
+});
+
+contractTest("routes historical screens and reports through grouped cache-first loaders", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+
+  for (const loader of [
+    "loadRecentMealDays",
+    "loadEatingPatternDays",
+    "loadLogDays",
+    "loadReportDays",
+    "subscribeHistoryWindow"
+  ]) {
+    assert.match(source, new RegExp(`\\b${loader}\\b`));
+  }
+  assert.doesNotMatch(source, /await\s+storage\.get\(["']log_v2_/);
 });
 
 contractTest("computes the next real local midnight across DST transitions", createNutritionTrackerController => {

@@ -17,6 +17,7 @@ function createBackend({root = {}, data = {}, failures = {}, delayedRootRead = n
   const dataDocs = new Map(Object.entries(data));
   const calls = [];
   const DELETE_FIELD = Symbol('delete-field');
+  const snapshotListeners = new Map();
 
   function ref(type, segments) {
     return {type, path: segments.join('/')};
@@ -48,6 +49,33 @@ function createBackend({root = {}, data = {}, failures = {}, delayedRootRead = n
         ? {exists: () => true, data: () => ({value: dataDocs.get(key)})}
         : {exists: () => false, data: () => undefined};
     },
+    async getDocFromCache(reference) {
+      calls.push({operation: 'getDocFromCache', path: reference.path});
+      if (reference.path === `nutrition/${UID}`) {
+        const snapshot = clone(rootFields);
+        return {exists: () => true, data: () => snapshot, metadata: {fromCache: true}};
+      }
+      const key = reference.path.split('/').pop();
+      return dataDocs.has(key)
+        ? {exists: () => true, data: () => ({value: dataDocs.get(key)}), metadata: {fromCache: true}}
+        : {exists: () => false, data: () => undefined, metadata: {fromCache: true}};
+    },
+    onSnapshot(reference, options, onValue, onError) {
+      calls.push({operation: 'onSnapshot', path: reference.path, options});
+      const listeners = snapshotListeners.get(reference.path) || new Set();
+      const listener = {onValue, onError};
+      listeners.add(listener);
+      snapshotListeners.set(reference.path, listeners);
+      const key = reference.path.split('/').pop();
+      const isRoot = reference.path === `nutrition/${UID}`;
+      const exists = isRoot || dataDocs.has(key);
+      const data = isRoot ? clone(rootFields) : exists ? {value: dataDocs.get(key)} : undefined;
+      onValue({exists: () => exists, data: () => data, metadata: {fromCache: true, hasPendingWrites: false}});
+      return () => {
+        calls.push({operation: 'unsubscribe', path: reference.path});
+        listeners.delete(listener);
+      };
+    },
     async setDoc(reference, value, options) {
       calls.push({operation: 'setDoc', path: reference.path, value, options});
       if (reference.path === `nutrition/${UID}`) {
@@ -76,7 +104,19 @@ function createBackend({root = {}, data = {}, failures = {}, delayedRootRead = n
     },
   };
 
-  return {sdk, calls, rootFields, dataDocs};
+  function emit(path, {fromCache = false, hasPendingWrites = false} = {}) {
+    const key = path.split('/').pop();
+    const isRoot = path === `nutrition/${UID}`;
+    const exists = isRoot || dataDocs.has(key);
+    const data = isRoot ? clone(rootFields) : exists ? {value: dataDocs.get(key)} : undefined;
+    snapshotListeners.get(path)?.forEach(listener => listener.onValue({
+      exists: () => exists,
+      data: () => data,
+      metadata: {fromCache, hasPendingWrites},
+    }));
+  }
+
+  return {sdk, calls, rootFields, dataDocs, emit};
 }
 
 function createFixture(createFirebaseFirestoreSdk, {
@@ -118,7 +158,8 @@ contractTest('requires explicit modular SDK operations', (_create, createFirebas
 contractTest('publishes the canonical CRUD contract and narrow backup support port', create => {
   const {client} = create();
   assert.deepEqual(Object.keys(client).sort(), [
-    'fbDel3', 'fbGet3', 'fbList3', 'fbSet3', 'resetStorageCaches', 'support',
+    'fbDel3', 'fbGet3', 'fbGetMany3', 'fbList3', 'fbSet3', 'fbSubscribeMany3',
+    'resetStorageCaches', 'support',
   ]);
   assert.equal(typeof client.support.loadRootFields, 'function');
   assert.equal(typeof client.support.listDataKeys, 'function');
@@ -275,4 +316,55 @@ contractTest('rejects writes before enqueueing them after the C22 lock', async c
   await assert.rejects(client.fbSet3('pantry_v2', '[]'), error => error === blocked);
   await assert.rejects(client.fbDel3('pantry_v2'), error => error === blocked);
   assert.equal(backend.calls.some(call => ['setDoc', 'deleteDoc'].includes(call.operation)), false);
+});
+
+contractTest('loads grouped records from cache before falling back to network', async create => {
+  const backend = createBackend({root: {language: 'pt'}, data: {
+    'log_v2_2026-08-27': '{"Almoço":[]}',
+    'notes_2026-08-27': 'nota',
+  }});
+  const {client} = create({backend});
+  assert.deepEqual(await client.fbGetMany3([
+    'log_v2_2026-08-27', 'notes_2026-08-27', 'language', 'notes_2026-08-27',
+  ]), {
+    'log_v2_2026-08-27': {value: '{"Almoço":[]}'},
+    'notes_2026-08-27': {value: 'nota'},
+    language: {value: 'pt'},
+  });
+  assert.equal(backend.calls.filter(call => call.operation === 'getDocFromCache').length, 2);
+  assert.equal(backend.calls.filter(call => call.operation === 'getDoc').length, 1);
+});
+
+contractTest('reuses overlapping subscriptions and emits only changed cached records', async create => {
+  const backend = createBackend({root: {language: 'pt', userName: 'Ana'}, data: {
+    'log_v2_2026-08-27': 'first',
+  }});
+  const {client} = create({backend});
+  const first = [];
+  const second = [];
+  const stopFirst = client.fbSubscribeMany3(['log_v2_2026-08-27', 'language'], value => first.push(value));
+  const stopSecond = client.fbSubscribeMany3(['log_v2_2026-08-27', 'userName'], value => second.push(value));
+
+  assert.equal(backend.calls.filter(call => call.operation === 'onSnapshot' &&
+    call.path === `nutrition/${UID}/data/log_v2_2026-08-27`).length, 1);
+  assert.equal(backend.calls.filter(call => call.operation === 'onSnapshot' &&
+    call.path === `nutrition/${UID}`).length, 1);
+  assert.deepEqual(await client.fbGetMany3(['log_v2_2026-08-27']), {
+    'log_v2_2026-08-27': {value: 'first'},
+  });
+  assert.equal(backend.calls.filter(call => ['getDoc', 'getDocFromCache'].includes(call.operation)).length, 0);
+  backend.emit(`nutrition/${UID}/data/log_v2_2026-08-27`, {fromCache: false});
+  assert.equal(first.length, 2);
+  assert.equal(second.length, 2);
+
+  backend.dataDocs.set('log_v2_2026-08-27', 'updated');
+  backend.emit(`nutrition/${UID}/data/log_v2_2026-08-27`, {fromCache: false});
+  assert.equal(first.at(-1).records['log_v2_2026-08-27'].value, 'updated');
+  assert.equal(second.at(-1).records['log_v2_2026-08-27'].value, 'updated');
+  stopFirst();
+  assert.equal(backend.calls.filter(call => call.operation === 'unsubscribe' &&
+    call.path.endsWith('log_v2_2026-08-27')).length, 0);
+  stopSecond();
+  assert.equal(backend.calls.filter(call => call.operation === 'unsubscribe' &&
+    call.path.endsWith('log_v2_2026-08-27')).length, 1);
 });

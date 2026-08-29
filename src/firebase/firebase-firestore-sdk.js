@@ -4,7 +4,9 @@ import {
   deleteField,
   doc,
   getDoc,
+  getDocFromCache,
   getDocs,
+  onSnapshot,
   setDoc,
 } from 'firebase/firestore';
 import '../../firebase-firestore-sdk.js';
@@ -39,7 +41,9 @@ function createModularFirestoreRuntime({
       deleteField,
       doc,
       getDoc,
+      getDocFromCache,
       getDocs,
+      onSnapshot,
       setDoc,
     },
   });
