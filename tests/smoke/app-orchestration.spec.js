@@ -76,11 +76,9 @@ test('preserves the login, verification, required-profile, and authenticated-app
   const releaseNotice = page.locator('[data-release-notice="true"]:visible');
   await expect(releaseNotice).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.__smokeProfile.tutorial_most_recent_version_seen)).toBe('0.8.0-beta');
-  await releaseNotice.getByRole('button', { name: /Ver novidades|See what's new/i }).click();
-  await expect(page.locator('[data-tutorial-overlay="true"]:visible')).toBeVisible();
-  await expect.poll(() => page.evaluate(() => window.__smokeProfile.tutorial_most_recent_version_seen)).toBe('0.8.0-beta');
-  await page.getByRole('button', { name: /Pular|Skip|Saltar/i }).click();
+  await releaseNotice.getByRole('button', { name: /Continuar|Continue/i }).click();
+  await expect(releaseNotice).toHaveCount(0);
   await expect(page.locator('[data-tutorial-overlay="true"]:visible')).toHaveCount(0);
-  await expect.poll(() => page.evaluate(() => window.__smokeProfile.tutorial_most_recent_version_seen)).toBe('0.9.0-beta');
+  await expect.poll(() => page.evaluate(() => window.__smokeProfile.tutorial_most_recent_version_seen)).toBe('0.10.0-beta');
   await expectNoCriticalErrors(errors);
 });

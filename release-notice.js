@@ -16,10 +16,10 @@
   "use strict";
 
   const CURRENT_RELEASE = Object.freeze({
-    id: "0.9.0-beta",
-    versionName: "0.9.0-beta",
-    label: "Trofia v0.9.0 Beta",
-    tutorialType: "release-highlights"
+    id: "0.10.0-beta",
+    versionName: "0.10.0-beta",
+    label: "Trofia v0.10.0 Beta",
+    tutorialType: null
   });
 
   function hasSeenRelease(record, releaseId = CURRENT_RELEASE.id) {
@@ -57,19 +57,19 @@
       const normalizedLang = normalizeLanguage(lang);
       const textByLang = {
         pt: {
-          title: "Bem-vindo \u00e0 vers\u00e3o 0.9.0 Beta! \ud83c\udf89\ud83e\udd73",
-          body: "Agora voc\u00ea pode reconhecer refei\u00e7\u00f5es por foto, revisar as estimativas antes de registrar e usar um Di\u00e1rio mais claro, com datas, backups e privacidade refor\u00e7ados.",
-          btn: "Ver novidades"
+          title: "Bem-vindo \u00e0 vers\u00e3o 0.10.0 Beta! \ud83c\udf89\ud83e\udd73",
+          body: "Seus dados agora funcionam melhor offline, sincronizam com mais seguran\u00e7a e podem ser exclu\u00eddos integralmente por um fluxo confi\u00e1vel.",
+          btn: "Continuar"
         },
         en: {
-          title: "Welcome to version 0.9.0 Beta! \ud83c\udf89\ud83e\udd73",
-          body: "You can now recognize meals from photos, review estimates before logging, and use a clearer Diary with more reliable dates, backups, and privacy protections.",
-          btn: "See what's new"
+          title: "Welcome to version 0.10.0 Beta! \ud83c\udf89\ud83e\udd73",
+          body: "Your data now works better offline, syncs more safely, and can be fully deleted through a reliable account-deletion process.",
+          btn: "Continue"
         },
         es: {
-          title: "\u00a1Bienvenido a la versi\u00f3n 0.9.0 Beta! \ud83c\udf89\ud83e\udd73",
-          body: "Ahora puedes reconocer comidas por foto, revisar las estimaciones antes de registrarlas y usar un Diario m\u00e1s claro, con fechas, copias de seguridad y privacidad reforzadas.",
-          btn: "Ver novedades"
+          title: "\u00a1Bienvenido a la versi\u00f3n 0.10.0 Beta! \ud83c\udf89\ud83e\udd73",
+          body: "Tus datos ahora funcionan mejor sin conexi\u00f3n, se sincronizan con mayor seguridad y pueden eliminarse por completo mediante un proceso fiable.",
+          btn: "Continuar"
         }
       };
       const text = textByLang[normalizedLang] || textByLang.pt;

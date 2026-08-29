@@ -1032,7 +1032,10 @@ export function App() {
                 setTutorialType(nextTutorialType);
                 setShowTutorial(true);
               } else {
-                setShowReleaseNotice(true);
+                if (releaseAudienceRef.current) {
+                  markCurrentReleaseSeen();
+                  releaseAudienceRef.current = null;
+                }
               }
             }}
           />
