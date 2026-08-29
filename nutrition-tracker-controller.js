@@ -806,7 +806,7 @@
         templateTotals
       } = window.FoodEntry.createFoodEntry({
         divisor,
-        createEntryId: () => Date.now().toString() + Math.random(),
+        createEntryId: () => window.DailyEntryModel.createIdempotentEntryId(),
         getEntryTime: () => new Date().toTimeString().slice(0,5),
         getPantry: () => pantry,
         buildDayTotals
@@ -858,7 +858,7 @@
         callAI,
         normalizeLanguage,
         getAiLanguageInstruction: aiLang,
-        createEntryId: () => Date.now().toString() + Math.random()
+        createEntryId: () => window.DailyEntryModel.createIdempotentEntryId()
       });
       const {
         generateNutritionFeedback
@@ -2063,14 +2063,18 @@
       function addWater(ml) {
         const n = parseFloat(ml || waterInput);
         if (isNaN(n) || n <= 0) return;
-        setWaterIntake(w => [...w, {
-          id: Date.now().toString(),
+        const entry = {
+          id: window.DailyEntryModel.createIdempotentEntryId(),
           ml: n,
           time: new Date().toLocaleTimeString("pt-BR", {
             hour: "2-digit",
             minute: "2-digit"
           })
-        }]);
+        };
+        setWaterIntake(previous => window.DailyEntryModel.applyEntryListMutation(
+          previous,
+          {type: "add", entries: [entry]}
+        ));
         setWaterInput("");
       }
       function configureWaterCustomPreset() {
@@ -2083,7 +2087,10 @@
         setWaterCustomPreset(parsed);
       }
       function removeWater(id) {
-        setWaterIntake(w => w.filter(e => e.id !== id));
+        setWaterIntake(previous => window.DailyEntryModel.applyEntryListMutation(
+          previous,
+          {type: "remove", entryId: id}
+        ));
       }
 
       // Supplements
@@ -2107,8 +2114,8 @@
         const supp = suppPantry.find(s => s.id === suppAddId);
         if (!supp) return;
         const dose = parseFloat(suppAddDose) || supp.dose;
-        setSuppLog(l => [...l, {
-          id: Date.now().toString(),
+        const entry = {
+          id: window.DailyEntryModel.createIdempotentEntryId(),
           suppId: supp.id,
           name: supp.name,
           dose,
@@ -2117,14 +2124,21 @@
             hour: "2-digit",
             minute: "2-digit"
           })
-        }]);
+        };
+        setSuppLog(previous => window.DailyEntryModel.applyEntryListMutation(
+          previous,
+          {type: "add", entries: [entry]}
+        ));
         setSuppAddId("");
         setSuppAddDose("");
         setShowSuppAdd(false);
         notify(uiText(supp.name + " registrado.", supp.name + " logged.", supp.name + " registrado."));
       }
       function removeSuppLog(id) {
-        setSuppLog(l => l.filter(e => e.id !== id));
+        setSuppLog(previous => window.DailyEntryModel.applyEntryListMutation(
+          previous,
+          {type: "remove", entryId: id}
+        ));
       }
       function removeSuppPantry(id) {
         setSuppPantry(p => p.filter(s => s.id !== id));
@@ -2895,10 +2909,11 @@
       }
       async function saveMealRegistration(meal, items) {
         if (mealRegistrationSavingRef.current) return null;
-        const nextLog = {
-          ...activeLog,
-          [meal]: [...(activeLog[meal] || []), ...items]
-        };
+        const nextLog = window.DailyEntryModel.applyMealLogMutation(
+          activeLog,
+          meal,
+          {type: "add", entries: items}
+        );
         mealRegistrationSavingRef.current = true;
         setMealRegistrationSaving(true);
         try {
@@ -3004,13 +3019,15 @@
           setEditEntryId(null);
           return;
         }
-        setActiveLog({
-          ...activeLog,
-          [meal]: activeLog[meal].map(e => {
-            if (e.id !== editEntryId) return e;
-            return recalcEntryQuantity(e, qty);
-          })
-        });
+        setActiveLog(previous => window.DailyEntryModel.applyMealLogMutation(
+          previous,
+          meal,
+          {
+            type: "update",
+            entryId: editEntryId,
+            update: entry => recalcEntryQuantity(entry, qty)
+          }
+        ));
         setEditEntryId(null);
         notify(uiText("Quantidade atualizada.", "Amount updated.", "Cantidad actualizada."));
       }
@@ -3112,22 +3129,24 @@
         openMealReview(staged.meal, staged.items, "staged");
       }
       function removeEntry(meal, id) {
-        setActiveLog({
-          ...activeLog,
-          [meal]: activeLog[meal].filter(e => e.id !== id)
-        });
+        setActiveLog(previous => window.DailyEntryModel.applyMealLogMutation(
+          previous,
+          meal,
+          {type: "remove", entryId: id}
+        ));
         setEntryMenuId(null);
       }
       function duplicateEntry(meal, entry) {
         const copy = {
           ...entry,
-          id: Date.now().toString() + Math.random(),
+          id: window.DailyEntryModel.createIdempotentEntryId(),
           time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
         };
-        setActiveLog({
-          ...activeLog,
-          [meal]: [...(activeLog[meal] || []), copy]
-        });
+        setActiveLog(previous => window.DailyEntryModel.applyMealLogMutation(
+          previous,
+          meal,
+          {type: "add", entries: [copy]}
+        ));
         setEntryMenuId(null);
         notify(uiText("Registro duplicado.", "Entry duplicated.", "Registro duplicado."));
       }
@@ -3215,7 +3234,7 @@
       function loadRecentMealToStaged(recentMeal) {
         const items = recentMeal.entries.map(e => ({
           ...e,
-          id: Date.now().toString() + Math.random()
+          id: window.DailyEntryModel.createIdempotentEntryId()
         }));
         setStaged({
           meal: recentMeal.meal,
@@ -3722,7 +3741,7 @@
             Object.entries(meals).forEach(([meal, entries]) => {
               const wi = entries.map(en => ({
                 ...en,
-                id: Date.now().toString() + Math.random()
+                id: window.DailyEntryModel.createIdempotentEntryId()
               }));
               newLog[meal] = [...(newLog[meal] || []), ...wi];
               count += entries.length;

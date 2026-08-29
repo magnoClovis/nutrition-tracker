@@ -34,6 +34,7 @@ import * as WeekScreenModule from './components/week-screen.js';
 import * as BarcodeScanner from './composite/barcode-scanner-runtime.js';
 import * as BodyMetricsModel from './composite/body-metrics-model.js';
 import * as DailyNutritionModel from './composite/daily-nutrition-model.js';
+import * as DailyEntryModel from './composite/daily-entry-model.js';
 import * as DateUtils from './composite/date-utils.js';
 import * as DiaryTicker from './composite/diary-ticker.js';
 import * as DishDescriptionAI from './composite/dish-description-ai.js';
@@ -111,6 +112,7 @@ Object.assign(globalThis, {
   AutosaveScheduler,
   BarcodeScanner,
   DishDescriptionAI,
+  DailyEntryModel,
   EatingPatternsAI,
   FoodAutofillAI,
   FoodEntry,
@@ -237,7 +239,7 @@ const { ImageMealScreen } = ImageMealScreenModule.createImageMealScreen({
 });
 
 const imageMealRegistration = ImageMealRegistration.createImageMealRegistration({
-  createEntryId: () => Date.now().toString() + Math.random().toString(16).slice(2),
+  createEntryId: () => DailyEntryModel.createIdempotentEntryId(),
   mealKeys: MEAL_KEYS,
 });
 

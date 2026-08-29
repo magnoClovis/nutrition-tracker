@@ -496,6 +496,17 @@ contractTest("applies the selected time at every final meal-registration path", 
   });
 });
 
+contractTest("assigns stable daily-entry IDs and routes list changes through idempotent mutations", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+
+  assert.match(source, /createEntryId: \(\) => window\.DailyEntryModel\.createIdempotentEntryId\(\)/);
+  assert.match(source, /setWaterIntake\(previous => window\.DailyEntryModel\.applyEntryListMutation/);
+  assert.match(source, /setSuppLog\(previous => window\.DailyEntryModel\.applyEntryListMutation/);
+  assert.match(source, /const nextLog = window\.DailyEntryModel\.applyMealLogMutation/);
+  assert.match(source, /setActiveLog\(previous => window\.DailyEntryModel\.applyMealLogMutation/);
+});
+
 contractTest("restores the captured tab, date, and scroll only after successful registration", createNutritionTrackerController => {
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
@@ -584,7 +595,7 @@ contractTest("keeps every render-scoped factory argument and current-render clos
       factory: "FoodEntry.createFoodEntry",
       dependencies: [
         "divisor",
-        "createEntryId: () => Date.now().toString() + Math.random()",
+        "createEntryId: () => window.DailyEntryModel.createIdempotentEntryId()",
         "getEntryTime: () => new Date().toTimeString().slice(0,5)",
         "getPantry: () => pantry",
         "buildDayTotals"
@@ -618,7 +629,7 @@ contractTest("keeps every render-scoped factory argument and current-render clos
         "callAI",
         "normalizeLanguage",
         "getAiLanguageInstruction: aiLang",
-        "createEntryId: () => Date.now().toString() + Math.random()"
+        "createEntryId: () => window.DailyEntryModel.createIdempotentEntryId()"
       ]
     },
     {

@@ -40,6 +40,7 @@ import './firebase/firebase-storage.js';
 import * as BarcodeScanner from './composite/barcode-scanner.js';
 import * as BodyMetricsModel from './composite/body-metrics-model.js';
 import * as DailyNutritionModel from './composite/daily-nutrition-model.js';
+import * as DailyEntryModel from './composite/daily-entry-model.js';
 import * as DateUtils from './composite/date-utils.js';
 import * as DiaryTicker from './composite/diary-ticker.js';
 import * as DishDescriptionAI from './composite/dish-description-ai.js';
@@ -91,6 +92,7 @@ function installNpmRuntime(target) {
     BodyMetricsModel,
     CalendarModel,
     DailyNutritionModel,
+    DailyEntryModel,
     DateUtils,
     DiaryTicker,
     DiaryScreenModule,
