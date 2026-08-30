@@ -41,10 +41,12 @@ test('authenticate disposable test account', async ({ page }) => {
   // instead of depending on data left by an earlier workflow run.
   if (await requiredProfile.isVisible()) {
     await page.locator('input[type="date"]:visible').fill('1990-06-15');
-    const selects = page.locator('select:visible');
-    await selects.nth(0).selectOption('female');
-    await selects.nth(1).selectOption('moderate');
-    await selects.nth(2).selectOption('maintenance');
+    await page.locator('#required-profile-gender-trigger').click();
+    await page.getByRole('option', { name: /Feminino|Female|Femenino/i }).click();
+    await page.locator('#required-profile-activity-trigger').click();
+    await page.getByRole('option').filter({ hasText: /Moderadamente ativo|Moderately active|Moderadamente activo/i }).click();
+    await page.locator('#required-profile-goal-trigger').click();
+    await page.getByRole('option').filter({ hasText: /Manutenção do peso|Weight maintenance|Mantenimiento del peso/i }).click();
     await page.getByRole('button', {
       name: /Salvar e continuar|Save and continue|Guardar y continuar/i
     }).click();

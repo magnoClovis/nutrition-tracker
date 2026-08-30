@@ -23,6 +23,8 @@ const { isValidBirthDate, isValidGender } = createProfileValidation({
 });
 const currentDispatcher = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentDispatcher;
 
+function ChoiceField() {}
+
 function createHookHarness(Component, props) {
   const state = [];
   const effects = [];
@@ -141,6 +143,7 @@ function createFixture(createLoginScreen, { stored = {}, auth = {}, initialDark 
     normalizeLanguage,
     isValidBirthDate,
     isValidGender,
+    ChoiceField,
     authService: services,
     readPreferredDarkMode() { calls.push(["readPreferredDarkMode"]); return initialDark; },
     localStorage,
@@ -189,7 +192,7 @@ function fillRegistration(fixture, overrides = {}) {
   change(passwords[1], values.password2);
   change(findInput(fixture.harness.tree, props => props.autoComplete === "name"), values.name);
   change(findInput(fixture.harness.tree, props => props.type === "date"), values.birthDate);
-  change(elementsByType(fixture.harness.tree, "select")[0], values.gender);
+  elementsByType(fixture.harness.tree, ChoiceField)[0].props.onChange(values.gender);
   const numbers = elementsByType(fixture.harness.tree, "input").filter(input => input.props.type === "number");
   change(numbers[0], values.weight);
   change(numbers[1], values.height);
@@ -295,6 +298,18 @@ contractTest("registers with real profile validators and writes the exact persis
     ["setValue", "language", "en"]
   ]);
   assert.deepEqual(fixture.pending, [["new@example.com", "New User"]]);
+});
+
+contractTest("uses the inline-eligible reusable ChoiceField for registration gender", createLoginScreen => {
+  const fixture = createFixture(createLoginScreen);
+  switchToRegistration(fixture);
+  const fields = elementsByType(fixture.harness.tree, ChoiceField);
+
+  assert.equal(elementsByType(fixture.harness.tree, "select").length, 0);
+  assert.equal(fields.length, 1);
+  assert.equal(fields[0].props.id, "registration-gender");
+  assert.deepEqual(fields[0].props.options.map(option => option.value), ["male", "female"]);
+  assert.equal(fields[0].props.options.some(option => option.description), false);
 });
 
 contractTest("rejects invalid birth date and gender through the production validators", async createLoginScreen => {

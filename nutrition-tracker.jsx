@@ -235,6 +235,10 @@ const {
 } = window.ProfileValidation.createProfileValidation({ storage, activityLevels: ACTIVITY_LEVELS });
 
 const {
+  ChoiceField
+} = window.ChoiceFieldModule.createChoiceField({ React });
+
+const {
   LoginScreen
 } = window.LoginScreenModule.createLoginScreen({
   React,
@@ -242,6 +246,7 @@ const {
   normalizeLanguage,
   isValidBirthDate,
   isValidGender,
+  ChoiceField,
   authService: {
     signIn: (...args) => window.fbSignIn(...args),
     checkEmailVerified: (...args) => window.fbCheckEmailVerified(...args),
@@ -300,6 +305,7 @@ const {
   React,
   normalizeLanguage,
   pickLang,
+  ChoiceField,
   activityLevels: ACTIVITY_LEVELS,
   storage,
   isValidBirthDate,
@@ -350,10 +356,6 @@ const {
 const {
   PantryScreen
 } = window.PantryScreenModule.createPantryScreen({ React, pickLang, portionLabel });
-
-const {
-  ChoiceField
-} = window.ChoiceFieldModule.createChoiceField({ React });
 
 const {
   AddScreen

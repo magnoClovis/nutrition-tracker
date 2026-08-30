@@ -1,8 +1,14 @@
 /**
- * Reusable, controlled list selector presented in a Trofia bottom sheet.
+ * Reusable, controlled Trofia list selector.
  *
  * The UMD module receives React explicitly and owns presentation state only.
  * The host remains responsible for the selected value and persistence.
+ *
+ * Presentation rule (the project-wide ChoiceField contract): lists with up to
+ * five options and no per-option descriptions expand inline. Lists with more
+ * than five options, or any option description, use the bottom sheet. A choice
+ * is confirmation in both modes: selecting it updates the host and closes the
+ * list immediately.
  *
  * @module ChoiceField
  */
@@ -89,6 +95,13 @@
       });
     }
 
+    function resolveChoiceFieldMode(options) {
+      const normalizedOptions = normalizeOptions(options);
+      return normalizedOptions.length <= 5 && normalizedOptions.every(option => !option.description)
+        ? "inline"
+        : "sheet";
+    }
+
     function ChoiceField({
       id,
       label,
@@ -101,7 +114,9 @@
       disabled = false,
       required = false,
       name,
-      describedBy
+      describedBy,
+      className,
+      style
     }) {
       const generatedId = React.useId();
       const baseId = id || `choice-field-${generatedId.replace(/:/g, "")}`;
@@ -110,6 +125,7 @@
       const helpId = helperText ? `${baseId}-help` : undefined;
       const listId = `${baseId}-listbox`;
       const normalizedOptions = normalizeOptions(options);
+      const mode = resolveChoiceFieldMode(normalizedOptions);
       const selectedIndex = normalizedOptions.findIndex(option => option.value === String(value));
       const selectedOption = selectedIndex >= 0 ? normalizedOptions[selectedIndex] : null;
       const [open, setOpen] = React.useState(false);
@@ -121,21 +137,21 @@
       React.useEffect(() => {
         if (!open || typeof document === "undefined") return undefined;
         const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = "hidden";
+        if (mode === "sheet") document.body.style.overflow = "hidden";
         const focusIndex = selectedIndex >= 0 ? selectedIndex : normalizedOptions.findIndex(option => !option.disabled);
         setActiveIndex(Math.max(focusIndex, 0));
         const frame = requestAnimationFrame(() => optionRefs.current[Math.max(focusIndex, 0)]?.focus());
         return () => {
           cancelAnimationFrame(frame);
-          document.body.style.overflow = previousOverflow;
+          if (mode === "sheet") document.body.style.overflow = previousOverflow;
         };
-      }, [open]);
+      }, [open, mode]);
 
-      function openSheet() {
+      function openField() {
         if (!disabled) setOpen(true);
       }
 
-      function closeSheet({ restoreFocus = true } = {}) {
+      function closeField({ restoreFocus = true } = {}) {
         setOpen(false);
         if (restoreFocus && typeof requestAnimationFrame === "function") {
           requestAnimationFrame(() => triggerRef.current?.focus());
@@ -145,7 +161,7 @@
       function selectOption(option) {
         if (option.disabled) return;
         if (typeof onChange === "function") onChange(option.value);
-        closeSheet();
+        closeField();
       }
 
       function moveFocus(fromIndex, direction) {
@@ -184,7 +200,7 @@
       function handleDialogKeyDown(event) {
         if (event.key === "Escape") {
           event.preventDefault();
-          closeSheet();
+          closeField();
           return;
         }
         if (event.key !== "Tab" || !dialogRef.current) return;
@@ -201,8 +217,39 @@
         }
       }
 
+      function renderOption(option, index) {
+        return React.createElement("button", {
+          ref: node => { optionRefs.current[index] = node; },
+          key: option.value,
+          type: "button",
+          role: "option",
+          disabled: option.disabled,
+          "aria-selected": option.value === String(value),
+          tabIndex: index === activeIndex ? 0 : -1,
+          "data-choice-field-option": "true",
+          "data-choice-field-tone": option.tone || undefined,
+          onFocus: () => setActiveIndex(index),
+          onKeyDown: event => handleOptionKeyDown(event, index, option),
+          onClick: () => selectOption(option)
+        }, option.tone ? React.createElement("span", {
+          "data-choice-field-indicator": "true",
+          "aria-hidden": "true"
+        }) : null, React.createElement("span", {
+          "data-choice-field-option-copy": "true"
+        }, React.createElement("span", {
+          "data-choice-field-option-label": "true"
+        }, option.label), option.description ? React.createElement("span", {
+          "data-choice-field-option-description": "true"
+        }, option.description) : null), option.value === String(value)
+          ? React.createElement("span", { "data-choice-field-selection": "true" }, React.createElement(SelectionIcon))
+          : null);
+      }
+
       return React.createElement("div", {
-        "data-choice-field": "true"
+        className,
+        style,
+        "data-choice-field": "true",
+        "data-choice-field-mode": mode
       }, React.createElement("label", {
         htmlFor: triggerId,
         "data-choice-field-label": "true"
@@ -216,11 +263,14 @@
         "aria-controls": open ? listId : undefined,
         "aria-describedby": describedBy,
         "data-choice-field-trigger": "true",
-        onClick: openSheet,
+        onClick: () => open ? closeField({ restoreFocus: false }) : openField(),
         onKeyDown: event => {
           if (["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) {
             event.preventDefault();
-            openSheet();
+            openField();
+          } else if (event.key === "Escape" && open) {
+            event.preventDefault();
+            closeField();
           }
         }
       }, React.createElement("span", null, selectedOption ? selectedOption.label : placeholder), React.createElement("span", {
@@ -230,10 +280,22 @@
         name,
         value: selectedOption ? selectedOption.value : "",
         required
-      }) : null, open ? React.createElement("div", {
+      }) : null, open && mode === "inline" ? React.createElement("div", {
+        id: listId,
+        role: "listbox",
+        "aria-labelledby": triggerId,
+        "data-choice-field-options": "true",
+        "data-choice-field-inline-options": "true",
+        onKeyDown: event => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            closeField();
+          }
+        }
+      }, normalizedOptions.map(renderOption)) : null, open && mode === "sheet" ? React.createElement("div", {
         "data-choice-field-overlay": "true",
         onMouseDown: event => {
-          if (event.target === event.currentTarget) closeSheet();
+          if (event.target === event.currentTarget) closeField();
         }
       }, React.createElement("section", {
         ref: dialogRef,
@@ -256,40 +318,16 @@
         type: "button",
         "aria-label": closeLabel,
         "data-choice-field-close": "true",
-        onClick: () => closeSheet()
+        onClick: () => closeField()
       }, React.createElement(CloseIcon))), React.createElement("div", {
         id: listId,
         role: "listbox",
         "aria-labelledby": titleId,
         "data-choice-field-options": "true"
-      }, normalizedOptions.map((option, index) => React.createElement("button", {
-        ref: node => { optionRefs.current[index] = node; },
-        key: option.value,
-        type: "button",
-        role: "option",
-        disabled: option.disabled,
-        "aria-selected": option.value === String(value),
-        tabIndex: index === activeIndex ? 0 : -1,
-        "data-choice-field-option": "true",
-        "data-choice-field-tone": option.tone || undefined,
-        onFocus: () => setActiveIndex(index),
-        onKeyDown: event => handleOptionKeyDown(event, index, option),
-        onClick: () => selectOption(option)
-      }, option.tone ? React.createElement("span", {
-        "data-choice-field-indicator": "true",
-        "aria-hidden": "true"
-      }) : null, React.createElement("span", {
-        "data-choice-field-option-copy": "true"
-      }, React.createElement("span", {
-        "data-choice-field-option-label": "true"
-      }, option.label), option.description ? React.createElement("span", {
-        "data-choice-field-option-description": "true"
-      }, option.description) : null), option.value === String(value)
-        ? React.createElement("span", { "data-choice-field-selection": "true" }, React.createElement(SelectionIcon))
-        : null))))) : null);
+      }, normalizedOptions.map(renderOption)))) : null);
     }
 
-    return { ChoiceField, normalizeOptions };
+    return { ChoiceField, normalizeOptions, resolveChoiceFieldMode };
   }
 
   return { createChoiceField };

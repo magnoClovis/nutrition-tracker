@@ -414,6 +414,7 @@ const {
   normalizeLanguage,
   isValidBirthDate,
   isValidGender,
+  ChoiceField,
   authService: {
     signIn: (...args) => window.fbSignIn(...args),
     checkEmailVerified: (...args) => window.fbCheckEmailVerified(...args),
@@ -476,6 +477,7 @@ const {
   React,
   normalizeLanguage,
   pickLang,
+  ChoiceField,
   activityLevels: ACTIVITY_LEVELS,
   storage,
   isValidBirthDate,

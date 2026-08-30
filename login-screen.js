@@ -35,6 +35,7 @@
    * @param {function(string): string} dependencies.normalizeLanguage Language normalizer from `i18n.js`.
    * @param {function(string): boolean} dependencies.isValidBirthDate Birth-date validator from `profile-validation.js`.
    * @param {function(string): boolean} dependencies.isValidGender Gender validator from `profile-validation.js`.
+   * @param {function(Object): Object} dependencies.ChoiceField Reusable Trofia list selector.
    * @param {{signIn: function(string,string): Promise<*>, checkEmailVerified: function(): Promise<boolean>, signUp: function(string,string): Promise<*>, updateProfile: function(string): Promise<*>, setValue: function(string,*): Promise<*>, sendVerificationEmail: function(): Promise<*>, sendPasswordResetEmail: function(string): Promise<*>}} dependencies.authService Named Firebase authentication and persistence operations.
    * @param {function(): boolean} dependencies.readPreferredDarkMode Existing theme initializer from app.js.
    * @param {{getItem: function(string): (string|null), setItem: function(string,string): void}} dependencies.localStorage Browser-local storage service.
@@ -49,6 +50,7 @@
     normalizeLanguage,
     isValidBirthDate,
     isValidGender,
+    ChoiceField,
     authService,
     readPreferredDarkMode,
     localStorage: localStorageService,
@@ -60,6 +62,7 @@
         typeof React.useState !== "function" || typeof React.useEffect !== "function" ||
         !Array.isArray(languageOptions) || typeof normalizeLanguage !== "function" ||
         typeof isValidBirthDate !== "function" || typeof isValidGender !== "function" ||
+        typeof ChoiceField !== "function" ||
         !authService || typeof authService.signIn !== "function" ||
         typeof authService.checkEmailVerified !== "function" ||
         typeof authService.signUp !== "function" || typeof authService.updateProfile !== "function" ||
@@ -71,7 +74,7 @@
         typeof localStorageService.setItem !== "function" ||
         !documentElement || !documentElement.dataset || typeof DateCtor !== "function" ||
         typeof localToday !== "function") {
-      throw new TypeError("LoginScreen requires React, i18n, profile validation, Firebase, theme, storage, document, and Date services");
+      throw new TypeError("LoginScreen requires React, ChoiceField, i18n, profile validation, Firebase, theme, storage, document, and Date services");
     }
 
     const LANGUAGE_OPTIONS = languageOptions;
@@ -128,7 +131,7 @@
           resetSent: 'Se existir uma conta com esse e-mail, enviaremos as instru\u00e7\u00f5es de recupera\u00e7\u00e3o.',
           resetEmailRequired: 'Digite seu e-mail para recuperar a senha.',
           tabLogin: 'Entrar', tabRegister: 'Criar conta', name: 'Seu nome *', birthTitle: 'Data de nascimento *',
-          genderPlaceholder: 'G\u00eanero *', weightPlaceholder: 'Peso (kg)', heightPlaceholder: 'Altura (cm)',
+          genderPlaceholder: 'G\u00eanero *', choose: 'Selecionar', close: 'Fechar', weightPlaceholder: 'Peso (kg)', heightPlaceholder: 'Altura (cm)',
           male: 'Masculino', female: 'Feminino', errPrefix: 'Erro: ',
           errCredentials: 'Email ou senha incorretos.', errPassword: 'Senha incorreta.',
           errTooMany: 'Muitas tentativas. Tente novamente mais tarde.',
@@ -147,7 +150,7 @@
           resetSent: 'If an account exists for this email, password recovery instructions will be sent.',
           resetEmailRequired: 'Enter your email to recover your password.',
           tabLogin: 'Sign in', tabRegister: 'Create account', name: 'Your name *', birthTitle: 'Date of birth *',
-          genderPlaceholder: 'Gender *', weightPlaceholder: 'Weight (kg)', heightPlaceholder: 'Height (cm)',
+          genderPlaceholder: 'Gender *', choose: 'Select', close: 'Close', weightPlaceholder: 'Weight (kg)', heightPlaceholder: 'Height (cm)',
           male: 'Male', female: 'Female', errPrefix: 'Error: ',
           errCredentials: 'Incorrect email or password.', errPassword: 'Incorrect password.',
           errTooMany: 'Too many attempts. Try again later.', errExists: 'This email already has an account. Sign in instead.',
@@ -165,7 +168,7 @@
           resetSent: 'Si existe una cuenta con este email, enviaremos las instrucciones de recuperaci\u00f3n.',
           resetEmailRequired: 'Escribe tu email para recuperar la contrase\u00f1a.',
           tabLogin: 'Entrar', tabRegister: 'Crear cuenta', name: 'Tu nombre *', birthTitle: 'Fecha de nacimiento *',
-          genderPlaceholder: 'G\u00e9nero *', weightPlaceholder: 'Peso (kg)', heightPlaceholder: 'Altura (cm)',
+          genderPlaceholder: 'G\u00e9nero *', choose: 'Seleccionar', close: 'Cerrar', weightPlaceholder: 'Peso (kg)', heightPlaceholder: 'Altura (cm)',
           male: 'Masculino', female: 'Femenino', errPrefix: 'Error: ',
           errCredentials: 'Email o contrase\u00f1a incorrectos.', errPassword: 'Contrase\u00f1a incorrecta.',
           errTooMany: 'Demasiados intentos. Int\u00e9ntalo m\u00e1s tarde.', errExists: 'Este email ya tiene una cuenta. Inicia sesi\u00f3n.',
@@ -329,11 +332,12 @@
             mode === 'register' && renderPasswordInput({value:password2,onChange:e=>setPassword2(e.target.value),placeholder:S.confirm,visible:password2Visible,onToggle:()=>setPassword2Visible(visible=>!visible),autoComplete:'new-password',marginBottom:12,testId:'password-confirmation-visibility'}),
             mode === 'register' && React.createElement('input', {type:'text',value:regName,onChange:e=>setRegName(e.target.value),placeholder:S.name,style:{...inp,marginBottom:12},autoComplete:'name'}),
             mode === 'register' && React.createElement('input', {type:'date',value:regBirthDate,onChange:e=>setRegBirthDate(e.target.value),required:true,max:localToday(new Date()),min:'1900-01-01',title:S.birthTitle,style:{...inp,marginBottom:12},autoComplete:'bday'}),
-            mode === 'register' && React.createElement('select', {value:regGender,onChange:e=>setRegGender(e.target.value),required:true,style:{...inp,marginBottom:12}},
-              React.createElement('option', {value:''}, S.genderPlaceholder),
-              React.createElement('option', {value:'male'}, S.male),
-              React.createElement('option', {value:'female'}, S.female)
-            ),
+            mode === 'register' && React.createElement(ChoiceField, {
+              id:'registration-gender', label:S.genderPlaceholder, value:regGender,
+              onChange:setRegGender, placeholder:S.choose, closeLabel:S.close, required:true,
+              options:[{value:'male',label:S.male},{value:'female',label:S.female}],
+              style:{marginBottom:12}
+            }),
             mode === 'register' && React.createElement('div', {style:{display:'flex',gap:8,marginBottom:error?8:20}},
               React.createElement('input', {type:'number',value:regWeight,onChange:e=>setRegWeight(e.target.value),placeholder:S.weightPlaceholder,min:30,max:300,step:0.1,style:{...inp,marginBottom:0,flex:1}}),
               React.createElement('input', {type:'number',value:regHeight,onChange:e=>setRegHeight(e.target.value),placeholder:S.heightPlaceholder,min:100,max:250,style:{...inp,marginBottom:0,flex:1}})

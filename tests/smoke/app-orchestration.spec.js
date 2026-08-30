@@ -66,9 +66,13 @@ test('preserves the login, verification, required-profile, and authenticated-app
 
   await expect(page.getByText(/Completar perfil nutricional|Complete nutrition profile/i)).toBeVisible();
   await page.locator('input[type="date"]').fill('1990-06-15');
-  await page.locator('select').nth(0).selectOption('female');
-  await page.locator('select').nth(1).selectOption('moderate');
-  await page.locator('select').nth(2).selectOption('maintenance');
+  await page.locator('#required-profile-gender-trigger').click();
+  await page.getByRole('option', { name: /Feminino|Female/i }).click();
+  await page.locator('#required-profile-activity-trigger').click();
+  await page.getByRole('option').filter({ hasText: /Moderadamente ativo|Moderately active/i }).click();
+  await page.locator('#required-profile-goal-trigger').click();
+  await page.getByRole('option').filter({ hasText: /Manutenção do peso|Weight maintenance/i }).click();
+  await expect(page.locator('[data-choice-field-options="true"]')).toHaveCount(0);
   await page.getByRole('button', { name: /Salvar e continuar|Save and continue/i }).click();
 
   await expect(page.locator('[data-screen="diario"]')).toBeVisible({ timeout: 15000 });
