@@ -323,6 +323,9 @@ test.describe('authenticated critical data flows', () => {
 
       const modal = page.locator('[data-meal-review-modal="true"]');
       await expect(modal).toBeVisible();
+      await expect(modal.getByText('Adequação ao restante do dia', { exact: true })).toBeVisible();
+      await expect(modal.getByText(/Confiança dos dados: Alta/)).toBeVisible();
+      await expect(modal.getByText(/Faixas: 0–2,99 pouco alinhada/)).toBeVisible();
       await expect(modal.getByText(/^\d\.\d{2}$/).first()).toBeVisible();
       await modal.getByRole('button', { name: 'Editar', exact: true }).click();
 

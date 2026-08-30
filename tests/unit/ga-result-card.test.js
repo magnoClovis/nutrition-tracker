@@ -68,7 +68,7 @@ contractTest("preserves current-day projections, ranking, and item quantities", 
     isMobileView: false,
     evaluateMealItems: entries => {
       evaluated = entries;
-      return { valid: true, score: 4.1 };
+      return { valid: true, score: 4.1, coverage: 1, confidence: "high", provisional: false };
     },
     getMealScoreBrief: () => "Resumo",
     getMealScoreEvaluationText: () => "4 de 4",
@@ -80,9 +80,41 @@ contractTest("preserves current-day projections, ranking, and item quantities", 
     fiber: 12, satfat: 1.5, salt: 0.30000000000000004
   }]);
   assert.match(copy, /Melhor op\u00e7\u00e3o/);
+  assert.match(copy, /Adequação ao restante do dia/);
+  assert.match(copy, /Bem alinhada/);
+  assert.match(copy, /Confiança dos dados: Alta · 100%/);
+  assert.match(copy, /Faixas: 0–2,99 pouco alinhada/);
   assert.match(copy, /Prote\u00edna depois: 80 \/ 100g \(80%\)/);
   assert.match(copy, /Calorias depois: 1000 \/ 1200kcal \(83%\)/);
   assert.match(copy, /Aveia: 150g/);
+});
+
+contractTest("shows exact provisional coverage details without calling the score health", GaResultCard => {
+  const card = GaResultCard({
+    result,
+    index: 0,
+    activeLog: {},
+    goals: { protein: 100, kcal: 2000 },
+    lang: "en",
+    isMobileView: false,
+    evaluateMealItems: () => ({
+      valid: true,
+      score: 3.4,
+      coverage: 0.75,
+      confidence: "medium",
+      provisional: true,
+      provisionalReasons: [{ nutrient: "fiber", scope: "candidate", missingItemCount: 1, totalItemCount: 2 }]
+    }),
+    getMealScoreBrief: () => "Contextual summary",
+    getMealScoreEvaluationText: () => "4 of 6",
+    onAdd: () => {}
+  });
+  const copy = textContent(card);
+  assert.match(copy, /Fit with the rest of the day/);
+  assert.match(copy, /Partially aligned/);
+  assert.match(copy, /Data confidence: Medium · 75%/);
+  assert.match(copy, /Provisional score\. Fiber: data is missing for 1 of 2 foods in this meal\./);
+  assert.doesNotMatch(copy, /healthy|unhealthy/i);
 });
 
 contractTest("preserves zero-goal fallbacks, absent fit, and delegates add", GaResultCard => {
