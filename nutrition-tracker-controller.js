@@ -1237,6 +1237,7 @@
       const goalToastActiveRef = useRef(false);
       const [expandMicros, setExpandMicros] = useState(false);
       const [detailFood, setDetailFood] = useState(null);
+      const [diaryMealEvaluationDetail, setDiaryMealEvaluationDetail] = useState(null);
       const [entryMenuId, setEntryMenuId] = useState(null);
       const [weightHistory, setWeightHistory] = useState([]);
       const [profileData, setProfileData] = useState({ birthDate: "", gender: "", height: "" });
@@ -1617,6 +1618,7 @@
         if (date) setCalendarMonth(date.slice(0, 7));
         setEditEntryId(null);
         setDetailFood(null);
+        setDiaryMealEvaluationDetail(null);
         if (date !== TODAY) {
           const result = await loadHistoricalDate({ date, today: TODAY });
           setHistoryLog(result.historyLog);
@@ -4903,6 +4905,7 @@
           aiStatusModal,
           reportModalOpen,
           mealReview,
+          diaryMealEvaluationDetail,
           detailFood,
           calendarOpen,
           notesOpen,
@@ -4950,6 +4953,7 @@
             setMealReview(null);
             setMealReviewHelpOpen(false);
             break;
+          case "closeDiaryMealEvaluationDetail": setDiaryMealEvaluationDetail(null); break;
           case "closeFoodDetail": setDetailFood(null); break;
           case "closeCalendar": setCalendarOpen(false); break;
           case "closeNotes": setNotesOpen(false); break;
@@ -5202,6 +5206,7 @@
         evaluateMealItems,
         mealScoreBrief,
         mealScoreEvaluationText,
+        mealScoreLabel,
         addGAResultToDiary,
         TODAY,
         diaryStatus,
@@ -5244,6 +5249,8 @@
         setEntryMenuId,
         detailFood,
         setDetailFood,
+        diaryMealEvaluationDetail,
+        setDiaryMealEvaluationDetail,
         startEditEntry,
         duplicateEntry,
         removeEntry,

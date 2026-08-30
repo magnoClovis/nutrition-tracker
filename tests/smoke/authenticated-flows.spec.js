@@ -356,6 +356,19 @@ test.describe('authenticated critical data flows', () => {
       expect(storedEntry.mealScoreSnapshot.score).toBeLessThanOrEqual(5);
       expect(storedEntry.mealScoreSnapshot.components.protein.mealAmount).toBe(50);
       expect(storedEntry.mealScoreSnapshot.components.kcal.mealAmount).toBe(360);
+      const evaluationBadges = page.locator('[data-meal-evaluation-badge]');
+      await expect(evaluationBadges).toHaveCount(1);
+      await expect(evaluationBadges.first()).toContainText(`${storedEntry.mealScoreSnapshot.score.toFixed(2)}/5`);
+      await evaluationBadges.first().click();
+      const savedEvaluation = page.locator('[data-diary-meal-evaluation-modal="true"]');
+      await expect(savedEvaluation).toBeVisible();
+      await expect(savedEvaluation.getByText('Avaliação salva', { exact: true })).toBeVisible();
+      await expect(savedEvaluation.getByText(/Confiança dos dados: Alta/)).toBeVisible();
+      await expect(savedEvaluation.getByText(/Cobertura: 100%/)).toBeVisible();
+      await expect(savedEvaluation.getByRole('button', { name: 'Editar', exact: true })).toHaveCount(0);
+      await expect(savedEvaluation.getByRole('button', { name: /Registrar refeição/i })).toHaveCount(0);
+      await savedEvaluation.getByRole('button', { name: 'Fechar', exact: true }).first().click();
+      await expect(savedEvaluation).toBeHidden();
       const unexpectedErrors = errors.filter(error => !/Failed to load resource: net::ERR_TIMED_OUT/i.test(error));
       await expectNoCriticalErrors(unexpectedErrors);
     } finally {

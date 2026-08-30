@@ -388,7 +388,8 @@ const {
   Ring,
   Bar,
   GaResultCard,
-  ChoiceField
+  ChoiceField,
+  collectValidMealEvaluationGroups: window.MealScore.collectValidMealEvaluationGroups
 });
 const {
   AppHeaderNavigation
