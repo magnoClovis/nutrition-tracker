@@ -397,7 +397,8 @@ const {
   Bar,
   GaResultCard,
   ChoiceField,
-  SearchableChoiceField
+  SearchableChoiceField,
+  collectValidMealEvaluationGroups: window.MealScore.collectValidMealEvaluationGroups
 });
 const {
   AppHeaderNavigation

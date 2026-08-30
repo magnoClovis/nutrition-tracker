@@ -41,15 +41,16 @@
    * @param {Function} dependencies.SearchableChoiceField Searchable selector for dynamic supplement options.
    * @returns {Object} Controlled Diary component API and meal-ordering helper.
    */
-  function createDiaryScreen({ React, pickLang, sortLocaleForLang, localeForLang, addDays, monthDays, shiftMonth, calendarMonthStats, Ring, Bar, GaResultCard, ChoiceField, SearchableChoiceField }) {
+  function createDiaryScreen({ React, pickLang, sortLocaleForLang, localeForLang, addDays, monthDays, shiftMonth, calendarMonthStats, Ring, Bar, GaResultCard, ChoiceField, SearchableChoiceField, collectValidMealEvaluationGroups }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof sortLocaleForLang !== "function"
       || typeof localeForLang !== "function" || typeof addDays !== "function"
       || typeof monthDays !== "function" || typeof shiftMonth !== "function"
       || typeof calendarMonthStats !== "function" || typeof Ring !== "function"
       || typeof Bar !== "function" || typeof GaResultCard !== "function"
-      || typeof ChoiceField !== "function" || typeof SearchableChoiceField !== "function") {
-      throw new TypeError("DiaryScreen requires React, i18n/date/calendar helpers, Ring, Bar, GaResultCard, ChoiceField, and SearchableChoiceField");
+      || typeof ChoiceField !== "function" || typeof SearchableChoiceField !== "function"
+      || typeof collectValidMealEvaluationGroups !== "function") {
+      throw new TypeError("DiaryScreen requires React, i18n/date/calendar helpers, Ring, Bar, GaResultCard, ChoiceField, SearchableChoiceField, and meal evaluation groups");
     }
 
     const inp = { width: "100%", background: "var(--input)", border: "1px solid var(--border2)", color: "var(--text2)", padding: "9px 12px", borderRadius: 6, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", outline: "none", marginTop: 3 };
@@ -101,8 +102,87 @@
      * @returns {Object|null} React element tree for ticker, summary, or content.
      */
     function DiaryScreen(props) {
-      const { section, tab, lang, isMobileView, darkMode, text, uiText, tickerPhase, tickerDirection, safeTickerIndex, activeTickerSlide, tickerTimerReset, handleTickerPointerDown, handleTickerPointerMove, finishTickerPointer, tickerToneColor, tickerDragOffset, tickerSlides, setTickerTimerReset, moveTicker, greetingText, greetingLine, tot, goals, remainProtein, remainKcal, allEntries, dayProteinPct, dayKcalPct, openMealSuggestions, gaRunning, suggestLoading, showGA, setShowGA, gaTolerance, setGATolerance, gaTargetMeal, setGATargetMeal, MEALS, mealLabel, gaUseAll, setGAUseAll, runGASafely, gaProgress, gaResults, gaHasSearched, expandMicros, setExpandMicros, dailyMicros, hasMicros, getAutomaticMealSuggestionLimits, gaKcalMin, setGAKcalMin, gaProtMin, setGAProtMin, gaKcalMax, setGAKcalMax, gaProtMax, setGAProtMax, gaFoodSearch, setGAFoodSearch, pantry, gaSelIds, setGASelIds, gaAdvancedOpen, setGAAdvancedOpen, gaGlobalMax, setGAGlobalMax, gaUseProtTol, setGAUseProtTol, gaProtTolerance, setGAProtTolerance, activeLog, evaluateMealItems, mealScoreBrief, mealScoreEvaluationText, addGAResultToDiary, TODAY, diaryStatus, dateLabel, viewDate, calendarOpen, setCalendarOpen, changeViewDate, setCalendarMonth, calendarMonth, calendarData, calendarLoading, isToday, viewWeight, isTraining, totalWater, waterExpanded, setWaterExpanded, editWaterGoal, setEditWaterGoal, waterGoalInput, setWaterGoalInput, setWaterGoal, addWater, waterCustomPreset, configureWaterCustomPreset, waterInput, setWaterInput, waterIntake, removeWater, suppLog, removeSuppLog, entryMenuId, editEntryId, editEntryQty, setEditEntryQty, saveEntryEdit, setEditEntryId, openAddForMeal, setEntryMenuId, detailFood, setDetailFood, startEditEntry, duplicateEntry, removeEntry, notesOpen, setNotesOpen, todayNote, historyNote, setTodayNote, setHistoryNote, suppPantry, showSuppAdd, setShowSuppAdd, suppAddId, setSuppAddId, suppAddDose, setSuppAddDose, logSupp, feedbackLoading, feedbackPeriod, generateFeedback, feedbackText, feedbackSaved, saveFeedbackAsNote, setTab, opaqueTrailingNode } = props;
+      const { section, tab, lang, isMobileView, darkMode, text, uiText, tickerPhase, tickerDirection, safeTickerIndex, activeTickerSlide, tickerTimerReset, handleTickerPointerDown, handleTickerPointerMove, finishTickerPointer, tickerToneColor, tickerDragOffset, tickerSlides, setTickerTimerReset, moveTicker, greetingText, greetingLine, tot, goals, remainProtein, remainKcal, allEntries, dayProteinPct, dayKcalPct, openMealSuggestions, gaRunning, suggestLoading, showGA, setShowGA, gaTolerance, setGATolerance, gaTargetMeal, setGATargetMeal, MEALS, mealLabel, gaUseAll, setGAUseAll, runGASafely, gaProgress, gaResults, gaHasSearched, expandMicros, setExpandMicros, dailyMicros, hasMicros, getAutomaticMealSuggestionLimits, gaKcalMin, setGAKcalMin, gaProtMin, setGAProtMin, gaKcalMax, setGAKcalMax, gaProtMax, setGAProtMax, gaFoodSearch, setGAFoodSearch, pantry, gaSelIds, setGASelIds, gaAdvancedOpen, setGAAdvancedOpen, gaGlobalMax, setGAGlobalMax, gaUseProtTol, setGAUseProtTol, gaProtTolerance, setGAProtTolerance, activeLog, evaluateMealItems, mealScoreBrief, mealScoreEvaluationText, mealScoreLabel, addGAResultToDiary, TODAY, diaryStatus, dateLabel, viewDate, calendarOpen, setCalendarOpen, changeViewDate, setCalendarMonth, calendarMonth, calendarData, calendarLoading, isToday, viewWeight, isTraining, totalWater, waterExpanded, setWaterExpanded, editWaterGoal, setEditWaterGoal, waterGoalInput, setWaterGoalInput, setWaterGoal, addWater, waterCustomPreset, configureWaterCustomPreset, waterInput, setWaterInput, waterIntake, removeWater, suppLog, removeSuppLog, entryMenuId, editEntryId, editEntryQty, setEditEntryQty, saveEntryEdit, setEditEntryId, openAddForMeal, setEntryMenuId, detailFood, setDetailFood, diaryMealEvaluationDetail, setDiaryMealEvaluationDetail, startEditEntry, duplicateEntry, removeEntry, notesOpen, setNotesOpen, todayNote, historyNote, setTodayNote, setHistoryNote, suppPantry, showSuppAdd, setShowSuppAdd, suppAddId, setSuppAddId, suppAddDose, setSuppAddDose, logSupp, feedbackLoading, feedbackPeriod, generateFeedback, feedbackText, feedbackSaved, saveFeedbackAsNote, setTab, opaqueTrailingNode } = props;
       const visibleMealCategories = getVisibleMealCategories(MEALS, activeLog);
+      const scoreBand = score => score >= 4
+        ? uiText("Bem alinhada", "Well aligned", "Bien alineada")
+        : score >= 3
+          ? uiText("Parcialmente alinhada", "Partially aligned", "Parcialmente alineada")
+          : uiText("Pouco alinhada", "Low alignment", "Poco alineada");
+      const confidenceLabel = confidence => ({
+        high: uiText("Alta", "High", "Alta"),
+        medium: uiText("Média", "Medium", "Media"),
+        low: uiText("Baixa", "Low", "Baja")
+      })[confidence] || uiText("Indisponível", "Unavailable", "No disponible");
+      const evaluationColor = score => score >= 4
+        ? "var(--btn-ok-text)"
+        : score >= 3 ? "#c8a96e" : "#c86e8e";
+      function provisionalReasonText(reason) {
+        const nutrient = mealScoreLabel(reason?.nutrient);
+        const missing = Number(reason?.missingItemCount) || 0;
+        const total = Number(reason?.totalItemCount) || 0;
+        const scope = reason?.scope === "consumed"
+          ? uiText("registros anteriores do dia", "earlier entries today", "registros anteriores del día")
+          : uiText("alimentos desta refeição", "foods in this meal", "alimentos de esta comida");
+        return `${nutrient}: ${uiText("faltam dados em", "data is missing for", "faltan datos en")} ${missing} ${uiText("de", "of", "de")} ${total} ${scope}.`;
+      }
+      function renderMealEvaluationDetail() {
+        if (!diaryMealEvaluationDetail?.snapshot) return null;
+        const detail = diaryMealEvaluationDetail;
+        const snapshot = detail.snapshot;
+        const coverage = Number.isFinite(snapshot.coverage) ? Math.round(snapshot.coverage * 100) : 0;
+        const components = Object.values(snapshot.components || {}).filter(component => component?.available);
+        const reasons = Array.isArray(snapshot.provisionalReasons) ? snapshot.provisionalReasons : [];
+        const scoreColor = evaluationColor(snapshot.score);
+        return React.createElement("div", {
+          "data-diary-meal-evaluation-modal": "true",
+          "data-safe-area-dialog": "16",
+          role: "dialog",
+          "aria-modal": "true",
+          "aria-label": uiText("Avaliação salva da refeição", "Saved meal assessment", "Evaluación guardada de la comida"),
+          onClick: () => setDiaryMealEvaluationDetail(null),
+          style: {
+            position: "fixed", inset: 0, zIndex: 10020, background: "rgba(0,0,0,0.72)",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16
+          }
+        }, React.createElement("div", {
+          onClick: event => event.stopPropagation(),
+          style: {
+            width: "100%", maxWidth: 620, maxHeight: "90vh", overflowY: "auto",
+            background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
+            padding: isMobileView ? 14 : 20, boxShadow: "0 18px 60px rgba(0,0,0,0.4)"
+          }
+        },
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 14 } },
+          React.createElement("div", null,
+            React.createElement("div", { style: { fontSize: 14, textTransform: "uppercase", letterSpacing: 1.2, color: "var(--muted)" } }, uiText("Avaliação salva", "Saved assessment", "Evaluación guardada")),
+            React.createElement("div", { style: { fontSize: 12, color: "var(--dim)", marginTop: 4 } }, mealLabel(detail.meal), " · ", detail.entryIds.length, " ", uiText(detail.entryIds.length === 1 ? "alimento" : "alimentos", detail.entryIds.length === 1 ? "food" : "foods", detail.entryIds.length === 1 ? "alimento" : "alimentos"))
+          ),
+          React.createElement("button", { type: "button", onClick: () => setDiaryMealEvaluationDetail(null), "aria-label": uiText("Fechar", "Close", "Cerrar"), style: { background: "none", border: "none", color: "var(--muted)", fontSize: 22, cursor: "pointer" } }, "×")
+        ),
+        React.createElement("div", { style: { display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "150px 1fr", gap: 12, marginBottom: 12 } },
+          React.createElement("div", { style: { background: "var(--bg)", border: "1px solid var(--border3)", borderRadius: 10, padding: 14, textAlign: "center" } },
+            React.createElement("div", { style: { fontSize: 34, fontWeight: 800, color: scoreColor } }, snapshot.score.toFixed(2)),
+            React.createElement("div", { style: { fontSize: 12, color: "var(--muted)" } }, uiText("de 5,00", "out of 5.00", "de 5,00")),
+            React.createElement("div", { style: { fontSize: 12, color: scoreColor, fontWeight: 700, marginTop: 5 } }, scoreBand(snapshot.score))
+          ),
+          React.createElement("div", { style: { background: "var(--bg)", border: "1px solid var(--border3)", borderRadius: 10, padding: 12, fontSize: 13, lineHeight: 1.55, color: "var(--text3)" } },
+            React.createElement("div", null, React.createElement("b", null, uiText("Confiança dos dados: ", "Data confidence: ", "Confianza de los datos: ")), confidenceLabel(snapshot.confidence)),
+            React.createElement("div", { style: { marginTop: 5 } }, React.createElement("b", null, uiText("Cobertura: ", "Coverage: ", "Cobertura: ")), coverage, "%"),
+            React.createElement("div", { style: { marginTop: 5, color: "var(--dim)" } }, uiText("Esta é a avaliação aceita no momento do registro; ela não é recalculada automaticamente.", "This is the assessment accepted when the meal was logged; it is not recalculated automatically.", "Esta es la evaluación aceptada al registrar la comida; no se recalcula automáticamente."))
+          )
+        ),
+        snapshot.provisional && React.createElement("div", { style: { background: "var(--btn-warn)", border: "1px solid var(--btn-warn-border)", borderRadius: 8, padding: "9px 10px", marginBottom: 12, color: "var(--btn-warn-text)", fontSize: 12, lineHeight: 1.5 } },
+          React.createElement("b", null, uiText("Nota provisória", "Provisional score", "Nota provisional")),
+          reasons.map((reason, index) => React.createElement("div", { key: `${reason.nutrient || "unknown"}-${reason.scope || "unknown"}-${index}`, style: { marginTop: 3 } }, provisionalReasonText(reason)))
+        ),
+        React.createElement("div", { style: { display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 } }, components.map(component => React.createElement("div", { key: component.key, style: { background: "var(--surface3)", border: "1px solid var(--border3)", borderRadius: 8, padding: "9px 10px" } },
+          React.createElement("div", { style: { fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.8 } }, mealScoreLabel(component.key)),
+          React.createElement("div", { style: { fontSize: 18, fontWeight: 750, color: evaluationColor(component.score), marginTop: 3 } }, (component.score * 5).toFixed(2), " / 5")
+        ))),
+        React.createElement("button", { type: "button", onClick: () => setDiaryMealEvaluationDetail(null), style: { ...btn, marginTop: 14 } }, uiText("Fechar", "Close", "Cerrar"))
+        ));
+      }
       const supplementResultCountLabel = count => uiText(
         `${count} ${count === 1 ? "resultado" : "resultados"}`,
         `${count} ${count === 1 ? "result" : "results"}`,
@@ -1558,6 +1638,7 @@
     }
   }, "+ ", uiText("Adicionar", "Add", "Agregar"))), visibleMealCategories.map(meal => {
     const entries = activeLog[meal] || [];
+    const evaluationGroups = collectValidMealEvaluationGroups(entries);
     const mp = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
     const mk = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
     const mealHasOpenMenu = entries.some(e => e.id === entryMenuId);
@@ -1628,7 +1709,31 @@
         color: caloriesColor,
         fontWeight: 700
       }
-    }, Math.round(mk), " kcal"))), /*#__PURE__*/React.createElement("div", {
+    }, Math.round(mk), " kcal"))), evaluationGroups.length > 0 && /*#__PURE__*/React.createElement("div", {
+      "data-diary-meal-evaluations": "true",
+      style: {
+        display: "flex",
+        gap: 7,
+        flexWrap: "wrap",
+        padding: "9px 0 2px"
+      }
+    }, evaluationGroups.map(group => /*#__PURE__*/React.createElement("button", {
+      key: group.evaluationId,
+      type: "button",
+      "data-meal-evaluation-badge": group.evaluationId,
+      onClick: () => setDiaryMealEvaluationDetail({ ...group, meal }),
+      style: {
+        background: "var(--ai-bg)",
+        border: "1px solid var(--ai-border)",
+        color: "var(--ai-text)",
+        borderRadius: 999,
+        padding: "6px 10px",
+        fontSize: 12,
+        fontWeight: 700,
+        fontFamily: "inherit",
+        cursor: "pointer"
+      }
+    }, "★ ", group.snapshot.score.toFixed(2), "/5 · ", scoreBand(group.snapshot.score)))), /*#__PURE__*/React.createElement("div", {
       "data-diary-meal-items": "true",
       style: {
         display: "block",
@@ -1941,7 +2046,7 @@
     }
   }, text('savedNote'))),
 
-  opaqueTrailingNode));
+  opaqueTrailingNode, renderMealEvaluationDetail()));
       return null;
     }
 

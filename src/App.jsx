@@ -586,6 +586,7 @@ const {
   GaResultCard,
   ChoiceField,
   SearchableChoiceField,
+  collectValidMealEvaluationGroups: MealScore.collectValidMealEvaluationGroups,
 });
 
 const {
