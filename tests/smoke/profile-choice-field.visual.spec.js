@@ -112,11 +112,13 @@ for (const theme of ['light', 'dark']) {
     await expect(page.getByRole('option').filter({ hasText: /Moderadamente ativo/i })).toBeVisible();
     const styles = await page.evaluate(() => {
       const formStyle = getComputedStyle(document.querySelector('[data-required-profile-form="true"]'));
+      const activityTriggerStyle = getComputedStyle(document.querySelector('#required-profile-activity-trigger'));
       const sheetStyle = getComputedStyle(document.querySelector('[data-choice-field-sheet="true"]'));
       return {
         formBackground: formStyle.backgroundColor,
         formColor: formStyle.color,
         formRadius: formStyle.borderRadius,
+        activityTriggerRadius: activityTriggerStyle.borderRadius,
         sheetBackground: sheetStyle.backgroundColor,
         sheetColor: sheetStyle.color,
         sheetBackdrop: sheetStyle.backdropFilter || sheetStyle.webkitBackdropFilter,
@@ -125,6 +127,7 @@ for (const theme of ['light', 'dark']) {
     });
 
     expect(styles.formRadius).toBe(styles.viewportWidth >= 1024 ? '16px' : '22px');
+    expect(styles.activityTriggerRadius).toBe('14px');
     expect(styles.formBackground).not.toBe('rgba(0, 0, 0, 0)');
     expect(styles.sheetBackground).not.toBe('rgba(0, 0, 0, 0)');
     expect(styles.sheetBackdrop).not.toBe('none');

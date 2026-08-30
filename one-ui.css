@@ -192,7 +192,7 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   font-size: 14px;
 }
 
-[data-choice-field-trigger="true"] {
+[data-choice-field="true"] [data-choice-field-trigger="true"] {
   display: flex !important;
   align-items: center;
   justify-content: space-between;
