@@ -84,6 +84,95 @@ contractTest("reads v1.1 and v2 snapshots without upgrading historical scores", 
   assert.equal(MealScore.inspectMealScoreSnapshot({algorithmVersion: "meal-score-v2", score: "4"}), null);
 });
 
+contractTest("collects only complete and identical accepted evaluation groups", (MealScore) => {
+  const current = {algorithmVersion: "meal-score-v2", score: 4.1, coverage: 0.9};
+  const historical = {algorithmVersion: "meal-score-v1.1", score: 3.2};
+  const entries = [
+    {id: "a", mealEvaluationId: "current", mealScoreSnapshot: current},
+    {id: "b", mealEvaluationId: "current", mealScoreSnapshot: {coverage: 0.9, score: 4.1, algorithmVersion: "meal-score-v2"}},
+    {id: "c", mealEvaluationId: "historical", mealScoreSnapshot: historical},
+    {id: "d", mealEvaluationId: "incomplete", mealScoreSnapshot: current},
+    {id: "e", mealEvaluationId: "incomplete"},
+    {id: "f", mealEvaluationId: "mixed", mealScoreSnapshot: current},
+    {id: "g", mealEvaluationId: "mixed", mealScoreSnapshot: {...current, score: 2}},
+    {id: "h", mealEvaluationId: "unsupported", mealScoreSnapshot: {algorithmVersion: "unknown", score: 4}},
+    {id: "i", mealEvaluationId: "  ", mealScoreSnapshot: current}
+  ];
+
+  const groups = MealScore.collectValidMealEvaluationGroups(entries);
+  assert.deepEqual(groups.map(group => ({
+    evaluationId: group.evaluationId,
+    entryIds: group.entryIds,
+    compatibility: group.compatibility
+  })), [
+    {evaluationId: "current", entryIds: ["a", "b"], compatibility: "current"},
+    {evaluationId: "historical", entryIds: ["c"], compatibility: "historical"}
+  ]);
+  groups[0].snapshot.score = 0;
+  assert.equal(current.score, 4.1);
+  assert.deepEqual(
+    MealScore.collectValidMealEvaluationGroups([...entries, {id: "new-unreviewed"}])
+      .map(group => group.evaluationId),
+    ["current", "historical"]
+  );
+});
+
+contractTest("invalidates an edited or removed entry's whole group without mutating input", (MealScore) => {
+  const snapshot = {algorithmVersion: "meal-score-v2", score: 4};
+  const entries = [
+    {id: "a", name: "Rice", mealEvaluationId: "review-1", mealScoreSnapshot: snapshot},
+    {id: "b", name: "Beans", mealEvaluationId: "review-1", mealScoreSnapshot: snapshot},
+    {id: "c", name: "Salad", mealEvaluationId: "review-2", mealScoreSnapshot: snapshot},
+    {id: "d", name: "Water"}
+  ];
+
+  const invalidated = MealScore.invalidateMealEvaluationForEntry(entries, "a");
+  assert.deepEqual(invalidated.map(entry => ({
+    id: entry.id,
+    evaluationId: entry.mealEvaluationId,
+    hasSnapshot: Object.hasOwn(entry, "mealScoreSnapshot")
+  })), [
+    {id: "a", evaluationId: undefined, hasSnapshot: false},
+    {id: "b", evaluationId: undefined, hasSnapshot: false},
+    {id: "c", evaluationId: "review-2", hasSnapshot: true},
+    {id: "d", evaluationId: undefined, hasSnapshot: false}
+  ]);
+  assert.equal(entries[0].mealEvaluationId, "review-1");
+  assert.equal(invalidated[2], entries[2]);
+  assert.equal(invalidated[3], entries[3]);
+});
+
+contractTest("invalidates malformed persisted groups conservatively", (MealScore) => {
+  const entries = [
+    {id: "a", mealEvaluationId: "broken", mealScoreSnapshot: {algorithmVersion: "unknown", score: 4}},
+    {id: "b", mealEvaluationId: "broken"},
+    {id: "c", name: "Unrelated"}
+  ];
+
+  assert.deepEqual(MealScore.collectValidMealEvaluationGroups(entries), []);
+  const invalidated = MealScore.invalidateMealEvaluationForEntry(entries, "a");
+  assert.deepEqual(invalidated, [
+    {id: "a"},
+    {id: "b"},
+    {id: "c", name: "Unrelated"}
+  ]);
+  assert.equal(invalidated[2], entries[2]);
+});
+
+contractTest("strips only the duplicate's evaluation metadata", (MealScore) => {
+  const original = {
+    id: "original",
+    name: "Rice",
+    mealEvaluationId: "review-1",
+    mealScoreSnapshot: {algorithmVersion: "meal-score-v2", score: 4}
+  };
+  const duplicate = MealScore.stripMealEvaluationMetadata({...original, id: "copy"});
+
+  assert.deepEqual(duplicate, {id: "copy", name: "Rice"});
+  assert.equal(original.mealEvaluationId, "review-1");
+  assert.ok(original.mealScoreSnapshot);
+});
+
 contractTest("excludes incomplete optional nutrients with exact provisional reasons", (MealScore) => {
   const result = MealScore.calculateMealScore({
     goals: { protein: 150, kcal: 2000, fiber: 30, salt: 5 },

@@ -540,6 +540,29 @@ contractTest("assigns stable daily-entry IDs and routes list changes through ide
   assert.match(source, /setActiveLog\(previous => window\.DailyEntryModel\.applyMealLogMutation/);
 });
 
+contractTest("invalidates accepted score snapshots conservatively when diary entries change", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+
+  const editStart = source.indexOf("function saveEntryEdit");
+  const editEnd = source.indexOf("function openAddForMeal", editStart);
+  const removeStart = source.indexOf("function removeEntry");
+  const removeEnd = source.indexOf("function duplicateEntry", removeStart);
+  const duplicateStart = removeEnd;
+  const duplicateEnd = source.indexOf("// Templates", duplicateStart);
+  const editBlock = source.slice(editStart, editEnd);
+  const removeBlock = source.slice(removeStart, removeEnd);
+  const duplicateBlock = source.slice(duplicateStart, duplicateEnd);
+
+  assert.match(editBlock, /invalidateMealEvaluationForEntry\(\s*previous\[meal\],\s*editEntryId\s*\)/);
+  assert.ok(editBlock.indexOf("invalidateMealEvaluationForEntry") < editBlock.indexOf('type: "update"'));
+  assert.match(removeBlock, /invalidateMealEvaluationForEntry\(\s*previous\[meal\],\s*id\s*\)/);
+  assert.ok(removeBlock.indexOf("invalidateMealEvaluationForEntry") < removeBlock.indexOf('type: "remove"'));
+  assert.match(duplicateBlock, /stripMealEvaluationMetadata\(\{/);
+  assert.doesNotMatch(duplicateBlock, /mealEvaluationId\s*:/);
+  assert.doesNotMatch(duplicateBlock, /mealScoreSnapshot\s*:/);
+});
+
 contractTest("restores the captured tab, date, and scroll only after successful registration", createNutritionTrackerController => {
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
