@@ -15,6 +15,7 @@ import * as BackupModalModule from './components/backup-modal.js';
 import * as BodyMetricsCharts from './components/body-metrics-charts.js';
 import * as ChoiceFieldModule from './components/choice-field.js';
 import * as SearchableChoiceFieldModule from './components/searchable-choice-field.js';
+import * as TemporalFieldModule from './components/temporal-field.js';
 import * as DiaryScreenModule from './components/diary-screen.js';
 import * as GaResultCardModule from './components/ga-result-card.js';
 import * as ImageMealScreenModule from './components/image-meal-screen.js';
@@ -239,6 +240,10 @@ const {
 const {
   SearchableChoiceField,
 } = SearchableChoiceFieldModule.createSearchableChoiceField({ React });
+
+const {
+  TemporalField,
+} = TemporalFieldModule.createTemporalField({ React });
 
 const { MealEstimateEditor } = MealEstimateEditorModule.createMealEstimateEditor({
   React,
@@ -550,7 +555,7 @@ const {
 
 const {
   AddScreen,
-} = AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField });
+} = AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField });
 
 const {
   MetricsScreen,
