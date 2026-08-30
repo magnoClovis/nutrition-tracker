@@ -426,7 +426,7 @@ test.describe('authenticated critical data flows', () => {
         await expect(modal.getByText(copy.heading, { exact: true })).toBeVisible();
         await expect(modal.getByText(copy.confidence)).toBeVisible();
         await expect(modal.getByText(copy.ranges)).toBeVisible();
-        await modal.getByRole('button', { name: copy.help, exact: true }).click();
+        await modal.getByRole('button', { name: copy.help }).click();
         await expect(modal.getByText(copy.disclaimer)).toBeVisible();
       }
 
