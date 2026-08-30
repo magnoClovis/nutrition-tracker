@@ -825,11 +825,11 @@ momento do registro.
 Severidade: ALTO — todas as funcionalidades de IA ficam indisponíveis ao mesmo
 tempo para usuários atingidos, embora o diário e o motor local de pontuação
 continuem operacionais e não haja perda de dados observada.
-Resolução necessária: adicionar timeout/cancelamento comum aos clientes de IA,
-encerrar sempre o loading e apresentar erro de transporte acionável; medir a
-incidência por rede e navegador; avaliar uma rota/domínio próprio estável para o
-Worker antes do lançamento público, evitando dependência exclusiva do hostname
-compartilhado `workers.dev`.
+Tratamento aprovado: manter como incidente conhecido, sem tentativa de correção
+de código agora. A mitigação futura registrada como P07 é publicar o Worker em
+domínio próprio quando ele for adquirido, eliminando a dependência exclusiva da
+reputação compartilhada do hostname `workers.dev`; medir a incidência por rede e
+navegador até essa migração.
 Risco de corrigir: timeouts curtos demais podem abortar análises de imagem
 válidas; trocar o hostname exige novo deploy, atualização coordenada da
 allowlist/CSP e validação Android/Web sem expor segredos.
