@@ -660,6 +660,9 @@ contractTest("wires the image flow into Add navigation without changing its pers
 
   assert.ok(openStart >= 0);
   assert.match(openBlock, /imageMealFeature\.createFlow/);
+  assert.match(openBlock, /onReview: estimate =>/);
+  assert.match(openBlock, /imageMealFeature\.buildRegistration/);
+  assert.match(openBlock, /openMealReview\(registration\.meal, registration\.items, "image"/);
   assert.match(openBlock, /saveImageMealRegistration/);
   assert.match(openBlock, /resolveMealRegistrationTime/);
   assert.match(openBlock, /setImageMealOpen\(true\)/);
@@ -667,6 +670,7 @@ contractTest("wires the image flow into Add navigation without changing its pers
   assert.match(source, /mode === "image"/);
   assert.match(source, /data-image-meal-registration-options/);
   assert.match(source, /imageMealFeature\.ImageMealScreen/);
+  assert.match(source, /onReview: \(\) => imageMealFlowRef\.current\?\.review\(\)/);
 });
 
 test("ESM exports the exact UMD controller factory reference", async () => {

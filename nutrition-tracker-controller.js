@@ -2055,6 +2055,18 @@
         }
         if (!imageMealFlowRef.current) {
           const flow = imageMealFeature.createFlow({
+            onReview: estimate => {
+              const selection = imageMealRegistrationRef.current;
+              const registrationTime = resolveMealRegistrationTime(selection.mealTimeControl);
+              const registration = imageMealFeature.buildRegistration({
+                estimate,
+                meal: selection.meal,
+                time: registrationTime
+              });
+              return openMealReview(registration.meal, registration.items, "image", {
+                registrationTime
+              });
+            },
             onConfirm: estimate => {
               const selection = imageMealRegistrationRef.current;
               return saveImageMealRegistration({
@@ -5031,6 +5043,7 @@
             onCancelProcessing: () => imageMealFlowRef.current?.cancelProcessing(),
             onDiscard: () => imageMealFlowRef.current?.discard(),
             onEstimateChange: estimate => imageMealFlowRef.current?.updateEstimate(estimate),
+            onReview: () => imageMealFlowRef.current?.review(),
             onConfirm: () => imageMealFlowRef.current?.confirm()
           }))
         : null;

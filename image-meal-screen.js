@@ -35,6 +35,7 @@
       onCancelProcessing,
       onDiscard,
       onEstimateChange,
+      onReview,
       onConfirm
     }) {
       if (!state) return null;
@@ -197,6 +198,7 @@
               onConfirm,
               true
             ),
+            action(text("Avaliar refeição", "Evaluate meal", "Evaluar comida"), onReview, false),
             action(text("Analisar novamente", "Analyze again", "Analizar de nuevo"), onProcess, false),
             action(text("Descartar foto", "Discard photo", "Descartar foto"), onDiscard, false)));
       } else if (phase === "not-identifiable") {
