@@ -244,6 +244,7 @@ const {
 const {
   TemporalField,
   DateField,
+  NumericField,
 } = TemporalFieldModule.createTemporalField({ React });
 
 const { MealEstimateEditor } = MealEstimateEditorModule.createMealEstimateEditor({
@@ -558,7 +559,7 @@ const {
 
 const {
   AddScreen,
-} = AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField });
+} = AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField });
 
 const {
   MetricsScreen,

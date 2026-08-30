@@ -184,8 +184,8 @@ function contractTest(name, callback) {
     test(`${format}: ${name}`, async () => {
       const { createAddScreen, createChoiceField, createTemporalField } = await load();
       const { ChoiceField } = createChoiceField({ React });
-      const { TemporalField } = createTemporalField({ React });
-      const { AddScreen } = createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField });
+      const { TemporalField, NumericField } = createTemporalField({ React });
+      const { AddScreen } = createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField });
       return callback(AddScreen);
     });
   });
@@ -425,6 +425,31 @@ contractTest("keeps meal time collapsed until requested and uses TemporalField w
   assert.equal(findNodes(expandedControl, node => node.type === "input").length, 0);
   temporalField.props.onChange("18:45");
   assert.equal(selected, "18:45");
+});
+
+contractTest("uses the reusable NumericField for the primary food quantity", AddScreen => {
+  let quantityUpdater = null;
+  const view = AddScreen(baseProps({
+    setAddEntry: updater => { quantityUpdater = updater; }
+  }));
+  const quantityField = findNodes(
+    view,
+    node => typeof node.type === "function" && node.props?.id === "meal-food-quantity"
+  )[0];
+
+  assert.ok(quantityField);
+  assert.equal(quantityField.props.label, "Quantity");
+  assert.equal(quantityField.props.value, "100");
+  assert.equal(quantityField.props.unit, "g");
+  assert.equal(quantityField.props.minValue, 0.01);
+  assert.equal(quantityField.props.maxDecimals, 2);
+  assert.equal(findNodes(view, node => node.type === "input" && node.props?.type === "number").length, 0);
+
+  quantityField.props.onChange("125.5");
+  assert.deepEqual(quantityUpdater({ foodId: "food-1", qty: "100" }), {
+    foodId: "food-1",
+    qty: "125.5"
+  });
 });
 
 contractTest("recent meals and header remain controlled sections", AddScreen => {

@@ -244,7 +244,8 @@ const {
 
 const {
   TemporalField,
-  DateField
+  DateField,
+  NumericField
 } = window.TemporalFieldModule.createTemporalField({ React });
 
 const {
@@ -370,7 +371,7 @@ const {
 
 const {
   AddScreen
-} = window.AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField });
+} = window.AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField });
 
 const {
   MetricsScreen
