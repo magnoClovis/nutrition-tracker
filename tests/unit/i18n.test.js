@@ -119,3 +119,14 @@ contractTest("keeps locale and tutorial tab normalization behavior stable", ({
   assert.equal(normalizeTabKey("Métricas"), "metricas");
   assert.equal(normalizeTabKey("unknown"), "unknown");
 });
+
+contractTest("labels the five-gram goal as salt rather than sodium in every language", ({
+  STRINGS
+}) => {
+  assert.equal(STRINGS.pt.salt, "Sal");
+  assert.equal(STRINGS.pt.goalSalt, "Sal (g)");
+  assert.equal(STRINGS.en.salt, "Salt");
+  assert.equal(STRINGS.en.goalSalt, "Salt (g)");
+  assert.equal(STRINGS.es.salt, "Sal");
+  assert.equal(STRINGS.es.goalSalt, "Sal (g)");
+});

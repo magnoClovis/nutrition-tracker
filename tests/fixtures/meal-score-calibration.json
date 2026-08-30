@@ -1,0 +1,140 @@
+{
+  "contractVersion": "c20-calibration-v1",
+  "productionBaselineVersion": "meal-score-v1.1",
+  "requiredNutrients": ["kcal", "protein"],
+  "optionalNutrients": ["carbs", "fat", "fiber", "salt"],
+  "cases": [
+    {
+      "id": "balanced-complete-midday",
+      "purpose": "Complete contextual meal near the remaining targets",
+      "mealOccurredAt": "2026-07-13T13:00:00-03:00",
+      "evaluatedAt": "2026-07-13T13:05:00-03:00",
+      "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
+      "consumedEntries": [{"kcal": 650, "protein": 45, "carbs": 75, "fat": 22, "fiber": 9, "salt": 1.2}],
+      "candidateEntries": [{"kcal": 520, "protein": 38, "carbs": 62, "fat": 17, "fiber": 8, "salt": 1.1}],
+      "expected": {"valid": true, "provisionalReasons": []}
+    },
+    {
+      "id": "calorie-excess-complete",
+      "purpose": "Additional calories worsen an existing energy excess",
+      "mealOccurredAt": "2026-07-13T20:00:00-03:00",
+      "evaluatedAt": "2026-07-13T20:05:00-03:00",
+      "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
+      "consumedEntries": [{"kcal": 1950, "protein": 130, "carbs": 220, "fat": 68, "fiber": 24, "salt": 4.2}],
+      "candidateEntries": [{"kcal": 700, "protein": 35, "carbs": 90, "fat": 25, "fiber": 5, "salt": 0.7}],
+      "expected": {"valid": true, "provisionalReasons": []}
+    },
+    {
+      "id": "salt-excess-complete",
+      "purpose": "Additional salt worsens an existing salt excess",
+      "mealOccurredAt": "2026-07-13T19:00:00-03:00",
+      "evaluatedAt": "2026-07-13T19:10:00-03:00",
+      "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
+      "consumedEntries": [{"kcal": 1200, "protein": 90, "carbs": 145, "fat": 42, "fiber": 18, "salt": 5.1}],
+      "candidateEntries": [{"kcal": 380, "protein": 24, "carbs": 42, "fat": 12, "fiber": 5, "salt": 2.4}],
+      "expected": {"valid": true, "provisionalReasons": []}
+    },
+    {
+      "id": "candidate-optional-gaps",
+      "purpose": "Exact provisional reasons for candidate foods with missing optional data",
+      "mealOccurredAt": "2026-07-13T13:00:00-03:00",
+      "evaluatedAt": "2026-07-13T13:05:00-03:00",
+      "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
+      "consumedEntries": [{"kcal": 650, "protein": 45, "carbs": 75, "fat": 22, "fiber": 9, "salt": 1.2}],
+      "candidateEntries": [
+        {"kcal": 320, "protein": 25, "carbs": 38, "fat": 11, "fiber": 6, "salt": 0.8},
+        {"kcal": 180, "protein": 12, "carbs": 20, "fat": 6, "fiber": null, "salt": null}
+      ],
+      "expected": {
+        "valid": true,
+        "provisionalReasons": [
+          {"nutrient": "fiber", "scope": "candidate", "missingItemCount": 1, "totalItemCount": 2},
+          {"nutrient": "salt", "scope": "candidate", "missingItemCount": 1, "totalItemCount": 2}
+        ]
+      }
+    },
+    {
+      "id": "history-optional-gaps",
+      "purpose": "Exact provisional reasons for historical foods with missing optional data",
+      "mealOccurredAt": "2026-07-13T19:00:00-03:00",
+      "evaluatedAt": "2026-07-13T19:05:00-03:00",
+      "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
+      "consumedEntries": [
+        {"kcal": 600, "protein": 42, "carbs": 70, "fat": 20, "fiber": 8, "salt": 1.1},
+        {"kcal": 400, "protein": 28, "carbs": 50, "fat": 14, "fiber": null, "salt": null}
+      ],
+      "candidateEntries": [{"kcal": 450, "protein": 35, "carbs": 48, "fat": 16, "fiber": 7, "salt": 1}],
+      "expected": {
+        "valid": true,
+        "provisionalReasons": [
+          {"nutrient": "fiber", "scope": "consumed", "missingItemCount": 1, "totalItemCount": 2},
+          {"nutrient": "salt", "scope": "consumed", "missingItemCount": 1, "totalItemCount": 2}
+        ]
+      }
+    },
+    {
+      "id": "candidate-macro-gaps",
+      "purpose": "Carbohydrate and fat gaps receive the same specific provisional treatment",
+      "mealOccurredAt": "2026-07-13T13:00:00-03:00",
+      "evaluatedAt": "2026-07-13T13:05:00-03:00",
+      "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
+      "consumedEntries": [{"kcal": 650, "protein": 45, "carbs": 75, "fat": 22, "fiber": 9, "salt": 1.2}],
+      "candidateEntries": [
+        {"kcal": 320, "protein": 25, "carbs": 38, "fat": 11, "fiber": 6, "salt": 0.8},
+        {"kcal": 180, "protein": 12, "carbs": null, "fat": null, "fiber": 3, "salt": 0.3}
+      ],
+      "expected": {
+        "valid": true,
+        "provisionalReasons": [
+          {"nutrient": "carbs", "scope": "candidate", "missingItemCount": 1, "totalItemCount": 2},
+          {"nutrient": "fat", "scope": "candidate", "missingItemCount": 1, "totalItemCount": 2}
+        ]
+      }
+    },
+    {
+      "id": "missing-required-protein",
+      "purpose": "A missing required nutrient invalidates the numerical assessment",
+      "mealOccurredAt": "2026-07-13T13:00:00-03:00",
+      "evaluatedAt": "2026-07-13T13:05:00-03:00",
+      "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
+      "consumedEntries": [],
+      "candidateEntries": [{"kcal": 420, "protein": null, "carbs": 50, "fat": 14, "fiber": 6, "salt": 0.8}],
+      "expected": {"valid": false, "requiredMissing": ["protein"], "provisionalReasons": []}
+    },
+    {
+      "id": "optional-goals-absent",
+      "purpose": "An absent optional target is excluded without making the score provisional",
+      "mealOccurredAt": "2026-07-13T13:00:00-03:00",
+      "evaluatedAt": "2026-07-13T13:05:00-03:00",
+      "goals": {"kcal": 2000, "protein": 150},
+      "consumedEntries": [{"kcal": 650, "protein": 45}],
+      "candidateEntries": [{"kcal": 500, "protein": 35}],
+      "expected": {"valid": true, "provisionalReasons": []}
+    },
+    {
+      "id": "historical-evaluated-immediately",
+      "purpose": "First evaluation of a meal with an explicit historical occurrence time",
+      "mealOccurredAt": "2026-07-10T12:30:00-03:00",
+      "evaluatedAt": "2026-07-10T12:35:00-03:00",
+      "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
+      "consumedEntries": [{"kcal": 500, "protein": 35, "carbs": 60, "fat": 17, "fiber": 7, "salt": 1}],
+      "candidateEntries": [{"kcal": 550, "protein": 40, "carbs": 65, "fat": 18, "fiber": 8, "salt": 1.1}],
+      "expected": {"valid": true, "provisionalReasons": []}
+    },
+    {
+      "id": "historical-evaluated-later",
+      "purpose": "Re-evaluation must retain the original meal occurrence time",
+      "mealOccurredAt": "2026-07-10T12:30:00-03:00",
+      "evaluatedAt": "2026-07-18T21:45:00+02:00",
+      "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
+      "consumedEntries": [{"kcal": 500, "protein": 35, "carbs": 60, "fat": 17, "fiber": 7, "salt": 1}],
+      "candidateEntries": [{"kcal": 550, "protein": 40, "carbs": 65, "fat": 18, "fiber": 8, "salt": 1.1}],
+      "expected": {"valid": true, "provisionalReasons": []}
+    }
+  ],
+  "relations": [
+    {"type": "score-greater-than", "higher": "balanced-complete-midday", "lower": "calorie-excess-complete"},
+    {"type": "score-greater-than", "higher": "balanced-complete-midday", "lower": "salt-excess-complete"},
+    {"type": "score-equal", "left": "historical-evaluated-immediately", "right": "historical-evaluated-later", "reason": "same mealOccurredAt and nutrition context"}
+  ]
+}
