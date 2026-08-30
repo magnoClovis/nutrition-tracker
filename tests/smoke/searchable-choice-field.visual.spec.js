@@ -104,8 +104,10 @@ test.describe('authenticated SearchableChoiceField visual contract', () => {
 
   async function openDiarySupplement(page, diaryLabel = /Di.rio|Diary/i, registerLabel = /Registrar suplemento|Register supplement/i) {
     await clickByTutorialKeyOrText(page, 'tab-diario', diaryLabel);
-    await page.getByRole('button', { name: registerLabel }).click();
     const trigger = page.locator('#diary-supplement-trigger');
+    if (!await trigger.isVisible().catch(() => false)) {
+      await page.getByRole('button', { name: registerLabel }).click();
+    }
     await expect(trigger).toBeVisible();
     await trigger.click();
     await expect(page.locator('[data-searchable-choice-field-sheet="true"]')).toBeVisible();
@@ -187,7 +189,7 @@ test.describe('authenticated SearchableChoiceField visual contract', () => {
       await expect(sheet).toHaveCount(0);
       await expect(ingredientTrigger).toContainText('Banana-prata');
       await ingredientTrigger.click();
-      await expect(page.locator('[aria-selected="true"] [data-searchable-choice-field-selection] path'))
+      await expect(page.locator('[aria-selected="true"] [data-searchable-choice-field-selection] svg'))
         .toHaveAttribute('stroke-width', '1.45');
       await page.keyboard.press('Escape');
 
@@ -200,7 +202,7 @@ test.describe('authenticated SearchableChoiceField visual contract', () => {
       await supplementSheet.getByRole('option', { name: /Vitamina D3/ }).click();
       await expect(supplementSheet).toHaveCount(0);
       await expect(supplementTrigger).toContainText('Vitamina D3');
-      await expect(supplementTrigger.locator('[data-searchable-choice-field-chevron] path'))
+      await expect(supplementTrigger.locator('[data-searchable-choice-field-chevron] svg'))
         .toHaveAttribute('stroke-width', '1.35');
     }
 
