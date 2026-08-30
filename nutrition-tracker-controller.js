@@ -3099,15 +3099,21 @@
           setEditEntryId(null);
           return;
         }
-        setActiveLog(previous => window.DailyEntryModel.applyMealLogMutation(
-          previous,
-          meal,
-          {
-            type: "update",
-            entryId: editEntryId,
-            update: entry => recalcEntryQuantity(entry, qty)
-          }
-        ));
+        setActiveLog(previous => {
+          const invalidatedEntries = window.MealScore.invalidateMealEvaluationForEntry(
+            previous[meal],
+            editEntryId
+          );
+          return window.DailyEntryModel.applyMealLogMutation(
+            { ...previous, [meal]: invalidatedEntries },
+            meal,
+            {
+              type: "update",
+              entryId: editEntryId,
+              update: entry => recalcEntryQuantity(entry, qty)
+            }
+          );
+        });
         setEditEntryId(null);
         notify(uiText("Quantidade atualizada.", "Amount updated.", "Cantidad actualizada."));
       }
@@ -3209,19 +3215,25 @@
         openMealReview(staged.meal, staged.items, "staged");
       }
       function removeEntry(meal, id) {
-        setActiveLog(previous => window.DailyEntryModel.applyMealLogMutation(
-          previous,
-          meal,
-          {type: "remove", entryId: id}
-        ));
+        setActiveLog(previous => {
+          const invalidatedEntries = window.MealScore.invalidateMealEvaluationForEntry(
+            previous[meal],
+            id
+          );
+          return window.DailyEntryModel.applyMealLogMutation(
+            { ...previous, [meal]: invalidatedEntries },
+            meal,
+            {type: "remove", entryId: id}
+          );
+        });
         setEntryMenuId(null);
       }
       function duplicateEntry(meal, entry) {
-        const copy = {
+        const copy = window.MealScore.stripMealEvaluationMetadata({
           ...entry,
           id: window.DailyEntryModel.createIdempotentEntryId(),
           time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-        };
+        });
         setActiveLog(previous => window.DailyEntryModel.applyMealLogMutation(
           previous,
           meal,

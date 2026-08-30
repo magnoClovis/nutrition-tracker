@@ -18,6 +18,9 @@ const {
   buildMealScoreSnapshot,
   inspectMealScoreSnapshot,
   areMealScoreSnapshotsComparable,
+  collectValidMealEvaluationGroups,
+  stripMealEvaluationMetadata,
+  invalidateMealEvaluationForEntry,
 } = readLegacyNamespace(globalThis, 'MealScore', [
   'ALGORITHM_VERSION',
   'HISTORICAL_ALGORITHM_VERSIONS',
@@ -35,6 +38,9 @@ const {
   'buildMealScoreSnapshot',
   'inspectMealScoreSnapshot',
   'areMealScoreSnapshotsComparable',
+  'collectValidMealEvaluationGroups',
+  'stripMealEvaluationMetadata',
+  'invalidateMealEvaluationForEntry',
 ]);
 
 export {
@@ -54,4 +60,7 @@ export {
   buildMealScoreSnapshot,
   inspectMealScoreSnapshot,
   areMealScoreSnapshotsComparable,
+  collectValidMealEvaluationGroups,
+  stripMealEvaluationMetadata,
+  invalidateMealEvaluationForEntry,
 };

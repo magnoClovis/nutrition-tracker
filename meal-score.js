@@ -388,6 +388,91 @@
     return !!left && !!right && left.algorithmVersion === right.algorithmVersion;
   }
 
+  function snapshotValuesEqual(left, right) {
+    if (Object.is(left, right)) return true;
+    if (!left || !right || typeof left !== "object" || typeof right !== "object") return false;
+    if (Array.isArray(left) || Array.isArray(right)) {
+      return Array.isArray(left) && Array.isArray(right) &&
+        left.length === right.length &&
+        left.every((value, index) => snapshotValuesEqual(value, right[index]));
+    }
+    const leftKeys = Object.keys(left).sort();
+    const rightKeys = Object.keys(right).sort();
+    return leftKeys.length === rightKeys.length &&
+      leftKeys.every((key, index) => key === rightKeys[index] &&
+        snapshotValuesEqual(left[key], right[key]));
+  }
+
+  function normalizedMealEvaluationId(value) {
+    if (typeof value !== "string") return null;
+    const id = value.trim();
+    return id ? id : null;
+  }
+
+  /**
+   * Returns only complete, internally consistent evaluation groups. A group is
+   * hidden when any participating entry lacks a supported snapshot or carries
+   * a different snapshot, so callers can render historical data fail-closed.
+   */
+  function collectValidMealEvaluationGroups(entries) {
+    const groups = new Map();
+    for (const entry of Array.isArray(entries) ? entries : []) {
+      const evaluationId = normalizedMealEvaluationId(entry?.mealEvaluationId);
+      if (!evaluationId) continue;
+      if (!groups.has(evaluationId)) groups.set(evaluationId, []);
+      groups.get(evaluationId).push(entry);
+    }
+
+    const validGroups = [];
+    for (const [evaluationId, groupEntries] of groups) {
+      const inspections = groupEntries.map(entry => inspectMealScoreSnapshot(entry?.mealScoreSnapshot));
+      const first = inspections[0];
+      const valid = !!first && inspections.every(inspection => inspection &&
+        inspection.algorithmVersion === first.algorithmVersion &&
+        snapshotValuesEqual(inspection.snapshot, first.snapshot));
+      if (!valid) continue;
+      validGroups.push({
+        evaluationId,
+        entryIds: groupEntries.map(entry => entry.id),
+        algorithmVersion: first.algorithmVersion,
+        compatibility: first.compatibility,
+        comparableWithCurrent: first.comparableWithCurrent,
+        snapshot: cloneSnapshotValue(first.snapshot)
+      });
+    }
+    return validGroups;
+  }
+
+  /**
+   * Removes persisted evaluation metadata without mutating the source entry.
+   * This is also the required contract for a duplicated diary entry.
+   */
+  function stripMealEvaluationMetadata(entry) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return entry;
+    const copy = { ...entry };
+    delete copy.mealEvaluationId;
+    delete copy.mealScoreSnapshot;
+    return copy;
+  }
+
+  /**
+   * Invalidates the whole accepted evaluation containing one edited or removed
+   * entry. Even malformed groups are stripped conservatively; unrelated groups
+   * and unreviewed entries retain their original object identity.
+   */
+  function invalidateMealEvaluationForEntry(entries, entryId) {
+    const list = Array.isArray(entries) ? entries : [];
+    const target = list.find(entry => entry?.id === entryId);
+    if (!target) return list.slice();
+    const evaluationId = normalizedMealEvaluationId(target.mealEvaluationId);
+    return list.map(entry => {
+      const belongsToGroup = evaluationId
+        ? normalizedMealEvaluationId(entry?.mealEvaluationId) === evaluationId
+        : entry?.id === entryId;
+      return belongsToGroup ? stripMealEvaluationMetadata(entry) : entry;
+    });
+  }
+
   return {
     ALGORITHM_VERSION,
     HISTORICAL_ALGORITHM_VERSIONS,
@@ -404,6 +489,9 @@
     calculateMealScore,
     buildMealScoreSnapshot,
     inspectMealScoreSnapshot,
-    areMealScoreSnapshotsComparable
+    areMealScoreSnapshotsComparable,
+    collectValidMealEvaluationGroups,
+    stripMealEvaluationMetadata,
+    invalidateMealEvaluationForEntry
   };
 });
