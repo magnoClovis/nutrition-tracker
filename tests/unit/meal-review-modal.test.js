@@ -35,6 +35,10 @@ function baseProps(overrides = {}) {
     score: 4.25,
     hoursLeft: 5.4,
     valid: true,
+    coverage: 0.95,
+    confidence: "high",
+    provisional: false,
+    provisionalReasons: [],
     missing: ["salt"],
     components: {
       protein: {
@@ -56,7 +60,7 @@ function baseProps(overrides = {}) {
     getMealLabel: value => value,
     getEvaluationText: () => "Nutrientes avaliados: 1 de 2",
     getBrief: () => "Pontos fortes: Prote\u00edna.",
-    getScoreLabel: key => ({ protein: "Prote\u00edna", salt: "Sal" })[key] || key,
+    getScoreLabel: key => ({ protein: "Prote\u00edna", fiber: "Fibra", salt: "Sal" })[key] || key,
     onClose: () => {},
     onToggleHelp: () => {},
     onReevaluate: () => {},
@@ -81,8 +85,58 @@ contractTest("returns null without a review and renders the current assessment s
   const copy = textContent(modal);
   assert.equal(modal.props["data-theme"], "dark");
   assert.match(copy, /4\.25/);
+  assert.match(copy, /Adequação ao restante do dia/);
+  assert.match(copy, /Bem alinhada/);
+  assert.match(copy, /Confiança dos dados: Alta · 95% de cobertura/);
+  assert.match(copy, /Faixas: 0–2,99 pouco alinhada/);
   assert.match(copy, /N\u00e3o avaliados: Sal\./);
   assert.match(copy, /explica\u00e7\u00e3o por IA est\u00e1 temporariamente indispon\u00edvel/);
+});
+
+contractTest("explains provisional reasons exactly in PT, EN, and ES", MealReviewModal => {
+  const cases = [
+    ["pt", /Nota provisória/, /Fibra: faltam dados em 1 de 2 alimentos desta refeição\./],
+    ["en", /Provisional score/, /Fiber: data is missing for 1 of 2 foods in this meal\./],
+    ["es", /Nota provisional/, /Fibra: faltan datos en 1 de 2 alimentos de esta comida\./]
+  ];
+
+  cases.forEach(([lang, heading, reason]) => {
+    const props = baseProps({
+      lang,
+      getScoreLabel: key => ({
+        pt: { fiber: "Fibra" },
+        en: { fiber: "Fiber" },
+        es: { fiber: "Fibra" }
+      })[lang][key] || key
+    });
+    props.review = {
+      ...props.review,
+      result: {
+        ...props.review.result,
+        score: 3.4,
+        coverage: 0.75,
+        confidence: "medium",
+        provisional: true,
+        provisionalReasons: [{
+          nutrient: "fiber",
+          scope: "candidate",
+          missingItemCount: 1,
+          totalItemCount: 2
+        }]
+      }
+    };
+    const copy = textContent(MealReviewModal(props));
+    assert.match(copy, heading);
+    assert.match(copy, reason);
+  });
+});
+
+contractTest("labels the score as contextual and explicitly non-diagnostic", MealReviewModal => {
+  const modal = MealReviewModal(baseProps({ helpOpen: true, lang: "en" }));
+  const copy = textContent(modal);
+  assert.match(copy, /Fit with the rest of the day/);
+  assert.match(copy, /It does not measure absolute health, make a diagnosis, or replace professional guidance\./);
+  assert.match(copy, /Confidence measures data completeness only: high ≥90%, medium 70–89%, low <70%\./);
 });
 
 contractTest("renders loading/help states and delegates all four actions", MealReviewModal => {

@@ -83,6 +83,30 @@
         salt: food.salt100 == null ? null : Number(food.salt100) * gene
       }));
       const mealQuality = evaluateMealItems(scoreEntries);
+      const mealQualityBand = mealQuality && mealQuality.score >= 4
+        ? uiText("Bem alinhada", "Well aligned", "Bien alineada")
+        : mealQuality && mealQuality.score >= 3
+          ? uiText("Parcialmente alinhada", "Partially aligned", "Parcialmente alineada")
+          : uiText("Pouco alinhada", "Low alignment", "Poco alineada");
+      const mealQualityConfidence = mealQuality ? ({
+        high: uiText("Alta", "High", "Alta"),
+        medium: uiText("Média", "Medium", "Media"),
+        low: uiText("Baixa", "Low", "Baja")
+      }[mealQuality.confidence] || uiText("Indisponível", "Unavailable", "No disponible")) : "";
+      const scoreNutrientLabel = key => ({
+        kcal: uiText("Calorias", "Calories", "Calorías"),
+        protein: uiText("Proteína", "Protein", "Proteína"),
+        carbs: uiText("Carboidratos", "Carbohydrates", "Carbohidratos"),
+        fat: uiText("Gorduras", "Fat", "Grasas"),
+        fiber: uiText("Fibra", "Fiber", "Fibra"),
+        salt: uiText("Sal", "Salt", "Sal")
+      })[key] || key;
+      const provisionalReasonText = reason => {
+        const scope = reason.scope === "consumed"
+          ? uiText("registros anteriores do dia", "earlier entries today", "registros anteriores del día")
+          : uiText("alimentos desta refeição", "foods in this meal", "alimentos de esta comida");
+        return `${scoreNutrientLabel(reason.nutrient)}: ${uiText("faltam dados em", "data is missing for", "faltan datos en")} ${Number(reason.missingItemCount) || 0} ${uiText("de", "of", "de")} ${Number(reason.totalItemCount) || 0} ${scope}.`;
+      };
       const eatenProtein = currentEntries.reduce((sum, entry) => sum + (Number(entry.protein) || 0), 0);
       const eatenKcal = currentEntries.reduce((sum, entry) => sum + (Number(entry.kcal) || 0), 0);
       const proteinGoal = Number(goals.protein) || 0;
@@ -179,11 +203,22 @@
         }
       },
       React.createElement("div", { style: { display: "flex", justifyContent: "flex-start", flexWrap: "wrap", gap: 8, alignItems: "baseline", marginBottom: 4 } },
-        React.createElement("b", { style: { color: "var(--text2)" } }, uiText("Nota da refei\u00e7\u00e3o", "Meal score", "Nota de la comida")),
+        React.createElement("b", { style: { color: "var(--text2)" } }, uiText("Adequação ao restante do dia", "Fit with the rest of the day", "Adecuación al resto del día")),
         React.createElement("span", { style: { fontSize: 17, fontWeight: 800, color: mealQuality.score >= 4 ? "var(--btn-ok-text)" : mealQuality.score >= 3 ? "#c8a96e" : "#c86e8e" } }, mealQuality.score.toFixed(2), "/5")
       ),
+      React.createElement("div", { style: { fontWeight: 700, marginBottom: 3 } }, mealQualityBand),
       React.createElement("div", null, getMealScoreBrief(mealQuality)),
-      React.createElement("div", { style: { color: "var(--dim)", marginTop: 3 } }, getMealScoreEvaluationText(mealQuality))
+      React.createElement("div", { style: { color: "var(--dim)", marginTop: 3 } }, getMealScoreEvaluationText(mealQuality)),
+      React.createElement("div", { style: { color: "var(--dim)", marginTop: 3 } }, uiText("Confiança dos dados: ", "Data confidence: ", "Confianza de los datos: "), mealQualityConfidence, " · ", Math.round((Number(mealQuality.coverage) || 0) * 100), "%"),
+      mealQuality.provisional && React.createElement("div", { "data-ga-score-provisional": "true", style: { color: "var(--btn-warn-text)", marginTop: 5 } },
+        React.createElement("b", null, uiText("Nota provisória. ", "Provisional score. ", "Nota provisional. ")),
+        (mealQuality.provisionalReasons || []).map(provisionalReasonText).join(" ")
+      ),
+      React.createElement("div", { style: { color: "var(--dim)", marginTop: 4 } }, uiText(
+        "Faixas: 0–2,99 pouco alinhada · 3–3,99 parcialmente alinhada · 4–5 bem alinhada.",
+        "Ranges: 0–2.99 low alignment · 3–3.99 partially aligned · 4–5 well aligned.",
+        "Rangos: 0–2,99 poco alineada · 3–3,99 parcialmente alineada · 4–5 bien alineada."
+      ))
       ),
       React.createElement("div", {
         style: { display: "grid", gap: 5, marginBottom: 10 }

@@ -87,6 +87,27 @@
       const result = review.result;
       const availableComponents = Object.values(result.components).filter(component => component.available);
       const scoreColor = result.score >= 4 ? "var(--btn-ok-text)" : result.score >= 3 ? "#c8a96e" : "#c86e8e";
+      const scoreBand = result.score >= 4
+        ? uiText("Bem alinhada", "Well aligned", "Bien alineada")
+        : result.score >= 3
+          ? uiText("Parcialmente alinhada", "Partially aligned", "Parcialmente alineada")
+          : uiText("Pouco alinhada", "Low alignment", "Poco alineada");
+      const confidence = {
+        high: uiText("Alta", "High", "Alta"),
+        medium: uiText("Média", "Medium", "Media"),
+        low: uiText("Baixa", "Low", "Baja")
+      }[result.confidence] || uiText("Indisponível", "Unavailable", "No disponible");
+      const coveragePercent = Number.isFinite(result.coverage) ? Math.round(result.coverage * 100) : 0;
+      const provisionalReasons = Array.isArray(result.provisionalReasons) ? result.provisionalReasons : [];
+      const provisionalReasonText = reason => {
+        const nutrient = getScoreLabel(reason.nutrient);
+        const missing = Number(reason.missingItemCount) || 0;
+        const total = Number(reason.totalItemCount) || 0;
+        const scope = reason.scope === "consumed"
+          ? uiText("registros anteriores do dia", "earlier entries today", "registros anteriores del día")
+          : uiText("alimentos desta refeição", "foods in this meal", "alimentos de esta comida");
+        return `${nutrient}: ${uiText("faltam dados em", "data is missing for", "faltan datos en")} ${missing} ${uiText("de", "of", "de")} ${total} ${scope}.`;
+      };
 
       return React.createElement("div", {
         "data-meal-review-modal": "true",
@@ -108,7 +129,7 @@
       },
       React.createElement("div", { style: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 14 } },
         React.createElement("div", null,
-          React.createElement("div", { style: { fontSize: 14, textTransform: "uppercase", letterSpacing: 1.2, color: "var(--muted)" } }, uiText("Avalia\u00e7\u00e3o da refei\u00e7\u00e3o", "Meal assessment", "Evaluaci\u00f3n de la comida")),
+          React.createElement("div", { style: { fontSize: 14, textTransform: "uppercase", letterSpacing: 1.2, color: "var(--muted)" } }, uiText("Adequação ao restante do dia", "Fit with the rest of the day", "Adecuación al resto del día")),
           React.createElement("div", { style: { fontSize: 12, color: "var(--dim)", marginTop: 4 } }, getMealLabel(review.meal), " \u00b7 ", Math.round(result.hoursLeft * 10) / 10, "h ", uiText("at\u00e9 meia-noite", "until midnight", "hasta medianoche"))
         ),
         React.createElement("button", { onClick: onClose, style: { background: "none", border: "none", color: "var(--muted)", fontSize: 22, cursor: "pointer" } }, "\u00d7")
@@ -117,10 +138,37 @@
         React.createElement("div", { style: { background: "var(--bg)", border: "1px solid var(--border3)", borderRadius: 10, padding: 14, textAlign: "center" } },
           React.createElement("div", { style: { fontSize: 34, fontWeight: 800, color: scoreColor } }, result.score.toFixed(2)),
           React.createElement("div", { style: { fontSize: 12, color: "var(--muted)", marginTop: 3 } }, uiText("de 5,00", "out of 5.00", "de 5,00")),
+          React.createElement("div", { style: { fontSize: 12, color: scoreColor, marginTop: 5, fontWeight: 700 } }, scoreBand),
           React.createElement("div", { style: { fontSize: 11, color: "var(--dim)", marginTop: 8 } }, getEvaluationText(result))
         ),
         React.createElement("div", { style: { background: "var(--bg)", border: "1px solid var(--border3)", borderRadius: 10, padding: 12, color: "var(--text3)", fontSize: 13, lineHeight: 1.5 } }, getBrief(result), result.missing.length ? React.createElement("div", { style: { color: "var(--dim)", marginTop: 7 } }, uiText("N\u00e3o avaliados: ", "Not evaluated: ", "No evaluados: "), result.missing.map(getScoreLabel).join(", "), ".") : null)
       ),
+      React.createElement("div", {
+        style: {
+          background: "var(--surface3)", border: "1px solid var(--border3)", borderRadius: 8,
+          padding: "9px 10px", marginBottom: 10, color: "var(--text3)", fontSize: 12, lineHeight: 1.5
+        }
+      },
+      React.createElement("div", null, React.createElement("b", null, uiText("Confiança dos dados: ", "Data confidence: ", "Confianza de los datos: ")), confidence, " · ", coveragePercent, "% ", uiText("de cobertura", "coverage", "de cobertura")),
+      React.createElement("div", { style: { color: "var(--dim)", marginTop: 3 } }, uiText(
+        "Faixas: 0–2,99 pouco alinhada · 3–3,99 parcialmente alinhada · 4–5 bem alinhada.",
+        "Ranges: 0–2.99 low alignment · 3–3.99 partially aligned · 4–5 well aligned.",
+        "Rangos: 0–2,99 poco alineada · 3–3,99 parcialmente alineada · 4–5 bien alineada."
+      )),
+      React.createElement("div", { style: { color: "var(--dim)", marginTop: 3 } }, uiText(
+        "A confiança mede apenas a completude dos dados: alta ≥90%, média 70–89%, baixa <70%.",
+        "Confidence measures data completeness only: high ≥90%, medium 70–89%, low <70%.",
+        "La confianza solo mide la integridad de los datos: alta ≥90%, media 70–89%, baja <70%."
+      ))),
+      result.provisional && React.createElement("div", {
+        "data-meal-score-provisional": "true",
+        style: {
+          background: "var(--btn-warn)", border: "1px solid var(--btn-warn-border)", borderRadius: 8,
+          padding: "9px 10px", marginBottom: 10, color: "var(--btn-warn-text)", fontSize: 12, lineHeight: 1.5
+        }
+      },
+      React.createElement("b", null, uiText("Nota provisória", "Provisional score", "Nota provisional")),
+      provisionalReasons.map((reason, index) => React.createElement("div", { key: `${reason.nutrient || "unknown"}-${reason.scope || "unknown"}-${index}`, style: { marginTop: 3 } }, provisionalReasonText(reason)))),
       React.createElement("button", {
         type: "button",
         onClick: onToggleHelp,
@@ -144,6 +192,7 @@
         }
       },
       React.createElement("div", null, React.createElement("b", null, uiText("Nota: ", "Score: ", "Nota: ")), uiText("mede de 0 a 5 o alinhamento desta refei\u00e7\u00e3o com o restante das metas de hoje.", "measures from 0 to 5 how well this meal fits the rest of today's targets.", "mide de 0 a 5 cu\u00e1nto encaja esta comida con el resto de las metas de hoy.")),
+      React.createElement("div", { style: { marginTop: 5 } }, uiText("Não mede saúde absoluta, não faz diagnóstico e não substitui orientação profissional.", "It does not measure absolute health, make a diagnosis, or replace professional guidance.", "No mide la salud absoluta, no realiza diagnósticos ni sustituye la orientación profesional.")),
       React.createElement("div", { style: { marginTop: 5 } }, React.createElement("b", null, uiText("Nutrientes avaliados: ", "Nutrients evaluated: ", "Nutrientes evaluados: ")), uiText("indica quantos nutrientes tinham dados suficientes. Um nutriente opcional ausente \u00e9 exclu\u00eddo da conta, nunca tratado como zero.", "shows how many nutrients had enough data. A missing optional nutrient is excluded, never treated as zero.", "indica cu\u00e1ntos nutrientes ten\u00edan datos suficientes. Un nutriente opcional ausente se excluye, nunca se trata como cero.")),
       React.createElement("div", { style: { marginTop: 5 } }, React.createElement("b", null, uiText("Refer\u00eancia para agora: ", "Reference for now: ", "Referencia para ahora: ")), uiText("\u00e9 a parcela do que ainda falta no dia ajustada pelas horas at\u00e9 meia-noite; n\u00e3o \u00e9 um limite di\u00e1rio nem uma cota fixa por refei\u00e7\u00e3o.", "is the share of what remains today adjusted by the hours until midnight; it is neither a daily limit nor a fixed per-meal quota.", "es la parte de lo que falta hoy ajustada por las horas hasta medianoche; no es un l\u00edmite diario ni una cuota fija por comida."))
       ),
