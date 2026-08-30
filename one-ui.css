@@ -971,18 +971,25 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   min-height: 72px;
   margin: 14px 0 6px;
   padding: 6px 12px;
-  border: 1px solid color-mix(in srgb, var(--accent-action-fill) 32%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent);
   border-radius: 20px;
-  background: var(--accent-action-bg);
-  color: var(--accent-action-text);
+  background: var(--surface-block-alt);
+  color: var(--text-primary);
   font-size: 42px;
   font-variant-numeric: tabular-nums;
   line-height: 1.4;
   text-align: center;
 }
 
-[data-numeric-keypad-value="true"][data-invalid="true"] {
+[data-numeric-keypad-value="true"][data-state="valid"] {
+  border-color: color-mix(in srgb, var(--accent-action-fill) 32%, transparent);
+  background: var(--accent-action-bg);
+  color: var(--accent-action-text);
+}
+
+[data-numeric-keypad-value="true"][data-state="invalid"] {
   border-color: color-mix(in srgb, var(--accent-danger-fill) 50%, transparent);
+  background: var(--accent-danger-bg);
   color: var(--accent-danger-text);
 }
 

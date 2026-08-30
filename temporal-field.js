@@ -138,41 +138,69 @@
     }) {
       const keypadValue = value == null ? "" : String(value);
       const [buffer, setBuffer] = React.useState(allowDecimal ? keypadValue.replace(".", ",") : keypadValue);
+      const [interacted, setInteracted] = React.useState(false);
+      const bufferRef = React.useRef(allowDecimal ? keypadValue.replace(".", ",") : keypadValue);
       const replaceOnNextDigit = React.useRef(true);
       React.useEffect(() => {
-        setBuffer(allowDecimal ? keypadValue.replace(".", ",") : keypadValue);
+        const nextBuffer = allowDecimal ? keypadValue.replace(".", ",") : keypadValue;
+        bufferRef.current = nextBuffer;
+        setBuffer(nextBuffer);
+        setInteracted(false);
         replaceOnNextDigit.current = true;
       }, [value, allowDecimal]);
-      const normalizedBuffer = buffer.replace(",", ".").replace(/\.$/, "");
-      const numericValue = normalizedBuffer === "" ? NaN : Number(normalizedBuffer);
-      const valid = Number.isFinite(numericValue)
-        && (allowDecimal || Number.isInteger(numericValue))
-        && numericValue >= minValue
-        && numericValue <= maxValue;
+      function parseBuffer(currentBuffer) {
+        const normalized = currentBuffer.replace(",", ".").replace(/\.$/, "");
+        const numeric = normalized === "" ? NaN : Number(normalized);
+        const isValid = Number.isFinite(numeric)
+          && (allowDecimal || Number.isInteger(numeric))
+          && numeric >= minValue
+          && numeric <= maxValue;
+        return { normalized, numeric, isValid };
+      }
+      const { isValid: valid } = parseBuffer(buffer);
+      const visualState = !interacted ? "neutral" : valid ? "valid" : "invalid";
 
       function appendDigit(digit) {
-        setBuffer(current => {
-          if (replaceOnNextDigit.current) {
-            replaceOnNextDigit.current = false;
-            return digit;
-          }
+        setInteracted(true);
+        const current = bufferRef.current;
+        let next = current;
+        if (replaceOnNextDigit.current) {
+          replaceOnNextDigit.current = false;
+          next = digit;
+        } else {
           const decimalIndex = current.indexOf(",");
-          if (decimalIndex >= 0 && current.length - decimalIndex - 1 >= maxDecimals) return current;
-          if (current.replace(",", "").length >= maxLength) return current;
-          return current === "0" ? digit : `${current}${digit}`;
-        });
+          if (decimalIndex < 0 || current.length - decimalIndex - 1 < maxDecimals) {
+            if (current.replace(",", "").length < maxLength) next = current === "0" ? digit : `${current}${digit}`;
+          }
+        }
+        bufferRef.current = next;
+        setBuffer(next);
       }
 
       function appendDecimal() {
         if (!allowDecimal) return;
-        setBuffer(current => {
-          if (replaceOnNextDigit.current) {
-            replaceOnNextDigit.current = false;
-            return "0,";
-          }
-          if (current.includes(",")) return current;
-          return `${current || "0"},`;
-        });
+        setInteracted(true);
+        const current = bufferRef.current;
+        let next = current;
+        if (replaceOnNextDigit.current) {
+          replaceOnNextDigit.current = false;
+          next = "0,";
+        } else if (!current.includes(",")) next = `${current || "0"},`;
+        bufferRef.current = next;
+        setBuffer(next);
+      }
+
+      function removeLastDigit() {
+        setInteracted(true);
+        const next = bufferRef.current.slice(0, -1);
+        bufferRef.current = next;
+        setBuffer(next);
+      }
+
+      function attemptConfirm() {
+        const candidate = parseBuffer(bufferRef.current);
+        if (candidate.isValid) onConfirm(candidate.numeric, candidate.normalized);
+        else setInteracted(true);
       }
 
       function handleKeyDown(event) {
@@ -184,10 +212,10 @@
           appendDecimal();
         } else if (event.key === "Backspace" || event.key === "Delete") {
           event.preventDefault();
-          setBuffer(current => current.slice(0, -1));
-        } else if (event.key === "Enter" && valid) {
+          removeLastDigit();
+        } else if (event.key === "Enter") {
           event.preventDefault();
-          onConfirm(numericValue, normalizedBuffer);
+          attemptConfirm();
         } else if (event.key === "Escape") {
           event.preventDefault();
           onCancel();
@@ -206,8 +234,9 @@
         role: "status",
         "aria-live": "polite",
         "data-numeric-keypad-value": "true",
-        "data-invalid": valid ? "false" : "true"
-      }, buffer || "–"), !valid ? React.createElement("div", {
+        "data-state": visualState,
+        "data-invalid": visualState === "invalid" ? "true" : "false"
+      }, buffer || "–"), visualState === "invalid" ? React.createElement("div", {
         "data-numeric-keypad-error": "true"
       }, invalidLabel) : null, React.createElement("div", {
         "data-numeric-keypad-grid": "true"
@@ -229,12 +258,11 @@
         type: "button",
         "aria-label": backspaceLabel,
         "data-numeric-keypad-backspace": "true",
-        onClick: () => setBuffer(current => current.slice(0, -1))
+        onClick: removeLastDigit
       }, React.createElement(BackspaceIcon))), React.createElement("button", {
         type: "button",
-        disabled: !valid,
         "data-numeric-keypad-confirm": "true",
-        onClick: () => onConfirm(numericValue, normalizedBuffer)
+        onClick: attemptConfirm
       }, confirmLabel));
     }
 

@@ -126,12 +126,30 @@ test.describe('authenticated NumericField visual contract', () => {
       expect(styles.scrollWidth).toBe(styles.viewportWidth);
       if (theme === 'light') {
         expect(styles.triggerBackground).toBe('rgb(247, 246, 242)');
-        expect(styles.valueBackground).toBe('rgb(234, 243, 222)');
-        expect(styles.valueColor).toBe('rgb(39, 80, 10)');
+        expect(styles.valueBackground).toBe('rgb(247, 246, 242)');
+        expect(styles.valueColor).toBe('rgb(28, 28, 26)');
       } else {
         expect(styles.triggerBackground).toBe('rgb(38, 38, 36)');
-        expect(styles.valueBackground).toBe('rgb(23, 52, 4)');
-        expect(styles.valueColor).toBe('rgb(151, 196, 89)');
+        expect(styles.valueBackground).toBe('rgb(38, 38, 36)');
+        expect(styles.valueColor).toBe('rgb(241, 239, 232)');
+      }
+      const keypadValue = page.locator('[data-numeric-keypad-value="true"]');
+      await expect(keypadValue).toHaveAttribute('data-state', 'neutral');
+      await expect(page.locator('[data-numeric-keypad-error="true"]')).toHaveCount(0);
+
+      await page.locator('[data-numeric-keypad-confirm="true"]').click();
+      await expect(keypadValue).toHaveAttribute('data-state', 'invalid');
+      await expect(page.locator('[data-numeric-keypad-error="true"]')).toBeVisible();
+      const invalidStyles = await keypadValue.evaluate(node => ({
+        background: getComputedStyle(node).backgroundColor,
+        color: getComputedStyle(node).color,
+      }));
+      if (theme === 'light') {
+        expect(invalidStyles.background).toBe('rgb(249, 233, 231)');
+        expect(invalidStyles.color).toBe('rgb(140, 47, 36)');
+      } else {
+        expect(invalidStyles.background).toBe('rgb(65, 29, 25)');
+        expect(invalidStyles.color).toBe('rgb(242, 170, 161)');
       }
 
       for (const digit of ['1', '2', '5']) {
@@ -139,6 +157,18 @@ test.describe('authenticated NumericField visual contract', () => {
       }
       await page.locator('[data-numeric-keypad-decimal="true"]').click();
       await page.getByRole('button', { name: '5', exact: true }).click();
+      await expect(keypadValue).toHaveAttribute('data-state', 'valid');
+      const validStyles = await keypadValue.evaluate(node => ({
+        background: getComputedStyle(node).backgroundColor,
+        color: getComputedStyle(node).color,
+      }));
+      if (theme === 'light') {
+        expect(validStyles.background).toBe('rgb(234, 243, 222)');
+        expect(validStyles.color).toBe('rgb(39, 80, 10)');
+      } else {
+        expect(validStyles.background).toBe('rgb(23, 52, 4)');
+        expect(validStyles.color).toBe('rgb(151, 196, 89)');
+      }
       await page.locator('[data-numeric-keypad-confirm="true"]').click();
       await expect(page.locator('[data-numeric-field-sheet="true"]')).toHaveCount(0);
       await expect(trigger).toContainText('125,5');
