@@ -356,10 +356,11 @@ test.describe('authenticated critical data flows', () => {
       expect(storedEntry.mealScoreSnapshot.score).toBeLessThanOrEqual(5);
       expect(storedEntry.mealScoreSnapshot.components.protein.mealAmount).toBe(50);
       expect(storedEntry.mealScoreSnapshot.components.kcal.mealAmount).toBe(360);
-      const evaluationBadges = page.locator('[data-meal-evaluation-badge]');
-      await expect(evaluationBadges).toHaveCount(1);
-      await expect(evaluationBadges.first()).toContainText(`${storedEntry.mealScoreSnapshot.score.toFixed(2)}/5`);
-      await evaluationBadges.first().click();
+      expect(storedEntry.mealEvaluationId).toBeTruthy();
+      const evaluationBadge = page.locator(`[data-meal-evaluation-badge="${storedEntry.mealEvaluationId}"]`);
+      await expect(evaluationBadge).toHaveCount(1);
+      await expect(evaluationBadge).toContainText(`${storedEntry.mealScoreSnapshot.score.toFixed(2)}/5`);
+      await evaluationBadge.click();
       const savedEvaluation = page.locator('[data-diary-meal-evaluation-modal="true"]');
       await expect(savedEvaluation).toBeVisible();
       await expect(savedEvaluation.getByText('Avaliação salva', { exact: true })).toBeVisible();
