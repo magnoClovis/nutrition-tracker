@@ -243,7 +243,8 @@ const {
 } = window.SearchableChoiceFieldModule.createSearchableChoiceField({ React });
 
 const {
-  TemporalField
+  TemporalField,
+  DateField
 } = window.TemporalFieldModule.createTemporalField({ React });
 
 const {
@@ -255,6 +256,7 @@ const {
   isValidBirthDate,
   isValidGender,
   ChoiceField,
+  DateField,
   authService: {
     signIn: (...args) => window.fbSignIn(...args),
     checkEmailVerified: (...args) => window.fbCheckEmailVerified(...args),
@@ -314,6 +316,7 @@ const {
   normalizeLanguage,
   pickLang,
   ChoiceField,
+  DateField,
   activityLevels: ACTIVITY_LEVELS,
   storage,
   isValidBirthDate,

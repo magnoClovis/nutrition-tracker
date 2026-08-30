@@ -1,6 +1,6 @@
 const crypto = require('node:crypto');
 const { test, expect } = require('./app-check-fixture');
-const { isIgnorableConsoleError } = require('./test-helpers');
+const { isIgnorableConsoleError, setDateFieldValue } = require('./test-helpers');
 
 const ORIGINS = {
   legacy: 'http://127.0.0.1:8775',
@@ -135,8 +135,7 @@ async function authenticateAndCompleteProfile(page) {
   await page.locator('input[type="password"]').fill('secret123');
   await page.getByRole('button', { name: /Entrar|Sign in|Iniciar sesi[oó]n/i }).last().click();
 
-  await expect(page.locator('input[type="date"]')).toBeVisible();
-  await page.locator('input[type="date"]').fill('1990-06-15');
+  await setDateFieldValue(page, '#required-profile-birth-date-trigger', '1990-06-15');
   await page.locator('#required-profile-gender-trigger').click();
   await page.getByRole('option', { name: /Feminino|Female|Femenino/i }).click();
   await page.locator('#required-profile-activity-trigger').click();

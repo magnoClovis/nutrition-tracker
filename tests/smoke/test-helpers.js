@@ -99,6 +99,21 @@ async function setAppLanguage(page, language) {
   await dismissTutorialIfVisible(page);
 }
 
+async function setDateFieldValue(page, triggerSelector, isoDate) {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  await page.locator(triggerSelector).click();
+  await page.locator('[data-temporal-field-month-year="true"]').click();
+  await page.locator('[data-temporal-field-year="true"]').click();
+  for (const digit of String(year)) {
+    await page.getByRole('button', { name: digit, exact: true }).click();
+  }
+  await page.locator('[data-numeric-keypad-confirm="true"]').click();
+  await page.locator('[data-temporal-field-months="true"] button').nth(month - 1).click();
+  await page.locator('[data-temporal-field-show-days="true"]').click();
+  await page.locator('[data-temporal-field-days="true"] button').filter({ hasText: new RegExp(`^${day}$`) }).click();
+  await page.locator('[data-temporal-field-confirm="true"]').click();
+}
+
 async function interceptOptionalExternalApis(page, { aiDelayMs = 0 } = {}) {
   await page.route('https://trofia-ai-proxy.cmagno-dev.workers.dev/**', async (route) => {
     if (aiDelayMs) await new Promise(resolve => setTimeout(resolve, aiDelayMs));
@@ -117,5 +132,6 @@ module.exports = {
   isIgnorableConsoleError,
   interceptOptionalExternalApis,
   openApp,
-  setAppLanguage
+  setAppLanguage,
+  setDateFieldValue
 };

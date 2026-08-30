@@ -14,6 +14,7 @@ const { ACTIVITY_LEVELS } = createGoalCalculator();
 const currentDispatcher = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentDispatcher;
 
 function ChoiceField() {}
+function DateField() {}
 
 function createHookHarness(Component, props) {
   const state = [];
@@ -77,6 +78,7 @@ function createFixture(createRequiredProfileModal, profile = {}, persisted = {})
     normalizeLanguage,
     pickLang,
     ChoiceField,
+    DateField,
     activityLevels: ACTIVITY_LEVELS,
     storage,
     isValidBirthDate: validation.isValidBirthDate,
@@ -114,13 +116,16 @@ function contractTest(name, callback) {
 contractTest("renders empty, partial, and complete persisted profile values", createRequiredProfileModal => {
   const empty = createFixture(createRequiredProfileModal);
   let tree = empty.harness.render();
-  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), [""]);
+  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), []);
+  assert.deepEqual(elementsByType(tree, DateField).map(field => field.props.value), [""]);
   assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), ["", "", ""]);
-  assert.equal(elementsByType(tree, "input")[0].props.max, "2026-07-31");
+  assert.equal(elementsByType(tree, DateField)[0].props.max, "2026-07-31");
+  assert.equal(elementsByType(tree, "input").some(input => input.props.type === "date"), false);
 
   const partial = createFixture(createRequiredProfileModal, { birthDate: "1990-06-15", gender: "female" });
   tree = partial.harness.render();
-  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), ["1990-06-15"]);
+  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), []);
+  assert.deepEqual(elementsByType(tree, DateField).map(field => field.props.value), ["1990-06-15"]);
   assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), ["female", "", ""]);
 
   const complete = createFixture(createRequiredProfileModal, {
@@ -132,7 +137,8 @@ contractTest("renders empty, partial, and complete persisted profile values", cr
     goalWeeks: "12"
   });
   tree = complete.harness.render();
-  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), ["1990-06-15", "5.5", "12"]);
+  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), ["5.5", "12"]);
+  assert.deepEqual(elementsByType(tree, DateField).map(field => field.props.value), ["1990-06-15"]);
   assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), ["male", "moderate", "loss"]);
 });
 

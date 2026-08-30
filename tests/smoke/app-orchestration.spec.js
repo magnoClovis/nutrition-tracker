@@ -1,7 +1,8 @@
 const { test, expect } = require('./app-check-fixture');
 const {
   expectNoCriticalErrors,
-  openApp
+  openApp,
+  setDateFieldValue
 } = require('./test-helpers');
 
 test('preserves the login, verification, required-profile, and authenticated-app flow', async ({ page }) => {
@@ -65,7 +66,7 @@ test('preserves the login, verification, required-profile, and authenticated-app
   await page.getByRole('button', { name: /Entrar|Sign in/i }).last().click();
 
   await expect(page.getByText(/Completar perfil nutricional|Complete nutrition profile/i)).toBeVisible();
-  await page.locator('input[type="date"]').fill('1990-06-15');
+  await setDateFieldValue(page, '#required-profile-birth-date-trigger', '1990-06-15');
   await page.locator('#required-profile-gender-trigger').click();
   await page.getByRole('option', { name: /Feminino|Female/i }).click();
   await page.locator('#required-profile-activity-trigger').click();
