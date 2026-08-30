@@ -696,7 +696,7 @@ contractTest("keeps every render-scoped factory argument and current-render clos
     },
     {
       factory: "SavedMealCardModule.createSavedMealCard",
-      dependencies: ["React", "pickLang", "templateEntries", "templateTotals", "templateItemEntry", "ChoiceField"]
+      dependencies: ["React", "pickLang", "templateEntries", "templateTotals", "templateItemEntry", "ChoiceField", "SearchableChoiceField"]
     },
     {
       factory: "MealGA.createMealGA",
