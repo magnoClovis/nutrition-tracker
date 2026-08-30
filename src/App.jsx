@@ -535,6 +535,7 @@ const {
   React,
   pickLang,
   portionLabel,
+  ChoiceField,
   nativeBarcodePortal: {
     isActive: () => document.body.classList.contains('phrona-native-barcode-scanner-active'),
     render: node => createPortal(node, document.body),

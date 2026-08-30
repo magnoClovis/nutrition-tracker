@@ -30,13 +30,15 @@
    * @param {Object} dependencies.React React runtime supplied by the host.
    * @param {function(string,string,string,string): string} dependencies.pickLang Language picker from i18n.js.
    * @param {function(string,string): string} dependencies.portionLabel Unit-label formatter from date-utils.js.
+   * @param {function(Object): Object} dependencies.ChoiceField App-local list selector.
    * @param {Object} [dependencies.nativeBarcodePortal] Optional injected native overlay portal.
    * @returns {{PantryScreen: function(Object): Object}} Pantry screen API.
    */
-  function createPantryScreen({ React, pickLang, portionLabel, nativeBarcodePortal = null }) {
+  function createPantryScreen({ React, pickLang, portionLabel, ChoiceField, nativeBarcodePortal = null }) {
     if (!React || typeof React.createElement !== "function"
-      || typeof pickLang !== "function" || typeof portionLabel !== "function") {
-      throw new TypeError("PantryScreen requires React, pickLang, and portionLabel");
+      || typeof pickLang !== "function" || typeof portionLabel !== "function"
+      || typeof ChoiceField !== "function") {
+      throw new TypeError("PantryScreen requires React, pickLang, portionLabel, and ChoiceField");
     }
     if (nativeBarcodePortal
       && (typeof nativeBarcodePortal.isActive !== "function"
@@ -189,6 +191,20 @@
         saveTemplateEdit
       } = props;
       const uiText = (pt, en, es) => pickLang(lang, pt, en, es);
+      const foodUnitOptions = [
+        { value: "g", label: "g" },
+        { value: "ml", label: "ml" },
+        { value: "un", label: uiText("un", "unit", "ud") }
+      ];
+      const supplementUnitOptions = [
+        { value: "g", label: "g" },
+        { value: "mg", label: "mg" },
+        { value: "µg", label: "µg" },
+        { value: "ml", label: "ml" },
+        { value: "un", label: uiText("un", "unit", "ud") },
+        { value: "cáps", label: uiText("cáps", "caps", "cáps") }
+      ];
+      const closeChoiceLabel = uiText("Fechar", "Close", "Cerrar");
       // Intentionally retained as controlled state without visual rendering.
       void foodDbResults;
       function renderSavedMealCard(tmpl, context) {
@@ -337,25 +353,20 @@
     style: inp
   })), /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 90
+      width: isMobileView ? 112 : 130
     }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, text('unit')), /*#__PURE__*/React.createElement("select", {
+  }, /*#__PURE__*/React.createElement(ChoiceField, {
+    id: "pantry-food-unit",
+    label: text('unit'),
     value: form.unit,
-    onChange: e => setForm(f => ({
+    options: foodUnitOptions,
+    closeLabel: closeChoiceLabel,
+    onChange: value => setForm(f => ({
       ...f,
-      unit: e.target.value,
-      unitWeightG: e.target.value === "un" ? f.unitWeightG : ""
-    })),
-    style: inp
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "g"
-  }, "g"), /*#__PURE__*/React.createElement("option", {
-    value: "ml"
-  }, "ml"), /*#__PURE__*/React.createElement("option", {
-    value: "un"
-  }, "un")))), /*#__PURE__*/React.createElement("div", {
+      unit: value,
+      unitWeightG: value === "un" ? f.unitWeightG : ""
+    }))
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: form.unit === "un" ? "var(--btn-ok)" : "var(--surface)",
       border: "1px solid " + (form.unit === "un" ? "var(--btn-ok-border)" : "var(--border2)"),
@@ -719,24 +730,19 @@
     style: inp
   })), /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 90
+      width: isMobileView ? 112 : 130
     }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, text('unit')), /*#__PURE__*/React.createElement("select", {
+  }, /*#__PURE__*/React.createElement(ChoiceField, {
+    id: `pantry-edit-unit-${f.id}`,
+    label: text('unit'),
     value: editForm.unit,
-    onChange: e => setEditForm(ef => ({
+    options: foodUnitOptions,
+    closeLabel: closeChoiceLabel,
+    onChange: value => setEditForm(ef => ({
       ...ef,
-      unit: e.target.value
-    })),
-    style: inp
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "g"
-  }, "g"), /*#__PURE__*/React.createElement("option", {
-    value: "ml"
-  }, "ml"), /*#__PURE__*/React.createElement("option", {
-    value: "un"
-  }, "un")))), /*#__PURE__*/React.createElement("div", {
+      unit: value
+    }))
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 14,
       letterSpacing: 1,
@@ -1048,30 +1054,19 @@
     style: inp
   })), /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 80
+      width: isMobileView ? 112 : 126
     }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, text('unit')), /*#__PURE__*/React.createElement("select", {
+  }, /*#__PURE__*/React.createElement(ChoiceField, {
+    id: "pantry-supplement-unit",
+    label: text('unit'),
     value: suppForm.unit,
-    onChange: e => setSuppForm(f => ({
+    options: supplementUnitOptions,
+    closeLabel: closeChoiceLabel,
+    onChange: value => setSuppForm(f => ({
       ...f,
-      unit: e.target.value
-    })),
-    style: inp
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "g"
-  }, "g"), /*#__PURE__*/React.createElement("option", {
-    value: "mg"
-  }, "mg"), /*#__PURE__*/React.createElement("option", {
-    value: "\xB5g"
-  }, "\xB5g"), /*#__PURE__*/React.createElement("option", {
-    value: "ml"
-  }, "ml"), /*#__PURE__*/React.createElement("option", {
-    value: "un"
-  }, "un"), /*#__PURE__*/React.createElement("option", {
-    value: "c\xE1ps"
-  }, "c\xE1ps")))), /*#__PURE__*/React.createElement("div", {
+      unit: value
+    }))
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 6
     }

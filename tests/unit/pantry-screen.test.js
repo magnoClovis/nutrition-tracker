@@ -65,6 +65,10 @@ function SavedMealCard() {
   return null;
 }
 
+function ChoiceField() {
+  return null;
+}
+
 const noOp = () => {};
 const macroFields = [
   { key: "protein100", label: "Protein", unit: "g", required: true },
@@ -177,6 +181,7 @@ function contractTest(name, callback, dependencyOverrides = {}) {
         React,
         pickLang,
         portionLabel,
+        ChoiceField,
         ...dependencyOverrides
       });
       return callback(PantryScreen);
@@ -331,4 +336,80 @@ contractTest("preserves the hidden required supplement dose and orphan body-comp
     && node.props.style.display === "none");
   assert.equal(hiddenBlocks.some(node => /Dose/.test(textContent(node))), true);
   assert.equal(hiddenBlocks.some(node => /Body fat/.test(textContent(node))), true);
+});
+
+contractTest("uses inline food-unit ChoiceFields for registration and editing", PantryScreen => {
+  const formUpdates = [];
+  const editUpdates = [];
+  const food = {
+    id: "food-1",
+    name: "Oats",
+    unit: "g",
+    protein100: 13,
+    kcal100: 389
+  };
+  const view = PantryScreen(baseProps({
+    newFoodOpen: true,
+    editingId: food.id,
+    editForm: { ...food },
+    pantry: [food],
+    filteredPantry: [food],
+    sortedPantry: [food],
+    sortedAllPantry: [food],
+    setForm(update) {
+      formUpdates.push(update);
+    },
+    setEditForm(update) {
+      editUpdates.push(update);
+    }
+  }));
+
+  const fields = findNodes(view, node => node.type === ChoiceField);
+  const registration = fields.find(node => node.props.id === "pantry-food-unit");
+  const editing = fields.find(node => node.props.id === "pantry-edit-unit-food-1");
+  assert.ok(registration);
+  assert.ok(editing);
+  assert.deepEqual(registration.props.options, [
+    { value: "g", label: "g" },
+    { value: "ml", label: "ml" },
+    { value: "un", label: "unit" }
+  ]);
+  assert.equal(registration.props.options.some(option => option.description), false);
+  assert.equal(findNodes(view, node => node.type === "select").length, 0);
+
+  registration.props.onChange("un");
+  editing.props.onChange("ml");
+  assert.deepEqual(formUpdates[0]({ unit: "g", unitWeightG: "25" }), {
+    unit: "un",
+    unitWeightG: "25"
+  });
+  assert.deepEqual(editUpdates[0]({ ...food }), { ...food, unit: "ml" });
+});
+
+contractTest("uses a six-option localized supplement-unit ChoiceField", PantryScreen => {
+  const updates = [];
+  const view = PantryScreen(baseProps({
+    lang: "es",
+    suppPantryOpen: true,
+    showSuppForm: true,
+    setSuppForm(update) {
+      updates.push(update);
+    }
+  }));
+
+  const field = findNodes(view, node => (
+    node.type === ChoiceField && node.props.id === "pantry-supplement-unit"
+  ))[0];
+  assert.ok(field);
+  assert.deepEqual(field.props.options.map(option => option.value), ["g", "mg", "µg", "ml", "un", "cáps"]);
+  assert.deepEqual(field.props.options.map(option => option.label), ["g", "mg", "µg", "ml", "ud", "cáps"]);
+  assert.equal(field.props.options.some(option => option.description), false);
+  assert.equal(field.props.closeLabel, "Cerrar");
+  assert.equal(findNodes(view, node => node.type === "select").length, 0);
+
+  field.props.onChange("mg");
+  assert.deepEqual(updates[0]({ name: "Creatina", unit: "un" }), {
+    name: "Creatina",
+    unit: "mg"
+  });
 });
