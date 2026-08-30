@@ -22,6 +22,18 @@ implementations.forEach(([format, load]) => {
       { value: "lunch", label: "Lunch", disabled: false },
       { value: "3", label: "3", disabled: true }
     ]);
+    assert.deepEqual(normalizeOptions([{
+      value: "medium",
+      label: "Medium",
+      description: "A quick review is recommended",
+      tone: "medium"
+    }]), [{
+      value: "medium",
+      label: "Medium",
+      disabled: false,
+      description: "A quick review is recommended",
+      tone: "medium"
+    }]);
   });
 
   test(`${format}: rejects a missing React dependency`, async () => {

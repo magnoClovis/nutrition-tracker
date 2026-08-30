@@ -573,6 +573,20 @@ contractTest("restores the captured tab, date, and scroll only after successful 
   });
 });
 
+contractTest("uses the reusable ChoiceField for the image meal category", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+  const start = source.indexOf("React.createElement(ChoiceField", source.indexOf("data-image-meal-registration-options"));
+  const end = source.indexOf("imageMealFeature.ImageMealScreen", start);
+  const fieldBlock = source.slice(start, end);
+
+  assert.ok(start >= 0);
+  assert.match(fieldBlock, /React\.createElement\(ChoiceField/);
+  assert.match(fieldBlock, /options: MEALS\.map/);
+  assert.match(fieldBlock, /onChange: value => setStaged/);
+  assert.doesNotMatch(fieldBlock, /React\.createElement\("select"/);
+});
+
 contractTest("wires the image flow into Add navigation without changing its persistence contract", createNutritionTrackerController => {
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
@@ -617,7 +631,7 @@ contractTest("keeps every render-scoped factory argument and current-render clos
     },
     {
       factory: "SavedMealCardModule.createSavedMealCard",
-      dependencies: ["React", "pickLang", "templateEntries", "templateTotals", "templateItemEntry"]
+      dependencies: ["React", "pickLang", "templateEntries", "templateTotals", "templateItemEntry", "ChoiceField"]
     },
     {
       factory: "MealGA.createMealGA",

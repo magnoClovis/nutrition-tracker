@@ -74,11 +74,16 @@
     function normalizeOptions(options) {
       return (Array.isArray(options) ? options : []).map(option => {
         if (option && typeof option === "object") {
-          return {
+          const normalized = {
             value: String(option.value),
             label: String(option.label ?? option.value),
             disabled: !!option.disabled
           };
+          const description = option.description == null ? "" : String(option.description).trim();
+          const tone = option.tone == null ? "" : String(option.tone).trim().toLowerCase();
+          if (description) normalized.description = description;
+          if (/^[a-z0-9-]+$/.test(tone)) normalized.tone = tone;
+          return normalized;
         }
         return { value: String(option), label: String(option), disabled: false };
       });
@@ -266,10 +271,20 @@
         "aria-selected": option.value === String(value),
         tabIndex: index === activeIndex ? 0 : -1,
         "data-choice-field-option": "true",
+        "data-choice-field-tone": option.tone || undefined,
         onFocus: () => setActiveIndex(index),
         onKeyDown: event => handleOptionKeyDown(event, index, option),
         onClick: () => selectOption(option)
-      }, React.createElement("span", null, option.label), option.value === String(value)
+      }, option.tone ? React.createElement("span", {
+        "data-choice-field-indicator": "true",
+        "aria-hidden": "true"
+      }) : null, React.createElement("span", {
+        "data-choice-field-option-copy": "true"
+      }, React.createElement("span", {
+        "data-choice-field-option-label": "true"
+      }, option.label), option.description ? React.createElement("span", {
+        "data-choice-field-option-description": "true"
+      }, option.description) : null), option.value === String(value)
         ? React.createElement("span", { "data-choice-field-selection": "true" }, React.createElement(SelectionIcon))
         : null))))) : null);
     }

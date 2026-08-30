@@ -25,6 +25,9 @@ const foodEntry = createFoodEntry({
     salt: totals.salt + Number(item.salt || 0)
   }), { protein: 0, kcal: 0, carbs: 0, fat: 0, fiber: 0, salt: 0 })
 });
+function ChoiceField() {
+  return null;
+}
 function textContent(node) {
   const parts = [];
   function collect(value) {
@@ -95,7 +98,8 @@ function contractTest(name, callback) {
         pickLang,
         templateEntries: foodEntry.templateEntries,
         templateTotals: foodEntry.templateTotals,
-        templateItemEntry: foodEntry.templateItemEntry
+        templateItemEntry: foodEntry.templateItemEntry,
+        ChoiceField
       });
       return callback(SavedMealCard);
     });
@@ -153,4 +157,32 @@ contractTest("renders the inline edit form and delegates draft/item actions", Sa
   actions.find(button => textContent(button) === "Cancelar").props.onClick();
   actions.find(button => textContent(button) === "Salvar altera\u00e7\u00f5es").props.onClick();
   assert.deepEqual(calls, ["add", "cancel", "save"]);
+});
+
+contractTest("uses the reusable ChoiceField for the saved meal default", SavedMealCard => {
+  const editDraft = {
+    name: "Modelo",
+    meal: "Almoço",
+    items: [{ foodId: "food-1", name: "Arroz", qty: 50 }],
+    addFoodId: "",
+    addQty: ""
+  };
+  let nextDraft = null;
+  const card = SavedMealCard(props({
+    context: "pantry",
+    isEditing: true,
+    editDraft,
+    mealOptions: ["Almoço", "Jantar"],
+    onEditDraftChange: updater => { nextDraft = updater(editDraft); }
+  }));
+  const fields = [];
+  (function visit(value) {
+    if (!value || typeof value !== "object") return;
+    if (value.type === ChoiceField) fields.push(value);
+    React.Children.toArray(value.props && value.props.children).forEach(visit);
+  })(card);
+
+  assert.equal(fields[0].props.id, "saved-meal-default-meal-1");
+  fields[0].props.onChange("Jantar");
+  assert.equal(nextDraft.meal, "Jantar");
 });

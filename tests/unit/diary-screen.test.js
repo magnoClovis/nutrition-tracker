@@ -21,6 +21,10 @@ function GaResultCard({ result, onAdd, evaluateMealItems }) {
   );
 }
 
+function ChoiceField() {
+  return null;
+}
+
 const labels = {
   water: "Water",
   suppTitle: "Supplements",
@@ -258,7 +262,8 @@ function contractTest(name, callback) {
         }),
         Ring,
         Bar,
-        GaResultCard
+        GaResultCard,
+        ChoiceField
       });
       return callback(api.DiaryScreen, api);
     });
@@ -531,6 +536,27 @@ contractTest("active GA result delegates execution, evaluation, and diary insert
   assert.equal(ran, 1);
   assert.equal(added, result);
   assert.equal(evaluated, 1);
+});
+
+contractTest("uses the reusable ChoiceField for the GA target meal", DiaryScreen => {
+  let selected = null;
+  const view = DiaryScreen(baseProps({
+    section: "summary",
+    showGA: true,
+    MEALS: ["Breakfast", "Lunch"],
+    gaTargetMeal: "Lunch",
+    setGATargetMeal: value => { selected = value; }
+  }));
+  const field = findNodes(view, node => node.type === ChoiceField)[0];
+
+  assert.equal(field.props.id, "ga-target-meal-choice");
+  assert.equal(field.props.value, "Lunch");
+  assert.deepEqual(field.props.options, [
+    { value: "Breakfast", label: "Breakfast" },
+    { value: "Lunch", label: "Lunch" }
+  ]);
+  field.props.onChange("Breakfast");
+  assert.equal(selected, "Breakfast");
 });
 
 contractTest("daily feedback remains controlled and no meal-review modal is invented", DiaryScreen => {

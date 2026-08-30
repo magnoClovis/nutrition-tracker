@@ -25,11 +25,11 @@
     { key: "satfat", pt: "Gordura saturada", en: "Saturated fat", es: "Grasa saturada", unit: "g" }
   ];
 
-  function createMealEstimateEditor({ React, pickLang, createEmptyItem, calculateTotals }) {
+  function createMealEstimateEditor({ React, pickLang, createEmptyItem, calculateTotals, ChoiceField }) {
     if (!React || typeof React.createElement !== "function" ||
         typeof pickLang !== "function" || typeof createEmptyItem !== "function" ||
-        typeof calculateTotals !== "function") {
-      throw new TypeError("MealEstimateEditor requires React, pickLang, createEmptyItem, and calculateTotals");
+        typeof calculateTotals !== "function" || typeof ChoiceField !== "function") {
+      throw new TypeError("MealEstimateEditor requires React, pickLang, createEmptyItem, calculateTotals, and ChoiceField");
     }
 
     const inputStyle = {
@@ -58,6 +58,38 @@
       const items = Array.isArray(estimate.items) ? estimate.items : [];
       const totals = calculateTotals({ ...estimate, items });
       const validationErrors = Array.isArray(errors) ? errors : [];
+      const confidenceOptions = [
+        {
+          value: "high",
+          label: uiText("Alta", "High", "Alta"),
+          description: uiText(
+            "Itens e quantidades bem identificados",
+            "Items and quantities are well identified",
+            "Elementos y cantidades bien identificados"
+          ),
+          tone: "high"
+        },
+        {
+          value: "medium",
+          label: uiText("Média", "Medium", "Media"),
+          description: uiText(
+            "Revisão rápida recomendada",
+            "A quick review is recommended",
+            "Se recomienda una revisión rápida"
+          ),
+          tone: "medium"
+        },
+        {
+          value: "low",
+          label: uiText("Baixa", "Low", "Baja"),
+          description: uiText(
+            "Confira todos os valores",
+            "Check every value",
+            "Comprueba todos los valores"
+          ),
+          tone: "low"
+        }
+      ];
 
       function replaceEstimate(patch) {
         if (disabled) return;
@@ -79,6 +111,20 @@
       function addItem() {
         if (disabled) return;
         replaceEstimate({ items: [...items, createEmptyItem()] });
+      }
+
+      function confidenceChoice({ id, label, value, field, helperText, onValueChange }) {
+        return React.createElement("div", { "data-estimate-field": field },
+          React.createElement(ChoiceField, {
+            id,
+            label,
+            value: value || "low",
+            options: confidenceOptions,
+            disabled: !!disabled,
+            onChange: onValueChange,
+            helperText,
+            closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector")
+          }));
       }
 
       function numberInput(item, definition) {
@@ -132,18 +178,14 @@
           style: inputStyle
         })
       ),
-      React.createElement("label", { style: labelStyle },
-        uiText("Confian\u00e7a geral", "Overall confidence", "Confianza general"),
-        React.createElement("select", {
-          value: estimate.overallConfidence || "low",
-          disabled: !!disabled,
-          "data-estimate-field": "overallConfidence",
-          onChange: event => replaceEstimate({ overallConfidence: event.target.value }),
-          style: inputStyle
-        },
-        React.createElement("option", { value: "high" }, uiText("Alta", "High", "Alta")),
-        React.createElement("option", { value: "medium" }, uiText("M\u00e9dia", "Medium", "Media")),
-        React.createElement("option", { value: "low" }, uiText("Baixa", "Low", "Baja"))))),
+      confidenceChoice({
+        id: "estimate-overall-confidence",
+        label: uiText("Confian\u00e7a geral", "Overall confidence", "Confianza general"),
+        value: estimate.overallConfidence,
+        field: "overallConfidence",
+        helperText: uiText("Revise o nível da estimativa", "Review the estimate level", "Revisa el nivel de la estimación"),
+        onValueChange: value => replaceEstimate({ overallConfidence: value })
+      })),
 
       items.map((item, index) => React.createElement("article", {
         key: item.id,
@@ -201,18 +243,14 @@
         })
       ),
       numberInput(item, { key: "estimatedGrams", label: uiText("Peso estimado", "Estimated weight", "Peso estimado"), unit: "g", step: "1" }),
-      React.createElement("label", { style: labelStyle },
-        uiText("Confian\u00e7a", "Confidence", "Confianza"),
-        React.createElement("select", {
-          value: item.confidence || "low",
-          disabled: !!disabled,
-          "data-estimate-field": "confidence",
-          onChange: event => updateItem(item.id, "confidence", event.target.value),
-          style: inputStyle
-        },
-        React.createElement("option", { value: "high" }, uiText("Alta", "High", "Alta")),
-        React.createElement("option", { value: "medium" }, uiText("M\u00e9dia", "Medium", "Media")),
-        React.createElement("option", { value: "low" }, uiText("Baixa", "Low", "Baja"))))),
+      confidenceChoice({
+        id: "estimate-item-confidence-" + String(item.id).replace(/[^a-zA-Z0-9_-]/g, "-"),
+        label: uiText("Confian\u00e7a", "Confidence", "Confianza"),
+        value: item.confidence,
+        field: "confidence",
+        helperText: uiText("Revise o nível deste alimento", "Review this food confidence", "Revisa la confianza de este alimento"),
+        onValueChange: value => updateItem(item.id, "confidence", value)
+      })),
       React.createElement("div", {
         style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))", gap: 8 }
       }, nutrientDefinitions.map(definition => numberInput(item, {

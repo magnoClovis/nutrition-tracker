@@ -384,7 +384,8 @@ const {
   calendarMonthStats,
   Ring,
   Bar,
-  GaResultCard
+  GaResultCard,
+  ChoiceField
 });
 const {
   AppHeaderNavigation
@@ -458,7 +459,8 @@ const {
     AddScreen,
     MetricsScreen,
     DiaryScreen,
-    AppHeaderNavigation
+    AppHeaderNavigation,
+    ChoiceField
   },
   browser: {
     windowObject: window,

@@ -231,11 +231,16 @@ const mealEstimateDomain = MealEstimate.createMealEstimate({
   ),
 });
 
+const {
+  ChoiceField,
+} = ChoiceFieldModule.createChoiceField({ React });
+
 const { MealEstimateEditor } = MealEstimateEditorModule.createMealEstimateEditor({
   React,
   pickLang,
   createEmptyItem: mealEstimateDomain.createEmptyItem,
   calculateTotals: mealEstimateDomain.calculateTotals,
+  ChoiceField,
 });
 
 const { ImageMealScreen } = ImageMealScreenModule.createImageMealScreen({
@@ -535,10 +540,6 @@ const {
 });
 
 const {
-  ChoiceField,
-} = ChoiceFieldModule.createChoiceField({ React });
-
-const {
   AddScreen,
 } = AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField });
 
@@ -568,6 +569,7 @@ const {
   Ring,
   Bar,
   GaResultCard,
+  ChoiceField,
 });
 
 const {
@@ -644,6 +646,7 @@ const {
     MetricsScreen,
     DiaryScreen,
     AppHeaderNavigation,
+    ChoiceField,
   },
   browser: {
     windowObject: window,

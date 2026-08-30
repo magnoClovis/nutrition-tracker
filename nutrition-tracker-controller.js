@@ -308,7 +308,8 @@
       AddScreen,
       MetricsScreen,
       DiaryScreen,
-      AppHeaderNavigation
+      AppHeaderNavigation,
+      ChoiceField
     } = screens;
     const {
       windowObject,
@@ -835,7 +836,8 @@
         pickLang,
         templateEntries,
         templateTotals,
-        templateItemEntry
+        templateItemEntry,
+        ChoiceField
       });
       const {
         getAutomaticMealSuggestionLimits: calculateAutomaticMealSuggestionLimits,
@@ -4981,26 +4983,15 @@
         ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
             "data-image-meal-registration-options": "true",
             style: { marginBottom: 10 }
-          }, /*#__PURE__*/React.createElement("label", {
-            htmlFor: "image-meal-category",
-            style: { display: "block", color: "var(--muted)", fontSize: 12, marginBottom: 5 }
-          }, uiText("Categoria da refeição", "Meal category", "Categoría de la comida")), /*#__PURE__*/React.createElement("select", {
+          }, /*#__PURE__*/React.createElement(ChoiceField, {
             id: "image-meal-category",
+            label: uiText("Categoria da refeição", "Meal category", "Categoría de la comida"),
             value: staged.meal,
-            onChange: event => setStaged(current => ({ ...current, meal: event.target.value })),
-            style: {
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "9px 10px",
-              borderRadius: 7,
-              border: "1px solid var(--border)",
-              background: "var(--input)",
-              color: "var(--text)"
-            }
-          }, MEALS.map(meal => /*#__PURE__*/React.createElement("option", {
-            key: meal,
-            value: meal
-          }, mealLabel(meal))))), /*#__PURE__*/React.createElement(imageMealFeature.ImageMealScreen, {
+            onChange: value => setStaged(current => ({ ...current, meal: value })),
+            options: MEALS.map(meal => ({ value: meal, label: mealLabel(meal) })),
+            helperText: uiText("Onde esta foto será registrada", "Where this photo will be logged", "Dónde se registrará esta foto"),
+            closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector")
+          })), /*#__PURE__*/React.createElement(imageMealFeature.ImageMealScreen, {
             state: imageMealState,
             lang,
             isMobileView,

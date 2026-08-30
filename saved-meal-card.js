@@ -24,6 +24,7 @@
    * @param {function(Object): Array<Object>} dependencies.templateEntries Entry builder from `food-entry.js`.
    * @param {function(Object): Object} dependencies.templateTotals Totals builder from `food-entry.js`.
    * @param {function(Object): Object} dependencies.templateItemEntry Item calculator from `food-entry.js`.
+   * @param {function(Object): Object} dependencies.ChoiceField App-local controlled list selector.
    * @returns {{SavedMealCard: function(Object): Object}} Component API.
    */
   function createSavedMealCard({
@@ -31,12 +32,13 @@
     pickLang,
     templateEntries,
     templateTotals,
-    templateItemEntry
+    templateItemEntry,
+    ChoiceField
   }) {
     if (!React || typeof React.createElement !== "function" || typeof pickLang !== "function"
       || typeof templateEntries !== "function" || typeof templateTotals !== "function"
-      || typeof templateItemEntry !== "function") {
-      throw new TypeError("SavedMealCard requires React, pickLang, and food-entry template helpers");
+      || typeof templateItemEntry !== "function" || typeof ChoiceField !== "function") {
+      throw new TypeError("SavedMealCard requires React, pickLang, food-entry template helpers, and ChoiceField");
     }
 
     const inputStyle = {
@@ -213,13 +215,17 @@
         value: editDraft.name,
         onChange: event => onEditDraftChange(draft => ({ ...draft, name: event.target.value })),
         style: inputStyle
-      })), React.createElement("div", null, React.createElement("label", {
-        style: labelStyle
-      }, uiText("Refei\u00e7\u00e3o padr\u00e3o", "Default meal", "Comida predeterminada")), React.createElement("select", {
+      })), React.createElement("div", {
+        "data-saved-meal-default-choice": "true"
+      }, React.createElement(ChoiceField, {
+        id: "saved-meal-default-" + String(template.id || "template").replace(/[^a-zA-Z0-9_-]/g, "-"),
+        label: uiText("Refei\u00e7\u00e3o padr\u00e3o", "Default meal", "Comida predeterminada"),
         value: editDraft.meal,
-        onChange: event => onEditDraftChange(draft => ({ ...draft, meal: event.target.value })),
-        style: inputStyle
-      }, mealOptions.map(meal => React.createElement("option", { key: meal, value: meal }, getMealLabel(meal)))))), templateEditRows, React.createElement("div", {
+        onChange: value => onEditDraftChange(draft => ({ ...draft, meal: value })),
+        options: mealOptions.map(meal => ({ value: meal, label: getMealLabel(meal) })),
+        helperText: uiText("Usada ao carregar esta refeição salva", "Used when loading this saved meal", "Se usa al cargar esta comida guardada"),
+        closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector")
+      }))), templateEditRows, React.createElement("div", {
         style: {
           display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "minmax(180px, 1fr) 96px auto",
           gap: 8, alignItems: "end", marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border3)"
