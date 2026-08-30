@@ -102,7 +102,7 @@ test.describe('authenticated SearchableChoiceField visual contract', () => {
     return trigger;
   }
 
-  async function openDiarySupplement(page, diaryLabel = /Di.rio|Diary/i, registerLabel = /Registrar suplemento|Register supplement/i) {
+  async function openDiarySupplement(page, diaryLabel = /Di.rio|Diary/i, registerLabel = /Registrar suplemento|Log supplement/i) {
     await clickByTutorialKeyOrText(page, 'tab-diario', diaryLabel);
     const trigger = page.locator('#diary-supplement-trigger');
     if (!await trigger.isVisible().catch(() => false)) {
