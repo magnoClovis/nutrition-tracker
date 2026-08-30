@@ -364,6 +364,81 @@ test.describe('authenticated critical data flows', () => {
     }
   });
 
+  test('renders the contextual meal score presentation in PT, EN, and ES', async ({ page }) => {
+    test.setTimeout(90000);
+    await interceptOptionalExternalApis(page, { aiDelayMs: 300 });
+    const errors = await openApp(page);
+
+    const today = await page.evaluate(() => new Date().toISOString().split('T')[0]);
+    const previousLog = await readDailyLog(page, today);
+    const previousLanguage = await readStorage(page, 'language');
+    const fixture = {
+      id: `score-language-food-${Date.now()}`,
+      name: `Score language matrix ${Date.now()}`,
+      unit: 'g',
+      protein100: 25,
+      kcal100: 180,
+      carbs100: 12,
+      fat100: 5,
+      fiber100: 4,
+      salt100: 0.3
+    };
+    await replaceDailyLog(page, today, {});
+    const previousPantry = await replacePantry(page, [fixture]);
+    const languageMatrix = [
+      {
+        language: 'pt',
+        heading: 'Adequação ao restante do dia',
+        confidence: /Confiança dos dados: Alta/,
+        ranges: /Faixas: 0–2,99 pouco alinhada/,
+        help: 'O que estou vendo?',
+        disclaimer: /Não mede saúde absoluta, não faz diagnóstico e não substitui orientação profissional\./
+      },
+      {
+        language: 'en',
+        heading: 'Fit with the rest of the day',
+        confidence: /Data confidence: High/,
+        ranges: /Ranges: 0–2\.99 low alignment/,
+        help: 'What am I seeing?',
+        disclaimer: /It does not measure absolute health, make a diagnosis, or replace professional guidance\./
+      },
+      {
+        language: 'es',
+        heading: 'Adecuación al resto del día',
+        confidence: /Confianza de los datos: Alta/,
+        ranges: /Rangos: 0–2,99 poco alineada/,
+        help: '¿Qué estoy viendo?',
+        disclaimer: /No mide la salud absoluta, no realiza diagnósticos ni sustituye la orientación profesional\./
+      }
+    ];
+
+    try {
+      for (const copy of languageMatrix) {
+        await setAppLanguage(page, copy.language);
+        await openStagedMeal(page);
+        await addPantryFoodToStagedMeal(page, fixture.name, 100);
+
+        const stagedMeal = page.locator('[data-app-main="adicionar"]:visible');
+        await stagedMeal.getByRole('button', { name: /Avaliar refeição|Evaluate meal|Evaluar comida/i }).click();
+
+        const modal = page.locator('[data-meal-review-modal="true"]');
+        await expect(modal).toBeVisible();
+        await expect(modal.getByText(copy.heading, { exact: true })).toBeVisible();
+        await expect(modal.getByText(copy.confidence)).toBeVisible();
+        await expect(modal.getByText(copy.ranges)).toBeVisible();
+        await modal.getByRole('button', { name: copy.help, exact: true }).click();
+        await expect(modal.getByText(copy.disclaimer)).toBeVisible();
+      }
+
+      const unexpectedErrors = errors.filter(error => !/Failed to load resource: net::ERR_TIMED_OUT/i.test(error));
+      await expectNoCriticalErrors(unexpectedErrors);
+    } finally {
+      await replaceDailyLog(page, today, previousLog);
+      await restoreStorage(page, 'pantry_v2', previousPantry);
+      await restoreStorage(page, 'language', previousLanguage);
+    }
+  });
+
   test('adds a GA suggestion and preserves the suggested nutrient math', async ({ page }) => {
     test.setTimeout(90000);
     await interceptOptionalExternalApis(page);
