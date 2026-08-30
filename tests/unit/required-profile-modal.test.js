@@ -13,6 +13,8 @@ const { normalizeLanguage, pickLang } = createI18n();
 const { ACTIVITY_LEVELS } = createGoalCalculator();
 const currentDispatcher = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentDispatcher;
 
+function ChoiceField() {}
+
 function createHookHarness(Component, props) {
   const state = [];
   let tree;
@@ -74,6 +76,7 @@ function createFixture(createRequiredProfileModal, profile = {}, persisted = {})
     React,
     normalizeLanguage,
     pickLang,
+    ChoiceField,
     activityLevels: ACTIVITY_LEVELS,
     storage,
     isValidBirthDate: validation.isValidBirthDate,
@@ -112,13 +115,13 @@ contractTest("renders empty, partial, and complete persisted profile values", cr
   const empty = createFixture(createRequiredProfileModal);
   let tree = empty.harness.render();
   assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), [""]);
-  assert.deepEqual(elementsByType(tree, "select").map(select => select.props.value), ["", "", ""]);
+  assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), ["", "", ""]);
   assert.equal(elementsByType(tree, "input")[0].props.max, "2026-07-31");
 
   const partial = createFixture(createRequiredProfileModal, { birthDate: "1990-06-15", gender: "female" });
   tree = partial.harness.render();
   assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), ["1990-06-15"]);
-  assert.deepEqual(elementsByType(tree, "select").map(select => select.props.value), ["female", "", ""]);
+  assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), ["female", "", ""]);
 
   const complete = createFixture(createRequiredProfileModal, {
     birthDate: "1990-06-15",
@@ -130,7 +133,26 @@ contractTest("renders empty, partial, and complete persisted profile values", cr
   });
   tree = complete.harness.render();
   assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), ["1990-06-15", "5.5", "12"]);
-  assert.deepEqual(elementsByType(tree, "select").map(select => select.props.value), ["male", "moderate", "loss"]);
+  assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), ["male", "moderate", "loss"]);
+});
+
+contractTest("uses inline gender and described bottom-sheet activity and goal ChoiceFields", createRequiredProfileModal => {
+  const fixture = createFixture(createRequiredProfileModal);
+  const tree = fixture.harness.render();
+  const fields = elementsByType(tree, ChoiceField);
+
+  assert.equal(elementsByType(tree, "select").length, 0);
+  assert.deepEqual(fields.map(field => field.props.id), [
+    "required-profile-gender",
+    "required-profile-activity",
+    "required-profile-goal"
+  ]);
+  assert.equal(fields[0].props.options.length, 2);
+  assert.equal(fields[0].props.options.some(option => option.description), false);
+  assert.equal(fields[1].props.options.length, 5);
+  assert.equal(fields[1].props.options.every(option => option.description), true);
+  assert.equal(fields[2].props.options.length, 3);
+  assert.equal(fields[2].props.options.every(option => option.description), true);
 });
 
 contractTest("rejects invalid birth date, gender, activity level, and goal combination", async (createRequiredProfileModal, t) => {

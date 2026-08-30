@@ -10,7 +10,7 @@ const implementations = [
 implementations.forEach(([format, load]) => {
   test(`${format}: exposes a reusable controlled ChoiceField`, async () => {
     const { createChoiceField } = await load();
-    const { ChoiceField, normalizeOptions } = createChoiceField({ React });
+    const { ChoiceField, normalizeOptions, resolveChoiceFieldMode } = createChoiceField({ React });
 
     assert.equal(typeof ChoiceField, "function");
     assert.deepEqual(normalizeOptions([
@@ -34,6 +34,16 @@ implementations.forEach(([format, load]) => {
       description: "A quick review is recommended",
       tone: "medium"
     }]);
+    assert.equal(resolveChoiceFieldMode([
+      { value: "male", label: "Male" },
+      { value: "female", label: "Female" }
+    ]), "inline");
+    assert.equal(resolveChoiceFieldMode(Array.from({ length: 5 }, (_, index) => String(index))), "inline");
+    assert.equal(resolveChoiceFieldMode(Array.from({ length: 6 }, (_, index) => String(index))), "sheet");
+    assert.equal(resolveChoiceFieldMode([
+      { value: "loss", label: "Weight loss", description: "Reduce weight gradually" },
+      { value: "gain", label: "Weight gain" }
+    ]), "sheet");
   });
 
   test(`${format}: rejects a missing React dependency`, async () => {

@@ -139,7 +139,8 @@ test.describe('public boot and login screen', () => {
     await page.locator('input[type="password"]').nth(1).fill('secret123');
     await page.locator('input[autocomplete="name"]').fill('New User');
     await page.locator('input[type="date"]').fill('1990-01-01');
-    await page.locator('select').selectOption('female');
+    await page.locator('#registration-gender-trigger').click();
+    await page.getByRole('option', { name: /Feminino|Female|Femenino/i }).click();
     await page.getByRole('button', { name: /Criar conta|Create account/i }).last().click();
 
     await expect(page.getByText(/EMAIL_DELIVERY_FAILED/)).toBeVisible();

@@ -137,9 +137,12 @@ async function authenticateAndCompleteProfile(page) {
 
   await expect(page.locator('input[type="date"]')).toBeVisible();
   await page.locator('input[type="date"]').fill('1990-06-15');
-  await page.locator('select').nth(0).selectOption('female');
-  await page.locator('select').nth(1).selectOption('moderate');
-  await page.locator('select').nth(2).selectOption('maintenance');
+  await page.locator('#required-profile-gender-trigger').click();
+  await page.getByRole('option', { name: /Feminino|Female|Femenino/i }).click();
+  await page.locator('#required-profile-activity-trigger').click();
+  await page.getByRole('option').filter({ hasText: /Moderadamente ativo|Moderately active|Moderadamente activo/i }).click();
+  await page.locator('#required-profile-goal-trigger').click();
+  await page.getByRole('option').filter({ hasText: /Manutenção do peso|Weight maintenance|Mantenimiento del peso/i }).click();
   await page.locator('button[type="submit"]').click();
   await expect(page.locator('[data-screen="diario"]')).toBeVisible({ timeout: 15000 });
 }
