@@ -445,7 +445,7 @@
         fat: "Fats",
         satfat: "of which saturated",
         fiber: "Fiber",
-        salt: "Sodium",
+        salt: "Salt",
         water: "Water",
         // Micro
         vitB12: "Vitamin B12",
@@ -650,7 +650,7 @@
         goalCarbs: "Carbs (g)",
         goalFat: "Fat (g)",
         goalFiber: "Fiber (g)",
-        goalSalt: "Sodium (g)",
+        goalSalt: "Salt (g)",
         goalWater: "Water (ml)",
         saveGoals: "Save goals",
         resetGoals: "Reset to default",
