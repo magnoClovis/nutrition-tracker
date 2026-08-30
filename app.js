@@ -370,7 +370,8 @@ const {
   BodyMetricChart,
   WeightTrendChart,
   BmrTrendChart,
-  BodyFatTrendChart
+  BodyFatTrendChart,
+  ChoiceField
 });
 
 const {

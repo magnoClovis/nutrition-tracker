@@ -555,6 +555,7 @@ const {
   WeightTrendChart,
   BmrTrendChart,
   BodyFatTrendChart,
+  ChoiceField,
 });
 
 const {

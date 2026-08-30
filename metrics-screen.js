@@ -36,6 +36,7 @@
    * @param {function(Object): Object} dependencies.WeightTrendChart Weight chart component.
    * @param {function(Object): Object} dependencies.BmrTrendChart BMR chart component.
    * @param {function(Object): Object} dependencies.BodyFatTrendChart Body-fat chart component.
+   * @param {function(Object): Object} dependencies.ChoiceField Reusable Trofia list selector.
    * @returns {{MetricsScreen: function(Object): Object}} Metrics screen API.
    */
   function createMetricsScreen({
@@ -45,13 +46,15 @@
     BodyMetricChart,
     WeightTrendChart,
     BmrTrendChart,
-    BodyFatTrendChart
+    BodyFatTrendChart,
+    ChoiceField
   }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof formatDateDMY !== "function"
       || typeof BodyMetricChart !== "function" || typeof WeightTrendChart !== "function"
-      || typeof BmrTrendChart !== "function" || typeof BodyFatTrendChart !== "function") {
-      throw new TypeError("MetricsScreen requires React, i18n/date helpers, and body-metrics chart components");
+      || typeof BmrTrendChart !== "function" || typeof BodyFatTrendChart !== "function"
+      || typeof ChoiceField !== "function") {
+      throw new TypeError("MetricsScreen requires React, ChoiceField, i18n/date helpers, and body-metrics chart components");
     }
     const inp = {
       width: "100%",
@@ -192,6 +195,42 @@
       onOpenAdvancedReports
     }) {
       const uiText = (pt, en, es) => pickLang(lang, pt, en, es);
+      const activityOptions = Object.entries(activityLevels).map(([key, data]) => ({
+        value: key,
+        label: uiText(data.pt, data.en, data.es),
+        description: uiText(data.descPt, data.descEn, data.descEs)
+      }));
+      const goalOptions = [
+        {
+          value: "maintenance",
+          label: uiText("Manutenção", "Maintenance", "Mantenimiento"),
+          description: uiText(
+            "Manter o peso e a composição atuais",
+            "Maintain your current weight and body composition",
+            "Mantener el peso y la composición actuales"
+          )
+        },
+        {
+          value: "loss",
+          label: uiText("Perda de peso", "Weight loss", "Pérdida de peso"),
+          description: uiText(
+            "Reduzir o peso de forma gradual",
+            "Reduce weight gradually",
+            "Reducir el peso de forma gradual"
+          )
+        },
+        {
+          value: "gain",
+          label: uiText("Ganho de peso", "Weight gain", "Ganancia de peso"),
+          description: uiText(
+            "Aumentar o peso de forma gradual",
+            "Increase weight gradually",
+            "Aumentar el peso de forma gradual"
+          )
+        }
+      ];
+      const choicePlaceholder = uiText("Selecionar", "Select", "Seleccionar");
+      const choiceCloseLabel = uiText("Fechar", "Close", "Cerrar");
   function renderReportsCard() {
     const reportsUnavailable = !reportsEnabled;
     return /*#__PURE__*/React.createElement("div", {
@@ -285,32 +324,23 @@
       gap: 10,
       alignItems: "start"
     }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, pickLang(lang, "Atividade física", "Physical activity", "Actividad física")), /*#__PURE__*/React.createElement("select", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(ChoiceField, {
+    id: "metrics-activity",
+    label: pickLang(lang, "Atividade física", "Physical activity", "Actividad física"),
     value: nutritionPrefs.activityLevel || "",
-    onChange: e => saveNutritionPrefs({...nutritionPrefs, activityLevel: e.target.value}),
-    style: inp
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, pickLang(lang, "Selecionar", "Select", "Seleccionar")), Object.entries(activityLevels).map(([key, data]) => /*#__PURE__*/React.createElement("option", {
-    key,
-    value: key
-  }, pickLang(lang, data.pt + " - " + data.descPt, data.en + " - " + data.descEn, data.es + " - " + data.descEs))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, pickLang(lang, "Objetivo", "Goal", "Objetivo")), /*#__PURE__*/React.createElement("select", {
+    onChange: activityLevel => saveNutritionPrefs({...nutritionPrefs, activityLevel}),
+    placeholder: choicePlaceholder,
+    closeLabel: choiceCloseLabel,
+    options: activityOptions
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(ChoiceField, {
+    id: "metrics-goal",
+    label: pickLang(lang, "Objetivo", "Goal", "Objetivo"),
     value: nutritionPrefs.goalType || "",
-    onChange: e => saveNutritionPrefs({...nutritionPrefs, goalType: e.target.value}),
-    style: inp
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, pickLang(lang, "Selecionar", "Select", "Seleccionar")), /*#__PURE__*/React.createElement("option", {
-    value: "maintenance"
-  }, pickLang(lang, "Manutenção", "Maintenance", "Mantenimiento")), /*#__PURE__*/React.createElement("option", {
-    value: "loss"
-  }, pickLang(lang, "Perda de peso", "Weight loss", "Pérdida de peso")), /*#__PURE__*/React.createElement("option", {
-    value: "gain"
-  }, pickLang(lang, "Ganho de peso", "Weight gain", "Ganancia de peso")))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    onChange: goalType => saveNutritionPrefs({...nutritionPrefs, goalType}),
+    placeholder: choicePlaceholder,
+    closeLabel: choiceCloseLabel,
+    options: goalOptions
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: lbl
   }, pickLang(lang, "Altura do perfil (cm)", "Profile height (cm)", "Altura del perfil (cm)")), /*#__PURE__*/React.createElement("input", {
     type: "number",

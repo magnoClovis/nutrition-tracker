@@ -12,6 +12,7 @@ function BodyMetricChart() { return null; }
 function WeightTrendChart() { return null; }
 function BmrTrendChart() { return null; }
 function BodyFatTrendChart() { return null; }
+function ChoiceField() { return null; }
 
 const { pickLang, normalizeLanguage, localeForLang } = createI18n();
 const { formatDateDMY } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
@@ -205,7 +206,8 @@ function contractTest(name, callback) {
         BodyMetricChart,
         WeightTrendChart,
         BmrTrendChart,
-        BodyFatTrendChart
+        BodyFatTrendChart,
+        ChoiceField
       });
       return callback(MetricsScreen);
     });
@@ -246,11 +248,17 @@ contractTest("renders complete goal profile and delegates profile decisions", Me
   assert.match(rendered, /Final target2200 kcal/);
   assert.match(rendered, /This is a high adjustment/);
 
-  const activity = findNodes(
-    screen,
-    node => node.type === "select" && node.props.value === "moderate"
-  )[0];
-  activity.props.onChange({ target: { value: "moderate" } });
+  const activity = findNodes(screen, node => node.type === ChoiceField && node.props.id === "metrics-activity")[0];
+  const goal = findNodes(screen, node => node.type === ChoiceField && node.props.id === "metrics-goal")[0];
+  assert.ok(activity);
+  assert.ok(goal);
+  assert.equal(activity.props.options.length, 1);
+  assert.equal(activity.props.options[0].description, "Active");
+  assert.equal(goal.props.options.length, 3);
+  assert.ok(goal.props.options.every(option => option.description));
+  assert.equal(findNodes(screen, node => node.type === "select").length, 0);
+  activity.props.onChange("moderate");
+  goal.props.onChange("gain");
   const profileHeight = findNodes(
     screen,
     node => node.type === "input" && node.props.value === "175"
@@ -263,6 +271,7 @@ contractTest("renders complete goal profile and delegates profile decisions", Me
   targetInput.props.onChange({ target: { value: "13" } });
 
   assert.equal(saved[0].activityLevel, "moderate");
+  assert.equal(saved[1].goalType, "gain");
   assert.equal(height, "180");
   assert.equal(fatTarget, "13");
 });
