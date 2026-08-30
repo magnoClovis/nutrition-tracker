@@ -30,6 +30,60 @@ contractTest("returns a deterministic score inside the 0-5 range", (MealScore) =
   assert.equal(first.confidence, "high");
 });
 
+contractTest("builds detached v2 snapshots through the shared persistence contract", (MealScore) => {
+  const result = MealScore.calculateMealScore({
+    candidateEntries: [{ kcal: 420, protein: 32, fiber: 8, salt: 0.8 }],
+    consumedEntries: [],
+    goals: { kcal: 2000, protein: 140, fiber: 30, salt: 5 },
+    mealOccurredAt: "2026-07-10T19:30:00-03:00",
+    evaluatedAt: "2026-07-10T22:00:00-03:00"
+  });
+  const snapshot = MealScore.buildMealScoreSnapshot(result);
+
+  assert.equal(snapshot.algorithmVersion, "meal-score-v2");
+  assert.equal(snapshot.mealOccurredAt, "2026-07-10T19:30:00-03:00");
+  assert.equal(snapshot.evaluatedAt, "2026-07-10T22:00:00-03:00");
+  assert.deepEqual(snapshot.provisionalReasons, result.provisionalReasons);
+  snapshot.components.kcal.score = -1;
+  assert.notEqual(result.components.kcal.score, -1);
+  assert.throws(() => MealScore.buildMealScoreSnapshot({
+    ...result,
+    algorithmVersion: "meal-score-v1.1"
+  }), /current-version/);
+});
+
+contractTest("reads v1.1 and v2 snapshots without upgrading historical scores", (MealScore) => {
+  const historical = {
+    algorithmVersion: "meal-score-v1.1",
+    score: 3.25,
+    coverage: 0.75,
+    evaluatedAt: "2026-06-01T12:00:00.000Z",
+    components: { kcal: { score: 0.6 } }
+  };
+  const current = {
+    algorithmVersion: "meal-score-v2",
+    score: 3.25,
+    coverage: 0.9,
+    components: { kcal: { score: 0.8 } }
+  };
+
+  const inspectedHistorical = MealScore.inspectMealScoreSnapshot(historical);
+  const inspectedCurrent = MealScore.inspectMealScoreSnapshot(current);
+  assert.equal(inspectedHistorical.compatibility, "historical");
+  assert.equal(inspectedHistorical.comparableWithCurrent, false);
+  assert.deepEqual(inspectedHistorical.snapshot, historical);
+  assert.equal(inspectedCurrent.compatibility, "current");
+  assert.equal(inspectedCurrent.comparableWithCurrent, true);
+  assert.equal(MealScore.areMealScoreSnapshotsComparable(historical, current), false);
+  assert.equal(MealScore.areMealScoreSnapshotsComparable(historical, {...historical}), true);
+
+  inspectedHistorical.snapshot.components.kcal.score = 0;
+  assert.equal(historical.components.kcal.score, 0.6);
+  assert.equal(MealScore.inspectMealScoreSnapshot({algorithmVersion: "unknown", score: 4}), null);
+  assert.equal(MealScore.inspectMealScoreSnapshot({algorithmVersion: "meal-score-v2", score: 8}), null);
+  assert.equal(MealScore.inspectMealScoreSnapshot({algorithmVersion: "meal-score-v2", score: "4"}), null);
+});
+
 contractTest("excludes incomplete optional nutrients with exact provisional reasons", (MealScore) => {
   const result = MealScore.calculateMealScore({
     goals: { protein: 150, kcal: 2000, fiber: 30, salt: 5 },

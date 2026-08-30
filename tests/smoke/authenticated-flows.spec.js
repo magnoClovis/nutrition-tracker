@@ -345,6 +345,10 @@ test.describe('authenticated critical data flows', () => {
       const storedLog = await readDailyLog(page, today);
       const storedEntry = Object.values(storedLog).flat().find(item => item.name === fixture.name);
       expect(storedEntry.qty).toBe(200);
+      expect(storedEntry.mealScoreSnapshot.algorithmVersion).toBe('meal-score-v2');
+      expect(storedEntry.mealScoreSnapshot.confidence).toBe('high');
+      expect(storedEntry.mealScoreSnapshot.provisional).toBe(false);
+      expect(storedEntry.mealScoreSnapshot.mealOccurredAt).toMatch(new RegExp(`^${today}T`));
       expect(storedEntry.mealScoreSnapshot.score).toBeGreaterThanOrEqual(0);
       expect(storedEntry.mealScoreSnapshot.score).toBeLessThanOrEqual(5);
       expect(storedEntry.mealScoreSnapshot.components.protein.mealAmount).toBe(50);

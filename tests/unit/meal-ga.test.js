@@ -1,6 +1,5 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const MealScore = require("../../meal-score.js");
 const { createI18n } = require("../../i18n.js");
 const { createDateUtils } = require("../../date-utils.js");
 const { createFoodEntry } = require("../../food-entry.js");
@@ -33,7 +32,6 @@ function createFixture(createMealGA, { seed = 42, initialLog = {}, updateActiveL
     buildDayTotals: () => ({})
   });
   const api = createMealGA({
-    mealScore: MealScore,
     buildEntry: foodEntry.buildEntry,
     updateActiveLog: updater => {
       updateCount++;
@@ -102,7 +100,7 @@ function searchInput(overrides = {}) {
   };
 }
 
-contractTest("calculates automatic limits with the real MealScore timing functions", createFixture => {
+contractTest("keeps the explicit GA v1 timing contract independent from MealScore calibration", createFixture => {
   const { api } = createFixture();
   const limits = api.getAutomaticMealSuggestionLimits({
     activeLog: {

@@ -854,7 +854,6 @@
         runGA: runMealGA,
         addGAResultToDiary: applyGAResultToDiary
       } = window.MealGA.createMealGA({
-        mealScore: window.MealScore,
         buildEntry,
         updateActiveLog: updater => setActiveLog(updater),
         random: Math.random,
@@ -3950,20 +3949,7 @@
         return positiveText + cautionText;
       }
       function mealScoreSnapshot(result) {
-        return {
-          algorithmVersion: result.algorithmVersion,
-          score: result.score,
-          coverage: result.coverage,
-          confidence: result.confidence,
-          provisional: result.provisional,
-          provisionalReasons: result.provisionalReasons,
-          applicableWeight: result.applicableWeight,
-          mealOccurredAt: result.mealOccurredAt,
-          evaluatedAt: result.evaluatedAt,
-          hoursLeft: result.hoursLeft,
-          windowHours: result.windowHours,
-          components: result.components
-        };
+        return window.MealScore.buildMealScoreSnapshot(result);
       }
       async function generateMealReviewExplanation(review) {
         setMealReviewAiText("");

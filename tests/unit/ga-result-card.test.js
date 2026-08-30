@@ -41,7 +41,7 @@ const result = {
   items: [{
     food: {
       name: "Aveia", unit: "g", protein100: 10, kcal100: 200,
-      fiber100: 8, satfat100: 1, salt100: 0.2
+      carbs100: 60, fat100: 7, fiber100: 8, satfat100: 1, salt100: 0.2
     },
     gene: 1.5
   }]
@@ -76,7 +76,8 @@ contractTest("preserves current-day projections, ranking, and item quantities", 
   });
   const copy = textContent(card);
   assert.deepEqual(evaluated, [{
-    protein: 15, kcal: 300, fiber: 12, satfat: 1.5, salt: 0.30000000000000004
+    protein: 15, kcal: 300, carbs: 90, fat: 10.5,
+    fiber: 12, satfat: 1.5, salt: 0.30000000000000004
   }]);
   assert.match(copy, /Melhor op\u00e7\u00e3o/);
   assert.match(copy, /Prote\u00edna depois: 80 \/ 100g \(80%\)/);

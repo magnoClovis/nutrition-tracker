@@ -16,6 +16,7 @@
   "use strict";
 
   const ALGORITHM_VERSION = "meal-score-v2";
+  const HISTORICAL_ALGORITHM_VERSIONS = Object.freeze(["meal-score-v1.1"]);
   const DEFAULT_WINDOW_HOURS = 3;
   const DEFAULT_CONFIG = [
     { key: "kcal", type: "target", weight: 25, required: true, underPower: 0.75, overDecay: 3.5 },
@@ -326,8 +327,70 @@
     };
   }
 
+  function cloneSnapshotValue(value) {
+    if (Array.isArray(value)) return value.map(cloneSnapshotValue);
+    if (!value || typeof value !== "object") return value;
+    const copy = {};
+    for (const [key, nestedValue] of Object.entries(value)) {
+      copy[key] = cloneSnapshotValue(nestedValue);
+    }
+    return copy;
+  }
+
+  /**
+   * Builds the immutable-at-rest representation persisted with every entry in
+   * a newly assessed meal. Keeping this projection next to the algorithm stops
+   * host controllers from silently drifting as result fields evolve.
+   */
+  function buildMealScoreSnapshot(result) {
+    if (!result || result.algorithmVersion !== ALGORITHM_VERSION || result.valid !== true ||
+        !Number.isFinite(result.score) || result.score < 0 || result.score > 5) {
+      throw new TypeError("A valid current-version meal score is required");
+    }
+    return cloneSnapshotValue({
+      algorithmVersion: result.algorithmVersion,
+      score: result.score,
+      coverage: result.coverage,
+      confidence: result.confidence,
+      provisional: result.provisional,
+      provisionalReasons: result.provisionalReasons,
+      applicableWeight: result.applicableWeight,
+      mealOccurredAt: result.mealOccurredAt,
+      evaluatedAt: result.evaluatedAt,
+      hoursLeft: result.hoursLeft,
+      windowHours: result.windowHours,
+      components: result.components
+    });
+  }
+
+  /**
+   * Reads a stored score without recalculating or upgrading it. Historical
+   * v1.1 snapshots keep their original shape and score; compatibility metadata
+   * is returned separately so calibrations are never mixed accidentally.
+   */
+  function inspectMealScoreSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return null;
+    const algorithmVersion = snapshot.algorithmVersion;
+    const supported = algorithmVersion === ALGORITHM_VERSION ||
+      HISTORICAL_ALGORITHM_VERSIONS.includes(algorithmVersion);
+    if (!supported || !Number.isFinite(snapshot.score) || snapshot.score < 0 || snapshot.score > 5) return null;
+    return {
+      algorithmVersion,
+      compatibility: algorithmVersion === ALGORITHM_VERSION ? "current" : "historical",
+      comparableWithCurrent: algorithmVersion === ALGORITHM_VERSION,
+      snapshot: cloneSnapshotValue(snapshot)
+    };
+  }
+
+  function areMealScoreSnapshotsComparable(first, second) {
+    const left = inspectMealScoreSnapshot(first);
+    const right = inspectMealScoreSnapshot(second);
+    return !!left && !!right && left.algorithmVersion === right.algorithmVersion;
+  }
+
   return {
     ALGORITHM_VERSION,
+    HISTORICAL_ALGORITHM_VERSIONS,
     DEFAULT_WINDOW_HOURS,
     DEFAULT_CONFIG,
     hoursUntilLocalMidnight,
@@ -338,6 +401,9 @@
     budgetScore,
     targetScore,
     limitScore,
-    calculateMealScore
+    calculateMealScore,
+    buildMealScoreSnapshot,
+    inspectMealScoreSnapshot,
+    areMealScoreSnapshotsComparable
   };
 });
