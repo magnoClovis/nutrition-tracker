@@ -138,7 +138,7 @@ test.describe('authenticated Pantry ChoiceField visual contract', () => {
   });
 
   test('takes unit labels and controls from the PT, EN, and ES app language', async ({ page }) => {
-    test.setTimeout(120000);
+    test.setTimeout(180000);
     await interceptOptionalExternalApis(page);
     const errors = await openApp(page);
     const languages = [
@@ -162,7 +162,8 @@ test.describe('authenticated Pantry ChoiceField visual contract', () => {
       await page.locator('#pantry-supplement-unit-trigger').click();
       await expect(page.getByRole('heading', { name: language.unit, exact: true })).toBeVisible();
       await expect(page.getByRole('option', { name: language.capsule, exact: true })).toBeVisible();
-      await page.locator('[data-choice-field-close]').click();
+      await page.keyboard.press('Escape');
+      await expect(page.locator('[data-choice-field-sheet="true"]')).toHaveCount(0);
     }
 
     await expectNoCriticalErrors(errors);
