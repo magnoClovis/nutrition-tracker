@@ -47,6 +47,7 @@ function baseProps(state, overrides = {}) {
     onCancelProcessing: () => {},
     onDiscard: () => {},
     onEstimateChange: () => {},
+    onReview: () => {},
     onConfirm: () => {},
     ...overrides,
   };
@@ -125,13 +126,17 @@ contractTest('shows the captured-photo checkpoint before analysis', ImageMealScr
 
 contractTest('renders identified result summary and wires the shared editable review', (ImageMealScreen, Editor) => {
   const changes = [];
+  let reviews = 0;
   const currentEstimate = estimate();
   const view = ImageMealScreen(baseProps({
     phase: 'result',
     photo: { previewUrl: 'blob:meal' },
     estimate: currentEstimate,
     validationErrors: [{ path: 'items.0.kcal', code: 'required-number' }],
-  }, { onEstimateChange: value => changes.push(value) }));
+  }, {
+    onEstimateChange: value => changes.push(value),
+    onReview: () => { reviews += 1; },
+  }));
   assert.match(textContent(view), /Arroz com frango/);
   assert.match(textContent(view), /Confiança: medium · 1 alimentos/);
   const editor = elements(view, Editor)[0];
@@ -141,6 +146,9 @@ contractTest('renders identified result summary and wires the shared editable re
   editor.props.onChange({ edited: true });
   assert.deepEqual(changes, [{ edited: true }]);
   assert.match(textContent(view), /Confirmar refeição/);
+  const reviewButton = elements(view, 'button').find(button => textContent(button) === 'Avaliar refeição');
+  reviewButton.props.onClick();
+  assert.equal(reviews, 1);
 });
 
 contractTest('keeps confirmation busy and disables editing and competing actions', (ImageMealScreen, Editor) => {

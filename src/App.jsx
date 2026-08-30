@@ -257,12 +257,13 @@ const imageMealRegistration = ImageMealRegistration.createImageMealRegistration(
 const imageMealFeature = Object.freeze({
   ImageMealScreen,
   buildRegistration: imageMealRegistration.buildImageMealRegistration,
-  createFlow: ({ onConfirm }) => ImageMealFlow.createImageMealFlow({
+  createFlow: ({ onReview, onConfirm }) => ImageMealFlow.createImageMealFlow({
     captureFromCamera: MealImageCaptureRuntime.captureMealImageFromCamera,
     chooseFromGallery: MealImageCaptureRuntime.chooseMealImageFromGallery,
     analyzeImageMeal: imageMealClient.analyzeImageMeal,
     normalizeMealEstimate: mealEstimateDomain.normalizeMealEstimate,
     validateMealEstimate: MealEstimate.validateMealEstimate,
+    onReview,
     onConfirm,
     createAbortController: () => new AbortController(),
     ImageMealClientError: ImageMealClient.ImageMealClientError,

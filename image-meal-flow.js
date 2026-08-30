@@ -52,6 +52,7 @@
     analyzeImageMeal,
     normalizeMealEstimate,
     validateMealEstimate,
+    onReview,
     onConfirm,
     createAbortController,
     ImageMealClientError,
@@ -59,9 +60,10 @@
   }) {
     if (typeof captureFromCamera !== "function" || typeof chooseFromGallery !== "function" ||
         typeof analyzeImageMeal !== "function" || typeof normalizeMealEstimate !== "function" ||
-        typeof validateMealEstimate !== "function" || typeof onConfirm !== "function" ||
+        typeof validateMealEstimate !== "function" || typeof onReview !== "function" ||
+        typeof onConfirm !== "function" ||
         typeof createAbortController !== "function") {
-      throw new TypeError("ImageMealFlow requires capture, AI, validation, confirmation, and abort dependencies");
+      throw new TypeError("ImageMealFlow requires capture, AI, validation, review, confirmation, and abort dependencies");
     }
 
     let state = initialState();
@@ -178,21 +180,38 @@
       return patch({ estimate, validationErrors: [], error: null });
     }
 
-    async function confirm() {
-      if (state.phase !== "result" || !state.estimate) return snapshot();
+    function normalizedReviewedEstimate() {
+      if (state.phase !== "result" || !state.estimate) return null;
       const validation = validateMealEstimate(state.estimate);
       if (!validation.valid) {
-        return patch({ validationErrors: validation.errors || [] });
+        patch({ validationErrors: validation.errors || [] });
+        return null;
       }
-      let normalized;
       try {
-        normalized = normalizeMealEstimate(state.estimate);
+        return normalizeMealEstimate(state.estimate);
       } catch (error) {
-        return patch({
+        patch({
           validationErrors: Array.isArray(error?.errors) ? error.errors : [],
           error: "invalid-response"
         });
+        return null;
       }
+    }
+
+    async function review() {
+      const normalized = normalizedReviewedEstimate();
+      if (!normalized) return snapshot();
+      try {
+        await onReview(normalized);
+        return patch({ validationErrors: [], error: null });
+      } catch (_) {
+        return patch({ error: "invalid-response" });
+      }
+    }
+
+    async function confirm() {
+      const normalized = normalizedReviewedEstimate();
+      if (!normalized) return snapshot();
       const currentOperation = ++operationId;
       patch({ phase: "confirming", validationErrors: [], error: null });
       try {
@@ -227,6 +246,7 @@
       process,
       cancelProcessing,
       updateEstimate,
+      review,
       confirm,
       discard,
       destroy: discard

@@ -39,6 +39,7 @@ function createFixture(module, overrides = {}) {
   let nextId = 0;
   const domain = MealEstimate.createMealEstimate({ createItemId: () => `item-${++nextId}` });
   const photos = [];
+  const reviews = [];
   const confirmations = [];
   const aborts = [];
   class ClientError extends Error {
@@ -66,6 +67,7 @@ function createFixture(module, overrides = {}) {
     analyzeImageMeal: overrides.analyzeImageMeal || (async () => remoteEstimate()),
     normalizeMealEstimate: domain.normalizeMealEstimate,
     validateMealEstimate: MealEstimate.validateMealEstimate,
+    onReview: overrides.onReview || (async value => { reviews.push(value); }),
     onConfirm: overrides.onConfirm || (async value => { confirmations.push(value); }),
     createAbortController: () => {
       const controller = {
@@ -77,7 +79,7 @@ function createFixture(module, overrides = {}) {
     ImageMealClientError: ClientError,
     MealEstimateValidationError: MealEstimate.MealEstimateValidationError,
   });
-  return { flow, photos, confirmations, aborts, photo, ClientError };
+  return { flow, photos, reviews, confirmations, aborts, photo, ClientError };
 }
 
 contractTest('moves from empty to camera/gallery photo and disposes replaced or discarded blobs', async module => {
@@ -204,4 +206,38 @@ contractTest('validates edits, confirms once, disposes the photo, and preserves 
   assert.equal(failed.error, 'confirmation-failed');
   assert.equal(failing.photos[0].disposed, false);
   assert.equal(failed.estimate.dishName, 'Rice bowl');
+});
+
+contractTest('validates and normalizes the optional review without confirming or disposing the photo', async module => {
+  const fixture = createFixture(module);
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.process('pt');
+  const photo = fixture.flow.getState().photo;
+
+  fixture.flow.updateEstimate({ ...fixture.flow.getState().estimate, dishName: '' });
+  const invalid = await fixture.flow.review();
+  assert.ok(invalid.validationErrors.some(error => error.path === 'dishName'));
+  assert.equal(fixture.reviews.length, 0);
+
+  fixture.flow.updateEstimate({ ...fixture.flow.getState().estimate, dishName: 'Reviewed bowl' });
+  const reviewed = await fixture.flow.review();
+  assert.equal(reviewed.phase, 'result');
+  assert.equal(reviewed.error, null);
+  assert.equal(fixture.reviews[0].dishName, 'Reviewed bowl');
+  assert.equal(fixture.confirmations.length, 0);
+  assert.equal(photo.disposed, false);
+});
+
+contractTest('keeps the edited photo result available when opening review fails', async module => {
+  const fixture = createFixture(module, {
+    onReview: async () => { throw new Error('review unavailable'); },
+  });
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.process('pt');
+  const failed = await fixture.flow.review();
+
+  assert.equal(failed.phase, 'result');
+  assert.equal(failed.error, 'invalid-response');
+  assert.equal(failed.estimate.dishName, 'Rice bowl');
+  assert.equal(fixture.photos[0].disposed, false);
 });
