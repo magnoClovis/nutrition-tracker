@@ -1,5 +1,5 @@
 const crypto = require('node:crypto');
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./app-check-fixture');
 const { isIgnorableConsoleError } = require('./test-helpers');
 
 const ORIGINS = {
