@@ -3,6 +3,7 @@ import { readLegacyNamespace } from './read-legacy-namespace.js';
 
 const {
   ALGORITHM_VERSION,
+  HISTORICAL_ALGORITHM_VERSIONS,
   DEFAULT_WINDOW_HOURS,
   DEFAULT_CONFIG,
   hoursUntilLocalMidnight,
@@ -14,8 +15,12 @@ const {
   targetScore,
   limitScore,
   calculateMealScore,
+  buildMealScoreSnapshot,
+  inspectMealScoreSnapshot,
+  areMealScoreSnapshotsComparable,
 } = readLegacyNamespace(globalThis, 'MealScore', [
   'ALGORITHM_VERSION',
+  'HISTORICAL_ALGORITHM_VERSIONS',
   'DEFAULT_WINDOW_HOURS',
   'DEFAULT_CONFIG',
   'hoursUntilLocalMidnight',
@@ -27,10 +32,14 @@ const {
   'targetScore',
   'limitScore',
   'calculateMealScore',
+  'buildMealScoreSnapshot',
+  'inspectMealScoreSnapshot',
+  'areMealScoreSnapshotsComparable',
 ]);
 
 export {
   ALGORITHM_VERSION,
+  HISTORICAL_ALGORITHM_VERSIONS,
   DEFAULT_WINDOW_HOURS,
   DEFAULT_CONFIG,
   hoursUntilLocalMidnight,
@@ -42,4 +51,7 @@ export {
   targetScore,
   limitScore,
   calculateMealScore,
+  buildMealScoreSnapshot,
+  inspectMealScoreSnapshot,
+  areMealScoreSnapshotsComparable,
 };

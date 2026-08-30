@@ -520,6 +520,7 @@ contractTest("freezes the real meal occurrence across review, reevaluation, and 
   assert.match(reviewBlock, /evaluateMealItems\(candidateItems, mealOccurredAt, evaluatedAt\)/);
   assert.match(source, /registrationTime: mealReview\.registrationTime[\s\S]*mealOccurredAt: mealReview\.mealOccurredAt/);
   assert.match(source, /applyMealRegistrationTime\(mealReview\.items, mealReview\.registrationTime\)/);
+  assert.match(source, /window\.MealScore\.buildMealScoreSnapshot\(result\)/);
 });
 
 contractTest("describes the five-gram nutrient target as salt in English goal notifications", createNutritionTrackerController => {
@@ -657,7 +658,6 @@ contractTest("keeps every render-scoped factory argument and current-render clos
     {
       factory: "MealGA.createMealGA",
       dependencies: [
-        "mealScore: window.MealScore",
         "buildEntry",
         "updateActiveLog: updater => setActiveLog(updater)",
         "random: Math.random",

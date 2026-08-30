@@ -69,6 +69,14 @@ Toda avaliação persistida identifica a versão do algoritmo e conserva o snaps
 
 Snapshots históricos não serão recalculados automaticamente. Comparações entre notas de versões diferentes precisam expor a versão ou evitar sugerir equivalência direta.
 
+A persistência usa `buildMealScoreSnapshot()` como projeção única do resultado atual. A leitura compatível usa `inspectMealScoreSnapshot()`: aceita `meal-score-v1.1` e `meal-score-v2`, devolve uma cópia sem mutar o registro e classifica a calibração como histórica ou atual. `areMealScoreSnapshotsComparable()` só autoriza comparação direta quando as duas versões são idênticas.
+
+## Integração com o GA
+
+O limite automático do gerador de refeições conserva o contrato linear `GA v1` já observado pelos usuários. Seu relógio e sua parcela de três horas pertencem ao próprio `meal-ga.js`; não reutilizam a curva contextual do score v2. Assim, uma futura recalibração da nota não modifica silenciosamente as sugestões da despensa.
+
+A prévia de cada resultado do GA fornece calorias, proteína, carboidratos, gorduras, fibra e sal ao avaliador. Nutrientes opcionais ausentes continuam sendo tratados como ausentes, nunca como zero.
+
 ## Invariantes de calibração
 
 O algoritmo v2 deve satisfazer, no mínimo:

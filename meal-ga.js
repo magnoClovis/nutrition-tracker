@@ -32,14 +32,13 @@
    * Creates the meal-suggestion API with production services supplied by the host.
    *
    * @param {Object} dependencies Injected algorithm and diary dependencies.
-   * @param {Object|null|undefined} dependencies.mealScore Real `MealScore` API; its two timing methods remain optional to preserve fallbacks.
    * @param {function(Object,number): Object} dependencies.buildEntry Converts a food and quantity into a diary entry.
    * @param {function(function(Object): Object): void} dependencies.updateActiveLog Applies one functional active-log update.
    * @param {function(): number} dependencies.random Random-number source; production supplies `Math.random`.
    * @param {function(function(): void,number): *} dependencies.setTimeout Timer used for the existing zero-delay event-loop yield.
    * @returns {{getAutomaticMealSuggestionLimits: function(Object): Object, runGA: function(Object): Promise<Object>, addGAResultToDiary: function(Object): string}} Configured meal-suggestion API.
    */
-  function createMealGA({ mealScore, buildEntry, updateActiveLog, random, setTimeout: scheduleTimeout }) {
+  function createMealGA({ buildEntry, updateActiveLog, random, setTimeout: scheduleTimeout }) {
     if (typeof buildEntry !== "function" || typeof updateActiveLog !== "function" ||
         typeof random !== "function" || typeof scheduleTimeout !== "function") {
       throw new TypeError("MealGA requires buildEntry, updateActiveLog, random, and setTimeout functions");
@@ -61,12 +60,13 @@
       const eatenKcal = entries.reduce((sum, entry) => sum + (Number(entry.kcal) || 0), 0);
       const remainingProtein = Math.max(0, (Number(goals.protein) || 150) - eatenProtein);
       const remainingKcal = Math.max(0, (Number(goals.kcal) || 2000) - eatenKcal);
-      const hoursLeft = mealScore && typeof mealScore.hoursUntilLocalMidnight === "function"
-        ? mealScore.hoursUntilLocalMidnight(now)
-        : Math.max(0.25, (new Date(now).setHours(24, 0, 0, 0) - new Date(now).getTime()) / 3600000);
-      const timeShare = mealScore && typeof mealScore.timeShare === "function"
-        ? mealScore.timeShare(hoursLeft, 3)
-        : Math.min(1, 3 / Math.max(0.25, hoursLeft));
+      const current = now instanceof Date ? now : new Date(now || Date.now());
+      const midnight = new Date(current);
+      midnight.setHours(24, 0, 0, 0);
+      const hoursLeft = Math.max(0, (midnight.getTime() - current.getTime()) / 3600000);
+      // Explicit GA v1 allocation contract. MealScore calibration changes must
+      // never alter pantry suggestions as an accidental side effect.
+      const timeShare = Math.min(1, 3 / Math.max(0.25, hoursLeft));
       const sizeMultiplier = Math.max(0.2, 1 + tolerance / 100);
       return {
         remainingProtein,

@@ -76,6 +76,8 @@
       const scoreEntries = result.items.map(({ food, gene }) => ({
         protein: food.protein100 == null ? null : Number(food.protein100) * gene,
         kcal: food.kcal100 == null ? null : Number(food.kcal100) * gene,
+        carbs: food.carbs100 == null ? null : Number(food.carbs100) * gene,
+        fat: food.fat100 == null ? null : Number(food.fat100) * gene,
         fiber: food.fiber100 == null ? null : Number(food.fiber100) * gene,
         satfat: food.satfat100 == null ? null : Number(food.satfat100) * gene,
         salt: food.salt100 == null ? null : Number(food.salt100) * gene
