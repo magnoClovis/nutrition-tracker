@@ -6,11 +6,13 @@ const { createDateUtils } = require("../../date-utils.js");
 const implementations = [
   ["UMD", async () => ({
     ...require("../../add-screen.js"),
-    ...require("../../choice-field.js")
+    ...require("../../choice-field.js"),
+    ...require("../../temporal-field.js")
   })],
   ["ESM", async () => ({
     ...await import("../../src/components/add-screen.js"),
-    ...await import("../../src/components/choice-field.js")
+    ...await import("../../src/components/choice-field.js"),
+    ...await import("../../src/components/temporal-field.js")
   })]
 ];
 
@@ -180,9 +182,10 @@ function baseProps(overrides = {}) {
 function contractTest(name, callback) {
   implementations.forEach(([format, load]) => {
     test(`${format}: ${name}`, async () => {
-      const { createAddScreen, createChoiceField } = await load();
+      const { createAddScreen, createChoiceField, createTemporalField } = await load();
       const { ChoiceField } = createChoiceField({ React });
-      const { AddScreen } = createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField });
+      const { TemporalField } = createTemporalField({ React });
+      const { AddScreen } = createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField });
       return callback(AddScreen);
     });
   });
@@ -383,7 +386,7 @@ contractTest("keeps active GA absent and places the legacy transfer panel as an 
   assert.doesNotMatch(textContent(view), /active-ga-result|Should not render/);
 });
 
-contractTest("keeps meal time collapsed until requested and exposes one compact time input", AddScreen => {
+contractTest("keeps meal time collapsed until requested and uses TemporalField without a native time input", AddScreen => {
   let opened = 0;
   let selected = null;
   const collapsed = AddScreen(baseProps({
@@ -411,14 +414,16 @@ contractTest("keeps meal time collapsed until requested and exposes one compact 
     expanded,
     node => node.props?.["data-meal-time-control"] === "open"
   )[0];
-  const timeInput = findNodes(
+  const temporalField = findNodes(
     expandedControl,
-    node => node.type === "input" && node.props.type === "time"
+    node => typeof node.type === "function" && node.props.id === "meal-registration-time"
   )[0];
 
-  assert.equal(timeInput.props.value, "09:07");
-  assert.equal(timeInput.props.style.width, 112);
-  timeInput.props.onChange({ target: { value: "18:45" } });
+  assert.ok(temporalField);
+  assert.equal(temporalField.props.value, "09:07");
+  assert.equal(temporalField.props.label, "Meal time (optional)");
+  assert.equal(findNodes(expandedControl, node => node.type === "input").length, 0);
+  temporalField.props.onChange("18:45");
   assert.equal(selected, "18:45");
 });
 

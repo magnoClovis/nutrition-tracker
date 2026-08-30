@@ -243,6 +243,10 @@ const {
 } = window.SearchableChoiceFieldModule.createSearchableChoiceField({ React });
 
 const {
+  TemporalField
+} = window.TemporalFieldModule.createTemporalField({ React });
+
+const {
   LoginScreen
 } = window.LoginScreenModule.createLoginScreen({
   React,
@@ -363,7 +367,7 @@ const {
 
 const {
   AddScreen
-} = window.AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField });
+} = window.AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField });
 
 const {
   MetricsScreen

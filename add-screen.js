@@ -33,13 +33,15 @@
    * @param {function(string): Array<number>} dependencies.quickQtys Quantity presets from date-utils.js.
    * @param {function(string): number} dependencies.divisor Unit divisor from date-utils.js.
    * @param {function(Object): Object} dependencies.ChoiceField Controlled app-local list selector.
+   * @param {function(Object): Object} dependencies.TemporalField Controlled app-local time selector.
    * @returns {{AddScreen: function(Object): Object}} Add-screen API.
    */
-  function createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField }) {
+  function createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof quickQtys !== "function"
-      || typeof divisor !== "function" || typeof ChoiceField !== "function") {
-      throw new TypeError("AddScreen requires React, pickLang, quickQtys, divisor, and ChoiceField");
+      || typeof divisor !== "function" || typeof ChoiceField !== "function"
+      || typeof TemporalField !== "function") {
+      throw new TypeError("AddScreen requires React, pickLang, quickQtys, divisor, ChoiceField, and TemporalField");
     }
 
     const inp = {
@@ -441,33 +443,30 @@
     style: {
       margin: "-4px 0 12px"
     }
-  }, mealTimeOpen ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      flexWrap: "wrap"
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    htmlFor: "meal-registration-time",
-    style: {
-      color: "var(--muted)",
-      fontSize: 12
-    }
-  }, uiText("Horário da refeição (opcional)", "Meal time (optional)", "Hora de la comida (opcional)")), /*#__PURE__*/React.createElement("input", {
+  }, mealTimeOpen ? /*#__PURE__*/React.createElement(TemporalField, {
     id: "meal-registration-time",
-    type: "time",
+    label: uiText("Horário da refeição (opcional)", "Meal time (optional)", "Hora de la comida (opcional)"),
     value: mealTimeValue,
-    onChange: event => setSelectedMealTime(event.target.value),
-    "aria-label": uiText("Horário da refeição", "Meal time", "Hora de la comida"),
+    onChange: setSelectedMealTime,
+    title: uiText("Escolher horário", "Choose time", "Elegir hora"),
+    hourLabel: uiText("Hora", "Hour", "Hora"),
+    minuteLabel: uiText("Minutos", "Minutes", "Minutos"),
+    increaseHourLabel: uiText("Aumentar hora", "Increase hour", "Aumentar hora"),
+    decreaseHourLabel: uiText("Diminuir hora", "Decrease hour", "Disminuir hora"),
+    increaseMinuteLabel: uiText("Aumentar minutos", "Increase minutes", "Aumentar minutos"),
+    decreaseMinuteLabel: uiText("Diminuir minutos", "Decrease minutes", "Disminuir minutos"),
+    editHourLabel: uiText("Digitar hora", "Type hour", "Escribir hora"),
+    editMinuteLabel: uiText("Digitar minutos", "Type minutes", "Escribir minutos"),
+    nowLabel: uiText("Agora", "Now", "Ahora"),
+    cancelLabel: uiText("Cancelar", "Cancel", "Cancelar"),
+    confirmLabel: uiText("Confirmar", "Confirm", "Confirmar"),
+    backspaceLabel: uiText("Apagar dígito", "Delete digit", "Borrar dígito"),
+    invalidHourLabel: uiText("Digite um valor de 0 a 23.", "Enter a value from 0 to 23.", "Escribe un valor de 0 a 23."),
+    invalidMinuteLabel: uiText("Digite um valor de 0 a 59.", "Enter a value from 0 to 59.", "Escribe un valor de 0 a 59."),
     style: {
-      ...inp,
-      width: 112,
-      marginTop: 0,
-      padding: "5px 8px",
-      fontSize: 13
+      maxWidth: 280
     }
-  })) : /*#__PURE__*/React.createElement("button", {
+  }) : /*#__PURE__*/React.createElement("button", {
     type: "button",
     onClick: openMealTimeControl,
     style: {
