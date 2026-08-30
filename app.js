@@ -355,7 +355,7 @@ const {
 
 const {
   PantryScreen
-} = window.PantryScreenModule.createPantryScreen({ React, pickLang, portionLabel });
+} = window.PantryScreenModule.createPantryScreen({ React, pickLang, portionLabel, ChoiceField });
 
 const {
   AddScreen
