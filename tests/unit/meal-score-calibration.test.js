@@ -5,14 +5,15 @@ const MealScore = require("../../meal-score.js");
 
 const ALLOWED_SCOPES = new Set(["candidate", "consumed"]);
 
-test("freezes the C20-A contract without changing the production algorithm", () => {
+test("activates the calibrated v2 contract with the approved six nutrients", () => {
   assert.equal(matrix.contractVersion, "c20-calibration-v1");
-  assert.equal(matrix.productionBaselineVersion, "meal-score-v1.1");
-  assert.equal(MealScore.ALGORITHM_VERSION, matrix.productionBaselineVersion);
-  assert.deepEqual(MealScore.DEFAULT_CONFIG.map(item => item.key), ["protein", "kcal", "fiber", "salt"]);
+  assert.equal(matrix.previousProductionVersion, "meal-score-v1.1");
+  assert.equal(MealScore.ALGORITHM_VERSION, matrix.productionVersion);
+  assert.deepEqual(MealScore.DEFAULT_CONFIG.map(item => item.key), ["kcal", "protein", "fiber", "salt", "carbs", "fat"]);
+  assert.equal(MealScore.DEFAULT_CONFIG.reduce((sum, item) => sum + item.weight, 0), 100);
 });
 
-test("calibration cases have unique IDs, explicit occurrence times, and deterministic v1 baselines", () => {
+test("calibration cases freeze deterministic v2 scores, coverage, confidence, and reasons", () => {
   const ids = new Set();
   for (const scenario of matrix.cases) {
     assert.ok(scenario.id && !ids.has(scenario.id), `duplicate or empty case id: ${scenario.id}`);
@@ -25,12 +26,19 @@ test("calibration cases have unique IDs, explicit occurrence times, and determin
       goals: scenario.goals,
       consumedEntries: scenario.consumedEntries,
       candidateEntries: scenario.candidateEntries,
-      now: scenario.mealOccurredAt
+      mealOccurredAt: scenario.mealOccurredAt,
+      evaluatedAt: scenario.evaluatedAt
     };
     const first = MealScore.calculateMealScore(input);
     const second = MealScore.calculateMealScore(input);
-    assert.deepEqual(first, second, `${scenario.id}: v1 baseline must remain deterministic`);
-    assert.equal(first.valid, scenario.expected.valid, `${scenario.id}: baseline validity mismatch`);
+    assert.deepEqual(first, second, `${scenario.id}: v2 result must remain deterministic`);
+    assert.equal(first.valid, scenario.expected.valid, `${scenario.id}: validity mismatch`);
+    assert.equal(first.confidence, scenario.expected.confidence, `${scenario.id}: confidence mismatch`);
+    assert.ok(Math.abs(first.coverage - scenario.expected.coverage) < 1e-12, `${scenario.id}: coverage mismatch`);
+    assert.deepEqual(first.provisionalReasons, scenario.expected.provisionalReasons, `${scenario.id}: provisional reasons mismatch`);
+    if (scenario.expected.requiredMissing) assert.deepEqual(first.requiredMissing, scenario.expected.requiredMissing);
+    if (scenario.expected.score === null) assert.equal(first.score, null);
+    else assert.ok(Math.abs(first.score - scenario.expected.score) < 0.000001, `${scenario.id}: score drifted`);
     if (first.valid) assert.ok(first.score >= 0 && first.score <= 5);
   }
 });
@@ -85,4 +93,29 @@ test("historical re-evaluation cases differ only by evaluatedAt", () => {
   };
   assert.deepEqual(withoutEvaluationTime(immediate), withoutEvaluationTime(later));
   assert.notEqual(immediate.evaluatedAt, later.evaluatedAt);
+});
+
+test("matrix relations hold for the calibrated v2 outputs", () => {
+  const scores = new Map(matrix.cases.map(scenario => [scenario.id, MealScore.calculateMealScore({
+    goals: scenario.goals,
+    consumedEntries: scenario.consumedEntries,
+    candidateEntries: scenario.candidateEntries,
+    mealOccurredAt: scenario.mealOccurredAt,
+    evaluatedAt: scenario.evaluatedAt
+  }).score]));
+  for (const relation of matrix.relations) {
+    if (relation.type === "score-equal") assert.equal(scores.get(relation.left), scores.get(relation.right));
+    else assert.ok(scores.get(relation.higher) > scores.get(relation.lower));
+  }
+});
+
+test("new scoring leaves existing v1.1 snapshots untouched", () => {
+  const historicalSnapshot = Object.freeze({algorithmVersion: "meal-score-v1.1", score: 3.25});
+  const entry = {kcal: 400, protein: 30, mealScoreSnapshot: historicalSnapshot};
+  MealScore.calculateMealScore({
+    goals: {kcal: 2000, protein: 150},
+    candidateEntries: [entry],
+    mealOccurredAt: "2026-07-13T13:00:00-03:00"
+  });
+  assert.deepEqual(entry.mealScoreSnapshot, {algorithmVersion: "meal-score-v1.1", score: 3.25});
 });

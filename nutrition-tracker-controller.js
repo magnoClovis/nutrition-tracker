@@ -628,11 +628,11 @@
           "Fiber goal hit. Point for food quality today."
         ],
         salt: [
-          "Sodium limit reached. Worth moderating from here.",
-          "Sodium reached today's limit. Keep an eye on the rest of the day.",
-          "Sodium notice: limit reached. The salt had its cameo.",
-          "Sodium is at the limit. A lighter next meal may help.",
-          "Heads up: sodium target has been reached."
+          "Salt limit reached. Worth moderating from here.",
+          "Salt reached today's limit. Keep an eye on the rest of the day.",
+          "Salt notice: limit reached. The salt had its cameo.",
+          "Salt is at the limit. A lighter next meal may help.",
+          "Heads up: the salt target has been reached."
         ]
       }
     };
@@ -682,6 +682,16 @@
         return control.value;
       }
       return formatMealRegistrationTime(now);
+    }
+    function buildMealOccurrenceDateTime(date, time, now = new Date()) {
+      const fallbackDate = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0")
+      ].join("-");
+      const civilDate = /^\d{4}-\d{2}-\d{2}$/.test(String(date || "")) ? String(date) : fallbackDate;
+      const civilTime = isValidMealRegistrationTime(time) ? time : formatMealRegistrationTime(now);
+      return `${civilDate}T${civilTime}:00`;
     }
     function applyMealRegistrationTime(items, time) {
       return (items || []).map(item => ({...item, time}));
@@ -3884,29 +3894,34 @@
         return {
           protein: Number(goals.protein) || 0,
           kcal: Number(goals.kcal) || 0,
+          carbs: Number(goals.carbs) || 0,
+          fat: Number(goals.fat) || 0,
           fiber: Number(goals.fiber) || 0,
           salt: Number(goals.salt) || 0
         };
       }
-      function evaluateMealItems(items, now = new Date()) {
+      function evaluateMealItems(items, mealOccurredAt, evaluatedAt = new Date()) {
         if (!window.MealScore || typeof window.MealScore.calculateMealScore !== "function") return null;
         return window.MealScore.calculateMealScore({
           candidateEntries: items,
           consumedEntries: allEntries,
           goals: mealScoreGoals(),
-          now
+          mealOccurredAt: mealOccurredAt || evaluatedAt,
+          evaluatedAt
         });
       }
       function mealScoreLabel(key) {
         return {
           protein: text('protein'),
           kcal: text('calories'),
+          carbs: text('carbs'),
+          fat: text('fat'),
           fiber: text('fiber'),
           salt: text('salt')
         }[key] || key;
       }
       function mealScoreEvaluationCount(result) {
-        const components = Object.values(result?.components || {});
+        const components = Object.values(result?.components || {}).filter(component => component.applicable !== false);
         return {
           evaluated: components.filter(component => component.available).length,
           total: components.length
@@ -3939,6 +3954,11 @@
           algorithmVersion: result.algorithmVersion,
           score: result.score,
           coverage: result.coverage,
+          confidence: result.confidence,
+          provisional: result.provisional,
+          provisionalReasons: result.provisionalReasons,
+          applicableWeight: result.applicableWeight,
+          mealOccurredAt: result.mealOccurredAt,
           evaluatedAt: result.evaluatedAt,
           hoursLeft: result.hoursLeft,
           windowHours: result.windowHours,
@@ -3958,9 +3978,12 @@
           setMealReviewAiLoading(false);
         }
       }
-      function openMealReview(meal, items, source) {
+      function openMealReview(meal, items, source, occurrence) {
         const candidateItems = [...(items || [])];
-        const result = evaluateMealItems(candidateItems);
+        const evaluatedAt = new Date();
+        const registrationTime = occurrence?.registrationTime || resolveMealRegistrationTime(mealTimeControl, evaluatedAt);
+        const mealOccurredAt = occurrence?.mealOccurredAt || buildMealOccurrenceDateTime(viewDate, registrationTime, evaluatedAt);
+        const result = evaluateMealItems(candidateItems, mealOccurredAt, evaluatedAt);
         if (!result || !result.valid) {
           notify(uiText(
             "A refeição precisa ter calorias e proteínas para ser avaliada.",
@@ -3969,7 +3992,7 @@
           ));
           return;
         }
-        const review = { meal, items: candidateItems, source, result };
+        const review = { meal, items: candidateItems, source, registrationTime, mealOccurredAt, result };
         setMealReviewHelpOpen(false);
         setMealReview(review);
         generateMealReviewExplanation(review);
@@ -3978,7 +4001,7 @@
         if (!mealReview) return;
         const evaluationId = Date.now().toString() + Math.random();
         const snapshot = mealScoreSnapshot(mealReview.result);
-        const savedItems = applySelectedMealTime(mealReview.items).map(item => ({
+        const savedItems = applyMealRegistrationTime(mealReview.items, mealReview.registrationTime).map(item => ({
           ...item,
           mealEvaluationId: evaluationId,
           mealScoreSnapshot: snapshot
@@ -4667,7 +4690,10 @@
           getScoreLabel: mealScoreLabel,
           onClose: closeMealReview,
           onToggleHelp: () => setMealReviewHelpOpen(open => !open),
-          onReevaluate: () => openMealReview(mealReview.meal, mealReview.items, mealReview.source),
+          onReevaluate: () => openMealReview(mealReview.meal, mealReview.items, mealReview.source, {
+            registrationTime: mealReview.registrationTime,
+            mealOccurredAt: mealReview.mealOccurredAt
+          }),
           onConfirm: confirmMealReview
         });
       }
@@ -6488,6 +6514,7 @@
       writeAIStatus,
       formatMealRegistrationTime,
       resolveMealRegistrationTime,
+      buildMealOccurrenceDateTime,
       applyMealRegistrationTime,
       createMealRegistrationOrigin,
       persistMealRegistration,
