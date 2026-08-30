@@ -110,11 +110,12 @@ test('keeps the native scanner overlay viewport-bound and theme-aware', () => {
 test('keeps one production ESM entry and a separate frozen legacy loader', () => {
   assert.equal((productionHtmlSource.match(/<script\b/g) || []).length, 3);
   assert.equal((productionHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 1);
-  assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 63);
-  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 61);
+  assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 64);
+  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 62);
   assert.match(legacyHtmlSource, /src="vendor\/react\.production\.min\.js"/);
   assert.match(legacyHtmlSource, /src="daily-entry-model\.js\?v=/);
   assert.match(legacyHtmlSource, /src="daily-entry-persistence\.js\?v=/);
+  assert.match(legacyHtmlSource, /src="choice-field\.js\?v=/);
   assert.match(legacyHtmlSource, /src="app\.js\?v=/);
 });
 
@@ -128,4 +129,13 @@ test('loads the daily entry mutation runtime before the legacy controller', () =
   assert.notEqual(dailyPersistencePosition, -1);
   assert.ok(dailyEntryPosition < controllerPosition);
   assert.ok(dailyPersistencePosition < controllerPosition);
+});
+
+test('loads the reusable ChoiceField before the Add screen in legacy mode', () => {
+  const choiceFieldPosition = legacyHtmlSource.indexOf('src="choice-field.js');
+  const addScreenPosition = legacyHtmlSource.indexOf('src="add-screen.js');
+
+  assert.notEqual(choiceFieldPosition, -1);
+  assert.notEqual(addScreenPosition, -1);
+  assert.ok(choiceFieldPosition < addScreenPosition);
 });

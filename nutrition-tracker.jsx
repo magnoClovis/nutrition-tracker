@@ -352,8 +352,12 @@ const {
 } = window.PantryScreenModule.createPantryScreen({ React, pickLang, portionLabel });
 
 const {
+  ChoiceField
+} = window.ChoiceFieldModule.createChoiceField({ React });
+
+const {
   AddScreen
-} = window.AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor });
+} = window.AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField });
 
 const {
   MetricsScreen
