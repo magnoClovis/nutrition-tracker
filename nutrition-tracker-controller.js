@@ -309,7 +309,8 @@
       MetricsScreen,
       DiaryScreen,
       AppHeaderNavigation,
-      ChoiceField
+      ChoiceField,
+      SearchableChoiceField
     } = screens;
     const {
       windowObject,
@@ -847,7 +848,8 @@
         templateEntries,
         templateTotals,
         templateItemEntry,
-        ChoiceField
+        ChoiceField,
+        SearchableChoiceField
       });
       const {
         getAutomaticMealSuggestionLimits: calculateAutomaticMealSuggestionLimits,

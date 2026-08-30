@@ -110,12 +110,13 @@ test('keeps the native scanner overlay viewport-bound and theme-aware', () => {
 test('keeps one production ESM entry and a separate frozen legacy loader', () => {
   assert.equal((productionHtmlSource.match(/<script\b/g) || []).length, 3);
   assert.equal((productionHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 1);
-  assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 64);
-  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 62);
+  assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 65);
+  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 63);
   assert.match(legacyHtmlSource, /src="vendor\/react\.production\.min\.js"/);
   assert.match(legacyHtmlSource, /src="daily-entry-model\.js\?v=/);
   assert.match(legacyHtmlSource, /src="daily-entry-persistence\.js\?v=/);
   assert.match(legacyHtmlSource, /src="choice-field\.js\?v=/);
+  assert.match(legacyHtmlSource, /src="searchable-choice-field\.js\?v=/);
   assert.match(legacyHtmlSource, /src="app\.js\?v=/);
 });
 
@@ -138,4 +139,14 @@ test('loads the reusable ChoiceField before the Add screen in legacy mode', () =
   assert.notEqual(choiceFieldPosition, -1);
   assert.notEqual(addScreenPosition, -1);
   assert.ok(choiceFieldPosition < addScreenPosition);
+});
+
+test('loads SearchableChoiceField before its dynamic legacy consumers', () => {
+  const searchablePosition = legacyHtmlSource.indexOf('src="searchable-choice-field.js');
+  const diaryPosition = legacyHtmlSource.indexOf('src="diary-screen.js');
+  const controllerPosition = legacyHtmlSource.indexOf('src="nutrition-tracker-controller.js');
+
+  assert.notEqual(searchablePosition, -1);
+  assert.ok(searchablePosition < diaryPosition);
+  assert.ok(searchablePosition < controllerPosition);
 });

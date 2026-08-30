@@ -14,6 +14,7 @@ import * as AppHeaderNavigationModule from './components/app-header-navigation.j
 import * as BackupModalModule from './components/backup-modal.js';
 import * as BodyMetricsCharts from './components/body-metrics-charts.js';
 import * as ChoiceFieldModule from './components/choice-field.js';
+import * as SearchableChoiceFieldModule from './components/searchable-choice-field.js';
 import * as DiaryScreenModule from './components/diary-screen.js';
 import * as GaResultCardModule from './components/ga-result-card.js';
 import * as ImageMealScreenModule from './components/image-meal-screen.js';
@@ -234,6 +235,10 @@ const mealEstimateDomain = MealEstimate.createMealEstimate({
 const {
   ChoiceField,
 } = ChoiceFieldModule.createChoiceField({ React });
+
+const {
+  SearchableChoiceField,
+} = SearchableChoiceFieldModule.createSearchableChoiceField({ React });
 
 const { MealEstimateEditor } = MealEstimateEditorModule.createMealEstimateEditor({
   React,
@@ -575,6 +580,7 @@ const {
   Bar,
   GaResultCard,
   ChoiceField,
+  SearchableChoiceField,
   collectValidMealEvaluationGroups: MealScore.collectValidMealEvaluationGroups,
 });
 
@@ -653,6 +659,7 @@ const {
     DiaryScreen,
     AppHeaderNavigation,
     ChoiceField,
+    SearchableChoiceField,
   },
   browser: {
     windowObject: window,

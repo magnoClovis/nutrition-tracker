@@ -239,6 +239,10 @@ const {
 } = window.ChoiceFieldModule.createChoiceField({ React });
 
 const {
+  SearchableChoiceField
+} = window.SearchableChoiceFieldModule.createSearchableChoiceField({ React });
+
+const {
   LoginScreen
 } = window.LoginScreenModule.createLoginScreen({
   React,
@@ -389,6 +393,7 @@ const {
   Bar,
   GaResultCard,
   ChoiceField,
+  SearchableChoiceField,
   collectValidMealEvaluationGroups: window.MealScore.collectValidMealEvaluationGroups
 });
 const {
@@ -464,7 +469,8 @@ const {
     MetricsScreen,
     DiaryScreen,
     AppHeaderNavigation,
-    ChoiceField
+    ChoiceField,
+    SearchableChoiceField
   },
   browser: {
     windowObject: window,
