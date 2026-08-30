@@ -30,4 +30,17 @@ for (const [format, load] of implementations) {
     assert.deepEqual(stepTimePart({ hour: 8, minute: 55 }, 'minute', 1), { hour: 8, minute: 0 });
     assert.deepEqual(stepTimePart({ hour: 8, minute: 0 }, 'minute', -1), { hour: 8, minute: 55 });
   });
+
+  test(`${format}: keeps civil dates strict, timezone-free, and bounded`, async () => {
+    const { createTemporalField } = await load();
+    const { parseIsoDate, formatIsoDate, daysInMonth, shiftCivilMonth, clampIsoDate } = createTemporalField({ React });
+    assert.deepEqual(parseIsoDate('1992-02-29'), { year: 1992, month: 2, day: 29 });
+    assert.equal(parseIsoDate('1991-02-29'), null);
+    assert.equal(parseIsoDate('02/28/1990'), null);
+    assert.equal(formatIsoDate(1990, 2, 8), '1990-02-08');
+    assert.equal(daysInMonth(2000, 2), 29);
+    assert.deepEqual(shiftCivilMonth({ year: 2025, month: 1, day: 31 }, 1), { year: 2025, month: 2, day: 28 });
+    assert.deepEqual(clampIsoDate({ year: 1890, month: 1, day: 1 }, '1900-01-01', '2026-08-30'), { year: 1900, month: 1, day: 1 });
+    assert.deepEqual(clampIsoDate({ year: 2030, month: 1, day: 1 }, '1900-01-01', '2026-08-30'), { year: 2026, month: 8, day: 30 });
+  });
 }

@@ -36,6 +36,7 @@
    * @param {function(string): boolean} dependencies.isValidBirthDate Birth-date validator from `profile-validation.js`.
    * @param {function(string): boolean} dependencies.isValidGender Gender validator from `profile-validation.js`.
    * @param {function(Object): Object} dependencies.ChoiceField Reusable Trofia list selector.
+   * @param {function(Object): Object} dependencies.DateField Reusable Trofia civil-date selector.
    * @param {{signIn: function(string,string): Promise<*>, checkEmailVerified: function(): Promise<boolean>, signUp: function(string,string): Promise<*>, updateProfile: function(string): Promise<*>, setValue: function(string,*): Promise<*>, sendVerificationEmail: function(): Promise<*>, sendPasswordResetEmail: function(string): Promise<*>}} dependencies.authService Named Firebase authentication and persistence operations.
    * @param {function(): boolean} dependencies.readPreferredDarkMode Existing theme initializer from app.js.
    * @param {{getItem: function(string): (string|null), setItem: function(string,string): void}} dependencies.localStorage Browser-local storage service.
@@ -51,6 +52,7 @@
     isValidBirthDate,
     isValidGender,
     ChoiceField,
+    DateField,
     authService,
     readPreferredDarkMode,
     localStorage: localStorageService,
@@ -62,7 +64,7 @@
         typeof React.useState !== "function" || typeof React.useEffect !== "function" ||
         !Array.isArray(languageOptions) || typeof normalizeLanguage !== "function" ||
         typeof isValidBirthDate !== "function" || typeof isValidGender !== "function" ||
-        typeof ChoiceField !== "function" ||
+        typeof ChoiceField !== "function" || typeof DateField !== "function" ||
         !authService || typeof authService.signIn !== "function" ||
         typeof authService.checkEmailVerified !== "function" ||
         typeof authService.signUp !== "function" || typeof authService.updateProfile !== "function" ||
@@ -74,7 +76,7 @@
         typeof localStorageService.setItem !== "function" ||
         !documentElement || !documentElement.dataset || typeof DateCtor !== "function" ||
         typeof localToday !== "function") {
-      throw new TypeError("LoginScreen requires React, ChoiceField, i18n, profile validation, Firebase, theme, storage, document, and Date services");
+      throw new TypeError("LoginScreen requires React, ChoiceField, DateField, i18n, profile validation, Firebase, theme, storage, document, and Date services");
     }
 
     const LANGUAGE_OPTIONS = languageOptions;
@@ -178,6 +180,12 @@
         }
       };
       const S = loginCopy[normalizedLoginLang] || loginCopy.pt;
+      const dateCopy = normalizedLoginLang === 'en'
+        ? {title:'Choose date of birth',previousMonth:'Previous month',nextMonth:'Next month',editMonthYear:'Choose month and year',previousYear:'Previous year',nextYear:'Next year',editYear:'Type year',showDays:'Show days',cancel:'Cancel',confirm:'Confirm',close:'Back',backspace:'Delete digit',invalidYear:'Enter a year from 1900 to today.'}
+        : normalizedLoginLang === 'es'
+          ? {title:'Elegir fecha de nacimiento',previousMonth:'Mes anterior',nextMonth:'Mes siguiente',editMonthYear:'Elegir mes y a\u00f1o',previousYear:'A\u00f1o anterior',nextYear:'A\u00f1o siguiente',editYear:'Escribir a\u00f1o',showDays:'Mostrar d\u00edas',cancel:'Cancelar',confirm:'Confirmar',close:'Volver',backspace:'Borrar d\u00edgito',invalidYear:'Introduce un a\u00f1o entre 1900 y hoy.'}
+          : {title:'Escolher data de nascimento',previousMonth:'M\u00eas anterior',nextMonth:'Pr\u00f3ximo m\u00eas',editMonthYear:'Escolher m\u00eas e ano',previousYear:'Ano anterior',nextYear:'Pr\u00f3ximo ano',editYear:'Digitar ano',showDays:'Mostrar dias',cancel:'Cancelar',confirm:'Confirmar',close:'Voltar',backspace:'Apagar d\u00edgito',invalidYear:'Digite um ano entre 1900 e hoje.'};
+      const dateLocale = normalizedLoginLang === 'en' ? 'en-US' : normalizedLoginLang === 'es' ? 'es-ES' : 'pt-BR';
 
       function toggleLoginDark() {
         setLoginDark(d => {
@@ -331,7 +339,11 @@
             mode === 'login' && React.createElement('button', {type:'button',onClick:handlePasswordReset,disabled:resetLoading || loading,style:{width:'100%',background:'none',border:'none',color:'var(--btn-info-text)',cursor:(resetLoading||loading)?'default':'pointer',fontSize:12,fontFamily:'inherit',textAlign:'right',padding:'0 2px 14px',opacity:(resetLoading||loading)?0.65:1}}, resetLoading ? S.resetSending : S.forgotPassword),
             mode === 'register' && renderPasswordInput({value:password2,onChange:e=>setPassword2(e.target.value),placeholder:S.confirm,visible:password2Visible,onToggle:()=>setPassword2Visible(visible=>!visible),autoComplete:'new-password',marginBottom:12,testId:'password-confirmation-visibility'}),
             mode === 'register' && React.createElement('input', {type:'text',value:regName,onChange:e=>setRegName(e.target.value),placeholder:S.name,style:{...inp,marginBottom:12},autoComplete:'name'}),
-            mode === 'register' && React.createElement('input', {type:'date',value:regBirthDate,onChange:e=>setRegBirthDate(e.target.value),required:true,max:localToday(new Date()),min:'1900-01-01',title:S.birthTitle,style:{...inp,marginBottom:12},autoComplete:'bday'}),
+            mode === 'register' && React.createElement(DateField, {
+              id:'registration-birth-date',label:S.birthTitle,value:regBirthDate,onChange:setRegBirthDate,
+              min:'1900-01-01',max:localToday(new Date()),locale:dateLocale,
+              initialViewYear:new Date().getFullYear()-18,strings:dateCopy,style:{marginBottom:12}
+            }),
             mode === 'register' && React.createElement(ChoiceField, {
               id:'registration-gender', label:S.genderPlaceholder, value:regGender,
               onChange:setRegGender, placeholder:S.choose, closeLabel:S.close, required:true,

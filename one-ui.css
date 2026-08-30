@@ -746,7 +746,7 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 }
 
 /* TemporalField: app-local 24-hour picker, independent from the OS locale. */
-[data-temporal-field="time"] { width: 100%; }
+[data-temporal-field] { width: 100%; }
 
 [data-temporal-field-label="true"] {
   display: block;
@@ -777,7 +777,8 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-action-fill) 16%, transparent) !important;
 }
 
-[data-temporal-field-clock="true"] {
+[data-temporal-field-clock="true"],
+[data-temporal-field-calendar-icon="true"] {
   display: grid;
   margin-left: 12px;
   place-items: center;
@@ -1004,6 +1005,167 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 
 [data-numeric-keypad-backspace="true"] { color: var(--accent-action-fill) !important; }
 [data-numeric-keypad-confirm="true"] { width: 100%; margin-top: 10px; }
+
+[data-temporal-field-kind="date"] {
+  max-height: calc(100dvh - 24px - var(--app-safe-top));
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-color: color-mix(in srgb, var(--text-muted) 42%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+[data-temporal-field-kind="date"]::-webkit-scrollbar { width: 6px; }
+[data-temporal-field-kind="date"]::-webkit-scrollbar-track { background: transparent; }
+[data-temporal-field-kind="date"]::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text-muted) 42%, transparent);
+}
+
+[data-temporal-field-selected-date="true"] {
+  min-height: 29px;
+  margin: 12px 0 10px;
+  color: var(--accent-action-text);
+  font-size: 21px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+[data-temporal-field-month-toolbar="true"] {
+  display: grid;
+  grid-template-columns: 42px 1fr 42px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+[data-temporal-field-month-toolbar="true"] button,
+[data-temporal-field-year-stepper="true"] button,
+[data-temporal-field-months="true"] button,
+[data-temporal-field-show-days="true"],
+[data-temporal-field-days="true"] button {
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  font: inherit;
+}
+
+[data-temporal-field-month-toolbar="true"] > button:first-child,
+[data-temporal-field-month-toolbar="true"] > button:last-child {
+  display: grid !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+  place-items: center;
+  border-radius: 14px !important;
+  background: var(--surface-block-alt) !important;
+  color: var(--accent-action-fill) !important;
+}
+
+[data-temporal-field-month-year="true"] {
+  min-height: 42px !important;
+  border-radius: 14px !important;
+  color: var(--text-primary) !important;
+  font-size: 16px !important;
+  font-weight: 550 !important;
+  text-transform: capitalize;
+}
+
+[data-temporal-field-weekdays="true"],
+[data-temporal-field-days="true"] {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+[data-temporal-field-weekdays="true"] {
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+[data-temporal-field-days="true"] { min-height: 258px; }
+
+[data-temporal-field-days="true"] button {
+  min-width: 0;
+  min-height: 40px !important;
+  padding: 0 !important;
+  border-radius: 14px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-temporal-field-days="true"] button:hover:not(:disabled),
+[data-temporal-field-days="true"] button:focus-visible {
+  background: var(--surface-block-alt) !important;
+}
+
+[data-temporal-field-days="true"] button[data-selected="true"] {
+  background: var(--accent-action-fill) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+
+[data-temporal-field-jump="true"] { margin: 14px 0; }
+
+[data-temporal-field-year-stepper="true"] {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+[data-temporal-field-year-stepper="true"] button {
+  display: grid !important;
+  min-height: 48px !important;
+  padding: 0 !important;
+  place-items: center;
+  border-radius: 15px !important;
+  background: var(--surface-block-alt) !important;
+  color: var(--accent-action-fill) !important;
+}
+
+[data-temporal-field-year="true"] {
+  background: var(--accent-action-bg) !important;
+  color: var(--accent-action-text) !important;
+  font-size: 22px !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550 !important;
+}
+
+[data-temporal-field-months="true"] {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+[data-temporal-field-months="true"] button {
+  min-height: 43px !important;
+  padding: 0 8px !important;
+  border-radius: 14px !important;
+  background: color-mix(in srgb, var(--surface-block-alt) 86%, transparent) !important;
+  text-transform: capitalize;
+}
+
+[data-temporal-field-months="true"] button[data-selected="true"] {
+  border-color: color-mix(in srgb, var(--accent-action-fill) 32%, transparent) !important;
+  background: var(--accent-action-bg) !important;
+  color: var(--accent-action-text) !important;
+}
+
+[data-temporal-field-show-days="true"] {
+  width: 100%;
+  min-height: 44px !important;
+  margin-top: 10px;
+  border-radius: 14px !important;
+  background: var(--surface-block-alt) !important;
+  color: var(--accent-action-text) !important;
+  font-weight: 500 !important;
+}
+
+[data-temporal-field-kind="date"] :is(button:focus-visible) {
+  outline: 3px solid color-mix(in srgb, var(--accent-water-fill) 72%, transparent) !important;
+  outline-offset: 2px;
+}
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   [data-choice-field-sheet="true"],

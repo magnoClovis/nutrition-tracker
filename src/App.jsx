@@ -243,6 +243,7 @@ const {
 
 const {
   TemporalField,
+  DateField,
 } = TemporalFieldModule.createTemporalField({ React });
 
 const { MealEstimateEditor } = MealEstimateEditorModule.createMealEstimateEditor({
@@ -426,6 +427,7 @@ const {
   isValidBirthDate,
   isValidGender,
   ChoiceField,
+  DateField,
   authService: {
     signIn: (...args) => window.fbSignIn(...args),
     checkEmailVerified: (...args) => window.fbCheckEmailVerified(...args),
@@ -489,6 +491,7 @@ const {
   normalizeLanguage,
   pickLang,
   ChoiceField,
+  DateField,
   activityLevels: ACTIVITY_LEVELS,
   storage,
   isValidBirthDate,

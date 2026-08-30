@@ -8,7 +8,7 @@ const {
   hasCredentials,
   missingCredentialsMessage
 } = require('./test-credentials');
-const { dismissTutorialIfVisible, interceptOptionalExternalApis } = require('./test-helpers');
+const { dismissTutorialIfVisible, interceptOptionalExternalApis, setDateFieldValue } = require('./test-helpers');
 
 test('authenticate disposable test account', async ({ page }) => {
   fs.mkdirSync(path.dirname(AUTH_STATE_PATH), { recursive: true });
@@ -40,7 +40,7 @@ test('authenticate disposable test account', async ({ page }) => {
   // profile after the C28 one-time Auth cutover. Make setup self-contained
   // instead of depending on data left by an earlier workflow run.
   if (await requiredProfile.isVisible()) {
-    await page.locator('input[type="date"]:visible').fill('1990-06-15');
+    await setDateFieldValue(page, '#required-profile-birth-date-trigger', '1990-06-15');
     await page.locator('#required-profile-gender-trigger').click();
     await page.getByRole('option', { name: /Feminino|Female|Femenino/i }).click();
     await page.locator('#required-profile-activity-trigger').click();

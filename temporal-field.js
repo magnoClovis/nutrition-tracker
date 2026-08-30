@@ -1,8 +1,8 @@
 /**
- * Controlled, app-local time selector for Trofia.
+ * Controlled, app-local time and civil-date selectors for Trofia.
  *
  * TemporalField intentionally uses a locale-independent 24-hour value contract
- * (`HH:mm`). All visible copy is supplied by the host, so the app language —
+ * (`HH:mm` and `YYYY-MM-DD`). All visible copy is supplied by the host, so the app language —
  * never the operating-system picker locale — controls the interface.
  *
  * @module TemporalField
@@ -47,6 +47,45 @@
       return { ...current, minute: nextMinute < 0 ? nextMinute + 60 : nextMinute };
     }
 
+    function daysInMonth(year, month) {
+      return new Date(Date.UTC(year, month, 0)).getUTCDate();
+    }
+
+    function parseIsoDate(value) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+      if (!match) return null;
+      const year = Number(match[1]);
+      const month = Number(match[2]);
+      const day = Number(match[3]);
+      if (year < 1 || month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)) return null;
+      return { year, month, day };
+    }
+
+    function formatIsoDate(year, month, day) {
+      return `${String(year).padStart(4, "0")}-${padPart(month)}-${padPart(day)}`;
+    }
+
+    function shiftCivilMonth(parts, delta) {
+      const serial = parts.year * 12 + parts.month - 1 + delta;
+      const year = Math.floor(serial / 12);
+      const month = ((serial % 12) + 12) % 12 + 1;
+      return { year, month, day: Math.min(parts.day, daysInMonth(year, month)) };
+    }
+
+    function clampIsoDate(parts, min, max) {
+      const iso = formatIsoDate(parts.year, parts.month, parts.day);
+      const minParts = parseIsoDate(min);
+      const maxParts = parseIsoDate(max);
+      if (minParts && iso < min) return minParts;
+      if (maxParts && iso > max) return maxParts;
+      return parts;
+    }
+
+    function localeDate(parts, locale, options) {
+      return new Intl.DateTimeFormat(locale || "en-US", { ...options, timeZone: "UTC" })
+        .format(new Date(Date.UTC(parts.year, parts.month - 1, parts.day)));
+    }
+
     function nowTime(nowProvider) {
       const now = typeof nowProvider === "function" ? nowProvider() : new Date();
       return {
@@ -84,6 +123,7 @@
       titleId,
       label,
       value,
+      minValue = 0,
       maxValue,
       maxLength = 2,
       confirmLabel,
@@ -100,7 +140,7 @@
         replaceOnNextDigit.current = true;
       }, [value]);
       const numericValue = buffer === "" ? NaN : Number(buffer);
-      const valid = Number.isInteger(numericValue) && numericValue >= 0 && numericValue <= maxValue;
+      const valid = Number.isInteger(numericValue) && numericValue >= minValue && numericValue <= maxValue;
 
       function appendDigit(digit) {
         setBuffer(current => {
@@ -384,7 +424,180 @@
       }, confirmLabel))))) : null);
     }
 
-    return { TemporalField, NumericKeypad, parseTime, formatTime, stepTimePart };
+    function DateField({
+      id, label, value, onChange, min = "1900-01-01", max, locale = "en-US",
+      placeholder = "--/--/----", helperText, initialViewYear, disabled = false,
+      strings = {}, className, style
+    }) {
+      const copy = {
+        title: label, previousMonth: "Previous month", nextMonth: "Next month",
+        editMonthYear: "Choose month and year", previousYear: "Previous year",
+        nextYear: "Next year", editYear: "Type year", showDays: "Show days",
+        cancel: "Cancel", confirm: "Confirm", close: "Close",
+        backspace: "Delete digit", invalidYear: "Enter a valid year.", ...strings
+      };
+      const generatedId = React.useId();
+      const baseId = id || `temporal-date-${generatedId.replace(/:/g, "")}`;
+      const triggerId = `${baseId}-trigger`;
+      const titleId = `${baseId}-title`;
+      const helperId = helperText ? `${baseId}-help` : undefined;
+      const minParts = parseIsoDate(min) || { year: 1900, month: 1, day: 1 };
+      const maxParts = parseIsoDate(max) || { year: 9999, month: 12, day: 31 };
+      const [open, setOpen] = React.useState(false);
+      const [draft, setDraft] = React.useState(() => parseIsoDate(value));
+      const [view, setView] = React.useState(() => parseIsoDate(value) || maxParts);
+      const [panel, setPanel] = React.useState("calendar");
+      const triggerRef = React.useRef(null);
+      const dialogRef = React.useRef(null);
+
+      React.useEffect(() => {
+        if (!open || typeof document === "undefined") return undefined;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        const frame = typeof requestAnimationFrame === "function"
+          ? requestAnimationFrame(() => dialogRef.current?.focus()) : null;
+        return () => {
+          if (frame != null && typeof cancelAnimationFrame === "function") cancelAnimationFrame(frame);
+          document.body.style.overflow = previousOverflow;
+        };
+      }, [open]);
+
+      function openField() {
+        if (disabled) return;
+        const selected = parseIsoDate(value);
+        const fallbackYear = Math.min(maxParts.year, Math.max(minParts.year,
+          Number.isInteger(initialViewYear) ? initialViewYear : maxParts.year));
+        setDraft(selected);
+        setView(selected || clampIsoDate({ year: fallbackYear, month: maxParts.month, day: 1 }, min, max));
+        setPanel("calendar");
+        setOpen(true);
+      }
+
+      function closeField() {
+        setOpen(false);
+        setPanel("calendar");
+        if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => triggerRef.current?.focus());
+      }
+
+      function setViewYear(year) {
+        setView(current => clampIsoDate({
+          year, month: current.month, day: Math.min(current.day, daysInMonth(year, current.month))
+        }, min, max));
+      }
+
+      function handleKeys(event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          if (panel === "calendar") closeField(); else setPanel(panel === "keypad" ? "jump" : "calendar");
+          return;
+        }
+        if (event.key !== "Tab" || !dialogRef.current) return;
+        const buttons = Array.from(dialogRef.current.querySelectorAll("button:not(:disabled)"));
+        if (!buttons.length) return;
+        if (event.shiftKey && document.activeElement === buttons[0]) {
+          event.preventDefault(); buttons[buttons.length - 1].focus();
+        } else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) {
+          event.preventDefault(); buttons[0].focus();
+        }
+      }
+
+      function ThinChevron({ left }) {
+        return React.createElement("svg", {
+          viewBox: "0 0 20 20", width: 20, height: 20, fill: "none", stroke: "currentColor",
+          strokeWidth: 1.35, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true"
+        }, React.createElement("path", { d: left ? "m12.25 5-5 5 5 5" : "m7.75 5 5 5-5 5" }));
+      }
+
+      const startWeekday = new Date(Date.UTC(view.year, view.month - 1, 1)).getUTCDay();
+      const cells = Array(startWeekday).fill(null).concat(
+        Array.from({ length: daysInMonth(view.year, view.month) }, (_, index) => index + 1)
+      );
+      const monthYear = localeDate({ ...view, day: 1 }, locale, { month: "long", year: "numeric" });
+      const weekdays = Array.from({ length: 7 }, (_, index) => localeDate(
+        { year: 2024, month: 1, day: 7 + index }, locale, { weekday: "narrow" }
+      ));
+      const parsedValue = parseIsoDate(value);
+      const displayValue = parsedValue
+        ? localeDate(parsedValue, locale, { day: "2-digit", month: "2-digit", year: "numeric" })
+        : placeholder;
+      const selectedText = draft
+        ? localeDate(draft, locale, { day: "numeric", month: "long", year: "numeric" })
+        : placeholder;
+      const firstVisible = formatIsoDate(view.year, view.month, 1);
+      const canPrevious = firstVisible > formatIsoDate(minParts.year, minParts.month, 1);
+      const canNext = firstVisible < formatIsoDate(maxParts.year, maxParts.month, 1);
+
+      return React.createElement("div", { className, style, "data-temporal-field": "date" },
+        React.createElement("label", { htmlFor: triggerId, "data-temporal-field-label": "true" }, label),
+        React.createElement("button", {
+          ref: triggerRef, id: triggerId, type: "button", disabled, "aria-haspopup": "dialog",
+          "aria-expanded": open, "aria-describedby": helperId, "data-temporal-field-trigger": "true", onClick: openField
+        }, React.createElement("span", null, displayValue), React.createElement("span", {
+          "data-temporal-field-calendar-icon": "true", "aria-hidden": "true"
+        }, React.createElement("svg", {
+          viewBox: "0 0 24 24", width: 20, height: 20, fill: "none", stroke: "currentColor",
+          strokeWidth: 1.35, strokeLinecap: "round", strokeLinejoin: "round"
+        }, React.createElement("rect", { x: 4, y: 5.5, width: 16, height: 14, rx: 3 }),
+        React.createElement("path", { d: "M8 3.75v3.5m8-3.5v3.5M4 9.5h16" })))),
+        helperText ? React.createElement("p", { id: helperId, "data-temporal-field-helper": "true" }, helperText) : null,
+        open ? React.createElement("div", {
+          "data-temporal-field-overlay": "true", onMouseDown: event => { if (event.target === event.currentTarget) closeField(); }
+        }, React.createElement("section", {
+          ref: dialogRef, role: "dialog", tabIndex: -1, "aria-modal": "true", "aria-labelledby": titleId,
+          "data-temporal-field-sheet": "true", "data-temporal-field-kind": "date",
+          "data-temporal-field-view": panel, onKeyDown: handleKeys
+        }, React.createElement("div", { "data-temporal-field-handle": "true", "aria-hidden": "true" }),
+        panel === "keypad" ? React.createElement(NumericKeypad, {
+          titleId, label: copy.editYear, value: view.year, minValue: minParts.year, maxValue: maxParts.year,
+          maxLength: 4, confirmLabel: copy.confirm, cancelLabel: copy.close, backspaceLabel: copy.backspace,
+          invalidLabel: copy.invalidYear, onCancel: () => setPanel("jump"),
+          onConfirm: year => { setViewYear(year); setPanel("jump"); }
+        }) : React.createElement(React.Fragment, null,
+          React.createElement("h2", { id: titleId, "data-temporal-field-title": "true" }, copy.title),
+          panel === "calendar" ? React.createElement(React.Fragment, null,
+            React.createElement("div", { "data-temporal-field-selected-date": "true", role: "status", "aria-live": "polite" }, selectedText),
+            React.createElement("div", { "data-temporal-field-month-toolbar": "true" },
+              React.createElement("button", { type: "button", disabled: !canPrevious, "aria-label": copy.previousMonth, onClick: () => setView(current => clampIsoDate(shiftCivilMonth({ ...current, day: 1 }, -1), min, max)) }, React.createElement(ThinChevron, { left: true })),
+              React.createElement("button", { type: "button", "aria-label": copy.editMonthYear, "data-temporal-field-month-year": "true", onClick: () => setPanel("jump") }, monthYear),
+              React.createElement("button", { type: "button", disabled: !canNext, "aria-label": copy.nextMonth, onClick: () => setView(current => clampIsoDate(shiftCivilMonth({ ...current, day: 1 }, 1), min, max)) }, React.createElement(ThinChevron, { left: false }))),
+            React.createElement("div", { "data-temporal-field-weekdays": "true", "aria-hidden": "true" }, weekdays.map((weekday, index) => React.createElement("span", { key: index }, weekday))),
+            React.createElement("div", { role: "grid", "aria-label": monthYear, "data-temporal-field-days": "true" }, cells.map((day, index) => {
+              if (!day) return React.createElement("span", { key: `blank-${index}`, "aria-hidden": "true" });
+              const iso = formatIsoDate(view.year, view.month, day);
+              const selected = draft && iso === formatIsoDate(draft.year, draft.month, draft.day);
+              return React.createElement("button", {
+                key: iso, type: "button", role: "gridcell", disabled: iso < min || (max && iso > max),
+                "aria-selected": selected, "aria-label": localeDate({ year: view.year, month: view.month, day }, locale, { day: "numeric", month: "long", year: "numeric" }),
+                "data-selected": selected ? "true" : "false", onClick: () => setDraft({ year: view.year, month: view.month, day })
+              }, day);
+            }))) : React.createElement("div", { "data-temporal-field-jump": "true" },
+            React.createElement("div", { "data-temporal-field-year-stepper": "true" },
+              React.createElement("button", { type: "button", disabled: view.year <= minParts.year, "aria-label": copy.previousYear, onClick: () => setViewYear(view.year - 1) }, React.createElement(MinusIcon)),
+              React.createElement("button", { type: "button", "aria-label": `${copy.editYear}: ${view.year}`, "data-temporal-field-year": "true", onClick: () => setPanel("keypad") }, view.year),
+              React.createElement("button", { type: "button", disabled: view.year >= maxParts.year, "aria-label": copy.nextYear, onClick: () => setViewYear(view.year + 1) }, React.createElement(PlusIcon))),
+            React.createElement("div", { "data-temporal-field-months": "true" }, Array.from({ length: 12 }, (_, index) => {
+              const month = index + 1;
+              const monthFirst = formatIsoDate(view.year, month, 1);
+              const monthLast = formatIsoDate(view.year, month, daysInMonth(view.year, month));
+              return React.createElement("button", {
+                key: month, type: "button", disabled: monthLast < min || (max && monthFirst > max),
+                "data-selected": month === view.month ? "true" : "false",
+                onClick: () => setView(current => clampIsoDate({ ...current, month, day: 1 }, min, max))
+              }, localeDate({ year: view.year, month, day: 1 }, locale, { month: "short" }));
+            })), React.createElement("button", { type: "button", "data-temporal-field-show-days": "true", onClick: () => setPanel("calendar") }, copy.showDays)),
+          React.createElement("div", { "data-temporal-field-actions": "true" },
+            React.createElement("button", { type: "button", onClick: closeField }, copy.cancel),
+            React.createElement("button", {
+              type: "button", disabled: !draft, "data-temporal-field-confirm": "true",
+              onClick: () => { if (draft && typeof onChange === "function") onChange(formatIsoDate(draft.year, draft.month, draft.day)); closeField(); }
+            }, copy.confirm))))) : null);
+    }
+
+    return {
+      TemporalField, DateField, NumericKeypad,
+      parseTime, formatTime, stepTimePart,
+      parseIsoDate, formatIsoDate, daysInMonth, shiftCivilMonth, clampIsoDate
+    };
   }
 
   return { createTemporalField };

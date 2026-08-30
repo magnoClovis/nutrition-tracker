@@ -6,7 +6,8 @@ const {
   expectNoCriticalErrors,
   interceptOptionalExternalApis,
   openApp,
-  setAppLanguage
+  setAppLanguage,
+  setDateFieldValue
 } = require('./test-helpers');
 const {
   AUTH_STATE_PATH,
@@ -138,7 +139,7 @@ test.describe('public boot and login screen', () => {
     await page.locator('input[type="password"]').nth(0).fill('secret123');
     await page.locator('input[type="password"]').nth(1).fill('secret123');
     await page.locator('input[autocomplete="name"]').fill('New User');
-    await page.locator('input[type="date"]').fill('1990-01-01');
+    await setDateFieldValue(page, '#registration-birth-date-trigger', '1990-01-01');
     await page.locator('#registration-gender-trigger').click();
     await page.getByRole('option', { name: /Feminino|Female|Femenino/i }).click();
     await page.getByRole('button', { name: /Criar conta|Create account/i }).last().click();
