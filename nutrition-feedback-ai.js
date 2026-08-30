@@ -23,6 +23,167 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
+  const FEEDBACK_NUTRIENTS = Object.freeze([
+    "protein",
+    "kcal",
+    "carbs",
+    "fat",
+    "fiber",
+    "salt"
+  ]);
+
+  function finiteNutrient(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : null;
+  }
+
+  function summarizeEntries(entries, field) {
+    const values = entries.map(entry => finiteNutrient(entry && entry[field]));
+    const known = values.filter(value => value !== null);
+    return {
+      value: known.length ? known.reduce((sum, value) => sum + value, 0) : null,
+      knownItemCount: known.length,
+      missingItemCount: values.length - known.length,
+      totalItemCount: values.length,
+      complete: values.length > 0 && known.length === values.length
+    };
+  }
+
+  function dayCoverage(day, field) {
+    const supplied = day?.nutrientCoverage?.[field];
+    if (supplied && typeof supplied === "object") {
+      const knownItemCount = Number(supplied.knownItemCount) || 0;
+      return {
+        value: knownItemCount > 0 ? finiteNutrient(day[field]) : null,
+        knownItemCount,
+        missingItemCount: Number(supplied.missingItemCount) || 0,
+        totalItemCount: Number(supplied.totalItemCount) || 0,
+        complete: supplied.complete === true
+      };
+    }
+    const value = finiteNutrient(day && day[field]);
+    return {
+      value,
+      knownItemCount: value === null ? 0 : 1,
+      missingItemCount: value === null ? 1 : 0,
+      totalItemCount: 1,
+      complete: value !== null
+    };
+  }
+
+  function rounded(value, decimals = 0) {
+    if (value === null) return null;
+    const factor = 10 ** decimals;
+    return Math.round(value * factor) / factor;
+  }
+
+  function unknownLabel(lang) {
+    return lang === "en" ? "unknown" : lang === "es" ? "desconocido" : "desconhecido";
+  }
+
+  function entryNutrient(value, unit, lang) {
+    const number = finiteNutrient(value);
+    return number === null ? unknownLabel(lang) : `${Math.round(number)}${unit}`;
+  }
+
+  function incompleteNutrientText(label, summary, unit, lang, decimals = 0) {
+    const value = rounded(summary.value, decimals);
+    const amount = value === null
+      ? unknownLabel(lang)
+      : lang === "en"
+        ? `known subtotal ${value}${unit}`
+        : lang === "es"
+          ? `subtotal conocido ${value}${unit}`
+          : `subtotal conhecido ${value}${unit}`;
+    const gap = summary.totalItemCount === 0
+      ? (lang === "en" ? "no foods logged" : lang === "es" ? "ningún alimento registrado" : "nenhum alimento registrado")
+      : lang === "en"
+        ? `data missing for ${summary.missingItemCount} of ${summary.totalItemCount} foods`
+        : lang === "es"
+          ? `faltan datos para ${summary.missingItemCount} de ${summary.totalItemCount} alimentos`
+          : `faltam dados para ${summary.missingItemCount} de ${summary.totalItemCount} alimentos`;
+    return `${label}: ${amount}; ${gap}`;
+  }
+
+  function primaryDayLine(label, summary, goal, unit, lang) {
+    if (!summary.complete) {
+      const unavailable = lang === "en"
+        ? "target percentage unavailable"
+        : lang === "es"
+          ? "porcentaje de la meta no disponible"
+          : "percentual da meta indisponível";
+      return `${incompleteNutrientText(label, summary, unit, lang)} (${unavailable})`;
+    }
+    const value = rounded(summary.value);
+    const percent = finiteNutrient(goal) > 0 ? Math.round(value / goal * 100) : null;
+    const target = percent !== null
+      ? lang === "en" ? `${percent}% of target` : lang === "es" ? `${percent}% de la meta` : `${percent}% da meta`
+      : lang === "en" ? "no target" : lang === "es" ? "sin meta" : "sem meta";
+    return `${label}: ${value}${unit} (${target})`;
+  }
+
+  function optionalDayPart(label, summary, unit, lang, decimals = 0) {
+    if (!summary.complete) return incompleteNutrientText(label, summary, unit, lang, decimals);
+    return `${label}: ${rounded(summary.value, decimals)}${unit}`;
+  }
+
+  function weekAverage(days, field, decimals = 0) {
+    const summaries = days.map(day => dayCoverage(day, field));
+    const complete = summaries.filter(summary => summary.complete && summary.value !== null);
+    return {
+      value: complete.length
+        ? rounded(complete.reduce((sum, summary) => sum + summary.value, 0) / complete.length, decimals)
+        : null,
+      completeDayCount: complete.length,
+      missingDayCount: summaries.length - complete.length,
+      totalDayCount: summaries.length,
+      complete: complete.length === summaries.length
+    };
+  }
+
+  function weekValue(value, goal, coverage, unit, lang) {
+    if (!coverage.complete) {
+      const amount = coverage.value === null ? unknownLabel(lang) : `${coverage.value}${unit}`;
+      const gap = lang === "en"
+        ? `data missing for ${coverage.missingItemCount} of ${coverage.totalItemCount} foods`
+        : lang === "es"
+          ? `faltan datos para ${coverage.missingItemCount} de ${coverage.totalItemCount} alimentos`
+          : `faltam dados para ${coverage.missingItemCount} de ${coverage.totalItemCount} alimentos`;
+      return `${amount} (${gap})/${goal ?? "—"}${unit}`;
+    }
+    return `${value}${unit}/${goal ?? "—"}${unit}`;
+  }
+
+  function weekProteinLine(day, lang) {
+    const coverage = dayCoverage(day, "protein");
+    const label = lang === "en" ? "protein" : lang === "es" ? "proteína" : "proteína";
+    if (!coverage.complete) {
+      const comparison = lang === "en"
+        ? "target comparison unavailable"
+        : lang === "es"
+          ? "comparación con la meta no disponible"
+          : "comparação com a meta indisponível";
+      return `${label}: ${weekValue(day.protein, day.proteinGoal, coverage, "g", lang)} (${comparison})`;
+    }
+    const result = day.metProtein
+      ? lang === "en" ? "target" : "meta"
+      : lang === "en" ? "below" : lang === "es" ? "por debajo" : "abaixo";
+    return `${label}: ${day.protein}g/${day.proteinGoal}g (${result})`;
+  }
+
+  function averagePart(label, average, unit, lang) {
+    const perDay = lang === "en" ? "/day" : lang === "es" ? "/día" : "/dia";
+    if (average.complete) return `${label}: ${average.value}${unit}${perDay}`;
+    const value = average.value === null ? unknownLabel(lang) : `${average.value}${unit}${perDay}`;
+    const coverage = lang === "en"
+      ? `${average.completeDayCount}/${average.totalDayCount} days with complete data`
+      : lang === "es"
+        ? `${average.completeDayCount}/${average.totalDayCount} días con datos completos`
+        : `${average.completeDayCount}/${average.totalDayCount} dias com dados completos`;
+    return `${label}: ${value} (${coverage})`;
+  }
+
   /**
    * Creates the nutrition-feedback API with the app's existing AI and domain helpers.
    *
@@ -158,17 +319,12 @@
           const items = activeLog[meal] || [];
           if (!items.length) return null;
           const label = mealLabel(meal);
-          return label + ":\n" + items.map(e => "  - " + e.name + " (" + e.qty + e.unit + ") - prot: " + Math.round(e.protein ?? 0) + "g, " + Math.round(e.kcal ?? 0) + "kcal, carbs: " + Math.round(e.carbs ?? 0) + "g, gord: " + Math.round(e.fat ?? 0) + "g").join("\n");
+          return label + ":\n" + items.map(e => "  - " + e.name + " (" + e.qty + e.unit + ") - prot: " + entryNutrient(e.protein, "g", feedbackLang) + ", " + entryNutrient(e.kcal, "kcal", feedbackLang) + ", carbs: " + entryNutrient(e.carbs, "g", feedbackLang) + ", gord: " + entryNutrient(e.fat, "g", feedbackLang)).join("\n");
         }).filter(Boolean).join("\n");
-        const p  = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
-        const k  = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
-        const c  = entries.reduce((s, e) => s + (e.carbs ?? 0), 0);
-        const f  = entries.reduce((s, e) => s + (e.fat ?? 0), 0);
-        const fi = entries.reduce((s, e) => s + (e.fiber ?? 0), 0);
-        const sa = entries.reduce((s, e) => s + (e.salt ?? 0), 0);
+        const totals = Object.fromEntries(
+          FEEDBACK_NUTRIENTS.map(field => [field, summarizeEntries(entries, field)])
+        );
         const currentBMI = (currentWeight && currentHeight) ? (currentWeight / ((currentHeight/100)**2)).toFixed(1) : null;
-        const perfProt = goals.protein > 0 ? Math.round(p / goals.protein * 100) : null;
-        const perfKcal = goals.kcal    > 0 ? Math.round(k / goals.kcal    * 100) : null;
         const lines = (feedbackEnglish ? [
           "You are a nutrition analyst reviewing one day of food logging. Be specific, proportional, and practical.",
           "",
@@ -182,9 +338,9 @@
           mealSummary || "No foods logged",
           "",
           "=== ACTUAL DAILY TOTALS ===",
-          "Protein: " + Math.round(p) + "g (" + (perfProt !== null ? perfProt + "% of target" : "no target") + ")",
-          "Calories: " + Math.round(k) + "kcal (" + (perfKcal !== null ? perfKcal + "% of target" : "no target") + ")",
-          "Carbs: " + Math.round(c) + "g | Fat: " + Math.round(f) + "g | Fiber: " + Math.round(fi) + "g | Salt: " + (Math.round(sa*10)/10) + "g",
+          primaryDayLine("Protein", totals.protein, goals.protein, "g", feedbackLang),
+          primaryDayLine("Calories", totals.kcal, goals.kcal, "kcal", feedbackLang),
+          optionalDayPart("Carbs", totals.carbs, "g", feedbackLang) + " | " + optionalDayPart("Fat", totals.fat, "g", feedbackLang) + " | " + optionalDayPart("Fiber", totals.fiber, "g", feedbackLang) + " | " + optionalDayPart("Salt", totals.salt, "g", feedbackLang, 1),
           "",
           "=== ANALYSIS RULES ===",
           feedbackRules,
@@ -211,9 +367,9 @@
           mealSummary || "Ningún alimento registrado",
           "",
           "=== TOTALES REALES DEL DÍA ===",
-          "Proteína: " + Math.round(p) + "g (" + (perfProt !== null ? perfProt + "% de la meta" : "sin meta") + ")",
-          "Calorías: " + Math.round(k) + "kcal (" + (perfKcal !== null ? perfKcal + "% de la meta" : "sin meta") + ")",
-          "Carbohidratos: " + Math.round(c) + "g | Grasas: " + Math.round(f) + "g | Fibra: " + Math.round(fi) + "g | Sal: " + (Math.round(sa*10)/10) + "g",
+          primaryDayLine("Proteína", totals.protein, goals.protein, "g", feedbackLang),
+          primaryDayLine("Calorías", totals.kcal, goals.kcal, "kcal", feedbackLang),
+          optionalDayPart("Carbohidratos", totals.carbs, "g", feedbackLang) + " | " + optionalDayPart("Grasas", totals.fat, "g", feedbackLang) + " | " + optionalDayPart("Fibra", totals.fiber, "g", feedbackLang) + " | " + optionalDayPart("Sal", totals.salt, "g", feedbackLang, 1),
           "",
           "=== REGLAS DE ANÁLISIS ===",
           feedbackRules,
@@ -240,9 +396,9 @@
           mealSummary || "Nenhum alimento registrado",
           "",
           "=== TOTAIS REAIS DO DIA ===",
-          "Proteína: " + Math.round(p) + "g (" + (perfProt !== null ? perfProt + "% da meta" : "sem meta") + ")",
-          "Calorias: " + Math.round(k) + "kcal (" + (perfKcal !== null ? perfKcal + "% da meta" : "sem meta") + ")",
-          "Carbs: " + Math.round(c) + "g | Gordura: " + Math.round(f) + "g | Fibra: " + Math.round(fi) + "g | Sal: " + (Math.round(sa*10)/10) + "g",
+          primaryDayLine("Proteína", totals.protein, goals.protein, "g", feedbackLang),
+          primaryDayLine("Calorias", totals.kcal, goals.kcal, "kcal", feedbackLang),
+          optionalDayPart("Carbs", totals.carbs, "g", feedbackLang) + " | " + optionalDayPart("Gordura", totals.fat, "g", feedbackLang) + " | " + optionalDayPart("Fibra", totals.fiber, "g", feedbackLang) + " | " + optionalDayPart("Sal", totals.salt, "g", feedbackLang, 1),
           "",
           "=== REGRAS DE ANÁLISE ===",
           feedbackRules,
@@ -264,24 +420,25 @@
           return { status: "no-week-data" };
         }
         const avg = {
-          protein: Math.round(days.reduce((s, d) => s + d.protein, 0) / days.length),
-          kcal:    Math.round(days.reduce((s, d) => s + d.kcal,    0) / days.length),
-          carbs:   Math.round(days.reduce((s, d) => s + (d.carbs || 0), 0) / days.length),
-          fat:     Math.round(days.reduce((s, d) => s + (d.fat || 0), 0) / days.length),
-          fiber:   Math.round(days.reduce((s, d) => s + (d.fiber || 0), 0) / days.length),
-          salt:    Math.round(days.reduce((s, d) => s + (d.salt || 0), 0) / days.length * 10) / 10
+          protein: weekAverage(days, "protein"),
+          kcal: weekAverage(days, "kcal"),
+          carbs: weekAverage(days, "carbs"),
+          fat: weekAverage(days, "fat"),
+          fiber: weekAverage(days, "fiber"),
+          salt: weekAverage(days, "salt", 1)
         };
         const daySummary = days.map(d => feedbackEnglish ?
-          d.date + " - protein: " + d.protein + "g/" + d.proteinGoal + "g (" + (d.metProtein ? "target" : "below") + "), " +
-          "calories: " + d.kcal + "/" + d.kcalGoal + "kcal, carbs: " + (d.carbs || 0) + "g/" + (d.carbsGoal || "—") + "g, fat: " + (d.fat || 0) + "g/" + (d.fatGoal || "—") + "g, fiber: " + (d.fiber || 0) + "g/" + (d.fiberGoal || "—") + "g, salt: " + (d.salt || 0) + "g/" + (d.saltGoal || "—") + "g"
+          d.date + " - " + weekProteinLine(d, feedbackLang) + ", " +
+          "calories: " + weekValue(d.kcal, d.kcalGoal, dayCoverage(d, "kcal"), "kcal", feedbackLang) + ", carbs: " + weekValue(d.carbs, d.carbsGoal, dayCoverage(d, "carbs"), "g", feedbackLang) + ", fat: " + weekValue(d.fat, d.fatGoal, dayCoverage(d, "fat"), "g", feedbackLang) + ", fiber: " + weekValue(d.fiber, d.fiberGoal, dayCoverage(d, "fiber"), "g", feedbackLang) + ", salt: " + weekValue(d.salt, d.saltGoal, dayCoverage(d, "salt"), "g", feedbackLang)
           : feedbackSpanish ?
-          d.date + " - proteína: " + d.protein + "g/" + d.proteinGoal + "g (" + (d.metProtein ? "meta" : "por debajo") + "), " +
-          "calorías: " + d.kcal + "/" + d.kcalGoal + "kcal, carbohidratos: " + (d.carbs || 0) + "g/" + (d.carbsGoal || "—") + "g, grasas: " + (d.fat || 0) + "g/" + (d.fatGoal || "—") + "g, fibra: " + (d.fiber || 0) + "g/" + (d.fiberGoal || "—") + "g, sal: " + (d.salt || 0) + "g/" + (d.saltGoal || "—") + "g"
+          d.date + " - " + weekProteinLine(d, feedbackLang) + ", " +
+          "calorías: " + weekValue(d.kcal, d.kcalGoal, dayCoverage(d, "kcal"), "kcal", feedbackLang) + ", carbohidratos: " + weekValue(d.carbs, d.carbsGoal, dayCoverage(d, "carbs"), "g", feedbackLang) + ", grasas: " + weekValue(d.fat, d.fatGoal, dayCoverage(d, "fat"), "g", feedbackLang) + ", fibra: " + weekValue(d.fiber, d.fiberGoal, dayCoverage(d, "fiber"), "g", feedbackLang) + ", sal: " + weekValue(d.salt, d.saltGoal, dayCoverage(d, "salt"), "g", feedbackLang)
           :
-          d.date + " - proteína: " + d.protein + "g/" + d.proteinGoal + "g (" + (d.metProtein ? "meta" : "abaixo") + "), " +
-          "calorias: " + d.kcal + "/" + d.kcalGoal + "kcal, carbs: " + (d.carbs || 0) + "g/" + (d.carbsGoal || "—") + "g, gordura: " + (d.fat || 0) + "g/" + (d.fatGoal || "—") + "g, fibra: " + (d.fiber || 0) + "g/" + (d.fiberGoal || "—") + "g, sal: " + (d.salt || 0) + "g/" + (d.saltGoal || "—") + "g"
+          d.date + " - " + weekProteinLine(d, feedbackLang) + ", " +
+          "calorias: " + weekValue(d.kcal, d.kcalGoal, dayCoverage(d, "kcal"), "kcal", feedbackLang) + ", carbs: " + weekValue(d.carbs, d.carbsGoal, dayCoverage(d, "carbs"), "g", feedbackLang) + ", gordura: " + weekValue(d.fat, d.fatGoal, dayCoverage(d, "fat"), "g", feedbackLang) + ", fibra: " + weekValue(d.fiber, d.fiberGoal, dayCoverage(d, "fiber"), "g", feedbackLang) + ", sal: " + weekValue(d.salt, d.saltGoal, dayCoverage(d, "salt"), "g", feedbackLang)
         ).join("\n");
-        const daysMetProt = days.filter(d => d.metProtein).length;
+        const proteinCompleteDays = days.filter(day => dayCoverage(day, "protein").complete);
+        const daysMetProt = proteinCompleteDays.filter(d => d.metProtein).length;
         const currentBMI2 = (currentWeight && currentHeight) ? (currentWeight / ((currentHeight/100)**2)).toFixed(1) : null;
         const weekLines = (feedbackEnglish ? [
           "You are a nutrition analyst reviewing a user's weekly food intake. Be specific, proportional, and practical.",
@@ -293,8 +450,8 @@
           daySummary,
           "",
           "=== AVERAGES ===",
-          "Protein: " + avg.protein + "g/day | Calories: " + avg.kcal + "kcal/day | Carbs: " + avg.carbs + "g/day | Fat: " + avg.fat + "g/day | Fiber: " + avg.fiber + "g/day | Salt: " + avg.salt + "g/day",
-          "Days that hit the protein target: " + daysMetProt + "/" + days.length,
+          averagePart("Protein", avg.protein, "g", feedbackLang) + " | " + averagePart("Calories", avg.kcal, "kcal", feedbackLang) + " | " + averagePart("Carbs", avg.carbs, "g", feedbackLang) + " | " + averagePart("Fat", avg.fat, "g", feedbackLang) + " | " + averagePart("Fiber", avg.fiber, "g", feedbackLang) + " | " + averagePart("Salt", avg.salt, "g", feedbackLang),
+          "Days that hit the protein target: " + daysMetProt + "/" + proteinCompleteDays.length + " days with complete protein data",
           "",
           "=== ANALYSIS RULES ===",
           feedbackRules,
@@ -318,8 +475,8 @@
           daySummary,
           "",
           "=== PROMEDIOS ===",
-          "Proteína: " + avg.protein + "g/día | Calorías: " + avg.kcal + "kcal/día | Carbohidratos: " + avg.carbs + "g/día | Grasas: " + avg.fat + "g/día | Fibra: " + avg.fiber + "g/día | Sal: " + avg.salt + "g/día",
-          "Días que alcanzó la meta de proteína: " + daysMetProt + "/" + days.length,
+          averagePart("Proteína", avg.protein, "g", feedbackLang) + " | " + averagePart("Calorías", avg.kcal, "kcal", feedbackLang) + " | " + averagePart("Carbohidratos", avg.carbs, "g", feedbackLang) + " | " + averagePart("Grasas", avg.fat, "g", feedbackLang) + " | " + averagePart("Fibra", avg.fiber, "g", feedbackLang) + " | " + averagePart("Sal", avg.salt, "g", feedbackLang),
+          "Días que alcanzó la meta de proteína: " + daysMetProt + "/" + proteinCompleteDays.length + " días con datos completos de proteína",
           "",
           "=== REGLAS DE ANÁLISIS ===",
           feedbackRules,
@@ -343,8 +500,8 @@
           daySummary,
           "",
           "=== MÉDIAS ===",
-          "Proteína: " + avg.protein + "g/dia | Calorias: " + avg.kcal + "kcal/dia | Carbs: " + avg.carbs + "g/dia | Gordura: " + avg.fat + "g/dia | Fibra: " + avg.fiber + "g/dia | Sal: " + avg.salt + "g/dia",
-          "Dias que atingiu a meta de proteína: " + daysMetProt + "/" + days.length,
+          averagePart("Proteína", avg.protein, "g", feedbackLang) + " | " + averagePart("Calorias", avg.kcal, "kcal", feedbackLang) + " | " + averagePart("Carbs", avg.carbs, "g", feedbackLang) + " | " + averagePart("Gordura", avg.fat, "g", feedbackLang) + " | " + averagePart("Fibra", avg.fiber, "g", feedbackLang) + " | " + averagePart("Sal", avg.salt, "g", feedbackLang),
+          "Dias que atingiu a meta de proteína: " + daysMetProt + "/" + proteinCompleteDays.length + " dias com dados completos de proteína",
           "",
           "=== REGRAS DE ANÁLISE ===",
           feedbackRules,

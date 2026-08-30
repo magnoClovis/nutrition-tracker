@@ -27,6 +27,32 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
+  const COVERAGE_NUTRIENTS = Object.freeze([
+    "protein",
+    "kcal",
+    "carbs",
+    "fat",
+    "fiber",
+    "salt"
+  ]);
+
+  function finiteNutrient(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : null;
+  }
+
+  function nutrientCoverage(entries, field) {
+    const values = entries.map(entry => finiteNutrient(entry && entry[field]));
+    const known = values.filter(value => value !== null);
+    return {
+      knownItemCount: known.length,
+      missingItemCount: values.length - known.length,
+      totalItemCount: values.length,
+      complete: values.length > 0 && known.length === values.length
+    };
+  }
+
   /**
    * Creates the weekly aggregation API with domain dependencies supplied by the host.
    *
@@ -84,6 +110,9 @@
         const fat = entries.reduce((s, e) => s + (e.fat ?? 0), 0);
         const fiber = entries.reduce((s, e) => s + (e.fiber ?? 0), 0);
         const salt = entries.reduce((s, e) => s + (e.salt ?? 0), 0);
+        const nutrientCoverageByField = Object.fromEntries(
+          COVERAGE_NUTRIENTS.map(field => [field, nutrientCoverage(entries, field)])
+        );
         days.push({
           date,
           label: formatDateDM(date),
@@ -110,6 +139,7 @@
           adjustment: rawGoal.adjustment || 0,
           metProtein: protein >= g.protein,
           metKcal: kcal >= g.kcal * 0.85 && kcal <= g.kcal * 1.15,
+          nutrientCoverage: nutrientCoverageByField,
           hasData: entries.length > 0,
           isToday: isTodayEntry
         });
