@@ -203,6 +203,8 @@ contractTest("uses an explicit activity factor and builds the English weekly pro
   assert.ok(prompt.includes("Current goal: weight loss (4kg in 8 weeks)"));
   assert.ok(prompt.includes("=== WEEK SUMMARY (2 logged days) ==="));
   assert.ok(prompt.includes("Protein: 140g/day | Calories: 2000kcal/day | Carbs: 220g/day"));
+  assert.ok(prompt.includes("Salt: 5g/day"));
+  assert.doesNotMatch(prompt, /sodium\/salt/i);
   assert.ok(prompt.includes("Days that hit the protein target: 1/2"));
 });
 

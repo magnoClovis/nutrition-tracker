@@ -124,7 +124,7 @@
         fbText("Dia analisado como: ", "Day classified as: ", "Día analizado como: ") + (isTraining ? fbText("dia de treino/atividade", "training/activity day", "día de entrenamiento/actividad") : fbText("dia de descanso", "rest day", "día de descanso")),
         fbText("Calorias de base calculadas antes do ajuste: ", "Calculated base calories before adjustment: ", "Calorías base calculadas antes del ajuste: ") + (calorieBase || "—") + " kcal",
         fbText("Ajuste calórico do objetivo: ", "Goal calorie adjustment: ", "Ajuste calórico del objetivo: ") + (calorieAdjustment > 0 ? "+" : "") + calorieAdjustment + fbText(" kcal/dia", " kcal/day", " kcal/día"),
-        fbText("Metas em uso: ", "Targets in use: ", "Metas en uso: ") + (goals.kcal || "—") + " kcal, " + (goals.protein || "—") + fbText("g proteína, ", "g protein, ", "g proteína, ") + (goals.carbs || "—") + fbText("g carboidratos, ", "g carbs, ", "g carbohidratos, ") + (goals.fat || "—") + fbText("g gorduras, ", "g fat, ", "g grasas, ") + (goals.fiber || "—") + fbText("g fibra, ", "g fiber, ", "g fibra, ") + (goals.salt || "—") + fbText("g sal", "g sodium/salt", "g sal"),
+        fbText("Metas em uso: ", "Targets in use: ", "Metas en uso: ") + (goals.kcal || "—") + " kcal, " + (goals.protein || "—") + fbText("g proteína, ", "g protein, ", "g proteína, ") + (goals.carbs || "—") + fbText("g carboidratos, ", "g carbs, ", "g carbohidratos, ") + (goals.fat || "—") + fbText("g gorduras, ", "g fat, ", "g grasas, ") + (goals.fiber || "—") + fbText("g fibra, ", "g fiber, ", "g fibra, ") + (goals.salt || "—") + fbText("g sal", "g salt", "g sal"),
         fbText("Multiplicador de proteína: ", "Protein multiplier: ", "Multiplicador de proteína: ") + Number(proteinMultiplier).toFixed(1) + "g/kg"
       ].filter(Boolean).join("\n");
       const feedbackRules = (feedbackEnglish ? [
@@ -132,7 +132,7 @@
         "Analyze the data against the current goal, latest recorded weight, calorie/protein targets, and all available nutrient targets.",
         "Be balanced: highlight real strengths and realistic improvement areas without alarmism.",
         "Do not frame small differences as major problems. Deviations under 5% of the target, or just a few grams for nutrients, should be treated at most as a light observation.",
-        "Prioritize relevant patterns, consistency, food choices, protein/calorie distribution, fiber, sodium/salt, fats, and alignment with the user's goal.",
+        "Prioritize relevant patterns, consistency, food choices, protein/calorie distribution, fiber, salt, fats, and alignment with the user's goal.",
         "Avoid medical diagnosis. Give practical, realistic guidance based only on the provided data.",
         "When data is missing, state that the conclusion is limited instead of inventing."
       ] : feedbackSpanish ? [
@@ -184,7 +184,7 @@
           "=== ACTUAL DAILY TOTALS ===",
           "Protein: " + Math.round(p) + "g (" + (perfProt !== null ? perfProt + "% of target" : "no target") + ")",
           "Calories: " + Math.round(k) + "kcal (" + (perfKcal !== null ? perfKcal + "% of target" : "no target") + ")",
-          "Carbs: " + Math.round(c) + "g | Fat: " + Math.round(f) + "g | Fiber: " + Math.round(fi) + "g | Sodium/salt: " + (Math.round(sa*10)/10) + "g",
+          "Carbs: " + Math.round(c) + "g | Fat: " + Math.round(f) + "g | Fiber: " + Math.round(fi) + "g | Salt: " + (Math.round(sa*10)/10) + "g",
           "",
           "=== ANALYSIS RULES ===",
           feedbackRules,
@@ -273,7 +273,7 @@
         };
         const daySummary = days.map(d => feedbackEnglish ?
           d.date + " - protein: " + d.protein + "g/" + d.proteinGoal + "g (" + (d.metProtein ? "target" : "below") + "), " +
-          "calories: " + d.kcal + "/" + d.kcalGoal + "kcal, carbs: " + (d.carbs || 0) + "g/" + (d.carbsGoal || "—") + "g, fat: " + (d.fat || 0) + "g/" + (d.fatGoal || "—") + "g, fiber: " + (d.fiber || 0) + "g/" + (d.fiberGoal || "—") + "g, sodium/salt: " + (d.salt || 0) + "g/" + (d.saltGoal || "—") + "g"
+          "calories: " + d.kcal + "/" + d.kcalGoal + "kcal, carbs: " + (d.carbs || 0) + "g/" + (d.carbsGoal || "—") + "g, fat: " + (d.fat || 0) + "g/" + (d.fatGoal || "—") + "g, fiber: " + (d.fiber || 0) + "g/" + (d.fiberGoal || "—") + "g, salt: " + (d.salt || 0) + "g/" + (d.saltGoal || "—") + "g"
           : feedbackSpanish ?
           d.date + " - proteína: " + d.protein + "g/" + d.proteinGoal + "g (" + (d.metProtein ? "meta" : "por debajo") + "), " +
           "calorías: " + d.kcal + "/" + d.kcalGoal + "kcal, carbohidratos: " + (d.carbs || 0) + "g/" + (d.carbsGoal || "—") + "g, grasas: " + (d.fat || 0) + "g/" + (d.fatGoal || "—") + "g, fibra: " + (d.fiber || 0) + "g/" + (d.fiberGoal || "—") + "g, sal: " + (d.salt || 0) + "g/" + (d.saltGoal || "—") + "g"
@@ -293,7 +293,7 @@
           daySummary,
           "",
           "=== AVERAGES ===",
-          "Protein: " + avg.protein + "g/day | Calories: " + avg.kcal + "kcal/day | Carbs: " + avg.carbs + "g/day | Fat: " + avg.fat + "g/day | Fiber: " + avg.fiber + "g/day | Sodium/salt: " + avg.salt + "g/day",
+          "Protein: " + avg.protein + "g/day | Calories: " + avg.kcal + "kcal/day | Carbs: " + avg.carbs + "g/day | Fat: " + avg.fat + "g/day | Fiber: " + avg.fiber + "g/day | Salt: " + avg.salt + "g/day",
           "Days that hit the protein target: " + daysMetProt + "/" + days.length,
           "",
           "=== ANALYSIS RULES ===",

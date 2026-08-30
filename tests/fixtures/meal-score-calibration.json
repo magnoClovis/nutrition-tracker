@@ -1,6 +1,7 @@
 {
   "contractVersion": "c20-calibration-v1",
-  "productionBaselineVersion": "meal-score-v1.1",
+  "previousProductionVersion": "meal-score-v1.1",
+  "productionVersion": "meal-score-v2",
   "requiredNutrients": ["kcal", "protein"],
   "optionalNutrients": ["carbs", "fat", "fiber", "salt"],
   "cases": [
@@ -12,7 +13,7 @@
       "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
       "consumedEntries": [{"kcal": 650, "protein": 45, "carbs": 75, "fat": 22, "fiber": 9, "salt": 1.2}],
       "candidateEntries": [{"kcal": 520, "protein": 38, "carbs": 62, "fat": 17, "fiber": 8, "salt": 1.1}],
-      "expected": {"valid": true, "provisionalReasons": []}
+      "expected": {"valid": true, "score": 4.935138, "coverage": 1, "confidence": "high", "provisionalReasons": []}
     },
     {
       "id": "calorie-excess-complete",
@@ -22,7 +23,7 @@
       "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
       "consumedEntries": [{"kcal": 1950, "protein": 130, "carbs": 220, "fat": 68, "fiber": 24, "salt": 4.2}],
       "candidateEntries": [{"kcal": 700, "protein": 35, "carbs": 90, "fat": 25, "fiber": 5, "salt": 0.7}],
-      "expected": {"valid": true, "provisionalReasons": []}
+      "expected": {"valid": true, "score": 2.628363, "coverage": 1, "confidence": "high", "provisionalReasons": []}
     },
     {
       "id": "salt-excess-complete",
@@ -32,7 +33,7 @@
       "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
       "consumedEntries": [{"kcal": 1200, "protein": 90, "carbs": 145, "fat": 42, "fiber": 18, "salt": 5.1}],
       "candidateEntries": [{"kcal": 380, "protein": 24, "carbs": 42, "fat": 12, "fiber": 5, "salt": 2.4}],
-      "expected": {"valid": true, "provisionalReasons": []}
+      "expected": {"valid": true, "score": 3.122681, "coverage": 1, "confidence": "high", "provisionalReasons": []}
     },
     {
       "id": "candidate-optional-gaps",
@@ -47,6 +48,9 @@
       ],
       "expected": {
         "valid": true,
+        "score": 4.813881,
+        "coverage": 0.72,
+        "confidence": "medium",
         "provisionalReasons": [
           {"nutrient": "fiber", "scope": "candidate", "missingItemCount": 1, "totalItemCount": 2},
           {"nutrient": "salt", "scope": "candidate", "missingItemCount": 1, "totalItemCount": 2}
@@ -66,6 +70,9 @@
       "candidateEntries": [{"kcal": 450, "protein": 35, "carbs": 48, "fat": 16, "fiber": 7, "salt": 1}],
       "expected": {
         "valid": true,
+        "score": 3.58125,
+        "coverage": 0.72,
+        "confidence": "medium",
         "provisionalReasons": [
           {"nutrient": "fiber", "scope": "consumed", "missingItemCount": 1, "totalItemCount": 2},
           {"nutrient": "salt", "scope": "consumed", "missingItemCount": 1, "totalItemCount": 2}
@@ -85,6 +92,9 @@
       ],
       "expected": {
         "valid": true,
+        "score": 4.902459,
+        "coverage": 0.78,
+        "confidence": "medium",
         "provisionalReasons": [
           {"nutrient": "carbs", "scope": "candidate", "missingItemCount": 1, "totalItemCount": 2},
           {"nutrient": "fat", "scope": "candidate", "missingItemCount": 1, "totalItemCount": 2}
@@ -99,7 +109,7 @@
       "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
       "consumedEntries": [],
       "candidateEntries": [{"kcal": 420, "protein": null, "carbs": 50, "fat": 14, "fiber": 6, "salt": 0.8}],
-      "expected": {"valid": false, "requiredMissing": ["protein"], "provisionalReasons": []}
+      "expected": {"valid": false, "score": null, "coverage": 0.75, "confidence": "unavailable", "requiredMissing": ["protein"], "provisionalReasons": []}
     },
     {
       "id": "optional-goals-absent",
@@ -109,7 +119,7 @@
       "goals": {"kcal": 2000, "protein": 150},
       "consumedEntries": [{"kcal": 650, "protein": 45}],
       "candidateEntries": [{"kcal": 500, "protein": 35}],
-      "expected": {"valid": true, "provisionalReasons": []}
+      "expected": {"valid": true, "score": 4.756927, "coverage": 1, "confidence": "high", "provisionalReasons": []}
     },
     {
       "id": "historical-evaluated-immediately",
@@ -119,7 +129,7 @@
       "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
       "consumedEntries": [{"kcal": 500, "protein": 35, "carbs": 60, "fat": 17, "fiber": 7, "salt": 1}],
       "candidateEntries": [{"kcal": 550, "protein": 40, "carbs": 65, "fat": 18, "fiber": 8, "salt": 1.1}],
-      "expected": {"valid": true, "provisionalReasons": []}
+      "expected": {"valid": true, "score": 4.894925, "coverage": 1, "confidence": "high", "provisionalReasons": []}
     },
     {
       "id": "historical-evaluated-later",
@@ -129,7 +139,7 @@
       "goals": {"kcal": 2000, "protein": 150, "carbs": 240, "fat": 70, "fiber": 30, "salt": 5},
       "consumedEntries": [{"kcal": 500, "protein": 35, "carbs": 60, "fat": 17, "fiber": 7, "salt": 1}],
       "candidateEntries": [{"kcal": 550, "protein": 40, "carbs": 65, "fat": 18, "fiber": 8, "salt": 1.1}],
-      "expected": {"valid": true, "provisionalReasons": []}
+      "expected": {"valid": true, "score": 4.894925, "coverage": 1, "confidence": "high", "provisionalReasons": []}
     }
   ],
   "relations": [

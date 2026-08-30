@@ -363,6 +363,7 @@ contractTest("resolves one validated registration time and applies it immutably 
   const {
     formatMealRegistrationTime,
     resolveMealRegistrationTime,
+    buildMealOccurrenceDateTime,
     applyMealRegistrationTime
   } = createController(createNutritionTrackerController);
   const now = new Date(2026, 6, 31, 9, 7);
@@ -372,6 +373,7 @@ contractTest("resolves one validated registration time and applies it immutably 
   assert.equal(resolveMealRegistrationTime({ open: false, value: "18:45" }, now), "09:07");
   assert.equal(resolveMealRegistrationTime({ open: true, value: "18:45" }, now), "18:45");
   assert.equal(resolveMealRegistrationTime({ open: true, value: "25:99" }, now), "09:07");
+  assert.equal(buildMealOccurrenceDateTime("2026-07-15", "18:45", now), "2026-07-15T18:45:00");
   assert.deepEqual(applyMealRegistrationTime(items, "18:45"), [
     { id: "one", time: "18:45" },
     { id: "two", time: "18:45" }
@@ -500,11 +502,30 @@ contractTest("applies the selected time at every final meal-registration path", 
       ? source.indexOf(`function ${functionNames[index + 1]}`, start)
       : source.indexOf("const stagedTot", start);
     assert.ok(start >= 0, `${functionName} must exist`);
-    assert.ok(
-      source.slice(start, nextStart).includes("applySelectedMealTime"),
-      `${functionName} must apply the shared registration time`
-    );
+    const block = source.slice(start, nextStart);
+    const appliesTime = functionName === "confirmMealReview"
+      ? block.includes("applyMealRegistrationTime(mealReview.items, mealReview.registrationTime)")
+      : block.includes("applySelectedMealTime");
+    assert.ok(appliesTime, `${functionName} must apply the shared registration time`);
   });
+});
+
+contractTest("freezes the real meal occurrence across review, reevaluation, and persistence", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+  const reviewStart = source.indexOf("function openMealReview");
+  const confirmStart = source.indexOf("async function confirmMealReview", reviewStart);
+  const reviewBlock = source.slice(reviewStart, confirmStart);
+  assert.match(reviewBlock, /buildMealOccurrenceDateTime\(viewDate, registrationTime, evaluatedAt\)/);
+  assert.match(reviewBlock, /evaluateMealItems\(candidateItems, mealOccurredAt, evaluatedAt\)/);
+  assert.match(source, /registrationTime: mealReview\.registrationTime[\s\S]*mealOccurredAt: mealReview\.mealOccurredAt/);
+  assert.match(source, /applyMealRegistrationTime\(mealReview\.items, mealReview\.registrationTime\)/);
+});
+
+contractTest("describes the five-gram nutrient target as salt in English goal notifications", createNutritionTrackerController => {
+  const source = createNutritionTrackerController.toString();
+  assert.match(source, /Salt limit reached/);
+  assert.doesNotMatch(source, /Sodium (?:limit|reached|notice|is|target)/);
 });
 
 contractTest("assigns stable daily-entry IDs and routes list changes through idempotent mutations", createNutritionTrackerController => {

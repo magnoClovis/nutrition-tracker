@@ -1,6 +1,6 @@
 # Contrato da pontuação nutricional
 
-Estado do contrato: aprovado para a calibração técnica do C20. A fórmula de produção continua em `meal-score-v1.1` até a Fatia C20-B.
+Estado do contrato: algoritmo `meal-score-v2` implementado na Fatia C20-B. Snapshots `meal-score-v1.1` permanecem históricos e não são recalculados.
 
 ## Finalidade
 
@@ -21,14 +21,14 @@ Reavaliar a mesma refeição não pode trocar seu horário real pelo relógio at
 
 ## Nutrientes
 
-| Nutriente | Papel aprovado | Disponibilidade |
+| Nutriente | Papel aprovado | Peso v2 |
 |---|---|---|
-| Calorias | Obrigatório; adequação ao orçamento energético restante | Atual |
-| Proteína | Obrigatório; aproximação da meta restante | Atual |
-| Carboidratos | Opcional; aproximação da meta restante | C20-B |
-| Gorduras | Opcional; aproximação da meta restante | C20-B |
-| Fibra | Opcional; aproximação da meta restante | Atual |
-| Sal | Opcional; respeito ao limite restante | Atual |
+| Calorias | Obrigatório; adequação ao orçamento energético restante | 25% |
+| Proteína | Obrigatório; aproximação da meta restante | 25% |
+| Carboidratos | Opcional; aproximação da meta restante | 12% |
+| Gorduras | Opcional; aproximação da meta restante | 10% |
+| Fibra | Opcional; aproximação da meta restante | 16% |
+| Sal | Opcional; respeito ao limite restante | 12% |
 
 O campo `salt` e sua meta são expressos em gramas de sal. Eles não representam gramas de sódio. Açúcares e gorduras saturadas ficam fora do C20 enquanto a cobertura de dados depender da expansão N02.
 
@@ -48,9 +48,24 @@ Exemplo de apresentação: `Nota provisória — faltam dados de fibra e sal par
 
 Incerteza de estimativa por foto é uma dimensão diferente de cobertura. Ela pode ser apresentada separadamente, mas não deve ser convertida silenciosamente em nutriente ausente nem alterar a nota sem uma regra versionada.
 
+A cobertura divide o peso disponível pelo peso aplicável. Uma meta opcional inexistente não entra no denominador. A confiança técnica derivada da cobertura é `alta` a partir de 90%, `média` a partir de 70%, `baixa` abaixo de 70% e `indisponível` quando falta um componente obrigatório. Ela descreve apenas completude dos dados, não certeza clínica nem precisão de uma estimativa por IA.
+
+## Curvas e horário contextual
+
+O horário é fixado uma única vez ao abrir a revisão e combina a data civil selecionada com o horário real informado — ou o horário do sistema quando o controle opcional não foi usado. Reavaliar e confirmar reutilizam essa mesma ocorrência.
+
+A parcela contextual do que ainda falta no dia usa uma curva suave de potência (`0,75`) sobre uma janela de três horas, com piso de 15% para refeições cedo. Nas últimas três horas do dia, todo o restante vira referência. Esse cálculo usa o relógio civil contido na ocorrência e não o fuso do aparelho que fizer uma reavaliação posterior.
+
+- Calorias, carboidratos e gorduras usam curva de aproximação: crescem suavemente até a referência e perdem pontos progressivamente no excesso.
+- Proteína e fibra usam curva de alcance com saturação na referência, sem premiar excesso adicional.
+- Sal usa curva de limite: mantém pontuação integral enquanto estiver dentro da referência e aplica penalidade progressiva acima dela.
+- Os pesos totalizam 100 e são renormalizados apenas entre componentes realmente disponíveis.
+
+Os parâmetros constituem a calibração técnica inicial. A revisão externa posterior por nutricionista pode gerar uma nova versão do algoritmo; não deve alterar silenciosamente `meal-score-v2`.
+
 ## Versionamento e histórico
 
-Toda avaliação persistida deve identificar a versão do algoritmo e conservar o snapshot usado no registro. A introdução do contrato novo exige uma nova versão, prevista como `meal-score-v2`.
+Toda avaliação persistida identifica a versão do algoritmo e conserva o snapshot usado no registro. O contrato novo é persistido como `meal-score-v2`.
 
 Snapshots históricos não serão recalculados automaticamente. Comparações entre notas de versões diferentes precisam expor a versão ou evitar sugerir equivalência direta.
 
@@ -71,6 +86,4 @@ O algoritmo v2 deve satisfazer, no mínimo:
 
 ## Matriz executável
 
-`tests/fixtures/meal-score-calibration.json` registra os casos mínimos, lacunas esperadas e relações que orientarão a implementação. Na C20-A, a matriz valida o contrato e documenta a linha de base de `meal-score-v1.1`; ela não modifica nem aprova os pesos atuais.
-
-Os pesos e curvas finais passam pela calibração técnica da C20-B e por revisão externa posterior de nutricionista antes do lançamento público desse recurso fora do estado Beta.
+`tests/fixtures/meal-score-calibration.json` registra os casos mínimos, resultados numéricos esperados, cobertura, confiança, lacunas e relações do `meal-score-v2`. A matriz também conserva `meal-score-v1.1` como versão anterior para proteger a separação dos snapshots históricos.

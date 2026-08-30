@@ -15,13 +15,15 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
-  const ALGORITHM_VERSION = "meal-score-v1.1";
+  const ALGORITHM_VERSION = "meal-score-v2";
   const DEFAULT_WINDOW_HOURS = 3;
   const DEFAULT_CONFIG = [
-    { key: "protein", type: "maximize", weight: 30, required: true },
-    { key: "kcal", type: "budget", weight: 25, required: true, decay: 2, underBudget: "adequacy" },
-    { key: "fiber", type: "maximize", weight: 18 },
-    { key: "salt", type: "budget", weight: 12, decay: 4.5, underBudget: "full" }
+    { key: "kcal", type: "target", weight: 25, required: true, underPower: 0.75, overDecay: 3.5 },
+    { key: "protein", type: "maximize", weight: 25, required: true, curvePower: 0.7 },
+    { key: "fiber", type: "maximize", weight: 16, curvePower: 0.8 },
+    { key: "salt", type: "limit", weight: 12, overDecay: 5 },
+    { key: "carbs", type: "target", weight: 12, underPower: 0.8, overDecay: 2.5 },
+    { key: "fat", type: "target", weight: 10, underPower: 0.8, overDecay: 3 }
   ];
 
   function finiteNumber(value) {
@@ -56,6 +58,38 @@
     return Math.min(1, window / hours);
   }
 
+  /**
+   * Calculates clock hours remaining in the civil day represented by a meal.
+   * An ISO-like string retains its own wall-clock time instead of being
+   * converted to the timezone of a device that later re-evaluates the meal.
+   */
+  function hoursUntilCivilMidnight(value) {
+    if (typeof value === "string") {
+      const match = /^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2})(?::(\d{2}(?:\.\d+)?))?/.exec(value);
+      if (match) {
+        const hour = Number(match[1]);
+        const minute = Number(match[2]);
+        const second = Number(match[3] || 0);
+        if (hour < 24 && minute < 60 && second < 60) {
+          return Math.max(0, 24 - hour - minute / 60 - second / 3600);
+        }
+      }
+    }
+    return hoursUntilLocalMidnight(value);
+  }
+
+  /**
+   * Smoothly allocates more of the remaining daily target to later meals.
+   * The floor prevents an early meal from receiving an unrealistically tiny
+   * reference; the original linear timeShare remains exported for MealGA.
+   */
+  function contextualTimeShare(hoursLeft, windowHours) {
+    const hours = Math.max(0.25, finiteNumber(hoursLeft) ?? 0.25);
+    const window = Math.max(0.25, finiteNumber(windowHours) ?? DEFAULT_WINDOW_HOURS);
+    if (hours <= window) return 1;
+    return Math.max(0.15, Math.min(1, Math.pow(window / hours, 0.75)));
+  }
+
   function nutrientTotal(entries, key, options) {
     const list = Array.isArray(entries) ? entries : [];
     const settings = options || {};
@@ -76,6 +110,7 @@
       known,
       total: known ? total : null,
       knownCount,
+      missingCount: list.length - knownCount,
       totalCount: list.length,
       complete
     };
@@ -88,9 +123,26 @@
    * @param {number} quota Nutrient quota assigned to the candidate meal.
    * @returns {number} Component score between zero and one.
    */
-  function maximizeScore(amount, quota) {
+  function maximizeScore(amount, quota, curvePower) {
     if (quota <= 0) return 1;
-    return Math.max(0, Math.min(1, amount / quota));
+    const ratio = Math.max(0, amount / quota);
+    return Math.max(0, Math.min(1, Math.pow(ratio, finiteNumber(curvePower) ?? 1)));
+  }
+
+  function targetScore(amount, quota, underPower, overDecay) {
+    if (quota <= 0) return amount > 0 ? 0 : 1;
+    const ratio = Math.max(0, amount / quota);
+    if (ratio <= 1) return Math.pow(ratio, finiteNumber(underPower) ?? 1);
+    const excess = ratio - 1;
+    return Math.exp(-(finiteNumber(overDecay) ?? 3) * excess * excess);
+  }
+
+  function limitScore(amount, quota, overDecay) {
+    if (quota <= 0) return amount > 0 ? 0 : 1;
+    const ratio = Math.max(0, amount / quota);
+    if (ratio <= 1) return 1;
+    const excess = ratio - 1;
+    return Math.exp(-(finiteNumber(overDecay) ?? 4) * excess * excess);
   }
 
   /**
@@ -119,7 +171,9 @@
    * @param {Array<Object>} [input.consumedEntries=[]] Entries already consumed that day.
    * @param {Object} [input.goals={}] Daily nutrient targets keyed by nutrient name.
    * @param {Array<Object>} [input.config] Optional scoring component configuration.
-   * @param {Date|string|number} [input.now=Date.now()] Evaluation date and time.
+   * @param {Date|string|number} [input.mealOccurredAt] Real civil occurrence time of the meal.
+   * @param {Date|string|number} [input.evaluatedAt] Time at which the score was evaluated.
+   * @param {Date|string|number} [input.now] Backward-compatible fallback for both time inputs.
    * @param {number|string} [input.hoursLeft] Explicit remaining hours override.
    * @param {number|string} [input.windowHours] Explicit scoring-window override.
    * @returns {Object} Score result with validity, coverage, components, missing fields, and timing details.
@@ -130,41 +184,70 @@
     const consumedEntries = Array.isArray(options.consumedEntries) ? options.consumedEntries : [];
     const goals = options.goals || {};
     const config = Array.isArray(options.config) && options.config.length ? options.config : DEFAULT_CONFIG;
-    const now = options.now instanceof Date ? options.now : new Date(options.now || Date.now());
-    const hoursLeft = finiteNumber(options.hoursLeft) ?? hoursUntilLocalMidnight(now);
+    const occurrenceInput = options.mealOccurredAt ?? options.now ?? new Date();
+    const evaluationInput = options.evaluatedAt ?? options.now ?? occurrenceInput;
+    const hoursLeft = finiteNumber(options.hoursLeft) ?? hoursUntilCivilMidnight(occurrenceInput);
     const windowHours = finiteNumber(options.windowHours) ?? DEFAULT_WINDOW_HOURS;
-    const share = timeShare(hoursLeft, windowHours);
+    const share = contextualTimeShare(hoursLeft, windowHours);
     const components = {};
     const missing = [];
+    const excluded = [];
     const requiredMissing = [];
+    const provisionalReasons = [];
     let weightedScore = 0;
     let availableWeight = 0;
+    let applicableWeight = 0;
     const totalConfiguredWeight = config.reduce((sum, item) => sum + Math.max(0, Number(item.weight) || 0), 0);
 
     for (const item of config) {
       const target = finiteNumber(goals[item.key]);
-      // Historical entries can be incomplete, so they contribute every known
-      // value without invalidating the assessment. The candidate meal remains
-      // strict for required nutrients, while optional nutrients are evaluated
-      // whenever at least one item provides the value.
       const consumed = nutrientTotal(consumedEntries, item.key, {
-        allowPartial: true,
+        allowPartial: false,
         allowEmpty: true
       });
       const candidate = nutrientTotal(candidateEntries, item.key, {
-        allowPartial: !item.required,
+        allowPartial: false,
         allowEmpty: false
       });
       const validTarget = target !== null && target > 0;
+      const weight = Math.max(0, Number(item.weight) || 0);
+      if (!validTarget && !item.required) {
+        excluded.push(item.key);
+        components[item.key] = {
+          key: item.key,
+          available: false,
+          applicable: false,
+          required: false,
+          weight,
+          target
+        };
+        continue;
+      }
+      applicableWeight += weight;
       const available = validTarget && consumed.known && candidate.known;
       if (!available) {
         missing.push(item.key);
         if (item.required) requiredMissing.push(item.key);
+        if (!item.required && validTarget) {
+          if (!candidate.complete) provisionalReasons.push({
+            nutrient: item.key,
+            scope: "candidate",
+            missingItemCount: candidate.missingCount,
+            totalItemCount: candidate.totalCount
+          });
+          if (!consumed.complete) provisionalReasons.push({
+            nutrient: item.key,
+            scope: "consumed",
+            missingItemCount: consumed.missingCount,
+            totalItemCount: consumed.totalCount
+          });
+        }
         components[item.key] = {
           key: item.key,
           available: false,
+          applicable: true,
           required: !!item.required,
-          weight: item.weight,
+          weight,
           target,
           candidateKnownCount: candidate.knownCount,
           candidateItemCount: candidate.totalCount,
@@ -179,14 +262,16 @@
       const amount = Math.max(0, candidate.total);
       const ratio = quota > 0 ? amount / quota : amount > 0 ? Infinity : 0;
       const componentScore = item.type === "maximize"
-        ? maximizeScore(amount, quota)
-        : budgetScore(amount, quota, item.decay, item.underBudget);
-      const weight = Math.max(0, Number(item.weight) || 0);
+        ? maximizeScore(amount, quota, item.curvePower)
+        : item.type === "limit"
+          ? limitScore(amount, quota, item.overDecay)
+          : targetScore(amount, quota, item.underPower, item.overDecay);
 
       components[item.key] = {
         key: item.key,
         type: item.type,
         available: true,
+        applicable: true,
         required: !!item.required,
         weight,
         target,
@@ -211,20 +296,33 @@
 
     const valid = requiredMissing.length === 0 && availableWeight > 0;
     const score = valid ? 5 * weightedScore / availableWeight : null;
+    const coverage = applicableWeight ? availableWeight / applicableWeight : 0;
+    const confidenceLevel = !valid ? "unavailable" : coverage >= 0.9 ? "high" : coverage >= 0.7 ? "medium" : "low";
+    const serializeDateLike = value => {
+      if (value instanceof Date) return Number.isFinite(value.getTime()) ? value.toISOString() : null;
+      const parsed = new Date(value);
+      return Number.isFinite(parsed.getTime()) ? String(value) : null;
+    };
     return {
       algorithmVersion: ALGORITHM_VERSION,
       valid,
       score,
-      coverage: totalConfiguredWeight ? availableWeight / totalConfiguredWeight : 0,
+      coverage,
+      confidence: confidenceLevel,
+      provisional: valid && provisionalReasons.length > 0,
+      provisionalReasons,
       availableWeight,
+      applicableWeight,
       totalConfiguredWeight,
       components,
       missing,
+      excluded,
       requiredMissing,
       hoursLeft,
       windowHours,
       timeShare: share,
-      evaluatedAt: now.toISOString()
+      mealOccurredAt: serializeDateLike(occurrenceInput),
+      evaluatedAt: serializeDateLike(evaluationInput)
     };
   }
 
@@ -233,9 +331,13 @@
     DEFAULT_WINDOW_HOURS,
     DEFAULT_CONFIG,
     hoursUntilLocalMidnight,
+    hoursUntilCivilMidnight,
     timeShare,
+    contextualTimeShare,
     maximizeScore,
     budgetScore,
+    targetScore,
+    limitScore,
     calculateMealScore
   };
 });
