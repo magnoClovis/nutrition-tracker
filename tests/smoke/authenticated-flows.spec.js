@@ -378,8 +378,8 @@ test.describe('authenticated critical data flows', () => {
     }
   });
 
-  test('renders the contextual meal score presentation in PT, EN, and ES', async ({ page }) => {
-    test.setTimeout(90000);
+  test('accepts and reopens the contextual meal assessment in PT, EN, and ES', async ({ page }) => {
+    test.setTimeout(120000);
     await interceptOptionalExternalApis(page, { aiDelayMs: 300 });
     const errors = await openApp(page);
 
@@ -406,7 +406,13 @@ test.describe('authenticated critical data flows', () => {
         confidence: /Confiança dos dados: Alta/,
         ranges: /Faixas: 0–2,99 pouco alinhada/,
         help: 'O que estou vendo?',
-        disclaimer: /Não mede saúde absoluta, não faz diagnóstico e não substitui orientação profissional\./
+        disclaimer: /Não mede saúde absoluta, não faz diagnóstico e não substitui orientação profissional\./,
+        confirm: 'Registrar refeição',
+        savedHeading: 'Avaliação salva',
+        savedConfidence: /Confiança dos dados: Alta/,
+        savedCoverage: /Cobertura: 100%/,
+        close: 'Fechar',
+        edit: 'Editar'
       },
       {
         language: 'en',
@@ -414,7 +420,13 @@ test.describe('authenticated critical data flows', () => {
         confidence: /Data confidence: High/,
         ranges: /Ranges: 0–2\.99 low alignment/,
         help: 'What am I seeing?',
-        disclaimer: /It does not measure absolute health, make a diagnosis, or replace professional guidance\./
+        disclaimer: /It does not measure absolute health, make a diagnosis, or replace professional guidance\./,
+        confirm: 'Log meal',
+        savedHeading: 'Saved assessment',
+        savedConfidence: /Data confidence: High/,
+        savedCoverage: /Coverage: 100%/,
+        close: 'Close',
+        edit: 'Edit'
       },
       {
         language: 'es',
@@ -422,9 +434,16 @@ test.describe('authenticated critical data flows', () => {
         confidence: /Confianza de los datos: Alta/,
         ranges: /Rangos: 0–2,99 poco alineada/,
         help: '¿Qué estoy viendo?',
-        disclaimer: /No mide la salud absoluta, no realiza diagnósticos ni sustituye la orientación profesional\./
+        disclaimer: /No mide la salud absoluta, no realiza diagnósticos ni sustituye la orientación profesional\./,
+        confirm: 'Registrar comida',
+        savedHeading: 'Evaluación guardada',
+        savedConfidence: /Confianza de los datos: Alta/,
+        savedCoverage: /Cobertura: 100%/,
+        close: 'Cerrar',
+        edit: 'Editar'
       }
     ];
+    const seenEvaluationIds = new Set();
 
     try {
       for (const copy of languageMatrix) {
@@ -442,6 +461,36 @@ test.describe('authenticated critical data flows', () => {
         await expect(modal.getByText(copy.ranges)).toBeVisible();
         await modal.getByRole('button', { name: copy.help }).click();
         await expect(modal.getByText(copy.disclaimer)).toBeVisible();
+        await modal.getByRole('button', { name: copy.confirm, exact: true }).click();
+        await expect(stagedMeal).toBeHidden();
+        await dismissTutorialIfVisible(page);
+
+        let acceptedEntry = null;
+        await expect.poll(async () => {
+          const current = await readDailyLog(page, today);
+          acceptedEntry = Object.values(current).flat().find(item => (
+            item.name === fixture.name
+            && item.mealEvaluationId
+            && !seenEvaluationIds.has(item.mealEvaluationId)
+          )) || null;
+          return acceptedEntry?.mealEvaluationId || '';
+        }, { timeout: 30000 }).not.toBe('');
+        seenEvaluationIds.add(acceptedEntry.mealEvaluationId);
+
+        const evaluationBadge = page.locator(`[data-meal-evaluation-badge="${acceptedEntry.mealEvaluationId}"]`);
+        await expect(evaluationBadge).toHaveCount(1);
+        await expect(evaluationBadge).toContainText(`${acceptedEntry.mealScoreSnapshot.score.toFixed(2)}/5`);
+        await evaluationBadge.click();
+
+        const savedEvaluation = page.locator('[data-diary-meal-evaluation-modal="true"]');
+        await expect(savedEvaluation).toBeVisible();
+        await expect(savedEvaluation.getByText(copy.savedHeading, { exact: true })).toBeVisible();
+        await expect(savedEvaluation.getByText(copy.savedConfidence)).toBeVisible();
+        await expect(savedEvaluation.getByText(copy.savedCoverage)).toBeVisible();
+        await expect(savedEvaluation.getByRole('button', { name: copy.edit, exact: true })).toHaveCount(0);
+        await expect(savedEvaluation.getByRole('button', { name: copy.confirm, exact: true })).toHaveCount(0);
+        await savedEvaluation.getByRole('button', { name: copy.close, exact: true }).first().click();
+        await expect(savedEvaluation).toBeHidden();
       }
 
       const unexpectedErrors = errors.filter(error => !/Failed to load resource: net::ERR_TIMED_OUT/i.test(error));
