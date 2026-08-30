@@ -28,6 +28,9 @@ const foodEntry = createFoodEntry({
 function ChoiceField() {
   return null;
 }
+function SearchableChoiceField() {
+  return null;
+}
 function textContent(node) {
   const parts = [];
   function collect(value) {
@@ -99,7 +102,8 @@ function contractTest(name, callback) {
         templateEntries: foodEntry.templateEntries,
         templateTotals: foodEntry.templateTotals,
         templateItemEntry: foodEntry.templateItemEntry,
-        ChoiceField
+        ChoiceField,
+        SearchableChoiceField
       });
       return callback(SavedMealCard);
     });
@@ -185,4 +189,41 @@ contractTest("uses the reusable ChoiceField for the saved meal default", SavedMe
   assert.equal(fields[0].props.id, "saved-meal-default-meal-1");
   fields[0].props.onChange("Jantar");
   assert.equal(nextDraft.meal, "Jantar");
+});
+
+contractTest("uses the searchable selector for saved-meal ingredients", SavedMealCard => {
+  const editDraft = {
+    name: "Modelo",
+    meal: "Almoço",
+    items: [{ foodId: "food-1", name: "Arroz", qty: 50 }],
+    addFoodId: "",
+    addQty: "20"
+  };
+  let nextDraft = null;
+  const card = SavedMealCard(props({
+    context: "pantry",
+    isEditing: true,
+    editDraft,
+    pantryFoods: [
+      { id: "food-2", name: "Feijão", unit: "g" },
+      { id: "food-3", name: "Banana", unit: "un" }
+    ],
+    onEditDraftChange: updater => { nextDraft = updater(editDraft); }
+  }));
+  const fields = [];
+  (function visit(value) {
+    if (!value || typeof value !== "object") return;
+    if (value.type === SearchableChoiceField) fields.push(value);
+    React.Children.toArray(value.props && value.props.children).forEach(visit);
+  })(card);
+
+  assert.equal(fields.length, 1);
+  assert.equal(fields[0].props.id, "saved-meal-ingredient-meal-1");
+  assert.deepEqual(fields[0].props.options, [
+    { value: "food-2", label: "Feijão", description: "Base nutricional · 100 g" },
+    { value: "food-3", label: "Banana", description: "Base nutricional · 1 un" }
+  ]);
+  assert.equal(fields[0].props.resultCountLabel(2), "2 resultados");
+  fields[0].props.onChange("food-2");
+  assert.equal(nextDraft.addFoodId, "food-2");
 });

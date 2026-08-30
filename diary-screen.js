@@ -38,17 +38,18 @@
    * @param {Function} dependencies.Bar Linear metric primitive from ui-primitives.js.
    * @param {Function} dependencies.GaResultCard Active GA result card component.
    * @param {Function} dependencies.ChoiceField App-local controlled list selector.
+   * @param {Function} dependencies.SearchableChoiceField Searchable selector for dynamic supplement options.
    * @returns {Object} Controlled Diary component API and meal-ordering helper.
    */
-  function createDiaryScreen({ React, pickLang, sortLocaleForLang, localeForLang, addDays, monthDays, shiftMonth, calendarMonthStats, Ring, Bar, GaResultCard, ChoiceField }) {
+  function createDiaryScreen({ React, pickLang, sortLocaleForLang, localeForLang, addDays, monthDays, shiftMonth, calendarMonthStats, Ring, Bar, GaResultCard, ChoiceField, SearchableChoiceField }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof sortLocaleForLang !== "function"
       || typeof localeForLang !== "function" || typeof addDays !== "function"
       || typeof monthDays !== "function" || typeof shiftMonth !== "function"
       || typeof calendarMonthStats !== "function" || typeof Ring !== "function"
       || typeof Bar !== "function" || typeof GaResultCard !== "function"
-      || typeof ChoiceField !== "function") {
-      throw new TypeError("DiaryScreen requires React, i18n/date/calendar helpers, Ring, Bar, GaResultCard, and ChoiceField");
+      || typeof ChoiceField !== "function" || typeof SearchableChoiceField !== "function") {
+      throw new TypeError("DiaryScreen requires React, i18n/date/calendar helpers, Ring, Bar, GaResultCard, ChoiceField, and SearchableChoiceField");
     }
 
     const inp = { width: "100%", background: "var(--input)", border: "1px solid var(--border2)", color: "var(--text2)", padding: "9px 12px", borderRadius: 6, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", outline: "none", marginTop: 3 };
@@ -102,6 +103,11 @@
     function DiaryScreen(props) {
       const { section, tab, lang, isMobileView, darkMode, text, uiText, tickerPhase, tickerDirection, safeTickerIndex, activeTickerSlide, tickerTimerReset, handleTickerPointerDown, handleTickerPointerMove, finishTickerPointer, tickerToneColor, tickerDragOffset, tickerSlides, setTickerTimerReset, moveTicker, greetingText, greetingLine, tot, goals, remainProtein, remainKcal, allEntries, dayProteinPct, dayKcalPct, openMealSuggestions, gaRunning, suggestLoading, showGA, setShowGA, gaTolerance, setGATolerance, gaTargetMeal, setGATargetMeal, MEALS, mealLabel, gaUseAll, setGAUseAll, runGASafely, gaProgress, gaResults, gaHasSearched, expandMicros, setExpandMicros, dailyMicros, hasMicros, getAutomaticMealSuggestionLimits, gaKcalMin, setGAKcalMin, gaProtMin, setGAProtMin, gaKcalMax, setGAKcalMax, gaProtMax, setGAProtMax, gaFoodSearch, setGAFoodSearch, pantry, gaSelIds, setGASelIds, gaAdvancedOpen, setGAAdvancedOpen, gaGlobalMax, setGAGlobalMax, gaUseProtTol, setGAUseProtTol, gaProtTolerance, setGAProtTolerance, activeLog, evaluateMealItems, mealScoreBrief, mealScoreEvaluationText, addGAResultToDiary, TODAY, diaryStatus, dateLabel, viewDate, calendarOpen, setCalendarOpen, changeViewDate, setCalendarMonth, calendarMonth, calendarData, calendarLoading, isToday, viewWeight, isTraining, totalWater, waterExpanded, setWaterExpanded, editWaterGoal, setEditWaterGoal, waterGoalInput, setWaterGoalInput, setWaterGoal, addWater, waterCustomPreset, configureWaterCustomPreset, waterInput, setWaterInput, waterIntake, removeWater, suppLog, removeSuppLog, entryMenuId, editEntryId, editEntryQty, setEditEntryQty, saveEntryEdit, setEditEntryId, openAddForMeal, setEntryMenuId, detailFood, setDetailFood, startEditEntry, duplicateEntry, removeEntry, notesOpen, setNotesOpen, todayNote, historyNote, setTodayNote, setHistoryNote, suppPantry, showSuppAdd, setShowSuppAdd, suppAddId, setSuppAddId, suppAddDose, setSuppAddDose, logSupp, feedbackLoading, feedbackPeriod, generateFeedback, feedbackText, feedbackSaved, saveFeedbackAsNote, setTab, opaqueTrailingNode } = props;
       const visibleMealCategories = getVisibleMealCategories(MEALS, activeLog);
+      const supplementResultCountLabel = count => uiText(
+        `${count} ${count === 1 ? "resultado" : "resultados"}`,
+        `${count} ${count === 1 ? "result" : "results"}`,
+        `${count} ${count === 1 ? "resultado" : "resultados"}`
+      );
     function renderDailyMicros() {
         if (!hasMicros) return null;
         return /*#__PURE__*/React.createElement("div", {
@@ -1819,23 +1825,33 @@
     style: {
       marginTop: 8,
       display: "flex",
-      gap: 6
+      gap: 6,
+      alignItems: "flex-end"
     }
-  }, /*#__PURE__*/React.createElement("select", {
+  }, /*#__PURE__*/React.createElement(SearchableChoiceField, {
+    id: "diary-supplement",
+    label: uiText("Suplemento", "Supplement", "Suplemento"),
     value: suppAddId,
-    onChange: e => setSuppAddId(e.target.value),
+    onChange: setSuppAddId,
+    options: suppPantry.map(s => ({
+      value: s.id,
+      label: s.name,
+      description: `${uiText("Dose padrão", "Default dose", "Dosis predeterminada")} · ${s.dose} ${s.unit}`
+    })),
+    placeholder: uiText("— selecione —", "— select —", "— seleccionar —"),
+    helperText: uiText("Busque nos suplementos cadastrados", "Search registered supplements", "Busca en los suplementos registrados"),
+    searchPlaceholder: uiText("Buscar suplemento", "Search supplement", "Buscar suplemento"),
+    resultsHint: uiText("Toque para selecionar", "Tap to select", "Toca para seleccionar"),
+    resultCountLabel: supplementResultCountLabel,
+    noResultsTitle: uiText("Nenhum suplemento encontrado", "No supplement found", "No se encontró ningún suplemento"),
+    noResultsMessage: uiText("Tente outro nome ou limpe a busca.", "Try another name or clear the search.", "Prueba otro nombre o borra la búsqueda."),
+    clearSearchLabel: uiText("Limpar busca", "Clear search", "Borrar búsqueda"),
+    closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector"),
     style: {
-      ...inp,
       flex: 2,
-      marginTop: 0,
-      padding: "8px 10px"
+      minWidth: 0
     }
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, uiText("\u2014 selecione \u2014", "\u2014 select \u2014", "\u2014 seleccionar \u2014")), suppPantry.map(s => /*#__PURE__*/React.createElement("option", {
-    key: s.id,
-    value: s.id
-  }, s.name, " (", s.dose, s.unit, ")"))), /*#__PURE__*/React.createElement("input", {
+  }), /*#__PURE__*/React.createElement("input", {
     type: "number",
     value: suppAddDose,
     onChange: e => setSuppAddDose(e.target.value),

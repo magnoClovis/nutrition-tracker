@@ -24,6 +24,9 @@ function GaResultCard({ result, onAdd, evaluateMealItems }) {
 function ChoiceField() {
   return null;
 }
+function SearchableChoiceField() {
+  return null;
+}
 
 const labels = {
   water: "Water",
@@ -263,7 +266,8 @@ function contractTest(name, callback) {
         Ring,
         Bar,
         GaResultCard,
-        ChoiceField
+        ChoiceField,
+        SearchableChoiceField
       });
       return callback(api.DiaryScreen, api);
     });
@@ -557,6 +561,29 @@ contractTest("uses the reusable ChoiceField for the GA target meal", DiaryScreen
   ]);
   field.props.onChange("Breakfast");
   assert.equal(selected, "Breakfast");
+});
+
+contractTest("uses the searchable selector for Diary supplements", DiaryScreen => {
+  let selected = null;
+  const view = DiaryScreen(baseProps({
+    section: "content",
+    showSuppAdd: true,
+    suppPantry: [
+      { id: "creatine", name: "Creatine", dose: 5, unit: "g" },
+      { id: "vitamin-d", name: "Vitamin D", dose: 1, unit: "caps" }
+    ],
+    setSuppAddId: value => { selected = value; }
+  }));
+  const field = findNodes(view, node => node.type === SearchableChoiceField)[0];
+
+  assert.equal(field.props.id, "diary-supplement");
+  assert.deepEqual(field.props.options, [
+    { value: "creatine", label: "Creatine", description: "Default dose · 5 g" },
+    { value: "vitamin-d", label: "Vitamin D", description: "Default dose · 1 caps" }
+  ]);
+  assert.equal(field.props.resultCountLabel(2), "2 results");
+  field.props.onChange("vitamin-d");
+  assert.equal(selected, "vitamin-d");
 });
 
 contractTest("daily feedback remains controlled and no meal-review modal is invented", DiaryScreen => {

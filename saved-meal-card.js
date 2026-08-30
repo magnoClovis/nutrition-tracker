@@ -25,6 +25,7 @@
    * @param {function(Object): Object} dependencies.templateTotals Totals builder from `food-entry.js`.
    * @param {function(Object): Object} dependencies.templateItemEntry Item calculator from `food-entry.js`.
    * @param {function(Object): Object} dependencies.ChoiceField App-local controlled list selector.
+   * @param {function(Object): Object} dependencies.SearchableChoiceField Searchable selector for dynamic pantry options.
    * @returns {{SavedMealCard: function(Object): Object}} Component API.
    */
   function createSavedMealCard({
@@ -33,12 +34,14 @@
     templateEntries,
     templateTotals,
     templateItemEntry,
-    ChoiceField
+    ChoiceField,
+    SearchableChoiceField
   }) {
     if (!React || typeof React.createElement !== "function" || typeof pickLang !== "function"
       || typeof templateEntries !== "function" || typeof templateTotals !== "function"
-      || typeof templateItemEntry !== "function" || typeof ChoiceField !== "function") {
-      throw new TypeError("SavedMealCard requires React, pickLang, food-entry template helpers, and ChoiceField");
+      || typeof templateItemEntry !== "function" || typeof ChoiceField !== "function"
+      || typeof SearchableChoiceField !== "function") {
+      throw new TypeError("SavedMealCard requires React, pickLang, food-entry template helpers, ChoiceField, and SearchableChoiceField");
     }
 
     const inputStyle = {
@@ -128,6 +131,16 @@
       onSaveEdit
     }) {
       const uiText = (pt, en, es) => pickLang(lang, pt, en, es);
+      const resultCountLabel = count => uiText(
+        `${count} ${count === 1 ? "resultado" : "resultados"}`,
+        `${count} ${count === 1 ? "result" : "results"}`,
+        `${count} ${count === 1 ? "resultado" : "resultados"}`
+      );
+      const pantryOptionDescription = food => {
+        const unit = food.unit === "un" ? uiText("un", "unit", "ud") : (food.unit || "g");
+        const amount = food.unit === "un" ? 1 : 100;
+        return `${uiText("Base nutricional", "Nutrition basis", "Base nutricional")} · ${amount} ${unit}`;
+      };
       const entries = templateEntries(template);
       const totals = templateTotals(template);
       const editing = Boolean(context === "pantry" && isEditing && editDraft);
@@ -230,11 +243,26 @@
           display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "minmax(180px, 1fr) 96px auto",
           gap: 8, alignItems: "end", marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border3)"
         }
-      }, React.createElement("select", {
+      }, React.createElement(SearchableChoiceField, {
+        id: "saved-meal-ingredient-" + String(template.id || "template").replace(/[^a-zA-Z0-9_-]/g, "-"),
+        label: uiText("Ingrediente", "Ingredient", "Ingrediente"),
         value: editDraft.addFoodId,
-        onChange: event => onEditDraftChange(draft => ({ ...draft, addFoodId: event.target.value })),
-        style: inputStyle
-      }, React.createElement("option", { value: "" }, uiText("Adicionar ingrediente...", "Add ingredient...", "A\u00f1adir ingrediente...")), pantryFoods.map(food => React.createElement("option", { key: food.id, value: food.id }, food.name))), React.createElement("input", {
+        onChange: value => onEditDraftChange(draft => ({ ...draft, addFoodId: value })),
+        options: pantryFoods.map(food => ({
+          value: food.id,
+          label: food.name,
+          description: pantryOptionDescription(food)
+        })),
+        placeholder: uiText("Adicionar ingrediente...", "Add ingredient...", "Añadir ingrediente..."),
+        helperText: uiText("Busque na sua lista de alimentos", "Search your food list", "Busca en tu lista de alimentos"),
+        searchPlaceholder: uiText("Buscar ingrediente", "Search ingredient", "Buscar ingrediente"),
+        resultsHint: uiText("Toque para selecionar", "Tap to select", "Toca para seleccionar"),
+        resultCountLabel,
+        noResultsTitle: uiText("Nenhum ingrediente encontrado", "No ingredient found", "No se encontró ningún ingrediente"),
+        noResultsMessage: uiText("Tente outro nome ou limpe a busca.", "Try another name or clear the search.", "Prueba otro nombre o borra la búsqueda."),
+        clearSearchLabel: uiText("Limpar busca", "Clear search", "Borrar búsqueda"),
+        closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector")
+      }), React.createElement("input", {
         type: "number",
         value: editDraft.addQty,
         onChange: event => onEditDraftChange(draft => ({ ...draft, addQty: event.target.value })),
