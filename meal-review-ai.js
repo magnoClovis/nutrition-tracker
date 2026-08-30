@@ -2,17 +2,15 @@
  * AI explanation request for an already-calculated meal assessment.
  *
  * The UMD module exposes a `createMealReviewAI` factory. The host injects the
- * existing Groq-backed `callAI`, the production language selector from
+ * existing managed `callAI`, the production language selector from
  * `i18n.js`, and the existing MealScore component-count helper. A review object
  * enters the public function and the returned Promise resolves to explanatory
  * text. The calculated score is serialized as final input and is never changed.
  *
- * KNOWN BEHAVIOR DELIBERATELY PRESERVED: concurrent requests are stateless and
- * unordered, so an older explanation may overwrite a newer review in the React
- * host. Prompt construction is synchronous and occurs before the Promise is
- * returned; the host intentionally creates that Promise outside its `try`, so
- * malformed review data can leave its loading state active. Groq rejections are
- * handled silently by the host and this module emits no notification.
+ * Prompt construction is normalized into the returned Promise so malformed
+ * review data and provider failures follow the same asynchronous error path.
+ * Request ordering remains a host concern because only the host knows which
+ * review is currently visible.
  *
  * @module MealReviewAI
  */
@@ -39,13 +37,14 @@
     }
 
     /**
-     * Builds the localized review prompt synchronously and starts its AI request.
+     * Builds the localized review prompt and starts its AI request.
      *
      * @param {Object} review Meal review containing the definitive MealScore result and candidate items.
      * @param {string} lang Current host language used for the explanatory instructions.
      * @returns {Promise<string>} Promise returned by `callAI` for the explanatory text.
      */
     function requestMealReviewExplanation(review, lang) {
+      return Promise.resolve().then(() => {
       const payload = {
         algorithmVersion: review.result.algorithmVersion,
         finalScore: Math.round(review.result.score * 100) / 100,
@@ -62,7 +61,8 @@
         "Briefly explain the nutrition assessment below in American English. The app calculated the final score: do not recalculate, change, or suggest another score. In no more than 120 words, cover strengths, the main excess or shortfall, impact on today's targets, and up to two practical changes. Do not criticize missing nutrients, and distinguish this meal from excess accumulated earlier.\n\nDATA:\n",
         "Explica brevemente en español la evaluación nutricional siguiente. La nota final fue calculada por la app: no la recalcules, cambies ni propongas otra. En un máximo de 120 palabras, indica puntos positivos, el principal exceso o carencia, impacto en las metas del día y hasta dos cambios prácticos. No critiques nutrientes ausentes y diferencia esta comida de excesos acumulados anteriormente.\n\nDATOS:\n"
       ) + JSON.stringify(payload, null, 2);
-      return callAI(prompt, 350);
+        return callAI(prompt, 350);
+      });
     }
 
     return { requestMealReviewExplanation };

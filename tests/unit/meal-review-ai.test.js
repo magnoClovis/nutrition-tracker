@@ -141,15 +141,15 @@ contractTest("lets the React-style host silently neutralize a Groq rejection", a
   assert.equal(notified, false);
 });
 
-contractTest("keeps malformed-review prompt failures synchronous before the AI Promise exists", createFixture => {
+contractTest("normalizes malformed-review prompt failures into the asynchronous request path", async createFixture => {
   let aiCalls = 0;
   const api = createFixture(() => {
     aiCalls++;
     return Promise.resolve("unused");
   });
 
-  assert.throws(
-    () => api.requestMealReviewExplanation({ result: null, items: [] }, "pt"),
+  await assert.rejects(
+    api.requestMealReviewExplanation({ result: null, items: [] }, "pt"),
     TypeError
   );
   assert.equal(aiCalls, 0);

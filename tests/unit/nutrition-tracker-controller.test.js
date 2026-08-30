@@ -45,7 +45,7 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
 
   assert.equal((source.match(/\buseState\s*\(/g) || []).length, 155);
   assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 40);
-  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 25);
+  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 26);
 });
 
 contractTest("cuts aggregate daily autosaves only when granular persistence is available", createNutritionTrackerController => {
@@ -510,7 +510,7 @@ contractTest("applies the selected time at every final meal-registration path", 
   });
 });
 
-contractTest("freezes the real meal occurrence across review, reevaluation, and persistence", createNutritionTrackerController => {
+contractTest("freezes the real meal occurrence across review, explanation retry, and persistence", createNutritionTrackerController => {
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
   const reviewStart = source.indexOf("function openMealReview");
@@ -518,9 +518,25 @@ contractTest("freezes the real meal occurrence across review, reevaluation, and 
   const reviewBlock = source.slice(reviewStart, confirmStart);
   assert.match(reviewBlock, /buildMealOccurrenceDateTime\(viewDate, registrationTime, evaluatedAt\)/);
   assert.match(reviewBlock, /evaluateMealItems\(candidateItems, mealOccurredAt, evaluatedAt\)/);
-  assert.match(source, /registrationTime: mealReview\.registrationTime[\s\S]*mealOccurredAt: mealReview\.mealOccurredAt/);
+  assert.match(source, /onRetryExplanation: \(\) => generateMealReviewExplanation\(mealReview\)/);
   assert.match(source, /applyMealRegistrationTime\(mealReview\.items, mealReview\.registrationTime\)/);
   assert.match(source, /window\.MealScore\.buildMealScoreSnapshot\(result\)/);
+});
+
+contractTest("keeps only the latest optional AI explanation and exposes retry only for that request", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+  const start = source.indexOf("async function generateMealReviewExplanation");
+  const end = source.indexOf("function openMealReview", start);
+  const block = source.slice(start, end);
+
+  assert.match(block, /const requestId = \+\+mealReviewAiRequestRef\.current/);
+  assert.match(block, /await requestMealReviewExplanation\(review, lang\)/);
+  assert.match(block, /requestId !== mealReviewAiRequestRef\.current/);
+  assert.match(block, /setMealReviewAiText\(null\)/);
+  assert.match(source, /function closeMealReview\(\)[\s\S]*mealReviewAiRequestRef\.current \+= 1/);
+  assert.match(source, /aiError: mealReviewAiText === null/);
+  assert.doesNotMatch(source, /onReevaluate:/);
 });
 
 contractTest("describes the five-gram nutrient target as salt in English goal notifications", createNutritionTrackerController => {

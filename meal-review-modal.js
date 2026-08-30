@@ -2,9 +2,7 @@
  * Presentational modal for an already-calculated meal assessment.
  *
  * The host owns assessment state, AI request timing, persistence, and action
- * callbacks. This module only renders the supplied review snapshot. Known
- * races where an older AI explanation can replace a newer one, and where a
- * synchronous prompt failure can leave loading active, remain in the host.
+ * callbacks. This module only renders the supplied review snapshot.
  *
  * @module MealReviewModal
  */
@@ -59,7 +57,8 @@
      * @param {function(string): string} props.getScoreLabel Nutrient-key label.
      * @param {function(): void} props.onClose Close/edit callback.
      * @param {function(): void} props.onToggleHelp Help-toggle callback.
-     * @param {function(): void} props.onReevaluate Re-evaluation callback.
+     * @param {boolean} props.aiError Whether the optional AI explanation failed.
+     * @param {function(): void} props.onRetryExplanation Explanation-only retry callback.
      * @param {function(): void} props.onConfirm Confirmation callback.
      * @param {boolean} props.saving Whether final persistence is in progress.
      * @returns {Object|null} Modal React element, or null without a review.
@@ -72,13 +71,14 @@
       helpOpen,
       aiLoading,
       aiText,
+      aiError,
       getMealLabel,
       getEvaluationText,
       getBrief,
       getScoreLabel,
       onClose,
       onToggleHelp,
-      onReevaluate,
+      onRetryExplanation,
       onConfirm,
       saving
     }) {
@@ -207,11 +207,20 @@
       ))),
       React.createElement("div", { style: { background: "var(--ai-bg)", border: "1px solid var(--ai-border)", borderRadius: 10, padding: 12, marginBottom: 14 } },
         React.createElement("div", { style: { fontSize: 12, color: "var(--ai-text)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 } }, "\u2726 ", uiText("Explica\u00e7\u00e3o", "Explanation", "Explicaci\u00f3n")),
-        React.createElement("div", { style: { fontSize: 13, color: "var(--text3)", lineHeight: 1.55, whiteSpace: "pre-wrap" } }, aiLoading ? uiText("Analisando...", "Analyzing...", "Analizando...") : aiText || uiText("A nota foi calculada localmente. A explica\u00e7\u00e3o por IA est\u00e1 temporariamente indispon\u00edvel.", "The score was calculated locally. The AI explanation is temporarily unavailable.", "La nota fue calculada localmente. La explicaci\u00f3n por IA no est\u00e1 disponible temporalmente."))
+        React.createElement("div", { style: { fontSize: 13, color: "var(--text3)", lineHeight: 1.55, whiteSpace: "pre-wrap" } }, aiLoading ? uiText("Analisando...", "Analyzing...", "Analizando...") : aiText || uiText("A nota foi calculada localmente. A explica\u00e7\u00e3o por IA est\u00e1 temporariamente indispon\u00edvel.", "The score was calculated locally. The AI explanation is temporarily unavailable.", "La nota fue calculada localmente. La explicaci\u00f3n por IA no est\u00e1 disponible temporalmente.")),
+        aiError && !aiLoading && React.createElement("button", {
+          type: "button",
+          "data-retry-meal-explanation": "true",
+          onClick: onRetryExplanation,
+          style: {
+            ...buttonStyle("transparent", "var(--ai-border)", "var(--ai-text)"),
+            marginTop: 9,
+            fontSize: 12
+          }
+        }, uiText("Tentar explica\u00e7\u00e3o novamente", "Retry explanation", "Reintentar explicaci\u00f3n"))
       ),
-      React.createElement("div", { style: { display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "1fr 1fr 1.3fr", gap: 8 } },
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "1fr 1.3fr", gap: 8 } },
         React.createElement("button", { onClick: onClose, style: buttonStyle("transparent", "var(--border2)", "var(--text2)") }, uiText("Editar", "Edit", "Editar")),
-        React.createElement("button", { onClick: onReevaluate, style: buttonStyle("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)") }, uiText("Reavaliar", "Re-evaluate", "Reevaluar")),
         React.createElement("button", {
           onClick: onConfirm,
           disabled: saving,
@@ -220,7 +229,7 @@
             opacity: saving ? 0.65 : 1,
             cursor: saving ? "wait" : "pointer"
           }
-        }, uiText("Registrar mesmo assim", "Log anyway", "Registrar igualmente"))
+        }, uiText("Registrar refei\u00e7\u00e3o", "Log meal", "Registrar comida"))
       )));
     }
 

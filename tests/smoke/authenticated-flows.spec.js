@@ -337,7 +337,7 @@ test.describe('authenticated critical data flows', () => {
 
       await expect(modal).toBeVisible();
       await expect(modal.getByText(/^\d\.\d{2}$/).first()).toBeVisible();
-      await modal.getByRole('button', { name: /Registrar mesmo assim/i }).click();
+      await modal.getByRole('button', { name: /Registrar refeição/i }).click();
       await expect(stagedMeal).toBeHidden();
       await dismissTutorialIfVisible(page);
       await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
