@@ -37,16 +37,18 @@
    * @param {Function} dependencies.Ring Circular metric primitive from ui-primitives.js.
    * @param {Function} dependencies.Bar Linear metric primitive from ui-primitives.js.
    * @param {Function} dependencies.GaResultCard Active GA result card component.
+   * @param {Function} dependencies.ChoiceField App-local controlled list selector.
    * @returns {Object} Controlled Diary component API and meal-ordering helper.
    */
-  function createDiaryScreen({ React, pickLang, sortLocaleForLang, localeForLang, addDays, monthDays, shiftMonth, calendarMonthStats, Ring, Bar, GaResultCard }) {
+  function createDiaryScreen({ React, pickLang, sortLocaleForLang, localeForLang, addDays, monthDays, shiftMonth, calendarMonthStats, Ring, Bar, GaResultCard, ChoiceField }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof sortLocaleForLang !== "function"
       || typeof localeForLang !== "function" || typeof addDays !== "function"
       || typeof monthDays !== "function" || typeof shiftMonth !== "function"
       || typeof calendarMonthStats !== "function" || typeof Ring !== "function"
-      || typeof Bar !== "function" || typeof GaResultCard !== "function") {
-      throw new TypeError("DiaryScreen requires React, i18n/date/calendar helpers, Ring, Bar, and GaResultCard");
+      || typeof Bar !== "function" || typeof GaResultCard !== "function"
+      || typeof ChoiceField !== "function") {
+      throw new TypeError("DiaryScreen requires React, i18n/date/calendar helpers, Ring, Bar, GaResultCard, and ChoiceField");
     }
 
     const inp = { width: "100%", background: "var(--input)", border: "1px solid var(--border2)", color: "var(--text2)", padding: "9px 12px", borderRadius: 6, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", outline: "none", marginTop: 3 };
@@ -782,19 +784,15 @@
       padding: "7px 6px",
       fontSize: 12
     }
-  }, label)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, uiText("Refeição alvo", "Target meal", "Comida objetivo")), /*#__PURE__*/React.createElement("select", {
+  }, label)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(ChoiceField, {
+    id: "ga-target-meal-choice",
+    label: uiText("Refeição alvo", "Target meal", "Comida objetivo"),
     value: gaTargetMeal || MEALS[1],
-    onChange: e => setGATargetMeal(e.target.value),
-    style: {
-      ...inp,
-      marginTop: 4
-    }
-  }, MEALS.map(m => /*#__PURE__*/React.createElement("option", {
-    key: m,
-    value: m
-  }, mealLabel(m)))))), /*#__PURE__*/React.createElement("label", {
+    onChange: setGATargetMeal,
+    options: MEALS.map(meal => ({ value: meal, label: mealLabel(meal) })),
+    helperText: uiText("Escolha onde aplicar a sugestão", "Choose where to apply the suggestion", "Elige dónde aplicar la sugerencia"),
+    closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector")
+  }))), /*#__PURE__*/React.createElement("label", {
     style: {
       display: "flex",
       gap: 8,

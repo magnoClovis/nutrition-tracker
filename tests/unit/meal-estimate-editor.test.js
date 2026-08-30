@@ -9,6 +9,9 @@ const implementations = [
   ["ESM", () => import("../../src/components/meal-estimate-editor.js")]
 ];
 const { pickLang } = createI18n();
+function ChoiceField() {
+  return null;
+}
 
 function walk(node, visit) {
   if (node == null || typeof node === "boolean" || typeof node !== "object") return;
@@ -73,7 +76,8 @@ function contractTest(name, callback) {
         React,
         pickLang,
         createEmptyItem: domain.createEmptyItem,
-        calculateTotals: domain.calculateTotals
+        calculateTotals: domain.calculateTotals,
+        ChoiceField
       });
       return callback(MealEstimateEditor);
     });
@@ -125,6 +129,28 @@ contractTest("emits immutable drafts for dish, nutrient, assumption, add, and re
   assert.deepEqual(changes[4].items, []);
   assert.equal(original.dishName, "Rice and beans");
   assert.equal(original.items[0].protein, 3);
+});
+
+contractTest("uses semantic ChoiceFields for overall and per-item confidence", MealEstimateEditor => {
+  const changes = [];
+  const view = MealEstimateEditor({
+    estimate: estimate(),
+    lang: "en",
+    isMobileView: false,
+    disabled: false,
+    errors: [],
+    onChange: value => changes.push(value)
+  });
+  const fields = elements(view, ChoiceField);
+  const overall = fields.find(field => field.props.id === "estimate-overall-confidence");
+  const item = fields.find(field => field.props.id === "estimate-item-confidence-rice");
+
+  assert.deepEqual(overall.props.options.map(option => option.tone), ["high", "medium", "low"]);
+  assert.equal(overall.props.options[1].description, "A quick review is recommended");
+  overall.props.onChange("high");
+  item.props.onChange("low");
+  assert.equal(changes[0].overallConfidence, "high");
+  assert.equal(changes[1].items[0].confidence, "low");
 });
 
 contractTest("blocks mutations and reports validation while disabled", MealEstimateEditor => {

@@ -184,7 +184,7 @@ test.describe('authenticated critical data flows', () => {
     await expect(imageScreen.getByRole('heading', { name: /Reconhecer refeição por foto/i })).toBeVisible();
     await expect(imageScreen.getByRole('button', { name: 'Tirar foto', exact: true })).toBeVisible();
     await expect(imageScreen.getByRole('button', { name: 'Escolher da galeria', exact: true })).toBeVisible();
-    await expect(addModal.locator('#image-meal-category')).toBeVisible();
+    await expect(addModal.locator('#image-meal-category-trigger')).toBeVisible();
     await expectNoCriticalErrors(errors);
   });
 

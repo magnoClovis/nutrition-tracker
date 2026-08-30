@@ -66,6 +66,26 @@ test.describe('authenticated ChoiceField visual contract', () => {
         const sheetStyle = getComputedStyle(sheetNode);
         const selectedStyle = getComputedStyle(selectedNode);
         const overlayStyle = getComputedStyle(overlayNode);
+        const confidenceProbe = document.createElement('div');
+        confidenceProbe.style.position = 'fixed';
+        confidenceProbe.style.left = '-10000px';
+        confidenceProbe.innerHTML = ['high', 'medium', 'low'].map(tone => (
+          `<button data-choice-field-option="true" data-choice-field-tone="${tone}">`
+            + '<span data-choice-field-indicator="true"></span>'
+            + '<span data-choice-field-option-copy="true">'
+            + '<span data-choice-field-option-label="true">Level</span>'
+            + '<span data-choice-field-option-description="true">Description</span>'
+            + '</span></button>'
+        )).join('');
+        document.body.appendChild(confidenceProbe);
+        const indicatorColors = Array.from(
+          confidenceProbe.querySelectorAll('[data-choice-field-indicator="true"]'),
+          node => getComputedStyle(node).backgroundColor
+        );
+        const descriptionColor = getComputedStyle(
+          confidenceProbe.querySelector('[data-choice-field-option-description="true"]')
+        ).color;
+        confidenceProbe.remove();
         return {
           triggerBackground: triggerStyle.backgroundColor,
           triggerRadius: triggerStyle.borderRadius,
@@ -78,6 +98,8 @@ test.describe('authenticated ChoiceField visual contract', () => {
           overlayPosition: overlayStyle.position,
           viewportWidth: document.documentElement.clientWidth,
           scrollWidth: document.documentElement.scrollWidth,
+          indicatorColors,
+          descriptionColor,
         };
       });
 
@@ -91,11 +113,14 @@ test.describe('authenticated ChoiceField visual contract', () => {
         expect(styles.triggerBackground).toBe('rgb(247, 246, 242)');
         expect(styles.selectedBackground).toBe('rgb(234, 243, 222)');
         expect(styles.selectedColor).toBe('rgb(39, 80, 10)');
+        expect(styles.indicatorColors).toEqual(['rgb(99, 153, 34)', 'rgb(177, 135, 62)', 'rgb(167, 95, 114)']);
       } else {
         expect(styles.triggerBackground).toBe('rgb(38, 38, 36)');
         expect(styles.selectedBackground).toBe('rgb(23, 52, 4)');
         expect(styles.selectedColor).toBe('rgb(151, 196, 89)');
+        expect(styles.indicatorColors).toEqual(['rgb(120, 171, 60)', 'rgb(208, 170, 98)', 'rgb(207, 130, 150)']);
       }
+      expect(styles.descriptionColor).not.toBe(styles.selectedColor);
 
       const selectionPath = selected.locator('[data-choice-field-selection] path');
       const chevronPath = trigger.locator('[data-choice-field-chevron] path');
@@ -103,6 +128,29 @@ test.describe('authenticated ChoiceField visual contract', () => {
       await expect(chevronPath).toHaveAttribute('stroke-width', '1.35');
       await page.getByRole('option', { name: 'Almoço' }).click();
       await expect(sheet).toHaveCount(0);
+
+      const usesFrozenLegacyLoader = await page.locator('script[src*="app.js"]').count() > 0;
+      if (!usesFrozenLegacyLoader) {
+        await page.locator('[data-add-mode="image"]').click();
+        const imageTrigger = page.locator('#image-meal-category-trigger');
+        await expect(imageTrigger).toBeVisible();
+        await imageTrigger.click();
+        await expect(page.getByRole('heading', { name: 'Categoria da refeição', exact: true })).toBeVisible();
+        await expect(page.getByRole('option', { name: 'Almoço', exact: true })).toBeVisible();
+        await page.locator('[data-choice-field-close]').click();
+      }
+
+      await page.locator('[data-add-close]').click();
+      const suggestionButton = page.locator('[data-tutorial="suggest-meal-button"]:visible');
+      await expect(suggestionButton).toBeVisible();
+      await suggestionButton.evaluate(button => button.click());
+      const gaTrigger = page.locator('#ga-target-meal-choice-trigger');
+      await expect(gaTrigger).toBeVisible();
+      await expect(page.locator('[data-diary-suggestion-block="true"] select:visible')).toHaveCount(0);
+      await gaTrigger.click();
+      await expect(page.getByRole('heading', { name: 'Refeição alvo', exact: true })).toBeVisible();
+      await expect(page.getByRole('option', { name: 'Almoço', exact: true })).toBeVisible();
+      await page.locator('[data-choice-field-close]').click();
     }
 
     await expectNoCriticalErrors(errors);
