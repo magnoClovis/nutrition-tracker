@@ -75,6 +75,19 @@ contractTest("routes historical screens and reports through grouped cache-first 
   assert.doesNotMatch(source, /await\s+storage\.get\(["']log_v2_/);
 });
 
+contractTest("passes weekly nutrient coverage to AI feedback without changing chart totals", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+  const feedbackStart = source.indexOf("week: weekData.map(day => ({");
+  const feedbackEnd = source.indexOf("}))", feedbackStart);
+  const feedbackSnapshot = source.slice(feedbackStart, feedbackEnd);
+
+  assert.ok(feedbackStart >= 0);
+  assert.match(feedbackSnapshot, /protein: day\.protein/);
+  assert.match(feedbackSnapshot, /kcal: day\.kcal/);
+  assert.match(feedbackSnapshot, /nutrientCoverage: day\.nutrientCoverage/);
+});
+
 contractTest("computes the next real local midnight across DST transitions", createNutritionTrackerController => {
   const { millisecondsUntilNextLocalDay } = createController(createNutritionTrackerController);
   const originalTimezone = process.env.TZ;

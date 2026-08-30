@@ -160,6 +160,46 @@ contractTest("uses default training and historical goals without normalizing mea
   assert.ok(prompt.includes("Días de entrenamiento (1): media 95g proteína, 1700 kcal"));
 });
 
+contractTest("excludes incomplete days from averages and explains missing nutrients in PT EN ES", async createFixture => {
+  const cases = [{
+    lang: "pt",
+    average: "Média diária: 80g (1/2 dias com dados completos) proteína",
+    limitation: "proteína: faltam dados para 1 alimento em 1 dia"
+  }, {
+    lang: "en",
+    average: "Daily average: 80g (1/2 days with complete data) protein",
+    limitation: "protein: data missing for 1 food across 1 day"
+  }, {
+    lang: "es",
+    average: "Media diaria: 80g (1/2 días con datos completos) de proteína",
+    limitation: "proteína: faltan datos para 1 alimento en 1 día"
+  }];
+
+  for (const expected of cases) {
+    const fixture = createFixture();
+    await fixture.api.generateEatingPatterns(baseSnapshot({
+      lang: expected.lang,
+      days: [{
+        date: "2026-07-17",
+        log: { Almoço: [food("known", 80, 1200, 100, 12)] }
+      }, {
+        date: "2026-07-16",
+        log: {
+          Almoço: [
+            food("partial", 40, 600, 50, 6),
+            { id: "missing", protein: null, kcal: 400, carbs: null, fiber: null }
+          ]
+        }
+      }]
+    }));
+
+    const prompt = fixture.calls[0].prompt;
+    assert.ok(prompt.includes(expected.average));
+    assert.ok(prompt.includes(expected.limitation));
+    assert.doesNotMatch(prompt, /Média diária: 60g proteína|Daily average: 60g protein|Media diaria: 60g de proteína/);
+  }
+});
+
 contractTest("returns the neutral no-data result without calling Groq", async createFixture => {
   const fixture = createFixture();
   const empty = await fixture.api.generateEatingPatterns(baseSnapshot({ days: [] }));

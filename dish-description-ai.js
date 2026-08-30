@@ -25,6 +25,12 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
+  function knownNutrient(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : null;
+  }
+
   /**
    * Creates the dish-description API with the app's existing AI and runtime helpers.
    *
@@ -242,12 +248,12 @@ Formato obrigatório:
         name: estimate.name || "Prato estimado",
         qty: 1,
         unit: "un",
-        protein: estimate.protein || 0,
-        kcal: estimate.kcal || 0,
-        carbs: estimate.carbs || 0,
-        fat: estimate.fat || 0,
-        fiber: estimate.fiber || 0,
-        salt: estimate.salt || 0,
+        protein: knownNutrient(estimate.protein),
+        kcal: knownNutrient(estimate.kcal),
+        carbs: knownNutrient(estimate.carbs),
+        fat: knownNutrient(estimate.fat),
+        fiber: knownNutrient(estimate.fiber),
+        salt: knownNutrient(estimate.salt),
         sugars: null,
         satfat: null,
         _estimated: true,

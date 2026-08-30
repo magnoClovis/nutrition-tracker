@@ -2685,7 +2685,8 @@
               fiber: day.fiber,
               fiberGoal: day.fiberGoal,
               salt: day.salt,
-              saltGoal: day.saltGoal
+              saltGoal: day.saltGoal,
+              nutrientCoverage: day.nutrientCoverage
             }))
           };
           const result = await generateNutritionFeedback(snapshot);

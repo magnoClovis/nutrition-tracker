@@ -139,7 +139,7 @@ contractTest("propagates Groq and malformed-JSON errors for the localized React 
   );
 });
 
-contractTest("uses zero for every missing nutrient without adding time or foodSnapshot", ({ createFixture }) => {
+contractTest("preserves missing nutrients as null while keeping a known zero", ({ createFixture }) => {
   const fixture = createFixture([], ["entry-missing"]);
   const entry = fixture.api.buildDescribedEntry({
     estimate: { name: "", protein: null, kcal: undefined, carbs: "", fat: 0 },
@@ -152,12 +152,12 @@ contractTest("uses zero for every missing nutrient without adding time or foodSn
     name: "Prato estimado",
     qty: 1,
     unit: "un",
-    protein: 0,
-    kcal: 0,
-    carbs: 0,
+    protein: null,
+    kcal: null,
+    carbs: null,
     fat: 0,
-    fiber: 0,
-    salt: 0,
+    fiber: null,
+    salt: null,
     sugars: null,
     satfat: null,
     _estimated: true,
