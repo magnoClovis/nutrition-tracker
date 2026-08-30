@@ -56,6 +56,7 @@ function baseProps(overrides = {}) {
     helpOpen: false,
     aiLoading: false,
     aiText: "",
+    aiError: false,
     saving: false,
     getMealLabel: value => value,
     getEvaluationText: () => "Nutrientes avaliados: 1 de 2",
@@ -63,7 +64,7 @@ function baseProps(overrides = {}) {
     getScoreLabel: key => ({ protein: "Prote\u00edna", fiber: "Fibra", salt: "Sal" })[key] || key,
     onClose: () => {},
     onToggleHelp: () => {},
-    onReevaluate: () => {},
+    onRetryExplanation: () => {},
     onConfirm: () => {},
     ...overrides
   };
@@ -139,14 +140,13 @@ contractTest("labels the score as contextual and explicitly non-diagnostic", Mea
   assert.match(copy, /Confidence measures data completeness only: high ≥90%, medium 70–89%, low <70%\./);
 });
 
-contractTest("renders loading/help states and delegates all four actions", MealReviewModal => {
+contractTest("renders loading/help states and delegates the persistent actions", MealReviewModal => {
   const calls = [];
   const modal = MealReviewModal(baseProps({
     helpOpen: true,
     aiLoading: true,
     onClose: () => calls.push("close"),
     onToggleHelp: () => calls.push("help"),
-    onReevaluate: () => calls.push("reevaluate"),
     onConfirm: () => calls.push("confirm")
   }));
   assert.match(textContent(modal), /Analisando\.\.\./);
@@ -157,9 +157,28 @@ contractTest("renders loading/help states and delegates all four actions", MealR
   });
   buttons.find(button => textContent(button).includes("O que estou vendo?")).props.onClick();
   buttons.find(button => textContent(button) === "Editar").props.onClick();
-  buttons.find(button => textContent(button) === "Reavaliar").props.onClick();
-  buttons.find(button => textContent(button) === "Registrar mesmo assim").props.onClick();
-  assert.deepEqual(calls, ["help", "close", "reevaluate", "confirm"]);
+  buttons.find(button => textContent(button) === "Registrar refeição").props.onClick();
+  assert.equal(buttons.some(button => textContent(button) === "Reavaliar"), false);
+  assert.deepEqual(calls, ["help", "close", "confirm"]);
+});
+
+contractTest("offers an explanation-only retry after AI failure", MealReviewModal => {
+  let retries = 0;
+  const modal = MealReviewModal(baseProps({
+    aiError: true,
+    onRetryExplanation: () => { retries += 1; }
+  }));
+  const buttons = [];
+  walk(modal, node => {
+    if (node.type === "button") buttons.push(node);
+  });
+  const retry = buttons.find(button => button.props["data-retry-meal-explanation"] === "true");
+  assert.equal(textContent(retry), "Tentar explicação novamente");
+  retry.props.onClick();
+  assert.equal(retries, 1);
+
+  const loading = MealReviewModal(baseProps({ aiError: true, aiLoading: true }));
+  assert.doesNotMatch(textContent(loading), /Tentar explicação novamente/);
 });
 
 contractTest("disables final confirmation while persistence is in progress", MealReviewModal => {
@@ -168,7 +187,7 @@ contractTest("disables final confirmation while persistence is in progress", Mea
   walk(modal, node => {
     if (node.type === "button") buttons.push(node);
   });
-  const confirm = buttons.find(button => textContent(button) === "Registrar mesmo assim");
+  const confirm = buttons.find(button => textContent(button) === "Registrar refeição");
 
   assert.equal(confirm.props.disabled, true);
   assert.equal(confirm.props.style.cursor, "wait");

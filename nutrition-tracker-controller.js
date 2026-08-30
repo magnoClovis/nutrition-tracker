@@ -2,7 +2,7 @@
  * MAXIMUM-CAUTION CONTROLLER CORE for the Trofia application.
  *
  * This UMD module owns the complete NutritionTracker controller: its 155 React
- * states, 40 effects, 25 refs, local callbacks, and the temporal hydration /
+ * states, 40 effects, 26 refs, local callbacks, and the temporal hydration /
  * autosave protocol. Hook order and effect dependency arrays are behavioral
  * contracts. The eleven render-scoped factories below intentionally remain
  * inside NutritionTracker so they receive the current render closures; do not
@@ -1131,6 +1131,7 @@
       const [mealReviewHelpOpen, setMealReviewHelpOpen] = useState(false);
       const [mealReviewAiText, setMealReviewAiText] = useState("");
       const [mealReviewAiLoading, setMealReviewAiLoading] = useState(false);
+      const mealReviewAiRequestRef = useRef(0);
       const [mealTemplates, setMealTemplates] = useState([]);
       const [templateName, setTemplateName] = useState("");
       const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
@@ -3964,16 +3965,21 @@
         return window.MealScore.buildMealScoreSnapshot(result);
       }
       async function generateMealReviewExplanation(review) {
+        const requestId = ++mealReviewAiRequestRef.current;
         setMealReviewAiText("");
         setMealReviewAiLoading(true);
-        const explanationRequest = requestMealReviewExplanation(review, lang);
         try {
-          const explanation = await explanationRequest;
+          const explanation = await requestMealReviewExplanation(review, lang);
+          if (requestId !== mealReviewAiRequestRef.current) return;
+          if (typeof explanation !== "string" || !explanation.trim()) {
+            throw new TypeError("Empty meal review explanation");
+          }
           setMealReviewAiText(explanation);
         } catch (_) {
-          setMealReviewAiText("");
+          if (requestId !== mealReviewAiRequestRef.current) return;
+          setMealReviewAiText(null);
         } finally {
-          setMealReviewAiLoading(false);
+          if (requestId === mealReviewAiRequestRef.current) setMealReviewAiLoading(false);
         }
       }
       function openMealReview(meal, items, source, occurrence) {
@@ -3995,6 +4001,13 @@
         setMealReview(review);
         generateMealReviewExplanation(review);
       }
+      function closeMealReview() {
+        mealReviewAiRequestRef.current += 1;
+        setMealReview(null);
+        setMealReviewHelpOpen(false);
+        setMealReviewAiText("");
+        setMealReviewAiLoading(false);
+      }
       async function confirmMealReview() {
         if (!mealReview) return;
         const evaluationId = Date.now().toString() + Math.random();
@@ -4013,9 +4026,7 @@
           setDescribeResult(null);
           setMealDescription("");
         }
-        setMealReview(null);
-        setMealReviewHelpOpen(false);
-        setMealReviewAiText("");
+        closeMealReview();
         resetMealTimeControl();
         notify(uiText("Refeição registrada.", "Meal logged.", "Comida registrada."));
         await closeMealRegistration();
@@ -4669,10 +4680,6 @@
         }, APP_VERSION_LABEL);
       }
       function renderMealReviewModal() {
-        const closeMealReview = () => {
-          setMealReview(null);
-          setMealReviewHelpOpen(false);
-        };
         return React.createElement(MealReviewModal, {
           review: mealReview,
           lang,
@@ -4681,6 +4688,7 @@
           helpOpen: mealReviewHelpOpen,
           aiLoading: mealReviewAiLoading,
           aiText: mealReviewAiText,
+          aiError: mealReviewAiText === null,
           saving: mealRegistrationSaving,
           getMealLabel: mealLabel,
           getEvaluationText: mealScoreEvaluationText,
@@ -4688,10 +4696,7 @@
           getScoreLabel: mealScoreLabel,
           onClose: closeMealReview,
           onToggleHelp: () => setMealReviewHelpOpen(open => !open),
-          onReevaluate: () => openMealReview(mealReview.meal, mealReview.items, mealReview.source, {
-            registrationTime: mealReview.registrationTime,
-            mealOccurredAt: mealReview.mealOccurredAt
-          }),
+          onRetryExplanation: () => generateMealReviewExplanation(mealReview),
           onConfirm: confirmMealReview
         });
       }
