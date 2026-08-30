@@ -192,7 +192,7 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   font-size: 14px;
 }
 
-[data-choice-field-trigger="true"] {
+[data-one-ui-root] [data-choice-field-trigger="true"] {
   display: flex !important;
   align-items: center;
   justify-content: space-between;
@@ -200,7 +200,7 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   min-height: 50px !important;
   padding: 0 14px !important;
   border: 1px solid transparent !important;
-  border-radius: var(--radius-control) !important;
+  border-radius: 14px !important;
   background: var(--surface-block-alt) !important;
   color: var(--text-primary) !important;
   text-align: left;
