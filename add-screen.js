@@ -34,14 +34,15 @@
    * @param {function(string): number} dependencies.divisor Unit divisor from date-utils.js.
    * @param {function(Object): Object} dependencies.ChoiceField Controlled app-local list selector.
    * @param {function(Object): Object} dependencies.TemporalField Controlled app-local time selector.
+   * @param {function(Object): Object} dependencies.NumericField Controlled app-local numeric selector.
    * @returns {{AddScreen: function(Object): Object}} Add-screen API.
    */
-  function createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField }) {
+  function createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof quickQtys !== "function"
       || typeof divisor !== "function" || typeof ChoiceField !== "function"
-      || typeof TemporalField !== "function") {
-      throw new TypeError("AddScreen requires React, pickLang, quickQtys, divisor, ChoiceField, and TemporalField");
+      || typeof TemporalField !== "function" || typeof NumericField !== "function") {
+      throw new TypeError("AddScreen requires React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, and NumericField");
     }
 
     const inp = {
@@ -787,17 +788,27 @@
     style: {
       marginBottom: 8
     }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, text('qty') + ' (' + selectedFood.unit + ')'), /*#__PURE__*/React.createElement("input", {
-    type: "number",
+  }, /*#__PURE__*/React.createElement(NumericField, {
+    id: "meal-food-quantity",
+    label: text('qty'),
+    unit: selectedFood.unit,
     value: addEntry.qty,
-    onChange: e => setAddEntry(a => ({
+    onChange: nextValue => setAddEntry(a => ({
       ...a,
-      qty: e.target.value
+      qty: nextValue
     })),
-    placeholder: '250 ' + selectedFood.unit,
-    style: inp
+    placeholder: "250",
+    minValue: 0.01,
+    maxLength: 6,
+    maxDecimals: 2,
+    strings: {
+      title: uiText("Informar quantidade", "Enter quantity", "Indicar cantidad"),
+      cancel: uiText("Cancelar", "Cancel", "Cancelar"),
+      confirm: uiText("Confirmar", "Confirm", "Confirmar"),
+      backspace: uiText("Apagar dígito", "Delete digit", "Borrar dígito"),
+      decimal: uiText("Separador decimal", "Decimal separator", "Separador decimal"),
+      invalid: uiText("Informe uma quantidade maior que zero.", "Enter a quantity greater than zero.", "Indica una cantidad mayor que cero.")
+    }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",

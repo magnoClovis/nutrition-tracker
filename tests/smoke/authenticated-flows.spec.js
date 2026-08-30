@@ -151,7 +151,15 @@ test.describe('authenticated critical data flows', () => {
     ].join(', '));
     await foodSearch.fill(foodName);
     await stagedMeal.getByText(foodName, { exact: true }).last().click();
-    await stagedMeal.locator('input[type="number"]:visible').last().fill(String(quantity));
+    await stagedMeal.locator('#meal-food-quantity-trigger').click();
+    for (const character of String(quantity)) {
+      if (character === '.' || character === ',') {
+        await page.locator('[data-numeric-keypad-decimal="true"]').click();
+      } else {
+        await page.getByRole('button', { name: character, exact: true }).click();
+      }
+    }
+    await page.locator('[data-numeric-keypad-confirm="true"]').click();
     await stagedMeal.getByRole('button', { name: /Adicionar à refeição|Add to meal|Agregar a la comida/i }).click();
   }
 

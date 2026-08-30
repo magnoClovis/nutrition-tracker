@@ -31,6 +31,13 @@ for (const [format, load] of implementations) {
     assert.deepEqual(stepTimePart({ hour: 8, minute: 0 }, 'minute', -1), { hour: 8, minute: 55 });
   });
 
+  test(`${format}: exposes the approved reusable numeric field and keypad`, async () => {
+    const { createTemporalField } = await load();
+    const { NumericField, NumericKeypad } = createTemporalField({ React });
+    assert.equal(typeof NumericField, 'function');
+    assert.equal(typeof NumericKeypad, 'function');
+  });
+
   test(`${format}: keeps civil dates strict, timezone-free, and bounded`, async () => {
     const { createTemporalField } = await load();
     const { parseIsoDate, formatIsoDate, daysInMonth, shiftCivilMonth, clampIsoDate } = createTemporalField({ React });

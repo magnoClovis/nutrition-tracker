@@ -126,6 +126,9 @@
       minValue = 0,
       maxValue,
       maxLength = 2,
+      allowDecimal = false,
+      maxDecimals = 2,
+      decimalLabel = "Decimal separator",
       confirmLabel,
       cancelLabel,
       backspaceLabel,
@@ -133,14 +136,19 @@
       onConfirm,
       onCancel
     }) {
-      const [buffer, setBuffer] = React.useState(String(value == null ? "" : value));
+      const keypadValue = value == null ? "" : String(value);
+      const [buffer, setBuffer] = React.useState(allowDecimal ? keypadValue.replace(".", ",") : keypadValue);
       const replaceOnNextDigit = React.useRef(true);
       React.useEffect(() => {
-        setBuffer(String(value == null ? "" : value));
+        setBuffer(allowDecimal ? keypadValue.replace(".", ",") : keypadValue);
         replaceOnNextDigit.current = true;
-      }, [value]);
-      const numericValue = buffer === "" ? NaN : Number(buffer);
-      const valid = Number.isInteger(numericValue) && numericValue >= minValue && numericValue <= maxValue;
+      }, [value, allowDecimal]);
+      const normalizedBuffer = buffer.replace(",", ".").replace(/\.$/, "");
+      const numericValue = normalizedBuffer === "" ? NaN : Number(normalizedBuffer);
+      const valid = Number.isFinite(numericValue)
+        && (allowDecimal || Number.isInteger(numericValue))
+        && numericValue >= minValue
+        && numericValue <= maxValue;
 
       function appendDigit(digit) {
         setBuffer(current => {
@@ -148,8 +156,22 @@
             replaceOnNextDigit.current = false;
             return digit;
           }
-          const next = current === "0" ? digit : `${current}${digit}`;
-          return next.slice(-maxLength);
+          const decimalIndex = current.indexOf(",");
+          if (decimalIndex >= 0 && current.length - decimalIndex - 1 >= maxDecimals) return current;
+          if (current.replace(",", "").length >= maxLength) return current;
+          return current === "0" ? digit : `${current}${digit}`;
+        });
+      }
+
+      function appendDecimal() {
+        if (!allowDecimal) return;
+        setBuffer(current => {
+          if (replaceOnNextDigit.current) {
+            replaceOnNextDigit.current = false;
+            return "0,";
+          }
+          if (current.includes(",")) return current;
+          return `${current || "0"},`;
         });
       }
 
@@ -157,12 +179,15 @@
         if (/^\d$/.test(event.key)) {
           event.preventDefault();
           appendDigit(event.key);
+        } else if (allowDecimal && (event.key === "," || event.key === ".")) {
+          event.preventDefault();
+          appendDecimal();
         } else if (event.key === "Backspace" || event.key === "Delete") {
           event.preventDefault();
           setBuffer(current => current.slice(0, -1));
         } else if (event.key === "Enter" && valid) {
           event.preventDefault();
-          onConfirm(numericValue);
+          onConfirm(numericValue, normalizedBuffer);
         } else if (event.key === "Escape") {
           event.preventDefault();
           onCancel();
@@ -191,7 +216,12 @@
         type: "button",
         "aria-label": digit,
         onClick: () => appendDigit(digit)
-      }, digit)), React.createElement("span", { "aria-hidden": "true" }), React.createElement("button", {
+      }, digit)), allowDecimal ? React.createElement("button", {
+        type: "button",
+        "aria-label": decimalLabel,
+        "data-numeric-keypad-decimal": "true",
+        onClick: appendDecimal
+      }, ",") : React.createElement("span", { "aria-hidden": "true" }), React.createElement("button", {
         type: "button",
         "aria-label": "0",
         onClick: () => appendDigit("0")
@@ -204,7 +234,7 @@
         type: "button",
         disabled: !valid,
         "data-numeric-keypad-confirm": "true",
-        onClick: () => onConfirm(numericValue)
+        onClick: () => onConfirm(numericValue, normalizedBuffer)
       }, confirmLabel));
     }
 
@@ -424,6 +454,86 @@
       }, confirmLabel))))) : null);
     }
 
+    function NumericField({
+      id, label, value, onChange, minValue = 0, maxValue = Number.MAX_SAFE_INTEGER,
+      maxLength = 6, maxDecimals = 2, allowDecimal = true, unit,
+      placeholder = "0", helperText, disabled = false, strings = {}, className, style
+    }) {
+      const copy = {
+        title: label, cancel: "Cancel", confirm: "Confirm", backspace: "Delete digit",
+        decimal: "Decimal separator", invalid: "Enter a valid value.", ...strings
+      };
+      const generatedId = React.useId();
+      const baseId = id || `numeric-field-${generatedId.replace(/:/g, "")}`;
+      const triggerId = `${baseId}-trigger`;
+      const titleId = `${baseId}-title`;
+      const helperId = helperText ? `${baseId}-help` : undefined;
+      const [open, setOpen] = React.useState(false);
+      const triggerRef = React.useRef(null);
+      const dialogRef = React.useRef(null);
+
+      React.useEffect(() => {
+        if (!open || typeof document === "undefined") return undefined;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        const frame = typeof requestAnimationFrame === "function"
+          ? requestAnimationFrame(() => dialogRef.current?.focus()) : null;
+        return () => {
+          if (frame != null && typeof cancelAnimationFrame === "function") cancelAnimationFrame(frame);
+          document.body.style.overflow = previousOverflow;
+        };
+      }, [open]);
+
+      function closeField() {
+        setOpen(false);
+        if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => triggerRef.current?.focus());
+      }
+
+      function handleDialogKeyDown(event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeField();
+          return;
+        }
+        if (event.key !== "Tab" || !dialogRef.current) return;
+        const buttons = Array.from(dialogRef.current.querySelectorAll("button:not(:disabled)"));
+        if (!buttons.length) return;
+        if (event.shiftKey && document.activeElement === buttons[0]) {
+          event.preventDefault(); buttons[buttons.length - 1].focus();
+        } else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) {
+          event.preventDefault(); buttons[0].focus();
+        }
+      }
+
+      const displayValue = value === "" || value == null ? placeholder : String(value).replace(".", ",");
+      return React.createElement("div", { className, style, "data-numeric-field": "true" },
+        React.createElement("label", { htmlFor: triggerId, "data-temporal-field-label": "true" }, label),
+        React.createElement("button", {
+          ref: triggerRef, id: triggerId, type: "button", disabled,
+          "aria-haspopup": "dialog", "aria-expanded": open, "aria-describedby": helperId,
+          "data-temporal-field-trigger": "true", "data-numeric-field-trigger": "true",
+          onClick: () => { if (!disabled) setOpen(true); }
+        }, React.createElement("span", null, displayValue), unit ? React.createElement("span", {
+          "data-numeric-field-unit": "true"
+        }, unit) : null),
+        helperText ? React.createElement("p", { id: helperId, "data-temporal-field-helper": "true" }, helperText) : null,
+        open ? React.createElement("div", {
+          "data-temporal-field-overlay": "true", onMouseDown: event => { if (event.target === event.currentTarget) closeField(); }
+        }, React.createElement("section", {
+          ref: dialogRef, role: "dialog", tabIndex: -1, "aria-modal": "true", "aria-labelledby": titleId,
+          "data-temporal-field-sheet": "true", "data-numeric-field-sheet": "true", onKeyDown: handleDialogKeyDown
+        }, React.createElement("div", { "data-temporal-field-handle": "true", "aria-hidden": "true" }),
+        React.createElement(NumericKeypad, {
+          titleId, label: copy.title, value, minValue, maxValue, maxLength, allowDecimal, maxDecimals,
+          decimalLabel: copy.decimal, confirmLabel: copy.confirm, cancelLabel: copy.cancel,
+          backspaceLabel: copy.backspace, invalidLabel: copy.invalid, onCancel: closeField,
+          onConfirm: (_numberValue, normalizedValue) => {
+            if (typeof onChange === "function") onChange(normalizedValue);
+            closeField();
+          }
+        }))) : null);
+    }
+
     function DateField({
       id, label, value, onChange, min = "1900-01-01", max, locale = "en-US",
       placeholder = "--/--/----", helperText, initialViewYear, disabled = false,
@@ -594,7 +704,7 @@
     }
 
     return {
-      TemporalField, DateField, NumericKeypad,
+      TemporalField, DateField, NumericField, NumericKeypad,
       parseTime, formatTime, stepTimePart,
       parseIsoDate, formatIsoDate, daysInMonth, shiftCivilMonth, clampIsoDate
     };
