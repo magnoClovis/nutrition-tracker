@@ -9,7 +9,7 @@
 - **Autenticação e dados:** Firebase Auth, Firestore modular, App Check, cache persistente, comportamento offline-first, loaders cache-first, escrita granular e lifecycle seguro de conta concluídos em C28.
 - **Exclusão de conta:** saga administrativa idempotente com Cloud Functions, Cloud Tasks, lock de escrita, exclusão recursiva, retries e verificação destrutiva em produção concluída em C22.
 - **Armazenamento canônico:** migração legada encerrada, rules antigas fechadas e compatibilidade de importação de backups históricos preservada em C23.
-- **IA gerenciada:** Gemini atrás de Cloudflare Worker autenticado; endpoints de texto, foto, preenchimento e descrição estruturada. Prompts, fotos e respostas não são persistidos pelo Worker segundo o contrato atual.
+- **IA gerenciada:** Gemini atrás de Cloudflare Worker autenticado; endpoints de texto, foto, preenchimento, descrição e sugestões estruturadas pela despensa. Prompts, fotos e respostas não são persistidos pelo Worker segundo o contrato atual.
 - **Reconhecimento por foto:** câmera/galeria, pré-processamento, análise multimodal, editor de estimativas e persistência sem armazenar a imagem, concluídos em C24.
 - **Pontuação e avaliação de refeições:** `meal-score-v2` contextual, cobertura/provisoriedade explícita, explicação opcional, snapshots versionados e badge no Diário, concluídos em C20 e C19.
 - **Privacidade e compliance:** política trilíngue pública, instruções de exclusão e referência atual de Data Safety.
@@ -17,7 +17,7 @@
 
 ## O que está em andamento agora
 
-- **C08 — critérios nutricionais de IA:** C08-A a C08-D estão mesclados (#147, #149, #151 e #152). A C08-E está implementada no PR draft #165 (commit `be8534d`): contrato estruturado da despensa por IDs, validação fail-closed, totais locais e alinhamento de `meal-explanation-v1`. O endpoint novo ainda depende de deploy aditivo/smoke e do merge; a fatia final residual continua pendente, então o roadmap mantém C08 como parcial.
+- **C08 — critérios nutricionais de IA:** C08-A a C08-D estão mesclados (#147, #149, #151 e #152). A C08-E está implementada no PR draft #165: contrato estruturado da despensa por IDs, validação fail-closed, totais locais e alinhamento de `meal-explanation-v1`. O endpoint foi implantado de forma aditiva no Worker (versão `11f11b83-fb2d-413e-a133-3818f52ddf66`) e validado em produção pelo run `33432122955`, com HTTP 200, contrato válido e remoção da conta descartável. O merge ainda está pendente e a C08-F continua planejada, portanto C08 permanece parcial.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
 ## O que está apenas planejado, ainda sem código completo

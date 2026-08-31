@@ -1,6 +1,6 @@
 # Política nutricional da IA
 
-Estado do contrato: referência aprovada da Fatia C08-A, implementada progressivamente até a C08-E. O endpoint da despensa está pronto para deploy aditivo; o deploy do Worker deve preceder qualquer cliente que o utilize.
+Estado do contrato: referência aprovada da Fatia C08-A, implementada progressivamente até a C08-E. O endpoint da despensa foi publicado de forma aditiva e validado em produção antes da liberação do cliente.
 
 Versão do contrato: `c08-ai-nutrition-policy-v1`.
 
@@ -69,7 +69,7 @@ O Worker continua sem persistir ou registrar prompts, fotos, respostas e dados n
 - sugestões pela despensa: `POST /v1/ai/pantry-suggestions`, referenciando alimentos exclusivamente por ID; Worker e cliente rejeitam IDs/quantidades inválidos e o cliente recalcula localmente todos os totais;
 - foto: mantém `POST /v1/ai/image-meal` e sua validação estrita existente.
 
-Os dois primeiros endpoints foram implementados na Fatia C08-C e publicados no Worker antes do cliente correspondente. O endpoint da despensa foi implementado na C08-E com o mesmo gate operacional: deploy aditivo e smoke do Worker antes de qualquer exposição do cliente.
+Os dois primeiros endpoints foram implementados na Fatia C08-C e publicados no Worker antes do cliente correspondente. O endpoint da despensa foi implementado na C08-E e passou pelo mesmo gate operacional: deploy aditivo do Worker seguido de smoke real autenticado antes de qualquer exposição do cliente.
 
 O gerador visual de combinações atualmente exposto no Diário continua sendo o GA local. A C08-E não troca esse algoritmo nem sua UX: ela isola e torna seguro o caminho estruturado de IA que já existia no controlador, sem ativá-lo silenciosamente como substituto do GA.
 
