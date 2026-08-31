@@ -215,17 +215,17 @@ body:has([data-one-ui-root][data-theme="dark"]) {
 
 [data-checkbox-field-input="true"] {
   position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  margin: -1px !important;
+  inset: 0 !important;
+  z-index: 1;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
   padding: 0 !important;
-  overflow: hidden !important;
-  clip: rect(0 0 0 0) !important;
-  clip-path: inset(50%) !important;
   border: 0 !important;
   border-radius: 0 !important;
   appearance: none !important;
   opacity: 0 !important;
+  cursor: inherit;
 }
 
 [data-checkbox-field-mark="true"] {

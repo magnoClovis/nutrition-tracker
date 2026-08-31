@@ -132,8 +132,8 @@ test.describe('authenticated CheckboxField and SliderField visual contract', () 
               background: css.backgroundColor,
             };
           }),
-          mealTrack: getComputedStyle(mealRange, '::-webkit-slider-runnable-track').backgroundImage,
-          proteinTrack: getComputedStyle(proteinRange, '::-webkit-slider-runnable-track').backgroundImage,
+          mealProgress: getComputedStyle(mealRange).getPropertyValue('--slider-field-progress').trim(),
+          proteinProgress: getComputedStyle(proteinRange).getPropertyValue('--slider-field-progress').trim(),
           mealAccent: getComputedStyle(mealRange).accentColor,
           proteinAccent: getComputedStyle(proteinRange).accentColor,
           viewportWidth: document.documentElement.clientWidth,
@@ -147,8 +147,8 @@ test.describe('authenticated CheckboxField and SliderField visual contract', () 
         expect(mark.height).toBe('24px');
         expect(mark.radius).toBe('7px');
       }
-      expect(styles.mealTrack).not.toBe('none');
-      expect(styles.proteinTrack).not.toBe('none');
+      expect(styles.mealProgress).toMatch(/%$/);
+      expect(styles.proteinProgress).toMatch(/%$/);
       expect(styles.mealAccent).not.toBe(styles.proteinAccent);
       expect(styles.scrollWidth).toBe(styles.viewportWidth);
       stylesByTheme[theme] = styles.marks.map(mark => mark.background);
