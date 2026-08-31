@@ -69,7 +69,7 @@ O Worker continua sem persistir ou registrar prompts, fotos, respostas e dados n
 - sugestões pela despensa: endpoint planejado `POST /v1/ai/pantry-suggestions`, referenciando alimentos por ID e permitindo recálculo local dos totais;
 - foto: mantém `POST /v1/ai/image-meal` e sua validação estrita existente.
 
-Os dois primeiros endpoints foram implementados na Fatia C08-C e entram em produção com o deploy correspondente do Worker. O endpoint da despensa permanece planejado para uma fatia posterior.
+Os dois primeiros endpoints foram implementados na Fatia C08-C e publicados no Worker antes do cliente correspondente. O endpoint da despensa permanece planejado para uma fatia posterior.
 
 ### Respostas narrativas
 

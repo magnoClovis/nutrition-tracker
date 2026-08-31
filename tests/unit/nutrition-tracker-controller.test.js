@@ -75,7 +75,7 @@ contractTest("routes historical screens and reports through grouped cache-first 
   assert.doesNotMatch(source, /await\s+storage\.get\(["']log_v2_/);
 });
 
-contractTest("passes weekly nutrient coverage to AI feedback without changing chart totals", createNutritionTrackerController => {
+contractTest("passes all nutrient coverage to AI feedback without raw profile fields", createNutritionTrackerController => {
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
   const feedbackStart = source.indexOf("week: weekData.map(day => ({");
@@ -85,7 +85,13 @@ contractTest("passes weekly nutrient coverage to AI feedback without changing ch
   assert.ok(feedbackStart >= 0);
   assert.match(feedbackSnapshot, /protein: day\.protein/);
   assert.match(feedbackSnapshot, /kcal: day\.kcal/);
+  assert.match(feedbackSnapshot, /sugars: day\.sugars/);
+  assert.match(feedbackSnapshot, /satfat: day\.satfat/);
   assert.match(feedbackSnapshot, /nutrientCoverage: day\.nutrientCoverage/);
+  const generatorStart = source.indexOf("async function generateFeedback(type)");
+  const generatorEnd = source.indexOf("// Genetic Algorithm Meal Suggester", generatorStart);
+  const generator = source.slice(generatorStart, generatorEnd);
+  assert.doesNotMatch(generator, /userName|birthDate|gender|currentWeight|currentHeight|viewWeight|viewHeight/);
 });
 
 contractTest("computes the next real local midnight across DST transitions", createNutritionTrackerController => {
@@ -739,7 +745,7 @@ contractTest("keeps every render-scoped factory argument and current-render clos
     },
     {
       factory: "NutritionFeedbackAI.createNutritionFeedbackAI",
-      dependencies: ["callAI", "normalizeLanguage", "pickLang", "activityLevels: ACTIVITY_LEVELS", "calculateAge"]
+      dependencies: ["callAI", "normalizeLanguage", "pickLang"]
     },
     {
       factory: "EatingPatternsAI.createEatingPatternsAI",

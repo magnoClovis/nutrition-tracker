@@ -33,7 +33,9 @@
     "carbs",
     "fat",
     "fiber",
-    "salt"
+    "salt",
+    "sugars",
+    "satfat"
   ]);
 
   function finiteNutrient(value) {
@@ -110,6 +112,8 @@
         const fat = entries.reduce((s, e) => s + (e.fat ?? 0), 0);
         const fiber = entries.reduce((s, e) => s + (e.fiber ?? 0), 0);
         const salt = entries.reduce((s, e) => s + (e.salt ?? 0), 0);
+        const sugars = entries.reduce((s, e) => s + (e.sugars ?? 0), 0);
+        const satfat = entries.reduce((s, e) => s + (e.satfat ?? 0), 0);
         const nutrientCoverageByField = Object.fromEntries(
           COVERAGE_NUTRIENTS.map(field => [field, nutrientCoverage(entries, field)])
         );
@@ -129,6 +133,8 @@
           fat: Math.round(fat),
           fiber: Math.round(fiber),
           salt: Math.round(salt * 10) / 10,
+          sugars: Math.round(sugars * 10) / 10,
+          satfat: Math.round(satfat * 10) / 10,
           carbsGoal: g.carbs,
           fatGoal: g.fat,
           fiberGoal: g.fiber,
