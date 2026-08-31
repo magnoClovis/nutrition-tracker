@@ -25,7 +25,7 @@ O código formal `C16` é usado abaixo porque o roadmap atual classifica “Docu
 
 **Recursos:** Git e inspeção estática do repositório; HTML, CSS, JavaScript e JSX; Firebase Authentication, Firestore e Storage; integração de IA existente no frontend; Playwright; scripts Node.js do projeto; PWA; estrutura de internacionalização em três idiomas; componentes e serviços internos de backup, persistência, avaliação de refeição, algoritmo genético, privacidade e migração.
 
-**Arquivos:** nenhum arquivo da aplicação foi criado ou modificado. Entre as fontes reais inspecionadas e citadas na auditoria estavam `index.html`, `app.js`, `nutrition-tracker.jsx`, `firebase-storage.js`, `firebase-config.js`, `meal-review-ai.js`, `meal-review-modal.js`, `meal-ga.js`, `firebase-account-data-internal.js`, `privacy-panel.js`, `firebase-migration-internal.js`, `firebase-backup-internal.js`, `backup-modal.js`, `package.json`, `playwright.config.js`, arquivos sob `tests/` e a configuração existente sob `.github/workflows/`. A lista completa de relações por funcionalidade foi incorporada aos dois artefatos gerados.
+**Arquivos:** nenhum arquivo da aplicação foi criado ou modificado. Entre as fontes reais inspecionadas e citadas na auditoria estavam `index.html`, `app.js`, `nutrition-tracker.jsx`, `firebase-storage.js`, `meal-review-ai.js`, `meal-review-modal.js`, `meal-ga.js`, `firebase-account-data-internal.js`, `privacy-panel.js`, `firebase-migration-internal.js`, `firebase-backup-internal.js`, `backup-modal.js`, `package.json`, `playwright.config.js`, arquivos sob `tests/` e a configuração existente sob `.github/workflows/`. A lista completa de relações por funcionalidade foi incorporada aos dois artefatos gerados.
 
 **O que foi feito:**
 
@@ -37,7 +37,7 @@ O código formal `C16` é usado abaixo porque o roadmap atual classifica “Docu
 - A auditoria registrou explicitamente que a capacidade do assistente terminava no código, testes e documentação que podiam ser produzidos localmente. Credenciais, contratação/configuração de provedores, publicação em lojas, infraestrutura de produção e validações em contas reais continuavam dependentes do responsável.
 - Nenhuma das 17 funcionalidades foi implementada ou corrigida por este chat. O resultado foi exclusivamente diagnóstico e documental.
 
-**PRs/commits relacionados:** implementação original sem PR ou commit identificado; os artefatos permaneceram não rastreados. Registro histórico criado no PR **PR_HISTORICO**; commit inicial deste arquivo: **COMMIT_HISTORICO**.
+**PRs/commits relacionados:** implementação original sem PR ou commit identificado; os artefatos permaneceram não rastreados. Registro histórico: PR [#159](https://github.com/magnoClovis/nutrition-tracker/pull/159), draft; commit inicial [`8a827ce`](https://github.com/magnoClovis/nutrition-tracker/commit/8a827cec54973da6617a506b73bb0e09666c357d).
 
 ## C16 - Reavaliação e estruturação do roadmap futuro
 
@@ -59,7 +59,7 @@ O código formal `C16` é usado abaixo porque o roadmap atual classifica “Docu
 - O roadmap final incluiu uma ordem recomendada, um cronograma por fases, relações de dependência, riscos técnicos, dívida técnica e sugestões adicionais derivadas da inspeção. Essas seções foram consolidadas nos formatos Word e Excel para usos diferentes, sem alterar o produto.
 - A reavaliação foi um retrato da base auditada em julho de 2026. Ela não deve ser usada como fonte do estado atual sem confronto com `documentation/estado-atual/ROADMAP.md`, que registra implementações posteriores.
 
-**PRs/commits relacionados:** implementação original sem PR ou commit identificado. Registro histórico criado no PR **PR_HISTORICO**; commit inicial deste arquivo: **COMMIT_HISTORICO**.
+**PRs/commits relacionados:** implementação original sem PR ou commit identificado. Registro histórico: PR [#159](https://github.com/magnoClovis/nutrition-tracker/pull/159), draft; commit inicial [`8a827ce`](https://github.com/magnoClovis/nutrition-tracker/commit/8a827cec54973da6617a506b73bb0e09666c357d).
 
 ## C16 - Documento Word do roadmap técnico
 
@@ -81,7 +81,7 @@ O código formal `C16` é usado abaixo porque o roadmap atual classifica “Docu
 - O encerramento consolidou dependências entre funcionalidades, ordem recomendada, cronograma sugerido, riscos técnicos, dívida técnica e oportunidades de reutilização. A estrutura permitia ler tanto uma frente isolada quanto a sequência completa.
 - O documento foi verificado estruturalmente — existência das seções, hierarquia de títulos, tabelas e índice —, mas não recebeu uma renderização visual final página a página porque não havia LibreOffice disponível no ambiente. Essa limitação foi comunicada e não foi ocultada como validação concluída.
 
-**PRs/commits relacionados:** implementação original sem PR ou commit identificado; o DOCX não foi adicionado ao Git. Registro histórico criado no PR **PR_HISTORICO**; commit inicial deste arquivo: **COMMIT_HISTORICO**.
+**PRs/commits relacionados:** implementação original sem PR ou commit identificado; o DOCX não foi adicionado ao Git. Registro histórico: PR [#159](https://github.com/magnoClovis/nutrition-tracker/pull/159), draft; commit inicial [`8a827ce`](https://github.com/magnoClovis/nutrition-tracker/commit/8a827cec54973da6617a506b73bb0e09666c357d).
 
 ## C16 - Planilha executiva e operacional do roadmap
 
@@ -103,7 +103,7 @@ O código formal `C16` é usado abaixo porque o roadmap atual classifica “Docu
 - A aba **Arquitetura** relacionou cada funcionalidade aos módulos e arquivos reais encontrados, preservando a abordagem existente do projeto e sinalizando onde backend, Firebase, APIs externas ou plataforma nativa seriam necessários.
 - As cinco abas foram inspecionadas visualmente para verificar títulos, tabelas, dimensões, cores, quebra de texto e presença dos gráficos. A inspeção procurou problemas práticos de legibilidade, não apenas a validade estrutural do arquivo.
 
-**PRs/commits relacionados:** implementação original sem PR ou commit identificado; a planilha não foi adicionada ao Git. Registro histórico criado no PR **PR_HISTORICO**; commit inicial deste arquivo: **COMMIT_HISTORICO**.
+**PRs/commits relacionados:** implementação original sem PR ou commit identificado; a planilha não foi adicionada ao Git. Registro histórico: PR [#159](https://github.com/magnoClovis/nutrition-tracker/pull/159), draft; commit inicial [`8a827ce`](https://github.com/magnoClovis/nutrition-tracker/commit/8a827cec54973da6617a506b73bb0e09666c357d).
 
 ## Validação técnica usada como base documental
 
@@ -124,7 +124,7 @@ O código formal `C16` é usado abaixo porque o roadmap atual classifica “Docu
 - Os resultados foram usados como evidência auxiliar para a estratégia de testes e para a avaliação de prontidão da `0.8.0 Beta`. Eles não substituíram os testes adicionais recomendados para métricas, metas, backup, três idiomas, IA, registros retroativos, sugestões e avaliação de refeição.
 - Nenhuma correção foi aplicada durante essa validação, em conformidade com o escopo exclusivamente analítico da tarefa original.
 
-**PRs/commits relacionados:** nenhuma alteração original e nenhum commit de logs de teste. Registro histórico criado no PR **PR_HISTORICO**; commit inicial deste arquivo: **COMMIT_HISTORICO**.
+**PRs/commits relacionados:** nenhuma alteração original e nenhum commit de logs de teste. Registro histórico: PR [#159](https://github.com/magnoClovis/nutrition-tracker/pull/159), draft; commit inicial [`8a827ce`](https://github.com/magnoClovis/nutrition-tracker/commit/8a827cec54973da6617a506b73bb0e09666c357d).
 
 ## Verificação e entrega dos artefatos
 
@@ -145,7 +145,7 @@ O código formal `C16` é usado abaixo porque o roadmap atual classifica “Docu
 - A entrega registrou os dois caminhos de saída e os resultados objetivos dos testes executados. Não houve commit, push, PR ou alteração do código da aplicação.
 - O escopo foi encerrado como documentação e análise. Nenhuma das recomendações do roadmap foi iniciada automaticamente após a entrega.
 
-**PRs/commits relacionados:** entrega original sem PR ou commit identificado. Registro histórico criado no PR **PR_HISTORICO**; commit inicial deste arquivo: **COMMIT_HISTORICO**.
+**PRs/commits relacionados:** entrega original sem PR ou commit identificado. Registro histórico: PR [#159](https://github.com/magnoClovis/nutrition-tracker/pull/159), draft; commit inicial [`8a827ce`](https://github.com/magnoClovis/nutrition-tracker/commit/8a827cec54973da6617a506b73bb0e09666c357d).
 
 ## Resultado consolidado e relação com o estado atual
 
@@ -167,4 +167,3 @@ O projeto evoluiu significativamente depois desse retrato. O roadmap atual regis
 - [`documentation/estado-atual/ROADMAP.md`](../estado-atual/ROADMAP.md), correspondência formal com C16 e estado posterior das funcionalidades auditadas.
 - [`documentation/estado-atual/BUG-INVENTORY.md`](../estado-atual/BUG-INVENTORY.md), verificação de que este chat não deve reivindicar códigos de bugs apenas analisados.
 - Histórico Git local e `origin/main`, usados para confirmar a ausência dos dois artefatos originais e separar esta documentação histórica da implementação do produto.
-
