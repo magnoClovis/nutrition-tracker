@@ -1,10 +1,10 @@
 # Resumo de status do Trofia
 
-> Retrato da Fatia C08-F baseada na `main` no commit `e12b464`, em 31/08/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato do checkpoint `0.11.0-beta`, baseado na `main` no commit `2547a19`, em 01/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
-- **Versão nomeada:** `0.10.0-beta` no pacote, Android `versionName`, rótulo do app e aviso de release. O `versionCode` efetivamente distribuído não é determinado pelo Git porque esse campo é ajustado localmente antes dos uploads.
+- **Versão nomeada:** checkpoint `0.11.0-beta` preparado no pacote, Android `versionName`, rótulo, aviso trilíngue e tutorial pontual de score/avaliação. O `versionCode` efetivamente distribuído não é determinado pelo Git porque esse campo é ajustado localmente antes dos uploads.
 - **Aplicação web e Android:** build Vite em produção, GitHub Pages e projeto Capacitor Android com publicação em teste interno. Publicação iOS não está concluída.
 - **Autenticação e dados:** Firebase Auth, Firestore modular, App Check, cache persistente, comportamento offline-first, loaders cache-first, escrita granular e lifecycle seguro de conta concluídos em C28.
 - **Exclusão de conta:** saga administrativa idempotente com Cloud Functions, Cloud Tasks, lock de escrita, exclusão recursiva, retries e verificação destrutiva em produção concluída em C22.
@@ -18,7 +18,7 @@
 
 ## O que está em andamento agora
 
-- Não há fatia funcional desta frente marcada como em andamento após a C08-F. O PR da validação final permanece sujeito ao gate habitual de revisão e CI antes do merge.
+- Não há fatia funcional desta frente marcada como em andamento após a C08-F. C20, C19 e C08 estão concluídos; resta publicar e validar no Play Console o AAB nomeado `0.11.0-beta`.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
 ## O que está apenas planejado, ainda sem código completo

@@ -108,7 +108,17 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Recursos:** matriz PT/EN/ES; dados ausentes preservados como `null`; respostas malformadas rejeitadas em modo fail-closed; entradas adversariais tratadas como dados; quatro chamadas reais limitadas e conta descartável.
 - **Arquivos principais:** `/tests/fixtures/ai-nutrition-policy.json`, `/tests/unit/ai-nutrition-policy.test.js`, `/scripts/validate-c08-production.mjs`, `/.github/workflows/c08-production-validation.yml`, `/worker/src/structured-estimates.js`, `/meal-review-ai.js`, `/nutrition-feedback-ai.js`, testes, `/AI_NUTRITION_POLICY.md`, `/ROADMAP.md` e documentação sincronizada.
 - **O que foi feito:** nomes e descrições não confiáveis passaram a ser serializados como dados JSON ou escapados antes de entrar nos prompts; a validação final cobre todas as superfícies e classes de falha aprovadas. O Worker compatível foi implantado antes da prova real na versão `ca5e65d9-2eeb-4a86-9364-5eb2d0b2b2e1`, sem alterar endpoint, modelo, limite ou contrato público. A prova real verifica preenchimento em português, descrição em inglês, sugestões em espanhol e explicação narrativa em português, apenas por invariantes de contrato, sem registrar conteúdo. A evidência de imagem permanece a validação física e de produção do C24, sem copiar fotos privadas para o repositório. Workflows de prova real verificam apenas o commit mais recente para não repetir chamadas após alterações exclusivamente documentais.
-- **PRs/commits relacionados:** branch `codex/c08-final-validation`; PR draft e run de validação serão vinculados pelo histórico do GitHub desta entrega.
+- **PRs/commits relacionados:** PR #167, branch `codex/c08-final-validation`, commit `2490f91`, merge `2547a19`; CI e validação de produção totalmente verdes antes do merge.
+
+## 01/09/2026 — checkpoint 0.11.0-beta
+
+- **Código:** `0.11.0-beta`.
+- **Data:** 01/09/2026.
+- **Propósito:** reunir C20, C19 e C08 numa versão nomeada coerente para distribuição no teste interno.
+- **Recursos:** aviso cumulativo em PT/EN/ES com o texto aprovado em `VERSIONING.md`; tutorial pontual sobre nota contextual, cobertura/confiança, revisão de estimativas e critérios nutricionais compartilhados; referências de versão sincronizadas.
+- **Arquivos principais:** `/package.json`, `/package-lock.json`, `/android/app/build.gradle`, `/index.html`, `/release-notice.js`, `/tutorial-overlay.js`, testes e documentação de estado.
+- **O que foi feito:** o identificador de release passou a `0.11.0-beta`; usuários existentes recebem aviso e tutorial pontual, enquanto usuários novos recebem o mesmo aviso seguido do tutorial completo. O `versionCode` do AAB é incrementado somente na preparação local do artefato assinado, conforme a prática do projeto.
+- **PRs/commits relacionados:** branch `codex/version-0.11.0-beta`; PR e commit serão vinculados pelo histórico do GitHub desta entrega.
 
 ## Incidentes e trabalhos separados observados
 
@@ -118,10 +128,10 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ## Estado ao encerrar esta cronologia
 
-- Base usada para a C08-F: `origin/main` no commit `e12b464`, em 31/08/2026.
-- Versão nomeada no código: `0.10.0-beta`.
+- Base usada para o checkpoint: `origin/main` no commit `2547a19`, em 01/09/2026.
+- Versão nomeada preparada no código: `0.11.0-beta`.
 - C22, C23, C28, C20 e C19: concluídos segundo o roadmap.
-- C08: implementação A–F concluída nesta entrega; o fechamento definitivo permanece condicionado à revisão e ao CI do PR da C08-F.
+- C08: implementação A–F concluída e mesclada no PR #167.
 - Próximos gates de lançamento público no roadmap: C14, C16 e C25.
 
 ## Fontes consultadas e limitações
