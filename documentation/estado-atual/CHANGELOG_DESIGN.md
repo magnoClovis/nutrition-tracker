@@ -11,13 +11,13 @@ escopo, os principais arquivos afetados e a referência de implementação.
 
 ## 2026-08-31 — S8: checkboxes e sliders semânticos
 
-Referência geral: branch `codex/ui-checkbox-slider-s8`; PR draft ainda não aberto no momento desta atualização.
+Referência geral: PR draft [#166](https://github.com/magnoClovis/nutrition-tracker/pull/166), commit [`9a7194b`](https://github.com/magnoClovis/nutrition-tracker/commit/9a7194b).
 
 | Item | Mudança | Arquivos principais | Referência |
 |---:|---|---|---|
-| 1 | Criados `CheckboxField` e `SliderField` reutilizáveis com aparência One UI 8/Glass UI e semântica HTML nativa preservada. Checkboxes usam formato quadrado arredondado único nos dois temas; ranges mantêm teclado, leitor de tela, `min`, `max` e `step`. | `selection-controls.js`, `src/components/selection-controls.js`, `one-ui.css` | S8 — em andamento |
-| 2 | Migradas a seleção múltipla de alimentos e as opções avançadas da sugestão de refeição, incluindo sliders de tamanho e flexibilidade de proteína. | `diary-screen.js`, entrypoints e testes | S8 — em andamento |
-| 3 | Migrada a seleção de categorias da restauração de backup acessada por Configurações, sem alterar lógica de backup ou persistência. | `backup-modal.js`, entrypoints e testes | S8 — em andamento |
+| 1 | Criados `CheckboxField` e `SliderField` reutilizáveis com aparência One UI 8/Glass UI e semântica HTML nativa preservada. Checkboxes usam formato quadrado arredondado único nos dois temas; ranges mantêm teclado, leitor de tela, `min`, `max` e `step`. | `selection-controls.js`, `src/components/selection-controls.js`, `one-ui.css` | PR #166 — em andamento |
+| 2 | Migradas a seleção múltipla de alimentos e as opções avançadas da sugestão de refeição, incluindo sliders de tamanho e flexibilidade de proteína. | `diary-screen.js`, entrypoints e testes | PR #166 — em andamento |
+| 3 | Migrada a seleção de categorias da restauração de backup acessada por Configurações, sem alterar lógica de backup ou persistência. | `backup-modal.js`, entrypoints e testes | PR #166 — em andamento |
 
 ## 2026-07-31 — Correções visuais e refinamentos de uso
 

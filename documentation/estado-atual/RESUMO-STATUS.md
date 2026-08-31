@@ -17,7 +17,7 @@
 
 ## O que está em andamento agora
 
-- **S8 — checkboxes e sliders customizados:** protótipo aprovado e implementação em andamento na branch `codex/ui-checkbox-slider-s8`. `CheckboxField`/`SliderField` já substituem os controles ativos de sugestão de refeição e seleção de categorias de backup na branch, mas ainda dependem de PR draft, CI autenticado e merge para integrarem a `main`.
+- **S8 — checkboxes e sliders customizados:** protótipo aprovado e implementação no PR draft [#166](https://github.com/magnoClovis/nutrition-tracker/pull/166). `CheckboxField`/`SliderField` já substituem os controles ativos de sugestão de refeição e seleção de categorias de backup na branch, mas ainda dependem do CI autenticado e do merge para integrarem a `main`.
 - **Esta organização documental:** branch `codex/documentation-reference`, iniciada após o merge do PR #152. O PR será aberto em draft ao concluir esta captura.
 - **C08 — critérios nutricionais de IA:** C08-A a C08-D estão mesclados (#147, #149, #151 e #152). O endpoint estruturado de sugestões pela despensa e qualquer fatia final residual ainda não estão concluídos; por isso o roadmap mantém C08 como parcial.
 - **PRs abertos observados na captura:** #101 (quick wins antigos de Firestore), #143 (documentação do incidente F06 em `workers.dev`) e #150 (NumericField nas métricas) estavam abertos em draft. O fato de estarem abertos não prova atividade atual; #101 aparenta sobreposição com entregas posteriores de C28, mas sua decisão de fechamento é **não determinada** nesta tarefa.

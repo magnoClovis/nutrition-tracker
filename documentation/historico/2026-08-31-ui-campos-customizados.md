@@ -20,7 +20,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 |---|---|
 | PRs #126, #130, #133, #136, #138, #141, #144, #146 e #148 | Mesclados na `main` |
 | PR #150 | Aberto em modo draft; não integrado à `main` |
-| S8 — checkboxes e sliders | Implementação em andamento na branch `codex/ui-checkbox-slider-s8`; protótipo aprovado e gate autenticado pendente |
+| S8 — checkboxes e sliders | Implementação no PR draft #166; protótipo aprovado e gate autenticado pendente |
 | S9 e sequência I1–I7 | Planejadas, não implementadas por esta frente |
 
 ## ChoiceField reutilizável para tipo de refeição
@@ -534,7 +534,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - O CSS usa tokens já existentes do Trofia nos dois temas, alvo efetivo de toque de pelo menos `44 px`, foco visível, estado desabilitado, marca quadrada invariável e trilhas action/protein distintas. `prefers-reduced-motion` continua sendo respeitado pela camada global do app.
 - Os testes focados cobriram os componentes e três hosts em UMD e ESM, incluindo callbacks, associação de descrição, limites, clamp e progresso. A suíte unitária completa passou com 1.206 testes e nenhum skip; o Playwright local ficou nos skips esperados por ausência de credenciais, não sendo aceito como substituto do CI autenticado.
 
-**PRs/commits relacionados:** branch `codex/ui-checkbox-slider-s8`; PR e commits ainda não determinados no momento desta atualização, pois o PR draft seria aberto somente depois dos gates locais.
+**PRs/commits relacionados:** [PR draft #166](https://github.com/magnoClovis/nutrition-tracker/pull/166); [commit `9a7194b` — componentes, migrações, testes e documentação inicial](https://github.com/magnoClovis/nutrition-tracker/commit/9a7194b).
 
 ## C07 - Cobertura visual autenticada dos componentes customizados
 
@@ -607,9 +607,9 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - Foi separado o problema em componentes reutilizáveis: listas estáticas (`ChoiceField`), listas longas/dinâmicas (`SearchableChoiceField`), data/horário (`TemporalField`), números frequentes (`NumericField`), seleção múltipla/faixas (`CheckboxField`/`SliderField`) e, em etapa futura, diálogo genérico.
 - A substituição de um teclado Android real/IME foi explicitamente excluída. O escopo aprovado limitou-se a keypad renderizado dentro da tela do app, preservando o teclado do sistema fora dos campos específicos.
 - A auditoria definiu como requisitos transversais PT/EN/ES controlados pelo app, temas claro/escuro, leitor de tela, foco, teclado, desktop/mobile e validação autenticada em legado/Vite.
-- O fatiamento aprovado foi S1–S9. S8 chegou à implementação na branch `codex/ui-checkbox-slider-s8`, ainda sem gate autenticado ou merge no momento desta atualização; S9 não foi implementada.
+- O fatiamento aprovado foi S1–S9. S8 chegou ao PR draft #166, ainda sem gate autenticado ou merge no momento desta atualização; S9 não foi implementada.
 
-**PRs/commits relacionados:** não há PR ou commit próprio da auditoria. As decisões materializadas podem ser rastreadas nos PRs #126–#150 descritos acima.
+**PRs/commits relacionados:** não há PR ou commit próprio da auditoria. As decisões materializadas podem ser rastreadas nos PRs #126–#150 e #166 descritos acima.
 
 ## Protótipos e critérios visuais aprovados
 
@@ -638,7 +638,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - No protótipo S8, uma inconsistência aparente entre círculo, quadrado e switch foi corrigida antes do código. Ficou documentada a semântica: círculo para escolha exclusiva, quadrado arredondado para checkbox múltiplo e switch para preferência persistente.
 - As aprovações ocorreram na conversa e não deixaram PR/commit independente. Somente as partes materializadas nos PRs citados são consideradas implementadas.
 
-**PRs/commits relacionados:** não há PR ou commit exclusivo dos protótipos. As implementações resultantes estão nos PRs #126, #130, #133, #136, #138, #141, #144, #146, #148 e no draft #150.
+**PRs/commits relacionados:** não há PR ou commit exclusivo dos protótipos. As implementações resultantes estão nos PRs #126, #130, #133, #136, #138, #141, #144, #146, #148, no draft #150 e no draft #166.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
@@ -671,7 +671,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 
 - Conversa desta frente, usada como fonte primária para autoria, escopo e decisões aprovadas.
 - Git local em `origin/main`, confirmado no commit `3d776dbe8305a4b1d3732dfd6bb206e2e563ee5a` em 31/08/2026 antes da abertura da branch S8.
-- GitHub: PRs #126, #130, #133, #136, #138, #141, #144, #146, #148 e #150; commits e run autenticado citados nos itens.
+- GitHub: PRs #126, #130, #133, #136, #138, #141, #144, #146, #148, #150 e #166; commits e run autenticado citados nos itens.
 - `documentation/README.md`, `documentation/estado-atual/ROADMAP.md` e `documentation/estado-atual/BUG-INVENTORY.md`, consultados antes da redação para convenção, estados e códigos formais.
 - Datas dos protótipos, da auditoria S1–S9 e da auditoria de concorrentes são **não determinadas**, pois não existe commit/PR próprio que confirme o instante exato.
 - O PR #150 registra implementação parcial e falha confirmada; não deve ser usado como prova de recurso disponível na `main`.
