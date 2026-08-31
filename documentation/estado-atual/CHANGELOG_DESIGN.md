@@ -1,4 +1,4 @@
-> **Cópia documental — histórico de entregas.** Fonte: `/CHANGELOG_DESIGN.md`, capturada da `main` no commit `5c51fa5` em 31/08/2026. As entradas registram mudanças já realizadas nas rodadas citadas; não constituem backlog. O original da raiz continua sendo a fonte operacional.
+> **Cópia documental — histórico de entregas.** Fonte: `/CHANGELOG_DESIGN.md`, sincronizada na branch `codex/ui-checkbox-slider-s8` a partir da `main` no commit `3d776db` em 31/08/2026. Entradas explicitamente marcadas “em andamento” ainda dependem de PR/merge; as demais registram mudanças já realizadas. O original da raiz continua sendo a fonte operacional.
 
 # Trofia — Changelog de Design e UX
 
@@ -8,6 +8,16 @@ experiência do usuário. Bugs técnicos continuam catalogados separadamente em
 
 Cada rodada deve receber uma seção datada, um título curto e uma tabela com o
 escopo, os principais arquivos afetados e a referência de implementação.
+
+## 2026-08-31 — S8: checkboxes e sliders semânticos
+
+Referência geral: PR draft [#166](https://github.com/magnoClovis/nutrition-tracker/pull/166), commit [`9a7194b`](https://github.com/magnoClovis/nutrition-tracker/commit/9a7194b).
+
+| Item | Mudança | Arquivos principais | Referência |
+|---:|---|---|---|
+| 1 | Criados `CheckboxField` e `SliderField` reutilizáveis com aparência One UI 8/Glass UI e semântica HTML nativa preservada. Checkboxes usam formato quadrado arredondado único nos dois temas; ranges mantêm teclado, leitor de tela, `min`, `max` e `step`. | `selection-controls.js`, `src/components/selection-controls.js`, `one-ui.css` | PR #166 — em andamento |
+| 2 | Migradas a seleção múltipla de alimentos e as opções avançadas da sugestão de refeição, incluindo sliders de tamanho e flexibilidade de proteína. | `diary-screen.js`, entrypoints e testes | PR #166 — em andamento |
+| 3 | Migrada a seleção de categorias da restauração de backup acessada por Configurações, sem alterar lógica de backup ou persistência. | `backup-modal.js`, entrypoints e testes | PR #166 — em andamento |
 
 ## 2026-07-31 — Correções visuais e refinamentos de uso
 

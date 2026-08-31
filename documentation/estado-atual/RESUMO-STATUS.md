@@ -1,6 +1,6 @@
 # Resumo de status do Trofia
 
-> Retrato da Fatia C08-F baseada na `main` no commit `e12b464`, em 31/08/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato da `main` no commit `2547a19df6a8dfec9c16ffe72e97eaede644e1ab`, em 31/08/2026, acrescido do trabalho explicitamente identificado como PR em andamento. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
@@ -18,7 +18,7 @@
 
 ## O que está em andamento agora
 
-- Não há fatia funcional desta frente marcada como em andamento após a C08-F. O PR da validação final permanece sujeito ao gate habitual de revisão e CI antes do merge.
+- **S8 — checkboxes e sliders customizados:** implementação aprovada no PR [#166](https://github.com/magnoClovis/nutrition-tracker/pull/166), com CI autenticado real verde no run `33433957806`. `CheckboxField`/`SliderField` substituem os controles ativos de sugestão de refeição e seleção de categorias de backup; o merge aguardava apenas a atualização da branch sobre a `main` corrente.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
 ## O que está apenas planejado, ainda sem código completo
@@ -31,6 +31,7 @@
 
 ### Backlog pós-lançamento
 
+- **Sequência visual desta frente:** S9 (diálogo genérico) e I1–I7 continuam planejadas e sem implementação; cada novo tipo visual exige protótipo aprovado antes de código.
 - C26 notificações, N01 voz, C21 porções fracionadas, N03 leitura de rótulos, N09 jejum, C17 e-mails, C13 feedback nativo, C10 relatórios, N07 compartilhamento profissional, N02 banco nutricional, N05 recalibração dinâmica, C15 limpeza ampla do legado, C27 widgets, N04 receitas, N06 planejamento alimentar, C12 iOS, C18 integrações de saúde e N08 exercícios/hábitos.
 - Partes deliberadamente adiadas: C26-C (push/backend) e C27-B (widget funcional com escrita direta).
 - Revisão externa por nutricionista e eventual comparação/troca do modelo Gemini permanecem decisões futuras registradas em `PENDENCIAS.md`.
