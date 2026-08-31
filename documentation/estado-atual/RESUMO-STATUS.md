@@ -1,6 +1,6 @@
 # Resumo de status do Trofia
 
-> Retrato da `main` no commit `2547a19df6a8dfec9c16ffe72e97eaede644e1ab`, em 31/08/2026, acrescido do trabalho explicitamente identificado como PR em andamento. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato da `main` no commit `e68bc20ce0de783ce490f9fe468fee2836529074`, em 01/09/2026, acrescido do trabalho explicitamente identificado como PR em andamento. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
@@ -15,10 +15,10 @@
 - **Critérios nutricionais de IA:** C08-A a C08-F alinham as sete superfícies ao score local, preservam ausente diferente de zero, aplicam contratos estruturados fail-closed, minimizam dados pessoais e cobrem PT/EN/ES, respostas malformadas, dados ausentes e entradas adversariais. O endurecimento final do Worker foi implantado na versão `ca5e65d9-2eeb-4a86-9364-5eb2d0b2b2e1` antes da avaliação controlada real.
 - **Privacidade e compliance:** política trilíngue pública, instruções de exclusão e referência atual de Data Safety.
 - **Qualidade:** preflight, unitários, smoke legado/Vite, matriz visual e CI autenticado com App Check. G01, C05 e C07 estão fechados.
+- **S8 — checkboxes e sliders customizados:** `CheckboxField` e `SliderField` substituem os controles ativos de sugestão de refeição e seleção de categorias de backup, preservando inputs nativos para teclado, leitor de tela, limites e automação. O PR [#166](https://github.com/magnoClovis/nutrition-tracker/pull/166) foi mesclado após o CI autenticado final [run `33446146673`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33446146673) passar 93/93 testes Playwright sem skips.
 
 ## O que está em andamento agora
 
-- **S8 — checkboxes e sliders customizados:** implementação aprovada no PR [#166](https://github.com/magnoClovis/nutrition-tracker/pull/166), com CI autenticado real verde no run `33433957806`. `CheckboxField`/`SliderField` substituem os controles ativos de sugestão de refeição e seleção de categorias de backup; o merge aguardava apenas a atualização da branch sobre a `main` corrente.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
 ## O que está apenas planejado, ainda sem código completo

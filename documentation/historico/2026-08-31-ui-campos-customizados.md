@@ -16,11 +16,11 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 
 ## Estado resumido da frente
 
-| Entrega | Estado confirmado em 31/08/2026 |
+| Entrega | Estado confirmado em 01/09/2026 |
 |---|---|
 | PRs #126, #130, #133, #136, #138, #141, #144, #146 e #148 | Mesclados na `main` |
 | PR #150 | Aberto em modo draft; não integrado à `main` |
-| S8 — checkboxes e sliders | Implementação no PR draft #166; protótipo aprovado e gate autenticado pendente |
+| S8 — checkboxes e sliders | Mesclada na `main` pelo PR #166; gate autenticado final com 93/93 testes Playwright e nenhum skip |
 | S9 e sequência I1–I7 | Planejadas, não implementadas por esta frente |
 
 ## ChoiceField reutilizável para tipo de refeição
@@ -400,7 +400,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 
 ## NumericField para quantidade de alimento
 
-**Data (se determinável):** 31/08/2026.
+**Data (se determinável):** 31/08–01/09/2026 (implementação e merge, em `Europe/Madrid`).
 
 **Propósito:** reduzir a dependência do teclado numérico do sistema em um campo de uso frequente, sem criar um IME Android. O keypad deveria ser um componente normal dentro do app, preservar acessibilidade e oferecer feedback de validação coerente com a linguagem visual do Trofia.
 
@@ -498,7 +498,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - CSS One UI 8/Glass UI com tokens de tema do Trofia, cores de ação/proteína, foco visível e responsividade.
 - SVG próprio de traço fino para o check, sem glifo do sistema ou biblioteca genérica.
 - Node.js Test Runner para contratos do componente, hosts e composição dos dois runtimes.
-- Playwright Chromium autenticado com Firebase Authentication/App Check para a matriz legado/Vite, desktop/mobile e claro/escuro; o gate real permanecia pendente enquanto esta entrada era redigida.
+- Playwright Chromium autenticado com Firebase Authentication/App Check para a matriz legado/Vite, desktop/mobile e claro/escuro.
 
 **Arquivos:**
 
@@ -532,10 +532,11 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - Na restauração de backup acessada por Configurações, cada categoria importável passou a usar o mesmo `CheckboxField`, preservando total, itens novos/existentes e as estratégias posteriores de anexar/substituir. Nenhuma lógica de backup, Firestore, autenticação ou persistência foi alterada.
 - A preferência de tema em Configurações permaneceu como o botão já existente. Não foi criado um switch novo nesta fatia, porque sua aparência ainda não teve protótipo próprio; a regra semântica aprovada apenas reserva o formato de switch para esse tipo de preferência futura.
 - O CSS usa tokens já existentes do Trofia nos dois temas, alvo efetivo de toque de pelo menos `44 px`, foco visível, estado desabilitado, marca quadrada invariável e trilhas action/protein distintas. `prefers-reduced-motion` continua sendo respeitado pela camada global do app.
-- Os testes focados cobriram os componentes e três hosts em UMD e ESM, incluindo callbacks, associação de descrição, limites, clamp e progresso. A suíte unitária completa passou com 1.206 testes e nenhum skip; o Playwright local ficou nos skips esperados por ausência de credenciais, não sendo aceito como substituto do CI autenticado.
+- Os testes focados cobriram os componentes e três hosts em UMD e ESM, incluindo callbacks, associação de descrição, limites, clamp e progresso. Após atualizar a branch sobre a `main`, a suíte unitária completa passou com 1.230 testes e nenhum skip; a matriz local de cutover passou 60/60. Os smokes locais sem credenciais tiveram somente os 55 skips autenticados esperados por runtime e não foram aceitos como substituto do CI real.
 - O primeiro CI autenticado do PR #166 revelou que recortar o checkbox nativo para `1 × 1 px` preservava teclado, mas impedia o `.check()` real da restauração de backup de manter o estado. O input transparente passou a cobrir toda a linha de `44 px`, ampliando o alvo nativo sem mudar semântica ou aparência. O mesmo run mostrou que o Chromium do runner não expõe `getComputedStyle` do pseudo-elemento interno do range; a asserção foi direcionada às propriedades computadas efetivas de progresso e `accent-color`, mantendo a prova de tema sem depender de API inconsistente.
+- Antes do merge, a branch foi atualizada com a `origin/main`. A nova entrada legítima do carregador legado elevou as contagens estruturais para 70 scripts totais e 68 scripts com `src`; somente essas duas asserções foram alinhadas. O gate local completo foi repetido e o CI autenticado final passou preflight, 1.230 unitários, Worker, Functions e 93/93 testes Playwright sem skip. O PR foi então mesclado na `main` pelo commit `e68bc20`.
 
-**PRs/commits relacionados:** [PR draft #166](https://github.com/magnoClovis/nutrition-tracker/pull/166); [commit `9a7194b` — componentes, migrações, testes e documentação inicial](https://github.com/magnoClovis/nutrition-tracker/commit/9a7194b); [run autenticado `33429827106` — diagnóstico do alvo nativo e da asserção de pseudo-elemento](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33429827106).
+**PRs/commits relacionados:** [PR #166 — mesclado](https://github.com/magnoClovis/nutrition-tracker/pull/166); [commit `9a7194b` — componentes, migrações, testes e documentação inicial](https://github.com/magnoClovis/nutrition-tracker/commit/9a7194b); [commit `597457b` — alvo nativo integral e asserção visual compatível](https://github.com/magnoClovis/nutrition-tracker/commit/597457b); [commit `4f59fc0` — contagem do carregador após atualização da `main`](https://github.com/magnoClovis/nutrition-tracker/commit/4f59fc0); [merge `e68bc20`](https://github.com/magnoClovis/nutrition-tracker/commit/e68bc20ce0de783ce490f9fe468fee2836529074); [run `33429827106` — diagnóstico inicial](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33429827106); [run autenticado final `33446146673` — 93/93 Playwright, sem skips](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33446146673).
 
 ## C07 - Cobertura visual autenticada dos componentes customizados
 
@@ -608,7 +609,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - Foi separado o problema em componentes reutilizáveis: listas estáticas (`ChoiceField`), listas longas/dinâmicas (`SearchableChoiceField`), data/horário (`TemporalField`), números frequentes (`NumericField`), seleção múltipla/faixas (`CheckboxField`/`SliderField`) e, em etapa futura, diálogo genérico.
 - A substituição de um teclado Android real/IME foi explicitamente excluída. O escopo aprovado limitou-se a keypad renderizado dentro da tela do app, preservando o teclado do sistema fora dos campos específicos.
 - A auditoria definiu como requisitos transversais PT/EN/ES controlados pelo app, temas claro/escuro, leitor de tela, foco, teclado, desktop/mobile e validação autenticada em legado/Vite.
-- O fatiamento aprovado foi S1–S9. S8 chegou ao PR draft #166, ainda sem gate autenticado ou merge no momento desta atualização; S9 não foi implementada.
+- O fatiamento aprovado foi S1–S9. S8 foi concluída e mesclada pelo PR #166 após gate autenticado final verde; S9 permanece sem implementação e aguarda aprovação do protótipo.
 
 **PRs/commits relacionados:** não há PR ou commit próprio da auditoria. As decisões materializadas podem ser rastreadas nos PRs #126–#150 e #166 descritos acima.
 
@@ -639,7 +640,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - No protótipo S8, uma inconsistência aparente entre círculo, quadrado e switch foi corrigida antes do código. Ficou documentada a semântica: círculo para escolha exclusiva, quadrado arredondado para checkbox múltiplo e switch para preferência persistente.
 - As aprovações ocorreram na conversa e não deixaram PR/commit independente. Somente as partes materializadas nos PRs citados são consideradas implementadas.
 
-**PRs/commits relacionados:** não há PR ou commit exclusivo dos protótipos. As implementações resultantes estão nos PRs #126, #130, #133, #136, #138, #141, #144, #146, #148, no draft #150 e no draft #166.
+**PRs/commits relacionados:** não há PR ou commit exclusivo dos protótipos. As implementações resultantes estão nos PRs #126, #130, #133, #136, #138, #141, #144, #146, #148, no draft #150 e no PR mesclado #166.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
