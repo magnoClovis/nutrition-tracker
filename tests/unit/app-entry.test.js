@@ -110,14 +110,15 @@ test('keeps the native scanner overlay viewport-bound and theme-aware', () => {
 test('keeps one production ESM entry and a separate frozen legacy loader', () => {
   assert.equal((productionHtmlSource.match(/<script\b/g) || []).length, 3);
   assert.equal((productionHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 1);
-  assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 68);
-  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 66);
+  assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 69);
+  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 67);
   assert.match(legacyHtmlSource, /src="vendor\/react\.production\.min\.js"/);
   assert.match(legacyHtmlSource, /src="daily-entry-model\.js\?v=/);
   assert.match(legacyHtmlSource, /src="daily-entry-persistence\.js\?v=/);
   assert.match(legacyHtmlSource, /src="choice-field\.js\?v=/);
   assert.match(legacyHtmlSource, /src="searchable-choice-field\.js\?v=/);
   assert.match(legacyHtmlSource, /src="temporal-field\.js\?v=/);
+  assert.match(legacyHtmlSource, /src="selection-controls\.js\?v=/);
   assert.match(legacyHtmlSource, /src="meal-estimate\.js\?v=/);
   assert.match(legacyHtmlSource, /src="meal-estimate-editor\.js\?v=/);
   assert.match(legacyHtmlSource, /src="app\.js\?v=/);
@@ -161,4 +162,14 @@ test('loads TemporalField before the Add screen in legacy mode', () => {
   assert.notEqual(temporalPosition, -1);
   assert.notEqual(addScreenPosition, -1);
   assert.ok(temporalPosition < addScreenPosition);
+});
+
+test('loads SelectionControls before its legacy consumers', () => {
+  const controlsPosition = legacyHtmlSource.indexOf('src="selection-controls.js');
+  const backupPosition = legacyHtmlSource.indexOf('src="backup-modal.js');
+  const diaryPosition = legacyHtmlSource.indexOf('src="diary-screen.js');
+
+  assert.notEqual(controlsPosition, -1);
+  assert.ok(controlsPosition < backupPosition);
+  assert.ok(controlsPosition < diaryPosition);
 });

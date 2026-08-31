@@ -28,6 +28,12 @@ function ChoiceField() {
 function SearchableChoiceField() {
   return null;
 }
+function CheckboxField() {
+  return null;
+}
+function SliderField() {
+  return null;
+}
 
 const labels = {
   water: "Water",
@@ -272,6 +278,8 @@ function contractTest(name, callback) {
         GaResultCard,
         ChoiceField,
         SearchableChoiceField,
+        CheckboxField,
+        SliderField,
         collectValidMealEvaluationGroups: MealScore.collectValidMealEvaluationGroups
       });
       return callback(api.DiaryScreen, api);
@@ -646,6 +654,50 @@ contractTest("uses the reusable ChoiceField for the GA target meal", DiaryScreen
   ]);
   field.props.onChange("Breakfast");
   assert.equal(selected, "Breakfast");
+});
+
+contractTest("uses native-semantic CheckboxField and SliderField controls for meal suggestions", DiaryScreen => {
+  const checkboxChanges = [];
+  const sliderChanges = [];
+  const selectedFoods = [];
+  const view = DiaryScreen(baseProps({
+    section: "summary",
+    showGA: true,
+    gaUseAll: false,
+    setGAUseAll: value => checkboxChanges.push(["all", value]),
+    gaAdvancedOpen: true,
+    gaUseProtTol: true,
+    setGAUseProtTol: value => checkboxChanges.push(["protein", value]),
+    setGATolerance: value => sliderChanges.push(["size", value]),
+    setGAProtTolerance: value => sliderChanges.push(["protein", value]),
+    setGASelIds: updater => selectedFoods.push(updater({ "food-1": false }))
+  }));
+  const checkboxes = findNodes(view, node => node.type === CheckboxField);
+  const sliders = findNodes(view, node => node.type === SliderField);
+  const byId = id => checkboxes.find(node => node.props.id === id);
+
+  assert.deepEqual(checkboxes.map(node => node.props.id), [
+    "ga-use-all-pantry-foods",
+    "ga-food-food-1",
+    "ga-protein-flexibility-toggle"
+  ]);
+  assert.deepEqual(sliders.map(node => node.props.id), [
+    "ga-meal-size-slider",
+    "ga-protein-flexibility-slider"
+  ]);
+  byId("ga-use-all-pantry-foods").props.onChange(true);
+  byId("ga-food-food-1").props.onChange(true);
+  byId("ga-protein-flexibility-toggle").props.onChange(false);
+  sliders[0].props.onChange(15);
+  sliders[1].props.onChange(30);
+
+  assert.deepEqual(checkboxChanges, [["all", true], ["protein", false]]);
+  assert.deepEqual(selectedFoods, [{ "food-1": true }]);
+  assert.deepEqual(sliderChanges, [["size", 15], ["protein", 30]]);
+  assert.equal(sliders[0].props.min, -40);
+  assert.equal(sliders[0].props.max, 40);
+  assert.equal(sliders[1].props.min, 5);
+  assert.equal(sliders[1].props.max, 50);
 });
 
 contractTest("uses the searchable selector for Diary supplements", DiaryScreen => {

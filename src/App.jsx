@@ -15,6 +15,7 @@ import * as BackupModalModule from './components/backup-modal.js';
 import * as BodyMetricsCharts from './components/body-metrics-charts.js';
 import * as ChoiceFieldModule from './components/choice-field.js';
 import * as SearchableChoiceFieldModule from './components/searchable-choice-field.js';
+import * as SelectionControlsModule from './components/selection-controls.js';
 import * as TemporalFieldModule from './components/temporal-field.js';
 import * as DiaryScreenModule from './components/diary-screen.js';
 import * as GaResultCardModule from './components/ga-result-card.js';
@@ -244,6 +245,11 @@ const {
 } = SearchableChoiceFieldModule.createSearchableChoiceField({ React });
 
 const {
+  CheckboxField,
+  SliderField,
+} = SelectionControlsModule.createSelectionControls({ React });
+
+const {
   TemporalField,
   DateField,
   NumericField,
@@ -321,6 +327,7 @@ const {
   reportError: (...args) => console.error(...args),
   localToday,
   addCivilDays,
+  CheckboxField,
 });
 
 const {
@@ -592,6 +599,8 @@ const {
   GaResultCard,
   ChoiceField,
   SearchableChoiceField,
+  CheckboxField,
+  SliderField,
   collectValidMealEvaluationGroups: MealScore.collectValidMealEvaluationGroups,
 });
 
