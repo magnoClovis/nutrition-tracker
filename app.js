@@ -83,7 +83,8 @@ const {
 const {
   callAI: requestAICompletion,
   requestFoodEstimate: requestStructuredFoodEstimate,
-  requestDishEstimate: requestStructuredDishEstimate
+  requestDishEstimate: requestStructuredDishEstimate,
+  requestPantrySuggestions: requestStructuredPantrySuggestions
 } = window.AIClient.createAIClient({
   fetchRequest: (...args) => window.fetch(...args),
   getIdToken: () => fbToken()
@@ -464,6 +465,7 @@ const {
     requestAICompletion,
     requestStructuredFoodEstimate,
     requestStructuredDishEstimate,
+    requestStructuredPantrySuggestions,
     normalizeMealEstimate: mealEstimateDomain.normalizeMealEstimate,
     AIClientError,
     getGreetingPeriod,

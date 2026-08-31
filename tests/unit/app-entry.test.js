@@ -63,7 +63,7 @@ test('preserves the authentication and profile gates without legacy normalizatio
   assert.match(appSource, /<ErrorBoundary>[\s\S]*?<RequiredProfileModal/);
 });
 
-test('installs exactly the fourteen ESM namespaces still resolved by the controller', () => {
+test('installs exactly the fifteen ESM namespaces still resolved by the controller', () => {
   const assignment = appSource.match(/Object\.assign\(globalThis, \{([\s\S]*?)\}\);/);
   assert.ok(assignment);
   assert.deepEqual(
@@ -82,6 +82,7 @@ test('installs exactly the fourteen ESM namespaces still resolved by the control
       'MealReviewAI',
       'MealScore',
       'NutritionFeedbackAI',
+      'PantrySuggestionsAI',
       'SavedMealCardModule',
     ],
   );
@@ -121,7 +122,17 @@ test('keeps one production ESM entry and a separate frozen legacy loader', () =>
   assert.match(legacyHtmlSource, /src="selection-controls\.js\?v=/);
   assert.match(legacyHtmlSource, /src="meal-estimate\.js\?v=/);
   assert.match(legacyHtmlSource, /src="meal-estimate-editor\.js\?v=/);
+  assert.match(legacyHtmlSource, /src="pantry-suggestions-ai\.js\?v=/);
   assert.match(legacyHtmlSource, /src="app\.js\?v=/);
+});
+
+test('loads the structured pantry suggestion adapter before the legacy controller', () => {
+  const pantrySuggestionPosition = legacyHtmlSource.indexOf('src="pantry-suggestions-ai.js');
+  const controllerPosition = legacyHtmlSource.indexOf('src="nutrition-tracker-controller.js');
+
+  assert.notEqual(pantrySuggestionPosition, -1);
+  assert.notEqual(controllerPosition, -1);
+  assert.ok(pantrySuggestionPosition < controllerPosition);
 });
 
 test('loads the daily entry mutation runtime before the legacy controller', () => {

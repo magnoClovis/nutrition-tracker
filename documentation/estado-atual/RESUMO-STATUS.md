@@ -1,6 +1,6 @@
 # Resumo de status do Trofia
 
-> Retrato da `main` no commit `3d776dbe8305a4b1d3732dfd6bb206e2e563ee5a`, em 31/08/2026, acrescido do trabalho explicitamente identificado como branch/PR em andamento. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato da `main` no commit `2547a19df6a8dfec9c16ffe72e97eaede644e1ab`, em 31/08/2026, acrescido do trabalho explicitamente identificado como PR em andamento. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
@@ -9,18 +9,17 @@
 - **Autenticação e dados:** Firebase Auth, Firestore modular, App Check, cache persistente, comportamento offline-first, loaders cache-first, escrita granular e lifecycle seguro de conta concluídos em C28.
 - **Exclusão de conta:** saga administrativa idempotente com Cloud Functions, Cloud Tasks, lock de escrita, exclusão recursiva, retries e verificação destrutiva em produção concluída em C22.
 - **Armazenamento canônico:** migração legada encerrada, rules antigas fechadas e compatibilidade de importação de backups históricos preservada em C23.
-- **IA gerenciada:** Gemini atrás de Cloudflare Worker autenticado; endpoints de texto, foto, preenchimento e descrição estruturada. Prompts, fotos e respostas não são persistidos pelo Worker segundo o contrato atual.
+- **IA gerenciada:** Gemini atrás de Cloudflare Worker autenticado; endpoints de texto, foto, preenchimento, descrição e sugestões estruturadas pela despensa. Prompts, fotos e respostas não são persistidos pelo Worker segundo o contrato atual.
 - **Reconhecimento por foto:** câmera/galeria, pré-processamento, análise multimodal, editor de estimativas e persistência sem armazenar a imagem, concluídos em C24.
 - **Pontuação e avaliação de refeições:** `meal-score-v2` contextual, cobertura/provisoriedade explícita, explicação opcional, snapshots versionados e badge no Diário, concluídos em C20 e C19.
+- **Critérios nutricionais de IA:** C08-A a C08-F alinham as sete superfícies ao score local, preservam ausente diferente de zero, aplicam contratos estruturados fail-closed, minimizam dados pessoais e cobrem PT/EN/ES, respostas malformadas, dados ausentes e entradas adversariais. O endurecimento final do Worker foi implantado na versão `ca5e65d9-2eeb-4a86-9364-5eb2d0b2b2e1` antes da avaliação controlada real.
 - **Privacidade e compliance:** política trilíngue pública, instruções de exclusão e referência atual de Data Safety.
 - **Qualidade:** preflight, unitários, smoke legado/Vite, matriz visual e CI autenticado com App Check. G01, C05 e C07 estão fechados.
 
 ## O que está em andamento agora
 
-- **S8 — checkboxes e sliders customizados:** protótipo aprovado e implementação no PR draft [#166](https://github.com/magnoClovis/nutrition-tracker/pull/166). `CheckboxField`/`SliderField` já substituem os controles ativos de sugestão de refeição e seleção de categorias de backup na branch, mas ainda dependem do CI autenticado e do merge para integrarem a `main`.
-- **Esta organização documental:** branch `codex/documentation-reference`, iniciada após o merge do PR #152. O PR será aberto em draft ao concluir esta captura.
-- **C08 — critérios nutricionais de IA:** C08-A a C08-D estão mesclados (#147, #149, #151 e #152). O endpoint estruturado de sugestões pela despensa e qualquer fatia final residual ainda não estão concluídos; por isso o roadmap mantém C08 como parcial.
-- **PRs abertos observados na captura:** #101 (quick wins antigos de Firestore), #143 (documentação do incidente F06 em `workers.dev`) e #150 (NumericField nas métricas) estavam abertos em draft. O fato de estarem abertos não prova atividade atual; #101 aparenta sobreposição com entregas posteriores de C28, mas sua decisão de fechamento é **não determinada** nesta tarefa.
+- **S8 — checkboxes e sliders customizados:** implementação aprovada no PR [#166](https://github.com/magnoClovis/nutrition-tracker/pull/166), com CI autenticado real verde no run `33433957806`. `CheckboxField`/`SliderField` substituem os controles ativos de sugestão de refeição e seleção de categorias de backup; o merge aguardava apenas a atualização da branch sobre a `main` corrente.
+- **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
 ## O que está apenas planejado, ainda sem código completo
 

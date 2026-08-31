@@ -1,6 +1,6 @@
 {
   "contractVersion": "c08-ai-nutrition-policy-v1",
-  "status": "reference-only",
+  "status": "implemented-and-validated",
   "currentModel": "gemini-3.5-flash-lite",
   "scoreAuthority": "meal-score-v2",
   "languages": ["pt", "en", "es"],
@@ -72,7 +72,7 @@
       "id": "image-meal",
       "kind": "structured",
       "endpoint": "/v1/ai/image-meal",
-      "endpointStatus": "existing",
+      "endpointStatus": "deployed",
       "promptVersion": "image-meal-v1",
       "outputContract": "meal-estimate",
       "specialRule": "transient-image-visible-foods-only"
@@ -106,12 +106,27 @@
       "id": "pantry-suggestions",
       "kind": "structured",
       "endpoint": "/v1/ai/pantry-suggestions",
-      "endpointStatus": "planned",
+      "endpointStatus": "deployed",
       "promptVersion": "pantry-suggestions-v2",
       "outputContract": "pantry-suggestions",
       "specialRule": "pantry-ids-and-local-total-recalculation"
     }
   ],
+  "validationCoverage": {
+    "languages": ["pt", "en", "es"],
+    "categories": ["valid", "missing-data", "malformed-response", "adversarial-input"],
+    "surfaces": [
+      "meal-evaluation-explanation",
+      "dish-description",
+      "image-meal",
+      "food-autofill",
+      "nutrition-feedback",
+      "eating-patterns",
+      "pantry-suggestions"
+    ],
+    "realProvider": ["food-autofill-pt", "dish-description-en", "pantry-suggestions-es", "meal-evaluation-explanation-pt"],
+    "imageProviderEvidence": "C24 physical and production validation"
+  },
   "localizedVocabulary": {
     "pt": {
       "contextualAssessment": "Adequação ao restante do dia",
