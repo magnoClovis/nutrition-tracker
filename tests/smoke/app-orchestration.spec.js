@@ -83,7 +83,13 @@ test('preserves the login, verification, required-profile, and authenticated-app
   await expect.poll(() => page.evaluate(() => window.__smokeProfile.tutorial_most_recent_version_seen)).toBe('0.8.0-beta');
   await releaseNotice.getByRole('button', { name: /Continuar|Continue/i }).click();
   await expect(releaseNotice).toHaveCount(0);
-  await expect(page.locator('[data-tutorial-overlay="true"]:visible')).toHaveCount(0);
-  await expect.poll(() => page.evaluate(() => window.__smokeProfile.tutorial_most_recent_version_seen)).toBe('0.10.0-beta');
+  const releaseTutorial = page.locator('[data-tutorial-overlay="true"]:visible');
+  await expect(releaseTutorial).toBeVisible();
+  for (let step = 0; step < 3; step += 1) {
+    await releaseTutorial.getByRole('button', { name: /Próximo|Next|Siguiente/i }).click();
+  }
+  await releaseTutorial.getByRole('button', { name: /Concluir|Done|Finalizar/i }).click();
+  await expect(releaseTutorial).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => window.__smokeProfile.tutorial_most_recent_version_seen)).toBe('0.11.0-beta');
   await expectNoCriticalErrors(errors);
 });

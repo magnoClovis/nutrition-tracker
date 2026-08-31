@@ -1,10 +1,10 @@
 # Resumo de status do Trofia
 
-> Retrato da `main` no commit `2547a19df6a8dfec9c16ffe72e97eaede644e1ab`, em 31/08/2026, acrescido do trabalho explicitamente identificado como PR em andamento. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no commit `e68bc20`, em 01/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
-- **Versão nomeada:** `0.10.0-beta` no pacote, Android `versionName`, rótulo do app e aviso de release. O `versionCode` efetivamente distribuído não é determinado pelo Git porque esse campo é ajustado localmente antes dos uploads.
+- **Versão nomeada:** checkpoint `0.11.0-beta` preparado no pacote, Android `versionName`, rótulo, aviso trilíngue e tutorial pontual de score/avaliação. O `versionCode` efetivamente distribuído não é determinado pelo Git porque esse campo é ajustado localmente antes dos uploads.
 - **Aplicação web e Android:** build Vite em produção, GitHub Pages e projeto Capacitor Android com publicação em teste interno. Publicação iOS não está concluída.
 - **Autenticação e dados:** Firebase Auth, Firestore modular, App Check, cache persistente, comportamento offline-first, loaders cache-first, escrita granular e lifecycle seguro de conta concluídos em C28.
 - **Exclusão de conta:** saga administrativa idempotente com Cloud Functions, Cloud Tasks, lock de escrita, exclusão recursiva, retries e verificação destrutiva em produção concluída em C22.
@@ -15,10 +15,11 @@
 - **Critérios nutricionais de IA:** C08-A a C08-F alinham as sete superfícies ao score local, preservam ausente diferente de zero, aplicam contratos estruturados fail-closed, minimizam dados pessoais e cobrem PT/EN/ES, respostas malformadas, dados ausentes e entradas adversariais. O endurecimento final do Worker foi implantado na versão `ca5e65d9-2eeb-4a86-9364-5eb2d0b2b2e1` antes da avaliação controlada real.
 - **Privacidade e compliance:** política trilíngue pública, instruções de exclusão e referência atual de Data Safety.
 - **Qualidade:** preflight, unitários, smoke legado/Vite, matriz visual e CI autenticado com App Check. G01, C05 e C07 estão fechados.
+- **Controles visuais S8:** `CheckboxField` e `SliderField` customizados foram integrados no PR #166 às superfícies ativas de sugestões de refeição e seleção de categorias de backup.
 
 ## O que está em andamento agora
 
-- **S8 — checkboxes e sliders customizados:** implementação aprovada no PR [#166](https://github.com/magnoClovis/nutrition-tracker/pull/166), com CI autenticado real verde no run `33433957806`. `CheckboxField`/`SliderField` substituem os controles ativos de sugestão de refeição e seleção de categorias de backup; o merge aguardava apenas a atualização da branch sobre a `main` corrente.
+- Não há fatia funcional desta frente marcada como em andamento após a C08-F. C20, C19 e C08 estão concluídos; resta publicar e validar no Play Console o AAB nomeado `0.11.0-beta`.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
 ## O que está apenas planejado, ainda sem código completo
