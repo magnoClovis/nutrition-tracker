@@ -4,7 +4,7 @@
  * This UMD module owns the complete NutritionTracker controller: its 155 React
  * states, 40 effects, 26 refs, local callbacks, and the temporal hydration /
  * autosave protocol. Hook order and effect dependency arrays are behavioral
- * contracts. The eleven render-scoped factories below intentionally remain
+ * contracts. The twelve render-scoped factories below intentionally remain
  * inside NutritionTracker so they receive the current render closures; do not
  * hoist, memoize, reorder, or instantiate them at module scope.
  *
@@ -268,6 +268,7 @@
       requestAICompletion,
       requestStructuredFoodEstimate,
       requestStructuredDishEstimate,
+      requestStructuredPantrySuggestions,
       normalizeMealEstimate,
       AIClientError,
       getGreetingPeriod,
@@ -874,6 +875,11 @@
         callAI,
         pickLang,
         getEvaluationCount: mealScoreEvaluationCount
+      });
+      const {
+        requestPantrySuggestions
+      } = window.PantrySuggestionsAI.createPantrySuggestionsAI({
+        requestStructuredPantrySuggestions
       });
       const {
         requestFoodAutofill,
@@ -2372,31 +2378,19 @@
           setSuggestLoading(false);
           return;
         }
-        const pantryList = sortedAllPantry.map(f => {
-          const div = f.unit === "un" ? 1 : 100;
-          return f.name + " (" + f.protein100 + "g prot/" + (f.unit === "un" ? "un" : "100" + f.unit) + ", " + f.kcal100 + " kcal/" + (f.unit === "un" ? "un" : "100" + f.unit) + ")";
-        }).join(", ");
-        const prompt = pickLang(
-          lang,
-          "O usuário precisa fechar as metas nutricionais do dia. Sugira 3 combinações práticas de alimentos da despensa dele.\n\nO QUE AINDA FALTA HOJE:\n" + (remainProt > 0 ? "Proteína: " + remainProt + "g\n" : "") + (remainKcal > 0 ? "Calorias: " + remainKcal + " kcal\n" : "") + (remainCarbs > 0 ? "Carbs: " + remainCarbs + "g\n" : "") + "\nDESPENSA DISPONÍVEL:\n" + pantryList + "\n\nPara cada sugestão indique:\n- Nome da combinação\n- Alimentos com quantidades específicas (em gramas/ml/unidades)\n- Totais de proteína e calorias estimados\n\nResponda APENAS com JSON sem markdown:\n[{\"name\":\"nome\",\"items\":[{\"food\":\"nome exato da despensa\",\"qty\":X,\"unit\":\"g\"}],\"protein\":X,\"kcal\":X}]",
-          "The user needs to finish today's nutrition targets. Suggest 3 practical food combinations using only foods from their pantry.\n\nSTILL MISSING TODAY:\n" + (remainProt > 0 ? "Protein: " + remainProt + "g\n" : "") + (remainKcal > 0 ? "Calories: " + remainKcal + " kcal\n" : "") + (remainCarbs > 0 ? "Carbs: " + remainCarbs + "g\n" : "") + "\nAVAILABLE PANTRY:\n" + pantryList + "\n\nFor each suggestion include:\n- Combination name\n- Foods with specific amounts (grams/ml/units)\n- Estimated protein and calorie totals\n\nRespond ONLY with JSON, no markdown:\n[{\"name\":\"name\",\"items\":[{\"food\":\"exact pantry food name\",\"qty\":X,\"unit\":\"g\"}],\"protein\":X,\"kcal\":X}]",
-          "El usuario necesita completar las metas nutricionales de hoy. Sugiere 3 combinaciones prácticas usando solo alimentos de su despensa.\n\nLO QUE FALTA HOY:\n" + (remainProt > 0 ? "Proteína: " + remainProt + "g\n" : "") + (remainKcal > 0 ? "Calorías: " + remainKcal + " kcal\n" : "") + (remainCarbs > 0 ? "Carbohidratos: " + remainCarbs + "g\n" : "") + "\nDESPENSA DISPONIBLE:\n" + pantryList + "\n\nPara cada sugerencia incluye:\n- Nombre de la combinación\n- Alimentos con cantidades específicas (gramos/ml/unidades)\n- Totales estimados de proteína y calorías\n\nResponde SOLO con JSON, sin markdown:\n[{\"name\":\"nombre\",\"items\":[{\"food\":\"nombre exacto de la despensa\",\"qty\":X,\"unit\":\"g\"}],\"protein\":X,\"kcal\":X}]"
-        );
         try {
-          const text = await callAI(prompt, 800);
-          const clean = text.replace(/```json|```/g, "").trim();
-          setSuggestions(JSON.parse(clean));
+          setSuggestions(await requestPantrySuggestions({
+            pantry: sortedAllPantry,
+            remaining: { protein: remainProt, kcal: remainKcal, carbs: remainCarbs },
+            language: normalizeLanguage(lang)
+          }));
         } catch (_) {
           notify(pickLang(lang, "Erro: ", "Error: ", "Error: ") + (_.message || pickLang(lang, "Não foi possível gerar sugestões.", "Could not generate suggestions.", "No se pudieron generar sugerencias.")), 8000);
         }
         setSuggestLoading(false);
       }
       function loadSuggestionToStaged(sugg) {
-        const items = sugg.items.map(item => {
-          const food = pantry.find(f => f.name.toLowerCase() === item.food.toLowerCase()) || pantry.find(f => f.name.toLowerCase().includes(item.food.toLowerCase().split(" ")[0]));
-          if (!food) return null;
-          return buildEntry(food, item.qty);
-        }).filter(Boolean);
+        const items = sugg.items.map(item => buildEntry(item.food, item.quantity));
         if (!items.length) {
           notify(pickLang(lang, "Nenhum alimento da sugestão foi encontrado na despensa.", "No food from the suggestion was found in the pantry.", "No se encontró en la despensa ningún alimento de la sugerencia."));
           return;

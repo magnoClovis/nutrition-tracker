@@ -83,7 +83,22 @@ PRs intercalados de ChoiceField/TemporalField/NumericField pertencem a outra fre
 - **PR #151**, 31/08 — estimativas estruturadas para preenchimento e descrição; merge `d0914b1`. O Worker foi implantado antes do cliente segundo a política versionada.
 - **PR #152**, 31/08 — feedback e padrões com todos os nutrientes disponíveis, cobertura real, linguagem não diagnóstica e minimização de perfil; merge `5c51fa5`.
 
-C08 permanece parcial porque `pantry-suggestions-v2` está explicitamente planejado e não publicado. O modelo permanece `gemini-3.5-flash-lite`; comparação de modelo foi adiada em `PENDENCIAS.md`.
+C08 permanece parcial. O modelo permanece `gemini-3.5-flash-lite`; comparação de modelo foi adiada em `PENDENCIAS.md`.
+
+## 31/08/2026 — organização documental e retomada da C08
+
+- **PR #153** — criou o índice documental, o resumo de estado e este histórico comprovável; merge incluído na base `3d776db`.
+- **PR #155** — passou a reservar a suíte pesada para PRs que também alterem código, sem abrir exceção para PR misto de código e documentação; merge incluído na base `3d776db`.
+
+### C08-E — despensa e explicação da avaliação
+
+- **Código:** `C08-E`.
+- **Data:** 31/08/2026.
+- **Propósito:** retirar do controlador o prompt livre de sugestões pela despensa, impedir correspondência aproximada de alimentos e alinhar a explicação narrativa do C19 ao score contextual definitivo.
+- **Recursos:** contrato `pantry-suggestions-v2`; endpoint autenticado `POST /v1/ai/pantry-suggestions`; contrato narrativo `meal-explanation-v1`; modelo mantido em `gemini-3.5-flash-lite`.
+- **Arquivos principais:** `/pantry-suggestions-ai.js`, `/worker/src/pantry-suggestions.js`, `/worker/src/ai-worker.js`, `/ai-client.js`, `/nutrition-tracker-controller.js`, `/meal-review-ai.js`, composições UMD/ESM, testes e `/AI_NUTRITION_POLICY.md`.
+- **O que foi feito:** a IA passou a receber uma projeção limitada da despensa com IDs exatos; Worker e cliente validam resposta integralmente em modo fail-closed; IDs desconhecidos/repetidos, quantidades inválidas e campos extras são recusados; todos os totais são recalculados a partir do snapshot canônico local. O GA visível continua local e não foi substituído silenciosamente. A explicação da avaliação agora recebe versão do algoritmo, nota 0–5 definitiva, cobertura, confiança, provisoriedade e seus motivos específicos, sem recalcular nota, diagnosticar ou transformar ausência em zero. O Worker foi implantado primeiro, na versão `11f11b83-fb2d-413e-a133-3818f52ddf66`. Como o ambiente local reproduziu o bloqueio F06 ao domínio `workers.dev`, o smoke real foi executado uma única vez em runner externo: cadastro descartável 200, endpoint 200, contrato `pantry-suggestions-v2` válido com três sugestões e limpeza da conta 200.
+- **PRs/commits relacionados:** PR draft #165, branch `codex/c08-pantry-score-explanation`, commits `be8534d`, `4fd4b02` e `2e99ee3`; smoke de produção run `33432122955`.
 
 ## Incidentes e trabalhos separados observados
 
@@ -93,16 +108,16 @@ C08 permanece parcial porque `pantry-suggestions-v2` está explicitamente planej
 
 ## Estado ao encerrar esta cronologia
 
-- Último merge desta frente: PR #152, commit `5c51fa530b4d88b1d34a56f5648a1b3895f1ede6`, em 31/08/2026.
+- Base usada para a C08-E: `origin/main` no commit `3d776db`, em 31/08/2026.
 - Versão nomeada no código: `0.10.0-beta`.
 - C22, C23, C28, C20 e C19: concluídos segundo o roadmap.
-- C08: parcial; A–D concluídas, trabalho residual planejado.
+- C08: parcial; A–D mescladas, E implementada no PR draft #165 com deploy e smoke real concluídos, merge ainda pendente, e C08-F planejada.
 - Próximos gates de lançamento público no roadmap: C14, C16 e C25.
 
 ## Fontes consultadas e limitações
 
 - GitHub: lista de PRs mesclados e abertos, títulos, datas e commits.
-- Git: `origin/main` no commit `5c51fa5`.
+- Git: `origin/main` no commit `3d776db`.
 - Documentos: `/ROADMAP.md`, `/VERSIONING.md`, `/PENDENCIAS.md`, `/AI_NUTRITION_POLICY.md`, `/NUTRITION_SCORE.md`, `/C22_ROLLOUT.md` e `/C24_FATIA_7_VALIDACAO.md`.
 - O histórico integral das conversas não existe no Git; decisões que dependem somente do diálogo e não deixaram evidência versionada são **não determinadas**.
 - APIs do GitHub estavam acessíveis durante esta captura; nenhum intervalo foi omitido por indisponibilidade da API.

@@ -20,6 +20,8 @@
     "https://trofia-ai-proxy.cmagno-dev.workers.dev/v1/ai/food-estimate";
   const DISH_ESTIMATE_ENDPOINT =
     "https://trofia-ai-proxy.cmagno-dev.workers.dev/v1/ai/dish-estimate";
+  const PANTRY_SUGGESTIONS_ENDPOINT =
+    "https://trofia-ai-proxy.cmagno-dev.workers.dev/v1/ai/pantry-suggestions";
 
   /**
    * Neutral error for expected managed-AI HTTP and response failures.
@@ -121,13 +123,23 @@
       return data.estimate;
     }
 
-    return { callAI, requestFoodEstimate, requestDishEstimate };
+    async function requestPantrySuggestions(request) {
+      const data = await postAuthenticated(PANTRY_SUGGESTIONS_ENDPOINT, request);
+      if (!data || typeof data !== "object" || Array.isArray(data) ||
+          typeof data.contractVersion !== "string" || !Array.isArray(data.suggestions)) {
+        throw new AIClientError("invalid-response");
+      }
+      return data;
+    }
+
+    return { callAI, requestFoodEstimate, requestDishEstimate, requestPantrySuggestions };
   }
 
   return {
     COMPLETION_ENDPOINT,
     FOOD_ESTIMATE_ENDPOINT,
     DISH_ESTIMATE_ENDPOINT,
+    PANTRY_SUGGESTIONS_ENDPOINT,
     createAIClient,
     AIClientError
   };

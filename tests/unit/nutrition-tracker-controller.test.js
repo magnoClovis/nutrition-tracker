@@ -94,6 +94,19 @@ contractTest("passes all nutrient coverage to AI feedback without raw profile fi
   assert.doesNotMatch(generator, /userName|birthDate|gender|currentWeight|currentHeight|viewWeight|viewHeight/);
 });
 
+contractTest("uses structured pantry suggestions without fuzzy food-name matching", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+  const start = source.indexOf("async function generateMealSuggestions");
+  const end = source.indexOf("function reportDateShift", start);
+  const block = source.slice(start, end);
+
+  assert.match(block, /requestPantrySuggestions\(\{/);
+  assert.match(block, /remaining: \{\s*protein: remainProt,\s*kcal: remainKcal,\s*carbs: remainCarbs\s*\}/);
+  assert.match(block, /buildEntry\(item\.food, item\.quantity\)/);
+  assert.doesNotMatch(block, /callAI\(|JSON\.parse|\.includes\(item\.food|item\.food\.toLowerCase/);
+});
+
 contractTest("computes the next real local midnight across DST transitions", createNutritionTrackerController => {
   const { millisecondsUntilNextLocalDay } = createController(createNutritionTrackerController);
   const originalTimezone = process.env.TZ;
@@ -259,7 +272,7 @@ contractTest("keeps autosaves suspended when daily hydration fails and retries s
   assert.ok(source.includes("viewDateRef.current === previousDate"));
 });
 
-contractTest("keeps all eleven render-scoped factories in their original order", createNutritionTrackerController => {
+contractTest("keeps all twelve render-scoped factories in their original order", createNutritionTrackerController => {
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
   const factories = [
@@ -267,6 +280,7 @@ contractTest("keeps all eleven render-scoped factories in their original order",
     "SavedMealCardModule.createSavedMealCard",
     "MealGA.createMealGA",
     "MealReviewAI.createMealReviewAI",
+    "PantrySuggestionsAI.createPantrySuggestionsAI",
     "FoodAutofillAI.createFoodAutofillAI",
     "DishDescriptionAI.createDishDescriptionAI",
     "NutritionFeedbackAI.createNutritionFeedbackAI",
@@ -729,6 +743,10 @@ contractTest("keeps every render-scoped factory argument and current-render clos
     {
       factory: "MealReviewAI.createMealReviewAI",
       dependencies: ["callAI", "pickLang", "getEvaluationCount: mealScoreEvaluationCount"]
+    },
+    {
+      factory: "PantrySuggestionsAI.createPantrySuggestionsAI",
+      dependencies: ["requestStructuredPantrySuggestions"]
     },
     {
       factory: "FoodAutofillAI.createFoodAutofillAI",

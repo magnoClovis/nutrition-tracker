@@ -62,7 +62,7 @@ test("the hybrid boundary reserves schemas for structured results and the generi
   for (const id of ["dish-description", "food-autofill"]) {
     assert.equal(matrix.surfaces.find(surface => surface.id === id).endpointStatus, "deployed");
   }
-  assert.equal(matrix.surfaces.find(surface => surface.id === "pantry-suggestions").endpointStatus, "planned");
+  assert.equal(matrix.surfaces.find(surface => surface.id === "pantry-suggestions").endpointStatus, "ready-for-deploy");
 });
 
 test("nutrient semantics match meal-score-v2 and keep salt distinct from sodium", () => {
@@ -135,7 +135,7 @@ test("PT, EN, and ES retain equivalent contextual, provisional, salt, and discla
 test("the human-readable policy stays synchronized with the executable contract", () => {
   const policy = fs.readFileSync(POLICY_PATH, "utf8");
   assert.match(policy, new RegExp(matrix.contractVersion));
-  assert.match(policy, /Nenhum prompt, endpoint ou comportamento de produ[cç][aã]o [ée] alterado/i);
+  assert.match(policy, /implementada progressivamente até a C08-E/i);
   assert.match(policy, /gemini-3\.5-flash-lite/);
   assert.match(policy, /meal-score-v2/);
   for (const surface of matrix.surfaces) {
