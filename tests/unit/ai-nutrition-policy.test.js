@@ -28,9 +28,9 @@ const NARRATIVE_SURFACES = new Set([
   "eating-patterns"
 ]);
 
-test("C08-A is a reference-only contract for the approved model and score authority", () => {
+test("C08 is an implemented and validated contract for the approved model and score authority", () => {
   assert.equal(matrix.contractVersion, "c08-ai-nutrition-policy-v1");
-  assert.equal(matrix.status, "reference-only");
+  assert.equal(matrix.status, "implemented-and-validated");
   assert.equal(matrix.currentModel, "gemini-3.5-flash-lite");
   assert.equal(matrix.scoreAuthority, "meal-score-v2");
 });
@@ -58,11 +58,9 @@ test("the hybrid boundary reserves schemas for structured results and the generi
       assert.equal(surface.outputContract, "bounded-nonempty-text");
     }
   }
-  assert.equal(matrix.surfaces.find(surface => surface.id === "image-meal").endpointStatus, "existing");
-  for (const id of ["dish-description", "food-autofill"]) {
+  for (const id of ["dish-description", "image-meal", "food-autofill", "pantry-suggestions"]) {
     assert.equal(matrix.surfaces.find(surface => surface.id === id).endpointStatus, "deployed");
   }
-  assert.equal(matrix.surfaces.find(surface => surface.id === "pantry-suggestions").endpointStatus, "ready-for-deploy");
 });
 
 test("nutrient semantics match meal-score-v2 and keep salt distinct from sodium", () => {
@@ -132,10 +130,28 @@ test("PT, EN, and ES retain equivalent contextual, provisional, salt, and discla
   }
 });
 
+test("the final C08 matrix covers every surface, language, and failure class", () => {
+  assert.deepEqual(matrix.validationCoverage.languages, matrix.languages);
+  assert.deepEqual(matrix.validationCoverage.surfaces, EXPECTED_SURFACES);
+  assert.deepEqual(matrix.validationCoverage.categories, [
+    "valid",
+    "missing-data",
+    "malformed-response",
+    "adversarial-input"
+  ]);
+  assert.deepEqual(matrix.validationCoverage.realProvider, [
+    "food-autofill-pt",
+    "dish-description-en",
+    "pantry-suggestions-es",
+    "meal-evaluation-explanation-pt"
+  ]);
+  assert.match(matrix.validationCoverage.imageProviderEvidence, /C24/);
+});
+
 test("the human-readable policy stays synchronized with the executable contract", () => {
   const policy = fs.readFileSync(POLICY_PATH, "utf8");
   assert.match(policy, new RegExp(matrix.contractVersion));
-  assert.match(policy, /implementada progressivamente até a C08-E/i);
+  assert.match(policy, /implementado e validado até a Fatia C08-F/i);
   assert.match(policy, /gemini-3\.5-flash-lite/);
   assert.match(policy, /meal-score-v2/);
   for (const surface of matrix.surfaces) {

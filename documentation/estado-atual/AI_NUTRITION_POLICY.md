@@ -1,8 +1,8 @@
-> **Cópia documental — contrato atual com gate de implantação cumprido.** Fonte: `/AI_NUTRITION_POLICY.md`, atualizada na Fatia C08-E em 31/08/2026. Contratos C08-A a C08-E estão implementados no código; o endpoint `pantry-suggestions-v2` foi implantado e validado no Worker antes da exposição do cliente.
+> **Cópia documental — contrato implementado e validado.** Fonte: `/AI_NUTRITION_POLICY.md`, atualizada na Fatia C08-F em 31/08/2026. Contratos C08-A a C08-F estão implementados; endpoints estruturados foram implantados antes dos clientes correspondentes e a matriz final cobre PT/EN/ES, dados ausentes, respostas malformadas, entradas adversariais e uma avaliação controlada do provedor real.
 
 # Política nutricional da IA
 
-Estado do contrato: referência aprovada da Fatia C08-A, implementada progressivamente até a C08-E. O endpoint da despensa foi publicado de forma aditiva e validado em produção antes da liberação do cliente.
+Estado do contrato: implementado e validado até a Fatia C08-F. Os endpoints estruturados foram publicados antes dos clientes correspondentes e mantêm validação integral em modo fail-closed.
 
 Versão do contrato: `c08-ai-nutrition-policy-v1`.
 
@@ -77,7 +77,7 @@ O gerador visual de combinações atualmente exposto no Diário continua sendo o
 
 ### Respostas narrativas
 
-Feedback diário/semanal, padrões alimentares e explicação da avaliação continuam usando `POST /v1/ai/completion`. Seus construtores de prompt serão versionados e compartilharão esta política, sem exigir schema JSON.
+Feedback diário/semanal, padrões alimentares e explicação da avaliação continuam usando `POST /v1/ai/completion`. Seus construtores de prompt são versionados e compartilham esta política, sem exigir schema JSON.
 
 ## Contrato por superfície
 
@@ -99,13 +99,16 @@ Cada contrato identifica sua versão. Alterar critérios de modo incompatível e
 
 ## Validação
 
-`tests/fixtures/ai-nutrition-policy.json` é a matriz executável desta política. Ela congela as sete superfícies, a fronteira híbrida, os nutrientes, a minimização de dados, a paridade de idiomas e os cenários mínimos de segurança sem chamar o provedor real.
+`tests/fixtures/ai-nutrition-policy.json` é a matriz executável desta política. Ela congela as sete superfícies, a fronteira híbrida, os nutrientes, a minimização de dados, a paridade de idiomas e os cenários mínimos de segurança.
 
-Testes futuros de integração devem combinar:
+A validação final da C08 combina:
 
 - fixtures determinísticas para schema, `null`, cobertura e autoridade do score;
 - respostas da despensa com IDs desconhecidos, repetidos, quantidades inválidas e campos extras, todas rejeitadas integralmente;
 - matriz PT-BR/EN/ES;
 - entradas adversariais tratadas como dados;
-- amostras controladas contra o Gemini real, avaliadas por invariantes e não por texto byte a byte;
+- quatro amostras textuais controladas contra o Gemini real (preenchimento em PT, descrição em EN, despensa em ES e explicação narrativa em PT), avaliadas por invariantes e não por texto byte a byte;
+- a evidência multimodal já concluída na validação física e de produção do C24, sem reenviar ou versionar fotos privadas na C08;
 - revisão posterior por nutricionista, sem alterar silenciosamente contratos já versionados.
+
+A execução real usa uma conta Firebase descartável, no máximo quatro chamadas e limpeza obrigatória. Seus logs contêm somente códigos HTTP, validade do contrato e resultado da limpeza; não contêm prompt, resposta, token, senha, e-mail ou dados nutricionais.
