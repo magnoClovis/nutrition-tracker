@@ -16,6 +16,10 @@ const { localToday, addCivilDays } = createDateUtils({
 });
 const currentDispatcher = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentDispatcher;
 
+function CheckboxField() {
+  return null;
+}
+
 function createHookHarness(Component, props) {
   const state = [];
   let tree;
@@ -124,7 +128,8 @@ function createFixture(createBackupModal, {
     alertUser(message) { alerts.push(message); },
     reportError(...args) { errors.push(args); },
     localToday,
-    addCivilDays
+    addCivilDays,
+    CheckboxField
   });
   return {
     harness: createHookHarness(BackupModal, { lang, darkMode: false, onClose() {} }),
@@ -341,10 +346,11 @@ contractTest("resolves current contexts and prefers the coordinated backup resto
   assert.equal(target.value, "");
 
   tree = fixture.harness.render();
-  assert.equal(elementText(tree).includes("Notes"), true);
-  assert.equal(elementText(tree).includes("5 records · 1 new · 0 existing"), true);
-  const checkbox = elementsByType(tree, "input").find(element => element.props.type === "checkbox");
-  checkbox.props.onChange({ target: { checked: true } });
+  const checkbox = elementsByType(tree, CheckboxField)[0];
+  assert.equal(checkbox.props.id, "backup-category-notes");
+  assert.equal(checkbox.props.label, "Notes");
+  assert.equal(checkbox.props.description, "5 records · 1 new · 0 existing");
+  checkbox.props.onChange(true);
   tree = fixture.harness.render();
   findButton(tree, "Replace").props.onClick();
   tree = fixture.harness.render();

@@ -109,6 +109,11 @@ void appCheckClient.initialize().catch(() => {
 });
 
 const {
+  CheckboxField,
+  SliderField
+} = window.SelectionControlsModule.createSelectionControls({ React });
+
+const {
   SettingsPanel
 } = window.SettingsPanelModule.createSettingsPanel({
   React,
@@ -139,7 +144,8 @@ const {
   alertUser: window.alert.bind(window),
   reportError: (...args) => console.error(...args),
   localToday,
-  addCivilDays
+  addCivilDays,
+  CheckboxField
 });
 
 const {
@@ -423,6 +429,8 @@ const {
   GaResultCard,
   ChoiceField,
   SearchableChoiceField,
+  CheckboxField,
+  SliderField,
   collectValidMealEvaluationGroups: window.MealScore.collectValidMealEvaluationGroups
 });
 const {

@@ -20,7 +20,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 |---|---|
 | PRs #126, #130, #133, #136, #138, #141, #144, #146 e #148 | Mesclados na `main` |
 | PR #150 | Aberto em modo draft; não integrado à `main` |
-| S8 — checkboxes e sliders | Não iniciada; dependia de protótipo posterior à conclusão da S7b |
+| S8 — checkboxes e sliders | Implementação no PR draft #166; protótipo aprovado e gate autenticado pendente |
 | S9 e sequência I1–I7 | Planejadas, não implementadas por esta frente |
 
 ## ChoiceField reutilizável para tipo de refeição
@@ -485,6 +485,58 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - [Commit `ac6dc45` — tentativa de neutralizar a animação do container](https://github.com/magnoClovis/nutrition-tracker/commit/ac6dc453383540cedf521907485198ef4deb57a5).
 - [CI autenticado `33374098903` — falha que bloqueou o merge](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33374098903).
 
+## Controles semânticos de checkbox e slider
+
+**Data (se determinável):** 31/08/2026.
+
+**Propósito:** substituir checkboxes e sliders ainda apresentados pelo estilo cru do navegador/Android por controles coerentes com One UI 8/Glass UI, sem perder as garantias dos elementos nativos. A fatia precisava aplicar uma semântica visual previsível — quadrado arredondado para seleção múltipla, círculo reservado a escolha exclusiva e switch reservado a preferência persistente — e manter teclado, leitor de tela, `min`, `max`, `step`, foco e valor acessível.
+
+**Recursos:**
+
+- React com componentes controlados e runtime injetado para paridade UMD/legado e ESM/Vite.
+- Inputs HTML nativos `type="checkbox"` e `type="range"` como fonte semântica e de interação.
+- CSS One UI 8/Glass UI com tokens de tema do Trofia, cores de ação/proteína, foco visível e responsividade.
+- SVG próprio de traço fino para o check, sem glifo do sistema ou biblioteca genérica.
+- Node.js Test Runner para contratos do componente, hosts e composição dos dois runtimes.
+- Playwright Chromium autenticado com Firebase Authentication/App Check para a matriz legado/Vite, desktop/mobile e claro/escuro; o gate real permanecia pendente enquanto esta entrada era redigida.
+
+**Arquivos:**
+
+- `selection-controls.js`
+- `src/components/selection-controls.js`
+- `diary-screen.js`
+- `backup-modal.js`
+- `app.js`
+- `nutrition-tracker.jsx`
+- `src/App.jsx`
+- `one-ui.css`
+- `tests/fixtures/index.legacy.html`
+- `tests/unit/selection-controls.test.js`
+- `tests/unit/diary-screen.test.js`
+- `tests/unit/backup-modal.test.js`
+- `tests/unit/app-entry.test.js`
+- `tests/smoke/selection-controls.visual.spec.js`
+- `CHANGELOG_DESIGN.md`
+- `documentation/estado-atual/CHANGELOG_DESIGN.md`
+- `documentation/estado-atual/RESUMO-STATUS.md`
+- `documentation/historico/2026-08-31-ui-campos-customizados.md`
+
+**O que foi feito:**
+
+- O protótipo interativo foi aprovado após corrigir uma inconsistência percebida entre círculos, quadrados e um switch aparente. A regra final tornou todos os usos múltiplos um único checkbox quadrado arredondado de `24 × 24 px`, raio de `7 px` e check SVG fino; tema não altera o tipo visual do controle.
+- Foi criado `SelectionControlsModule`, com `CheckboxField` e `SliderField` controlados. O módulo UMD recebe React explicitamente, e a fachada ESM reutiliza o mesmo contrato para evitar duas implementações visuais divergentes.
+- `CheckboxField` mantém um `input type="checkbox"` real associado ao texto por `label`. O input fica transparente e posicionado sobre toda a linha de toque, continuando focável e expondo `checked`, `disabled`, `required`, `name`, `value` e `aria-describedby`; o evento nativo é traduzido para `onChange(checked, event)`. Essa cobertura integral também evita que automação e tecnologias de entrada precisem acertar um alvo recortado de `1 px`.
+- `SliderField` mantém um `input type="range"` real, com `min`, `max`, `step`, setas do teclado, `aria-valuetext` e `output` associado por `htmlFor`. O preenchimento visual é calculado entre os limites, sem substituir a mecânica nativa do range.
+- No Diário, a seleção individual de alimentos da despensa e “usar todos” migraram para `CheckboxField`. A seleção manual permanece no estado quando “usar todos” é ligado e desligado; descrições de calorias/proteína ficaram associadas ao checkbox para leitura contextual.
+- Os ajustes avançados da sugestão de refeição migraram para `SliderField`: tamanho entre `−40%` e `+40%`, com valor/calorias atualizados, e flexibilidade de proteína entre `5%` e `50%`, exibida somente quando seu `CheckboxField` dependente está ativo.
+- Na restauração de backup acessada por Configurações, cada categoria importável passou a usar o mesmo `CheckboxField`, preservando total, itens novos/existentes e as estratégias posteriores de anexar/substituir. Nenhuma lógica de backup, Firestore, autenticação ou persistência foi alterada.
+- A preferência de tema em Configurações permaneceu como o botão já existente. Não foi criado um switch novo nesta fatia, porque sua aparência ainda não teve protótipo próprio; a regra semântica aprovada apenas reserva o formato de switch para esse tipo de preferência futura.
+- O CSS usa tokens já existentes do Trofia nos dois temas, alvo efetivo de toque de pelo menos `44 px`, foco visível, estado desabilitado, marca quadrada invariável e trilhas action/protein distintas. `prefers-reduced-motion` continua sendo respeitado pela camada global do app.
+- Os testes focados cobriram os componentes e três hosts em UMD e ESM, incluindo callbacks, associação de descrição, limites, clamp e progresso. A suíte unitária completa passou com 1.206 testes e nenhum skip; o Playwright local ficou nos skips esperados por ausência de credenciais, não sendo aceito como substituto do CI autenticado.
+- O primeiro CI autenticado do PR #166 revelou que recortar o checkbox nativo para `1 × 1 px` preservava teclado, mas impedia o `.check()` real da restauração de backup de manter o estado. O input transparente passou a cobrir toda a linha de `44 px`, ampliando o alvo nativo sem mudar semântica ou aparência. O mesmo run mostrou que o Chromium do runner não expõe `getComputedStyle` do pseudo-elemento interno do range; a asserção foi direcionada às propriedades computadas efetivas de progresso e `accent-color`, mantendo a prova de tema sem depender de API inconsistente.
+
+**PRs/commits relacionados:** [PR draft #166](https://github.com/magnoClovis/nutrition-tracker/pull/166); [commit `9a7194b` — componentes, migrações, testes e documentação inicial](https://github.com/magnoClovis/nutrition-tracker/commit/9a7194b); [run autenticado `33429827106` — diagnóstico do alvo nativo e da asserção de pseudo-elemento](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33429827106).
+
 ## C07 - Cobertura visual autenticada dos componentes customizados
 
 **Data (se determinável):** 30–31/08/2026.
@@ -511,6 +563,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - `tests/smoke/temporal-field-date.visual.spec.js`
 - `tests/smoke/numeric-field.visual.spec.js`
 - `tests/smoke/metrics-numeric-field.visual.spec.js`
+- `tests/smoke/selection-controls.visual.spec.js`
 - `tests/smoke/cutover-visual-matrix.spec.js`
 - `tests/smoke/app-orchestration.spec.js`
 - `tests/smoke/authenticated-flows.spec.js`
@@ -552,12 +605,12 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 **O que foi feito:**
 
 - Foi levantado o uso de seletores nativos em tipo de refeição, categorias/destinos de refeição, confiança, gênero, atividade, objetivo, unidades, ingredientes/suplementos dinâmicos, data de nascimento e horário.
-- Foi separado o problema em componentes reutilizáveis: listas estáticas (`ChoiceField`), listas longas/dinâmicas (`SearchableChoiceField`), data/horário (`TemporalField`), números frequentes (`NumericField`) e, em etapas futuras, checkboxes/sliders e diálogo genérico.
+- Foi separado o problema em componentes reutilizáveis: listas estáticas (`ChoiceField`), listas longas/dinâmicas (`SearchableChoiceField`), data/horário (`TemporalField`), números frequentes (`NumericField`), seleção múltipla/faixas (`CheckboxField`/`SliderField`) e, em etapa futura, diálogo genérico.
 - A substituição de um teclado Android real/IME foi explicitamente excluída. O escopo aprovado limitou-se a keypad renderizado dentro da tela do app, preservando o teclado do sistema fora dos campos específicos.
 - A auditoria definiu como requisitos transversais PT/EN/ES controlados pelo app, temas claro/escuro, leitor de tela, foco, teclado, desktop/mobile e validação autenticada em legado/Vite.
-- O fatiamento aprovado foi S1–S9; somente as fatias representadas pelos PRs acima chegaram a código nesta frente. S8 e S9 não foram implementadas.
+- O fatiamento aprovado foi S1–S9. S8 chegou ao PR draft #166, ainda sem gate autenticado ou merge no momento desta atualização; S9 não foi implementada.
 
-**PRs/commits relacionados:** não há PR ou commit próprio da auditoria. As decisões materializadas podem ser rastreadas nos PRs #126–#150 descritos acima.
+**PRs/commits relacionados:** não há PR ou commit próprio da auditoria. As decisões materializadas podem ser rastreadas nos PRs #126–#150 e #166 descritos acima.
 
 ## Protótipos e critérios visuais aprovados
 
@@ -576,16 +629,17 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 
 **O que foi feito:**
 
-- Foram prototipados ChoiceField, TemporalField de horário, TemporalField de data, NumericField e SearchableChoiceField antes das respectivas implementações.
+- Foram prototipados ChoiceField, TemporalField de horário, TemporalField de data, NumericField, SearchableChoiceField, CheckboxField e SliderField antes das respectivas implementações.
 - O ChoiceField recebeu regra objetiva: até cinco opções sem descrição expandem inline; mais de cinco opções ou qualquer descrição abrem bottom sheet.
 - Foi aprovado o fechamento imediato ao selecionar, tanto inline quanto em sheet, eliminando confirmação extra.
 - Foi aprovada a combinação de steppers com digitação direta para horário e ano, evitando sequências longas de incrementos.
 - Check, chevron, mais/menos, busca, fechar e apagar foram tratados como desenhos de traço fino coerentes com o Trofia.
 - O keypad foi inicialmente restrito à quantidade e depois ampliado para medidas corporais frequentes; não foi generalizado para todo campo numérico.
 - Cada protótipo contemplou claro/escuro. O protótipo pesquisável recebeu correção específica da scrollbar para acompanhar o tema.
+- No protótipo S8, uma inconsistência aparente entre círculo, quadrado e switch foi corrigida antes do código. Ficou documentada a semântica: círculo para escolha exclusiva, quadrado arredondado para checkbox múltiplo e switch para preferência persistente.
 - As aprovações ocorreram na conversa e não deixaram PR/commit independente. Somente as partes materializadas nos PRs citados são consideradas implementadas.
 
-**PRs/commits relacionados:** não há PR ou commit exclusivo dos protótipos. As implementações resultantes estão nos PRs #126, #130, #133, #136, #138, #141, #144, #146, #148 e no draft #150.
+**PRs/commits relacionados:** não há PR ou commit exclusivo dos protótipos. As implementações resultantes estão nos PRs #126, #130, #133, #136, #138, #141, #144, #146, #148, no draft #150 e no draft #166.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
@@ -617,8 +671,8 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 ## Fontes consultadas e limitações
 
 - Conversa desta frente, usada como fonte primária para autoria, escopo e decisões aprovadas.
-- Git local em `origin/main`, confirmado no commit `f5f4193c93a9022de9fcee20b3cc8439bde0ff4b` em 31/08/2026.
-- GitHub: PRs #126, #130, #133, #136, #138, #141, #144, #146, #148 e #150; commits e run autenticado citados nos itens.
+- Git local em `origin/main`, confirmado no commit `3d776dbe8305a4b1d3732dfd6bb206e2e563ee5a` em 31/08/2026 antes da abertura da branch S8.
+- GitHub: PRs #126, #130, #133, #136, #138, #141, #144, #146, #148, #150 e #166; commits e run autenticado citados nos itens.
 - `documentation/README.md`, `documentation/estado-atual/ROADMAP.md` e `documentation/estado-atual/BUG-INVENTORY.md`, consultados antes da redação para convenção, estados e códigos formais.
 - Datas dos protótipos, da auditoria S1–S9 e da auditoria de concorrentes são **não determinadas**, pois não existe commit/PR próprio que confirme o instante exato.
 - O PR #150 registra implementação parcial e falha confirmada; não deve ser usado como prova de recurso disponível na `main`.
