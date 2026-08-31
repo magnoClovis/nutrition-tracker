@@ -17,7 +17,7 @@
 
 ## O que está em andamento agora
 
-- **C08 — critérios nutricionais de IA:** C08-A a C08-D estão mesclados (#147, #149, #151 e #152). A C08-E está implementada na branch `codex/c08-pantry-score-explanation`: contrato estruturado da despensa por IDs, validação fail-closed, totais locais e alinhamento de `meal-explanation-v1`. O endpoint novo ainda depende de deploy aditivo/smoke e do merge; a fatia final residual continua pendente, então o roadmap mantém C08 como parcial.
+- **C08 — critérios nutricionais de IA:** C08-A a C08-D estão mesclados (#147, #149, #151 e #152). A C08-E está implementada no PR draft #165 (commit `be8534d`): contrato estruturado da despensa por IDs, validação fail-closed, totais locais e alinhamento de `meal-explanation-v1`. O endpoint novo ainda depende de deploy aditivo/smoke e do merge; a fatia final residual continua pendente, então o roadmap mantém C08 como parcial.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
 ## O que está apenas planejado, ainda sem código completo

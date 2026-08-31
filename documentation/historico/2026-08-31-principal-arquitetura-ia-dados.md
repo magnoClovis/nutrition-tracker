@@ -98,7 +98,7 @@ C08 permanece parcial. O modelo permanece `gemini-3.5-flash-lite`; comparação 
 - **Recursos:** contrato `pantry-suggestions-v2`; endpoint autenticado `POST /v1/ai/pantry-suggestions`; contrato narrativo `meal-explanation-v1`; modelo mantido em `gemini-3.5-flash-lite`.
 - **Arquivos principais:** `/pantry-suggestions-ai.js`, `/worker/src/pantry-suggestions.js`, `/worker/src/ai-worker.js`, `/ai-client.js`, `/nutrition-tracker-controller.js`, `/meal-review-ai.js`, composições UMD/ESM, testes e `/AI_NUTRITION_POLICY.md`.
 - **O que foi feito:** a IA passou a receber uma projeção limitada da despensa com IDs exatos; Worker e cliente validam resposta integralmente em modo fail-closed; IDs desconhecidos/repetidos, quantidades inválidas e campos extras são recusados; todos os totais são recalculados a partir do snapshot canônico local. O GA visível continua local e não foi substituído silenciosamente. A explicação da avaliação agora recebe versão do algoritmo, nota 0–5 definitiva, cobertura, confiança, provisoriedade e seus motivos específicos, sem recalcular nota, diagnosticar ou transformar ausência em zero.
-- **PRs/commits relacionados:** branch `codex/c08-pantry-score-explanation`; PR draft e commit serão registrados após a abertura.
+- **PRs/commits relacionados:** PR draft #165, branch `codex/c08-pantry-score-explanation`, commit de implementação `be8534d`.
 
 ## Incidentes e trabalhos separados observados
 
@@ -111,7 +111,7 @@ C08 permanece parcial. O modelo permanece `gemini-3.5-flash-lite`; comparação 
 - Base usada para a C08-E: `origin/main` no commit `3d776db`, em 31/08/2026.
 - Versão nomeada no código: `0.10.0-beta`.
 - C22, C23, C28, C20 e C19: concluídos segundo o roadmap.
-- C08: parcial; A–D mescladas, E implementada nesta branch com deploy/smoke/merge ainda pendentes, e trabalho residual posterior ainda planejado.
+- C08: parcial; A–D mescladas, E implementada no PR draft #165 com deploy/smoke/merge ainda pendentes, e trabalho residual posterior ainda planejado.
 - Próximos gates de lançamento público no roadmap: C14, C16 e C25.
 
 ## Fontes consultadas e limitações
