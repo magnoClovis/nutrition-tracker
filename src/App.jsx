@@ -197,6 +197,8 @@ const {
 
 const {
   callAI: requestAICompletion,
+  requestFoodEstimate: requestStructuredFoodEstimate,
+  requestDishEstimate: requestStructuredDishEstimate,
 } = AIClient.createAIClient({
   fetchRequest: (...args) => window.fetch(...args),
   getIdToken: () => fbToken(),
@@ -559,7 +561,7 @@ const {
 
 const {
   AddScreen,
-} = AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField });
+} = AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField, MealEstimateEditor });
 
 const {
   MetricsScreen,
@@ -624,6 +626,9 @@ const {
     getOpenFoodFactsProductByBarcode,
     mapOpenFoodFactsProductToForm,
     requestAICompletion,
+    requestStructuredFoodEstimate,
+    requestStructuredDishEstimate,
+    normalizeMealEstimate: mealEstimateDomain.normalizeMealEstimate,
     AIClientError,
     getGreetingPeriod,
     getGreetingEmoji,

@@ -37,12 +37,13 @@
    * @param {function(Object): Object} dependencies.NumericField Controlled app-local numeric selector.
    * @returns {{AddScreen: function(Object): Object}} Add-screen API.
    */
-  function createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField }) {
+  function createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField, MealEstimateEditor }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof quickQtys !== "function"
       || typeof divisor !== "function" || typeof ChoiceField !== "function"
-      || typeof TemporalField !== "function" || typeof NumericField !== "function") {
-      throw new TypeError("AddScreen requires React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, and NumericField");
+      || typeof TemporalField !== "function" || typeof NumericField !== "function"
+      || typeof MealEstimateEditor !== "function") {
+      throw new TypeError("AddScreen requires React, fields, and MealEstimateEditor");
     }
 
     const inp = {
@@ -90,13 +91,6 @@
     };
     const proteinColor = "var(--protein)";
     const caloriesColor = "var(--calories)";
-
-    function confidenceColor(confidence) {
-      const normalizedConfidence = String(confidence || "").trim().toLowerCase();
-      if (["alta", "high"].includes(normalizedConfidence)) return "#6ec8a9";
-      if (["media", "média", "medium"].includes(normalizedConfidence)) return "#c8a96e";
-      return "#c86e8e";
-    }
 
     /**
      * Renders one of the three existing non-contiguous Add-screen regions.
@@ -166,6 +160,7 @@
         describeLoading,
         estimateMealDescription,
         describeResult,
+        setDescribeResult,
         addDescribedToLog,
         evaluateDescribedMeal,
         batchMode,
@@ -595,90 +590,19 @@
       borderRadius: 8,
       padding: "14px"
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "baseline",
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      color: "var(--text3)"
-    }
-  }, describeResult.name), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      color: confidenceColor(describeResult.confidence),
-      letterSpacing: 1
-    }
-  }, uiText("confiança ", "confidence ", "confianza "), describeResult.confidence)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "6px 20px",
-      marginBottom: 10
-    }
-  }, [{
-    l: text('protein'),
-    v: describeResult.protein,
-    u: "g",
-    c: "#c8a96e"
-  }, {
-    l: text('calories'),
-    v: describeResult.kcal,
-    u: text('kcalUnit'),
-    c: "#8ec8c8"
-  }, {
-    l: text('carbs'),
-    v: describeResult.carbs,
-    u: "g",
-    c: "#a96ec8"
-  }, {
-    l: uiText('Gordura', 'Fat', 'Grasa'),
-    v: describeResult.fat,
-    u: "g",
-    c: "#c86e8e"
-  }, {
-    l: text('fiber'),
-    v: describeResult.fiber,
-    u: "g",
-    c: "#6ec8a9"
-  }, {
-    l: text('salt'),
-    v: describeResult.salt,
-    u: "g",
-    c: "#888"
-  }].filter(x => x.v != null).map(x => /*#__PURE__*/React.createElement("div", {
-    key: x.l,
-    style: {
-      fontSize: 12
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--muted)"
-    }
-  }, x.l, " "), /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: x.c,
-      fontWeight: 600
-    }
-  }, x.v, x.u)))), describeResult.note && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: "var(--muted)",
-      fontStyle: "italic",
-      marginBottom: 10,
-      padding: "6px 10px",
-      background: "var(--input)",
-      borderRadius: 4
-    }
-  }, describeResult.note), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(MealEstimateEditor, {
+    estimate: describeResult,
+    lang,
+    isMobileView,
+    disabled: describeLoading || mealRegistrationSaving,
+    errors: [],
+    onChange: setDescribeResult
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-      gap: 8
+      gap: 8,
+      marginTop: 12
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: addDescribedToLog,

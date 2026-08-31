@@ -69,6 +69,13 @@ function SavedMealCard() {
   return null;
 }
 
+function MealEstimateEditor({ estimate, onChange }) {
+  return React.createElement("div", {
+    "data-shared-estimate-editor": "true",
+    onClick: () => onChange({ ...estimate, dishName: "Edited plate" })
+  }, estimate.dishName);
+}
+
 function baseProps(overrides = {}) {
   const food = {
     id: "food-1",
@@ -185,7 +192,7 @@ function contractTest(name, callback) {
       const { createAddScreen, createChoiceField, createTemporalField } = await load();
       const { ChoiceField } = createChoiceField({ React });
       const { TemporalField, NumericField } = createTemporalField({ React });
-      const { AddScreen } = createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField });
+      const { AddScreen } = createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField, MealEstimateEditor });
       return callback(AddScreen);
     });
   });
@@ -309,20 +316,19 @@ contractTest("renders dish-description loading/result states and delegates actio
     describeMode: true,
     mealDescription: "Rice and beans",
     describeResult: {
-      name: "Estimated plate",
-      protein: 25,
-      kcal: 540,
-      carbs: 70,
-      fat: 12,
-      fiber: 8,
-      salt: 1.2,
-      confidence: "high",
-      note: "Approximate"
+      status: "identified",
+      dishName: "Estimated plate",
+      overallConfidence: "high",
+      assumptions: ["Approximate"],
+      items: []
     },
+    setDescribeResult: noOp,
     addDescribedToLog: () => { registered += 1; },
     evaluateDescribedMeal: () => { reviewed += 1; }
   }));
-  assert.match(textContent(result), /Estimated plate/);
+  const editors = findNodes(result, node => node.type === MealEstimateEditor);
+  assert.equal(editors.length, 1);
+  assert.equal(editors[0].props.estimate.dishName, "Estimated plate");
   const resultButtons = findNodes(result, node => node.type === "button");
   resultButtons.find(node => node.props.onClick && /Log meal/.test(textContent(node))).props.onClick();
   resultButtons.find(node => node.props.onClick && /Evaluate meal/.test(textContent(node))).props.onClick();

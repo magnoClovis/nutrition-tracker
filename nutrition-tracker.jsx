@@ -81,7 +81,9 @@ const {
 });
 
 const {
-  callAI: requestAICompletion
+  callAI: requestAICompletion,
+  requestFoodEstimate: requestStructuredFoodEstimate,
+  requestDishEstimate: requestStructuredDishEstimate
 } = window.AIClient.createAIClient({
   fetchRequest: (...args) => window.fetch(...args),
   getIdToken: () => fbToken()
@@ -238,6 +240,24 @@ const {
   ChoiceField
 } = window.ChoiceFieldModule.createChoiceField({ React });
 
+const mealEstimateDomain = window.MealEstimate.createMealEstimate({
+  createItemId: () => (
+    typeof window.crypto?.randomUUID === "function"
+      ? window.crypto.randomUUID()
+      : `meal-estimate-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  )
+});
+
+const {
+  MealEstimateEditor
+} = window.MealEstimateEditorModule.createMealEstimateEditor({
+  React,
+  pickLang,
+  createEmptyItem: mealEstimateDomain.createEmptyItem,
+  calculateTotals: mealEstimateDomain.calculateTotals,
+  ChoiceField
+});
+
 const {
   SearchableChoiceField
 } = window.SearchableChoiceFieldModule.createSearchableChoiceField({ React });
@@ -371,7 +391,7 @@ const {
 
 const {
   AddScreen
-} = window.AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField });
+} = window.AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField, MealEstimateEditor });
 
 const {
   MetricsScreen
@@ -434,6 +454,9 @@ const {
     getOpenFoodFactsProductByBarcode,
     mapOpenFoodFactsProductToForm,
     requestAICompletion,
+    requestStructuredFoodEstimate,
+    requestStructuredDishEstimate,
+    normalizeMealEstimate: mealEstimateDomain.normalizeMealEstimate,
     AIClientError,
     getGreetingPeriod,
     getGreetingEmoji,

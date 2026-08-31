@@ -64,12 +64,12 @@ O Worker continua sem persistir ou registrar prompts, fotos, respostas e dados n
 
 ### Respostas estruturadas
 
-- preenchimento nutricional: endpoint planejado `POST /v1/ai/food-estimate`;
-- descrição textual: endpoint planejado `POST /v1/ai/dish-estimate`, retornando o contrato compartilhado de `MealEstimate`;
+- preenchimento nutricional: `POST /v1/ai/food-estimate`, com schema estrito e campos desconhecidos preservados como `null`;
+- descrição textual: `POST /v1/ai/dish-estimate`, retornando o contrato compartilhado de `MealEstimate` e reutilizando o editor da foto;
 - sugestões pela despensa: endpoint planejado `POST /v1/ai/pantry-suggestions`, referenciando alimentos por ID e permitindo recálculo local dos totais;
 - foto: mantém `POST /v1/ai/image-meal` e sua validação estrita existente.
 
-Os três endpoints planejados não existem em produção nesta fatia. A rota pública atual só será alterada nas fatias de integração aprovadas posteriormente.
+Os dois primeiros endpoints foram implementados na Fatia C08-C e entram em produção com o deploy correspondente do Worker. O endpoint da despensa permanece planejado para uma fatia posterior.
 
 ### Respostas narrativas
 
