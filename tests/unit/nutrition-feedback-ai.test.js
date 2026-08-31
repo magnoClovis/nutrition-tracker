@@ -1,14 +1,12 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createI18n } = require("../../i18n.js");
-const { createGoalCalculator } = require("../../goal-calculator.js");
 const implementations = [
   ["UMD", () => Promise.resolve(require("../../nutrition-feedback-ai.js"))],
   ["ESM", () => import("../../src/composite/nutrition-feedback-ai.js")]
 ];
 
 const { normalizeLanguage, pickLang } = createI18n();
-const { ACTIVITY_LEVELS, calculateAge } = createGoalCalculator();
 
 function baseSnapshot(overrides = {}) {
   const snapshot = {
@@ -61,7 +59,9 @@ function baseSnapshot(overrides = {}) {
           carbs: 32.2,
           fat: 3.8,
           fiber: 5.2,
-          salt: 0.1
+          salt: 0.1,
+          sugars: 4.2,
+          satfat: 0.7
         }],
         "Almoço": [{
           name: "Frango",
@@ -72,7 +72,9 @@ function baseSnapshot(overrides = {}) {
           carbs: 0,
           fat: 9.7,
           fiber: 0,
-          salt: 0.8
+          salt: 0.8,
+          sugars: 0,
+          satfat: 2.1
         }]
       }
     },
@@ -103,9 +105,7 @@ function createFixture(createNutritionFeedbackAI, responses = ["feedback"]) {
       return Promise.resolve(response ?? "");
     },
     normalizeLanguage,
-    pickLang,
-    activityLevels: ACTIVITY_LEVELS,
-    calculateAge
+    pickLang
   });
   return { api, calls };
 }
@@ -126,15 +126,17 @@ contractTest("builds the Portuguese daily prompt from the explicit snapshot", as
   assert.deepEqual(result, { status: "success", text: "texto gerado" });
   assert.equal(fixture.calls.length, 1);
   assert.equal(fixture.calls[0].maxTokens, 1000);
-  assert.ok(fixture.calls[0].prompt.includes("Nome: Ana"));
-  assert.ok(fixture.calls[0].prompt.includes("Nível de atividade física: Moderadamente ativo - Exercicios moderados 3 a 5 vezes por semana | FA: 1.55"));
+  assert.ok(fixture.calls[0].prompt.includes("PROMPT CONTRACT: nutrition-feedback-v2"));
+  assert.ok(fixture.calls[0].prompt.includes("Metas calculadas em uso: 2000 kcal, 140g proteína"));
   assert.ok(fixture.calls[0].prompt.includes("Data: 2026-07-18 | DIA DE TREINO"));
-  assert.ok(fixture.calls[0].prompt.includes("Café da manhã:\n  - Aveia (50g) - prot: 8g, 190kcal, carbs: 32g, gord: 4g"));
+  assert.ok(fixture.calls[0].prompt.includes("Café da manhã:\n  - Aveia (50g) - proteína: 8g, calorias: 190kcal, carboidratos: 32g, gordura: 4g, fibra: 5g, sal: 0g, açúcares: 4g, gordura saturada: 1g"));
   assert.ok(fixture.calls[0].prompt.includes("Proteína: 49g (35% da meta)"));
   assert.ok(fixture.calls[0].prompt.includes("Calorias: 451kcal (23% da meta)"));
+  assert.ok(fixture.calls[0].prompt.includes("Açúcares: 4.2g"));
+  assert.doesNotMatch(fixture.calls[0].prompt, /Nome: Ana|70kg|170cm|IMC atual:|Gênero informado:|Idade calculada:/);
 });
 
-contractTest("uses the Spanish activity description and preserves the factor fallback", async createFixture => {
+contractTest("keeps the Spanish prompt localized while excluding raw profile data", async createFixture => {
   const fixture = createFixture();
   const snapshot = baseSnapshot({
     lang: "es",
@@ -145,16 +147,14 @@ contractTest("uses the Spanish activity description and preserves the factor fal
   await fixture.api.generateNutritionFeedback(snapshot);
 
   const prompt = fixture.calls[0].prompt;
-  assert.equal(prompt.includes("Nombre:"), false);
-  assert.ok(prompt.includes(
-    "Nivel de actividad física: " + ACTIVITY_LEVELS.moderate.es + " - "
-      + ACTIVITY_LEVELS.moderate.descEs + " | FA: 1.55"
-  ));
-  assert.equal(prompt.includes(ACTIVITY_LEVELS.moderate.descEn), false);
+  assert.ok(prompt.includes("=== CONTEXTO NUTRICIONAL Y METAS CALCULADAS ==="));
   assert.ok(prompt.includes("Fecha: 2026-07-18 | DÍA DE DESCANSO"));
+  assert.ok(prompt.includes("Azúcares"));
+  assert.ok(prompt.includes("Grasa saturada"));
+  assert.doesNotMatch(prompt, /Nombre:|Peso|Altura|IMC|Sexo|actividad física/i);
 });
 
-contractTest("uses an explicit activity factor and builds the English weekly prompt", async createFixture => {
+contractTest("builds the English weekly prompt from calculated context only", async createFixture => {
   const fixture = createFixture();
   const snapshot = baseSnapshot({
     type: "week",
@@ -177,7 +177,9 @@ contractTest("uses an explicit activity factor and builds the English weekly pro
       fiber: 28,
       fiberGoal: 30,
       salt: 4.5,
-      saltGoal: 5
+      saltGoal: 5,
+      sugars: 35,
+      satfat: 18
     }, {
       hasData: true,
       date: "2026-07-15",
@@ -193,18 +195,22 @@ contractTest("uses an explicit activity factor and builds the English weekly pro
       fiber: 32,
       fiberGoal: 30,
       salt: 5.5,
-      saltGoal: 5
+      saltGoal: 5,
+      sugars: 45,
+      satfat: 22
     }]
   });
   await fixture.api.generateNutritionFeedback(snapshot);
 
   const prompt = fixture.calls[0].prompt;
-  assert.ok(prompt.includes("Physical activity level: Lightly active - Light exercise 1 to 3 times per week | AF: 1.3"));
-  assert.ok(prompt.includes("Current goal: weight loss (4kg in 8 weeks)"));
+  assert.ok(prompt.includes("=== CALCULATED NUTRITION CONTEXT AND TARGETS ==="));
   assert.ok(prompt.includes("=== WEEK SUMMARY (2 logged days) ==="));
   assert.ok(prompt.includes("Protein: 140g/day | Calories: 2000kcal/day | Carbs: 220g/day"));
   assert.ok(prompt.includes("Salt: 5g/day"));
+  assert.ok(prompt.includes("Sugars: 40g/day"));
+  assert.ok(prompt.includes("Saturated fat: 20g/day"));
   assert.doesNotMatch(prompt, /sodium\/salt/i);
+  assert.doesNotMatch(prompt, /Name: Ana|70kg|170cm|Current BMI:|Reported sex:|Physical activity level:|Current goal: weight loss/i);
   assert.ok(prompt.includes("Days that hit the protein target: 1/2"));
 });
 
@@ -308,7 +314,7 @@ contractTest("averages weekly nutrients only across complete days", async create
   assert.doesNotMatch(prompt, /Carbs: 125g\/day/);
 });
 
-contractTest("returns the neutral no-week-data status without calling Groq", async createFixture => {
+contractTest("returns the neutral no-week-data status without calling the AI provider", async createFixture => {
   const fixture = createFixture();
   const result = await fixture.api.generateNutritionFeedback(baseSnapshot({
     type: "week",
@@ -319,7 +325,7 @@ contractTest("returns the neutral no-week-data status without calling Groq", asy
   assert.equal(fixture.calls.length, 0);
 });
 
-contractTest("propagates Groq errors for the unchanged localized React handler", async createFixture => {
+contractTest("propagates provider errors for the localized React handler", async createFixture => {
   const groqError = new Error("provider unavailable");
   const fixture = createFixture([groqError]);
 

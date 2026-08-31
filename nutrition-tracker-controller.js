@@ -896,9 +896,7 @@
       } = window.NutritionFeedbackAI.createNutritionFeedbackAI({
         callAI,
         normalizeLanguage,
-        pickLang,
-        activityLevels: ACTIVITY_LEVELS,
-        calculateAge
+        pickLang
       });
       const {
         generateEatingPatterns
@@ -2634,26 +2632,9 @@
         setFeedbackPeriod(type);
         setFeedbackSaved(false);
         try {
-          const storedUserName = await storage.get("userName").catch(() => null);
-          const feedbackUserName = storedUserName?.value ? String(storedUserName.value).trim() : "";
           const snapshot = {
             type,
             lang,
-            userName: feedbackUserName,
-            profile: {
-              birthDate: profileData.birthDate,
-              gender: profileData.gender,
-              currentWeight,
-              viewWeight,
-              currentHeight,
-              viewHeight
-            },
-            preferences: {
-              activityLevel: nutritionPrefs.activityLevel,
-              goalType: nutritionPrefs.goalType,
-              goalKg: nutritionPrefs.goalKg,
-              goalWeeks: nutritionPrefs.goalWeeks
-            },
             goalContext: {
               goals: {
                 kcal: goals.kcal,
@@ -2662,11 +2643,7 @@
                 fat: goals.fat,
                 fiber: goals.fiber,
                 salt: goals.salt
-              },
-              baseActivityFactor: baseGoals.fa,
-              calorieBase,
-              calorieAdjustment,
-              proteinMultiplier
+              }
             },
             day: {
               viewDate,
@@ -2684,7 +2661,9 @@
                   carbs: entry.carbs,
                   fat: entry.fat,
                   fiber: entry.fiber,
-                  salt: entry.salt
+                  salt: entry.salt,
+                  sugars: entry.sugars,
+                  satfat: entry.satfat
                 }))
               ]))
             },
@@ -2704,6 +2683,8 @@
               fiberGoal: day.fiberGoal,
               salt: day.salt,
               saltGoal: day.saltGoal,
+              sugars: day.sugars,
+              satfat: day.satfat,
               nutrientCoverage: day.nutrientCoverage
             }))
           };

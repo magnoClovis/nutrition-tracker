@@ -60,7 +60,7 @@ test("the hybrid boundary reserves schemas for structured results and the generi
   }
   assert.equal(matrix.surfaces.find(surface => surface.id === "image-meal").endpointStatus, "existing");
   for (const id of ["dish-description", "food-autofill"]) {
-    assert.equal(matrix.surfaces.find(surface => surface.id === id).endpointStatus, "implemented-pending-deploy");
+    assert.equal(matrix.surfaces.find(surface => surface.id === id).endpointStatus, "deployed");
   }
   assert.equal(matrix.surfaces.find(surface => surface.id === "pantry-suggestions").endpointStatus, "planned");
 });
