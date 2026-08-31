@@ -266,6 +266,9 @@
       getOpenFoodFactsProductByBarcode,
       mapOpenFoodFactsProductToForm,
       requestAICompletion,
+      requestStructuredFoodEstimate,
+      requestStructuredDishEstimate,
+      normalizeMealEstimate,
       AIClientError,
       getGreetingPeriod,
       getGreetingEmoji,
@@ -876,18 +879,16 @@
         requestFoodAutofill,
         applyFoodAutofillResult
       } = window.FoodAutofillAI.createFoodAutofillAI({
-        callAI,
-        normalizeLanguage,
-        pickLang,
-        getAiLanguageInstruction: aiLang
+        requestStructuredFoodEstimate,
+        normalizeLanguage
       });
       const {
         requestDishEstimate,
-        buildDescribedEntry: buildDishDescriptionEntry
+        buildDescribedEntries
       } = window.DishDescriptionAI.createDishDescriptionAI({
-        callAI,
+        requestStructuredDishEstimate,
         normalizeLanguage,
-        getAiLanguageInstruction: aiLang,
+        normalizeMealEstimate,
         createEntryId: () => window.DailyEntryModel.createIdempotentEntryId()
       });
       const {
@@ -2114,28 +2115,45 @@
         const estimateRequest = requestDishEstimate({ description: dishDescription, lang });
         try {
           const estimate = await estimateRequest;
-          if (estimate.status === "success") setDescribeResult(estimate.result);
+          if (estimate.status === "success") {
+            setDescribeResult(estimate.result);
+          } else if (estimate.status === "not-identifiable") {
+            notify(uiText(
+              "Não foi possível identificar alimentos suficientes nessa descrição.",
+              "Not enough food information could be identified in that description.",
+              "No se pudo identificar suficiente información alimentaria en esa descripción."
+            ), 7000);
+          }
         } catch (_) {
           notify(pickLang(lang, "Erro: ", "Error: ", "Error: ") + (_.message || pickLang(lang, "Não foi possível estimar.", "Could not estimate.", "No fue posible estimar.")), 8000);
         }
         setDescribeLoading(false);
       }
-      function buildDescribedEntry() {
-        return buildDishDescriptionEntry({
-          estimate: describeResult,
-          description: mealDescription
-        });
+      function currentDescribedEntries() {
+        try {
+          return buildDescribedEntries({
+            estimate: describeResult,
+            description: mealDescription
+          });
+        } catch (_) {
+          notify(uiText(
+            "Revise os campos estimados antes de continuar.",
+            "Review the estimated fields before continuing.",
+            "Revisa los campos estimados antes de continuar."
+          ), 7000);
+          return [];
+        }
       }
       function evaluateDescribedMeal() {
-        const entry = buildDescribedEntry();
-        if (!entry) return;
-        openMealReview(describeMeal, [entry], "described");
+        const entries = currentDescribedEntries();
+        if (!entries.length) return;
+        openMealReview(describeMeal, entries, "described");
       }
       async function addDescribedToLog() {
-        const entry = buildDescribedEntry();
-        if (!entry) return;
-        const [savedEntry] = applySelectedMealTime([entry]);
-        const savedLog = await saveMealRegistration(describeMeal, [savedEntry]);
+        const entries = currentDescribedEntries();
+        if (!entries.length) return;
+        const savedEntries = applySelectedMealTime(entries);
+        const savedLog = await saveMealRegistration(describeMeal, savedEntries);
         if (!savedLog) return;
         setDescribeResult(null);
         setMealDescription("");
@@ -5112,6 +5130,7 @@
         describeLoading,
         estimateMealDescription,
         describeResult,
+        setDescribeResult,
         addDescribedToLog,
         evaluateDescribedMeal,
         batchMode,

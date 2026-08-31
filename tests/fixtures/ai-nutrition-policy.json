@@ -63,7 +63,7 @@
       "id": "dish-description",
       "kind": "structured",
       "endpoint": "/v1/ai/dish-estimate",
-      "endpointStatus": "planned",
+      "endpointStatus": "implemented-pending-deploy",
       "promptVersion": "dish-estimate-v2",
       "outputContract": "meal-estimate",
       "specialRule": "shared-image-editor-and-null-semantics"
@@ -81,7 +81,7 @@
       "id": "food-autofill",
       "kind": "structured",
       "endpoint": "/v1/ai/food-estimate",
-      "endpointStatus": "planned",
+      "endpointStatus": "implemented-pending-deploy",
       "promptVersion": "food-estimate-v1",
       "outputContract": "food-estimate",
       "specialRule": "unknown-fields-remain-null"

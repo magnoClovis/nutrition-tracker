@@ -726,14 +726,14 @@ contractTest("keeps every render-scoped factory argument and current-render clos
     },
     {
       factory: "FoodAutofillAI.createFoodAutofillAI",
-      dependencies: ["callAI", "normalizeLanguage", "pickLang", "getAiLanguageInstruction: aiLang"]
+      dependencies: ["requestStructuredFoodEstimate", "normalizeLanguage"]
     },
     {
       factory: "DishDescriptionAI.createDishDescriptionAI",
       dependencies: [
-        "callAI",
+        "requestStructuredDishEstimate",
         "normalizeLanguage",
-        "getAiLanguageInstruction: aiLang",
+        "normalizeMealEstimate",
         "createEntryId: () => window.DailyEntryModel.createIdempotentEntryId()"
       ]
     },

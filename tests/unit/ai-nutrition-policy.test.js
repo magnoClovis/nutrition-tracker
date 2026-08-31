@@ -59,9 +59,10 @@ test("the hybrid boundary reserves schemas for structured results and the generi
     }
   }
   assert.equal(matrix.surfaces.find(surface => surface.id === "image-meal").endpointStatus, "existing");
-  for (const id of ["dish-description", "food-autofill", "pantry-suggestions"]) {
-    assert.equal(matrix.surfaces.find(surface => surface.id === id).endpointStatus, "planned");
+  for (const id of ["dish-description", "food-autofill"]) {
+    assert.equal(matrix.surfaces.find(surface => surface.id === id).endpointStatus, "implemented-pending-deploy");
   }
+  assert.equal(matrix.surfaces.find(surface => surface.id === "pantry-suggestions").endpointStatus, "planned");
 });
 
 test("nutrient semantics match meal-score-v2 and keep salt distinct from sodium", () => {
