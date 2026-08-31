@@ -344,13 +344,13 @@ test("uses structured Interactions for food and dish estimates and returns only 
     pathName: "/v1/ai/food-estimate",
     body: { foodName: "Tofu", unit: "g", language: "en" },
     estimate: foodEstimate,
-    prompt: /<food>Tofu<\/food>/,
+    prompt: /"foodName":"Tofu"/,
     tokens: 700
   }, {
     pathName: "/v1/ai/dish-estimate",
     body: { description: "Rice and beans", language: "pt" },
     estimate: imageEstimate(),
-    prompt: /<description>Rice and beans<\/description>/,
+    prompt: /"description":"Rice and beans"/,
     tokens: 1_200
   }];
 

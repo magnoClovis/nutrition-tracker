@@ -1,6 +1,6 @@
 # Resumo de status do Trofia
 
-> Retrato da Fatia C08-E baseada na `main` no commit `3d776db`, em 31/08/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato da Fatia C08-F baseada na `main` no commit `e12b464`, em 31/08/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
@@ -12,12 +12,13 @@
 - **IA gerenciada:** Gemini atrás de Cloudflare Worker autenticado; endpoints de texto, foto, preenchimento, descrição e sugestões estruturadas pela despensa. Prompts, fotos e respostas não são persistidos pelo Worker segundo o contrato atual.
 - **Reconhecimento por foto:** câmera/galeria, pré-processamento, análise multimodal, editor de estimativas e persistência sem armazenar a imagem, concluídos em C24.
 - **Pontuação e avaliação de refeições:** `meal-score-v2` contextual, cobertura/provisoriedade explícita, explicação opcional, snapshots versionados e badge no Diário, concluídos em C20 e C19.
+- **Critérios nutricionais de IA:** C08-A a C08-F alinham as sete superfícies ao score local, preservam ausente diferente de zero, aplicam contratos estruturados fail-closed, minimizam dados pessoais e cobrem PT/EN/ES, respostas malformadas, dados ausentes e entradas adversariais. O endurecimento final do Worker foi implantado na versão `ca5e65d9-2eeb-4a86-9364-5eb2d0b2b2e1` antes da avaliação controlada real.
 - **Privacidade e compliance:** política trilíngue pública, instruções de exclusão e referência atual de Data Safety.
 - **Qualidade:** preflight, unitários, smoke legado/Vite, matriz visual e CI autenticado com App Check. G01, C05 e C07 estão fechados.
 
 ## O que está em andamento agora
 
-- **C08 — critérios nutricionais de IA:** C08-A a C08-D estão mesclados (#147, #149, #151 e #152). A C08-E está implementada no PR draft #165: contrato estruturado da despensa por IDs, validação fail-closed, totais locais e alinhamento de `meal-explanation-v1`. O endpoint foi implantado de forma aditiva no Worker (versão `11f11b83-fb2d-413e-a133-3818f52ddf66`) e validado em produção pelo run `33432122955`, com HTTP 200, contrato válido e remoção da conta descartável. O merge ainda está pendente e a C08-F continua planejada, portanto C08 permanece parcial.
+- Não há fatia funcional desta frente marcada como em andamento após a C08-F. O PR da validação final permanece sujeito ao gate habitual de revisão e CI antes do merge.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
 ## O que está apenas planejado, ainda sem código completo

@@ -32,6 +32,16 @@
     "satfat"
   ]);
 
+  function safePromptData(value) {
+    return String(value ?? "")
+      .replace(/\\/g, "\\\\")
+      .replace(/\r/g, "\\r")
+      .replace(/\n/g, "\\n")
+      .replace(/&/g, "\\u0026")
+      .replace(/</g, "\\u003c")
+      .replace(/>/g, "\\u003e");
+  }
+
   function finiteNutrient(value) {
     if (value === null || value === undefined || value === "") return null;
     const number = Number(value);
@@ -305,7 +315,7 @@
           const items = activeLog[meal] || [];
           if (!items.length) return null;
           const label = mealLabel(meal);
-          return label + ":\n" + items.map(e => "  - " + e.name + " (" + e.qty + e.unit + ") - " + entryNutrients(e, feedbackLang)).join("\n");
+          return label + ":\n" + items.map(e => "  - " + safePromptData(e.name) + " (" + safePromptData(e.qty) + safePromptData(e.unit) + ") - " + entryNutrients(e, feedbackLang)).join("\n");
         }).filter(Boolean).join("\n");
         const totals = Object.fromEntries(
           FEEDBACK_NUTRIENTS.map(field => [field, summarizeEntries(entries, field)])

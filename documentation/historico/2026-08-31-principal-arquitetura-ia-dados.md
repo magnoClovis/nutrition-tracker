@@ -83,7 +83,7 @@ PRs intercalados de ChoiceField/TemporalField/NumericField pertencem a outra fre
 - **PR #151**, 31/08 — estimativas estruturadas para preenchimento e descrição; merge `d0914b1`. O Worker foi implantado antes do cliente segundo a política versionada.
 - **PR #152**, 31/08 — feedback e padrões com todos os nutrientes disponíveis, cobertura real, linguagem não diagnóstica e minimização de perfil; merge `5c51fa5`.
 
-C08 permanece parcial. O modelo permanece `gemini-3.5-flash-lite`; comparação de modelo foi adiada em `PENDENCIAS.md`.
+C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash-lite`; comparação de modelo foi adiada em `PENDENCIAS.md`.
 
 ## 31/08/2026 — organização documental e retomada da C08
 
@@ -98,7 +98,17 @@ C08 permanece parcial. O modelo permanece `gemini-3.5-flash-lite`; comparação 
 - **Recursos:** contrato `pantry-suggestions-v2`; endpoint autenticado `POST /v1/ai/pantry-suggestions`; contrato narrativo `meal-explanation-v1`; modelo mantido em `gemini-3.5-flash-lite`.
 - **Arquivos principais:** `/pantry-suggestions-ai.js`, `/worker/src/pantry-suggestions.js`, `/worker/src/ai-worker.js`, `/ai-client.js`, `/nutrition-tracker-controller.js`, `/meal-review-ai.js`, composições UMD/ESM, testes e `/AI_NUTRITION_POLICY.md`.
 - **O que foi feito:** a IA passou a receber uma projeção limitada da despensa com IDs exatos; Worker e cliente validam resposta integralmente em modo fail-closed; IDs desconhecidos/repetidos, quantidades inválidas e campos extras são recusados; todos os totais são recalculados a partir do snapshot canônico local. O GA visível continua local e não foi substituído silenciosamente. A explicação da avaliação agora recebe versão do algoritmo, nota 0–5 definitiva, cobertura, confiança, provisoriedade e seus motivos específicos, sem recalcular nota, diagnosticar ou transformar ausência em zero. O Worker foi implantado primeiro, na versão `11f11b83-fb2d-413e-a133-3818f52ddf66`. Como o ambiente local reproduziu o bloqueio F06 ao domínio `workers.dev`, o smoke real foi executado uma única vez em runner externo: cadastro descartável 200, endpoint 200, contrato `pantry-suggestions-v2` válido com três sugestões e limpeza da conta 200.
-- **PRs/commits relacionados:** PR draft #165, branch `codex/c08-pantry-score-explanation`, commits `be8534d`, `4fd4b02` e `2e99ee3`; smoke de produção run `33432122955`.
+- **PRs/commits relacionados:** PR #165, branch `codex/c08-pantry-score-explanation`, commits `be8534d`, `4fd4b02` e `2e99ee3`; smoke de produção runs `33432122955` e `33432381264`; merge `e12b464`.
+
+### C08-F — validação final
+
+- **Código:** `C08-F`.
+- **Data:** 31/08/2026.
+- **Propósito:** fechar o alinhamento das sete superfícies de IA com evidência determinística e uma avaliação pequena e controlada contra o provedor real.
+- **Recursos:** matriz PT/EN/ES; dados ausentes preservados como `null`; respostas malformadas rejeitadas em modo fail-closed; entradas adversariais tratadas como dados; quatro chamadas reais limitadas e conta descartável.
+- **Arquivos principais:** `/tests/fixtures/ai-nutrition-policy.json`, `/tests/unit/ai-nutrition-policy.test.js`, `/scripts/validate-c08-production.mjs`, `/.github/workflows/c08-production-validation.yml`, `/worker/src/structured-estimates.js`, `/meal-review-ai.js`, `/nutrition-feedback-ai.js`, testes, `/AI_NUTRITION_POLICY.md`, `/ROADMAP.md` e documentação sincronizada.
+- **O que foi feito:** nomes e descrições não confiáveis passaram a ser serializados como dados JSON ou escapados antes de entrar nos prompts; a validação final cobre todas as superfícies e classes de falha aprovadas. O Worker compatível foi implantado antes da prova real na versão `ca5e65d9-2eeb-4a86-9364-5eb2d0b2b2e1`, sem alterar endpoint, modelo, limite ou contrato público. A prova real verifica preenchimento em português, descrição em inglês, sugestões em espanhol e explicação narrativa em português, apenas por invariantes de contrato, sem registrar conteúdo. A evidência de imagem permanece a validação física e de produção do C24, sem copiar fotos privadas para o repositório. Workflows de prova real verificam apenas o commit mais recente para não repetir chamadas após alterações exclusivamente documentais.
+- **PRs/commits relacionados:** branch `codex/c08-final-validation`; PR draft e run de validação serão vinculados pelo histórico do GitHub desta entrega.
 
 ## Incidentes e trabalhos separados observados
 
@@ -108,10 +118,10 @@ C08 permanece parcial. O modelo permanece `gemini-3.5-flash-lite`; comparação 
 
 ## Estado ao encerrar esta cronologia
 
-- Base usada para a C08-E: `origin/main` no commit `3d776db`, em 31/08/2026.
+- Base usada para a C08-F: `origin/main` no commit `e12b464`, em 31/08/2026.
 - Versão nomeada no código: `0.10.0-beta`.
 - C22, C23, C28, C20 e C19: concluídos segundo o roadmap.
-- C08: parcial; A–D mescladas, E implementada no PR draft #165 com deploy e smoke real concluídos, merge ainda pendente, e C08-F planejada.
+- C08: implementação A–F concluída nesta entrega; o fechamento definitivo permanece condicionado à revisão e ao CI do PR da C08-F.
 - Próximos gates de lançamento público no roadmap: C14, C16 e C25.
 
 ## Fontes consultadas e limitações

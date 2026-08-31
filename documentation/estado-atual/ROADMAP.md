@@ -62,7 +62,7 @@ As fases acrescentam uma camada de planejamento sobre a sequência. Elas não tr
 | 18 | N01 | Registro por voz | Não iniciado — pós-lançamento | Reutiliza C09 e o pipeline de descrição; baixa/média complexidade. |
 | 19 | C20 | Fechar e calibrar motor de pontuação 0–5 | **Concluído** — PRs #129, #131, #132, #134 e C20-E | Motor `meal-score-v2` calibrado, integrado e validado em PT/EN/ES; base estabilizada para C19 e C21. |
 | 20 | C19 | Concluir avaliação de refeição e aceite UX | **Concluído** — PRs #137, #139, #140, #142 e C19-E | Avaliação opcional estabilizada nos fluxos manual e por foto; snapshots aceitos têm integridade conservadora, aparecem agrupados no Diário e foram validados em PT/EN/ES, desktop/mobile e legado/Vite. |
-| 21 | C08 | Revisar prompts e critérios nutricionais da IA | Parcial — pós-lançamento Beta | Deve refletir os critérios estabilizados em C19/C20. |
+| 21 | C08 | Revisar prompts e critérios nutricionais da IA | **Concluído** — PRs #147, #149, #151, #152, #165 e C08-F | As sete superfícies compartilham critérios canônicos, contratos versionados, validação fail-closed, minimização de dados e matriz final PT/EN/ES contra fixtures e Gemini real. |
 | 22 | C21 | Porções fracionadas no GA | Não iniciado — pós-lançamento | Depende de C20 e de passos unitários coerentes. |
 | 23 | N03 | Leitura de rótulo nutricional por foto | Não iniciado — pós-lançamento | Pode reutilizar captura, pré-processamento, Worker multimodal e revisão criados em C24. |
 | 24 | N09 | Jejum intermitente | Não iniciado — pós-lançamento | Sem dependência bloqueante; complexidade média. Futuramente informa C26 sobre lembretes a suprimir durante o jejum. |
