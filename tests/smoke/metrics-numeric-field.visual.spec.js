@@ -32,7 +32,7 @@ test.describe('authenticated Metrics NumericField visual contract', () => {
     await clickByTutorialKeyOrText(page, 'tab-metricas', metricsLabel);
     const measures = page.locator('[data-tutorial="metrics-measures"]');
     await expect(measures).toBeVisible();
-    return measures;
+    return measures.locator('..');
   }
 
   test('uses the approved keypad for frequent body measurements in every viewport and theme', async ({ page }) => {
