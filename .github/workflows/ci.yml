@@ -3,8 +3,19 @@ name: CI
 on:
   push:
     branches: [main]
+    # GitHub skips this workflow only when every changed path matches one of
+    # these documentation-only patterns. Mixed code + documentation changes
+    # still run the complete authenticated suite.
+    paths-ignore:
+      - 'documentation/**'
+      - '*.md'
+      - '*.txt'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'documentation/**'
+      - '*.md'
+      - '*.txt'
 
 permissions:
   contents: read
