@@ -1,10 +1,10 @@
 import '../../meal-review-ai.js';
 import { readLegacyNamespace } from '../leaf/read-legacy-namespace.js';
 
-const { createMealReviewAI } = readLegacyNamespace(
+const { PROMPT_VERSION, buildMealReviewPrompt, createMealReviewAI } = readLegacyNamespace(
   globalThis,
   'MealReviewAI',
-  ['createMealReviewAI'],
+  ['PROMPT_VERSION', 'buildMealReviewPrompt', 'createMealReviewAI'],
 );
 
-export { createMealReviewAI };
+export { PROMPT_VERSION, buildMealReviewPrompt, createMealReviewAI };

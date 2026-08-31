@@ -106,7 +106,7 @@
       "id": "pantry-suggestions",
       "kind": "structured",
       "endpoint": "/v1/ai/pantry-suggestions",
-      "endpointStatus": "planned",
+      "endpointStatus": "ready-for-deploy",
       "promptVersion": "pantry-suggestions-v2",
       "outputContract": "pantry-suggestions",
       "specialRule": "pantry-ids-and-local-total-recalculation"

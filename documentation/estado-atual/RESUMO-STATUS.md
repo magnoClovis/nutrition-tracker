@@ -1,6 +1,6 @@
 # Resumo de status do Trofia
 
-> Retrato da `main` no commit `5c51fa530b4d88b1d34a56f5648a1b3895f1ede6`, em 31/08/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato da Fatia C08-E baseada na `main` no commit `3d776db`, em 31/08/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
@@ -17,9 +17,8 @@
 
 ## O que está em andamento agora
 
-- **Esta organização documental:** branch `codex/documentation-reference`, iniciada após o merge do PR #152. O PR será aberto em draft ao concluir esta captura.
-- **C08 — critérios nutricionais de IA:** C08-A a C08-D estão mesclados (#147, #149, #151 e #152). O endpoint estruturado de sugestões pela despensa e qualquer fatia final residual ainda não estão concluídos; por isso o roadmap mantém C08 como parcial.
-- **PRs abertos observados na captura:** #101 (quick wins antigos de Firestore), #143 (documentação do incidente F06 em `workers.dev`) e #150 (NumericField nas métricas) estavam abertos em draft. O fato de estarem abertos não prova atividade atual; #101 aparenta sobreposição com entregas posteriores de C28, mas sua decisão de fechamento é **não determinada** nesta tarefa.
+- **C08 — critérios nutricionais de IA:** C08-A a C08-D estão mesclados (#147, #149, #151 e #152). A C08-E está implementada na branch `codex/c08-pantry-score-explanation`: contrato estruturado da despensa por IDs, validação fail-closed, totais locais e alinhamento de `meal-explanation-v1`. O endpoint novo ainda depende de deploy aditivo/smoke e do merge; a fatia final residual continua pendente, então o roadmap mantém C08 como parcial.
+- **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
 ## O que está apenas planejado, ainda sem código completo
 

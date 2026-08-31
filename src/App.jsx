@@ -58,6 +58,7 @@ import * as MealEstimate from './composite/meal-estimate.js';
 import * as MealReviewAI from './composite/meal-review-ai.js';
 import * as MealImageCaptureRuntime from './composite/meal-image-capture-runtime.js';
 import * as NutritionFeedbackAI from './composite/nutrition-feedback-ai.js';
+import * as PantrySuggestionsAI from './composite/pantry-suggestions-ai.js';
 import * as ProfileValidation from './composite/profile-validation.js';
 import * as WeekAggregator from './composite/week-aggregator.js';
 import { androidAppRuntime } from './composite/android-app-runtime.js';
@@ -126,6 +127,7 @@ Object.assign(globalThis, {
   MealReviewAI,
   MealScore,
   NutritionFeedbackAI,
+  PantrySuggestionsAI,
   SavedMealCardModule,
 });
 
@@ -199,6 +201,7 @@ const {
   callAI: requestAICompletion,
   requestFoodEstimate: requestStructuredFoodEstimate,
   requestDishEstimate: requestStructuredDishEstimate,
+  requestPantrySuggestions: requestStructuredPantrySuggestions,
 } = AIClient.createAIClient({
   fetchRequest: (...args) => window.fetch(...args),
   getIdToken: () => fbToken(),
@@ -628,6 +631,7 @@ const {
     requestAICompletion,
     requestStructuredFoodEstimate,
     requestStructuredDishEstimate,
+    requestStructuredPantrySuggestions,
     normalizeMealEstimate: mealEstimateDomain.normalizeMealEstimate,
     AIClientError,
     getGreetingPeriod,
