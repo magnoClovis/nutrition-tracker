@@ -47,6 +47,18 @@ async function createEnvironment() {
   });
 }
 
+function scoreComponentFixture() {
+  return {
+    key: "protein", type: "target", available: true, applicable: true,
+    required: true, weight: 1, target: 100, consumedBefore: 20,
+    mealAmount: 30, consumedAfter: 50, remainingBefore: 80,
+    remainingAfter: 50, quota: 25, ratio: 1.2,
+    candidateKnownCount: 1, candidateItemCount: 1, candidateComplete: true,
+    consumedKnownCount: 1, consumedItemCount: 1, consumedComplete: true,
+    score: 4,
+  };
+}
+
 test("write lock blocks owner mutations while preserving reads", {
   skip: !RUN_EMULATOR_TESTS,
 }, async (context) => {
@@ -57,7 +69,7 @@ test("write lock blocks owner mutations while preserving reads", {
   const uid = "rules-owner";
   const ownerDb = environment.authenticatedContext(uid).firestore();
   const userRef = doc(ownerDb, "nutrition", uid);
-  const dataRef = doc(ownerDb, "nutrition", uid, "data", "today");
+  const dataRef = doc(ownerDb, "nutrition", uid, "data", "notes_2026-08-29");
   const waterRef = doc(ownerDb, "nutrition", uid, "days", "2026-08-29", "water", "water-1");
   const migrationRef = doc(
     ownerDb, "nutrition", uid, "days", "2026-08-29", "migrations", "water",
@@ -66,13 +78,13 @@ test("write lock blocks owner mutations while preserving reads", {
   const lockRef = doc(ownerDb, "accountDeletionLocks", uid);
   const jobRef = doc(ownerDb, "accountDeletionJobs", "request_rules_123456789");
 
-  await assertSucceeds(setDoc(userRef, {profile: true}));
+  await assertSucceeds(setDoc(userRef, {userName: "Owner"}));
   await assertSucceeds(setDoc(dataRef, {value: "before-lock"}));
   await assertSucceeds(setDoc(waterRef, {
     schemaVersion: 1,
     id: "water-1",
     date: "2026-08-29",
-    entry: {id: "water-1", ml: 250},
+    entry: {id: "water-1", ml: 250, time: "09:00"},
     updatedAt: serverTimestamp(),
   }));
   await assertSucceeds(setDoc(migrationRef, {
@@ -97,7 +109,7 @@ test("write lock blocks owner mutations while preserving reads", {
     });
   });
 
-  await assertFails(setDoc(userRef, {profile: false}, {merge: true}));
+  await assertFails(setDoc(userRef, {userName: "Changed"}, {merge: true}));
   await assertFails(setDoc(dataRef, {value: "after-lock"}));
   await assertFails(setDoc(waterRef, {
     schemaVersion: 1,
@@ -171,20 +183,20 @@ test("canonical schema keeps owner writes but reserves root deletion for C22", {
   const ownerDb = environment.authenticatedContext(uid).firestore();
   const otherDb = environment.authenticatedContext("canonical-rules-other").firestore();
   const ownerRoot = doc(ownerDb, "nutrition", uid);
-  const ownerData = doc(ownerDb, "nutrition", uid, "data", "today");
+  const ownerData = doc(ownerDb, "nutrition", uid, "data", "notes_2026-08-29");
   const otherRoot = doc(otherDb, "nutrition", uid);
-  const otherData = doc(otherDb, "nutrition", uid, "data", "today");
+  const otherData = doc(otherDb, "nutrition", uid, "data", "notes_2026-08-29");
 
-  await assertSucceeds(setDoc(ownerRoot, {profile: true}));
+  await assertSucceeds(setDoc(ownerRoot, {userName: "Owner"}));
   await assertSucceeds(setDoc(ownerData, {value: "created"}));
-  await assertSucceeds(setDoc(ownerRoot, {profile: false}, {merge: true}));
+  await assertSucceeds(setDoc(ownerRoot, {userName: "Updated"}, {merge: true}));
   await assertSucceeds(setDoc(ownerData, {value: "updated"}, {merge: true}));
   await assertSucceeds(getDoc(ownerRoot));
   await assertSucceeds(getDoc(ownerData));
 
   await assertFails(getDoc(otherRoot));
   await assertFails(getDoc(otherData));
-  await assertFails(setDoc(otherRoot, {profile: "other"}, {merge: true}));
+  await assertFails(setDoc(otherRoot, {userName: "Other"}, {merge: true}));
   await assertFails(setDoc(otherData, {value: "other"}, {merge: true}));
   await assertFails(deleteDoc(otherData));
   await assertFails(deleteDoc(otherRoot));
@@ -208,22 +220,53 @@ test("canonical root and data writes reject oversized or malformed envelopes", {
   const ownerDb = environment.authenticatedContext(uid).firestore();
   const rootRef = doc(ownerDb, "nutrition", uid);
   const dataRef = doc(ownerDb, "nutrition", uid, "data", "pantry_v2");
-  const allowedRoot = Object.fromEntries(
-    Array.from({length: 128}, (_, index) => [`field${index}`, index]),
-  );
-  const oversizedRoot = {...allowedRoot, field128: 128};
+  const allowedRoot = {
+    userName: "Owner", birthDate: "1997-12-04", gender: "male",
+    height: 180, activityLevel: "moderate", goalType: "maintenance",
+    goalKg: null, goalWeeks: null, tutorialSeen: true,
+    tutorial_most_recent_version_seen: "0.11.0-beta",
+    _dailyDates: ["2026-09-01"],
+  };
+  const oversizedRoot = {...allowedRoot, unexpected: true};
 
   await assertSucceeds(setDoc(rootRef, allowedRoot));
   await assertFails(setDoc(rootRef, oversizedRoot));
+  await assertFails(setDoc(rootRef, {height: {unexpected: true}}, {merge: true}));
+  await assertFails(setDoc(rootRef, {_dailyDates: "2026-09-01"}, {merge: true}));
 
   await assertSucceeds(setDoc(dataRef, {value: "[]"}));
   await assertFails(setDoc(dataRef, {}));
   await assertFails(setDoc(dataRef, {value: [], unexpected: true}));
   await assertFails(setDoc(dataRef, {value: {nested: true}}));
   await assertFails(setDoc(dataRef, {value: "x".repeat(900001)}));
+  await assertFails(setDoc(
+    doc(ownerDb, "nutrition", uid, "data", "userBirth"),
+    {value: "legacy"},
+  ));
 
   await assertSucceeds(setDoc(dataRef, {value: "updated"}, {merge: true}));
   await assertSucceeds(deleteDoc(dataRef));
+});
+
+test("root updates preserve but cannot mutate historical residual fields", {
+  skip: !RUN_EMULATOR_TESTS,
+}, async (context) => {
+  const environment = await createEnvironment();
+  context.after(() => environment.cleanup());
+  await environment.clearFirestore();
+
+  const uid = "historical-root-owner";
+  const ownerDb = environment.authenticatedContext(uid).firestore();
+  const rootRef = doc(ownerDb, "nutrition", uid);
+  await environment.withSecurityRulesDisabled(async (adminContext) => {
+    await setDoc(doc(adminContext.firestore(), "nutrition", uid), {
+      userName: "Historical", pantry_v2: "legacy-residual",
+    });
+  });
+
+  await assertSucceeds(setDoc(rootRef, {lastActivityAt: "2026-09-01T12:00:00Z"}, {merge: true}));
+  await assertFails(setDoc(rootRef, {pantry_v2: "changed"}, {merge: true}));
+  await assertFails(setDoc(rootRef, {newResidual: true}, {merge: true}));
 });
 
 test("granular daily schema validates owner, path identity, and exact envelopes", {
@@ -247,27 +290,31 @@ test("granular daily schema validates owner, path identity, and exact envelopes"
   const migrationRef = doc(
     ownerDb, "nutrition", uid, "days", "2026-08-29", "migrations", "meal",
   );
+  const scoreComponent = scoreComponentFixture();
 
   await assertSucceeds(setDoc(mealRef, {
     schemaVersion: 1,
     id: "meal-1",
     date: "2026-08-29",
     mealKey: "Almoço",
-    entry: {id: "meal-1", name: "Arroz", kcal: 130},
+    entry: {
+      id: "meal-1", name: "Arroz", qty: 100, unit: "g",
+      protein: 3, kcal: 130, time: "12:30",
+    },
     updatedAt: serverTimestamp(),
   }));
   await assertSucceeds(setDoc(waterRef, {
     schemaVersion: 1,
     id: "water-1",
     date: "2026-08-29",
-    entry: {id: "water-1", ml: 250},
+    entry: {id: "water-1", ml: 250, time: "09:00"},
     updatedAt: serverTimestamp(),
   }));
   await assertSucceeds(setDoc(supplementRef, {
     schemaVersion: 1,
     id: "supplement-1",
     date: "2026-08-29",
-    entry: {id: "supplement-1", name: "Creatina", dose: 5},
+    entry: {id: "supplement-1", name: "Creatina", dose: 5, unit: "g", time: "08:00"},
     updatedAt: serverTimestamp(),
   }));
   await assertSucceeds(getDoc(mealRef));
@@ -334,6 +381,62 @@ test("granular daily schema validates owner, path identity, and exact envelopes"
     updatedAt: serverTimestamp(),
     unexpected: true,
   }));
+  await assertSucceeds(setDoc(doc(ownerDb,
+    "nutrition", uid, "days", "2026-08-29", "meals", "meal-score"), {
+    schemaVersion: 1,
+    id: "meal-score",
+    date: "2026-08-29",
+    mealKey: "Almoço",
+    entry: {
+      id: "meal-score", name: "Feijão", qty: 100, unit: "g",
+      protein: 8, kcal: 120, time: "12:30", mealEvaluationId: "evaluation-1",
+      mealScoreSnapshot: {
+        algorithmVersion: "meal-score-v2", score: 4, coverage: 1,
+        evaluatedAt: "2026-09-01T12:30:00Z", hoursLeft: 10, windowHours: 16,
+        components: {protein: scoreComponent}, confidence: "high",
+        provisional: false, provisionalReasons: [], applicableWeight: 1,
+        mealOccurredAt: "2026-08-29T12:30:00Z",
+      },
+    },
+    updatedAt: serverTimestamp(),
+  }));
+  await assertFails(setDoc(doc(ownerDb,
+    "nutrition", uid, "days", "2026-08-29", "meals", "meal-bad-payload"), {
+    schemaVersion: 1,
+    id: "meal-bad-payload",
+    date: "2026-08-29",
+    mealKey: "Almoço",
+    entry: {
+      id: "meal-bad-payload", name: "Arroz", qty: 100, unit: "g",
+      protein: 2, kcal: 130, time: "12:30", injected: "not-allowed",
+    },
+    updatedAt: serverTimestamp(),
+  }));
+  await assertFails(setDoc(doc(ownerDb,
+    "nutrition", uid, "days", "2026-08-29", "meals", "meal-bad-score"), {
+    schemaVersion: 1,
+    id: "meal-bad-score",
+    date: "2026-08-29",
+    mealKey: "Almoço",
+    entry: {
+      id: "meal-bad-score", name: "Arroz", qty: 100, unit: "g",
+      protein: 2, kcal: 130, time: "12:30", mealEvaluationId: "bad",
+      mealScoreSnapshot: {
+        algorithmVersion: "meal-score-v2", score: 4, coverage: 1,
+        evaluatedAt: "2026-09-01T12:30:00Z", hoursLeft: 10, windowHours: 16,
+        components: {protein: {...scoreComponent, injected: true}},
+      },
+    },
+    updatedAt: serverTimestamp(),
+  }));
+  await assertFails(setDoc(doc(ownerDb,
+    "nutrition", uid, "days", "2026-08-29", "water", "water-bad"), {
+    schemaVersion: 1,
+    id: "water-bad",
+    date: "2026-08-29",
+    entry: {id: "water-bad", ml: "250", time: "09:00"},
+    updatedAt: serverTimestamp(),
+  }));
 });
 
 test("a racing write cannot survive recursive deletion after lock commit", {
@@ -347,24 +450,27 @@ test("a racing write cannot survive recursive deletion after lock commit", {
   const requestId = "request_concurrent_123456";
   const ownerDb = environment.authenticatedContext(uid).firestore();
   const userRef = doc(ownerDb, "nutrition", uid);
-  const racedRef = doc(ownerDb, "nutrition", uid, "data", "raced");
-  const lateRef = doc(ownerDb, "nutrition", uid, "data", "late");
+  const racedRef = doc(ownerDb, "nutrition", uid, "data", "notes_2026-08-29");
+  const lateRef = doc(ownerDb, "nutrition", uid, "data", "notes_2026-08-30");
   const granularRef = doc(
     ownerDb, "nutrition", uid, "days", "2026-08-29", "meals", "meal-raced",
   );
   const granularLateRef = doc(
     ownerDb, "nutrition", uid, "days", "2026-08-29", "water", "water-late",
   );
-  const nestedPath = `nutrition/${uid}/data/raced/details/deep`;
+  const nestedPath = `nutrition/${uid}/data/notes_2026-08-29/details/deep`;
 
-  await setDoc(userRef, {profile: true});
+  await setDoc(userRef, {userName: "Owner"});
   await setDoc(racedRef, {value: "initial"});
   await setDoc(granularRef, {
     schemaVersion: 1,
     id: "meal-raced",
     date: "2026-08-29",
     mealKey: "Outro",
-    entry: {id: "meal-raced", name: "Race"},
+    entry: {
+      id: "meal-raced", name: "Race", qty: 1, unit: "un",
+      protein: 1, kcal: 10, time: "12:30",
+    },
     updatedAt: serverTimestamp(),
   });
 
@@ -399,11 +505,11 @@ test("a racing write cannot survive recursive deletion after lock commit", {
 
   assert.equal((await adminDb.doc(`nutrition/${uid}`).get()).exists, false);
   assert.equal(
-    (await adminDb.doc(`nutrition/${uid}/data/raced`).get()).exists,
+    (await adminDb.doc(`nutrition/${uid}/data/notes_2026-08-29`).get()).exists,
     false,
   );
   assert.equal(
-    (await adminDb.doc(`nutrition/${uid}/data/late`).get()).exists,
+    (await adminDb.doc(`nutrition/${uid}/data/notes_2026-08-30`).get()).exists,
     false,
   );
   assert.equal((await adminDb.doc(nestedPath).get()).exists, false);

@@ -69,6 +69,7 @@ Cada frente escreve em um arquivo próprio:
 - `NUTRITION_SCORE.md`: contrato do `meal-score-v2`.
 - `C22_ROLLOUT.md`: matriz usada no rollout da exclusão administrativa.
 - `C24_FATIA_7_VALIDACAO.md`: validação do reconhecimento por imagem.
+- `C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`: evidência sanitizada do inventário read-only que fundamenta as allowlists das rules.
 
 ### Compliance e operação
 
