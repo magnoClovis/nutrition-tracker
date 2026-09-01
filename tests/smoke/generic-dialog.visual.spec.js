@@ -206,7 +206,9 @@ test.describe('authenticated GenericDialog visual and accessibility contract', (
         };
       });
 
-      expect(stylesByTheme[theme].radius).toBe('28px');
+      expect(stylesByTheme[theme].radius).toBe(
+        stylesByTheme[theme].viewportWidth <= 420 ? '25px' : '28px'
+      );
       expect(stylesByTheme[theme].backdrop).not.toBe('none');
       expect(stylesByTheme[theme].scrollWidth).toBe(stylesByTheme[theme].viewportWidth);
       await alertDialog.locator('[data-generic-dialog-primary="true"]').click();
