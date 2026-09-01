@@ -6,7 +6,7 @@ const HOST = '127.0.0.1';
 const PORT = Number(process.argv[3] || 8765);
 const ROOT_DIR = path.resolve(__dirname, '..', '..', process.argv[2] || '.');
 const ENTRY_FILE = String(process.argv[4] || 'index.html').replaceAll('\\', '/').replace(/^\/+/, '');
-const IDLE_TIMEOUT_MS = Number(process.env.SMOKE_SERVER_IDLE_MS || 60000);
+const IDLE_TIMEOUT_MS = Number(process.env.SMOKE_SERVER_IDLE_MS || 1800000);
 
 const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',

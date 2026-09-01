@@ -102,7 +102,7 @@ jobs:
           NUTRITION_TEST_EMAIL: ${{ secrets.NUTRITION_TEST_EMAIL }}
           NUTRITION_TEST_PASSWORD: ${{ secrets.NUTRITION_TEST_PASSWORD }}
           FIREBASE_APPCHECK_DEBUG_TOKEN: ${{ secrets.FIREBASE_APPCHECK_DEBUG_TOKEN }}
-          SMOKE_SERVER_IDLE_MS: 120000
+          SMOKE_SERVER_IDLE_MS: 1800000
         run: npm run test:smoke
 
       - name: Write test summary
