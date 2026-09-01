@@ -148,7 +148,7 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Propósito:** impedir exclusão client-side do documento raiz e restringir os envelopes, campos, chaves, tipos e tamanhos aceitos pelas rules sem bloquear dados legítimos já existentes.
 - **Recursos/arquivos principais envolvidos:** `/firestore.rules`, testes de rules/emuladores, ferramenta administrativa Admin SDK de inventário somente leitura e documentação de rollback/deploy.
 - **O que foi feito:** B1 nega `delete` da raiz para qualquer cliente e preserva exclusivamente o Admin SDK do C22 para exclusão completa. A raiz recebe um teto conservador de 128 campos, sem antecipar a allowlist de B2; documentos `/data/{key}` exigem o envelope exato `{value: string}` com máximo de 900.000 caracteres. Os testes de emulador cobrem proprietário, outro UID, lock, Admin SDK, raiz superdimensionada e envelopes ausentes, extras, tipados incorretamente ou grandes demais. B2 permanece não iniciada e fará inventário real read-only, allowlist/tipos, dry-run, deploy progressivo e rollback.
-- **PRs/commits relacionados:** branch `codex/c14-b-rules-hardening`; PR/commit de B1 serão registrados ao fechar a subfatia.
+- **PRs/commits relacionados:** PR #175, branch `codex/c14-b-rules-hardening`, commit de implementação B1 `9a0b228`.
 
 ### [C14-C] - App Check no Worker de IA
 
