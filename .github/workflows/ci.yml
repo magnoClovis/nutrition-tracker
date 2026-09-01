@@ -30,7 +30,10 @@ jobs:
   test:
     name: Preflight, unit and Playwright
     runs-on: windows-2022
-    timeout-minutes: 30
+    # The authenticated legacy + Vite matrix currently needs about 35 minutes
+    # on Windows. Keep a bounded margin so GitHub does not interrupt a healthy
+    # final Vite test while still failing genuinely stalled jobs.
+    timeout-minutes: 45
     env:
       VITE_FIREBASE_WEB_APP_ID: ${{ vars.VITE_FIREBASE_WEB_APP_ID }}
       VITE_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY }}
@@ -102,7 +105,7 @@ jobs:
           NUTRITION_TEST_EMAIL: ${{ secrets.NUTRITION_TEST_EMAIL }}
           NUTRITION_TEST_PASSWORD: ${{ secrets.NUTRITION_TEST_PASSWORD }}
           FIREBASE_APPCHECK_DEBUG_TOKEN: ${{ secrets.FIREBASE_APPCHECK_DEBUG_TOKEN }}
-          SMOKE_SERVER_IDLE_MS: 120000
+          SMOKE_SERVER_IDLE_MS: 1800000
         run: npm run test:smoke
 
       - name: Write test summary

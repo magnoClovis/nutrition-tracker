@@ -160,7 +160,7 @@ test("legacy documents are inaccessible and immutable to every client", {
   });
 });
 
-test("canonical schema keeps owner CRUD and rejects every other user", {
+test("canonical schema keeps owner writes but reserves root deletion for C22", {
   skip: !RUN_EMULATOR_TESTS,
 }, async (context) => {
   const environment = await createEnvironment();
@@ -190,7 +190,40 @@ test("canonical schema keeps owner CRUD and rejects every other user", {
   await assertFails(deleteDoc(otherRoot));
 
   await assertSucceeds(deleteDoc(ownerData));
-  await assertSucceeds(deleteDoc(ownerRoot));
+  await assertFails(deleteDoc(ownerRoot));
+
+  await environment.withSecurityRulesDisabled(async (adminContext) => {
+    await assertSucceeds(deleteDoc(doc(adminContext.firestore(), "nutrition", uid)));
+  });
+});
+
+test("canonical root and data writes reject oversized or malformed envelopes", {
+  skip: !RUN_EMULATOR_TESTS,
+}, async (context) => {
+  const environment = await createEnvironment();
+  context.after(() => environment.cleanup());
+  await environment.clearFirestore();
+
+  const uid = "envelope-rules-owner";
+  const ownerDb = environment.authenticatedContext(uid).firestore();
+  const rootRef = doc(ownerDb, "nutrition", uid);
+  const dataRef = doc(ownerDb, "nutrition", uid, "data", "pantry_v2");
+  const allowedRoot = Object.fromEntries(
+    Array.from({length: 128}, (_, index) => [`field${index}`, index]),
+  );
+  const oversizedRoot = {...allowedRoot, field128: 128};
+
+  await assertSucceeds(setDoc(rootRef, allowedRoot));
+  await assertFails(setDoc(rootRef, oversizedRoot));
+
+  await assertSucceeds(setDoc(dataRef, {value: "[]"}));
+  await assertFails(setDoc(dataRef, {}));
+  await assertFails(setDoc(dataRef, {value: [], unexpected: true}));
+  await assertFails(setDoc(dataRef, {value: {nested: true}}));
+  await assertFails(setDoc(dataRef, {value: "x".repeat(900001)}));
+
+  await assertSucceeds(setDoc(dataRef, {value: "updated"}, {merge: true}));
+  await assertSucceeds(deleteDoc(dataRef));
 });
 
 test("granular daily schema validates owner, path identity, and exact envelopes", {
