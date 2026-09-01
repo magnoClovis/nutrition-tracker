@@ -103,9 +103,7 @@ jobs:
           NUTRITION_TEST_PASSWORD: ${{ secrets.NUTRITION_TEST_PASSWORD }}
           FIREBASE_APPCHECK_DEBUG_TOKEN: ${{ secrets.FIREBASE_APPCHECK_DEBUG_TOKEN }}
           SMOKE_SERVER_IDLE_MS: 120000
-        run: |
-          npm run build:vite
-          npx playwright test tests/smoke/searchable-choice-field.visual.spec.js --config=playwright.vite.config.js --project=mobile-chromium --grep "uses PT, EN, and ES app-language copy" --repeat-each=3
+        run: npm run test:smoke
 
       - name: Write test summary
         if: always()

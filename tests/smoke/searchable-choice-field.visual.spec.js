@@ -54,30 +54,16 @@ test.describe('authenticated SearchableChoiceField visual contract', () => {
         if (!storage || storage.__searchableChoiceFixture) return storage;
         const originalGet = storage.get.bind(storage);
         const originalSet = storage.set.bind(storage);
-        const originalList = typeof storage.list === 'function' ? storage.list.bind(storage) : null;
-        const observe = async (operation, key, callback) => {
-          const startedAt = performance.now();
-          console.info(`[s9-diag] storage.${operation}:start:${key || ''}`);
-          try {
-            const result = await callback();
-            console.info(`[s9-diag] storage.${operation}:ok:${key || ''}:${Math.round(performance.now() - startedAt)}ms`);
-            return result;
-          } catch (error) {
-            console.info(`[s9-diag] storage.${operation}:error:${key || ''}:${error?.code || error?.message || String(error)}`);
-            throw error;
-          }
-        };
-        storage.get = key => observe('get', key, () => fixtureKeys.has(key)
+        storage.get = async key => fixtureKeys.has(key)
           ? { value: fixtureState[key] }
-          : originalGet(key));
+          : originalGet(key);
         storage.set = async (key, value) => {
           if (fixtureKeys.has(key)) {
             fixtureState[key] = value;
             return true;
           }
-          return observe('set', key, () => originalSet(key, value));
+          return originalSet(key, value);
         };
-        if (originalList) storage.list = prefix => observe('list', prefix, () => originalList(prefix));
         Object.defineProperty(storage, '__searchableChoiceFixture', { value: true });
         return storage;
       }
@@ -228,37 +214,6 @@ test.describe('authenticated SearchableChoiceField visual contract', () => {
 
   test('uses PT, EN, and ES app-language copy and exposes an accessible empty state', async ({ page }) => {
     test.setTimeout(180000);
-    const pendingFirestore = new Map();
-    const firestoreEvents = [];
-    page.on('console', message => {
-      if (message.text().includes('[s9-diag]') || message.type() === 'error' || message.type() === 'warning') {
-        console.log(`[browser:${message.type()}] ${message.text()}`);
-      }
-    });
-    page.on('pageerror', error => console.log(`[pageerror] ${error.message}`));
-    page.on('request', request => {
-      if (!request.url().includes('firestore.googleapis.com')) return;
-      pendingFirestore.set(request, {
-        method: request.method(),
-        path: new URL(request.url()).pathname.replace(/\/documents\/nutrition\/[^/?]+/g, '/documents/nutrition/[redacted]'),
-      });
-    });
-    page.on('requestfinished', request => pendingFirestore.delete(request));
-    page.on('requestfailed', request => {
-      const pending = pendingFirestore.get(request);
-      if (pending) firestoreEvents.push({ ...pending, outcome: `failed:${request.failure()?.errorText || 'unknown'}` });
-      pendingFirestore.delete(request);
-    });
-    page.on('response', response => {
-      if (!response.url().includes('firestore.googleapis.com')) return;
-      const request = response.request();
-      const pending = pendingFirestore.get(request);
-      firestoreEvents.push({
-        method: request.method(),
-        path: pending?.path || new URL(response.url()).pathname,
-        outcome: `http:${response.status()}`,
-      });
-    });
     await installDynamicFixture(page);
     await interceptOptionalExternalApis(page);
     const errors = await openApp(page);
@@ -269,23 +224,7 @@ test.describe('authenticated SearchableChoiceField visual contract', () => {
     ];
 
     for (const language of languages) {
-      console.log(`[s9-diag] language:${language.code}:before`);
-      try {
-        await setAppLanguage(page, language.code);
-      } catch (error) {
-        const state = await page.evaluate(() => ({
-          appLang: localStorage.getItem('appLang'),
-          loadingCount: document.querySelectorAll('#loading').length,
-          loadingText: document.querySelector('#loading')?.textContent?.trim() || '',
-          loginVisible: Boolean(document.querySelector('input[type="email"]')),
-          rootText: document.querySelector('#root')?.textContent?.trim().slice(0, 240) || '',
-        })).catch(evaluationError => ({ evaluationError: evaluationError.message }));
-        console.log(`[s9-diag] language:${language.code}:failure-state:${JSON.stringify(state)}`);
-        console.log(`[s9-diag] firestore-events:${JSON.stringify(firestoreEvents)}`);
-        console.log(`[s9-diag] pending-firestore:${JSON.stringify(Array.from(pendingFirestore.values()))}`);
-        throw error;
-      }
-      console.log(`[s9-diag] language:${language.code}:ready`);
+      await setAppLanguage(page, language.code);
       await openSavedMealIngredient(page, language.pantry);
       await expect(page.getByRole('combobox')).toHaveAttribute('placeholder', language.ingredientSearch);
       await page.keyboard.press('Escape');
