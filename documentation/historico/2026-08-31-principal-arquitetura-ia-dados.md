@@ -138,7 +138,7 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Recursos:** erros tipados para falha de leitura/listagem; retry sem cachear ausência falsa; exportação abortada quando raiz, lista, documento ou agregado diário não puder ser comprovadamente lido; nenhuma omissão silenciosa no arquivo gerado.
 - **Arquivos principais:** `/firebase-firestore-sdk.js`, `/firebase-backup-internal.js`, testes unitários UMD/ESM e documentação de estado.
 - **O que foi feito:** `fetchDataDoc()` e `listDataKeys()` deixam de converter falha de rede, permissão ou App Check em `null`/`[]`. O backup só é produzido depois de todas as leituras canônicas concluírem; documento listado que desapareça ou não possa ser lido também interrompe a exportação com erro explícito. Ausência real continua representada como ausência somente quando confirmada pelo Firestore.
-- **PRs/commits relacionados:** branch `codex/c14-a-fail-closed-reads`; PR draft e commits serão registrados no fechamento da fatia.
+- **PRs/commits relacionados:** PR #174, branch `codex/c14-a-fail-closed-reads`, commit de implementação `bd62a32`.
 
 ## Incidentes e trabalhos separados observados
 
