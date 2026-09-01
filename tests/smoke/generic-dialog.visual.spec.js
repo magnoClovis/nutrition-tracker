@@ -104,6 +104,9 @@ test.describe('authenticated GenericDialog visual and accessibility contract', (
       await page.locator('[data-water-summary="true"]').click();
     }
     await expect(configureButton).toBeVisible();
+    if (page.viewportSize().width >= 1024) {
+      await expect(page.locator('[data-diary-metrics="true"]')).toHaveCSS('pointer-events', 'none');
+    }
     await configureButton.click();
     return expectOpenDialog(page, {
       kind: 'prompt',

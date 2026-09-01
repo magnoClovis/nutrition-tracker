@@ -2453,6 +2453,7 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
     background: transparent !important;
     max-width: 340px;
     z-index: 2;
+    pointer-events: none;
   }
 
   [data-diary-metrics] > [data-metric-category] {
