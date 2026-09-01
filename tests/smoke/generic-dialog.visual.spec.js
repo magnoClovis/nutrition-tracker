@@ -122,8 +122,6 @@ test.describe('authenticated GenericDialog visual and accessibility contract', (
   }
 
   async function openDeleteConfirm(page) {
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBe(0);
     const pantryTab = page.locator('[data-tutorial="tab-despensa"]:visible').first();
     await pantryTab.scrollIntoViewIfNeeded();
     await expect(pantryTab).toBeInViewport();
