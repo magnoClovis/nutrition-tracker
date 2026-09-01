@@ -122,6 +122,9 @@ test.describe('authenticated GenericDialog visual and accessibility contract', (
   }
 
   async function openDeleteConfirm(page) {
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBe(0);
+    await expect(page.locator('[data-tutorial="tab-despensa"]:visible').first()).toBeInViewport();
     await clickByTutorialKeyOrText(page, 'tab-despensa', /Alimentos|Foods/i);
     const section = page.locator('[data-tutorial="pantry-meal-templates"]');
     await expect(section).toBeVisible();
