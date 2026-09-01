@@ -16,12 +16,14 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 
 ## Estado resumido da frente
 
-| Entrega | Estado confirmado em 31/08/2026 |
+| Entrega | Estado confirmado em 01/09/2026 |
 |---|---|
 | PRs #126, #130, #133, #136, #138, #141, #144, #146 e #148 | Mesclados na `main` |
 | PR #150 | Aberto em modo draft; não integrado à `main` |
-| S8 — checkboxes e sliders | Implementação no PR draft #166; protótipo aprovado e gate autenticado pendente |
-| S9 e sequência I1–I7 | Planejadas, não implementadas por esta frente |
+| S8 — checkboxes e sliders | Mesclada na `main` pelo PR #166, com CI autenticado integralmente verde |
+| S9 — diálogo genérico | Implementada no PR #172; passa a compor a `main` com o merge desse PR |
+| Fechamento S1–S9 | Pendente exclusivamente da S7b: o PR #150 continua draft e seus commits não integram a `main` |
+| Sequência I1–I7 | Planejada, sem implementação no app por esta frente |
 
 ## ChoiceField reutilizável para tipo de refeição
 
@@ -498,7 +500,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - CSS One UI 8/Glass UI com tokens de tema do Trofia, cores de ação/proteína, foco visível e responsividade.
 - SVG próprio de traço fino para o check, sem glifo do sistema ou biblioteca genérica.
 - Node.js Test Runner para contratos do componente, hosts e composição dos dois runtimes.
-- Playwright Chromium autenticado com Firebase Authentication/App Check para a matriz legado/Vite, desktop/mobile e claro/escuro; o gate real permanecia pendente enquanto esta entrada era redigida.
+- Playwright Chromium autenticado com Firebase Authentication/App Check para a matriz legado/Vite, desktop/mobile e claro/escuro.
 
 **Arquivos:**
 
@@ -534,8 +536,56 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - O CSS usa tokens já existentes do Trofia nos dois temas, alvo efetivo de toque de pelo menos `44 px`, foco visível, estado desabilitado, marca quadrada invariável e trilhas action/protein distintas. `prefers-reduced-motion` continua sendo respeitado pela camada global do app.
 - Os testes focados cobriram os componentes e três hosts em UMD e ESM, incluindo callbacks, associação de descrição, limites, clamp e progresso. A suíte unitária completa passou com 1.206 testes e nenhum skip; o Playwright local ficou nos skips esperados por ausência de credenciais, não sendo aceito como substituto do CI autenticado.
 - O primeiro CI autenticado do PR #166 revelou que recortar o checkbox nativo para `1 × 1 px` preservava teclado, mas impedia o `.check()` real da restauração de backup de manter o estado. O input transparente passou a cobrir toda a linha de `44 px`, ampliando o alvo nativo sem mudar semântica ou aparência. O mesmo run mostrou que o Chromium do runner não expõe `getComputedStyle` do pseudo-elemento interno do range; a asserção foi direcionada às propriedades computadas efetivas de progresso e `accent-color`, mantendo a prova de tema sem depender de API inconsistente.
+- Depois dessas correções, o gate autenticado final passou com 93/93 testes e nenhum skip. O PR #166 foi mesclado na `main` em 01/09/2026.
 
-**PRs/commits relacionados:** [PR draft #166](https://github.com/magnoClovis/nutrition-tracker/pull/166); [commit `9a7194b` — componentes, migrações, testes e documentação inicial](https://github.com/magnoClovis/nutrition-tracker/commit/9a7194b); [run autenticado `33429827106` — diagnóstico do alvo nativo e da asserção de pseudo-elemento](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33429827106).
+**PRs/commits relacionados:** [PR #166 — mesclado](https://github.com/magnoClovis/nutrition-tracker/pull/166); [commit `9a7194b` — componentes, migrações, testes e documentação inicial](https://github.com/magnoClovis/nutrition-tracker/commit/9a7194b); [commit `597457b` — alvo nativo integral e asserções visuais estáveis](https://github.com/magnoClovis/nutrition-tracker/commit/597457b); [commit `4f59fc0` — documentação final da fatia](https://github.com/magnoClovis/nutrition-tracker/commit/4f59fc0); [run autenticado final `33446146673`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33446146673); [merge `e68bc20`](https://github.com/magnoClovis/nutrition-tracker/commit/e68bc20).
+
+## GenericDialog para avisos, confirmações e entradas
+
+**Data (se determinável):** 01/09/2026.
+
+**Propósito:** encerrar a fatia S9 substituindo os diálogos nativos do navegador — visualmente inconsistentes no Android/WebView e dependentes da apresentação do sistema — por um serviço único do Trofia. O componente precisava cobrir aviso, confirmação comum, confirmação destrutiva e entrada de texto sem alterar a lógica funcional dos fluxos consumidores; manter PT/EN/ES controlado pelo app; e reconstruir as garantias de foco, teclado, leitor de tela e navegação de retorno que os diálogos nativos forneciam.
+
+**Recursos:**
+
+- React e `createPortal` para renderização do diálogo fora dos stacking contexts das telas consumidoras.
+- Elementos HTML nativos `button` e `input`, roles e atributos ARIA para nome, descrição, modalidade, estado inválido e associação de mensagens.
+- CSS One UI 8/Glass UI com tokens existentes do Trofia, temas claro/escuro, safe areas, responsividade e `prefers-reduced-motion`.
+- SVGs próprios de traço fino para aviso, confirmação, ação destrutiva, entrada e fechamento.
+- Dispatcher de Android Back já existente, integrado somente pela interface pública do app.
+- Node.js Test Runner, Playwright Chromium autenticado, Firebase Authentication/App Check, runtime legado e build Vite.
+
+**Arquivos:**
+
+- `generic-dialog.js`
+- `src/components/generic-dialog.js`
+- `app.js`
+- `nutrition-tracker.jsx`
+- `src/App.jsx`
+- `backup-modal.js`
+- `nutrition-tracker-controller.js`
+- `one-ui.css`
+- `tests/fixtures/index.legacy.html`
+- `tests/unit/generic-dialog.test.js`
+- `tests/unit/backup-modal.test.js`
+- `tests/unit/nutrition-tracker-controller.test.js`
+- `tests/unit/app-entry.test.js`
+- `tests/smoke/generic-dialog.visual.spec.js`
+
+**O que foi feito:**
+
+- Foi criado `GenericDialogModule` com API assíncrona baseada em Promises para `alert`, `confirm` e `prompt`. A fachada ESM reutiliza a implementação UMD, mantendo o mesmo contrato nos entrypoints Vite e legado.
+- O diálogo é renderizado por portal, bloqueia o scroll do `body`, torna o conteúdo principal inerte e `aria-hidden` enquanto aberto, captura Tab dentro do overlay e devolve o foco ao elemento acionador no fechamento. Escape e Android Back cancelam; Enter confirma somente quando a ação está habilitada.
+- O estado de aviso apresenta uma ação neutra; confirmações comuns usam a cor verde de ação; vermelho fica restrito ao modo destrutivo explícito. No modo de entrada, o botão principal permanece desabilitado enquanto o texto obrigatório está vazio, sem antecipar feedback inválido antes da interação.
+- Os textos e rótulos são recebidos dos hosts já internacionalizados, portanto seguem PT/EN/ES escolhido dentro do Trofia em vez do idioma do sistema operacional.
+- Foram substituídos os cinco usos ativos de APIs nativas: aviso de falha ao exportar backup, entrada de volume personalizado de água, confirmação de exclusão de refeição salva, confirmação de substituição ao importar um dia e confirmação para abrir o canal externo de feedback.
+- A integração preservou callbacks e efeitos existentes. Nenhuma regra de backup, Firestore, autenticação, sincronização ou Worker foi alterada.
+- O overlay recebeu `z-index: 100100`, acima do maior nível existente do modal de backup (`100006`). Essa correção evita que um alerta disparado durante a exportação fique visualmente atrás do modal que o originou.
+- A camada visual cobre claro/escuro e desktop/mobile, mantém área de toque, foco visível, largura responsiva e redução de movimento. Os símbolos usam SVG fino coerente com os demais campos customizados.
+- Os testes unitários cobrem resolução, cancelamento, entrada, foco, teclado, desmontagem e integrações consumidoras. O smoke autenticado cobre os quatro estados aprovados, ação comum/destrutiva, prompt vazio/válido, ARIA, inert, foco, claro/escuro, desktop/mobile e os dois runtimes.
+- O gate local final passou com 1.239 testes unitários sem skip; smokes legado e Vite tiveram somente os 57 skips esperados em cada runtime por ausência local de credenciais; a matriz isolada de cutover passou 60/60 sem skip. O resultado autenticado real do PR é registrado quando disponível no mesmo item.
+
+**PRs/commits relacionados:** [PR #172 — S9: diálogo genérico do Trofia](https://github.com/magnoClovis/nutrition-tracker/pull/172); [commit `40795f3` — componente, integrações e testes](https://github.com/magnoClovis/nutrition-tracker/commit/40795f3).
 
 ## C07 - Cobertura visual autenticada dos componentes customizados
 
@@ -564,6 +614,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - `tests/smoke/numeric-field.visual.spec.js`
 - `tests/smoke/metrics-numeric-field.visual.spec.js`
 - `tests/smoke/selection-controls.visual.spec.js`
+- `tests/smoke/generic-dialog.visual.spec.js`
 - `tests/smoke/cutover-visual-matrix.spec.js`
 - `tests/smoke/app-orchestration.spec.js`
 - `tests/smoke/authenticated-flows.spec.js`
@@ -584,7 +635,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 
 **PRs/commits relacionados:**
 
-- PRs [#126](https://github.com/magnoClovis/nutrition-tracker/pull/126), [#130](https://github.com/magnoClovis/nutrition-tracker/pull/130), [#133](https://github.com/magnoClovis/nutrition-tracker/pull/133), [#136](https://github.com/magnoClovis/nutrition-tracker/pull/136), [#138](https://github.com/magnoClovis/nutrition-tracker/pull/138), [#141](https://github.com/magnoClovis/nutrition-tracker/pull/141), [#144](https://github.com/magnoClovis/nutrition-tracker/pull/144), [#146](https://github.com/magnoClovis/nutrition-tracker/pull/146), [#148](https://github.com/magnoClovis/nutrition-tracker/pull/148) e [#150](https://github.com/magnoClovis/nutrition-tracker/pull/150).
+- PRs [#126](https://github.com/magnoClovis/nutrition-tracker/pull/126), [#130](https://github.com/magnoClovis/nutrition-tracker/pull/130), [#133](https://github.com/magnoClovis/nutrition-tracker/pull/133), [#136](https://github.com/magnoClovis/nutrition-tracker/pull/136), [#138](https://github.com/magnoClovis/nutrition-tracker/pull/138), [#141](https://github.com/magnoClovis/nutrition-tracker/pull/141), [#144](https://github.com/magnoClovis/nutrition-tracker/pull/144), [#146](https://github.com/magnoClovis/nutrition-tracker/pull/146), [#148](https://github.com/magnoClovis/nutrition-tracker/pull/148), [#150](https://github.com/magnoClovis/nutrition-tracker/pull/150), [#166](https://github.com/magnoClovis/nutrition-tracker/pull/166) e [#172](https://github.com/magnoClovis/nutrition-tracker/pull/172).
 - Commits de teste específicos: [`0c9ee63`](https://github.com/magnoClovis/nutrition-tracker/commit/0c9ee63fe82e74dbe0532c62f1992e714c2147e0), [`3602275`](https://github.com/magnoClovis/nutrition-tracker/commit/360227568b1bf87c73cefa482c575c4f34f72c58), [`b5c6237`](https://github.com/magnoClovis/nutrition-tracker/commit/b5c623721fcb90a19d43d5d5036ab376ac1e4d0d), [`4ea5a18`](https://github.com/magnoClovis/nutrition-tracker/commit/4ea5a18f7062617358c41a13492825f4206e19dc) e [`73f24c7`](https://github.com/magnoClovis/nutrition-tracker/commit/73f24c75694e3b9fd83815c8ecd4837a90168342).
 
 ## Auditoria dos controles nativos e arquitetura S1–S9
@@ -605,12 +656,12 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 **O que foi feito:**
 
 - Foi levantado o uso de seletores nativos em tipo de refeição, categorias/destinos de refeição, confiança, gênero, atividade, objetivo, unidades, ingredientes/suplementos dinâmicos, data de nascimento e horário.
-- Foi separado o problema em componentes reutilizáveis: listas estáticas (`ChoiceField`), listas longas/dinâmicas (`SearchableChoiceField`), data/horário (`TemporalField`), números frequentes (`NumericField`), seleção múltipla/faixas (`CheckboxField`/`SliderField`) e, em etapa futura, diálogo genérico.
+- Foi separado o problema em componentes reutilizáveis: listas estáticas (`ChoiceField`), listas longas/dinâmicas (`SearchableChoiceField`), data/horário (`TemporalField`), números frequentes (`NumericField`), seleção múltipla/faixas (`CheckboxField`/`SliderField`) e diálogos (`GenericDialog`).
 - A substituição de um teclado Android real/IME foi explicitamente excluída. O escopo aprovado limitou-se a keypad renderizado dentro da tela do app, preservando o teclado do sistema fora dos campos específicos.
 - A auditoria definiu como requisitos transversais PT/EN/ES controlados pelo app, temas claro/escuro, leitor de tela, foco, teclado, desktop/mobile e validação autenticada em legado/Vite.
-- O fatiamento aprovado foi S1–S9. S8 chegou ao PR draft #166, ainda sem gate autenticado ou merge no momento desta atualização; S9 não foi implementada.
+- O fatiamento aprovado foi S1–S9. S1–S6, S7a e S8 foram mescladas; S9 foi implementada no PR #172. A S7b continua no PR draft #150 e seus commits não integram `origin/main`, portanto o fechamento integral da sequência permanece pendente desse único ponto.
 
-**PRs/commits relacionados:** não há PR ou commit próprio da auditoria. As decisões materializadas podem ser rastreadas nos PRs #126–#150 e #166 descritos acima.
+**PRs/commits relacionados:** não há PR ou commit próprio da auditoria. As decisões materializadas podem ser rastreadas nos PRs #126–#150, #166 e #172 descritos acima.
 
 ## Protótipos e critérios visuais aprovados
 
@@ -629,7 +680,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 
 **O que foi feito:**
 
-- Foram prototipados ChoiceField, TemporalField de horário, TemporalField de data, NumericField, SearchableChoiceField, CheckboxField e SliderField antes das respectivas implementações.
+- Foram prototipados ChoiceField, TemporalField de horário, TemporalField de data, NumericField, SearchableChoiceField, CheckboxField, SliderField e GenericDialog antes das respectivas implementações.
 - O ChoiceField recebeu regra objetiva: até cinco opções sem descrição expandem inline; mais de cinco opções ou qualquer descrição abrem bottom sheet.
 - Foi aprovado o fechamento imediato ao selecionar, tanto inline quanto em sheet, eliminando confirmação extra.
 - Foi aprovada a combinação de steppers com digitação direta para horário e ano, evitando sequências longas de incrementos.
@@ -637,9 +688,10 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - O keypad foi inicialmente restrito à quantidade e depois ampliado para medidas corporais frequentes; não foi generalizado para todo campo numérico.
 - Cada protótipo contemplou claro/escuro. O protótipo pesquisável recebeu correção específica da scrollbar para acompanhar o tema.
 - No protótipo S8, uma inconsistência aparente entre círculo, quadrado e switch foi corrigida antes do código. Ficou documentada a semântica: círculo para escolha exclusiva, quadrado arredondado para checkbox múltiplo e switch para preferência persistente.
+- O protótipo S9 validou separadamente aviso, confirmação, entrada e modo escuro; hierarquia de cancelar/agir, bloqueio da confirmação com campo vazio e vermelho exclusivo para ação destrutiva foram aprovados antes do código.
 - As aprovações ocorreram na conversa e não deixaram PR/commit independente. Somente as partes materializadas nos PRs citados são consideradas implementadas.
 
-**PRs/commits relacionados:** não há PR ou commit exclusivo dos protótipos. As implementações resultantes estão nos PRs #126, #130, #133, #136, #138, #141, #144, #146, #148, no draft #150 e no draft #166.
+**PRs/commits relacionados:** não há PR ou commit exclusivo dos protótipos. As implementações resultantes estão nos PRs #126, #130, #133, #136, #138, #141, #144, #146, #148, no draft #150, no PR #166 e no PR #172.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
@@ -672,7 +724,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 
 - Conversa desta frente, usada como fonte primária para autoria, escopo e decisões aprovadas.
 - Git local em `origin/main`, confirmado no commit `3d776dbe8305a4b1d3732dfd6bb206e2e563ee5a` em 31/08/2026 antes da abertura da branch S8.
-- GitHub: PRs #126, #130, #133, #136, #138, #141, #144, #146, #148, #150 e #166; commits e run autenticado citados nos itens.
+- GitHub: PRs #126, #130, #133, #136, #138, #141, #144, #146, #148, #150, #166 e #172; commits e runs autenticados citados nos itens.
 - `documentation/README.md`, `documentation/estado-atual/ROADMAP.md` e `documentation/estado-atual/BUG-INVENTORY.md`, consultados antes da redação para convenção, estados e códigos formais.
 - Datas dos protótipos, da auditoria S1–S9 e da auditoria de concorrentes são **não determinadas**, pois não existe commit/PR próprio que confirme o instante exato.
 - O PR #150 registra implementação parcial e falha confirmada; não deve ser usado como prova de recurso disponível na `main`.
