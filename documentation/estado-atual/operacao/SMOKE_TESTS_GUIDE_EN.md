@@ -1,0 +1,567 @@
+> **Documentary copy — historical guide, not the current suite state.** Source: `/SMOKE_TESTS_GUIDE_EN.txt`, captured from `main` at commit `5c51fa5` on 2026-08-31 and converted to Markdown. The body targets version 0.7.5 Beta; use `tests/smoke/README.md` and CI workflows for current testing behavior.
+
+TROFIA - OFFICIAL SMOKE TEST GUIDE
+App version: 0.7.5 Beta
+Last revised: 2026-07-07
+
+1. PURPOSE
+==========
+
+This document explains how to run, interpret, and troubleshoot the Nutrition
+Tracker smoke tests.
+
+Smoke tests are short automated checks designed to answer one practical
+question before continuing development or publishing a new build:
+
+  "Does the app still boot and do the main areas still work?"
+
+They do not replace unit tests, full nutrition-calculation tests, or manual UI
+review. Their purpose is to catch severe regressions quickly, such as:
+
+- the app does not render;
+- JavaScript errors during startup;
+- white screen, black screen, or stuck loading state;
+- broken login;
+- blank main tabs;
+- broken language persistence;
+- password recovery with no user feedback;
+- settings or backup flow not opening;
+- sign-out not returning to the login screen.
+
+
+2. RELATED FILES
+================
+
+Main files:
+
+- package.json
+  Defines the npm commands used for preflight and smoke tests.
+
+- playwright.config.js
+  Configures Playwright, browser projects, the local server, and reports.
+
+- tests/smoke/app.smoke.spec.js
+  Contains the public and authenticated smoke tests.
+
+- tests/smoke/serve-static.js
+  Local HTTP server used during the test run.
+
+- tests/smoke/README.md
+  Short command reference.
+
+- scripts/preflight-release.ps1
+  Fast checks to run before browser tests.
+
+Generated folders:
+
+- playwright-report/
+  Playwright HTML report.
+
+- test-results/
+  Failure evidence, screenshots, traces, and context files.
+
+These folders are test artifacts and should not be committed.
+
+
+3. REQUIREMENTS
+===============
+
+3.1. Node.js
+------------
+
+The project uses Playwright through Node.js. Verify that Node is installed:
+
+  node --version
+
+If the command prints a version, for example:
+
+  v24.18.0
+
+Node is available.
+
+On Windows PowerShell, the plain "npm" command may fail because script
+execution is disabled for .ps1 files. Use:
+
+  npm.cmd
+
+and for npx:
+
+  npx.cmd
+
+Examples:
+
+  npm.cmd run test:smoke
+  npx.cmd playwright show-report
+
+3.2. Project dependencies
+-------------------------
+
+Run this once from the project folder:
+
+  cd C:\Users\clovi\OneDrive\GitHub\nutrition-tracker
+  npm.cmd install
+  npx.cmd playwright install chromium
+
+If PowerShell cannot find npm.cmd, add Node to the current terminal session:
+
+  $env:Path = "C:\Program Files\nodejs;" + $env:Path
+
+Then run:
+
+  npm.cmd install
+
+
+4. HOW TO RUN THE TESTS
+=======================
+
+4.1. Run smoke tests
+--------------------
+
+From the project folder:
+
+  cd C:\Users\clovi\OneDrive\GitHub\nutrition-tracker
+  npm.cmd run test:smoke
+
+This command runs:
+
+- public tests, without login;
+- authenticated tests, if login environment variables are set;
+- desktop Chromium checks;
+- mobile Chromium checks.
+
+4.2. Run preflight plus smoke tests
+-----------------------------------
+
+Use this command before treating a version as release-ready:
+
+  npm.cmd test
+
+This runs:
+
+1. preflight checks
+2. smoke tests
+
+Preflight catches cheap-to-detect issues before opening the browser, such as
+basic file sync problems and obvious release/build risks.
+
+4.3. Run authenticated smoke tests
+----------------------------------
+
+Authenticated tests run only when these environment variables are set in the
+current terminal session:
+
+  $env:NUTRITION_TEST_EMAIL = "test-account-email"
+  $env:NUTRITION_TEST_PASSWORD = "test-account-password"
+  npm.cmd run test:smoke
+
+Use a disposable test account whenever possible.
+Do not store personal credentials in scripts, commits, text files, or public
+screenshots.
+
+After running the tests, remove the credentials from the session:
+
+  Remove-Item Env:\NUTRITION_TEST_EMAIL
+  Remove-Item Env:\NUTRITION_TEST_PASSWORD
+
+
+5. WHAT THE TESTS COVER
+=======================
+
+5.1. Public tests
+-----------------
+
+These tests run without login.
+
+Current coverage:
+
+- the app starts without critical browser errors;
+- the login screen renders email, password, and sign-in controls;
+- the language toggle changes the login screen copy;
+- the selected language persists after reload;
+- password recovery validates an empty email instead of failing silently.
+
+5.2. Authenticated tests
+------------------------
+
+These tests run only when the email and password environment variables are set.
+
+Current coverage:
+
+- login with a test account;
+- opening the main tabs without blank sections;
+- Diary tab;
+- Foods tab;
+- Week tab;
+- Metrics tab;
+- Settings opens;
+- Backup/Restore modal opens;
+- sign-out returns to the login screen.
+
+5.3. Simulated environments
+---------------------------
+
+The suite runs in two Playwright projects:
+
+- desktop-chromium;
+- mobile-chromium.
+
+This does not replace manual testing on a real phone, but it catches obvious
+rendering and flow regressions in a mobile viewport.
+
+
+6. HOW TO INTERPRET RESULTS
+===========================
+
+6.1. Ideal result
+-----------------
+
+With valid test credentials configured, the expected result is:
+
+  12 passed
+
+Example:
+
+  12 passed (32.1s)
+
+This means:
+
+- 6 tests passed in desktop Chromium;
+- 6 tests passed in mobile Chromium;
+- no test failed;
+- no test was skipped.
+
+6.2. Result without credentials
+-------------------------------
+
+If email and password are not configured, the expected result is:
+
+  6 passed
+  6 skipped
+
+This is not an error.
+
+It means:
+
+- public tests ran;
+- authenticated tests were intentionally skipped.
+
+6.3. Result with failures
+-------------------------
+
+If the output includes:
+
+  failed
+
+or a red row in the report, open the HTML report:
+
+  npx.cmd playwright show-report
+
+In the report:
+
+- "Passed" means the test succeeded;
+- "Failed" means the test failed;
+- "Flaky" means the test failed and then passed on retry;
+- "Skipped" means the test did not run;
+- each row shows whether the failure happened on desktop or mobile;
+- failures may include screenshots, traces, and DOM context.
+
+6.4. When a build should be blocked
+-----------------------------------
+
+Treat the version as blocked for release if any of these happen:
+
+- JavaScript error during startup;
+- app remains stuck on loading;
+- login screen does not appear;
+- authenticated login fails without a known reason;
+- a main tab opens blank;
+- backup/settings cannot be opened;
+- sign-out does not return to login;
+- the report shows "Failed" for any essential test.
+
+
+7. HTML REPORT
+==============
+
+After running the tests, open the report with:
+
+  npx.cmd playwright show-report
+
+If PowerShell blocks "npx", use:
+
+  npx.cmd playwright show-report
+
+The report is generated at:
+
+  C:\Users\clovi\OneDrive\GitHub\nutrition-tracker\playwright-report
+
+Use the report to:
+
+- visually confirm which tests passed;
+- filter by Passed, Failed, Flaky, and Skipped;
+- inspect a failure;
+- check test duration;
+- confirm whether a failure happened on desktop or mobile.
+
+
+8. FAILURE EVIDENCE
+===================
+
+When a test fails, Playwright may generate files at:
+
+  C:\Users\clovi\OneDrive\GitHub\nutrition-tracker\test-results
+
+Possible evidence:
+
+- failure screenshot;
+- trace;
+- error-context.md;
+- selector failure details;
+- browser console or page error message.
+
+These files help determine whether the failure was caused by:
+
+- a real app bug;
+- an overlay blocking a click;
+- an outdated selector in the test;
+- network/Firebase latency;
+- a local environment issue.
+
+
+9. COMMON PROBLEMS AND FIXES
+============================
+
+9.1. "npm is not recognized"
+----------------------------
+
+Symptom:
+
+  npm is not recognized as the name of a cmdlet...
+
+Fix:
+
+  $env:Path = "C:\Program Files\nodejs;" + $env:Path
+  npm.cmd --version
+
+Then:
+
+  npm.cmd run test:smoke
+
+9.2. PowerShell blocks npm.ps1 or npx.ps1
+-----------------------------------------
+
+Symptom:
+
+  Cannot load C:\Program Files\nodejs\npm.ps1 because script execution is disabled...
+
+Fix:
+
+Use "npm.cmd" instead of "npm":
+
+  npm.cmd run test:smoke
+
+Use "npx.cmd" instead of "npx":
+
+  npx.cmd playwright show-report
+
+You do not need to change the global PowerShell execution policy just to run
+these tests.
+
+9.3. Authenticated tests are skipped
+------------------------------------
+
+Symptom:
+
+  6 passed
+  6 skipped
+
+Likely cause:
+
+Login variables were not configured.
+
+Fix:
+
+  $env:NUTRITION_TEST_EMAIL = "test-account-email"
+  $env:NUTRITION_TEST_PASSWORD = "test-account-password"
+  npm.cmd run test:smoke
+
+9.4. "ERR_CONNECTION_REFUSED"
+-----------------------------
+
+Symptom:
+
+  page.goto: net::ERR_CONNECTION_REFUSED
+
+Possible causes:
+
+- the local test server did not start;
+- the local server stopped before the suite finished;
+- port 8765 was occupied or blocked;
+- an old process was left running.
+
+Fixes:
+
+1. Close old Node processes if needed.
+2. Run again:
+
+   npm.cmd run test:smoke
+
+3. If it still fails, check whether port 8765 is held by another process.
+
+9.5. Tutorial overlay blocks a click
+------------------------------------
+
+The test tries to close tutorials and release notes automatically.
+
+If a click is still intercepted by an overlay, inspect the report to see which
+overlay remained open. The helper function may need an update:
+
+  tests/smoke/app.smoke.spec.js
+
+Function:
+
+  dismissTutorialIfVisible
+
+9.6. Failure after copy/translation changes
+-------------------------------------------
+
+If a test fails after text changes, verify that the test selector still covers:
+
+- Portuguese;
+- English;
+- accented text;
+- tolerant regex text when accents may vary.
+
+Smoke tests should avoid relying on long copy that changes frequently.
+
+
+10. ACCEPTANCE CRITERIA
+=======================
+
+Before treating a version as stable enough for public testing:
+
+1. Run preflight:
+
+   npm.cmd run preflight
+
+2. Run public smoke tests:
+
+   npm.cmd run test:smoke
+
+3. Run authenticated smoke tests:
+
+   $env:NUTRITION_TEST_EMAIL = "test-account-email"
+   $env:NUTRITION_TEST_PASSWORD = "test-account-password"
+   npm.cmd run test:smoke
+
+4. Confirm in the report:
+
+   - 12 passed;
+   - 0 failed;
+   - 0 flaky;
+   - 0 skipped, when credentials were configured.
+
+5. Do a quick manual browser check:
+
+   - login;
+   - tab navigation;
+   - add food;
+   - log a meal;
+   - open/generate backup;
+   - sign out.
+
+
+11. HOW TO MAINTAIN THESE TESTS
+===============================
+
+11.1. What belongs in smoke tests
+---------------------------------
+
+Add only short and critical flows, such as:
+
+- app boots;
+- login works;
+- main tabs render;
+- settings open;
+- backup opens;
+- sign-out works;
+- language persists.
+
+11.2. What does not belong in smoke tests
+-----------------------------------------
+
+Avoid adding:
+
+- exhaustive nutrition-calculation tests;
+- many genetic-algorithm scenarios;
+- long AI flows;
+- detailed visual regression checks;
+- checks that depend on many specific records from a real account.
+
+Those should become separate tests so the smoke suite stays fast, reliable, and
+easy to maintain.
+
+11.3. Practical rule
+--------------------
+
+When an important feature breaks more than once, add a short test that detects
+that exact regression.
+
+Examples:
+
+- if the Metrics tab has gone blank before, keep a test that opens Metrics and
+  checks for real content;
+- if language persistence has broken before, keep a test that toggles language
+  and reloads the page;
+- if sign-out has only changed the UI without ending the session, keep a test
+  that verifies the return to login.
+
+
+12. QUICK COMMANDS
+==================
+
+Install dependencies:
+
+  npm.cmd install
+
+Install Playwright Chromium:
+
+  npx.cmd playwright install chromium
+
+Run smoke tests:
+
+  npm.cmd run test:smoke
+
+Run preflight plus smoke tests:
+
+  npm.cmd test
+
+Open the report:
+
+  npx.cmd playwright show-report
+
+Run with credentials:
+
+  $env:NUTRITION_TEST_EMAIL = "test-account-email"
+  $env:NUTRITION_TEST_PASSWORD = "test-account-password"
+  npm.cmd run test:smoke
+
+Clear credentials from the session:
+
+  Remove-Item Env:\NUTRITION_TEST_EMAIL
+  Remove-Item Env:\NUTRITION_TEST_PASSWORD
+
+
+13. CURRENT EXPECTED STATUS
+===========================
+
+In the current version, when test credentials are configured correctly, the
+expected result is:
+
+  12 passed
+  0 failed
+  0 flaky
+  0 skipped
+
+This result means the app passed the essential smoke tests on desktop and
+mobile.

@@ -6,11 +6,13 @@ const { createDateUtils } = require("../../date-utils.js");
 const implementations = [
   ["UMD", async () => ({
     ...require("../../add-screen.js"),
-    ...require("../../choice-field.js")
+    ...require("../../choice-field.js"),
+    ...require("../../temporal-field.js")
   })],
   ["ESM", async () => ({
     ...await import("../../src/components/add-screen.js"),
-    ...await import("../../src/components/choice-field.js")
+    ...await import("../../src/components/choice-field.js"),
+    ...await import("../../src/components/temporal-field.js")
   })]
 ];
 
@@ -65,6 +67,13 @@ function textContent(node) {
 
 function SavedMealCard() {
   return null;
+}
+
+function MealEstimateEditor({ estimate, onChange }) {
+  return React.createElement("div", {
+    "data-shared-estimate-editor": "true",
+    onClick: () => onChange({ ...estimate, dishName: "Edited plate" })
+  }, estimate.dishName);
 }
 
 function baseProps(overrides = {}) {
@@ -180,9 +189,10 @@ function baseProps(overrides = {}) {
 function contractTest(name, callback) {
   implementations.forEach(([format, load]) => {
     test(`${format}: ${name}`, async () => {
-      const { createAddScreen, createChoiceField } = await load();
+      const { createAddScreen, createChoiceField, createTemporalField } = await load();
       const { ChoiceField } = createChoiceField({ React });
-      const { AddScreen } = createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField });
+      const { TemporalField, NumericField } = createTemporalField({ React });
+      const { AddScreen } = createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField, MealEstimateEditor });
       return callback(AddScreen);
     });
   });
@@ -306,20 +316,19 @@ contractTest("renders dish-description loading/result states and delegates actio
     describeMode: true,
     mealDescription: "Rice and beans",
     describeResult: {
-      name: "Estimated plate",
-      protein: 25,
-      kcal: 540,
-      carbs: 70,
-      fat: 12,
-      fiber: 8,
-      salt: 1.2,
-      confidence: "high",
-      note: "Approximate"
+      status: "identified",
+      dishName: "Estimated plate",
+      overallConfidence: "high",
+      assumptions: ["Approximate"],
+      items: []
     },
+    setDescribeResult: noOp,
     addDescribedToLog: () => { registered += 1; },
     evaluateDescribedMeal: () => { reviewed += 1; }
   }));
-  assert.match(textContent(result), /Estimated plate/);
+  const editors = findNodes(result, node => node.type === MealEstimateEditor);
+  assert.equal(editors.length, 1);
+  assert.equal(editors[0].props.estimate.dishName, "Estimated plate");
   const resultButtons = findNodes(result, node => node.type === "button");
   resultButtons.find(node => node.props.onClick && /Log meal/.test(textContent(node))).props.onClick();
   resultButtons.find(node => node.props.onClick && /Evaluate meal/.test(textContent(node))).props.onClick();
@@ -383,7 +392,7 @@ contractTest("keeps active GA absent and places the legacy transfer panel as an 
   assert.doesNotMatch(textContent(view), /active-ga-result|Should not render/);
 });
 
-contractTest("keeps meal time collapsed until requested and exposes one compact time input", AddScreen => {
+contractTest("keeps meal time collapsed until requested and uses TemporalField without a native time input", AddScreen => {
   let opened = 0;
   let selected = null;
   const collapsed = AddScreen(baseProps({
@@ -411,15 +420,42 @@ contractTest("keeps meal time collapsed until requested and exposes one compact 
     expanded,
     node => node.props?.["data-meal-time-control"] === "open"
   )[0];
-  const timeInput = findNodes(
+  const temporalField = findNodes(
     expandedControl,
-    node => node.type === "input" && node.props.type === "time"
+    node => typeof node.type === "function" && node.props.id === "meal-registration-time"
   )[0];
 
-  assert.equal(timeInput.props.value, "09:07");
-  assert.equal(timeInput.props.style.width, 112);
-  timeInput.props.onChange({ target: { value: "18:45" } });
+  assert.ok(temporalField);
+  assert.equal(temporalField.props.value, "09:07");
+  assert.equal(temporalField.props.label, "Meal time (optional)");
+  assert.equal(findNodes(expandedControl, node => node.type === "input").length, 0);
+  temporalField.props.onChange("18:45");
   assert.equal(selected, "18:45");
+});
+
+contractTest("uses the reusable NumericField for the primary food quantity", AddScreen => {
+  let quantityUpdater = null;
+  const view = AddScreen(baseProps({
+    setAddEntry: updater => { quantityUpdater = updater; }
+  }));
+  const quantityField = findNodes(
+    view,
+    node => typeof node.type === "function" && node.props?.id === "meal-food-quantity"
+  )[0];
+
+  assert.ok(quantityField);
+  assert.equal(quantityField.props.label, "Quantity");
+  assert.equal(quantityField.props.value, "100");
+  assert.equal(quantityField.props.unit, "g");
+  assert.equal(quantityField.props.minValue, 0.01);
+  assert.equal(quantityField.props.maxDecimals, 2);
+  assert.equal(findNodes(view, node => node.type === "input" && node.props?.type === "number").length, 0);
+
+  quantityField.props.onChange("125.5");
+  assert.deepEqual(quantityUpdater({ foodId: "food-1", qty: "100" }), {
+    foodId: "food-1",
+    qty: "125.5"
+  });
 });
 
 contractTest("recent meals and header remain controlled sections", AddScreen => {

@@ -826,7 +826,7 @@ Severidade: ALTO — todas as funcionalidades de IA ficam indisponíveis ao mesm
 tempo para usuários atingidos, embora o diário e o motor local de pontuação
 continuem operacionais e não haja perda de dados observada.
 Tratamento aprovado: manter como incidente conhecido, sem tentativa de correção
-de código agora. A mitigação futura registrada como P07 é publicar o Worker em
+de código agora. A mitigação futura registrada como P09 é publicar o Worker em
 domínio próprio quando ele for adquirido, eliminando a dependência exclusiva da
 reputação compartilhada do hostname `workers.dev`; medir a incidência por rede e
 navegador até essa migração.

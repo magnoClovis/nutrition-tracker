@@ -81,7 +81,10 @@ const {
 });
 
 const {
-  callAI: requestAICompletion
+  callAI: requestAICompletion,
+  requestFoodEstimate: requestStructuredFoodEstimate,
+  requestDishEstimate: requestStructuredDishEstimate,
+  requestPantrySuggestions: requestStructuredPantrySuggestions
 } = window.AIClient.createAIClient({
   fetchRequest: (...args) => window.fetch(...args),
   getIdToken: () => fbToken()
@@ -104,6 +107,11 @@ const accountDeletionClient = window.AccountDeletionClient.createAccountDeletion
 void appCheckClient.initialize().catch(() => {
   // The legacy runtime remains native-only; Vite owns the web provider.
 });
+
+const {
+  CheckboxField,
+  SliderField
+} = window.SelectionControlsModule.createSelectionControls({ React });
 
 const {
   SettingsPanel
@@ -136,7 +144,8 @@ const {
   alertUser: window.alert.bind(window),
   reportError: (...args) => console.error(...args),
   localToday,
-  addCivilDays
+  addCivilDays,
+  CheckboxField
 });
 
 const {
@@ -238,6 +247,34 @@ const {
   ChoiceField
 } = window.ChoiceFieldModule.createChoiceField({ React });
 
+const mealEstimateDomain = window.MealEstimate.createMealEstimate({
+  createItemId: () => (
+    typeof window.crypto?.randomUUID === "function"
+      ? window.crypto.randomUUID()
+      : `meal-estimate-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  )
+});
+
+const {
+  MealEstimateEditor
+} = window.MealEstimateEditorModule.createMealEstimateEditor({
+  React,
+  pickLang,
+  createEmptyItem: mealEstimateDomain.createEmptyItem,
+  calculateTotals: mealEstimateDomain.calculateTotals,
+  ChoiceField
+});
+
+const {
+  SearchableChoiceField
+} = window.SearchableChoiceFieldModule.createSearchableChoiceField({ React });
+
+const {
+  TemporalField,
+  DateField,
+  NumericField
+} = window.TemporalFieldModule.createTemporalField({ React });
+
 const {
   LoginScreen
 } = window.LoginScreenModule.createLoginScreen({
@@ -247,6 +284,7 @@ const {
   isValidBirthDate,
   isValidGender,
   ChoiceField,
+  DateField,
   authService: {
     signIn: (...args) => window.fbSignIn(...args),
     checkEmailVerified: (...args) => window.fbCheckEmailVerified(...args),
@@ -300,12 +338,14 @@ const {
 });
 
 const {
-  RequiredProfileModal
+  RequiredProfileModal,
+  RequiredProfileReadError
 } = window.RequiredProfileModalModule.createRequiredProfileModal({
   React,
   normalizeLanguage,
   pickLang,
   ChoiceField,
+  DateField,
   activityLevels: ACTIVITY_LEVELS,
   storage,
   isValidBirthDate,
@@ -359,7 +399,7 @@ const {
 
 const {
   AddScreen
-} = window.AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField });
+} = window.AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField, MealEstimateEditor });
 
 const {
   MetricsScreen
@@ -388,7 +428,11 @@ const {
   Ring,
   Bar,
   GaResultCard,
-  ChoiceField
+  ChoiceField,
+  SearchableChoiceField,
+  CheckboxField,
+  SliderField,
+  collectValidMealEvaluationGroups: window.MealScore.collectValidMealEvaluationGroups
 });
 const {
   AppHeaderNavigation
@@ -420,6 +464,10 @@ const {
     getOpenFoodFactsProductByBarcode,
     mapOpenFoodFactsProductToForm,
     requestAICompletion,
+    requestStructuredFoodEstimate,
+    requestStructuredDishEstimate,
+    requestStructuredPantrySuggestions,
+    normalizeMealEstimate: mealEstimateDomain.normalizeMealEstimate,
     AIClientError,
     getGreetingPeriod,
     getGreetingEmoji,
@@ -463,7 +511,8 @@ const {
     MetricsScreen,
     DiaryScreen,
     AppHeaderNavigation,
-    ChoiceField
+    ChoiceField,
+    SearchableChoiceField
   },
   browser: {
     windowObject: window,
@@ -502,6 +551,16 @@ async function markCurrentReleaseSeen() {
   await storage.set(MOST_RECENT_TUTORIAL_KEY, CURRENT_RELEASE_ID).catch(() => {});
 }
 
+function profileReadErrorCode(error) {
+  let current = error;
+  for (let depth = 0; current && depth < 4; depth += 1) {
+    const code = String(current.code || '').trim();
+    if (/^[A-Za-z0-9_./-]{1,100}$/.test(code)) return code;
+    current = current.cause;
+  }
+  return 'firestore-profile-read-failed';
+}
+
 // Login / Register Screen
 
 
@@ -519,6 +578,7 @@ function App() {
   const [pendingEmail, setPendingEmail] = React.useState('');
   const [pendingName,  setPendingName]  = React.useState('');
   const [requiredProfile, setRequiredProfile] = React.useState(null);
+  const [profileLoadError, setProfileLoadError] = React.useState(null);
   const [profileChecking, setProfileChecking] = React.useState(fbIsLoggedIn());
   const [lang, setLang]         = React.useState(()=>normalizeLanguage(localStorage.getItem('appLang')||'pt'));
   const [showReleaseNotice, setShowReleaseNotice] = React.useState(false);
@@ -546,6 +606,7 @@ function App() {
     setChecking(false);
     setProfileChecking(false);
     setRequiredProfile(null);
+    setProfileLoadError(null);
     setShowSettings(false);
     setShowPrivacy(false);
     setShowBackup(false);
@@ -556,9 +617,18 @@ function App() {
   }
   async function checkRequiredProfile() {
     setProfileChecking(true);
-    const profile = await getRequiredProfileData().catch(()=>({birthDate:'', gender:'', activityLevel:'', goalType:'', goalKg:'', goalWeeks:'', manualAdjustment:''}));
-    setRequiredProfile(hasRequiredProfileData(profile) ? null : profile);
-    setProfileChecking(false);
+    setProfileLoadError(null);
+    try {
+      const profile = await getRequiredProfileData();
+      setRequiredProfile(hasRequiredProfileData(profile) ? null : profile);
+      return true;
+    } catch (error) {
+      setRequiredProfile(null);
+      setProfileLoadError(profileReadErrorCode(error));
+      return false;
+    } finally {
+      setProfileChecking(false);
+    }
   }
 
   async function checkVisualUpdateNotice(isNew) {
@@ -578,7 +648,7 @@ function App() {
     if (savedLang?.value !== normalizedSavedLang) {
       storage.set('language', normalizedSavedLang).catch(()=>{});
     }
-    await checkRequiredProfile();
+    if (!await checkRequiredProfile()) return;
     await checkVisualUpdateNotice(isNew);
     const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(()=>null);
     if (!hasSeenCurrentRelease(tutorialVersion)) {
@@ -638,13 +708,13 @@ function App() {
     // Login, verification and required-profile screens are ready at this level.
     // Authenticated app content hides the initial loading layer from inside
     // NutritionTracker after user data has finished loading.
-    if (!authed || pendingEmail || requiredProfile) {
+    if (!authed || pendingEmail || requiredProfile || profileLoadError) {
       const timer = setTimeout(() => {
         if (typeof window.hideInitialLoading === "function") window.hideInitialLoading();
       }, 80);
       return () => clearTimeout(timer);
     }
-  }, [checking, profileChecking, authed, pendingEmail, requiredProfile, lang]);
+  }, [checking, profileChecking, authed, pendingEmail, requiredProfile, profileLoadError, lang]);
 
   // Keep the static loading layer on screen while auth/profile checks run.
   if (checking || profileChecking) return null;
@@ -672,12 +742,17 @@ function App() {
 
   return React.createElement(ErrorBoundary, null,
     React.createElement(React.Fragment, null,
-      requiredProfile ? React.createElement(RequiredProfileModal, {
+      profileLoadError ? React.createElement(RequiredProfileReadError, {
+        lang,
+        errorCode: profileLoadError,
+        onRetry: checkRequiredProfile,
+        onLogout: handleLogout
+      }) : requiredProfile ? React.createElement(RequiredProfileModal, {
         lang,
         profile: requiredProfile,
         onComplete: () => setRequiredProfile(null)
       }) : null,
-      !requiredProfile && React.createElement(NutritionTracker, {
+      !requiredProfile && !profileLoadError && React.createElement(NutritionTracker, {
         onOpenSettings: () => setShowSettings(true),
         onLogout: handleLogout,
         onStartTutorial: (type = 'main') => { setTutorialType(type); setShowTutorial(true); },
@@ -698,7 +773,7 @@ function App() {
         darkMode,
         onClose: () => setShowBackup(false)
       }) : null,
-      showReleaseNotice && !requiredProfile ? React.createElement(ReleaseNoticeModal, {
+      showReleaseNotice && !requiredProfile && !profileLoadError ? React.createElement(ReleaseNoticeModal, {
         lang,
         onStartTutorial: () => {
           const nextTutorialType = window.ReleaseNotice.resolveReleaseTutorialType(releaseAudienceRef.current, CURRENT_RELEASE);
@@ -714,11 +789,11 @@ function App() {
           }
         }
       }) : null,
-      showVisualUpdateNotice && !requiredProfile ? React.createElement(VisualUpdateNotice, {
+      showVisualUpdateNotice && !requiredProfile && !profileLoadError ? React.createElement(VisualUpdateNotice, {
         lang,
         onDismiss: () => setShowVisualUpdateNotice(false)
       }) : null,
-      showTutorial && !requiredProfile ? React.createElement(TutorialOverlay, {
+      showTutorial && !requiredProfile && !profileLoadError ? React.createElement(TutorialOverlay, {
         lang,
         type: tutorialType,
         onDone: () => {

@@ -236,7 +236,7 @@ contractTest("keeps a missing tutorial target unhighlighted without retrying", T
   }
 });
 
-contractTest("finishes the version-neutral release highlights after four focused steps", TutorialOverlay => {
+contractTest("finishes the 0.11.0 release highlights after four focused steps", TutorialOverlay => {
   const env = createDomEnvironment();
   let doneCalls = 0;
   const harness = createHookHarness(TutorialOverlay, { lang: "pt", type: "release-highlights", onDone: () => { doneCalls += 1; } });

@@ -24,6 +24,7 @@ const { isValidBirthDate, isValidGender } = createProfileValidation({
 const currentDispatcher = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentDispatcher;
 
 function ChoiceField() {}
+function DateField() {}
 
 function createHookHarness(Component, props) {
   const state = [];
@@ -144,6 +145,7 @@ function createFixture(createLoginScreen, { stored = {}, auth = {}, initialDark 
     isValidBirthDate,
     isValidGender,
     ChoiceField,
+    DateField,
     authService: services,
     readPreferredDarkMode() { calls.push(["readPreferredDarkMode"]); return initialDark; },
     localStorage,
@@ -191,7 +193,7 @@ function fillRegistration(fixture, overrides = {}) {
   change(passwords[0], values.password);
   change(passwords[1], values.password2);
   change(findInput(fixture.harness.tree, props => props.autoComplete === "name"), values.name);
-  change(findInput(fixture.harness.tree, props => props.type === "date"), values.birthDate);
+  elementsByType(fixture.harness.tree, DateField)[0].props.onChange(values.birthDate);
   elementsByType(fixture.harness.tree, ChoiceField)[0].props.onChange(values.gender);
   const numbers = elementsByType(fixture.harness.tree, "input").filter(input => input.props.type === "number");
   change(numbers[0], values.weight);
@@ -272,7 +274,10 @@ contractTest("preserves the lack of a synchronous double-submit guard", async cr
 contractTest("registers with real profile validators and writes the exact persistence keys in order", async createLoginScreen => {
   const fixture = createFixture(createLoginScreen);
   switchToRegistration(fixture);
-  assert.equal(findInput(fixture.harness.tree, props => props.type === "date").props.max, "2026-07-16");
+  const dateField = elementsByType(fixture.harness.tree, DateField)[0];
+  assert.equal(elementsByType(fixture.harness.tree, "input").some(input => input.props.type === "date"), false);
+  assert.equal(dateField.props.max, "2026-07-16");
+  assert.equal(dateField.props.min, "1900-01-01");
   fillRegistration(fixture);
   await submit(fixture);
 

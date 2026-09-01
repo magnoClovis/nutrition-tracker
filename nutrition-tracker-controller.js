@@ -4,7 +4,7 @@
  * This UMD module owns the complete NutritionTracker controller: its 155 React
  * states, 40 effects, 26 refs, local callbacks, and the temporal hydration /
  * autosave protocol. Hook order and effect dependency arrays are behavioral
- * contracts. The eleven render-scoped factories below intentionally remain
+ * contracts. The twelve render-scoped factories below intentionally remain
  * inside NutritionTracker so they receive the current render closures; do not
  * hoist, memoize, reorder, or instantiate them at module scope.
  *
@@ -266,6 +266,10 @@
       getOpenFoodFactsProductByBarcode,
       mapOpenFoodFactsProductToForm,
       requestAICompletion,
+      requestStructuredFoodEstimate,
+      requestStructuredDishEstimate,
+      requestStructuredPantrySuggestions,
+      normalizeMealEstimate,
       AIClientError,
       getGreetingPeriod,
       getGreetingEmoji,
@@ -309,7 +313,8 @@
       MetricsScreen,
       DiaryScreen,
       AppHeaderNavigation,
-      ChoiceField
+      ChoiceField,
+      SearchableChoiceField
     } = screens;
     const {
       windowObject,
@@ -847,7 +852,8 @@
         templateEntries,
         templateTotals,
         templateItemEntry,
-        ChoiceField
+        ChoiceField,
+        SearchableChoiceField
       });
       const {
         getAutomaticMealSuggestionLimits: calculateAutomaticMealSuggestionLimits,
@@ -871,21 +877,24 @@
         getEvaluationCount: mealScoreEvaluationCount
       });
       const {
+        requestPantrySuggestions
+      } = window.PantrySuggestionsAI.createPantrySuggestionsAI({
+        requestStructuredPantrySuggestions
+      });
+      const {
         requestFoodAutofill,
         applyFoodAutofillResult
       } = window.FoodAutofillAI.createFoodAutofillAI({
-        callAI,
-        normalizeLanguage,
-        pickLang,
-        getAiLanguageInstruction: aiLang
+        requestStructuredFoodEstimate,
+        normalizeLanguage
       });
       const {
         requestDishEstimate,
-        buildDescribedEntry: buildDishDescriptionEntry
+        buildDescribedEntries
       } = window.DishDescriptionAI.createDishDescriptionAI({
-        callAI,
+        requestStructuredDishEstimate,
         normalizeLanguage,
-        getAiLanguageInstruction: aiLang,
+        normalizeMealEstimate,
         createEntryId: () => window.DailyEntryModel.createIdempotentEntryId()
       });
       const {
@@ -893,9 +902,7 @@
       } = window.NutritionFeedbackAI.createNutritionFeedbackAI({
         callAI,
         normalizeLanguage,
-        pickLang,
-        activityLevels: ACTIVITY_LEVELS,
-        calculateAge
+        pickLang
       });
       const {
         generateEatingPatterns
@@ -1237,6 +1244,7 @@
       const goalToastActiveRef = useRef(false);
       const [expandMicros, setExpandMicros] = useState(false);
       const [detailFood, setDetailFood] = useState(null);
+      const [diaryMealEvaluationDetail, setDiaryMealEvaluationDetail] = useState(null);
       const [entryMenuId, setEntryMenuId] = useState(null);
       const [weightHistory, setWeightHistory] = useState([]);
       const [profileData, setProfileData] = useState({ birthDate: "", gender: "", height: "" });
@@ -1617,6 +1625,7 @@
         if (date) setCalendarMonth(date.slice(0, 7));
         setEditEntryId(null);
         setDetailFood(null);
+        setDiaryMealEvaluationDetail(null);
         if (date !== TODAY) {
           const result = await loadHistoricalDate({ date, today: TODAY });
           setHistoryLog(result.historyLog);
@@ -2110,28 +2119,45 @@
         const estimateRequest = requestDishEstimate({ description: dishDescription, lang });
         try {
           const estimate = await estimateRequest;
-          if (estimate.status === "success") setDescribeResult(estimate.result);
+          if (estimate.status === "success") {
+            setDescribeResult(estimate.result);
+          } else if (estimate.status === "not-identifiable") {
+            notify(uiText(
+              "Não foi possível identificar alimentos suficientes nessa descrição.",
+              "Not enough food information could be identified in that description.",
+              "No se pudo identificar suficiente información alimentaria en esa descripción."
+            ), 7000);
+          }
         } catch (_) {
           notify(pickLang(lang, "Erro: ", "Error: ", "Error: ") + (_.message || pickLang(lang, "Não foi possível estimar.", "Could not estimate.", "No fue posible estimar.")), 8000);
         }
         setDescribeLoading(false);
       }
-      function buildDescribedEntry() {
-        return buildDishDescriptionEntry({
-          estimate: describeResult,
-          description: mealDescription
-        });
+      function currentDescribedEntries() {
+        try {
+          return buildDescribedEntries({
+            estimate: describeResult,
+            description: mealDescription
+          });
+        } catch (_) {
+          notify(uiText(
+            "Revise os campos estimados antes de continuar.",
+            "Review the estimated fields before continuing.",
+            "Revisa los campos estimados antes de continuar."
+          ), 7000);
+          return [];
+        }
       }
       function evaluateDescribedMeal() {
-        const entry = buildDescribedEntry();
-        if (!entry) return;
-        openMealReview(describeMeal, [entry], "described");
+        const entries = currentDescribedEntries();
+        if (!entries.length) return;
+        openMealReview(describeMeal, entries, "described");
       }
       async function addDescribedToLog() {
-        const entry = buildDescribedEntry();
-        if (!entry) return;
-        const [savedEntry] = applySelectedMealTime([entry]);
-        const savedLog = await saveMealRegistration(describeMeal, [savedEntry]);
+        const entries = currentDescribedEntries();
+        if (!entries.length) return;
+        const savedEntries = applySelectedMealTime(entries);
+        const savedLog = await saveMealRegistration(describeMeal, savedEntries);
         if (!savedLog) return;
         setDescribeResult(null);
         setMealDescription("");
@@ -2352,31 +2378,19 @@
           setSuggestLoading(false);
           return;
         }
-        const pantryList = sortedAllPantry.map(f => {
-          const div = f.unit === "un" ? 1 : 100;
-          return f.name + " (" + f.protein100 + "g prot/" + (f.unit === "un" ? "un" : "100" + f.unit) + ", " + f.kcal100 + " kcal/" + (f.unit === "un" ? "un" : "100" + f.unit) + ")";
-        }).join(", ");
-        const prompt = pickLang(
-          lang,
-          "O usuário precisa fechar as metas nutricionais do dia. Sugira 3 combinações práticas de alimentos da despensa dele.\n\nO QUE AINDA FALTA HOJE:\n" + (remainProt > 0 ? "Proteína: " + remainProt + "g\n" : "") + (remainKcal > 0 ? "Calorias: " + remainKcal + " kcal\n" : "") + (remainCarbs > 0 ? "Carbs: " + remainCarbs + "g\n" : "") + "\nDESPENSA DISPONÍVEL:\n" + pantryList + "\n\nPara cada sugestão indique:\n- Nome da combinação\n- Alimentos com quantidades específicas (em gramas/ml/unidades)\n- Totais de proteína e calorias estimados\n\nResponda APENAS com JSON sem markdown:\n[{\"name\":\"nome\",\"items\":[{\"food\":\"nome exato da despensa\",\"qty\":X,\"unit\":\"g\"}],\"protein\":X,\"kcal\":X}]",
-          "The user needs to finish today's nutrition targets. Suggest 3 practical food combinations using only foods from their pantry.\n\nSTILL MISSING TODAY:\n" + (remainProt > 0 ? "Protein: " + remainProt + "g\n" : "") + (remainKcal > 0 ? "Calories: " + remainKcal + " kcal\n" : "") + (remainCarbs > 0 ? "Carbs: " + remainCarbs + "g\n" : "") + "\nAVAILABLE PANTRY:\n" + pantryList + "\n\nFor each suggestion include:\n- Combination name\n- Foods with specific amounts (grams/ml/units)\n- Estimated protein and calorie totals\n\nRespond ONLY with JSON, no markdown:\n[{\"name\":\"name\",\"items\":[{\"food\":\"exact pantry food name\",\"qty\":X,\"unit\":\"g\"}],\"protein\":X,\"kcal\":X}]",
-          "El usuario necesita completar las metas nutricionales de hoy. Sugiere 3 combinaciones prácticas usando solo alimentos de su despensa.\n\nLO QUE FALTA HOY:\n" + (remainProt > 0 ? "Proteína: " + remainProt + "g\n" : "") + (remainKcal > 0 ? "Calorías: " + remainKcal + " kcal\n" : "") + (remainCarbs > 0 ? "Carbohidratos: " + remainCarbs + "g\n" : "") + "\nDESPENSA DISPONIBLE:\n" + pantryList + "\n\nPara cada sugerencia incluye:\n- Nombre de la combinación\n- Alimentos con cantidades específicas (gramos/ml/unidades)\n- Totales estimados de proteína y calorías\n\nResponde SOLO con JSON, sin markdown:\n[{\"name\":\"nombre\",\"items\":[{\"food\":\"nombre exacto de la despensa\",\"qty\":X,\"unit\":\"g\"}],\"protein\":X,\"kcal\":X}]"
-        );
         try {
-          const text = await callAI(prompt, 800);
-          const clean = text.replace(/```json|```/g, "").trim();
-          setSuggestions(JSON.parse(clean));
+          setSuggestions(await requestPantrySuggestions({
+            pantry: sortedAllPantry,
+            remaining: { protein: remainProt, kcal: remainKcal, carbs: remainCarbs },
+            language: normalizeLanguage(lang)
+          }));
         } catch (_) {
           notify(pickLang(lang, "Erro: ", "Error: ", "Error: ") + (_.message || pickLang(lang, "Não foi possível gerar sugestões.", "Could not generate suggestions.", "No se pudieron generar sugerencias.")), 8000);
         }
         setSuggestLoading(false);
       }
       function loadSuggestionToStaged(sugg) {
-        const items = sugg.items.map(item => {
-          const food = pantry.find(f => f.name.toLowerCase() === item.food.toLowerCase()) || pantry.find(f => f.name.toLowerCase().includes(item.food.toLowerCase().split(" ")[0]));
-          if (!food) return null;
-          return buildEntry(food, item.qty);
-        }).filter(Boolean);
+        const items = sugg.items.map(item => buildEntry(item.food, item.quantity));
         if (!items.length) {
           notify(pickLang(lang, "Nenhum alimento da sugestão foi encontrado na despensa.", "No food from the suggestion was found in the pantry.", "No se encontró en la despensa ningún alimento de la sugerencia."));
           return;
@@ -2612,26 +2626,9 @@
         setFeedbackPeriod(type);
         setFeedbackSaved(false);
         try {
-          const storedUserName = await storage.get("userName").catch(() => null);
-          const feedbackUserName = storedUserName?.value ? String(storedUserName.value).trim() : "";
           const snapshot = {
             type,
             lang,
-            userName: feedbackUserName,
-            profile: {
-              birthDate: profileData.birthDate,
-              gender: profileData.gender,
-              currentWeight,
-              viewWeight,
-              currentHeight,
-              viewHeight
-            },
-            preferences: {
-              activityLevel: nutritionPrefs.activityLevel,
-              goalType: nutritionPrefs.goalType,
-              goalKg: nutritionPrefs.goalKg,
-              goalWeeks: nutritionPrefs.goalWeeks
-            },
             goalContext: {
               goals: {
                 kcal: goals.kcal,
@@ -2640,11 +2637,7 @@
                 fat: goals.fat,
                 fiber: goals.fiber,
                 salt: goals.salt
-              },
-              baseActivityFactor: baseGoals.fa,
-              calorieBase,
-              calorieAdjustment,
-              proteinMultiplier
+              }
             },
             day: {
               viewDate,
@@ -2662,7 +2655,9 @@
                   carbs: entry.carbs,
                   fat: entry.fat,
                   fiber: entry.fiber,
-                  salt: entry.salt
+                  salt: entry.salt,
+                  sugars: entry.sugars,
+                  satfat: entry.satfat
                 }))
               ]))
             },
@@ -2681,7 +2676,10 @@
               fiber: day.fiber,
               fiberGoal: day.fiberGoal,
               salt: day.salt,
-              saltGoal: day.saltGoal
+              saltGoal: day.saltGoal,
+              sugars: day.sugars,
+              satfat: day.satfat,
+              nutrientCoverage: day.nutrientCoverage
             }))
           };
           const result = await generateNutritionFeedback(snapshot);
@@ -4903,6 +4901,7 @@
           aiStatusModal,
           reportModalOpen,
           mealReview,
+          diaryMealEvaluationDetail,
           detailFood,
           calendarOpen,
           notesOpen,
@@ -4950,6 +4949,7 @@
             setMealReview(null);
             setMealReviewHelpOpen(false);
             break;
+          case "closeDiaryMealEvaluationDetail": setDiaryMealEvaluationDetail(null); break;
           case "closeFoodDetail": setDetailFood(null); break;
           case "closeCalendar": setCalendarOpen(false); break;
           case "closeNotes": setNotesOpen(false); break;
@@ -5105,6 +5105,7 @@
         describeLoading,
         estimateMealDescription,
         describeResult,
+        setDescribeResult,
         addDescribedToLog,
         evaluateDescribedMeal,
         batchMode,
@@ -5202,6 +5203,7 @@
         evaluateMealItems,
         mealScoreBrief,
         mealScoreEvaluationText,
+        mealScoreLabel,
         addGAResultToDiary,
         TODAY,
         diaryStatus,
@@ -5244,6 +5246,8 @@
         setEntryMenuId,
         detailFood,
         setDetailFood,
+        diaryMealEvaluationDetail,
+        setDiaryMealEvaluationDetail,
         startEditEntry,
         duplicateEntry,
         removeEntry,

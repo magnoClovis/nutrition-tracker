@@ -48,6 +48,7 @@ const ACTIONS_BY_LEVEL = Object.freeze([
     ['aiStatusModal', 'closeAIStatus'],
     ['reportModalOpen', 'closeReportModal'],
     ['mealReview', 'closeMealReview'],
+    ['diaryMealEvaluationDetail', 'closeDiaryMealEvaluationDetail'],
     ['detailFood', 'closeFoodDetail'],
     ['calendarOpen', 'closeCalendar'],
     ['notesOpen', 'closeNotes'],

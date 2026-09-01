@@ -166,7 +166,7 @@ contractTest("rejects malformed or structurally invalid Worker responses", async
   }
 });
 
-contractTest("propagates Firebase refresh and network failures unchanged", async module => {
+contractTest("propagates Firebase refresh failures and sanitizes network failures", async module => {
   const tokenError = new Error("session refresh failed");
   const tokenFixture = createFixture(module, { tokenError });
   await assert.rejects(
@@ -179,8 +179,67 @@ contractTest("propagates Firebase refresh and network failures unchanged", async
   const networkFixture = createFixture(module, { responses: [networkError] });
   await assert.rejects(
     networkFixture.api.callAI("prompt"),
-    error => error === networkError
+    error => error instanceof module.AIClientError && error.code === "service-unavailable"
   );
+});
+
+contractTest("uses authenticated dedicated endpoints for structured food and dish estimates", async module => {
+  const food = { status: "estimated" };
+  const dish = { status: "identified" };
+  const fixture = createFixture(module, {
+    responses: [response({ estimate: food }), response({ estimate: dish })]
+  });
+
+  assert.equal(await fixture.api.requestFoodEstimate({ foodName: "Tofu", unit: "g", language: "en" }), food);
+  assert.equal(await fixture.api.requestDishEstimate({ description: "Rice", language: "pt" }), dish);
+  assert.deepEqual(fixture.requests.map(([url, options]) => [url, JSON.parse(options.body)]), [
+    ["https://trofia-ai-proxy.cmagno-dev.workers.dev/v1/ai/food-estimate", {
+      foodName: "Tofu", unit: "g", language: "en"
+    }],
+    ["https://trofia-ai-proxy.cmagno-dev.workers.dev/v1/ai/dish-estimate", {
+      description: "Rice", language: "pt"
+    }]
+  ]);
+});
+
+contractTest("uses the authenticated structured pantry endpoint without changing its payload", async module => {
+  const requestBody = {
+    contractVersion: "pantry-suggestions-v2",
+    language: "en",
+    remaining: { protein: 20, kcal: 400, carbs: 30 },
+    pantry: [{ id: "rice", name: "Rice", unit: "g", protein100: 2, kcal100: 100 }]
+  };
+  const workerBody = {
+    contractVersion: "pantry-suggestions-v2",
+    suggestions: [{ name: "Rice", items: [{ foodId: "rice", quantity: 100 }] }]
+  };
+  const fixture = createFixture(module, { responses: [response(workerBody)] });
+
+  assert.equal(await fixture.api.requestPantrySuggestions(requestBody), workerBody);
+  assert.equal(
+    fixture.requests[0][0],
+    "https://trofia-ai-proxy.cmagno-dev.workers.dev/v1/ai/pantry-suggestions"
+  );
+  assert.deepEqual(JSON.parse(fixture.requests[0][1].body), requestBody);
+});
+
+contractTest("rejects malformed structured endpoint envelopes", async module => {
+  for (const method of ["requestFoodEstimate", "requestDishEstimate"]) {
+    const fixture = createFixture(module, { responses: [response({ estimate: null })] });
+    await assert.rejects(
+      fixture.api[method](method === "requestFoodEstimate"
+        ? { foodName: "Food", unit: "g", language: "en" }
+        : { description: "Food", language: "en" }),
+      error => error instanceof module.AIClientError && error.code === "invalid-response"
+    );
+  }
+  for (const body of [null, {}, { contractVersion: "pantry-suggestions-v2" }]) {
+    const fixture = createFixture(module, { responses: [response(body)] });
+    await assert.rejects(
+      fixture.api.requestPantrySuggestions({}),
+      error => error instanceof module.AIClientError && error.code === "invalid-response"
+    );
+  }
 });
 
 contractTest("reads a fresh token per call and preserves the 800-token fallback", async module => {

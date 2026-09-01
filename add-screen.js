@@ -33,13 +33,17 @@
    * @param {function(string): Array<number>} dependencies.quickQtys Quantity presets from date-utils.js.
    * @param {function(string): number} dependencies.divisor Unit divisor from date-utils.js.
    * @param {function(Object): Object} dependencies.ChoiceField Controlled app-local list selector.
+   * @param {function(Object): Object} dependencies.TemporalField Controlled app-local time selector.
+   * @param {function(Object): Object} dependencies.NumericField Controlled app-local numeric selector.
    * @returns {{AddScreen: function(Object): Object}} Add-screen API.
    */
-  function createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField }) {
+  function createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField, MealEstimateEditor }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof quickQtys !== "function"
-      || typeof divisor !== "function" || typeof ChoiceField !== "function") {
-      throw new TypeError("AddScreen requires React, pickLang, quickQtys, divisor, and ChoiceField");
+      || typeof divisor !== "function" || typeof ChoiceField !== "function"
+      || typeof TemporalField !== "function" || typeof NumericField !== "function"
+      || typeof MealEstimateEditor !== "function") {
+      throw new TypeError("AddScreen requires React, fields, and MealEstimateEditor");
     }
 
     const inp = {
@@ -87,13 +91,6 @@
     };
     const proteinColor = "var(--protein)";
     const caloriesColor = "var(--calories)";
-
-    function confidenceColor(confidence) {
-      const normalizedConfidence = String(confidence || "").trim().toLowerCase();
-      if (["alta", "high"].includes(normalizedConfidence)) return "#6ec8a9";
-      if (["media", "média", "medium"].includes(normalizedConfidence)) return "#c8a96e";
-      return "#c86e8e";
-    }
 
     /**
      * Renders one of the three existing non-contiguous Add-screen regions.
@@ -163,6 +160,7 @@
         describeLoading,
         estimateMealDescription,
         describeResult,
+        setDescribeResult,
         addDescribedToLog,
         evaluateDescribedMeal,
         batchMode,
@@ -441,33 +439,30 @@
     style: {
       margin: "-4px 0 12px"
     }
-  }, mealTimeOpen ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      flexWrap: "wrap"
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    htmlFor: "meal-registration-time",
-    style: {
-      color: "var(--muted)",
-      fontSize: 12
-    }
-  }, uiText("Horário da refeição (opcional)", "Meal time (optional)", "Hora de la comida (opcional)")), /*#__PURE__*/React.createElement("input", {
+  }, mealTimeOpen ? /*#__PURE__*/React.createElement(TemporalField, {
     id: "meal-registration-time",
-    type: "time",
+    label: uiText("Horário da refeição (opcional)", "Meal time (optional)", "Hora de la comida (opcional)"),
     value: mealTimeValue,
-    onChange: event => setSelectedMealTime(event.target.value),
-    "aria-label": uiText("Horário da refeição", "Meal time", "Hora de la comida"),
+    onChange: setSelectedMealTime,
+    title: uiText("Escolher horário", "Choose time", "Elegir hora"),
+    hourLabel: uiText("Hora", "Hour", "Hora"),
+    minuteLabel: uiText("Minutos", "Minutes", "Minutos"),
+    increaseHourLabel: uiText("Aumentar hora", "Increase hour", "Aumentar hora"),
+    decreaseHourLabel: uiText("Diminuir hora", "Decrease hour", "Disminuir hora"),
+    increaseMinuteLabel: uiText("Aumentar minutos", "Increase minutes", "Aumentar minutos"),
+    decreaseMinuteLabel: uiText("Diminuir minutos", "Decrease minutes", "Disminuir minutos"),
+    editHourLabel: uiText("Digitar hora", "Type hour", "Escribir hora"),
+    editMinuteLabel: uiText("Digitar minutos", "Type minutes", "Escribir minutos"),
+    nowLabel: uiText("Agora", "Now", "Ahora"),
+    cancelLabel: uiText("Cancelar", "Cancel", "Cancelar"),
+    confirmLabel: uiText("Confirmar", "Confirm", "Confirmar"),
+    backspaceLabel: uiText("Apagar dígito", "Delete digit", "Borrar dígito"),
+    invalidHourLabel: uiText("Digite um valor de 0 a 23.", "Enter a value from 0 to 23.", "Escribe un valor de 0 a 23."),
+    invalidMinuteLabel: uiText("Digite um valor de 0 a 59.", "Enter a value from 0 to 59.", "Escribe un valor de 0 a 59."),
     style: {
-      ...inp,
-      width: 112,
-      marginTop: 0,
-      padding: "5px 8px",
-      fontSize: 13
+      maxWidth: 280
     }
-  })) : /*#__PURE__*/React.createElement("button", {
+  }) : /*#__PURE__*/React.createElement("button", {
     type: "button",
     onClick: openMealTimeControl,
     style: {
@@ -595,90 +590,19 @@
       borderRadius: 8,
       padding: "14px"
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "baseline",
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      color: "var(--text3)"
-    }
-  }, describeResult.name), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      color: confidenceColor(describeResult.confidence),
-      letterSpacing: 1
-    }
-  }, uiText("confiança ", "confidence ", "confianza "), describeResult.confidence)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "6px 20px",
-      marginBottom: 10
-    }
-  }, [{
-    l: text('protein'),
-    v: describeResult.protein,
-    u: "g",
-    c: "#c8a96e"
-  }, {
-    l: text('calories'),
-    v: describeResult.kcal,
-    u: text('kcalUnit'),
-    c: "#8ec8c8"
-  }, {
-    l: text('carbs'),
-    v: describeResult.carbs,
-    u: "g",
-    c: "#a96ec8"
-  }, {
-    l: uiText('Gordura', 'Fat', 'Grasa'),
-    v: describeResult.fat,
-    u: "g",
-    c: "#c86e8e"
-  }, {
-    l: text('fiber'),
-    v: describeResult.fiber,
-    u: "g",
-    c: "#6ec8a9"
-  }, {
-    l: text('salt'),
-    v: describeResult.salt,
-    u: "g",
-    c: "#888"
-  }].filter(x => x.v != null).map(x => /*#__PURE__*/React.createElement("div", {
-    key: x.l,
-    style: {
-      fontSize: 12
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "var(--muted)"
-    }
-  }, x.l, " "), /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: x.c,
-      fontWeight: 600
-    }
-  }, x.v, x.u)))), describeResult.note && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      color: "var(--muted)",
-      fontStyle: "italic",
-      marginBottom: 10,
-      padding: "6px 10px",
-      background: "var(--input)",
-      borderRadius: 4
-    }
-  }, describeResult.note), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(MealEstimateEditor, {
+    estimate: describeResult,
+    lang,
+    isMobileView,
+    disabled: describeLoading || mealRegistrationSaving,
+    errors: [],
+    onChange: setDescribeResult
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-      gap: 8
+      gap: 8,
+      marginTop: 12
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: addDescribedToLog,
@@ -788,17 +712,27 @@
     style: {
       marginBottom: 8
     }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, text('qty') + ' (' + selectedFood.unit + ')'), /*#__PURE__*/React.createElement("input", {
-    type: "number",
+  }, /*#__PURE__*/React.createElement(NumericField, {
+    id: "meal-food-quantity",
+    label: text('qty'),
+    unit: selectedFood.unit,
     value: addEntry.qty,
-    onChange: e => setAddEntry(a => ({
+    onChange: nextValue => setAddEntry(a => ({
       ...a,
-      qty: e.target.value
+      qty: nextValue
     })),
-    placeholder: '250 ' + selectedFood.unit,
-    style: inp
+    placeholder: "250",
+    minValue: 0.01,
+    maxLength: 6,
+    maxDecimals: 2,
+    strings: {
+      title: uiText("Informar quantidade", "Enter quantity", "Indicar cantidad"),
+      cancel: uiText("Cancelar", "Cancel", "Cancelar"),
+      confirm: uiText("Confirmar", "Confirm", "Confirmar"),
+      backspace: uiText("Apagar dígito", "Delete digit", "Borrar dígito"),
+      decimal: uiText("Separador decimal", "Decimal separator", "Separador decimal"),
+      invalid: uiText("Informe uma quantidade maior que zero.", "Enter a quantity greater than zero.", "Indica una cantidad mayor que cero.")
+    }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",

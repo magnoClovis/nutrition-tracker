@@ -18,19 +18,19 @@ const productionHtml = read('index.html');
 const legacyHtml = read('tests/fixtures/index.legacy.html');
 const { CURRENT_RELEASE } = require('../../release-notice.js');
 
-test('keeps every committed 0.10.0-beta version reference synchronized', () => {
+test('keeps every committed 0.11.0-beta version reference synchronized', () => {
   const androidVersion = gradle.match(/^\s*versionName\s+"([^"]+)"/m)?.[1];
 
-  assert.equal(packageJson.version, '0.10.0-beta');
+  assert.equal(packageJson.version, '0.11.0-beta');
   assert.equal(packageLock.version, packageJson.version);
   assert.equal(packageLock.packages[''].version, packageJson.version);
   assert.equal(androidVersion, packageJson.version);
   assert.equal(CURRENT_RELEASE.id, packageJson.version);
   assert.equal(CURRENT_RELEASE.versionName, packageJson.version);
-  assert.equal(CURRENT_RELEASE.label, 'Trofia v0.10.0 Beta');
-  assert.equal(CURRENT_RELEASE.tutorialType, null);
-  assert.match(productionHtml, /window\.APP_VERSION_LABEL = 'Trofia v0\.10\.0 Beta'/);
-  assert.match(legacyHtml, /window\.APP_VERSION_LABEL = 'Trofia v0\.10\.0 Beta'/);
+  assert.equal(CURRENT_RELEASE.label, 'Trofia v0.11.0 Beta');
+  assert.equal(CURRENT_RELEASE.tutorialType, 'release-highlights');
+  assert.match(productionHtml, /window\.APP_VERSION_LABEL = 'Trofia v0\.11\.0 Beta'/);
+  assert.match(legacyHtml, /window\.APP_VERSION_LABEL = 'Trofia v0\.11\.0 Beta'/);
 });
 
 test('derives all runtime labels and tutorial routing from the release contract', () => {
@@ -66,9 +66,9 @@ test('does not mark the release complete while merely opening its notice', () =>
   }
 });
 
-test('finishes an existing-user notice without opening a release tutorial when none is configured', () => {
+test('routes an existing user from the notice into the current release tutorial', () => {
   for (const source of [legacyApp, viteApp]) {
     assert.match(source, /if \(nextTutorialType\) \{[\s\S]*?setShowTutorial\(true\);[\s\S]*?\} else \{\s*if \(releaseAudienceRef\.current\) \{\s*markCurrentReleaseSeen\(\);\s*releaseAudienceRef\.current = null;/);
-    assert.doesNotMatch(source, /else \{\s*setShowReleaseNotice\(true\);/);
+    assert.match(source, /resolveReleaseTutorialType\(releaseAudienceRef\.current, CURRENT_RELEASE\)/);
   }
 });

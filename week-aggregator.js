@@ -27,6 +27,34 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
+  const COVERAGE_NUTRIENTS = Object.freeze([
+    "protein",
+    "kcal",
+    "carbs",
+    "fat",
+    "fiber",
+    "salt",
+    "sugars",
+    "satfat"
+  ]);
+
+  function finiteNutrient(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : null;
+  }
+
+  function nutrientCoverage(entries, field) {
+    const values = entries.map(entry => finiteNutrient(entry && entry[field]));
+    const known = values.filter(value => value !== null);
+    return {
+      knownItemCount: known.length,
+      missingItemCount: values.length - known.length,
+      totalItemCount: values.length,
+      complete: values.length > 0 && known.length === values.length
+    };
+  }
+
   /**
    * Creates the weekly aggregation API with domain dependencies supplied by the host.
    *
@@ -84,6 +112,11 @@
         const fat = entries.reduce((s, e) => s + (e.fat ?? 0), 0);
         const fiber = entries.reduce((s, e) => s + (e.fiber ?? 0), 0);
         const salt = entries.reduce((s, e) => s + (e.salt ?? 0), 0);
+        const sugars = entries.reduce((s, e) => s + (e.sugars ?? 0), 0);
+        const satfat = entries.reduce((s, e) => s + (e.satfat ?? 0), 0);
+        const nutrientCoverageByField = Object.fromEntries(
+          COVERAGE_NUTRIENTS.map(field => [field, nutrientCoverage(entries, field)])
+        );
         days.push({
           date,
           label: formatDateDM(date),
@@ -100,6 +133,8 @@
           fat: Math.round(fat),
           fiber: Math.round(fiber),
           salt: Math.round(salt * 10) / 10,
+          sugars: Math.round(sugars * 10) / 10,
+          satfat: Math.round(satfat * 10) / 10,
           carbsGoal: g.carbs,
           fatGoal: g.fat,
           fiberGoal: g.fiber,
@@ -110,6 +145,7 @@
           adjustment: rawGoal.adjustment || 0,
           metProtein: protein >= g.protein,
           metKcal: kcal >= g.kcal * 0.85 && kcal <= g.kcal * 1.15,
+          nutrientCoverage: nutrientCoverageByField,
           hasData: entries.length > 0,
           isToday: isTodayEntry
         });

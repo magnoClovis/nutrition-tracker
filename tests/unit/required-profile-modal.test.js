@@ -14,6 +14,7 @@ const { ACTIVITY_LEVELS } = createGoalCalculator();
 const currentDispatcher = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentDispatcher;
 
 function ChoiceField() {}
+function DateField() {}
 
 function createHookHarness(Component, props) {
   const state = [];
@@ -77,6 +78,7 @@ function createFixture(createRequiredProfileModal, profile = {}, persisted = {})
     normalizeLanguage,
     pickLang,
     ChoiceField,
+    DateField,
     activityLevels: ACTIVITY_LEVELS,
     storage,
     isValidBirthDate: validation.isValidBirthDate,
@@ -114,13 +116,16 @@ function contractTest(name, callback) {
 contractTest("renders empty, partial, and complete persisted profile values", createRequiredProfileModal => {
   const empty = createFixture(createRequiredProfileModal);
   let tree = empty.harness.render();
-  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), [""]);
+  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), []);
+  assert.deepEqual(elementsByType(tree, DateField).map(field => field.props.value), [""]);
   assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), ["", "", ""]);
-  assert.equal(elementsByType(tree, "input")[0].props.max, "2026-07-31");
+  assert.equal(elementsByType(tree, DateField)[0].props.max, "2026-07-31");
+  assert.equal(elementsByType(tree, "input").some(input => input.props.type === "date"), false);
 
   const partial = createFixture(createRequiredProfileModal, { birthDate: "1990-06-15", gender: "female" });
   tree = partial.harness.render();
-  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), ["1990-06-15"]);
+  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), []);
+  assert.deepEqual(elementsByType(tree, DateField).map(field => field.props.value), ["1990-06-15"]);
   assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), ["female", "", ""]);
 
   const complete = createFixture(createRequiredProfileModal, {
@@ -132,7 +137,8 @@ contractTest("renders empty, partial, and complete persisted profile values", cr
     goalWeeks: "12"
   });
   tree = complete.harness.render();
-  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), ["1990-06-15", "5.5", "12"]);
+  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), ["5.5", "12"]);
+  assert.deepEqual(elementsByType(tree, DateField).map(field => field.props.value), ["1990-06-15"]);
   assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), ["male", "moderate", "loss"]);
 });
 
@@ -237,4 +243,66 @@ contractTest("preserves maintenance storage semantics by clearing goalKg and goa
   assert.equal(fixture.completed.length, 1);
   assert.equal(fixture.completed[0].goalKg, "");
   assert.equal(fixture.completed[0].goalWeeks, "");
+});
+
+contractTest("renders a distinct retryable profile-read error in PT, EN, and ES", createRequiredProfileModal => {
+  const storage = { async get() { return null; }, async set() {} };
+  const validation = createProfileValidation({ storage, activityLevels: ACTIVITY_LEVELS });
+  const { RequiredProfileReadError } = createRequiredProfileModal({
+    React,
+    normalizeLanguage,
+    pickLang,
+    ChoiceField,
+    DateField,
+    activityLevels: ACTIVITY_LEVELS,
+    storage,
+    isValidBirthDate: validation.isValidBirthDate,
+    isValidGender: validation.isValidGender,
+    isValidGoalProfile: validation.isValidGoalProfile,
+    getRequiredProfileData: validation.getRequiredProfileData,
+    hasRequiredProfileData: validation.hasRequiredProfileData,
+    localToday: () => "2026-09-01"
+  });
+  const expectedTitles = {
+    pt: "Não foi possível carregar seu perfil",
+    en: "Your profile could not be loaded",
+    es: "No se pudo cargar tu perfil"
+  };
+
+  for (const [lang, title] of Object.entries(expectedTitles)) {
+    let retries = 0;
+    let logouts = 0;
+    const tree = RequiredProfileReadError({
+      lang,
+      errorCode: "permission-denied",
+      onRetry() { retries += 1; },
+      onLogout() { logouts += 1; }
+    });
+    assert.equal(tree.props["data-required-profile-read-error"], "true");
+    assert.equal(elementsByType(tree, "div").some(element => element.props.children === title), true);
+    assert.equal(
+      elementsByType(tree, "div").some(element =>
+        String(element.props.children || "").includes("permission-denied")),
+      true
+    );
+    const buttons = elementsByType(tree, "button");
+    assert.equal(buttons.length, 2);
+    buttons[0].props.onClick();
+    buttons[1].props.onClick();
+    assert.equal(retries, 1);
+    assert.equal(logouts, 1);
+  }
+
+  const sanitized = RequiredProfileReadError({
+    lang: "en",
+    errorCode: "secret details with spaces",
+    onRetry() {},
+    onLogout() {}
+  });
+  assert.equal(
+    elementsByType(sanitized, "div").some(element =>
+      String(element.props.children || "").includes("firestore-profile-read-failed")),
+    true
+  );
+  assert.equal(JSON.stringify(sanitized).includes("secret details with spaces"), false);
 });

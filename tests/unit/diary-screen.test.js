@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
+const MealScore = require("../../meal-score.js");
 const implementations = [
   ["UMD", () => Promise.resolve(require("../../diary-screen.js"))],
   ["ESM", () => import("../../src/components/diary-screen.js")]
@@ -22,6 +23,15 @@ function GaResultCard({ result, onAdd, evaluateMealItems }) {
 }
 
 function ChoiceField() {
+  return null;
+}
+function SearchableChoiceField() {
+  return null;
+}
+function CheckboxField() {
+  return null;
+}
+function SliderField() {
   return null;
 }
 
@@ -166,6 +176,7 @@ function baseProps(overrides = {}) {
     evaluateMealItems: noOp,
     mealScoreBrief: () => "",
     mealScoreEvaluationText: () => "",
+    mealScoreLabel: value => ({ protein: "Protein", kcal: "Calories", fiber: "Fiber", salt: "Salt" })[value] || value,
     addGAResultToDiary: noOp,
     TODAY: "2026-07-23",
     diaryStatus: { tone: "neutral", title: "Day started", detail: "Keep logging" },
@@ -208,6 +219,8 @@ function baseProps(overrides = {}) {
     setEntryMenuId: noOp,
     detailFood: null,
     setDetailFood: noOp,
+    diaryMealEvaluationDetail: null,
+    setDiaryMealEvaluationDetail: noOp,
     startEditEntry: noOp,
     duplicateEntry: noOp,
     removeEntry: noOp,
@@ -263,7 +276,11 @@ function contractTest(name, callback) {
         Ring,
         Bar,
         GaResultCard,
-        ChoiceField
+        ChoiceField,
+        SearchableChoiceField,
+        CheckboxField,
+        SliderField,
+        collectValidMealEvaluationGroups: MealScore.collectValidMealEvaluationGroups
       });
       return callback(api.DiaryScreen, api);
     });
@@ -463,6 +480,86 @@ contractTest("renders filled categories chronologically after the sole global Ad
   });
 });
 
+contractTest("renders one accepted-assessment badge per valid evaluation group", DiaryScreen => {
+  const snapshot = {
+    algorithmVersion: "meal-score-v2",
+    score: 4.25,
+    coverage: 0.9,
+    confidence: "high",
+    provisional: false,
+    provisionalReasons: [],
+    components: {
+      protein: { key: "protein", available: true, score: 0.9 }
+    }
+  };
+  const entries = [
+    { id: "a", name: "Rice", qty: 100, unit: "g", protein: 4, kcal: 130, mealEvaluationId: "review-1", mealScoreSnapshot: snapshot },
+    { id: "b", name: "Beans", qty: 100, unit: "g", protein: 8, kcal: 120, mealEvaluationId: "review-1", mealScoreSnapshot: snapshot },
+    { id: "c", name: "Salad", qty: 80, unit: "g", protein: 1, kcal: 30 }
+  ];
+  let opened = null;
+  const view = DiaryScreen(baseProps({
+    activeLog: { Lunch: entries },
+    allEntries: entries,
+    setDiaryMealEvaluationDetail: value => { opened = value; }
+  }));
+  const badges = findNodes(view, node => node.props?.["data-meal-evaluation-badge"]);
+  assert.equal(badges.length, 1);
+  assert.equal(textContent(badges[0]), "★ 4.25/5 · Well aligned");
+  badges[0].props.onClick();
+  assert.equal(opened.evaluationId, "review-1");
+  assert.deepEqual(opened.entryIds, ["a", "b"]);
+  assert.equal(opened.meal, "Lunch");
+});
+
+contractTest("hides malformed or inconsistent stored evaluation groups", DiaryScreen => {
+  const first = { algorithmVersion: "meal-score-v2", score: 4.25 };
+  const second = { algorithmVersion: "meal-score-v2", score: 2.5 };
+  const entries = [
+    { id: "a", name: "Rice", qty: 100, unit: "g", mealEvaluationId: "broken", mealScoreSnapshot: first },
+    { id: "b", name: "Beans", qty: 100, unit: "g", mealEvaluationId: "broken", mealScoreSnapshot: second }
+  ];
+  const view = DiaryScreen(baseProps({ activeLog: { Lunch: entries }, allEntries: entries }));
+  assert.equal(findNodes(view, node => node.props?.["data-meal-evaluation-badge"]).length, 0);
+});
+
+contractTest("opens accepted assessment as read-only detail and explains provisional coverage", DiaryScreen => {
+  let closed = 0;
+  const detail = {
+    evaluationId: "review-1",
+    entryIds: ["a", "b"],
+    meal: "Lunch",
+    snapshot: {
+      algorithmVersion: "meal-score-v2",
+      score: 3.75,
+      coverage: 0.75,
+      confidence: "medium",
+      provisional: true,
+      provisionalReasons: [{ nutrient: "fiber", scope: "candidate", missingItemCount: 1, totalItemCount: 2 }],
+      components: {
+        protein: { key: "protein", available: true, score: 0.8 },
+        fiber: { key: "fiber", available: false }
+      }
+    }
+  };
+  const view = DiaryScreen(baseProps({
+    diaryMealEvaluationDetail: detail,
+    setDiaryMealEvaluationDetail: value => { if (value === null) closed += 1; }
+  }));
+  const modal = findNodes(view, node => node.props?.["data-diary-meal-evaluation-modal"] === "true")[0];
+  assert.ok(modal);
+  const copy = textContent(modal);
+  assert.match(copy, /Saved assessment/);
+  assert.match(copy, /3\.75/);
+  assert.match(copy, /Data confidence: Medium/);
+  assert.match(copy, /Coverage: 75%/);
+  assert.match(copy, /Provisional score/);
+  assert.match(copy, /Fiber: data is missing for 1 of 2 foods in this meal\./);
+  assert.equal(/Edit|Log meal|Evaluate meal/.test(copy), false);
+  findNodes(modal, node => node.type === "button" && textContent(node) === "Close").at(-1).props.onClick();
+  assert.equal(closed, 1);
+});
+
 contractTest("centers the Nutrients label and disclosure arrow as one group", DiaryScreen => {
   const view = DiaryScreen(baseProps({ section: "summary" }));
   const button = findNodes(
@@ -557,6 +654,73 @@ contractTest("uses the reusable ChoiceField for the GA target meal", DiaryScreen
   ]);
   field.props.onChange("Breakfast");
   assert.equal(selected, "Breakfast");
+});
+
+contractTest("uses native-semantic CheckboxField and SliderField controls for meal suggestions", DiaryScreen => {
+  const checkboxChanges = [];
+  const sliderChanges = [];
+  const selectedFoods = [];
+  const view = DiaryScreen(baseProps({
+    section: "summary",
+    showGA: true,
+    gaUseAll: false,
+    setGAUseAll: value => checkboxChanges.push(["all", value]),
+    gaAdvancedOpen: true,
+    gaUseProtTol: true,
+    setGAUseProtTol: value => checkboxChanges.push(["protein", value]),
+    setGATolerance: value => sliderChanges.push(["size", value]),
+    setGAProtTolerance: value => sliderChanges.push(["protein", value]),
+    setGASelIds: updater => selectedFoods.push(updater({ "food-1": false }))
+  }));
+  const checkboxes = findNodes(view, node => node.type === CheckboxField);
+  const sliders = findNodes(view, node => node.type === SliderField);
+  const byId = id => checkboxes.find(node => node.props.id === id);
+
+  assert.deepEqual(checkboxes.map(node => node.props.id), [
+    "ga-use-all-pantry-foods",
+    "ga-food-food-1",
+    "ga-protein-flexibility-toggle"
+  ]);
+  assert.deepEqual(sliders.map(node => node.props.id), [
+    "ga-meal-size-slider",
+    "ga-protein-flexibility-slider"
+  ]);
+  byId("ga-use-all-pantry-foods").props.onChange(true);
+  byId("ga-food-food-1").props.onChange(true);
+  byId("ga-protein-flexibility-toggle").props.onChange(false);
+  sliders[0].props.onChange(15);
+  sliders[1].props.onChange(30);
+
+  assert.deepEqual(checkboxChanges, [["all", true], ["protein", false]]);
+  assert.deepEqual(selectedFoods, [{ "food-1": true }]);
+  assert.deepEqual(sliderChanges, [["size", 15], ["protein", 30]]);
+  assert.equal(sliders[0].props.min, -40);
+  assert.equal(sliders[0].props.max, 40);
+  assert.equal(sliders[1].props.min, 5);
+  assert.equal(sliders[1].props.max, 50);
+});
+
+contractTest("uses the searchable selector for Diary supplements", DiaryScreen => {
+  let selected = null;
+  const view = DiaryScreen(baseProps({
+    section: "content",
+    showSuppAdd: true,
+    suppPantry: [
+      { id: "creatine", name: "Creatine", dose: 5, unit: "g" },
+      { id: "vitamin-d", name: "Vitamin D", dose: 1, unit: "caps" }
+    ],
+    setSuppAddId: value => { selected = value; }
+  }));
+  const field = findNodes(view, node => node.type === SearchableChoiceField)[0];
+
+  assert.equal(field.props.id, "diary-supplement");
+  assert.deepEqual(field.props.options, [
+    { value: "creatine", label: "Creatine", description: "Default dose · 5 g" },
+    { value: "vitamin-d", label: "Vitamin D", description: "Default dose · 1 caps" }
+  ]);
+  assert.equal(field.props.resultCountLabel(2), "2 results");
+  field.props.onChange("vitamin-d");
+  assert.equal(selected, "vitamin-d");
 });
 
 contractTest("daily feedback remains controlled and no meal-review modal is invented", DiaryScreen => {

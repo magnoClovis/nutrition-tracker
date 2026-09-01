@@ -49,6 +49,7 @@
    * @param {function(...*): void} dependencies.reportError Error logger, normally `console.error`.
    * @param {function(Date=): string} dependencies.localToday Shared local civil-date formatter.
    * @param {function(string, number): string} dependencies.addCivilDays Shared calendar-day shifter.
+   * @param {Function} dependencies.CheckboxField Native-semantic multiple-choice control.
    * @returns {{BackupModal: function(Object): Object}} Configured backup-modal component API.
    */
   function createBackupModal({
@@ -64,7 +65,8 @@
     alertUser,
     reportError,
     localToday,
-    addCivilDays
+    addCivilDays,
+    CheckboxField
   }) {
     if (!React || typeof React.createElement !== "function" || typeof React.useState !== "function" ||
         typeof normalizeLanguage !== "function" || typeof pickLang !== "function" ||
@@ -74,8 +76,9 @@
         typeof supportsNativeFileDestinations !== "boolean" ||
         typeof getBackupContext !== "function" || typeof FileReaderCtor !== "function" ||
         typeof alertUser !== "function" || typeof reportError !== "function" ||
-        typeof localToday !== "function" || typeof addCivilDays !== "function") {
-      throw new TypeError("BackupModal requires React, i18n, storage, browser services, and getBackupContext");
+        typeof localToday !== "function" || typeof addCivilDays !== "function" ||
+        typeof CheckboxField !== "function") {
+      throw new TypeError("BackupModal requires React, i18n, storage, browser services, getBackupContext, and CheckboxField");
     }
 
     const localStorage = localStorageService;
@@ -650,16 +653,14 @@
                         border:'1px solid var(--border2)', borderRadius:12, padding:12,
                         background:checked ? 'var(--btn-ok)' : 'var(--surface)'
                       }},
-                        React.createElement('label', {style:{display:'flex', alignItems:'center', gap:10, cursor:'pointer'}},
-                          React.createElement('input', {
-                            type:'checkbox', checked,
-                            onChange:event => setImportCategory(category.id, event.target.checked)
-                          }),
-                          React.createElement('div', {style:{flex:1}},
-                            React.createElement('div', {style:{fontSize:14, fontWeight:700, color:'var(--text)'}}, label),
-                            React.createElement('div', {style:{fontSize:12, color:'var(--muted)', marginTop:2}}, summary)
-                          )
-                        ),
+                        React.createElement(CheckboxField, {
+                          id: `backup-category-${category.id}`,
+                          checked,
+                          onChange: nextChecked => setImportCategory(category.id, nextChecked),
+                          label,
+                          description: summary,
+                          style: { padding: 0 }
+                        }),
                         checked && React.createElement('div', {style:{display:'flex', gap:8, marginTop:10, flexWrap:'wrap'}},
                           React.createElement('button', {onClick:()=>setImportCategoryStrategy(category.id, 'append'), style:{
                             flex:'1 1 150px', padding:'10px 12px', borderRadius:9, cursor:'pointer', fontFamily:'inherit',

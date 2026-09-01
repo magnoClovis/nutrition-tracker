@@ -38,17 +38,22 @@
    * @param {Function} dependencies.Bar Linear metric primitive from ui-primitives.js.
    * @param {Function} dependencies.GaResultCard Active GA result card component.
    * @param {Function} dependencies.ChoiceField App-local controlled list selector.
+   * @param {Function} dependencies.SearchableChoiceField Searchable selector for dynamic supplement options.
+   * @param {Function} dependencies.CheckboxField Native-semantic multiple-choice control.
+   * @param {Function} dependencies.SliderField Native-semantic continuous value control.
    * @returns {Object} Controlled Diary component API and meal-ordering helper.
    */
-  function createDiaryScreen({ React, pickLang, sortLocaleForLang, localeForLang, addDays, monthDays, shiftMonth, calendarMonthStats, Ring, Bar, GaResultCard, ChoiceField }) {
+  function createDiaryScreen({ React, pickLang, sortLocaleForLang, localeForLang, addDays, monthDays, shiftMonth, calendarMonthStats, Ring, Bar, GaResultCard, ChoiceField, SearchableChoiceField, CheckboxField, SliderField, collectValidMealEvaluationGroups }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof sortLocaleForLang !== "function"
       || typeof localeForLang !== "function" || typeof addDays !== "function"
       || typeof monthDays !== "function" || typeof shiftMonth !== "function"
       || typeof calendarMonthStats !== "function" || typeof Ring !== "function"
       || typeof Bar !== "function" || typeof GaResultCard !== "function"
-      || typeof ChoiceField !== "function") {
-      throw new TypeError("DiaryScreen requires React, i18n/date/calendar helpers, Ring, Bar, GaResultCard, and ChoiceField");
+      || typeof ChoiceField !== "function" || typeof SearchableChoiceField !== "function"
+      || typeof CheckboxField !== "function" || typeof SliderField !== "function"
+      || typeof collectValidMealEvaluationGroups !== "function") {
+      throw new TypeError("DiaryScreen requires React, i18n/date/calendar helpers, Ring, Bar, GaResultCard, ChoiceField, SearchableChoiceField, CheckboxField, SliderField, and meal evaluation groups");
     }
 
     const inp = { width: "100%", background: "var(--input)", border: "1px solid var(--border2)", color: "var(--text2)", padding: "9px 12px", borderRadius: 6, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", outline: "none", marginTop: 3 };
@@ -100,8 +105,92 @@
      * @returns {Object|null} React element tree for ticker, summary, or content.
      */
     function DiaryScreen(props) {
-      const { section, tab, lang, isMobileView, darkMode, text, uiText, tickerPhase, tickerDirection, safeTickerIndex, activeTickerSlide, tickerTimerReset, handleTickerPointerDown, handleTickerPointerMove, finishTickerPointer, tickerToneColor, tickerDragOffset, tickerSlides, setTickerTimerReset, moveTicker, greetingText, greetingLine, tot, goals, remainProtein, remainKcal, allEntries, dayProteinPct, dayKcalPct, openMealSuggestions, gaRunning, suggestLoading, showGA, setShowGA, gaTolerance, setGATolerance, gaTargetMeal, setGATargetMeal, MEALS, mealLabel, gaUseAll, setGAUseAll, runGASafely, gaProgress, gaResults, gaHasSearched, expandMicros, setExpandMicros, dailyMicros, hasMicros, getAutomaticMealSuggestionLimits, gaKcalMin, setGAKcalMin, gaProtMin, setGAProtMin, gaKcalMax, setGAKcalMax, gaProtMax, setGAProtMax, gaFoodSearch, setGAFoodSearch, pantry, gaSelIds, setGASelIds, gaAdvancedOpen, setGAAdvancedOpen, gaGlobalMax, setGAGlobalMax, gaUseProtTol, setGAUseProtTol, gaProtTolerance, setGAProtTolerance, activeLog, evaluateMealItems, mealScoreBrief, mealScoreEvaluationText, addGAResultToDiary, TODAY, diaryStatus, dateLabel, viewDate, calendarOpen, setCalendarOpen, changeViewDate, setCalendarMonth, calendarMonth, calendarData, calendarLoading, isToday, viewWeight, isTraining, totalWater, waterExpanded, setWaterExpanded, editWaterGoal, setEditWaterGoal, waterGoalInput, setWaterGoalInput, setWaterGoal, addWater, waterCustomPreset, configureWaterCustomPreset, waterInput, setWaterInput, waterIntake, removeWater, suppLog, removeSuppLog, entryMenuId, editEntryId, editEntryQty, setEditEntryQty, saveEntryEdit, setEditEntryId, openAddForMeal, setEntryMenuId, detailFood, setDetailFood, startEditEntry, duplicateEntry, removeEntry, notesOpen, setNotesOpen, todayNote, historyNote, setTodayNote, setHistoryNote, suppPantry, showSuppAdd, setShowSuppAdd, suppAddId, setSuppAddId, suppAddDose, setSuppAddDose, logSupp, feedbackLoading, feedbackPeriod, generateFeedback, feedbackText, feedbackSaved, saveFeedbackAsNote, setTab, opaqueTrailingNode } = props;
+      const { section, tab, lang, isMobileView, darkMode, text, uiText, tickerPhase, tickerDirection, safeTickerIndex, activeTickerSlide, tickerTimerReset, handleTickerPointerDown, handleTickerPointerMove, finishTickerPointer, tickerToneColor, tickerDragOffset, tickerSlides, setTickerTimerReset, moveTicker, greetingText, greetingLine, tot, goals, remainProtein, remainKcal, allEntries, dayProteinPct, dayKcalPct, openMealSuggestions, gaRunning, suggestLoading, showGA, setShowGA, gaTolerance, setGATolerance, gaTargetMeal, setGATargetMeal, MEALS, mealLabel, gaUseAll, setGAUseAll, runGASafely, gaProgress, gaResults, gaHasSearched, expandMicros, setExpandMicros, dailyMicros, hasMicros, getAutomaticMealSuggestionLimits, gaKcalMin, setGAKcalMin, gaProtMin, setGAProtMin, gaKcalMax, setGAKcalMax, gaProtMax, setGAProtMax, gaFoodSearch, setGAFoodSearch, pantry, gaSelIds, setGASelIds, gaAdvancedOpen, setGAAdvancedOpen, gaGlobalMax, setGAGlobalMax, gaUseProtTol, setGAUseProtTol, gaProtTolerance, setGAProtTolerance, activeLog, evaluateMealItems, mealScoreBrief, mealScoreEvaluationText, mealScoreLabel, addGAResultToDiary, TODAY, diaryStatus, dateLabel, viewDate, calendarOpen, setCalendarOpen, changeViewDate, setCalendarMonth, calendarMonth, calendarData, calendarLoading, isToday, viewWeight, isTraining, totalWater, waterExpanded, setWaterExpanded, editWaterGoal, setEditWaterGoal, waterGoalInput, setWaterGoalInput, setWaterGoal, addWater, waterCustomPreset, configureWaterCustomPreset, waterInput, setWaterInput, waterIntake, removeWater, suppLog, removeSuppLog, entryMenuId, editEntryId, editEntryQty, setEditEntryQty, saveEntryEdit, setEditEntryId, openAddForMeal, setEntryMenuId, detailFood, setDetailFood, diaryMealEvaluationDetail, setDiaryMealEvaluationDetail, startEditEntry, duplicateEntry, removeEntry, notesOpen, setNotesOpen, todayNote, historyNote, setTodayNote, setHistoryNote, suppPantry, showSuppAdd, setShowSuppAdd, suppAddId, setSuppAddId, suppAddDose, setSuppAddDose, logSupp, feedbackLoading, feedbackPeriod, generateFeedback, feedbackText, feedbackSaved, saveFeedbackAsNote, setTab, opaqueTrailingNode } = props;
       const visibleMealCategories = getVisibleMealCategories(MEALS, activeLog);
+      const scoreBand = score => score >= 4
+        ? uiText("Bem alinhada", "Well aligned", "Bien alineada")
+        : score >= 3
+          ? uiText("Parcialmente alinhada", "Partially aligned", "Parcialmente alineada")
+          : uiText("Pouco alinhada", "Low alignment", "Poco alineada");
+      const confidenceLabel = confidence => ({
+        high: uiText("Alta", "High", "Alta"),
+        medium: uiText("Média", "Medium", "Media"),
+        low: uiText("Baixa", "Low", "Baja")
+      })[confidence] || uiText("Indisponível", "Unavailable", "No disponible");
+      const evaluationColor = score => score >= 4
+        ? "var(--btn-ok-text)"
+        : score >= 3 ? "#c8a96e" : "#c86e8e";
+      function provisionalReasonText(reason) {
+        const nutrient = mealScoreLabel(reason?.nutrient);
+        const missing = Number(reason?.missingItemCount) || 0;
+        const total = Number(reason?.totalItemCount) || 0;
+        const scope = reason?.scope === "consumed"
+          ? uiText("registros anteriores do dia", "earlier entries today", "registros anteriores del día")
+          : uiText("alimentos desta refeição", "foods in this meal", "alimentos de esta comida");
+        return `${nutrient}: ${uiText("faltam dados em", "data is missing for", "faltan datos en")} ${missing} ${uiText("de", "of", "de")} ${total} ${scope}.`;
+      }
+      function renderMealEvaluationDetail() {
+        if (!diaryMealEvaluationDetail?.snapshot) return null;
+        const detail = diaryMealEvaluationDetail;
+        const snapshot = detail.snapshot;
+        const coverage = Number.isFinite(snapshot.coverage) ? Math.round(snapshot.coverage * 100) : 0;
+        const components = Object.values(snapshot.components || {}).filter(component => component?.available);
+        const reasons = Array.isArray(snapshot.provisionalReasons) ? snapshot.provisionalReasons : [];
+        const scoreColor = evaluationColor(snapshot.score);
+        return React.createElement("div", {
+          "data-diary-meal-evaluation-modal": "true",
+          "data-safe-area-dialog": "16",
+          role: "dialog",
+          "aria-modal": "true",
+          "aria-label": uiText("Avaliação salva da refeição", "Saved meal assessment", "Evaluación guardada de la comida"),
+          onClick: () => setDiaryMealEvaluationDetail(null),
+          style: {
+            position: "fixed", inset: 0, zIndex: 10020, background: "rgba(0,0,0,0.72)",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16
+          }
+        }, React.createElement("div", {
+          onClick: event => event.stopPropagation(),
+          style: {
+            width: "100%", maxWidth: 620, maxHeight: "90vh", overflowY: "auto",
+            background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
+            padding: isMobileView ? 14 : 20, boxShadow: "0 18px 60px rgba(0,0,0,0.4)"
+          }
+        },
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 14 } },
+          React.createElement("div", null,
+            React.createElement("div", { style: { fontSize: 14, textTransform: "uppercase", letterSpacing: 1.2, color: "var(--muted)" } }, uiText("Avaliação salva", "Saved assessment", "Evaluación guardada")),
+            React.createElement("div", { style: { fontSize: 12, color: "var(--dim)", marginTop: 4 } }, mealLabel(detail.meal), " · ", detail.entryIds.length, " ", uiText(detail.entryIds.length === 1 ? "alimento" : "alimentos", detail.entryIds.length === 1 ? "food" : "foods", detail.entryIds.length === 1 ? "alimento" : "alimentos"))
+          ),
+          React.createElement("button", { type: "button", onClick: () => setDiaryMealEvaluationDetail(null), "aria-label": uiText("Fechar", "Close", "Cerrar"), style: { background: "none", border: "none", color: "var(--muted)", fontSize: 22, cursor: "pointer" } }, "×")
+        ),
+        React.createElement("div", { style: { display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "150px 1fr", gap: 12, marginBottom: 12 } },
+          React.createElement("div", { style: { background: "var(--bg)", border: "1px solid var(--border3)", borderRadius: 10, padding: 14, textAlign: "center" } },
+            React.createElement("div", { style: { fontSize: 34, fontWeight: 800, color: scoreColor } }, snapshot.score.toFixed(2)),
+            React.createElement("div", { style: { fontSize: 12, color: "var(--muted)" } }, uiText("de 5,00", "out of 5.00", "de 5,00")),
+            React.createElement("div", { style: { fontSize: 12, color: scoreColor, fontWeight: 700, marginTop: 5 } }, scoreBand(snapshot.score))
+          ),
+          React.createElement("div", { style: { background: "var(--bg)", border: "1px solid var(--border3)", borderRadius: 10, padding: 12, fontSize: 13, lineHeight: 1.55, color: "var(--text3)" } },
+            React.createElement("div", null, React.createElement("b", null, uiText("Confiança dos dados: ", "Data confidence: ", "Confianza de los datos: ")), confidenceLabel(snapshot.confidence)),
+            React.createElement("div", { style: { marginTop: 5 } }, React.createElement("b", null, uiText("Cobertura: ", "Coverage: ", "Cobertura: ")), coverage, "%"),
+            React.createElement("div", { style: { marginTop: 5, color: "var(--dim)" } }, uiText("Esta é a avaliação aceita no momento do registro; ela não é recalculada automaticamente.", "This is the assessment accepted when the meal was logged; it is not recalculated automatically.", "Esta es la evaluación aceptada al registrar la comida; no se recalcula automáticamente."))
+          )
+        ),
+        snapshot.provisional && React.createElement("div", { style: { background: "var(--btn-warn)", border: "1px solid var(--btn-warn-border)", borderRadius: 8, padding: "9px 10px", marginBottom: 12, color: "var(--btn-warn-text)", fontSize: 12, lineHeight: 1.5 } },
+          React.createElement("b", null, uiText("Nota provisória", "Provisional score", "Nota provisional")),
+          reasons.map((reason, index) => React.createElement("div", { key: `${reason.nutrient || "unknown"}-${reason.scope || "unknown"}-${index}`, style: { marginTop: 3 } }, provisionalReasonText(reason)))
+        ),
+        React.createElement("div", { style: { display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 } }, components.map(component => React.createElement("div", { key: component.key, style: { background: "var(--surface3)", border: "1px solid var(--border3)", borderRadius: 8, padding: "9px 10px" } },
+          React.createElement("div", { style: { fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.8 } }, mealScoreLabel(component.key)),
+          React.createElement("div", { style: { fontSize: 18, fontWeight: 750, color: evaluationColor(component.score), marginTop: 3 } }, (component.score * 5).toFixed(2), " / 5")
+        ))),
+        React.createElement("button", { type: "button", onClick: () => setDiaryMealEvaluationDetail(null), style: { ...btn, marginTop: 14 } }, uiText("Fechar", "Close", "Cerrar"))
+        ));
+      }
+      const supplementResultCountLabel = count => uiText(
+        `${count} ${count === 1 ? "resultado" : "resultados"}`,
+        `${count} ${count === 1 ? "result" : "results"}`,
+        `${count} ${count === 1 ? "resultado" : "resultados"}`
+      );
     function renderDailyMicros() {
         if (!hasMicros) return null;
         return /*#__PURE__*/React.createElement("div", {
@@ -256,28 +345,15 @@
             style: { color: "var(--muted)", fontSize: 12, marginBottom: 8 }
           }, uiText("Selecione os alimentos a incluir:", "Select foods to include:", "Selecciona los alimentos que se incluirán:")),
           filteredFoods.length
-            ? filteredFoods.map(food => React.createElement("label", {
+            ? filteredFoods.map(food => React.createElement(CheckboxField, {
               key: food.id,
-              style: {
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "4px 0",
-                color: "var(--text2)",
-                fontSize: 13,
-                cursor: "pointer"
-              }
-            },
-              React.createElement("input", {
-                type: "checkbox",
-                checked: !!gaSelIds[food.id],
-                onChange: e => setGASelIds(prev => ({ ...prev, [food.id]: e.target.checked }))
-              }),
-              React.createElement("span", null, food.name),
-              React.createElement("span", {
-                style: { color: "var(--muted)", fontSize: 12 }
-              }, "(", food.kcal100 || 0, "kcal, ", food.protein100 || 0, "g prot)")
-            ))
+              id: `ga-food-${food.id}`,
+              compact: true,
+              checked: !!gaSelIds[food.id],
+              onChange: checked => setGASelIds(prev => ({ ...prev, [food.id]: checked })),
+              label: food.name,
+              description: `${food.kcal100 || 0} kcal · ${food.protein100 || 0} g ${uiText("proteína", "protein", "proteína")}`
+            }))
             : React.createElement("div", {
               style: { color: "var(--muted)", fontSize: 12 }
             }, uiText("Nenhum alimento encontrado.", "No foods found.", "No se encontraron alimentos."))
@@ -311,75 +387,41 @@
               style: { ...inp, marginTop: 0 }
             })
           ),
-          React.createElement("div", { style: { marginBottom: 14 } },
-            React.createElement("div", {
-              style: {
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                gap: 8,
-                marginBottom: 4
-              }
-            },
-              React.createElement("label", { style: compactLabel }, uiText("Ajuste fino do tamanho", "Fine-tune meal size", "Ajuste fino del tamaño")),
-              React.createElement("span", {
-                style: {
-                  color: gaTolerance > 0 ? "#c8b47e" : gaTolerance < 0 ? "#7ec8c8" : "var(--text2)",
-                  fontSize: 12,
-                  fontWeight: 700
-                }
-              }, (gaTolerance > 0 ? "+" : "") + gaTolerance + "% · " + autoMaxKcal + " kcal")
-            ),
-            React.createElement("input", {
-              type: "range",
-              min: -40,
-              max: 40,
-              value: gaTolerance,
-              onChange: e => setGATolerance(parseInt(e.target.value)),
-              style: { width: "100%" }
-            }),
-            React.createElement("div", {
-              style: {
-                display: "flex",
-                justifyContent: "space-between",
-                color: "var(--muted)",
-                fontSize: 12
-              }
-            },
-              React.createElement("span", null, uiText("- déficit", "- deficit", "- déficit")),
-              React.createElement("span", null, "0%"),
-              React.createElement("span", null, uiText("+ superávit", "+ surplus", "+ superávit"))
-            )
-          ),
-          React.createElement("label", {
-            style: {
-              color: "var(--text2)",
-              fontSize: 13,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              cursor: "pointer",
-              marginBottom: 10
-            }
-          },
-            React.createElement("input", {
-              type: "checkbox",
-              checked: gaUseProtTol,
-              onChange: e => setGAUseProtTol(e.target.checked)
-            }),
-            uiText("Definir flexibilidade de proteína", "Set protein flexibility", "Definir flexibilidad de proteína")
-          ),
-          gaUseProtTol && React.createElement("div", { style: { marginBottom: 12 } },
-            React.createElement("label", { style: compactLabel }, uiText("Flexibilidade de proteína: ", "Protein flexibility: ", "Flexibilidad de proteína: ") + gaProtTolerance + "%"),
-            React.createElement("input", {
-              type: "range",
-              min: 5,
-              max: 50,
-              value: gaProtTolerance,
-              onChange: e => setGAProtTolerance(parseInt(e.target.value)),
-              style: { width: "100%" }
-            })
-          ),
+          React.createElement(SliderField, {
+            id: "ga-meal-size-slider",
+            label: uiText("Ajuste fino do tamanho", "Fine-tune meal size", "Ajuste fino del tamaño"),
+            value: gaTolerance,
+            onChange: setGATolerance,
+            min: -40,
+            max: 40,
+            valueText: (gaTolerance > 0 ? "+" : "") + gaTolerance + "% · " + autoMaxKcal + " kcal",
+            minLabel: uiText("− déficit", "− deficit", "− déficit"),
+            centerLabel: "0%",
+            maxLabel: uiText("+ superávit", "+ surplus", "+ superávit"),
+            style: { marginBottom: 10 }
+          }),
+          React.createElement(CheckboxField, {
+            id: "ga-protein-flexibility-toggle",
+            checked: gaUseProtTol,
+            onChange: setGAUseProtTol,
+            label: uiText("Definir flexibilidade de proteína", "Set protein flexibility", "Definir flexibilidad de proteína"),
+            description: uiText("Exibe o ajuste dependente somente quando ativo.", "Shows the dependent adjustment only while active.", "Muestra el ajuste dependiente solo cuando está activo."),
+            style: { marginBottom: gaUseProtTol ? 4 : 10 }
+          }),
+          gaUseProtTol && React.createElement(SliderField, {
+            id: "ga-protein-flexibility-slider",
+            label: uiText("Flexibilidade de proteína", "Protein flexibility", "Flexibilidad de proteína"),
+            value: gaProtTolerance,
+            onChange: setGAProtTolerance,
+            min: 5,
+            max: 50,
+            valueText: gaProtTolerance + "%",
+            minLabel: "5%",
+            centerLabel: uiText("ajuste fino", "fine adjustment", "ajuste fino"),
+            maxLabel: "50%",
+            tone: "protein",
+            style: { marginBottom: 12, marginLeft: 10, borderLeft: "2px solid var(--accent-protein-fill)" }
+          }),
           React.createElement("div", {
             style: {
               borderTop: "1px solid var(--border2)",
@@ -792,21 +834,14 @@
     options: MEALS.map(meal => ({ value: meal, label: mealLabel(meal) })),
     helperText: uiText("Escolha onde aplicar a sugestão", "Choose where to apply the suggestion", "Elige dónde aplicar la sugerencia"),
     closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector")
-  }))), /*#__PURE__*/React.createElement("label", {
-    style: {
-      display: "flex",
-      gap: 8,
-      alignItems: "flex-start",
-      color: "var(--text2)",
-      fontSize: 13,
-      lineHeight: 1.35,
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "checkbox",
+  }))), /*#__PURE__*/React.createElement(CheckboxField, {
+    id: "ga-use-all-pantry-foods",
     checked: gaUseAll,
-    onChange: e => setGAUseAll(e.target.checked)
-  }), /*#__PURE__*/React.createElement("span", null, uiText("Usar todos os alimentos da despensa automaticamente.", "Use all pantry foods automatically.", "Usar todos los alimentos de la despensa automáticamente."))), renderMealSuggestionAdvancedControls(), /*#__PURE__*/React.createElement("button", {
+    onChange: setGAUseAll,
+    label: uiText("Usar todos os alimentos da despensa automaticamente.", "Use all pantry foods automatically.", "Usar todos los alimentos de la despensa automáticamente."),
+    description: uiText("A seleção manual fica preservada ao desativar.", "The manual selection is preserved when disabled.", "La selección manual se conserva al desactivar."),
+    style: { marginBottom: 10 }
+  }), renderMealSuggestionAdvancedControls(), /*#__PURE__*/React.createElement("button", {
     onClick: runGASafely,
     disabled: gaRunning,
     style: {
@@ -1552,6 +1587,7 @@
     }
   }, "+ ", uiText("Adicionar", "Add", "Agregar"))), visibleMealCategories.map(meal => {
     const entries = activeLog[meal] || [];
+    const evaluationGroups = collectValidMealEvaluationGroups(entries);
     const mp = entries.reduce((s, e) => s + (e.protein ?? 0), 0);
     const mk = entries.reduce((s, e) => s + (e.kcal ?? 0), 0);
     const mealHasOpenMenu = entries.some(e => e.id === entryMenuId);
@@ -1622,7 +1658,31 @@
         color: caloriesColor,
         fontWeight: 700
       }
-    }, Math.round(mk), " kcal"))), /*#__PURE__*/React.createElement("div", {
+    }, Math.round(mk), " kcal"))), evaluationGroups.length > 0 && /*#__PURE__*/React.createElement("div", {
+      "data-diary-meal-evaluations": "true",
+      style: {
+        display: "flex",
+        gap: 7,
+        flexWrap: "wrap",
+        padding: "9px 0 2px"
+      }
+    }, evaluationGroups.map(group => /*#__PURE__*/React.createElement("button", {
+      key: group.evaluationId,
+      type: "button",
+      "data-meal-evaluation-badge": group.evaluationId,
+      onClick: () => setDiaryMealEvaluationDetail({ ...group, meal }),
+      style: {
+        background: "var(--ai-bg)",
+        border: "1px solid var(--ai-border)",
+        color: "var(--ai-text)",
+        borderRadius: 999,
+        padding: "6px 10px",
+        fontSize: 12,
+        fontWeight: 700,
+        fontFamily: "inherit",
+        cursor: "pointer"
+      }
+    }, "★ ", group.snapshot.score.toFixed(2), "/5 · ", scoreBand(group.snapshot.score)))), /*#__PURE__*/React.createElement("div", {
       "data-diary-meal-items": "true",
       style: {
         display: "block",
@@ -1819,23 +1879,33 @@
     style: {
       marginTop: 8,
       display: "flex",
-      gap: 6
+      gap: 6,
+      alignItems: "flex-end"
     }
-  }, /*#__PURE__*/React.createElement("select", {
+  }, /*#__PURE__*/React.createElement(SearchableChoiceField, {
+    id: "diary-supplement",
+    label: uiText("Suplemento", "Supplement", "Suplemento"),
     value: suppAddId,
-    onChange: e => setSuppAddId(e.target.value),
+    onChange: setSuppAddId,
+    options: suppPantry.map(s => ({
+      value: s.id,
+      label: s.name,
+      description: `${uiText("Dose padrão", "Default dose", "Dosis predeterminada")} · ${s.dose} ${s.unit}`
+    })),
+    placeholder: uiText("— selecione —", "— select —", "— seleccionar —"),
+    helperText: uiText("Busque nos suplementos cadastrados", "Search registered supplements", "Busca en los suplementos registrados"),
+    searchPlaceholder: uiText("Buscar suplemento", "Search supplement", "Buscar suplemento"),
+    resultsHint: uiText("Toque para selecionar", "Tap to select", "Toca para seleccionar"),
+    resultCountLabel: supplementResultCountLabel,
+    noResultsTitle: uiText("Nenhum suplemento encontrado", "No supplement found", "No se encontró ningún suplemento"),
+    noResultsMessage: uiText("Tente outro nome ou limpe a busca.", "Try another name or clear the search.", "Prueba otro nombre o borra la búsqueda."),
+    clearSearchLabel: uiText("Limpar busca", "Clear search", "Borrar búsqueda"),
+    closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector"),
     style: {
-      ...inp,
       flex: 2,
-      marginTop: 0,
-      padding: "8px 10px"
+      minWidth: 0
     }
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, uiText("\u2014 selecione \u2014", "\u2014 select \u2014", "\u2014 seleccionar \u2014")), suppPantry.map(s => /*#__PURE__*/React.createElement("option", {
-    key: s.id,
-    value: s.id
-  }, s.name, " (", s.dose, s.unit, ")"))), /*#__PURE__*/React.createElement("input", {
+  }), /*#__PURE__*/React.createElement("input", {
     type: "number",
     value: suppAddDose,
     onChange: e => setSuppAddDose(e.target.value),
@@ -1925,7 +1995,7 @@
     }
   }, text('savedNote'))),
 
-  opaqueTrailingNode));
+  opaqueTrailingNode, renderMealEvaluationDetail()));
       return null;
     }
 

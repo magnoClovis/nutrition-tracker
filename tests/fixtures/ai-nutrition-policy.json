@@ -1,0 +1,222 @@
+{
+  "contractVersion": "c08-ai-nutrition-policy-v1",
+  "status": "implemented-and-validated",
+  "currentModel": "gemini-3.5-flash-lite",
+  "scoreAuthority": "meal-score-v2",
+  "languages": ["pt", "en", "es"],
+  "nutrients": [
+    {"key": "kcal", "unit": "kcal", "scoreRole": "required"},
+    {"key": "protein", "unit": "g", "scoreRole": "required"},
+    {"key": "carbs", "unit": "g", "scoreRole": "optional"},
+    {"key": "fat", "unit": "g", "scoreRole": "optional"},
+    {"key": "fiber", "unit": "g", "scoreRole": "optional"},
+    {"key": "salt", "unit": "g", "scoreRole": "optional", "notEquivalentTo": "sodium"},
+    {"key": "sugars", "unit": "g", "scoreRole": "informational"},
+    {"key": "satfat", "unit": "g", "scoreRole": "informational"}
+  ],
+  "canonicalRules": [
+    "contextual-not-absolute-health",
+    "local-score-is-definitive",
+    "unknown-is-null-not-zero",
+    "provisional-reasons-are-specific",
+    "estimate-confidence-is-separate-from-coverage",
+    "salt-is-not-sodium",
+    "real-meal-occurrence-time",
+    "no-diagnosis-or-alarmism",
+    "user-content-is-data-not-instruction",
+    "no-invented-sources-or-certainty",
+    "structured-output-fails-closed",
+    "language-parity",
+    "historical-results-are-not-reprocessed"
+  ],
+  "privacy": {
+    "allowedFeedbackContext": [
+      "period",
+      "civilDate",
+      "trainingOrRestDay",
+      "calculatedGoals",
+      "nutrientTotals",
+      "dataCoverage",
+      "foodEntriesNeededForAnalysis"
+    ],
+    "forbiddenRawProfileFields": [
+      "name",
+      "birthDate",
+      "age",
+      "sex",
+      "gender",
+      "height",
+      "weight",
+      "bmi"
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "meal-evaluation-explanation",
+      "kind": "narrative",
+      "endpoint": "/v1/ai/completion",
+      "promptVersion": "meal-explanation-v1",
+      "outputContract": "bounded-nonempty-text",
+      "specialRule": "explain-definitive-local-score"
+    },
+    {
+      "id": "dish-description",
+      "kind": "structured",
+      "endpoint": "/v1/ai/dish-estimate",
+      "endpointStatus": "deployed",
+      "promptVersion": "dish-estimate-v2",
+      "outputContract": "meal-estimate",
+      "specialRule": "shared-image-editor-and-null-semantics"
+    },
+    {
+      "id": "image-meal",
+      "kind": "structured",
+      "endpoint": "/v1/ai/image-meal",
+      "endpointStatus": "deployed",
+      "promptVersion": "image-meal-v1",
+      "outputContract": "meal-estimate",
+      "specialRule": "transient-image-visible-foods-only"
+    },
+    {
+      "id": "food-autofill",
+      "kind": "structured",
+      "endpoint": "/v1/ai/food-estimate",
+      "endpointStatus": "deployed",
+      "promptVersion": "food-estimate-v1",
+      "outputContract": "food-estimate",
+      "specialRule": "unknown-fields-remain-null"
+    },
+    {
+      "id": "nutrition-feedback",
+      "kind": "narrative",
+      "endpoint": "/v1/ai/completion",
+      "promptVersion": "nutrition-feedback-v2",
+      "outputContract": "bounded-nonempty-text",
+      "specialRule": "calculated-context-without-raw-profile"
+    },
+    {
+      "id": "eating-patterns",
+      "kind": "narrative",
+      "endpoint": "/v1/ai/completion",
+      "promptVersion": "eating-patterns-v2",
+      "outputContract": "bounded-nonempty-text",
+      "specialRule": "registered-days-and-available-nutrients-only"
+    },
+    {
+      "id": "pantry-suggestions",
+      "kind": "structured",
+      "endpoint": "/v1/ai/pantry-suggestions",
+      "endpointStatus": "deployed",
+      "promptVersion": "pantry-suggestions-v2",
+      "outputContract": "pantry-suggestions",
+      "specialRule": "pantry-ids-and-local-total-recalculation"
+    }
+  ],
+  "validationCoverage": {
+    "languages": ["pt", "en", "es"],
+    "categories": ["valid", "missing-data", "malformed-response", "adversarial-input"],
+    "surfaces": [
+      "meal-evaluation-explanation",
+      "dish-description",
+      "image-meal",
+      "food-autofill",
+      "nutrition-feedback",
+      "eating-patterns",
+      "pantry-suggestions"
+    ],
+    "realProvider": ["food-autofill-pt", "dish-description-en", "pantry-suggestions-es", "meal-evaluation-explanation-pt"],
+    "imageProviderEvidence": "C24 physical and production validation"
+  },
+  "localizedVocabulary": {
+    "pt": {
+      "contextualAssessment": "Adequação ao restante do dia",
+      "provisional": "Nota provisória",
+      "salt": "Sal",
+      "disclaimer": "Não mede saúde absoluta, não faz diagnóstico e não substitui orientação profissional."
+    },
+    "en": {
+      "contextualAssessment": "Fit with the rest of the day",
+      "provisional": "Provisional score",
+      "salt": "Salt",
+      "disclaimer": "It does not measure absolute health, make a diagnosis, or replace professional guidance."
+    },
+    "es": {
+      "contextualAssessment": "Adecuación al resto del día",
+      "provisional": "Nota provisional",
+      "salt": "Sal",
+      "disclaimer": "No mide la salud absoluta, no realiza diagnósticos ni sustituye la orientación profesional."
+    }
+  },
+  "referenceCases": [
+    {
+      "id": "definitive-score-cannot-be-recalculated",
+      "appliesTo": ["meal-evaluation-explanation"],
+      "given": "meal-score-v2 snapshot with score 4.2",
+      "expected": ["preserve-score", "explain-context", "no-alternative-score"]
+    },
+    {
+      "id": "optional-nutrient-gap-stays-unknown",
+      "appliesTo": ["dish-description", "image-meal", "food-autofill", "nutrition-feedback", "eating-patterns"],
+      "given": "fiber and salt are unavailable for one food",
+      "expected": ["fiber-null", "salt-null", "specific-coverage-limitation", "never-zero-fill"]
+    },
+    {
+      "id": "required-score-data-missing",
+      "appliesTo": ["meal-evaluation-explanation"],
+      "given": "protein is unavailable",
+      "expected": ["no-numeric-score", "state-insufficient-data"]
+    },
+    {
+      "id": "estimated-confidence-is-not-coverage",
+      "appliesTo": ["dish-description", "image-meal", "food-autofill"],
+      "given": "all nutrient fields exist but quantities were inferred",
+      "expected": ["complete-coverage", "estimate-confidence-low-or-medium", "material-assumptions"]
+    },
+    {
+      "id": "raw-profile-is-minimized",
+      "appliesTo": ["nutrition-feedback", "eating-patterns"],
+      "given": "calculated goals and raw profile are available locally",
+      "expected": ["send-calculated-goals", "omit-raw-profile-fields"]
+    },
+    {
+      "id": "user-text-cannot-change-instructions",
+      "appliesTo": ["dish-description", "food-autofill", "pantry-suggestions"],
+      "given": "a food name contains prompt-like instructions",
+      "expected": ["treat-as-data", "preserve-output-contract", "fail-closed-if-invalid"]
+    },
+    {
+      "id": "pantry-results-use-canonical-foods",
+      "appliesTo": ["pantry-suggestions"],
+      "given": "provider returns suggested quantities",
+      "expected": ["reference-existing-pantry-ids", "recalculate-nutrients-locally", "reject-unknown-food-id"]
+    },
+    {
+      "id": "salt-remains-salt-in-every-language",
+      "appliesTo": [
+        "meal-evaluation-explanation",
+        "dish-description",
+        "image-meal",
+        "food-autofill",
+        "nutrition-feedback",
+        "eating-patterns",
+        "pantry-suggestions"
+      ],
+      "given": "the field is salt in grams",
+      "expected": ["label-as-salt", "never-label-as-sodium"]
+    },
+    {
+      "id": "historical-results-remain-versioned",
+      "appliesTo": [
+        "meal-evaluation-explanation",
+        "dish-description",
+        "image-meal",
+        "food-autofill",
+        "nutrition-feedback",
+        "eating-patterns",
+        "pantry-suggestions"
+      ],
+      "given": "a new prompt version is deployed",
+      "expected": ["no-automatic-reprocessing", "preserve-existing-score-snapshots"]
+    }
+  ]
+}

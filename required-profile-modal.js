@@ -31,6 +31,7 @@
    * @param {function(string): string} dependencies.normalizeLanguage Language normalizer from `i18n.js`.
    * @param {function(string, *, *, *): *} dependencies.pickLang Language selector from `i18n.js`.
    * @param {function(Object): Object} dependencies.ChoiceField Reusable Trofia list selector.
+   * @param {function(Object): Object} dependencies.DateField Reusable Trofia civil-date selector.
    * @param {Object<string, Object>} dependencies.activityLevels Real `ACTIVITY_LEVELS` descriptors from `goal-calculator.js`.
    * @param {{set: function(string, *): Promise<*>}} dependencies.storage App persistence adapter from `firebase-storage.js`.
    * @param {function(string): boolean} dependencies.isValidBirthDate Birth-date validator from `profile-validation.js`.
@@ -46,6 +47,7 @@
     normalizeLanguage,
     pickLang,
     ChoiceField,
+    DateField,
     activityLevels,
     storage,
     isValidBirthDate,
@@ -57,12 +59,12 @@
   }) {
     if (!React || typeof React.createElement !== "function" || typeof React.useState !== "function" ||
         typeof normalizeLanguage !== "function" || typeof pickLang !== "function" ||
-        typeof ChoiceField !== "function" ||
+        typeof ChoiceField !== "function" || typeof DateField !== "function" ||
         !activityLevels || typeof activityLevels !== "object" || !storage || typeof storage.set !== "function" ||
         typeof isValidBirthDate !== "function" || typeof isValidGender !== "function" ||
         typeof isValidGoalProfile !== "function" || typeof getRequiredProfileData !== "function" ||
         typeof hasRequiredProfileData !== "function" || typeof localToday !== "function") {
-      throw new TypeError("RequiredProfileModal requires React, ChoiceField, localization, activity, storage, and profile-validation dependencies");
+      throw new TypeError("RequiredProfileModal requires React, ChoiceField, DateField, localization, activity, storage, and profile-validation dependencies");
     }
 
     const ACTIVITY_LEVELS = activityLevels;
@@ -93,6 +95,12 @@
         : isEs
           ? {title:'Completar perfil nutricional', text:'Estos datos son obligatorios para calcular tus metas.', birth:'Fecha de nacimiento *', gender:'G\u00e9nero *', activity:'Actividad f\u00edsica *', goal:'Objetivo *', choose:'Seleccionar', close:'Cerrar', male:'Masculino', female:'Femenino', maintenance:'Mantenimiento del peso', maintenanceDesc:'Mantener el peso y la composici\u00f3n actuales', loss:'P\u00e9rdida de peso', lossDesc:'Reducir el peso de forma gradual', gain:'Ganancia de peso', gainDesc:'Aumentar el peso de forma gradual', kgLoss:'\u00bfCu\u00e1ntos kg quieres perder?', kgGain:'\u00bfCu\u00e1ntos kg quieres ganar?', weeks:'\u00bfEn cu\u00e1ntas semanas?', save:'Guardar y continuar', saving:'Guardando...', err:'Completa todos los datos obligatorios.', readErr:'Los datos no se encontraron despu\u00e9s de guardar.', saveErr:'No fue posible guardar en la base de datos: '}
           : {title:'Complete nutrition profile', text:'These details are required to calculate your targets.', birth:'Date of birth *', gender:'Gender *', activity:'Physical activity *', goal:'Goal *', choose:'Select', close:'Close', male:'Male', female:'Female', maintenance:'Weight maintenance', maintenanceDesc:'Maintain your current weight and body composition', loss:'Weight loss', lossDesc:'Reduce weight gradually', gain:'Weight gain', gainDesc:'Increase weight gradually', kgLoss:'How many kg do you want to lose?', kgGain:'How many kg do you want to gain?', weeks:'In how many weeks?', save:'Save and continue', saving:'Saving...', err:'Fill all required details.', readErr:'Saved details could not be read back.', saveErr:'Could not save to the database: '};
+      const dateCopy = isPt
+        ? {title:'Escolher data de nascimento',previousMonth:'M\u00eas anterior',nextMonth:'Pr\u00f3ximo m\u00eas',editMonthYear:'Escolher m\u00eas e ano',previousYear:'Ano anterior',nextYear:'Pr\u00f3ximo ano',editYear:'Digitar ano',showDays:'Mostrar dias',cancel:'Cancelar',confirm:'Confirmar',close:'Voltar',backspace:'Apagar d\u00edgito',invalidYear:'Digite um ano entre 1900 e hoje.'}
+        : isEs
+          ? {title:'Elegir fecha de nacimiento',previousMonth:'Mes anterior',nextMonth:'Mes siguiente',editMonthYear:'Elegir mes y a\u00f1o',previousYear:'A\u00f1o anterior',nextYear:'A\u00f1o siguiente',editYear:'Escribir a\u00f1o',showDays:'Mostrar d\u00edas',cancel:'Cancelar',confirm:'Confirmar',close:'Volver',backspace:'Borrar d\u00edgito',invalidYear:'Introduce un a\u00f1o entre 1900 y hoy.'}
+          : {title:'Choose date of birth',previousMonth:'Previous month',nextMonth:'Next month',editMonthYear:'Choose month and year',previousYear:'Previous year',nextYear:'Next year',editYear:'Type year',showDays:'Show days',cancel:'Cancel',confirm:'Confirm',close:'Back',backspace:'Delete digit',invalidYear:'Enter a year from 1900 to today.'};
+      const dateLocale = isPt ? 'pt-BR' : isEs ? 'es-ES' : 'en-US';
       const inp = {width:'100%',background:'var(--surface-block-alt)',border:'1px solid color-mix(in srgb, var(--text-primary) 13%, transparent)',color:'var(--text-primary)',padding:'12px 14px',borderRadius:'var(--radius-control)',fontSize:15,fontFamily:'inherit',boxSizing:'border-box',outline:'none',marginTop:6,marginBottom:14};
       const labelStyle = {fontSize:12,color:'var(--text-secondary)'};
       async function saveProfile(e) {
@@ -133,8 +141,7 @@
         React.createElement('form', {'data-required-profile-form':'true',onSubmit:saveProfile, style:{width:'100%',maxWidth:420,background:'color-mix(in srgb, var(--surface-block) 92%, transparent)',border:'1px solid color-mix(in srgb, var(--text-primary) 9%, transparent)',borderRadius:'var(--radius-block)',padding:24,boxShadow:'0 20px 80px color-mix(in srgb, var(--text-primary) 14%, transparent)',margin:'auto',backdropFilter:'blur(18px) saturate(130%)'}},
           React.createElement('div', {style:{fontSize:20,color:'var(--text-primary)',marginBottom:8}}, S.title),
           React.createElement('div', {style:{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:20}}, S.text),
-          React.createElement('label', {style:labelStyle}, S.birth),
-          React.createElement('input', {type:'date', value:birthDate, onChange:e=>setBirthDate(e.target.value), required:true, max:localToday(), min:'1900-01-01', style:inp}),
+          React.createElement(DateField, {id:'required-profile-birth-date',label:S.birth,value:birthDate,onChange:setBirthDate,min:'1900-01-01',max:localToday(),locale:dateLocale,initialViewYear:Number(localToday().slice(0,4))-18,strings:dateCopy,style:{marginBottom:14}}),
           React.createElement(ChoiceField, {id:'required-profile-gender',label:S.gender,value:gender,onChange:setGender,placeholder:S.choose,closeLabel:S.close,required:true,options:[{value:'male',label:S.male},{value:'female',label:S.female}],style:{marginBottom:14}}),
           React.createElement(ChoiceField, {id:'required-profile-activity',label:S.activity,value:activityLevel,onChange:setActivityLevel,placeholder:S.choose,closeLabel:S.close,required:true,options:activityOptions,style:{marginBottom:14}}),
           React.createElement(ChoiceField, {id:'required-profile-goal',label:S.goal,value:goalType,onChange:setGoalType,placeholder:S.choose,closeLabel:S.close,required:true,options:goalOptions,style:{marginBottom:14}}),
@@ -150,7 +157,37 @@
       );
     }
 
-    return { RequiredProfileModal };
+    /**
+     * Shows a recoverable profile-read failure without misrepresenting it as
+     * missing nutrition data. Technical details are restricted to a sanitized
+     * Firebase/application error code supplied by the shell.
+     */
+    function RequiredProfileReadError({lang, errorCode, onRetry, onLogout}) {
+      const normalizedLang = normalizeLanguage(lang || 'pt');
+      const isPt = normalizedLang === 'pt';
+      const isEs = normalizedLang === 'es';
+      const S = isPt
+        ? {title:'N\u00e3o foi poss\u00edvel carregar seu perfil', text:'Seus dados n\u00e3o foram apagados. Verifique sua conex\u00e3o e tente novamente.', detail:'Detalhe t\u00e9cnico', retry:'Tentar novamente', logout:'Sair'}
+        : isEs
+          ? {title:'No se pudo cargar tu perfil', text:'Tus datos no se han eliminado. Comprueba tu conexi\u00f3n e int\u00e9ntalo de nuevo.', detail:'Detalle t\u00e9cnico', retry:'Intentar de nuevo', logout:'Cerrar sesi\u00f3n'}
+          : {title:'Your profile could not be loaded', text:'Your data has not been deleted. Check your connection and try again.', detail:'Technical detail', retry:'Try again', logout:'Sign out'};
+      const safeCode = /^[A-Za-z0-9_./-]{1,100}$/.test(String(errorCode || ''))
+        ? String(errorCode)
+        : 'firestore-profile-read-failed';
+      return React.createElement('div', {'data-safe-area-dialog':'20','data-required-profile-read-error':'true',style:{position:'fixed',inset:0,zIndex:100000,background:'color-mix(in srgb, var(--surface-page) 88%, transparent)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto',backdropFilter:'blur(10px)'}},
+        React.createElement('div', {role:'alert',style:{width:'100%',maxWidth:420,background:'color-mix(in srgb, var(--surface-block) 92%, transparent)',border:'1px solid color-mix(in srgb, var(--text-primary) 9%, transparent)',borderRadius:'var(--radius-block)',padding:24,boxShadow:'0 20px 80px color-mix(in srgb, var(--text-primary) 14%, transparent)',margin:'auto'}},
+          React.createElement('div', {style:{fontSize:20,color:'var(--text-primary)',marginBottom:8}}, S.title),
+          React.createElement('div', {style:{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:14}}, S.text),
+          React.createElement('div', {style:{fontSize:12,color:'var(--text-muted)',marginBottom:20}}, `${S.detail}: ${safeCode}`),
+          React.createElement('div', {style:{display:'flex',gap:10,flexWrap:'wrap'}},
+            React.createElement('button', {type:'button',onClick:onRetry,style:{flex:'1 1 180px',background:'var(--accent-action-bg)',border:'1px solid transparent',color:'var(--accent-action-text)',padding:'13px',borderRadius:'var(--radius-control)',fontSize:12,letterSpacing:0.5,fontFamily:'inherit'}}, S.retry),
+            React.createElement('button', {type:'button',onClick:onLogout,style:{flex:'1 1 120px',background:'var(--surface-block-alt)',border:'1px solid color-mix(in srgb, var(--text-primary) 13%, transparent)',color:'var(--text-primary)',padding:'13px',borderRadius:'var(--radius-control)',fontSize:12,fontFamily:'inherit'}}, S.logout)
+          )
+        )
+      );
+    }
+
+    return { RequiredProfileModal, RequiredProfileReadError };
   }
 
   return { createRequiredProfileModal };

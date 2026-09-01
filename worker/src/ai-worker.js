@@ -8,9 +8,23 @@ import {
   validateImageMealEstimate,
   validateImageMealRequest
 } from "./image-meal.js";
+import {
+  geminiStructuredInteractionRequest,
+  validateDishEstimateRequest,
+  validateFoodEstimateRequest,
+  validateStructuredEstimate
+} from "./structured-estimates.js";
+import {
+  geminiPantrySuggestionsInteractionRequest,
+  validatePantrySuggestionsRequest,
+  validatePantrySuggestionsResponse
+} from "./pantry-suggestions.js";
 
 const COMPLETION_PATH = "/v1/ai/completion";
 const IMAGE_MEAL_PATH = "/v1/ai/image-meal";
+const FOOD_ESTIMATE_PATH = "/v1/ai/food-estimate";
+const DISH_ESTIMATE_PATH = "/v1/ai/dish-estimate";
+const PANTRY_SUGGESTIONS_PATH = "/v1/ai/pantry-suggestions";
 const FIREBASE_PROJECT_ID = "nutrition-tracker-780b3";
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_COMPLETION_ENDPOINT =
@@ -143,7 +157,11 @@ export function createAIWorker({
       const url = new URL(request.url);
       const isCompletion = url.pathname === COMPLETION_PATH;
       const isImageMeal = url.pathname === IMAGE_MEAL_PATH;
-      if (!isCompletion && !isImageMeal) {
+      const isFoodEstimate = url.pathname === FOOD_ESTIMATE_PATH;
+      const isDishEstimate = url.pathname === DISH_ESTIMATE_PATH;
+      const isPantrySuggestions = url.pathname === PANTRY_SUGGESTIONS_PATH;
+      const isStructuredText = isFoodEstimate || isDishEstimate || isPantrySuggestions;
+      if (!isCompletion && !isImageMeal && !isStructuredText) {
         return errorResponse(404, "not-found");
       }
 
@@ -206,7 +224,10 @@ export function createAIWorker({
       }
 
       if ((isCompletion && !isCompletionBody(body)) ||
-          (isImageMeal && !validateImageMealRequest(body))) {
+          (isImageMeal && !validateImageMealRequest(body)) ||
+          (isFoodEstimate && !validateFoodEstimateRequest(body)) ||
+          (isDishEstimate && !validateDishEstimateRequest(body)) ||
+          (isPantrySuggestions && !validatePantrySuggestionsRequest(body))) {
         return errorResponse(400, "invalid-request", origin);
       }
       if (!env?.GEMINI_API_KEY || typeof env.GEMINI_API_KEY !== "string") {
@@ -258,16 +279,23 @@ export function createAIWorker({
           "Content-Type": "application/json",
           "x-goog-api-key": env.GEMINI_API_KEY
         };
-        if (isImageMeal) {
+        if (isImageMeal || isStructuredText) {
           providerHeaders["Api-Revision"] = GEMINI_INTERACTIONS_REVISION;
         }
         providerResponse = await fetchRequest(
-          isImageMeal ? GEMINI_INTERACTIONS_ENDPOINT : GEMINI_COMPLETION_ENDPOINT,
+          (isImageMeal || isStructuredText) ? GEMINI_INTERACTIONS_ENDPOINT : GEMINI_COMPLETION_ENDPOINT,
           {
             method: "POST",
             headers: providerHeaders,
             body: JSON.stringify({
-              ...(isImageMeal ? geminiImageMealInteractionRequest(body, GEMINI_MODEL, "medium") : {
+              ...(isImageMeal ? geminiImageMealInteractionRequest(body, GEMINI_MODEL, "medium") : isPantrySuggestions
+                ? geminiPantrySuggestionsInteractionRequest(body, GEMINI_MODEL)
+                : isStructuredText ? geminiStructuredInteractionRequest({
+                    kind: isFoodEstimate ? "food" : "dish",
+                    body,
+                    model: GEMINI_MODEL
+                  })
+                : {
                 contents: [{
                   role: "user",
                   parts: [{ text: body.prompt }]
@@ -288,23 +316,28 @@ export function createAIWorker({
       if (!providerResponse.ok) {
         return errorResponse(502, "provider-error", origin);
       }
-      const text = isImageMeal
+      const text = (isImageMeal || isStructuredText)
         ? geminiImageMealInteractionText(providerPayload)
         : geminiText(providerPayload);
       if (text === null) {
         return errorResponse(502, "invalid-provider-response", origin);
       }
-      if (isImageMeal) {
+      if (isImageMeal || isStructuredText) {
         let estimate;
         try {
           estimate = JSON.parse(text);
         } catch (_) {
           return errorResponse(502, "invalid-provider-response", origin);
         }
-        if (!validateImageMealEstimate(estimate)) {
+        const validStructuredResult = isPantrySuggestions
+          ? validatePantrySuggestionsResponse(estimate, body)
+          : isImageMeal
+            ? validateImageMealEstimate(estimate)
+            : validateStructuredEstimate(isFoodEstimate ? "food" : "dish", estimate, body);
+        if (!validStructuredResult) {
           return errorResponse(502, "invalid-provider-response", origin);
         }
-        return jsonResponse(200, { estimate }, origin);
+        return jsonResponse(200, isPantrySuggestions ? estimate : { estimate }, origin);
       }
       return jsonResponse(200, { text }, origin);
     }

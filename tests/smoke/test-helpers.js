@@ -5,6 +5,14 @@ function isIgnorableConsoleError(text, locationUrl = '') {
     || /Failed to load resource: the server responded with a status of 404 \(\)/i.test(text)
     || /^Framing 'https:\/\/www\.google\.com\/' violates the following report-only Content Security Policy directive: "frame-ancestors 'self'"\./i.test(text)
     || (
+      /^requestStorageAccess: Permission denied\.$/i.test(text)
+      && /^https:\/\/www\.google\.com\/recaptcha\/enterprise\/anchor\?/i.test(locationUrl)
+    )
+    || (
+      /Failed to load resource: the server responded with a status of 403 \(\)/i.test(text)
+      && /^https:\/\/content-firebaseappcheck\.googleapis\.com\/v1\/projects\/[^/]+\/apps\/[^/]+:exchangeRecaptchaEnterpriseToken\?/i.test(locationUrl)
+    )
+    || (
       /Failed to load resource: the server responded with a status of 403 \(\)/i.test(text)
       && /firestore\.googleapis\.com\/v1\/projects\/[^/]+\/databases\/\(default\)\/documents\/nutrition\?pageSize=1000$/i.test(locationUrl)
     );
@@ -99,6 +107,21 @@ async function setAppLanguage(page, language) {
   await dismissTutorialIfVisible(page);
 }
 
+async function setDateFieldValue(page, triggerSelector, isoDate) {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  await page.locator(triggerSelector).click();
+  await page.locator('[data-temporal-field-month-year="true"]').click();
+  await page.locator('[data-temporal-field-year="true"]').click();
+  for (const digit of String(year)) {
+    await page.getByRole('button', { name: digit, exact: true }).click();
+  }
+  await page.locator('[data-numeric-keypad-confirm="true"]').click();
+  await page.locator('[data-temporal-field-months="true"] button').nth(month - 1).click();
+  await page.locator('[data-temporal-field-show-days="true"]').click();
+  await page.locator('[data-temporal-field-days="true"] button').filter({ hasText: new RegExp(`^${day}$`) }).click();
+  await page.locator('[data-temporal-field-confirm="true"]').click();
+}
+
 async function interceptOptionalExternalApis(page, { aiDelayMs = 0 } = {}) {
   await page.route('https://trofia-ai-proxy.cmagno-dev.workers.dev/**', async (route) => {
     if (aiDelayMs) await new Promise(resolve => setTimeout(resolve, aiDelayMs));
@@ -117,5 +140,6 @@ module.exports = {
   isIgnorableConsoleError,
   interceptOptionalExternalApis,
   openApp,
-  setAppLanguage
+  setAppLanguage,
+  setDateFieldValue
 };
