@@ -31,15 +31,36 @@ service cloud.firestore {
         return isOwnUser(uid);
       }
 
+      function validRootEnvelope() {
+        // C14-B1 establishes a conservative document-size guard without
+        // guessing the final field allowlist before the B2 production
+        // inventory. Field names and types are narrowed only after that
+        // read-only inventory has proved which canonical values exist.
+        return request.resource.data.keys().size() <= 128;
+      }
+
       // User profile/preferences live at nutrition/{uid}.
       allow read: if isOwnUserDoc();
-      allow create, update, delete: if isOwnUserDoc()
-        && !accountDeletionLocked(uid);
+      allow create, update: if isOwnUserDoc()
+        && !accountDeletionLocked(uid)
+        && validRootEnvelope();
+      // Complete account deletion belongs exclusively to the C22 Admin SDK
+      // saga. Client deletion of the root can orphan nested canonical data.
+      allow delete: if false;
 
       // Growing app data lives here to avoid an oversized user document.
       match /data/{key} {
+        function validDataEnvelope() {
+          return request.resource.data.keys().hasOnly(['value'])
+            && request.resource.data.value is string
+            && request.resource.data.value.size() <= 900000;
+        }
+
         allow read: if isOwnUserDoc();
-        allow create, update, delete: if isOwnUserDoc()
+        allow create, update: if isOwnUserDoc()
+          && !accountDeletionLocked(uid)
+          && validDataEnvelope();
+        allow delete: if isOwnUserDoc()
           && !accountDeletionLocked(uid);
       }
 
