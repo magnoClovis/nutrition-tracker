@@ -106,12 +106,7 @@ jobs:
           NUTRITION_TEST_PASSWORD: ${{ secrets.NUTRITION_TEST_PASSWORD }}
           FIREBASE_APPCHECK_DEBUG_TOKEN: ${{ secrets.FIREBASE_APPCHECK_DEBUG_TOKEN }}
           SMOKE_SERVER_IDLE_MS: 1800000
-        run: >-
-          npm.cmd run build:vite;
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE };
-          npx.cmd playwright test tests/smoke/authenticated-flows.spec.js
-          --config=playwright.vite.config.js
-          --grep "adds a meal to a past date and opens it from Week history|edits, re-evaluates, and logs a locally scored meal while AI times out|accepts and reopens the contextual meal assessment in PT, EN, and ES|adds a GA suggestion and preserves the suggested nutrient math"
+        run: npm run test:smoke
 
       - name: Write test summary
         if: always()
