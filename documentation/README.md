@@ -1,15 +1,35 @@
 # Central de documentação do Trofia
 
-Esta pasta reúne fontes internas para três documentos futuros, que serão produzidos em outra etapa: uma apresentação do Trofia para público leigo, uma visão técnica completa e um histórico cronológico detalhado do desenvolvimento.
+Esta pasta reúne as fontes internas e as versões completas de três documentos de referência: uma apresentação do Trofia para público leigo, uma visão técnica completa e um histórico cronológico detalhado do desenvolvimento.
 
-O objetivo aqui não é substituir os arquivos operacionais da raiz nem produzir esses três documentos finais. Esta pasta oferece cópias classificadas, um resumo confiável do estado atual e registros históricos rastreáveis para que um chat sem acesso às conversas anteriores consiga distinguir fato implementado, trabalho em andamento e planejamento.
+Os arquivos em `estado-atual/` e `historico/` oferecem fontes classificadas, um resumo confiável do estado corrente e registros históricos rastreáveis. As rodadas completas dos três documentos finais ficam preservadas separadamente em `snapshots/`, sem sobrescrever rodadas anteriores.
 
 ## Estrutura
 
 - [`estado-atual/`](estado-atual/) contém documentos sobre capacidades, contratos, compliance, operação, riscos e planejamento conhecidos na data da captura.
 - [`historico/`](historico/) contém cronologias de uma frente ou chat específico, sustentadas por commits e pull requests.
+- [`snapshots/`](snapshots/) contém as versões completas dos três documentos finais, agrupadas pela data de geração no formato `AAAA-MM-DD`.
 
 Os arquivos originais continuam na raiz porque podem ser consumidos por scripts, testes, CI ou processos de publicação. As cópias desta pasta têm cabeçalho de proveniência e não devem ser editadas no lugar do original.
+
+## Snapshots dos três documentos finais
+
+Cada rodada completa deve ser armazenada em uma subpasta própria:
+
+`documentation/snapshots/AAAA-MM-DD/`
+
+A subpasta representa a data em que a rodada foi gerada e deve conter exatamente os três documentos, cada um em Markdown e Word:
+
+- `DOCUMENTO-1-APRESENTACAO-PARA-LEIGOS.md`
+- `DOCUMENTO-1-APRESENTACAO-PARA-LEIGOS.docx`
+- `DOCUMENTO-2-ARQUITETURA-TECNICA-COMPLETA.md`
+- `DOCUMENTO-2-ARQUITETURA-TECNICA-COMPLETA.docx`
+- `DOCUMENTO-3-HISTORICO-CRONOLOGICO.md`
+- `DOCUMENTO-3-HISTORICO-CRONOLOGICO.docx`
+
+A primeira rodada completa está em [`snapshots/2026-09-01/`](snapshots/2026-09-01/).
+
+Para uma nova rodada, crie outra subpasta com a data correspondente e mantenha intactas todas as subpastas anteriores. Não substitua arquivos dentro de um snapshot existente. Se apenas um ou dois documentos forem atualizados durante o trabalho, conclua os três formatos finais antes de registrar a nova rodada completa.
 
 ## Como interpretar os estados
 
@@ -49,6 +69,7 @@ Cada frente escreve em um arquivo próprio:
 - `NUTRITION_SCORE.md`: contrato do `meal-score-v2`.
 - `C22_ROLLOUT.md`: matriz usada no rollout da exclusão administrativa.
 - `C24_FATIA_7_VALIDACAO.md`: validação do reconhecimento por imagem.
+- `C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`: evidência sanitizada do inventário read-only que fundamenta as allowlists das rules.
 
 ### Compliance e operação
 
