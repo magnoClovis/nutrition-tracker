@@ -17,6 +17,7 @@
 - **Qualidade:** preflight, unitários, smoke legado/Vite, matriz visual e CI autenticado com App Check. G01, C05 e C07 estão fechados.
 - **Controles visuais S8:** `CheckboxField` e `SliderField` customizados foram integrados no PR #166 às superfícies ativas de sugestões de refeição e seleção de categorias de backup.
 - **Incidente App Check/perfil encerrado:** o PR #173 impede release Android sem `google-services.json` e distingue falha de leitura de perfil realmente incompleto. Na build Play versionCode 12, a conta real concluiu login, leitura e alteração de perfil, sincronização e inicialização do App Check sem erro.
+- **Incidente C14-B2 em produção:** após o deploy do PR #177, as rules B2 rejeitaram batches granulares legítimos do Vite e interromperam registro de refeições/GA. A produção foi restaurada para a B1 exata (`8d2ddae`, hash `bd1398b58bfa618797f6819a51c393b885af298a`) em 01/09/2026; a tentativa 3 do run autenticado `33529042502` ficou totalmente verde, com 95/95 cenários Playwright, incluindo os oito fluxos Vite antes bloqueados. Nenhum dado foi excluído; o incidente está mitigado e B2 permanece aberta para hotfix e nova revisão. — **Chat:** Trofia-Principal.
 
 ## O que está em andamento agora
 
@@ -53,10 +54,10 @@
 ### [C14-B] - Rules do Firestore e schema canônico
 
 - **Status:** em andamento — **Chat:** Trofia-Principal.
-- **Data de conclusão:** não concluída; B1 concluída em 01/09/2026 e B2 em andamento desde 01/09/2026.
+- **Data de conclusão:** não concluída; B1 concluída em 01/09/2026 e B2 em correção pós-deploy desde 01/09/2026.
 - **Propósito:** negar exclusão client-side da raiz e restringir envelopes, campos, chaves, tipos e tamanhos sem bloquear dados reais legítimos.
 - **Recursos/arquivos principais envolvidos:** `/firestore.rules`, testes de emulador e ferramenta Admin SDK read-only para inventário/dry-run.
-- **O que foi feito:** B1 nega exclusão client-side da raiz, mantém a exclusão administrativa do C22, limita a raiz a 128 campos e exige `{value: string}` com até 900.000 caracteres em `/data/{key}`; as rules B1 foram publicadas em produção em 01/09/2026 e o CI autenticado pós-deploy ficou verde no run `33512725510` (tentativa 2). B2 criou o inventário Admin SDK paginado/read-only e o executou em produção sem UIDs nem conteúdo: 29 usuários Auth, 29 raízes canônicas, 1.209 documentos `data`, 56 refeições, 2 registros de água e 70 marcadores. Foram detectadas 2 raízes órfãs e 114 descendentes, sem qualquer exclusão. As rules B2 com allowlists/tipos preservam resíduos históricos somente se permanecerem imutáveis e estão apenas em dry-run/emulador, sem deploy. Evidência: [`C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`](C14_B2_FIRESTORE_SCHEMA_INVENTORY.md).
+- **O que foi feito:** B1 nega exclusão client-side da raiz, mantém a exclusão administrativa do C22, limita a raiz a 128 campos e exige `{value: string}` com até 900.000 caracteres em `/data/{key}`; as rules B1 foram publicadas em produção em 01/09/2026 e o CI autenticado pós-deploy ficou verde no run `33512725510` (tentativa 2). B2 criou o inventário Admin SDK paginado/read-only, adicionou allowlists/tipos e foi publicada após o PR #177. As duas tentativas pós-deploy do run `33529042502` e a reprodução no emulador confirmaram estouro do limite de 1.000 expressões ao combinar validação integral da raiz com todos os nutrientes da entrada e do snapshot. O hotfix reduz o custo sem abrir campos: valida somente mudanças da raiz, mantém allowlists exatas e conserva a validação de nutrientes no nível principal; o batch completo passou 8/8 no emulador. A investigação separou 2 raízes órfãs de 114 descendentes em 26 UIDs e encontrou padrão fortemente compatível com automação descartável; nada foi excluído e o C22 não os varre sem job conhecido. Evidência: [`C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`](C14_B2_FIRESTORE_SCHEMA_INVENTORY.md).
 
 ### [C14-C] - App Check no Worker de IA
 

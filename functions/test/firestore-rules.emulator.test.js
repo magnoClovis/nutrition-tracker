@@ -16,11 +16,13 @@ const {
   getFirestore: getAdminFirestore,
 } = require("firebase-admin/firestore");
 const {
+  arrayUnion,
   deleteDoc,
   doc,
   getDoc,
   serverTimestamp,
   setDoc,
+  writeBatch,
 } = require("firebase/firestore");
 
 const {
@@ -261,12 +263,101 @@ test("root updates preserve but cannot mutate historical residual fields", {
   await environment.withSecurityRulesDisabled(async (adminContext) => {
     await setDoc(doc(adminContext.firestore(), "nutrition", uid), {
       userName: "Historical", pantry_v2: "legacy-residual",
+      height: {legacy: "180"},
     });
   });
 
   await assertSucceeds(setDoc(rootRef, {lastActivityAt: "2026-09-01T12:00:00Z"}, {merge: true}));
   await assertFails(setDoc(rootRef, {pantry_v2: "changed"}, {merge: true}));
   await assertFails(setDoc(rootRef, {newResidual: true}, {merge: true}));
+  await assertFails(setDoc(rootRef, {height: {legacy: "181"}}, {merge: true}));
+  await assertSucceeds(setDoc(rootRef, {height: 181}, {merge: true}));
+});
+
+test("daily replacement batch can atomically mark migration and index its date", {
+  skip: !RUN_EMULATOR_TESTS,
+}, async (context) => {
+  const environment = await createEnvironment();
+  context.after(() => environment.cleanup());
+  await environment.clearFirestore();
+
+  const uid = "daily-replacement-owner";
+  const ownerDb = environment.authenticatedContext(uid).firestore();
+  await environment.withSecurityRulesDisabled(async (adminContext) => {
+    await setDoc(doc(adminContext.firestore(), "nutrition", uid), {
+      userName: "Historical", birthDate: "1997-12-04", gender: "male",
+      height: {legacy: "180"}, activityLevel: "moderate", goalType: "maintenance",
+      goalKg: null, goalWeeks: null, manualCalorieAdjustment: 0,
+      proteinMultiplier: 1.6, bodyFatGoal: null, tutorialSeen: true,
+      language: "pt", lastLoginAt: "2026-09-01T12:00:00Z",
+      lastActivityAt: "2026-09-01T12:00:00Z",
+      tutorial_most_recent_version_seen: "0.11.0-beta",
+      _storageSchemaVerified: true,
+      _storageSchemaVerifiedAt: "2026-09-01T12:00:00Z",
+      _legacyCleanupDone: true, tutorialSeen_main: true,
+      tutorialSeen_diario: true, tutorialSeen_adicionar: true,
+      tutorialSeen_despensa: true, tutorialSeen_semana: true,
+      tutorialSeen_metricas: true,
+      _dailyDates: ["2026-08-26", "2026-08-27", "2026-08-28", "2026-08-29"],
+      _schemaVersion: 3, _schemaNormalizedAt: "2026-08-28T12:00:00Z",
+      _schemaMigratedAt: "2026-08-28T12:00:00Z",
+      _legacyCleanupAt: "2026-08-28T12:00:00Z",
+    });
+    await setDoc(doc(adminContext.firestore(), "nutrition", uid, "days", "2026-08-29", "migrations", "meal"), {
+      schemaVersion: 1,
+      kind: "meal",
+      date: "2026-08-29",
+      complete: true,
+      updatedAt: new Date("2026-08-28T12:00:00Z"),
+    });
+    for (let index = 1; index <= 5; index += 1) {
+      await setDoc(doc(adminContext.firestore(), "nutrition", uid, "days", "2026-08-29", "meals", `meal-${index}`), {
+        id: `meal-${index}`,
+        mealKey: "breakfast",
+        entry: {},
+        createdAt: new Date("2026-08-28T12:00:00Z"),
+        updatedAt: new Date("2026-08-28T12:00:00Z"),
+      });
+    }
+  });
+
+  const batch = writeBatch(ownerDb);
+  for (let index = 1; index <= 5; index += 1) {
+    batch.delete(doc(ownerDb, "nutrition", uid, "days", "2026-08-29", "meals", `meal-${index}`));
+  }
+  batch.set(doc(ownerDb, "nutrition", uid, "days", "2026-08-29", "meals", "meal-new"), {
+    schemaVersion: 1,
+    id: "meal-new",
+    date: "2026-08-29",
+    mealKey: "Almoço",
+    entry: {
+      id: "meal-new", foodId: "food-1", name: "Arroz", qty: 100, unit: "g",
+      foodSnapshot: {
+        id: "food-1", name: "Arroz", unit: "g", protein100: 3,
+        kcal100: 130, carbs100: 28, sugars100: null, fat100: 0.3,
+        satfat100: null, fiber100: 0.4, salt100: 0.01, b12_100: null,
+        niacin100: null, phosphorus100: null, vitd100: null,
+        calcium100: null, iron100: null, potassium100: null,
+        magnesium100: null, zinc100: null, vitc100: null,
+      },
+      protein: 3, kcal: 130, carbs: 28, sugars: null, fat: 0.3,
+      satfat: null, fiber: 0.4, salt: 0.01, b12_: null, niacin: null,
+      phosphorus: null, vitd: null, calcium: null, iron: null,
+      potassium: null, magnesium: null, zinc: null, vitc: null, time: "12:30",
+    },
+    updatedAt: serverTimestamp(),
+  });
+  batch.set(doc(ownerDb, "nutrition", uid, "days", "2026-08-29", "migrations", "meal"), {
+    schemaVersion: 1,
+    kind: "meal",
+    date: "2026-08-29",
+    complete: true,
+    updatedAt: serverTimestamp(),
+  });
+  batch.set(doc(ownerDb, "nutrition", uid), {
+    _dailyDates: arrayUnion("2026-08-29"),
+  }, {merge: true});
+  await assertSucceeds(batch.commit());
 });
 
 test("granular daily schema validates owner, path identity, and exact envelopes", {
