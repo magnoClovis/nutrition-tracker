@@ -409,7 +409,7 @@ contractTest('deletes profile fields with merge without replacing the root docum
   assert.deepEqual(write.options, {merge: true});
 });
 
-contractTest('preserves read fallbacks and write/delete rejection messages', async create => {
+contractTest('fails closed on read errors and preserves write/delete rejection messages', async create => {
   const failures = {
     rootRead: true,
     dataRead: 'weightHistory',
@@ -424,14 +424,20 @@ contractTest('preserves read fallbacks and write/delete rejection messages', asy
   console.warn = (...args) => warnings.push(args);
   try {
     const {client} = create({backend});
-    assert.equal(await client.fbGet3('weightHistory'), null);
+    await assert.rejects(
+      client.fbGet3('weightHistory'),
+      error => error.message === 'Firestore data read failed' && error.code === 'unavailable',
+    );
     await assert.rejects(
       client.fbGet3('language'),
       error => error.message === 'Firestore root read failed' && error.code === 'unavailable',
     );
     await assert.rejects(client.fbList3(), /Firestore root read failed/);
     failures.rootRead = false;
-    assert.deepEqual(await client.fbList3(), {keys: []});
+    await assert.rejects(
+      client.fbList3(),
+      error => error.message === 'Firestore data list failed' && error.code === 'unavailable',
+    );
     await assert.rejects(client.fbSet3('pantry_v2', '[]'), /Firestore data write failed/);
     await assert.rejects(client.fbDel3('goalHistory'), /Firestore data delete failed/);
     await assert.rejects(client.fbSet3('language', 'en'), /Firestore write failed/);
@@ -441,6 +447,33 @@ contractTest('preserves read fallbacks and write/delete rejection messages', asy
   assert.equal(warnings.some(args => args[0] === 'Firestore root read failed'), true);
   assert.equal(warnings.some(args => args[0] === 'Firestore data read failed'), true);
   assert.equal(warnings.some(args => args[0] === 'Firestore data list failed'), true);
+});
+
+contractTest('retries failed data reads and lists instead of caching missing data', async create => {
+  const failures = {dataRead: 'pantry_v2', dataList: true};
+  const backend = createBackend({
+    root: {language: 'pt'},
+    data: {pantry_v2: '[{"id":"food"}]'},
+    failures,
+  });
+  const {client} = create({backend});
+
+  await assert.rejects(client.fbGet3('pantry_v2'), /Firestore data read failed/);
+  failures.dataRead = null;
+  assert.deepEqual(await client.fbGet3('pantry_v2'), {value: '[{"id":"food"}]'});
+
+  await assert.rejects(client.fbList3(), /Firestore data list failed/);
+  failures.dataList = false;
+  assert.deepEqual(await client.fbList3(), {keys: ['language', 'pantry_v2']});
+
+  assert.equal(
+    backend.calls.filter(call => call.operation === 'getDoc' && call.path.endsWith('/pantry_v2')).length,
+    2,
+  );
+  assert.equal(
+    backend.calls.filter(call => call.operation === 'getDocs' && call.path.endsWith('/data')).length,
+    2,
+  );
 });
 
 contractTest('retries a failed root read instead of caching an empty profile', async create => {

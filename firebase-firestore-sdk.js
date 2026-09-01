@@ -433,7 +433,9 @@
             code: error?.code || "unknown"
           });
         }
-        return null;
+        const readError = new Error("Firestore data read failed", {cause: error});
+        readError.code = error?.code || "firestore-data-read-failed";
+        throw readError;
       }
     }
 
@@ -649,7 +651,9 @@
           uid: getUid(),
           code: error?.code || "unknown"
         });
-        return [];
+        const listError = new Error("Firestore data list failed", {cause: error});
+        listError.code = error?.code || "firestore-data-list-failed";
+        throw listError;
       }
     }
 
