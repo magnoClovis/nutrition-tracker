@@ -244,3 +244,65 @@ contractTest("preserves maintenance storage semantics by clearing goalKg and goa
   assert.equal(fixture.completed[0].goalKg, "");
   assert.equal(fixture.completed[0].goalWeeks, "");
 });
+
+contractTest("renders a distinct retryable profile-read error in PT, EN, and ES", createRequiredProfileModal => {
+  const storage = { async get() { return null; }, async set() {} };
+  const validation = createProfileValidation({ storage, activityLevels: ACTIVITY_LEVELS });
+  const { RequiredProfileReadError } = createRequiredProfileModal({
+    React,
+    normalizeLanguage,
+    pickLang,
+    ChoiceField,
+    DateField,
+    activityLevels: ACTIVITY_LEVELS,
+    storage,
+    isValidBirthDate: validation.isValidBirthDate,
+    isValidGender: validation.isValidGender,
+    isValidGoalProfile: validation.isValidGoalProfile,
+    getRequiredProfileData: validation.getRequiredProfileData,
+    hasRequiredProfileData: validation.hasRequiredProfileData,
+    localToday: () => "2026-09-01"
+  });
+  const expectedTitles = {
+    pt: "Não foi possível carregar seu perfil",
+    en: "Your profile could not be loaded",
+    es: "No se pudo cargar tu perfil"
+  };
+
+  for (const [lang, title] of Object.entries(expectedTitles)) {
+    let retries = 0;
+    let logouts = 0;
+    const tree = RequiredProfileReadError({
+      lang,
+      errorCode: "permission-denied",
+      onRetry() { retries += 1; },
+      onLogout() { logouts += 1; }
+    });
+    assert.equal(tree.props["data-required-profile-read-error"], "true");
+    assert.equal(elementsByType(tree, "div").some(element => element.props.children === title), true);
+    assert.equal(
+      elementsByType(tree, "div").some(element =>
+        String(element.props.children || "").includes("permission-denied")),
+      true
+    );
+    const buttons = elementsByType(tree, "button");
+    assert.equal(buttons.length, 2);
+    buttons[0].props.onClick();
+    buttons[1].props.onClick();
+    assert.equal(retries, 1);
+    assert.equal(logouts, 1);
+  }
+
+  const sanitized = RequiredProfileReadError({
+    lang: "en",
+    errorCode: "secret details with spaces",
+    onRetry() {},
+    onLogout() {}
+  });
+  assert.equal(
+    elementsByType(sanitized, "div").some(element =>
+      String(element.props.children || "").includes("firestore-profile-read-failed")),
+    true
+  );
+  assert.equal(JSON.stringify(sanitized).includes("secret details with spaces"), false);
+});

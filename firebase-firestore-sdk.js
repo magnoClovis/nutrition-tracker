@@ -358,7 +358,9 @@
           uid: getUid(),
           code: error?.code || "unknown"
         });
-        return {};
+        const readError = new Error("Firestore root read failed", {cause: error});
+        readError.code = error?.code || "firestore-root-read-failed";
+        throw readError;
       }
     }
 

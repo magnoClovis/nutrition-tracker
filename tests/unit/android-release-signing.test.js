@@ -25,7 +25,10 @@ test('release signing reads four local properties without affecting debug config
   }
   assert.match(gradle, /signingConfig signingConfigs\.release/);
   assert.match(gradle, /gradle\.taskGraph\.whenReady/);
-  assert.match(gradle, /releaseArtifactRequested && releaseSigningError != null/);
+  assert.match(
+    gradle,
+    /if \(releaseSigningError != null\) \{\s*throw new GradleException\("Trofia release signing is not configured/,
+  );
   assert.doesNotMatch(gradle, /buildTypes\s*\{[\s\S]*?debug\s*\{[\s\S]*?signingConfig/);
 });
 
@@ -38,6 +41,21 @@ test('release bundles fail closed without Firebase variables or freshly synced V
   assert.match(gradle, /releaseWebBundles/);
   assert.match(gradle, /staleReleaseEnvironment/);
   assert.match(gradle, /Rebuild Vite and sync Capacitor first/);
+});
+
+test('release bundles fail closed when a worktree lacks google-services.json', () => {
+  const gradle = read('android/app/build.gradle');
+
+  assert.match(gradle, /googleServicesFile = file\("google-services\.json"\)/);
+  assert.match(gradle, /!googleServicesFile\.isFile\(\)/);
+  assert.match(gradle, /android\/app\/google-services\.json/);
+  assert.match(gradle, /release artifacts without it are forbidden/);
+  assert.match(gradle, /releaseArtifactRequested/);
+  assert.ok(
+    gradle.indexOf('googleServicesFile = file("google-services.json")') <
+      gradle.indexOf('Trofia release signing is not configured'),
+    'missing Firebase configuration must fail before unrelated signing setup',
+  );
 });
 
 test('local signing files are ignored and the committed example is placeholder-only', () => {

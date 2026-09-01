@@ -118,7 +118,17 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Recursos:** aviso cumulativo em PT/EN/ES com o texto aprovado em `VERSIONING.md`; tutorial pontual sobre nota contextual, cobertura/confiança, revisão de estimativas e critérios nutricionais compartilhados; referências de versão sincronizadas.
 - **Arquivos principais:** `/package.json`, `/package-lock.json`, `/android/app/build.gradle`, `/index.html`, `/release-notice.js`, `/tutorial-overlay.js`, testes e documentação de estado.
 - **O que foi feito:** o identificador de release passou a `0.11.0-beta`; usuários existentes recebem aviso e tutorial pontual, enquanto usuários novos recebem o mesmo aviso seguido do tutorial completo. O `versionCode` do AAB é incrementado somente na preparação local do artefato assinado, conforme a prática do projeto.
-- **PRs/commits relacionados:** branch `codex/version-0.11.0-beta`; PR e commit serão vinculados pelo histórico do GitHub desta entrega.
+- **PRs/commits relacionados:** PR #169, branch `codex/version-0.11.0-beta`, commit de preparação `1514ace`; merge `0187c90`.
+
+## 01/09/2026 — hotfix de App Check e leitura do perfil (em validação)
+
+- **Código:** `hotfix-v11-appcheck-profile`.
+- **Data:** 01/09/2026.
+- **Propósito:** impedir que um AAB Android release seja empacotado sem a configuração nativa do Firebase e impedir que falhas de leitura do Firestore sejam interpretadas como perfil nutricional incompleto.
+- **Recursos:** verificação fail-closed de `google-services.json` no build release; inicialização observável do App Check; erro recuperável de leitura do perfil em PT/EN/ES; retry sem cachear documento raiz vazio.
+- **Arquivos principais:** `/android/app/build.gradle`, `/firebase-firestore-sdk.js`, `/profile-validation.js`, `/required-profile-modal.js`, composições UMD/ESM e testes.
+- **O que foi feito:** a distribuição do AAB `0.11.0-beta` versionCode 11 foi pausada/revertida após a confirmação de que o artefato saiu de um worktree sem `android/app/google-services.json`. A conta real foi auditada somente por leitura e seu documento canônico continha os campos obrigatórios válidos; nenhum dado foi alterado. O build release passa a falhar explicitamente quando a configuração nativa estiver ausente. Falhas de App Check ou leitura do documento raiz deixam de virar `{}` e agora bloqueiam a abertura do app com um estado de erro distinto, sanitizado e repetível, sem mostrar o formulário de perfil incompleto. O hotfix permanece **em validação** até CI autenticado, novo AAB distribuído pela Play e teste físico de leitura/escrita com conta de histórico real.
+- **PRs/commits relacionados:** PR #173, branch `codex/fix-v11-appcheck-profile-read`, commit `8721c35`; entrega ainda em validação.
 
 ## Incidentes e trabalhos separados observados
 
@@ -128,7 +138,7 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ## Estado ao encerrar esta cronologia
 
-- Base usada para o checkpoint: `origin/main` no commit `2547a19`, em 01/09/2026.
+- Base usada para o checkpoint: `origin/main` no commit `0187c90`, em 01/09/2026.
 - Versão nomeada preparada no código: `0.11.0-beta`.
 - C22, C23, C28, C20 e C19: concluídos segundo o roadmap.
 - C08: implementação A–F concluída e mesclada no PR #167.

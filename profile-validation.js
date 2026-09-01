@@ -88,13 +88,13 @@
      */
     async function getRequiredProfileData() {
       const [birthDate, gender, activityLevel, goalType, goalKg, goalWeeks, manualAdjustment] = await Promise.all([
-        storage.get('birthDate').catch(()=>null),
-        storage.get('gender').catch(()=>null),
-        storage.get('activityLevel').catch(()=>null),
-        storage.get('goalType').catch(()=>null),
-        storage.get('goalKg').catch(()=>null),
-        storage.get('goalWeeks').catch(()=>null),
-        storage.get('manualCalorieAdjustment').catch(()=>null)
+        storage.get('birthDate'),
+        storage.get('gender'),
+        storage.get('activityLevel'),
+        storage.get('goalType'),
+        storage.get('goalKg'),
+        storage.get('goalWeeks'),
+        storage.get('manualCalorieAdjustment')
       ]);
       return {
         birthDate: birthDate && birthDate.value ? birthDate.value : '',

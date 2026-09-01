@@ -1,10 +1,10 @@
 # Resumo de status do Trofia
 
-> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no commit `e68bc20`, em 01/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no commit `0187c90`, em 01/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
-- **Versão nomeada:** checkpoint `0.11.0-beta` preparado no pacote, Android `versionName`, rótulo, aviso trilíngue e tutorial pontual de score/avaliação. O `versionCode` efetivamente distribuído não é determinado pelo Git porque esse campo é ajustado localmente antes dos uploads.
+- **Versão nomeada:** checkpoint `0.11.0-beta` preparado no pacote, Android `versionName`, rótulo, aviso trilíngue e tutorial pontual de score/avaliação. A distribuição do AAB versionCode 11 foi pausada/revertida em 01/09/2026 durante o hotfix descrito abaixo; o `versionCode` não é determinado pelo Git porque esse campo é ajustado localmente antes dos uploads.
 - **Aplicação web e Android:** build Vite em produção, GitHub Pages e projeto Capacitor Android com publicação em teste interno. Publicação iOS não está concluída.
 - **Autenticação e dados:** Firebase Auth, Firestore modular, App Check, cache persistente, comportamento offline-first, loaders cache-first, escrita granular e lifecycle seguro de conta concluídos em C28.
 - **Exclusão de conta:** saga administrativa idempotente com Cloud Functions, Cloud Tasks, lock de escrita, exclusão recursiva, retries e verificação destrutiva em produção concluída em C22.
@@ -19,7 +19,8 @@
 
 ## O que está em andamento agora
 
-- Não há fatia funcional desta frente marcada como em andamento após a C08-F. C20, C19 e C08 estão concluídos; resta publicar e validar no Play Console o AAB nomeado `0.11.0-beta`.
+- **Hotfix crítico da build 11:** foi confirmado que o AAB release saiu de um worktree sem `android/app/google-services.json`, impedindo a inicialização nativa correta do App Check. O hotfix adiciona um gate fail-closed ao build e separa falha de leitura do Firestore de perfil realmente incompleto. Ele só será considerado concluído após CI autenticado, novo AAB distribuído pela Play e validação física de leitura/escrita com histórico real.
+- C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
 ## O que está apenas planejado, ainda sem código completo
