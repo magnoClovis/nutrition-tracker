@@ -60,6 +60,13 @@ test.describe('authenticated GenericDialog visual and accessibility contract', (
         set: value => { installedStorage = decorateStorage(value); },
       });
 
+      const originalAnchorClick = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function clickAnchor() {
+        if (this.hasAttribute('download')) {
+          throw new Error('Falha visual controlada');
+        }
+        return originalAnchorClick.call(this);
+      };
       URL.createObjectURL = () => { throw new Error('Falha visual controlada'); };
     }, template);
   }
