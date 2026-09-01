@@ -99,7 +99,12 @@ test.describe('authenticated GenericDialog visual and accessibility contract', (
 
   async function openWaterPrompt(page) {
     await clickByTutorialKeyOrText(page, 'tab-diario', /Di.rio|Diary/i);
-    await page.locator('[data-water-configure="true"]').click();
+    const configureButton = page.locator('[data-water-configure="true"]');
+    if (!await configureButton.isVisible().catch(() => false)) {
+      await page.locator('[data-water-summary="true"]').click();
+    }
+    await expect(configureButton).toBeVisible();
+    await configureButton.click();
     return expectOpenDialog(page, {
       kind: 'prompt',
       title: /Tamanho da garrafa/i,
