@@ -410,21 +410,27 @@ contractTest('deletes profile fields with merge without replacing the root docum
 });
 
 contractTest('preserves read fallbacks and write/delete rejection messages', async create => {
-  const backend = createBackend({failures: {
+  const failures = {
     rootRead: true,
     dataRead: 'weightHistory',
     dataList: true,
     dataWrite: 'pantry_v2',
     dataDelete: 'goalHistory',
     rootWrite: true,
-  }});
+  };
+  const backend = createBackend({failures});
   const warnings = [];
   const originalWarn = console.warn;
   console.warn = (...args) => warnings.push(args);
   try {
     const {client} = create({backend});
     assert.equal(await client.fbGet3('weightHistory'), null);
-    assert.equal(await client.fbGet3('language'), null);
+    await assert.rejects(
+      client.fbGet3('language'),
+      error => error.message === 'Firestore root read failed' && error.code === 'unavailable',
+    );
+    await assert.rejects(client.fbList3(), /Firestore root read failed/);
+    failures.rootRead = false;
     assert.deepEqual(await client.fbList3(), {keys: []});
     await assert.rejects(client.fbSet3('pantry_v2', '[]'), /Firestore data write failed/);
     await assert.rejects(client.fbDel3('goalHistory'), /Firestore data delete failed/);
@@ -435,6 +441,21 @@ contractTest('preserves read fallbacks and write/delete rejection messages', asy
   assert.equal(warnings.some(args => args[0] === 'Firestore root read failed'), true);
   assert.equal(warnings.some(args => args[0] === 'Firestore data read failed'), true);
   assert.equal(warnings.some(args => args[0] === 'Firestore data list failed'), true);
+});
+
+contractTest('retries a failed root read instead of caching an empty profile', async create => {
+  const failures = {rootRead: true};
+  const backend = createBackend({root: {language: 'pt'}, failures});
+  const {client} = create({backend});
+
+  await assert.rejects(client.fbGet3('language'), /Firestore root read failed/);
+  failures.rootRead = false;
+
+  assert.deepEqual(await client.fbGet3('language'), {value: 'pt'});
+  assert.equal(
+    backend.calls.filter(call => call.operation === 'getDoc' && call.path === `nutrition/${UID}`).length,
+    2,
+  );
 });
 
 contractTest('keeps unauthenticated reads empty and writes as no-ops', async create => {
