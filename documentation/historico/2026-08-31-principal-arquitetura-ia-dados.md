@@ -130,15 +130,73 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **O que foi feito:** a distribuição do AAB `0.11.0-beta` versionCode 11 foi pausada/revertida após a confirmação de que o artefato saiu de um worktree sem `android/app/google-services.json`. A conta real foi auditada somente por leitura e seu documento canônico continha os campos obrigatórios válidos; nenhum dado foi alterado. O build release passa a falhar explicitamente quando a configuração nativa estiver ausente. Falhas de App Check ou leitura do documento raiz deixam de virar `{}` e agora bloqueiam a abertura do app com um estado de erro distinto, sanitizado e repetível, sem mostrar o formulário de perfil incompleto. O incidente foi encerrado após a build `0.11.0-beta` versionCode 12 ser instalada pela Play Store e validada na conta real: login normal, perfil carregado, alteração de perfil salva, sincronização funcional e App Check inicializado corretamente.
 - **PRs/commits relacionados:** PR #173, branch `codex/fix-v11-appcheck-profile-read`, commit `8721c35`, merge `e39f6bd`; build Play versionCode 12 validada fisicamente em 01/09/2026.
 
-## 01/09/2026 — C14-A: leituras e backup fail-closed
+## C14 — divisão completa da revisão geral de segurança
 
-- **Código:** `C14-A`.
-- **Data:** 01/09/2026.
-- **Propósito:** estender a correção fail-closed do documento raiz aos documentos canônicos de dados e à enumeração usada pelo backup completo.
-- **Recursos:** erros tipados para falha de leitura/listagem; retry sem cachear ausência falsa; exportação abortada quando raiz, lista, documento ou agregado diário não puder ser comprovadamente lido; nenhuma omissão silenciosa no arquivo gerado.
-- **Arquivos principais:** `/firebase-firestore-sdk.js`, `/firebase-backup-internal.js`, testes unitários UMD/ESM e documentação de estado.
-- **O que foi feito:** `fetchDataDoc()` e `listDataKeys()` deixam de converter falha de rede, permissão ou App Check em `null`/`[]`. O backup só é produzido depois de todas as leituras canônicas concluírem; documento listado que desapareça ou não possa ser lido também interrompe a exportação com erro explícito. Ausência real continua representada como ausência somente quando confirmada pelo Firestore.
-- **PRs/commits relacionados:** PR #174, branch `codex/c14-a-fail-closed-reads`, commit de implementação `bd62a32`.
+### [C14-A] - Integridade fail-closed e encerramento documental
+
+- **Status:** concluído.
+- **Data de conclusão:** 01/09/2026.
+- **Propósito:** estender a correção fail-closed do documento raiz aos documentos canônicos de dados e à enumeração usada pelo backup completo, impedindo que falhas sejam interpretadas como ausência.
+- **Recursos/arquivos principais envolvidos:** `/firebase-firestore-sdk.js`, `/firebase-backup-internal.js`, testes unitários UMD/ESM, `/documentation/estado-atual/RESUMO-STATUS.md` e este histórico.
+- **O que foi feito:** `fetchDataDoc()` e `listDataKeys()` deixaram de converter falha de rede, permissão ou App Check em `null`/`[]`; falhas não são cacheadas como ausência. O backup só é produzido depois de todas as leituras canônicas concluírem e aborta explicitamente se raiz, listagem, documento ou agregado diário não puder ser comprovado. O incidente da build 11 foi encerrado documentalmente após a build Play versionCode 12 validar App Check, leitura, escrita e sincronização com a conta real.
+- **PRs/commits relacionados:** PR #174, commit de implementação `bd62a32`, merge `141da412`; incidente original corrigido no PR #173.
+
+### [C14-B] - Rules do Firestore e schema canônico
+
+- **Status:** em andamento.
+- **Data de conclusão:** não concluída; B1 concluída em 01/09/2026 e B2 não iniciada.
+- **Propósito:** impedir exclusão client-side do documento raiz e restringir os envelopes, campos, chaves, tipos e tamanhos aceitos pelas rules sem bloquear dados legítimos já existentes.
+- **Recursos/arquivos principais envolvidos:** `/firestore.rules`, testes de rules/emuladores, ferramenta administrativa Admin SDK de inventário somente leitura e documentação de rollback/deploy.
+- **O que foi feito:** B1 nega `delete` da raiz para qualquer cliente e preserva exclusivamente o Admin SDK do C22 para exclusão completa. A raiz recebe um teto conservador de 128 campos, sem antecipar a allowlist de B2; documentos `/data/{key}` exigem o envelope exato `{value: string}` com máximo de 900.000 caracteres. Os testes de emulador cobrem proprietário, outro UID, lock, Admin SDK, raiz superdimensionada e envelopes ausentes, extras, tipados incorretamente ou grandes demais. B2 permanece não iniciada e fará inventário real read-only, allowlist/tipos, dry-run, deploy progressivo e rollback.
+- **PRs/commits relacionados:** branch `codex/c14-b-rules-hardening`; PR/commit de B1 serão registrados ao fechar a subfatia.
+
+### [C14-C] - App Check no Worker de IA
+
+- **Status:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** proteger a cota e os endpoints de IA contra clientes automatizados que possuam apenas uma conta Firebase válida, sem repetir uma quebra de clientes durante o rollout.
+- **Recursos/arquivos principais envolvidos:** `/worker/src/`, `/worker/wrangler.jsonc`, adaptadores de IA do cliente, inicialização App Check web/Android, CI autenticado e testes Worker/Pages/AAB.
+- **O que foi feito:** nenhuma implementação iniciada. Está aprovado o rollout observação → clientes enviam token → debug provider no CI → validação Pages/AAB real → enforcement obrigatório.
+
+### [C14-D] - Android e cadeia de release
+
+- **Status:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** reduzir exposição de dados locais e tornar o artefato Android verificável e fail-closed quanto à configuração Firebase e às propriedades de segurança do manifesto.
+- **Recursos/arquivos principais envolvidos:** `/android/app/src/main/AndroidManifest.xml`, `/android/app/src/main/res/xml/file_paths.xml`, `/android/app/build.gradle`, scripts/testes de release, AAB assinado e aparelho físico.
+- **O que foi feito:** nenhuma implementação iniciada. Está aprovado desligar o Auto Backup Android; também serão tratados `FileProvider` restrito, cleartext explicitamente negado, validação semântica de `google-services.json` e manifesto/hash reproduzível do release.
+
+### [C14-E] - Auth, sessão e onboarding recuperável
+
+- **Status:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** impedir contas parcialmente configuradas por falhas silenciosas, alinhar a senha mínima e dar ao usuário controle explícito sobre a persistência da sessão web.
+- **Recursos/arquivos principais envolvidos:** `/login-screen.js`, runtime Firebase Auth modular, i18n PT/EN/ES, testes de onboarding/sessão e configuração manual da política de senha no Firebase Console.
+- **O que foi feito:** nenhuma implementação iniciada. Estão aprovados mínimo de 12 caracteres sem composição forçada e o checkbox “Manter logado”: desmarcado usa persistência `SESSION`; marcado usa `LOCAL`, sem janela de tolerância após fechar.
+
+### [C14-F] - Worker, observabilidade, Functions, IAM e dependências
+
+- **Status:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** limitar abuso e falhas do backend, criar observabilidade sanitizada e auditar privilégios efetivos da infraestrutura sem ampliar IAM antes de conhecer o estado real.
+- **Recursos/arquivos principais envolvidos:** `/worker/src/`, Durable Object/rate limiter, `/functions/`, Cloud Functions/Tasks, Google Cloud IAM, Artifact/Cloud Logging, lockfiles e testes de backend.
+- **O que foi feito:** nenhuma implementação iniciada. O plano aprovado divide a fatia em F1 (infraestrutura de tiers por UID mantida desligada nos testes, UID pseudonimizado, timeout/limite de resposta, métricas endpoint/status/escopo/latência por 30 dias e compatibilidade do Worker) e F2 (auditoria somente leitura de IAM/invocadores, alertas e atualizações controladas; criação de service accounts de privilégio mínimo depende do resultado da auditoria).
+
+### [C14-G] - Web, CSP e superfícies de debug
+
+- **Status:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** reduzir o impacto de uma eventual XSS e impedir que APIs globais de diagnóstico permaneçam disponíveis indevidamente em produção.
+- **Recursos/arquivos principais envolvidos:** `/index.html`, CSP via `<meta http-equiv>`, integrações Firebase/reCAPTCHA/Worker/Google APIs, globals de debug e matriz PT/EN/ES em Pages.
+- **O que foi feito:** nenhuma implementação iniciada. Está aprovada a CSP imediata no GitHub Pages, inicialmente via meta e compatível com os serviços atualmente necessários.
+
+### [C14-H] - Staging, validação final e rollout
+
+- **Status:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** comprovar o endurecimento completo em um ambiente destrutivo separado antes do lançamento público e produzir o handoff operacional para C16/C25.
+- **Recursos/arquivos principais envolvidos:** novo projeto Firebase staging, emuladores, CI, Pages, Worker, Functions/Tasks, AAB distribuído pela Play, matriz offline/multiaba/backup/exclusão, inventário IAM/secrets/dependências e documentação operacional.
+- **O que foi feito:** nenhuma implementação iniciada. Está aprovada a criação de um projeto Firebase separado para testes destrutivos; a matriz final cobrirá cross-account, payloads malformados, App Check, rate limit, tarefas duplicadas, cache/lifecycle, Auto Backup, rollback e validação física.
 
 ## Incidentes e trabalhos separados observados
 
