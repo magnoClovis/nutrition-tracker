@@ -1,6 +1,6 @@
 # Resumo de status do Trofia
 
-> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no commit `141da412`, em 01/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no commit `7662899`, em 01/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
@@ -20,7 +20,7 @@
 
 ## O que está em andamento agora
 
-- **C14 — revisão geral de segurança:** C14-A está concluída; C14-B está em andamento, com B1 concluída e B2 ainda não iniciada; C14-C a C14-H não foram iniciadas. O detalhamento individual está registrado abaixo e deve ser atualizado ao final de cada fatia.
+- **C14 — revisão geral de segurança:** C14-A e C14-B1 estão concluídas; C14-B2 está em andamento, com inventário real somente leitura e rules completas preparadas, ainda sem deploy B2; C14-C a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
@@ -52,10 +52,10 @@
 ### [C14-B] - Rules do Firestore e schema canônico
 
 - **Status:** em andamento — **Chat:** Trofia-Principal.
-- **Data de conclusão:** não concluída; B1 concluída em 01/09/2026 e B2 não iniciada.
+- **Data de conclusão:** não concluída; B1 concluída em 01/09/2026 e B2 em andamento desde 01/09/2026.
 - **Propósito:** negar exclusão client-side da raiz e restringir envelopes, campos, chaves, tipos e tamanhos sem bloquear dados reais legítimos.
 - **Recursos/arquivos principais envolvidos:** `/firestore.rules`, testes de emulador e ferramenta Admin SDK read-only para inventário/dry-run.
-- **O que foi feito:** B1 nega exclusão client-side da raiz, mantém a exclusão administrativa do C22, limita a raiz a 128 campos e exige `{value: string}` com até 900.000 caracteres em `/data/{key}`. A matriz de emulador comprova proprietário, outro UID, lock, Admin SDK e rejeição de envelopes/tamanhos inválidos. B2 fará o inventário real, allowlist, deploy progressivo e rollback e permanece não iniciada.
+- **O que foi feito:** B1 nega exclusão client-side da raiz, mantém a exclusão administrativa do C22, limita a raiz a 128 campos e exige `{value: string}` com até 900.000 caracteres em `/data/{key}`; as rules B1 foram publicadas em produção em 01/09/2026 e o CI autenticado pós-deploy ficou verde no run `33512725510` (tentativa 2). B2 criou o inventário Admin SDK paginado/read-only e o executou em produção sem UIDs nem conteúdo: 29 usuários Auth, 29 raízes canônicas, 1.209 documentos `data`, 56 refeições, 2 registros de água e 70 marcadores. Foram detectadas 2 raízes órfãs e 114 descendentes, sem qualquer exclusão. As rules B2 com allowlists/tipos preservam resíduos históricos somente se permanecerem imutáveis e estão apenas em dry-run/emulador, sem deploy. Evidência: [`C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`](C14_B2_FIRESTORE_SCHEMA_INVENTORY.md).
 
 ### [C14-C] - App Check no Worker de IA
 

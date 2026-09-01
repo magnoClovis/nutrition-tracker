@@ -32,26 +32,116 @@ service cloud.firestore {
       }
 
       function validRootEnvelope() {
-        // C14-B1 establishes a conservative document-size guard without
-        // guessing the final field allowlist before the B2 production
-        // inventory. Field names and types are narrowed only after that
-        // read-only inventory has proved which canonical values exist.
-        return request.resource.data.keys().size() <= 128;
+        return request.resource.data.keys().size() <= 128
+          && request.resource.data.keys().hasOnly([
+            'birthDate', 'gender', 'height', 'activityLevel', 'goalType',
+            'goalKg', 'goalWeeks', 'manualCalorieAdjustment',
+            'proteinMultiplier', 'bodyFatGoal', 'userName', 'tutorialSeen',
+            'language', 'lastLoginAt', 'lastActivityAt',
+            'tutorial_most_recent_version_seen', '_storageSchemaVerified',
+            '_storageSchemaVerifiedAt', '_legacyCleanupDone',
+            'tutorialSeen_main', 'tutorialSeen_diario',
+            'tutorialSeen_adicionar', 'tutorialSeen_despensa',
+            'tutorialSeen_semana', 'tutorialSeen_metricas', '_dailyDates'
+          ])
+          && validRootFieldTypes();
+      }
+
+      function validRootUpdate() {
+        // Historical canonical roots can still contain read-only residual
+        // fields from pre-C23 clients. They may survive unchanged, but no
+        // client can add, modify, or resurrect one of those fields.
+        return request.resource.data.keys().size() <= 128
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'birthDate', 'gender', 'height', 'activityLevel', 'goalType',
+            'goalKg', 'goalWeeks', 'manualCalorieAdjustment',
+            'proteinMultiplier', 'bodyFatGoal', 'userName', 'tutorialSeen',
+            'language', 'lastLoginAt', 'lastActivityAt',
+            'tutorial_most_recent_version_seen', '_storageSchemaVerified',
+            '_storageSchemaVerifiedAt', '_legacyCleanupDone',
+            'tutorialSeen_main', 'tutorialSeen_diario',
+            'tutorialSeen_adicionar', 'tutorialSeen_despensa',
+            'tutorialSeen_semana', 'tutorialSeen_metricas', '_dailyDates'
+          ])
+          && validRootFieldTypes();
+      }
+
+      function optionalString(field, maximum) {
+        return !request.resource.data.keys().hasAny([field])
+          || (request.resource.data[field] is string
+            && request.resource.data[field].size() <= maximum);
+      }
+
+      function optionalNumberOrNull(field) {
+        return !request.resource.data.keys().hasAny([field])
+          || request.resource.data[field] == null
+          || request.resource.data[field] is number
+          || (request.resource.data[field] is string
+            && request.resource.data[field].size() <= 40);
+      }
+
+      function optionalBooleanOrString(field) {
+        return !request.resource.data.keys().hasAny([field])
+          || request.resource.data[field] is bool
+          || (request.resource.data[field] is string
+            && request.resource.data[field].size() <= 120);
+      }
+
+      function validRootFieldTypes() {
+        return optionalString('birthDate', 32)
+          && optionalString('gender', 32)
+          && optionalString('activityLevel', 40)
+          && optionalString('goalType', 40)
+          && optionalString('userName', 200)
+          && optionalString('language', 12)
+          && optionalString('lastLoginAt', 64)
+          && optionalString('lastActivityAt', 64)
+          && optionalString('_storageSchemaVerifiedAt', 64)
+          && optionalNumberOrNull('height')
+          && optionalNumberOrNull('goalKg')
+          && optionalNumberOrNull('goalWeeks')
+          && optionalNumberOrNull('manualCalorieAdjustment')
+          && optionalNumberOrNull('proteinMultiplier')
+          && optionalNumberOrNull('bodyFatGoal')
+          && optionalBooleanOrString('tutorialSeen')
+          && optionalBooleanOrString('tutorial_most_recent_version_seen')
+          && optionalBooleanOrString('tutorialSeen_main')
+          && optionalBooleanOrString('tutorialSeen_diario')
+          && optionalBooleanOrString('tutorialSeen_adicionar')
+          && optionalBooleanOrString('tutorialSeen_despensa')
+          && optionalBooleanOrString('tutorialSeen_semana')
+          && optionalBooleanOrString('tutorialSeen_metricas')
+          && (!request.resource.data.keys().hasAny(['_storageSchemaVerified'])
+            || request.resource.data._storageSchemaVerified is bool)
+          && (!request.resource.data.keys().hasAny(['_legacyCleanupDone'])
+            || request.resource.data._legacyCleanupDone is bool)
+          && (!request.resource.data.keys().hasAny(['_dailyDates'])
+            || (request.resource.data._dailyDates is list
+              && request.resource.data._dailyDates.size() <= 4000));
       }
 
       // User profile/preferences live at nutrition/{uid}.
       allow read: if isOwnUserDoc();
-      allow create, update: if isOwnUserDoc()
+      allow create: if isOwnUserDoc()
         && !accountDeletionLocked(uid)
         && validRootEnvelope();
+      allow update: if isOwnUserDoc()
+        && !accountDeletionLocked(uid)
+        && validRootUpdate();
       // Complete account deletion belongs exclusively to the C22 Admin SDK
       // saga. Client deletion of the root can orphan nested canonical data.
       allow delete: if false;
 
       // Growing app data lives here to avoid an oversized user document.
       match /data/{key} {
+        function validDataKey() {
+          return key.matches('^(customGoals|goalHistory|mealTemplates|pantry_v2|suppPantry|trainingByDate|waterCustomPreset|waterGoal|weightHistory|seenVisualUpdateNotice_0\\.8\\.1|tutorialSeen_release-highlights)$')
+            || key.matches('^(log_v2|notes|waterIntake|suppLog)_[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+        }
+
         function validDataEnvelope() {
-          return request.resource.data.keys().hasOnly(['value'])
+          return validDataKey()
+            && request.resource.data.keys().hasOnly(['value'])
             && request.resource.data.value is string
             && request.resource.data.value.size() <= 900000;
         }
@@ -94,7 +184,8 @@ service cloud.firestore {
             ])
             && request.resource.data.mealKey is string
             && request.resource.data.mealKey.size() > 0
-            && request.resource.data.mealKey.size() <= 80;
+            && request.resource.data.mealKey.size() <= 80
+            && validMealPayload(entryId, request.resource.data.entry);
         }
 
         function validNonMealEntry(entryId) {
@@ -102,6 +193,190 @@ service cloud.firestore {
             && request.resource.data.keys().hasOnly([
               'schemaVersion', 'id', 'date', 'entry', 'updatedAt'
             ]);
+        }
+
+        function optionalNutrient(payload, field) {
+          return !payload.keys().hasAny([field])
+            || payload[field] == null
+            || payload[field] is number;
+        }
+
+        function validFoodSnapshot(payload) {
+          return payload == null || (
+            payload is map
+            && payload.keys().hasOnly([
+              'id', 'name', 'unit', 'protein100', 'kcal100', 'carbs100',
+              'sugars100', 'fat100', 'satfat100', 'fiber100', 'salt100',
+              'b12_100', 'niacin100', 'phosphorus100', 'vitd100',
+              'calcium100', 'iron100', 'potassium100', 'magnesium100',
+              'zinc100', 'vitc100'
+            ])
+            && payload.id is string && payload.id.size() <= 256
+            && payload.name is string && payload.name.size() <= 500
+            && payload.unit is string && payload.unit.size() <= 40
+            && optionalNutrient(payload, 'protein100')
+            && optionalNutrient(payload, 'kcal100')
+            && optionalNutrient(payload, 'carbs100')
+            && optionalNutrient(payload, 'sugars100')
+            && optionalNutrient(payload, 'fat100')
+            && optionalNutrient(payload, 'satfat100')
+            && optionalNutrient(payload, 'fiber100')
+            && optionalNutrient(payload, 'salt100')
+            && optionalNutrient(payload, 'b12_100')
+            && optionalNutrient(payload, 'niacin100')
+            && optionalNutrient(payload, 'phosphorus100')
+            && optionalNutrient(payload, 'vitd100')
+            && optionalNutrient(payload, 'calcium100')
+            && optionalNutrient(payload, 'iron100')
+            && optionalNutrient(payload, 'potassium100')
+            && optionalNutrient(payload, 'magnesium100')
+            && optionalNutrient(payload, 'zinc100')
+            && optionalNutrient(payload, 'vitc100')
+          );
+        }
+
+        function validMealScoreSnapshot(payload) {
+          // The local C20/C19 validator owns the detailed scoring semantics.
+          // Rules constrain the persisted envelope and primitive types without
+          // reimplementing the nutrition algorithm server-side.
+          return payload is map
+            && payload.keys().hasOnly([
+              'algorithmVersion', 'score', 'coverage', 'evaluatedAt',
+              'hoursLeft', 'windowHours', 'components', 'confidence',
+              'provisional', 'provisionalReasons', 'applicableWeight',
+              'mealOccurredAt'
+            ])
+            && payload.algorithmVersion is string
+            && payload.algorithmVersion.size() <= 80
+            && payload.score is number
+            && payload.coverage is number
+            && payload.evaluatedAt is string
+            && payload.hoursLeft is number
+            && payload.windowHours is number
+            && payload.components is map
+            && payload.components.keys().hasOnly([
+              'protein', 'kcal', 'fiber', 'salt', 'carbs', 'fat'
+            ])
+            && (!payload.components.keys().hasAny(['protein'])
+              || validScoreComponent(payload.components.protein))
+            && (!payload.components.keys().hasAny(['kcal'])
+              || validScoreComponent(payload.components.kcal))
+            && (!payload.components.keys().hasAny(['fiber'])
+              || validScoreComponent(payload.components.fiber))
+            && (!payload.components.keys().hasAny(['salt'])
+              || validScoreComponent(payload.components.salt))
+            && (!payload.components.keys().hasAny(['carbs'])
+              || validScoreComponent(payload.components.carbs))
+            && (!payload.components.keys().hasAny(['fat'])
+              || validScoreComponent(payload.components.fat))
+            && (!payload.keys().hasAny(['confidence']) || payload.confidence is string)
+            && (!payload.keys().hasAny(['provisional']) || payload.provisional is bool)
+            && (!payload.keys().hasAny(['provisionalReasons'])
+              || (payload.provisionalReasons is list
+                && payload.provisionalReasons.size() <= 32))
+            && (!payload.keys().hasAny(['applicableWeight'])
+              || payload.applicableWeight is number)
+            && (!payload.keys().hasAny(['mealOccurredAt'])
+              || (payload.mealOccurredAt is string
+                && payload.mealOccurredAt.size() <= 64));
+        }
+
+        function validScoreComponent(component) {
+          return component is map
+            && component.keys().hasOnly([
+              'key', 'type', 'available', 'applicable', 'required', 'weight',
+              'target', 'consumedBefore', 'mealAmount', 'consumedAfter',
+              'remainingBefore', 'remainingAfter', 'quota', 'ratio',
+              'candidateKnownCount', 'candidateItemCount', 'candidateComplete',
+              'consumedKnownCount', 'consumedItemCount', 'consumedComplete',
+              'score'
+            ])
+            && component.key is string && component.key.size() <= 40
+            && component.type is string && component.type.size() <= 40
+            && component.available is bool
+            && (!component.keys().hasAny(['applicable']) || component.applicable is bool)
+            && component.required is bool
+            && component.weight is number
+            && component.target is number
+            && component.consumedBefore is number
+            && component.mealAmount is number
+            && component.consumedAfter is number
+            && component.remainingBefore is number
+            && component.remainingAfter is number
+            && component.quota is number
+            && (component.ratio == null || component.ratio is number)
+            && component.candidateKnownCount is number
+            && component.candidateItemCount is number
+            && component.candidateComplete is bool
+            && component.consumedKnownCount is number
+            && component.consumedItemCount is number
+            && component.consumedComplete is bool
+            && component.score is number;
+        }
+
+        function validMealPayload(entryId, payload) {
+          return payload.keys().hasOnly([
+              'id', 'foodId', 'name', 'qty', 'unit', 'foodSnapshot',
+              'protein', 'kcal', 'carbs', 'sugars', 'fat', 'satfat',
+              'fiber', 'salt', 'b12_', 'niacin', 'phosphorus', 'vitd',
+              'calcium', 'iron', 'potassium', 'magnesium', 'zinc', 'vitc',
+              'time', 'mealEvaluationId', 'mealScoreSnapshot', '_estimated',
+              '_estimateSource', '_description'
+            ])
+            && payload.id == entryId
+            && payload.name is string && payload.name.size() <= 500
+            && payload.qty is number
+            && payload.unit is string && payload.unit.size() <= 40
+            && payload.time is string && payload.time.matches('^[0-2][0-9]:[0-5][0-9]$')
+            && (!payload.keys().hasAny(['foodId']) || payload.foodId == null
+              || (payload.foodId is string && payload.foodId.size() <= 256))
+            && (!payload.keys().hasAny(['foodSnapshot'])
+              || validFoodSnapshot(payload.foodSnapshot))
+            && optionalNutrient(payload, 'protein')
+            && optionalNutrient(payload, 'kcal')
+            && optionalNutrient(payload, 'carbs')
+            && optionalNutrient(payload, 'sugars')
+            && optionalNutrient(payload, 'fat')
+            && optionalNutrient(payload, 'satfat')
+            && optionalNutrient(payload, 'fiber')
+            && optionalNutrient(payload, 'salt')
+            && optionalNutrient(payload, 'b12_')
+            && optionalNutrient(payload, 'niacin')
+            && optionalNutrient(payload, 'phosphorus')
+            && optionalNutrient(payload, 'vitd')
+            && optionalNutrient(payload, 'calcium')
+            && optionalNutrient(payload, 'iron')
+            && optionalNutrient(payload, 'potassium')
+            && optionalNutrient(payload, 'magnesium')
+            && optionalNutrient(payload, 'zinc')
+            && optionalNutrient(payload, 'vitc')
+            && (!payload.keys().hasAny(['mealEvaluationId'])
+              || (payload.mealEvaluationId is string
+                && payload.mealEvaluationId.size() <= 256))
+            && (!payload.keys().hasAny(['mealScoreSnapshot'])
+              || validMealScoreSnapshot(payload.mealScoreSnapshot))
+            && (!payload.keys().hasAny(['_estimated']) || payload._estimated is bool)
+            && (!payload.keys().hasAny(['_estimateSource'])
+              || payload._estimateSource.matches('^(image|description)$'))
+            && (!payload.keys().hasAny(['_description'])
+              || (payload._description is string
+                && payload._description.size() <= 4000));
+        }
+
+        function validWaterPayload(entryId, payload) {
+          return payload.keys().hasOnly(['id', 'ml', 'time'])
+            && payload.id == entryId
+            && payload.ml is number && payload.ml > 0 && payload.ml <= 100000
+            && payload.time is string && payload.time.matches('^[0-2][0-9]:[0-5][0-9]$');
+        }
+
+        function validSupplementPayload(entryId, payload) {
+          return payload.keys().hasOnly(['id', 'name', 'dose', 'unit', 'time'])
+            && payload.id == entryId
+            && payload.name is string && payload.name.size() <= 500
+            && payload.dose is number
+            && payload.unit is string && payload.unit.size() <= 40
+            && payload.time is string && payload.time.matches('^[0-2][0-9]:[0-5][0-9]$');
         }
 
         // Day summary documents are intentionally absent; only their typed
@@ -121,7 +396,8 @@ service cloud.firestore {
           allow read: if isOwnUserDoc();
           allow create, update: if isOwnUserDoc()
             && !accountDeletionLocked(uid)
-            && validNonMealEntry(entryId);
+            && validNonMealEntry(entryId)
+            && validWaterPayload(entryId, request.resource.data.entry);
           allow delete: if isOwnUserDoc()
             && !accountDeletionLocked(uid);
         }
@@ -130,7 +406,8 @@ service cloud.firestore {
           allow read: if isOwnUserDoc();
           allow create, update: if isOwnUserDoc()
             && !accountDeletionLocked(uid)
-            && validNonMealEntry(entryId);
+            && validNonMealEntry(entryId)
+            && validSupplementPayload(entryId, request.resource.data.entry);
           allow delete: if isOwnUserDoc()
             && !accountDeletionLocked(uid);
         }
