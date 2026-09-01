@@ -1,10 +1,10 @@
 # Resumo de status do Trofia
 
-> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no commit `0187c90`, em 01/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no commit `e39f6bd`, em 01/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
-- **Versão nomeada:** checkpoint `0.11.0-beta` preparado no pacote, Android `versionName`, rótulo, aviso trilíngue e tutorial pontual de score/avaliação. A distribuição do AAB versionCode 11 foi pausada/revertida em 01/09/2026 durante o hotfix descrito abaixo; o `versionCode` não é determinado pelo Git porque esse campo é ajustado localmente antes dos uploads.
+- **Versão nomeada:** checkpoint `0.11.0-beta` preparado no pacote, Android `versionName`, rótulo, aviso trilíngue e tutorial pontual de score/avaliação. A build corrigida versionCode 12 foi instalada pela Play Store e validada fisicamente em 01/09/2026; o `versionCode` não é determinado pelo Git porque esse campo é ajustado localmente antes dos uploads.
 - **Aplicação web e Android:** build Vite em produção, GitHub Pages e projeto Capacitor Android com publicação em teste interno. Publicação iOS não está concluída.
 - **Autenticação e dados:** Firebase Auth, Firestore modular, App Check, cache persistente, comportamento offline-first, loaders cache-first, escrita granular e lifecycle seguro de conta concluídos em C28.
 - **Exclusão de conta:** saga administrativa idempotente com Cloud Functions, Cloud Tasks, lock de escrita, exclusão recursiva, retries e verificação destrutiva em produção concluída em C22.
@@ -16,10 +16,11 @@
 - **Privacidade e compliance:** política trilíngue pública, instruções de exclusão e referência atual de Data Safety.
 - **Qualidade:** preflight, unitários, smoke legado/Vite, matriz visual e CI autenticado com App Check. G01, C05 e C07 estão fechados.
 - **Controles visuais S8:** `CheckboxField` e `SliderField` customizados foram integrados no PR #166 às superfícies ativas de sugestões de refeição e seleção de categorias de backup.
+- **Incidente App Check/perfil encerrado:** o PR #173 impede release Android sem `google-services.json` e distingue falha de leitura de perfil realmente incompleto. Na build Play versionCode 12, a conta real concluiu login, leitura e alteração de perfil, sincronização e inicialização do App Check sem erro.
 
 ## O que está em andamento agora
 
-- **Hotfix crítico da build 11:** foi confirmado que o AAB release saiu de um worktree sem `android/app/google-services.json`, impedindo a inicialização nativa correta do App Check. O hotfix adiciona um gate fail-closed ao build e separa falha de leitura do Firestore de perfil realmente incompleto. Ele só será considerado concluído após CI autenticado, novo AAB distribuído pela Play e validação física de leitura/escrita com histórico real.
+- **C14-A — integridade de leituras e backup:** `fetchDataDoc()` e `listDataKeys()` passam a propagar falhas explicitamente, sem cachear ausência falsa. A exportação de conta falha por inteiro se qualquer leitura canônica não puder ser comprovada, em vez de gerar backup silenciosamente incompleto.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
@@ -27,7 +28,7 @@
 
 ### Indispensável antes do lançamento público
 
-- **C14:** revisão geral de segurança — parcial.
+- **C14:** revisão geral de segurança — em andamento; C14-A implementa leituras e backup fail-closed, enquanto C14-B a C14-H aguardam decisões e autorização específicas.
 - **C16:** documentação técnica e de manutenção — parcial; esta pasta ajuda, mas não equivale à conclusão integral do item.
 - **C25:** gate da versão pública — parcial e dependente de C14/C16.
 

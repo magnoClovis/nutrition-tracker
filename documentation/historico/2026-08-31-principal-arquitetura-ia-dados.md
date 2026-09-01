@@ -120,15 +120,25 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **O que foi feito:** o identificador de release passou a `0.11.0-beta`; usuários existentes recebem aviso e tutorial pontual, enquanto usuários novos recebem o mesmo aviso seguido do tutorial completo. O `versionCode` do AAB é incrementado somente na preparação local do artefato assinado, conforme a prática do projeto.
 - **PRs/commits relacionados:** PR #169, branch `codex/version-0.11.0-beta`, commit de preparação `1514ace`; merge `0187c90`.
 
-## 01/09/2026 — hotfix de App Check e leitura do perfil (em validação)
+## 01/09/2026 — hotfix de App Check e leitura do perfil (encerrado)
 
 - **Código:** `hotfix-v11-appcheck-profile`.
 - **Data:** 01/09/2026.
 - **Propósito:** impedir que um AAB Android release seja empacotado sem a configuração nativa do Firebase e impedir que falhas de leitura do Firestore sejam interpretadas como perfil nutricional incompleto.
 - **Recursos:** verificação fail-closed de `google-services.json` no build release; inicialização observável do App Check; erro recuperável de leitura do perfil em PT/EN/ES; retry sem cachear documento raiz vazio.
 - **Arquivos principais:** `/android/app/build.gradle`, `/firebase-firestore-sdk.js`, `/profile-validation.js`, `/required-profile-modal.js`, composições UMD/ESM e testes.
-- **O que foi feito:** a distribuição do AAB `0.11.0-beta` versionCode 11 foi pausada/revertida após a confirmação de que o artefato saiu de um worktree sem `android/app/google-services.json`. A conta real foi auditada somente por leitura e seu documento canônico continha os campos obrigatórios válidos; nenhum dado foi alterado. O build release passa a falhar explicitamente quando a configuração nativa estiver ausente. Falhas de App Check ou leitura do documento raiz deixam de virar `{}` e agora bloqueiam a abertura do app com um estado de erro distinto, sanitizado e repetível, sem mostrar o formulário de perfil incompleto. O hotfix permanece **em validação** até CI autenticado, novo AAB distribuído pela Play e teste físico de leitura/escrita com conta de histórico real.
-- **PRs/commits relacionados:** PR #173, branch `codex/fix-v11-appcheck-profile-read`, commit `8721c35`; entrega ainda em validação.
+- **O que foi feito:** a distribuição do AAB `0.11.0-beta` versionCode 11 foi pausada/revertida após a confirmação de que o artefato saiu de um worktree sem `android/app/google-services.json`. A conta real foi auditada somente por leitura e seu documento canônico continha os campos obrigatórios válidos; nenhum dado foi alterado. O build release passa a falhar explicitamente quando a configuração nativa estiver ausente. Falhas de App Check ou leitura do documento raiz deixam de virar `{}` e agora bloqueiam a abertura do app com um estado de erro distinto, sanitizado e repetível, sem mostrar o formulário de perfil incompleto. O incidente foi encerrado após a build `0.11.0-beta` versionCode 12 ser instalada pela Play Store e validada na conta real: login normal, perfil carregado, alteração de perfil salva, sincronização funcional e App Check inicializado corretamente.
+- **PRs/commits relacionados:** PR #173, branch `codex/fix-v11-appcheck-profile-read`, commit `8721c35`, merge `e39f6bd`; build Play versionCode 12 validada fisicamente em 01/09/2026.
+
+## 01/09/2026 — C14-A: leituras e backup fail-closed
+
+- **Código:** `C14-A`.
+- **Data:** 01/09/2026.
+- **Propósito:** estender a correção fail-closed do documento raiz aos documentos canônicos de dados e à enumeração usada pelo backup completo.
+- **Recursos:** erros tipados para falha de leitura/listagem; retry sem cachear ausência falsa; exportação abortada quando raiz, lista, documento ou agregado diário não puder ser comprovadamente lido; nenhuma omissão silenciosa no arquivo gerado.
+- **Arquivos principais:** `/firebase-firestore-sdk.js`, `/firebase-backup-internal.js`, testes unitários UMD/ESM e documentação de estado.
+- **O que foi feito:** `fetchDataDoc()` e `listDataKeys()` deixam de converter falha de rede, permissão ou App Check em `null`/`[]`. O backup só é produzido depois de todas as leituras canônicas concluírem; documento listado que desapareça ou não possa ser lido também interrompe a exportação com erro explícito. Ausência real continua representada como ausência somente quando confirmada pelo Firestore.
+- **PRs/commits relacionados:** PR #174, branch `codex/c14-a-fail-closed-reads`, commit de implementação `bd62a32`.
 
 ## Incidentes e trabalhos separados observados
 
