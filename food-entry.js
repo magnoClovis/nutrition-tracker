@@ -252,7 +252,7 @@
       if (item.kcal != null || item.protein != null) {
         return {
           ...item,
-          id: item.foodId || item.name,
+          id: createEntryId(),
           qty,
           protein: item.protein || 0,
           kcal: item.kcal || 0,
@@ -266,7 +266,7 @@
       const food = pantry.find(f => f.id === item.foodId || f.name === item.name);
       return food ? buildEntry(food, qty) : {
         ...item,
-        id: item.foodId || item.name,
+        id: createEntryId(),
         qty,
         protein: 0,
         kcal: 0,
