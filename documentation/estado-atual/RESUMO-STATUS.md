@@ -43,7 +43,7 @@
 
 ### [C14-A] - Integridade fail-closed e encerramento documental
 
-- **Status:** concluído.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de conclusão:** 01/09/2026.
 - **Propósito:** impedir que falhas de leitura/listagem pareçam ausência legítima e que um backup incompleto seja apresentado como bem-sucedido.
 - **Recursos/arquivos principais envolvidos:** `/firebase-firestore-sdk.js`, `/firebase-backup-internal.js`, testes unitários UMD/ESM, histórico e este resumo.
@@ -51,7 +51,7 @@
 
 ### [C14-B] - Rules do Firestore e schema canônico
 
-- **Status:** em andamento.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
 - **Data de conclusão:** não concluída; B1 concluída em 01/09/2026 e B2 não iniciada.
 - **Propósito:** negar exclusão client-side da raiz e restringir envelopes, campos, chaves, tipos e tamanhos sem bloquear dados reais legítimos.
 - **Recursos/arquivos principais envolvidos:** `/firestore.rules`, testes de emulador e ferramenta Admin SDK read-only para inventário/dry-run.
@@ -59,7 +59,7 @@
 
 ### [C14-C] - App Check no Worker de IA
 
-- **Status:** não iniciado.
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** exigir prova de app legítimo além do Firebase ID token sem quebrar clientes existentes durante a transição.
 - **Recursos/arquivos principais envolvidos:** `/worker/src/`, clientes de IA, App Check web/Android, CI, Pages e AAB real.
@@ -67,7 +67,7 @@
 
 ### [C14-D] - Android e cadeia de release
 
-- **Status:** não iniciado.
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** proteger dados locais e tornar o AAB verificável e fail-closed quanto à configuração Firebase e ao manifesto.
 - **Recursos/arquivos principais envolvidos:** AndroidManifest, `file_paths.xml`, Gradle, scripts/testes de release, AAB assinado e aparelho físico.
@@ -75,7 +75,7 @@
 
 ### [C14-E] - Auth, sessão e onboarding recuperável
 
-- **Status:** não iniciado.
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** evitar onboarding parcialmente salvo, alinhar senha mínima e controlar a persistência da sessão web.
 - **Recursos/arquivos principais envolvidos:** `/login-screen.js`, Firebase Auth modular, i18n PT/EN/ES, testes e Firebase Console.
@@ -83,7 +83,7 @@
 
 ### [C14-F] - Worker, observabilidade, Functions, IAM e dependências
 
-- **Status:** não iniciado.
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** preparar limites por tier sem ativá-los nos testes, reduzir riscos do provider, observar falhas sem dados pessoais e auditar privilégios reais.
 - **Recursos/arquivos principais envolvidos:** Worker/Durable Object, Functions/Tasks, Google Cloud IAM/Logging, lockfiles e testes de backend.
@@ -91,7 +91,7 @@
 
 ### [C14-G] - Web, CSP e superfícies de debug
 
-- **Status:** não iniciado.
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** reduzir impacto de XSS e limitar diagnósticos globais em produção.
 - **Recursos/arquivos principais envolvidos:** `/index.html`, CSP via meta, Firebase/reCAPTCHA/Worker/Google APIs, globals de debug e matriz Pages PT/EN/ES.
@@ -99,11 +99,15 @@
 
 ### [C14-H] - Staging, validação final e rollout
 
-- **Status:** não iniciado.
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** validar o endurecimento completo em ambiente destrutivo separado e preparar o gate operacional de C16/C25.
 - **Recursos/arquivos principais envolvidos:** projeto Firebase staging, emuladores, CI, Pages, Worker, Functions, AAB Play e documentação de operação/rollback.
 - **O que foi feito:** nenhuma implementação iniciada; staging separado foi aprovado e a matriz final cobrirá cross-account, App Check, payloads, rate limit, lifecycle/cache, backup/exclusão, Auto Backup, IAM, secrets e rollback.
+
+## Observações não confirmadas sob acompanhamento
+
+- **Reload/troca de idioma e bootstrap:** o chat Trofia-UI/UX relatou uma queda intermitente para a tela de login e um `SearchableChoiceField` temporariamente preso em `#loading` após reload. Três tentativas isoladas passaram, sem erro de leitura confirmado. A tentativa 2 do CI do PR #175 foi interrompida pelo teto global de 30 minutos enquanto essa asserção tinha executado por apenas 5,6 dos 15 segundos previstos; portanto, esse run não comprova travamento do produto. A investigação futura deve conferir consumidores que ainda presumam o contrato antigo `null`/`[]` após falha transitória, sem atribuir causalidade à C14-A até haver reprodução e evidência. — **Chat:** Trofia-Principal (achado original: Trofia-UI/UX).
 
 ## Onde aprofundar
 

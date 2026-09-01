@@ -200,6 +200,7 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ## Incidentes e trabalhos separados observados
 
+- **Reload/troca de idioma após C14-A:** o chat Trofia-UI/UX relatou, sem reprodução estável, uma queda para login em espanhol e um `SearchableChoiceField` preso em `#loading`. Três tentativas isoladas passaram. No PR #175, a tentativa 2 do CI chegou ao mesmo teste, mas o job foi cancelado exatamente pelo teto global de 30 minutos depois de apenas 5,6 segundos da espera de 15 segundos; isso não comprova o travamento. O teto do CI foi ajustado para 45 minutos e ficou registrado investigar, em pausa natural do C14, consumidores de reload/bootstrap que ainda possam presumir o contrato antigo de leitura silenciosa, sem atribuir causalidade à C14-A até existir evidência.
 - **F06 / PR #143:** draft aberto para documentar bloqueio de conectividade ao domínio compartilhado `workers.dev`. Não foi mesclado até esta captura; causa de rede específica por usuário/ISP e futura migração para domínio próprio permanecem registradas fora do C08.
 - **PR #101:** draft antigo de leituras do Firestore, não mesclado. Entregas equivalentes ou posteriores aparecem em C28, especialmente #113–#117; a decisão administrativa de fechar o draft é **não determinada**.
 - **PR #150:** trabalho de NumericField em outra frente de UI, ainda draft na captura.
