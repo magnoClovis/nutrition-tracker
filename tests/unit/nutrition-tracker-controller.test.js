@@ -48,6 +48,16 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
   assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 26);
 });
 
+contractTest("routes browser dialog decisions through the injected generic service", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+
+  assert.doesNotMatch(source, /window\.(?:alert|confirm|prompt)\s*\(/);
+  assert.match(source, /await dialog\.prompt\(\{/);
+  assert.equal((source.match(/await dialog\.confirm\(\{/g) || []).length, 3);
+  assert.match(source, /tone: "danger"/);
+});
+
 contractTest("cuts aggregate daily autosaves only when granular persistence is available", createNutritionTrackerController => {
   const {NutritionTracker} = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();

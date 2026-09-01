@@ -19,6 +19,7 @@ import * as SelectionControlsModule from './components/selection-controls.js';
 import * as TemporalFieldModule from './components/temporal-field.js';
 import * as DiaryScreenModule from './components/diary-screen.js';
 import * as GaResultCardModule from './components/ga-result-card.js';
+import * as GenericDialogModule from './components/generic-dialog.js';
 import * as ImageMealScreenModule from './components/image-meal-screen.js';
 import * as LoginScreenModule from './components/login-screen.js';
 import * as MealEstimateEditorModule from './components/meal-estimate-editor.js';
@@ -253,6 +254,10 @@ const {
 } = SelectionControlsModule.createSelectionControls({ React });
 
 const {
+  useGenericDialog,
+} = GenericDialogModule.createGenericDialog({ React, createPortal, documentObject: document });
+
+const {
   TemporalField,
   DateField,
   NumericField,
@@ -326,7 +331,7 @@ const {
     reloadApplication: () => window.location.reload(),
   }),
   FileReader: window.FileReader,
-  alertUser: window.alert.bind(window),
+  alertUser: async () => undefined,
   reportError: (...args) => console.error(...args),
   localToday,
   addCivilDays,
@@ -746,6 +751,10 @@ export function App() {
     registration => backDispatcherRef.current.register(registration),
     [],
   );
+  const genericDialog = useGenericDialog({
+    registerBackHandler,
+    backHandlerPriority: BACK_HANDLER_PRIORITY.nestedPanel + 1,
+  });
 
   React.useEffect(() => {
     let disposed = false;
@@ -1050,6 +1059,7 @@ export function App() {
             externalDarkMode={darkMode}
             onLanguageChange={toggleLang}
             onDarkModeChange={toggleDark}
+            dialogService={genericDialog}
             registerBackHandler={registerBackHandler}
             backHandlerPriority={BACK_HANDLER_PRIORITY.nutrition}
           />
@@ -1066,6 +1076,7 @@ export function App() {
             lang={lang}
             darkMode={darkMode}
             onClose={() => setShowBackup(false)}
+            alertUser={genericDialog.alert}
             registerBackHandler={registerBackHandler}
             backHandlerPriority={BACK_HANDLER_PRIORITY.nestedPanel}
           />
@@ -1122,6 +1133,7 @@ export function App() {
             backHandlerPriority={BACK_HANDLER_PRIORITY.nestedPanel}
           />
         ) : null}
+        {genericDialog.dialogNode}
       </>
     </ErrorBoundary>
   );

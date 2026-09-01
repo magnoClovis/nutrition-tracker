@@ -114,6 +114,14 @@ const {
 } = window.SelectionControlsModule.createSelectionControls({ React });
 
 const {
+  useGenericDialog
+} = window.GenericDialogModule.createGenericDialog({
+  React,
+  createPortal: ReactDOM.createPortal.bind(ReactDOM),
+  documentObject: document
+});
+
+const {
   SettingsPanel
 } = window.SettingsPanelModule.createSettingsPanel({
   React,
@@ -141,7 +149,7 @@ const {
     restoreFullAccountBackup: window._restoreFullAccountBackup
   }),
   FileReader: window.FileReader,
-  alertUser: window.alert.bind(window),
+  alertUser: async () => undefined,
   reportError: (...args) => console.error(...args),
   localToday,
   addCivilDays,
@@ -573,6 +581,7 @@ function App() {
   const [showVisualUpdateNotice, setShowVisualUpdateNotice] = React.useState(false);
   const [darkMode, setDarkMode] = React.useState(readPreferredDarkMode);
   const releaseAudienceRef = React.useRef(null);
+  const genericDialog = useGenericDialog();
   React.useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
   }, [darkMode]);
@@ -735,6 +744,7 @@ function App() {
         externalDarkMode: darkMode,
         onLanguageChange: toggleLang,
         onDarkModeChange: toggleDark,
+        dialogService: genericDialog,
       }),
       showPrivacy ? React.createElement(PrivacyPanel, {
         lang,
@@ -744,7 +754,8 @@ function App() {
       showBackup ? React.createElement(BackupModal, {
         lang,
         darkMode,
-        onClose: () => setShowBackup(false)
+        onClose: () => setShowBackup(false),
+        alertUser: genericDialog.alert
       }) : null,
       showReleaseNotice && !requiredProfile ? React.createElement(ReleaseNoticeModal, {
         lang,
@@ -784,7 +795,8 @@ function App() {
         onOpenBackup: () => setShowBackup(true),
         onOpenPrivacy: () => setShowPrivacy(true),
         lang, darkMode, toggleLang, toggleDark
-      }) : null
+      }) : null,
+      genericDialog.dialogNode
     )
   );
 }

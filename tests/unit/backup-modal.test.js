@@ -299,7 +299,11 @@ contractTest("reports an export failure without announcing success", async creat
   await findButton(tree, "Diary - today").props.onClick();
 
   assert.deepEqual(notifications, []);
-  assert.deepEqual(fixture.alerts, ["Export error: share failed"]);
+  assert.deepEqual(fixture.alerts, [{
+    title: "Could not export",
+    message: "share failed",
+    confirmLabel: "Got it"
+  }]);
 });
 
 contractTest("resolves current contexts and prefers the coordinated backup restore bridge", async createBackupModal => {

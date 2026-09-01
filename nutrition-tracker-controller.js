@@ -816,6 +816,7 @@
       externalDarkMode,
       onLanguageChange,
       onDarkModeChange,
+      dialogService,
       registerBackHandler,
       backHandlerPriority
     }) {
@@ -825,6 +826,16 @@
       const [headerLanguageMenuOpen, setHeaderLanguageMenuOpen] = useState(false);
       const [aiStatusModal, setAIStatusModal] = useState(null);
       const text = createTextGetter(lang, STRINGS);
+      const dialog = dialogService &&
+        typeof dialogService.alert === "function" &&
+        typeof dialogService.confirm === "function" &&
+        typeof dialogService.prompt === "function"
+        ? dialogService
+        : {
+            alert: async () => undefined,
+            confirm: async () => false,
+            prompt: async () => null
+          };
       const {
         MACRO_FIELDS_BASE,
         MICRO_FIELDS_BASE,
@@ -2185,10 +2196,20 @@
         ));
         setWaterInput("");
       }
-      function configureWaterCustomPreset() {
+      async function configureWaterCustomPreset() {
         const current = waterCustomPreset ? String(waterCustomPreset) : "";
-        const message = uiText("Tamanho da garrafa em ml", "Bottle size in ml", "Tamaño de la botella en ml");
-        const value = window.prompt(message, current);
+        const value = await dialog.prompt({
+          title: uiText("Tamanho da garrafa", "Bottle size", "Tamaño de la botella"),
+          message: uiText("Defina o volume usado no atalho de água.", "Set the volume used by the water shortcut.", "Define el volumen usado en el acceso rápido de agua."),
+          label: uiText("Volume em ml", "Volume in ml", "Volumen en ml"),
+          note: uiText("Use um número maior que zero", "Use a number greater than zero", "Usa un número mayor que cero"),
+          placeholder: uiText("Ex.: 750", "E.g. 750", "Ej.: 750"),
+          initialValue: current,
+          inputMode: "decimal",
+          maxLength: 6,
+          confirmLabel: uiText("Salvar", "Save", "Guardar"),
+          cancelLabel: uiText("Cancelar", "Cancel", "Cancelar")
+        });
         if (value === null) return;
         const parsed = Math.round(parseFloat(String(value).replace(",", ".")));
         if (isNaN(parsed) || parsed <= 0) return;
@@ -3285,13 +3306,20 @@
         setShowSaveTemplateModal(false);
         notify(uiText("Modelo salvo.", "Meal template saved.", "Modelo guardado."));
       }
-      function deleteTemplate(id) {
+      async function deleteTemplate(id) {
         const tmpl = mealTemplates.find(t => t.id === id);
-        const ok = window.confirm(uiText(
-          `Apagar a refeição salva "${tmpl?.name || ""}"?`,
-          `Delete saved meal "${tmpl?.name || ""}"?`,
-          `¿Eliminar la comida guardada "${tmpl?.name || ""}"?`
-        ));
+        const templateName = tmpl?.name || "";
+        const ok = await dialog.confirm({
+          title: uiText("Excluir refeição salva?", "Delete saved meal?", "¿Eliminar comida guardada?"),
+          message: uiText(
+            `"${templateName}" será removida das suas refeições salvas. Esta ação não pode ser desfeita.`,
+            `"${templateName}" will be removed from your saved meals. This action cannot be undone.`,
+            `"${templateName}" se eliminará de tus comidas guardadas. Esta acción no se puede deshacer.`
+          ),
+          tone: "danger",
+          confirmLabel: uiText("Excluir", "Delete", "Eliminar"),
+          cancelLabel: uiText("Cancelar", "Cancel", "Cancelar")
+        });
         if (!ok) return;
         if (editingTemplateId === id) cancelTemplateEdit();
         setMealTemplates(mt => mt.filter(t => t.id !== id));
@@ -3888,18 +3916,25 @@
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = evt => {
+        reader.onload = async evt => {
           try {
             const data = JSON.parse(evt.target.result);
             if (!data.log) {
               notify(uiText("Formato inválido.", "Invalid format.", "Formato inválido."));
               return;
             }
-            if (window.confirm(uiText(
-              "Substituir o registro atual pelo arquivo importado?",
-              "Replace the current record with the imported file?",
-              "¿Sustituir el registro actual por el archivo importado?"
-            ))) {
+            const shouldReplace = await dialog.confirm({
+              title: uiText("Substituir registro atual?", "Replace current record?", "¿Sustituir el registro actual?"),
+              message: uiText(
+                "Os dados deste dia serão substituídos pelo conteúdo do arquivo importado.",
+                "This day's data will be replaced by the imported file contents.",
+                "Los datos de este día se sustituirán por el contenido del archivo importado."
+              ),
+              tone: "danger",
+              confirmLabel: uiText("Substituir", "Replace", "Sustituir"),
+              cancelLabel: uiText("Cancelar", "Cancel", "Cancelar")
+            });
+            if (shouldReplace) {
               setActiveLog(data.log);
               notify(uiText("Registro importado.", "Record imported.", "Registro importado."));
             }
@@ -5357,12 +5392,17 @@
             key: "feedback",
             icon: "💬",
             label: uiText("Enviar feedback", "Send feedback", "Enviar comentarios"),
-            onClick: () => {
-              const shouldOpenFeedback = window.confirm(uiText(
-                "Você será redirecionado para um Google Forms em uma nova aba. Deseja continuar?",
-                "You will be redirected to a Google Forms page in a new tab. Continue?",
-                "Se abrirá Google Forms en una nueva pestaña. ¿Quieres continuar?"
-              ));
+            onClick: async () => {
+              const shouldOpenFeedback = await dialog.confirm({
+                title: uiText("Abrir formulário de feedback?", "Open feedback form?", "¿Abrir formulario de comentarios?"),
+                message: uiText(
+                  "Você será redirecionado para um Google Forms em uma nova aba.",
+                  "You will be redirected to a Google Forms page in a new tab.",
+                  "Se abrirá Google Forms en una nueva pestaña."
+                ),
+                confirmLabel: uiText("Continuar", "Continue", "Continuar"),
+                cancelLabel: uiText("Cancelar", "Cancel", "Cancelar")
+              });
               if (!shouldOpenFeedback) return;
               window.open(
                 normalizeLanguage(lang) === "en" || normalizeLanguage(lang) === "es"
