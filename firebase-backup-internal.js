@@ -10,8 +10,8 @@
  * contain only canonical root/data sections; import remains compatible with
  * historical flat and versioned backups that contain a `legacy` section.
  *
- * Known behavior is intentionally preserved: failed export reads become absent
- * data, preview read errors look like new data, flat legacy backups remain
+ * Backup exports fail closed when any canonical read cannot be completed.
+ * Preview read errors still look like new data, flat legacy backups remain
  * accepted, imports have no transaction/rollback, existing daily records are
  * kept by append, and meal keys are not normalized during import.
  *
@@ -176,6 +176,22 @@
       return currentValue === undefined || currentValue === null ? incomingValue : currentValue;
     }
 
+    function _backupExportReadError3(stage, cause) {
+      const error = new Error("Account backup export could not read all account data", {cause});
+      error.code = "backup-export-read-failed";
+      error.stage = stage;
+      return error;
+    }
+
+    async function _requireBackupExportRead3(stage, operation) {
+      try {
+        return await operation();
+      } catch (error) {
+        if (error?.code === "backup-export-read-failed") throw error;
+        throw _backupExportReadError3(stage, error);
+      }
+    }
+
     /**
      * Builds a complete account backup from the canonical storage shape.
      *
@@ -186,8 +202,14 @@
 
       const consistency = await prepareExport();
 
-      const rootFields = await loadRootFields3().catch(() => ({}));
-      const dataKeys = await listDataKeys3().catch(() => []);
+      const rootFields = await _requireBackupExportRead3("root", loadRootFields3);
+      if (!rootFields || typeof rootFields !== "object" || Array.isArray(rootFields)) {
+        throw _backupExportReadError3("root", new TypeError("Invalid root backup data"));
+      }
+      const dataKeys = await _requireBackupExportRead3("data-list", listDataKeys3);
+      if (!Array.isArray(dataKeys)) {
+        throw _backupExportReadError3("data-list", new TypeError("Invalid backup data-key list"));
+      }
 
       const root = {};
       Object.entries(rootFields || {}).forEach(([key, value]) => {
@@ -197,11 +219,21 @@
       const data = {};
       for (let i = 0; i < dataKeys.length; i += 20) {
         await Promise.all(dataKeys.slice(i, i + 20).map(async key => {
-          const doc = await getDataDoc3(key).catch(() => null);
-          if (_backupCategoryForKey3(key) && doc && doc.value !== undefined && doc.value !== null) data[key] = doc.value;
+          if (!_backupCategoryForKey3(key)) return;
+          const doc = await _requireBackupExportRead3("data-document", () => getDataDoc3(key));
+          if (!doc || doc.value === undefined || doc.value === null) {
+            throw _backupExportReadError3(
+              "data-document",
+              new Error("A listed backup document was not readable")
+            );
+          }
+          data[key] = doc.value;
         }));
       }
-      const granularDailyData = await exportDailyData();
+      const granularDailyData = await _requireBackupExportRead3("daily-data", exportDailyData);
+      if (!granularDailyData || typeof granularDailyData !== "object" || Array.isArray(granularDailyData)) {
+        throw _backupExportReadError3("daily-data", new TypeError("Invalid granular backup data"));
+      }
       Object.entries(granularDailyData || {}).forEach(([key, value]) => {
         if (_backupCategoryForKey3(key) && value !== undefined && value !== null) {
           data[key] = storageValue2(value);

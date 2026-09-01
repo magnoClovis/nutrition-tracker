@@ -24,7 +24,7 @@ function contractTest(name, callback) {
   implementations.forEach(([format, load]) => {
     test(`${format}: ${name}`, async () => {
       const { createProfileValidation } = await load();
-      return callback(values => createApi(createProfileValidation, values));
+      return callback(values => createApi(createProfileValidation, values), createProfileValidation);
     });
   });
 }
@@ -127,4 +127,14 @@ contractTest("returns empty fallbacks for partial and empty persisted profiles",
     manualAdjustment: ""
   });
   assert.equal(emptyApi.hasRequiredProfileData(empty), false);
+});
+
+contractTest("propagates storage failures instead of converting them into an empty profile", async (_createApi, createProfileValidation) => {
+  const failure = Object.assign(new Error("Firestore root read failed"), { code: "permission-denied" });
+  const api = createProfileValidation({
+    storage: { async get() { throw failure; } },
+    activityLevels: ACTIVITY_LEVELS
+  });
+
+  await assert.rejects(api.getRequiredProfileData(), error => error === failure);
 });

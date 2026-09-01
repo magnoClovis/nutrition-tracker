@@ -28,7 +28,8 @@ function loadBackup(createFirebaseBackup, {
   completeRestore,
   exportDailyData,
   readBackupValue,
-  restoreDailyValue
+  restoreDailyValue,
+  missingData
 } = {}) {
   const stored = new Map(Object.entries(current));
   const writes = [];
@@ -60,6 +61,7 @@ function loadBackup(createFirebaseBackup, {
     },
     async getDataDoc3(key) {
       if (failures.dataRead === true || failures.dataRead === key) throw new Error("data read failed");
+      if (missingData === true || missingData === key) return null;
       return Object.prototype.hasOwnProperty.call(data, key) ? {value: data[key]} : null;
     },
     async patchRootFields3(fields, deleteKeys) {
@@ -97,27 +99,44 @@ contractTest("publishes the namespaced factory and four exact backup operations"
   assert.equal(service.importFullAccountBackup3.length, 2);
 });
 
-contractTest("exports only canonical root and data shapes while preserving silent omissions", async loadBackup => {
+contractTest("exports only complete canonical root and data shapes", async loadBackup => {
   const fixture = loadBackup({
     root: {activityLevel: "moderate", userName: "Private", _schemaVersion: 4},
-    data: {pantry_v2: '[{"id":"food"}]', "notes_2026-07-18": "note"},
-    failures: {dataRead: "notes_2026-07-18"}
+    data: {pantry_v2: '[{"id":"food"}]', "notes_2026-07-18": "note"}
   });
   const backup = await fixture.service.exportFullAccountBackup3();
   assert.equal(backup.schema, "nutrition-tracker-account-backup");
   assert.equal(backup.version, 3);
   assert.deepEqual(plain(backup.root), {activityLevel: "moderate"});
-  assert.deepEqual(plain(backup.data), {pantry_v2: '[{"id":"food"}]'});
-  assert.equal("legacy" in backup, false);
-  assert.deepEqual(plain(backup.counts), {root: 1, data: 1});
-
-  const failedLists = loadBackup({
-    root: {height: 180},
-    data: {pantry_v2: "[]"},
-    failures: {root: true, dataList: true}
+  assert.deepEqual(plain(backup.data), {
+    pantry_v2: '[{"id":"food"}]',
+    "notes_2026-07-18": "note"
   });
-  const incomplete = await failedLists.service.exportFullAccountBackup3();
-  assert.deepEqual(plain(incomplete.counts), {root: 0, data: 0});
+  assert.equal("legacy" in backup, false);
+  assert.deepEqual(plain(backup.counts), {root: 1, data: 2});
+});
+
+contractTest("fails the export when any canonical account read is incomplete", async loadBackup => {
+  const cases = [
+    ["root", {root: {height: 180}, failures: {root: true}}],
+    ["data-list", {root: {height: 180}, data: {pantry_v2: "[]"}, failures: {dataList: true}}],
+    ["data-document", {
+      root: {height: 180}, data: {pantry_v2: "[]"}, failures: {dataRead: "pantry_v2"}
+    }],
+    ["data-document", {
+      root: {height: 180}, data: {pantry_v2: "[]"}, missingData: "pantry_v2"
+    }],
+    ["daily-data", {
+      root: {height: 180}, exportDailyData: async () => { throw new Error("daily read failed"); }
+    }]
+  ];
+
+  for (const [stage, options] of cases) {
+    await assert.rejects(
+      loadBackup(options).service.exportFullAccountBackup3(),
+      error => error.code === "backup-export-read-failed" && error.stage === stage
+    );
+  }
 });
 
 contractTest("records whether pending writes were flushed or the export was created offline", async loadBackup => {

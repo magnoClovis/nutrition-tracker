@@ -26,7 +26,7 @@ function matches(pattern, source = appSource) {
 }
 
 test('preserves the App hook and helper-function contract', () => {
-  assert.equal(matches(/React\.useState\(/g).length, 15);
+  assert.equal(matches(/React\.useState\(/g).length, 16);
   assert.equal(matches(/React\.useEffect\(/g).length, 5);
 
   assert.deepEqual(
@@ -46,7 +46,7 @@ test('preserves the App hook and helper-function contract', () => {
   assert.match(appSource, /\}, \[\]\);/);
   assert.match(
     appSource,
-    /\}, \[checking, profileChecking, authed, pendingEmail, requiredProfile, lang\]\);/,
+    /\}, \[checking, profileChecking, authed, pendingEmail, requiredProfile, profileLoadError, lang\]\);/,
   );
 });
 
@@ -59,8 +59,12 @@ test('preserves the authentication and profile gates without legacy normalizatio
   assert.match(appSource, /if \(pendingEmail\) \{/);
   assert.match(appSource, /if \(!authed\) \{/);
   assert.match(appSource, /requiredProfile \? \([\s\S]*?<RequiredProfileModal/);
-  assert.match(appSource, /\{!requiredProfile && \([\s\S]*?<NutritionTracker/);
+  assert.match(appSource, /profileLoadError \? \([\s\S]*?<RequiredProfileReadError/);
+  assert.match(appSource, /\{!requiredProfile && !profileLoadError && \([\s\S]*?<NutritionTracker/);
   assert.match(appSource, /<ErrorBoundary>[\s\S]*?<RequiredProfileModal/);
+  assert.doesNotMatch(appSource, /getRequiredProfileData\(\)\.catch\(\(\) => \(\{/);
+  assert.match(appSource, /setProfileLoadError\(profileReadErrorCode\(error\)\)/);
+  assert.match(appSource, /await ensureAppCheckInitialized\(\)/);
 });
 
 test('installs exactly the fifteen ESM namespaces still resolved by the controller', () => {
