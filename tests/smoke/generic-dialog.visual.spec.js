@@ -147,7 +147,10 @@ test.describe('authenticated GenericDialog visual and accessibility contract', (
       await expect(confirmDialog).toHaveCount(0);
       await expect(page.locator('#root')).not.toHaveAttribute('aria-hidden', 'true');
       await expect(feedbackButton).toBeFocused();
-      await page.locator('[data-tutorial="menu-settings"]').click();
+      // The open header menu intentionally places its backdrop above the gear;
+      // close it through the same outside-click interaction available to users.
+      await page.mouse.click(8, 8);
+      await expect(feedbackButton).toBeHidden();
 
       const promptDialog = await openWaterPrompt(page);
       const input = promptDialog.locator('[data-generic-dialog-input="true"]');
