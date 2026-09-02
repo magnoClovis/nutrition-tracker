@@ -9,6 +9,8 @@ const implementations = [
 
 const { normalizeLanguage, pickLang, localeForLang } = createI18n();
 const { divisor, rnd } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
+const DailyEntryModel = require("../../daily-entry-model.js");
+const DailyEntryPersistence = require("../../daily-entry-persistence.js");
 let pantry = [];
 let nextId = 0;
 
@@ -170,7 +172,7 @@ contractTest("builds and totals templates with snapshot, legacy, pantry, and mis
   const entries = templateEntries(template);
   assert.equal(entries.length, 4);
   assert.equal(entries[0].protein, 10);
-  assert.equal(entries[1].id, "Legacy");
+  assert.match(entries[1].id, /^entry-/);
   assert.equal(entries[1].qty, 2);
   assert.equal(entries[2].protein, 10);
   assert.equal(entries[2].kcal, 50);
@@ -185,4 +187,61 @@ contractTest("builds and totals templates with snapshot, legacy, pantry, and mis
     fiber: 3.5,
     salt: 0.8
   });
+});
+
+contractTest("assigns fresh diary IDs whenever a current or legacy saved meal is reused", ({
+  buildFoodSnapshot,
+  completeFood,
+  templateEntries
+}) => {
+  const currentSnapshot = buildFoodSnapshot(completeFood({
+    id: "current-food-id",
+    name: "Current saved food",
+    protein100: 8,
+    kcal100: 120
+  }));
+  const template = {
+    meal: "Jantar",
+    items: [
+      { name: "Current saved food", qty: 100, foodSnapshot: currentSnapshot },
+      {
+        foodId: "legacy-food-id",
+        name: "Legacy saved food",
+        qty: 100,
+        unit: "g",
+        protein: 12,
+        kcal: 180,
+        carbs: 24,
+        fat: 4,
+        fiber: 3,
+        salt: 0.5
+      }
+    ]
+  };
+
+  const firstLoad = templateEntries(template);
+  const secondLoad = templateEntries(template);
+  const thirdLoad = templateEntries(template);
+  assert.equal(firstLoad[0].foodId, "current-food-id");
+  assert.equal(firstLoad[1].foodId, "legacy-food-id");
+  firstLoad.forEach((entry, index) => {
+    assert.notEqual(entry.id, secondLoad[index].id);
+    assert.notEqual(secondLoad[index].id, thirdLoad[index].id);
+  });
+
+  const firstLog = DailyEntryModel.applyMealLogMutation(
+    {}, "Jantar", { type: "add", entries: firstLoad }
+  );
+  const sameCategoryLog = DailyEntryModel.applyMealLogMutation(
+    firstLog, "Jantar", { type: "add", entries: secondLoad }
+  );
+  const differentCategoryLog = DailyEntryModel.applyMealLogMutation(
+    sameCategoryLog, "Almoço", { type: "add", entries: thirdLoad }
+  );
+
+  assert.equal(sameCategoryLog.Jantar.length, 4);
+  assert.equal(differentCategoryLog.Almoço.length, 2);
+  assert.doesNotThrow(() => DailyEntryPersistence.diffDailyEntrySnapshots(
+    "meal", "2026-09-02", firstLog, differentCategoryLog
+  ));
 });
