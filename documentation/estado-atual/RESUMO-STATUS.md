@@ -16,7 +16,7 @@
 - **Privacidade e compliance:** política trilíngue pública, instruções de exclusão e referência atual de Data Safety.
 - **Qualidade:** preflight, unitários, smoke legado/Vite, matriz visual e CI autenticado com App Check. G01, C05 e C07 estão fechados.
 - **Controles visuais S8:** `CheckboxField` e `SliderField` customizados foram integrados no PR #166 às superfícies ativas de sugestões de refeição e seleção de categorias de backup.
-- **Diálogos visuais S9:** `GenericDialog` substitui os cinco usos ativos de `alert`, `confirm` e `prompt` do navegador por avisos, confirmações e entradas acessíveis no padrão One UI 8/Glass UI. A integração está no PR #172 e passa a compor a `main` com o merge desse PR.
+- **Diálogos visuais S9:** `GenericDialog` substitui os cinco usos ativos de `alert`, `confirm` e `prompt` do navegador por avisos, confirmações e entradas acessíveis no padrão One UI 8/Glass UI. A implementação e o gate local final estão concluídos no PR #172; o componente passa a compor a `main` com o merge desse PR. — Chat: Trofia-UIUX
 - **Incidente App Check/perfil encerrado:** o PR #173 impede release Android sem `google-services.json` e distingue falha de leitura de perfil realmente incompleto. Na build Play versionCode 12, a conta real concluiu login, leitura e alteração de perfil, sincronização e inicialização do App Check sem erro.
 
 ## O que está em andamento agora
@@ -36,7 +36,7 @@
 
 ### Backlog pós-lançamento
 
-- **Sequência visual desta frente:** S1–S6, S7a, S8 e S9 estão implementadas. A aplicação S7b do `NumericField` às medidas corporais continua fora da `main` no PR draft #150; por isso, a sequência S1–S9 ainda não pode ser considerada integralmente concluída. I1–I7 permanecem planejadas e cada novo tipo visual exige protótipo aprovado antes de código.
+- **Sequência visual desta frente:** S1–S6, S7a, S8 e S9 estão implementadas. A aplicação S7b do `NumericField` às medidas corporais continua fora da `main` no PR draft #150; por isso, a sequência S1–S9 ainda não pode ser considerada integralmente concluída. I1–I7 permanecem planejadas e cada novo tipo visual exige protótipo aprovado antes de código. — Chat: Trofia-UIUX
 - C26 notificações, N01 voz, C21 porções fracionadas, N03 leitura de rótulos, N09 jejum, C17 e-mails, C13 feedback nativo, C10 relatórios, N07 compartilhamento profissional, N02 banco nutricional, N05 recalibração dinâmica, C15 limpeza ampla do legado, C27 widgets, N04 receitas, N06 planejamento alimentar, C12 iOS, C18 integrações de saúde e N08 exercícios/hábitos.
 - Partes deliberadamente adiadas: C26-C (push/backend) e C27-B (widget funcional com escrita direta).
 - Revisão externa por nutricionista e eventual comparação/troca do modelo Gemini permanecem decisões futuras registradas em `PENDENCIAS.md`.
