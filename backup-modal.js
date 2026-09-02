@@ -45,7 +45,7 @@
    * @param {boolean} [dependencies.supportsNativeFileDestinations=false] Whether Android save/share choices are available.
    * @param {function(): Object} dependencies.getBackupContext Returns current export data and backup bridge functions for each action.
    * @param {function(): Object} dependencies.FileReader Browser FileReader constructor.
-   * @param {function(string): void} dependencies.alertUser Browser alert service.
+   * @param {function(Object): Promise<void>} dependencies.alertUser Dialog fallback used when the host omits the prop.
    * @param {function(...*): void} dependencies.reportError Error logger, normally `console.error`.
    * @param {function(Date=): string} dependencies.localToday Shared local civil-date formatter.
    * @param {function(string, number): string} dependencies.addCivilDays Shared calendar-day shifter.
@@ -83,7 +83,6 @@
 
     const localStorage = localStorageService;
     const FileReader = FileReaderCtor;
-    const alert = alertUser;
     const console = { error: reportError };
 
     /**
@@ -93,6 +92,7 @@
      * @param {string} props.lang Active application language.
      * @param {boolean} props.darkMode Whether dark mode is active.
      * @param {function(): void} props.onClose Closes the modal without cancelling in-flight operations.
+     * @param {function(Object): Promise<void>} [props.alertUser] App-owned generic alert service.
      * @param {function(Object): function(): void} [props.registerBackHandler] Registers nested Android Back handling.
      * @param {number} [props.backHandlerPriority] Dispatcher priority for the nested handler.
      * @returns {Object} React element tree for backup and restore.
@@ -101,12 +101,14 @@
       lang,
       darkMode,
       onClose,
+      alertUser: alertUserProp,
       registerBackHandler,
       backHandlerPriority
     }) {
       const normalizedLang = normalizeLanguage(lang);
       const isPt = normalizedLang === 'pt';
       const L = (pt, en, es) => pickLang(normalizedLang, pt, en, es);
+      const showAlert = typeof alertUserProp === 'function' ? alertUserProp : alertUser;
       const [loading, setLoading] = React.useState(null);
       const [importDone, setImportDone] = React.useState('');
       const [downloaded, setDownloaded] = React.useState(null);
@@ -259,7 +261,11 @@
           setDownloaded(key);
         } catch(e) {
           console.error('Export error:', e);
-          alert(L('Erro ao exportar: ', 'Export error: ', 'Error al exportar: ') + e.message);
+          await showAlert({
+            title: L('Não foi possível exportar', 'Could not export', 'No se pudo exportar'),
+            message: String(e?.message || L('Tente novamente.', 'Try again.', 'Inténtalo de nuevo.')),
+            confirmLabel: L('Entendi', 'Got it', 'Entendido')
+          });
         }
         setLoading(null);
       }
