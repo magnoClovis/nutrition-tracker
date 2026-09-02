@@ -21,6 +21,7 @@
 ## O que está em andamento agora
 
 - **C14 — revisão geral de segurança:** C14-A e C14-B1 estão concluídas; C14-B2 está em andamento, com inventário real somente leitura e rules completas preparadas, ainda sem deploy B2; C14-C a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
+- **[BUG-SAVED-MEAL-ID] — Reutilização de refeição salva:** correção isolada em validação desde 02/09/2026. Modelos atuais e antigos passam a gerar um ID novo para cada entrada carregada, mantendo `foodId` apenas como referência; testes cobrem reutilização na mesma categoria e em categoria diferente. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
