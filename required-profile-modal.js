@@ -157,7 +157,37 @@
       );
     }
 
-    return { RequiredProfileModal };
+    /**
+     * Shows a recoverable profile-read failure without misrepresenting it as
+     * missing nutrition data. Technical details are restricted to a sanitized
+     * Firebase/application error code supplied by the shell.
+     */
+    function RequiredProfileReadError({lang, errorCode, onRetry, onLogout}) {
+      const normalizedLang = normalizeLanguage(lang || 'pt');
+      const isPt = normalizedLang === 'pt';
+      const isEs = normalizedLang === 'es';
+      const S = isPt
+        ? {title:'N\u00e3o foi poss\u00edvel carregar seu perfil', text:'Seus dados n\u00e3o foram apagados. Verifique sua conex\u00e3o e tente novamente.', detail:'Detalhe t\u00e9cnico', retry:'Tentar novamente', logout:'Sair'}
+        : isEs
+          ? {title:'No se pudo cargar tu perfil', text:'Tus datos no se han eliminado. Comprueba tu conexi\u00f3n e int\u00e9ntalo de nuevo.', detail:'Detalle t\u00e9cnico', retry:'Intentar de nuevo', logout:'Cerrar sesi\u00f3n'}
+          : {title:'Your profile could not be loaded', text:'Your data has not been deleted. Check your connection and try again.', detail:'Technical detail', retry:'Try again', logout:'Sign out'};
+      const safeCode = /^[A-Za-z0-9_./-]{1,100}$/.test(String(errorCode || ''))
+        ? String(errorCode)
+        : 'firestore-profile-read-failed';
+      return React.createElement('div', {'data-safe-area-dialog':'20','data-required-profile-read-error':'true',style:{position:'fixed',inset:0,zIndex:100000,background:'color-mix(in srgb, var(--surface-page) 88%, transparent)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,overflowY:'auto',backdropFilter:'blur(10px)'}},
+        React.createElement('div', {role:'alert',style:{width:'100%',maxWidth:420,background:'color-mix(in srgb, var(--surface-block) 92%, transparent)',border:'1px solid color-mix(in srgb, var(--text-primary) 9%, transparent)',borderRadius:'var(--radius-block)',padding:24,boxShadow:'0 20px 80px color-mix(in srgb, var(--text-primary) 14%, transparent)',margin:'auto'}},
+          React.createElement('div', {style:{fontSize:20,color:'var(--text-primary)',marginBottom:8}}, S.title),
+          React.createElement('div', {style:{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:14}}, S.text),
+          React.createElement('div', {style:{fontSize:12,color:'var(--text-muted)',marginBottom:20}}, `${S.detail}: ${safeCode}`),
+          React.createElement('div', {style:{display:'flex',gap:10,flexWrap:'wrap'}},
+            React.createElement('button', {type:'button',onClick:onRetry,style:{flex:'1 1 180px',background:'var(--accent-action-bg)',border:'1px solid transparent',color:'var(--accent-action-text)',padding:'13px',borderRadius:'var(--radius-control)',fontSize:12,letterSpacing:0.5,fontFamily:'inherit'}}, S.retry),
+            React.createElement('button', {type:'button',onClick:onLogout,style:{flex:'1 1 120px',background:'var(--surface-block-alt)',border:'1px solid color-mix(in srgb, var(--text-primary) 13%, transparent)',color:'var(--text-primary)',padding:'13px',borderRadius:'var(--radius-control)',fontSize:12,fontFamily:'inherit'}}, S.logout)
+          )
+        )
+      );
+    }
+
+    return { RequiredProfileModal, RequiredProfileReadError };
   }
 
   return { createRequiredProfileModal };

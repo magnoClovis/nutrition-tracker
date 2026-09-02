@@ -16,10 +16,10 @@
   "use strict";
 
   const CURRENT_RELEASE = Object.freeze({
-    id: "0.10.0-beta",
-    versionName: "0.10.0-beta",
-    label: "Trofia v0.10.0 Beta",
-    tutorialType: null
+    id: "0.11.0-beta",
+    versionName: "0.11.0-beta",
+    label: "Trofia v0.11.0 Beta",
+    tutorialType: "release-highlights"
   });
 
   function hasSeenRelease(record, releaseId = CURRENT_RELEASE.id) {
@@ -57,18 +57,18 @@
       const normalizedLang = normalizeLanguage(lang);
       const textByLang = {
         pt: {
-          title: "Bem-vindo \u00e0 vers\u00e3o 0.10.0 Beta! \ud83c\udf89\ud83e\udd73",
-          body: "Seus dados agora funcionam melhor offline, sincronizam com mais seguran\u00e7a e podem ser exclu\u00eddos integralmente por um fluxo confi\u00e1vel.",
+          title: "Bem-vindo \u00e0 vers\u00e3o 0.11.0 Beta! \ud83c\udf89\ud83e\udd73",
+          body: "A avalia\u00e7\u00e3o de refei\u00e7\u00f5es, a pontua\u00e7\u00e3o nutricional e as sugest\u00f5es da IA agora seguem crit\u00e9rios mais claros e consistentes.",
           btn: "Continuar"
         },
         en: {
-          title: "Welcome to version 0.10.0 Beta! \ud83c\udf89\ud83e\udd73",
-          body: "Your data now works better offline, syncs more safely, and can be fully deleted through a reliable account-deletion process.",
+          title: "Welcome to version 0.11.0 Beta! \ud83c\udf89\ud83e\udd73",
+          body: "Meal evaluation, nutrition scores, and AI suggestions now follow clearer and more consistent criteria.",
           btn: "Continue"
         },
         es: {
-          title: "\u00a1Bienvenido a la versi\u00f3n 0.10.0 Beta! \ud83c\udf89\ud83e\udd73",
-          body: "Tus datos ahora funcionan mejor sin conexi\u00f3n, se sincronizan con mayor seguridad y pueden eliminarse por completo mediante un proceso fiable.",
+          title: "\u00a1Bienvenido a la versi\u00f3n 0.11.0 Beta! \ud83c\udf89\ud83e\udd73",
+          body: "La evaluaci\u00f3n de comidas, la puntuaci\u00f3n nutricional y las sugerencias de IA ahora siguen criterios m\u00e1s claros y coherentes.",
           btn: "Continuar"
         }
       };

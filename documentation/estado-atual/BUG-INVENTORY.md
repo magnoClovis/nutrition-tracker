@@ -1,0 +1,895 @@
+> **Cópia documental — inventário histórico e ativo.** Fonte: `/bug-inventory.txt`, capturada da `main` no commit `5c51fa5` em 31/08/2026 e convertida para Markdown sem mover o original. O corpo preserva o estado registrado em cada entrada; a seção final de resolvidos prevalece para itens já corrigidos. Entradas sem marca de resolução continuam riscos ou limitações catalogados, não prova automática de reprodução na versão atual.
+
+DIÁRIO NUTRICIONAL — INVENTÁRIO CONSOLIDADO DE BUGS, RISCOS E LIMITAÇÕES
+Versão examinada: 0.8.1-beta
+Data do inventário: 2026-07-26
+
+ESCOPO E MÉTODO
+================
+
+Este documento consolida problemas já documentados no repositório. Foram
+examinados os módulos JavaScript/JSX, app.js, nutrition-tracker.jsx,
+firebase-storage.js e os testes em tests/. A busca incluiu cabeçalhos JSDoc,
+comentários com alertas/KNOWN/PRESERVED/BACKLOG, TODO/FIXME/HACK/XXX e nomes de
+testes que congelam comportamentos problemáticos.
+
+Ocorrências repetidas no módulo, no controlador, no espelho
+nutrition-tracker.jsx e nos testes foram deduplicadas como um único item. Não
+foram encontrados comentários literais TODO, FIXME, HACK ou XXX relevantes; a
+maior parte da dívida está registrada em cabeçalhos JSDoc e testes contratuais.
+
+Total consolidado: 60 itens.
+
+Legenda de severidade:
+- CRÍTICO: risco real de perda permanente, corrupção ou exclusão enganosa de dados.
+- ALTO: pode causar escrita incorreta, perda parcial, bloqueio de acesso ou
+  resultado importante aplicado ao contexto errado.
+- MÉDIO: comportamento funcional incorreto, race visível ou inconsistência
+  relevante, normalmente recuperável.
+- BAIXO: dívida técnica, apresentação incoerente ou custo de manutenção sem
+  impacto material imediato.
+
+“Rastreio” indica somente o que está visível no repositório. Este inventário não
+consegue confirmar issues, planilhas ou decisões externas que não estejam no
+código.
+
+
+1. RISCOS DE PERDA, CORRUPÇÃO OU ESCRITA INCORRETA DE DADOS
+===========================================================
+
+[A01] Limpeza legada pode apagar diários nunca migrados com mais de 120 dias
+Localização: firebase-migration-internal.js:2-18, 120-141;
+tests/unit/firebase-migration-internal.test.js:184,260.
+Descrição/impacto: a lista de chaves candidatas cobre hoje + 119 dias, mas o
+cleanup posterior remove TODOS os documentos legados restantes. Diário, notas,
+água ou suplementos fora da janela podem ser apagados sem terem sido promovidos.
+Severidade: CRÍTICO — perda permanente de dados reais.
+Resolução necessária: investigação de dados, inventário paginado completo,
+prova de promoção por documento e política de retenção antes de qualquer delete.
+Risco de corrigir: muito alto; uma mudança errada pode duplicar, omitir ou
+reclassificar schema persistido.
+Rastreio: alerta máximo explícito no módulo e teste que demonstra a perda;
+investigação externa não identificável pelo repositório.
+
+[A02] Paginação/listagem incompleta pode ser tratada como migração concluída
+Localização: firebase-migration-internal.js:15-18;
+tests/unit/firebase-migration-internal.test.js:249,274.
+Descrição/impacto: falha ou paginação parcial pode parecer uma coleção vazia;
+_storageSchemaVerified impede uma tentativa completa posterior. Dados podem
+ficar não migrados e depois entrar no caminho de limpeza.
+Severidade: CRÍTICO quando combinado com A01; ALTO isoladamente.
+Resolução necessária: distinguir vazio de erro, registrar cursor/completude,
+permitir retry idempotente e só marcar verificado após varredura comprovada.
+Risco de corrigir: reexecutar migração sem idempotência pode duplicar/mesclar
+dados de forma diferente.
+Rastreio: perigo explicitamente associado a A01 no cabeçalho e nos testes.
+
+[A03] Migração não tem transação nem rollback
+Localização: firebase-migration-internal.js:15-18;
+tests/unit/firebase-migration-internal.test.js:217,287.
+Descrição/impacto: escritas anteriores permanecem quando uma etapa posterior
+falha; o usuário pode ficar com schema parcialmente migrado e resultados
+diferentes entre root, data e legado.
+Severidade: ALTO — inconsistência persistida e difícil de diagnosticar.
+Resolução necessária: plano idempotente por fases, checkpoint por chave e
+retomada segura; transação onde o Firestore permitir.
+Risco de corrigir: alterar heurísticas de riqueza/merge ou precedência pode
+mudar dados já consolidados.
+Rastreio: comportamento congelado por testes; sem issue externa visível.
+
+[A04] Falha ao listar filhos durante exclusão vira lista vazia e o root é apagado
+Localização: firebase-account-data-internal.js:12-15;
+tests/unit/firebase-account-data-internal.test.js:182;
+tests/unit/firebase-storage.contract.test.js:573.
+Descrição/impacto: uma falha de listagem pode fazer a exclusão ignorar
+subdocumentos e ainda apagar o documento raiz, deixando dados órfãos e dando
+resultado incompleto.
+Severidade: CRÍTICO — operação destrutiva pode apagar parcialmente e ocultar
+dados remanescentes.
+Resolução necessária: falha de listagem deve abortar o fluxo destrutivo antes
+do root; confirmar paginação completa e apresentar estado parcial ao usuário.
+Risco de corrigir: mudança no fluxo de privacidade; deve preservar a separação
+entre apagar Firestore e apagar Firebase Auth.
+Rastreio: explicitamente preservado no módulo e nos testes.
+
+[A05] Exclusão parcial apaga o root, não tem rollback e não coordena migração
+Localização: firebase-account-data-internal.js:12-15;
+tests/unit/firebase-account-data-internal.test.js:142,159.
+Descrição/impacto: falhas de filhos não impedem o delete do root; cache é
+resetado antes do erro agregado; uma migração/limpeza simultânea pode recriar,
+apagar ou disputar documentos.
+Severidade: CRÍTICO — estado irreversível e possivelmente incoerente.
+Resolução necessária: protocolo exclusivo de exclusão, bloqueio de migração,
+manifesto de documentos e relatório de sucesso por etapa.
+Risco de corrigir: alto; coordenação errada pode bloquear exclusões legítimas ou
+deixar conta Auth ativa após dados removidos.
+Rastreio: limitação documentada; investigação externa não visível.
+
+[A06] Ausência da ponte de limpeza Firestore permite excluir somente a conta Auth
+Localização: privacy-panel.js:16-21;
+tests/unit/privacy-panel.test.js:329,353 (fluxo de cleanup opcional).
+Descrição/impacto: se o helper de Firestore estiver ausente, o painel segue para
+exclusão da conta Auth. Dados Firestore podem permanecer sem a conta de acesso.
+Severidade: CRÍTICO — dados pessoais órfãos e expectativa de exclusão violada.
+Resolução necessária: tornar a limpeza explicitamente obrigatória ou bloquear
+Auth delete com estado verificável e instrução de suporte.
+Risco de corrigir: pode impedir exclusão de conta em ambientes com bridge
+indisponível; exige UX e procedimento de recuperação.
+Rastreio: risco explicitamente preservado no cabeçalho/testes.
+
+[A07] Importação de backup não é atômica e não normaliza chaves de refeição
+Localização: firebase-backup-internal.js:13-16;
+backup-modal.js:9-23;
+tests/unit/firebase-backup-internal.test.js:200,243.
+Descrição/impacto: falha em lote posterior mantém lotes anteriores; não há
+rollback entre categorias. Chaves de refeição importadas só são reparadas
+posteriormente em alguns reloads, podendo ficar invisíveis em consumidores que
+não chamam normalizeMealKeys.
+Severidade: ALTO — restauração parcial ou dados existentes mas não reconhecidos.
+Resolução necessária: manifesto/preview validado, import idempotente,
+checkpoint/rollback e normalização de schema definida antes da escrita.
+Risco de corrigir: merges append/replace e compatibilidade com backups antigos
+podem mudar; requer migração e testes de contas reais anonimizadas.
+Rastreio: comportamento deliberadamente congelado.
+
+[A08] Cadastro grava perfil em várias etapas sem transação ou rollback
+Localização: login-screen.js:11-17;
+tests/unit/login-screen.test.js:311.
+Descrição/impacto: conta Auth pode ser criada enquanto uma ou mais escritas do
+perfil falham e são engolidas. O usuário pode entrar em estado parcial e cair
+no gate de perfil ou ter metas incompletas.
+Severidade: ALTO — conta parcialmente inicializada e possível bloqueio de uso.
+Resolução necessária: fluxo de onboarding retomável, estado de conclusão,
+escritas idempotentes e erro explícito.
+Risco de corrigir: rollback de Auth é destrutivo; não deve apagar uma conta
+válida após falha transitória.
+Rastreio: marcado como backlog de robustez de autenticação.
+
+[A09] Estratégias diferentes de escrita em activeLog podem perder atualizações
+Localização: add-screen.js:14-18; diary-screen.js:11-14;
+nutrition-tracker-controller.js:2305-2320,2485-2515;
+tests/unit/meal-ga.test.js:249.
+Descrição/impacto: confirmMealReview/addToLog usam snapshot, enquanto
+commitStaged usa atualização funcional. Operações concorrentes ou múltiplos
+itens do GA em dia histórico podem resolver contra o mesmo snapshot e
+sobrescrever itens anteriores.
+Severidade: ALTO — perda silenciosa de entradas do diário.
+Resolução necessária: uma única API funcional de mutação por data, com testes
+de concorrência e batch atômico para vários itens.
+Risco de corrigir: pode alterar ordem, IDs, autosave histórico e semântica hoje
+congelada pelos testes.
+Rastreio: backlog explícito nos cabeçalhos.
+
+[A10] Metas históricas visualizadas podem ser gravadas em goalHistory[TODAY]
+Localização: historical-goals-model.js:10-18;
+calendar-model.js:8-12; nutrition-tracker-controller.js:2290-2302.
+Descrição/impacto: calculatedGoals é calculado para viewDate, mas o efeito salva
+sempre na chave TODAY. Visitar data histórica pode contaminar o snapshot de hoje.
+Severidade: ALTO — corrupção persistida de metas do dia atual.
+Resolução necessária: separar goal calculado por data do destino persistido,
+gravar somente o snapshot correspondente e migrar registros contaminados.
+Risco de corrigir: dois formatos de snapshot já coexistem e consumidores
+combinam dados congelados e recalculados.
+Rastreio: “CRITICAL PRESERVED HOST BUG” no módulo; sem issue externa visível.
+
+[A11] Hidratação/autosave pode sobrescrever dados remotos com defaults locais
+Localização: hydration-guard.js:3-11; autosave-scheduler.js:3-16;
+nutrition-tracker-controller.js:960-1108;
+tests/unit/hydration-guard.test.js:45.
+Descrição/impacto: o guard só bloqueia defaults vazios; waterGoal=2500 é
+não-vazio e pode passar antes da hidratação. log, notas, água e suppLog não usam
+o guard. Chaves são marcadas hidratadas antes de JSON.parse; erro de parse pode
+deixar marca sem setters completos.
+Severidade: ALTO — sobrescrita silenciosa de dados reais.
+Resolução necessária: protocolo explícito por chave com estados
+pending/succeeded/failed, aplicação antes de autosave e resolução de conflitos.
+Risco de corrigir: ordem de hooks, timeout de 12 s e debounces 800/1500 ms são
+parte do comportamento; alteração isolada pode agravar perda.
+Rastreio: alerta temporal máximo e teste específico do waterGoal.
+
+[A12] Refeição registrada offline aparenta sucesso, mas não é persistida
+Localização: validação manual da Subfatia 3 do Capacitor Android em aparelho
+real; fluxos de autosave do controlador e escrita Firebase REST.
+Descrição/impacto: sem conexão, uma nova refeição aparece normalmente no Diário
+e seus nutrientes são computados nas metas, sem erro ou aviso. O registro não é
+persistido e desaparece posteriormente. Dados já registrados permanecem
+visíveis. Os gráficos da aba Semana também desaparecem offline; após reconectar,
+retornam ao sair e entrar novamente na aba, sem reiniciar o aplicativo.
+Severidade: ALTO — há confirmação visual enganosa seguida de perda silenciosa
+do registro criado offline.
+Resolução necessária: detectar ausência/falha de conectividade antes de
+confirmar a gravação ou implementar fila local persistente com estado
+pending/synced/failed; apresentar erro e opção de nova tentativa. Separadamente,
+preservar o último estado renderizado dos gráficos da Semana durante falhas de
+rede.
+Risco de corrigir: uma fila offline precisa de IDs idempotentes e política de
+conflito para não duplicar refeições ao reconectar.
+Rastreio: reproduzido em aparelho Android real durante a Subfatia 3; correção
+inicial de compartilhamento validada na Subfatia 6A2. A primeira implementação
+de "Salvar no aparelho" criou o documento, mas derrubou o processo antes da
+escrita: o logcat confirmou `TransactionTooLargeException` com parcel de
+3.324.676 bytes, pois o backup de 1.660.548 bytes era persistido duas vezes no
+estado da Activity pelo Capacitor. O arquivo resultante ficava vazio. Correção
+passou a preparar o conteúdo em cache e removê-lo do PluginCall antes de abrir
+`ACTION_CREATE_DOCUMENT`; aguarda nova validação física.
+
+
+2. RACES, CANCELAMENTO E ORDEM DE RESPOSTAS
+===========================================
+
+[B01] Navegação histórica A→B pode terminar mostrando A e salvar nota na chave B
+Localização: history-loaders.js:11-23;
+nutrition-tracker-controller.js:1080-1120.
+Descrição/impacto: não há token de sequência; resposta antiga pode escrever
+historyLog/historyNote depois da nova viewDate. O efeito de nota não depende de
+viewDate e pode persistir conteúdo antigo na data nova.
+Severidade: ALTO — UI incoerente e escrita na data errada.
+Resolução necessária: request ID/AbortController e persistência ligada
+explicitamente à data que originou o conteúdo.
+Risco de corrigir: timing atual de reads paralelos e autosave precisa ser
+preservado até haver testes de conflito.
+Rastreio: race explicitamente documentada.
+
+[B02] Loaders semanais, de refeições e calendário podem concluir fora de ordem
+Localização: history-loaders.js:11-23; week-aggregator.js:11-20;
+week-screen.js:9-14.
+Descrição/impacto: execuções concorrentes não são canceladas; a mais antiga
+pode fazer o setter por último. O “cancelled” mensal só bloqueia setter final,
+não requisições. O efeito semanal omite profileData/currentWeight/currentHeight.
+Severidade: MÉDIO/ALTO — métricas e metas podem refletir closure antiga.
+Resolução necessária: snapshot/versionamento de requisição e dependências
+completas; manter loaders setter-free.
+Risco de corrigir: adicionar dependências pode aumentar frequência de I/O e
+mudar timing de resultados.
+Rastreio: cabeçalhos registram a race e a closure incompleta.
+
+[B03] Open Food Facts e autofill podem aplicar resposta antiga ao formulário atual
+Localização: open-food-facts.js:9-11; food-autofill-ai.js:11-15.
+Descrição/impacto: buscas não são ordenadas/canceladas; usuário pode editar nome
+ou unidade e depois receber nutrientes de uma consulta anterior.
+Severidade: ALTO — alimento pode ser salvo com nutrientes de outro contexto.
+Resolução necessária: request ID associado ao snapshot nome/unidade e descarte
+de resultado obsoleto.
+Risco de corrigir: aplicação automática do primeiro resultado e preservação de
+campos null são comportamentos atuais a manter.
+Rastreio: conhecido nos dois módulos.
+
+[B04] Descrição de prato usa resultados e texto de momentos diferentes
+Localização: dish-description-ai.js:11-18.
+Descrição/impacto: respostas antigas podem substituir novas; ao registrar,
+_description usa o texto atual, que pode não ser o texto que gerou os nutrientes.
+Severidade: ALTO — entrada nutricional rotulada com descrição incompatível.
+Resolução necessária: devolver e persistir requestId + descrição original junto
+com a estimativa.
+Risco de corrigir: formato histórico da entrada deliberadamente não usa todos
+os builders de food-entry.js.
+Rastreio: comportamento explicitamente preservado.
+
+[B05] Explicação de avaliação pode ficar stale e loading pode ficar preso
+Localização: meal-review-ai.js:10-16; meal-review-modal.js:5-9;
+tests/unit/meal-review-ai.test.js:115,132.
+Descrição/impacto: resposta de review antiga pode aparecer na avaliação nova.
+Falha síncrona ao montar prompt ocorre antes do try/Promise do host e pode deixar
+loading ativo; erros Groq são silenciosos.
+Severidade: MÉDIO.
+Resolução necessária: request ID por review e try/finally cobrindo também a
+montagem síncrona.
+Risco de corrigir: passa a expor erros antes silenciosos e muda timing visual.
+Rastreio: documentado em módulo, modal e testes.
+
+[B06] Feedback e padrões alimentares podem sobrescrever análise/período mais novo
+Localização: nutrition-feedback-ai.js:12-16;
+eating-patterns-ai.js:12-15.
+Descrição/impacto: operações concorrentes não têm ordenação/cancelamento; fechar
+UI não impede conclusão. Texto e feedbackPeriod/patternsText podem pertencer à
+solicitação anterior.
+Severidade: MÉDIO.
+Resolução necessária: token por execução, snapshot exibido junto ao resultado e
+descarte de respostas antigas.
+Risco de corrigir: não alterar prompts, idioma ou regra de “sem dados”.
+Rastreio: conhecido nos cabeçalhos.
+
+[B07] GA continua rodando após fechar UI e falha abruptamente com entradas ausentes
+Localização: meal-ga.js:16-21; ga-result-card.js:4-8.
+Descrição/impacto: não há cancelamento; trabalho e callbacks continuam após
+fechamento. pantry/goals/activeLog ausentes mantêm TypeErrors.
+Severidade: MÉDIO; ALTO se combinado com escrita histórica de A09.
+Resolução necessária: sinal de cancelamento cooperativo e validação de fronteira
+fora do núcleo algorítmico.
+Risco de corrigir: sequência aleatória/progresso e sugestões determinísticas por
+seed não podem mudar.
+Rastreio: backlog explícito do GA.
+
+[B08] Fechar BackupModal não cancela exportação/importação
+Localização: backup-modal.js:21-23,79.
+Descrição/impacto: a operação pode continuar e escrever dados após o modal
+fechar; não há rollback se for interrompida por falha.
+Severidade: ALTO para importação; MÉDIO para exportação.
+Resolução necessária: estado de operação global, bloqueio de fechamento ou
+cancelamento seguro por fase.
+Risco de corrigir: cancelar depois de escritas parciais não desfaz o que já foi
+persistido.
+Rastreio: backlog explícito.
+
+[B09] Scanner pode deixar câmera/flags/promises ativos e carregar bibliotecas duplicadas
+Localização: barcode-scanner.js:10-24;
+tests/unit/barcode-scanner.test.js:177,196,216.
+Descrição/impacto: vídeo ausente após setTimeout(0) pode deixar stream aberto;
+detecção para de agendar frames após o primeiro código mesmo se lookup falhar;
+cancelamento não cancela frame/promise. Promise do ZXing é recriada por render.
+Severidade: MÉDIO — câmera ativa, consumo de recursos e scanner travado.
+Resolução necessária: sessão explícita do scanner com finally idempotente,
+controle de frame e cache de biblioteca com ciclo de vida definido.
+Risco de corrigir: fallback/browser APIs têm diferenças grandes; curto-circuito
+atual é coberto por testes.
+Rastreio: todas as limitações estão enumeradas no cabeçalho.
+
+[B10] Seleção do scanner nativo impede fallback quando a API existe mas falha
+Localização: barcode-scanner.js:11-18;
+tests/unit/barcode-scanner.test.js:216.
+Descrição/impacto: o teste é apenas `"BarcodeDetector" in window`; falha do
+construtor/runtime não ativa ZXing. O usuário perde scanner apesar de fallback
+potencialmente disponível.
+Severidade: MÉDIO — falha funcional de câmera.
+Resolução necessária: fallback somente após cleanup nativo completo e
+classificação de erro.
+Risco de corrigir: pode abrir dois scanners/streams se cleanup não for atômico.
+Rastreio: comportamento deliberadamente congelado.
+
+[B11] Carregamento ZXing não tem timeout/cleanup e valida tarde o curto-circuito
+Localização: barcode-scanner.js:16-22;
+tests/unit/barcode-scanner.test.js:177.
+Descrição/impacto: script que nunca dispara load/error deixa operação pendente;
+scripts falhos não são removidos; ZXingBrowser pode ocultar ZXing válido antes
+da validação da API.
+Severidade: MÉDIO.
+Resolução necessária: loader único com timeout, remoção de scripts e validação
+por candidato.
+Risco de corrigir: alterar ordem dos quatro CDNs muda o fallback testado.
+Rastreio: conhecido no módulo/teste.
+
+[B12] Gate de tutorial e flag global não têm sequenciamento/cancelamento
+Localização: app-header-navigation.js:9-12;
+tutorial-overlay.js:19-28; nutrition-tracker-controller.js:676-684.
+Descrição/impacto: navegação rápida pode abrir tutorial atrasado da aba anterior;
+window.__tutorialNavigating é global e o timeout de 120 ms não é cancelado.
+Severidade: MÉDIO — tutorial/modal inesperado e navegação confusa.
+Resolução necessária: token por navegação e ownership explícito da flag.
+Risco de corrigir: quatro timings (0/80/120/180 ms) são contratos existentes.
+Rastreio: backlog explícito da integração final.
+
+[B13] Scheduler de autosave não limpa timers no unmount e engole falhas
+Localização: autosave-scheduler.js:11-16;
+tests/unit/autosave-scheduler.test.js:115.
+Descrição/impacto: callbacks podem executar após desmontagem; handles disparados
+ficam no mapa; write rejeitado não chama onPersisted e não é apresentado.
+Severidade: MÉDIO/ALTO dependendo da chave.
+Resolução necessária: lifecycle/flush/cancel explícitos e telemetria de falha.
+Risco de corrigir: flush automático pode persistir defaults ainda não hidratados.
+Rastreio: alerta temporal e teste de cleanup debt.
+
+[B14] Submit de login/cadastro não tem trava síncrona contra duplo clique
+Localização: login-screen.js:11-16;
+tests/unit/login-screen.test.js:238.
+Descrição/impacto: duas chamadas de login/cadastro podem ocorrer antes de loading
+desabilitar o formulário, duplicando requests e escritas.
+Severidade: ALTO no cadastro; MÉDIO no login.
+Resolução necessária: mutex/ref síncrono por submit e idempotência no onboarding.
+Risco de corrigir: garantir liberação em todos os returns, inclusive verificação
+pendente.
+Rastreio: backlog explícito de autenticação.
+
+[B15] Bridges globais de backup não são removidas no unmount
+Localização: nutrition-tracker-controller.js:1045-1051,2305-2315;
+nutrition-tracker-controller.js:14-16.
+Descrição/impacto: window._exportData/_exportFullBackup e similares continuam
+apontando para closures do último render mesmo depois do controlador desmontar.
+Severidade: MÉDIO/ALTO — ação externa pode usar estado stale ou componente morto.
+Resolução necessária: bridge estável com getter e cleanup no efeito de unmount.
+Risco de corrigir: BackupModal depende dessas pontes e de resolução dinâmica no
+momento da ação.
+Rastreio: um dos bugs de integração explicitamente preservados no controlador.
+
+
+3. TIMEZONE, DATAS E RELÓGIO
+============================
+
+[C01] TODAY é UTC, estático e não vira o dia enquanto o app permanece aberto
+Localização: app.js:43; nutrition-tracker.jsx:43;
+diary-screen.js:11-14.
+Descrição/impacto: perto da meia-noite local o app pode ler/gravar o dia anterior
+ou seguinte; sem reload, TODAY nunca muda. Chaves de log/nota/água/suplemento
+continuam presas ao dia calculado no carregamento.
+Severidade: ALTO — registros podem ir para a data errada.
+Resolução necessária: relógio de data local reativo e migração controlada das
+chaves do dia ao cruzar meia-noite.
+Risco de corrigir: muitas chaves persistidas e efeitos dependem do TODAY estático.
+Rastreio: discrepância documentada no DiaryScreen/controlador.
+
+[C02] Date local + toISOString pode deslocar dias em loaders e migração
+Localização: history-loaders.js:20-23,112,142;
+eating-patterns-ai.js:12-14; firebase-migration-internal.js:6-8,137;
+week-aggregator.js:17-20.
+Descrição/impacto: manipular Date local e serializar em UTC pode produzir dia
+anterior/seguinte conforme timezone/DST, afetando janela semanal, 30 dias e
+chaves migradas.
+Severidade: ALTO para migração; MÉDIO para análises.
+Resolução necessária: utilitário único de LocalDate/PlainDate sem conversão UTC.
+Risco de corrigir: chaves históricas já persistidas podem seguir convenção antiga.
+Rastreio: família de bug explicitamente preservada.
+
+[C03] Métricas dividem diferenças de meio-dia local por 86.400.000
+Localização: body-metrics-model.js:10-15.
+Descrição/impacto: transições DST podem produzir intervalo fracionário e alterar
+taxas, tendências e previsão de semanas.
+Severidade: MÉDIO.
+Resolução necessária: diferença por data civil ou UTC normalizada.
+Risco de corrigir: previsões e gráficos históricos mudam.
+Rastreio: conhecido no cabeçalho.
+
+[C04] Limite máximo de nascimento usa toISOString UTC
+Localização: login-screen.js:16,219,327;
+required-profile-modal.js:12-15,122;
+tests/unit/required-profile-modal.test.js:103.
+Descrição/impacto: em certos fusos/horários, o máximo do input pode representar
+o dia UTC e não o dia civil local.
+Severidade: BAIXO/MÉDIO — validação/UX de data na borda.
+Resolução necessária: gerar YYYY-MM-DD a partir de campos locais.
+Risco de corrigir: deve permanecer alinhado com isValidBirthDate.
+Rastreio: comportamento UTC explicitamente preservado.
+
+[C05] Metas históricas usam idade atual, não idade da data histórica
+Localização: historical-goals-model.js:14-22;
+tests/unit/historical-goals-model.test.js:111.
+Descrição/impacto: BMR/metas recalculadas para datas antigas usam a idade de
+hoje, podendo divergir do valor correto naquele período.
+Severidade: MÉDIO; maior em históricos longos.
+Resolução necessária: passar referenceDate à computeGoals e definir migração de
+snapshots históricos.
+Risco de corrigir: snapshots congelados e recalculados já têm formatos distintos.
+Rastreio: agrupado no backlog de metas históricas.
+
+
+4. INCONSISTÊNCIAS DE UX, IDIOMA E REGRAS DE NEGÓCIO
+====================================================
+
+[D01] Verificação de e-mail trata espanhol como português
+Localização: verify-email-screen.js:9-15;
+tests/unit/verify-email-screen.test.js:109 (teste PT/EN/ES).
+Descrição/impacto: usuário espanhol vê textos portugueses nessa tela.
+Severidade: BAIXO/MÉDIO.
+Resolução necessária: normalizeLanguage/pickLang real com copy ES.
+Risco de corrigir: teste contratual atual congela a lógica binária en/não-en.
+Rastreio: “COMPATIBILITY CONTRACT” explícito.
+
+[D02] Feedback nutricional espanhol usa descrição de atividade em inglês
+Localização: nutrition-feedback-ai.js:12-16;
+tests/unit/nutrition-feedback-ai.test.js:125.
+Descrição/impacto: prompt ES mistura campos EN, podendo gerar saída inconsistente.
+Severidade: BAIXO/MÉDIO.
+Resolução necessária: selecionar activityInfo.es/descEs e atualizar testes de prompt.
+Risco de corrigir: muda saída do LLM e snapshots esperados.
+Rastreio: quirk explicitamente documentado.
+
+[D03] Estado de tema/idioma/loading do login pode divergir do App
+Localização: login-screen.js:11-17;
+tests/unit/login-screen.test.js:343.
+Descrição/impacto: loginDark não sincroniza App.darkMode; afterAuthenticated pode
+sobrescrever idioma local; retorno de verificação pendente deixa loading ativo.
+Severidade: MÉDIO — aparência/idioma incoerentes ou formulário preso.
+Resolução necessária: ownership único de preferências e finally completo.
+Risco de corrigir: persistência local + Firestore hoje tem precedência histórica.
+Rastreio: backlog explícito de autenticação.
+
+[D04] Logout chama fbSignOut duas vezes
+Localização: settings-panel.js:11-15.
+Descrição/impacto: SettingsPanel faz signOut e App.handleLogout faz novamente;
+erros são tolerados, mas há I/O redundante e ordem mais difícil de raciocinar.
+Severidade: BAIXO.
+Resolução necessária: um único owner do logout, mantendo callbacks e cleanup.
+Risco de corrigir: consumidores podem depender implicitamente do cleanup repetido.
+Rastreio: compatibilidade documentada, marcada como limpeza futura.
+
+[D05] Tutorial possui alvos ausentes/condicionais e não tenta novamente
+Localização: tutorial-overlay.js:19-28;
+tests/unit/tutorial-overlay.test.js:198.
+Descrição/impacto: tab-adicionar não existe; alvos de pantry/metrics/week podem
+não estar montados no instante fixo. O passo fica sem highlight.
+Severidade: MÉDIO — onboarding incompleto.
+Resolução necessária: contrato de alvos por tela e retry/observer limitado.
+Risco de corrigir: clicks e timings imperativos podem disparar ações duplicadas.
+Rastreio: limitações enumeradas no cabeçalho.
+
+[D06] Submenu de idioma pode permanecer aberto e Adicionar não está na navegação
+Localização: app-header-navigation.js:9-12.
+Descrição/impacto: reabrir menu pode conservar submenu expandido; “Adicionar” é
+pseudoaba acessível por ações, mas ausente da lista principal.
+Severidade: BAIXO.
+Resolução necessária: reset explícito do submenu e decisão de produto sobre
+navegação de Adicionar.
+Risco de corrigir: adicionar aba muda fluxo/tutorial e layout mobile.
+Rastreio: bugs/limitações preservados no PR de cabeçalho.
+
+[D07] Em data histórica, suplementos atuais aparecem, enquanto água é today-only
+Localização: diary-screen.js:11-14;
+tests/unit/diary-screen.test.js:266.
+Descrição/impacto: a tela mistura períodos: água respeita hoje, suplementos usam
+o estado corrente mesmo ao visualizar dia passado.
+Severidade: MÉDIO — leitura histórica enganosa.
+Resolução necessária: carregar e passar suppLog/waterIntake por viewDate de forma
+simétrica.
+Risco de corrigir: novas leituras e autosaves históricos podem acionar B01.
+Rastreio: comportamento explicitamente preservado.
+
+[D08] Backup “Diário — hoje” pode exportar o dia histórico visualizado
+Localização: backup-modal.js:15-20.
+Descrição/impacto: activeLog pode ser histórico, mas filename/payload mantém
+TODAY, produzindo arquivo com rótulo/data incorretos.
+Severidade: ALTO — backup semanticamente errado.
+Resolução necessária: snapshot deve carregar explicitamente activeDate e separar
+“hoje” de “dia visualizado”.
+Risco de corrigir: formato exportado e nomes de arquivo são contratos existentes.
+Rastreio: backlog explícito.
+
+[D09] Preview de backup lê category.existing, adapter fornece existingItems
+Localização: backup-modal.js:18-20;
+tests/unit/firebase-backup-internal.test.js:158-200.
+Descrição/impacto: contagem/indicação de itens existentes pode aparecer errada,
+afetando decisão append/replace.
+Severidade: MÉDIO/ALTO em uma operação destrutiva.
+Resolução necessária: alinhar schema de preview e adicionar teste de apresentação.
+Risco de corrigir: não mudar estratégia de merge subjacente junto com a correção.
+Rastreio: bug de apresentação explicitamente anotado.
+
+[D10] Pantry mantém resultados invisíveis, dose obrigatória oculta e controles órfãos
+Localização: pantry-screen.js:11-16;
+tests/unit/pantry-screen.test.js:188-199,256.
+Descrição/impacto: foodDbResults é armazenado mas não renderizado; suplemento
+exige dose que o usuário não vê; controles de composição corporal aparecem
+estruturalmente órfãos no formulário de suplemento.
+Severidade: MÉDIO; o campo de dose pode impedir cadastro sem explicação.
+Resolução necessária: decisão de UX separada para cada caso e teste de fluxo real.
+Risco de corrigir: reorganizar markup pode quebrar tutorial/ref do scanner.
+Rastreio: peculiaridades preservadas; dose marcada para investigação futura.
+
+[D11] Janelas de métricas contam registros e zero é tratado como ausência
+Localização: body-metrics-model.js:10-15;
+tests/unit/body-metrics-model.test.js:215,245.
+Descrição/impacto: “7/14” significa últimos registros, não dias; vários zeros
+válidos desaparecem por truthiness; normalização repete IDs/cálculos por render.
+Severidade: MÉDIO — métricas/tendências podem surpreender ou omitir valores.
+Resolução necessária: especificar semântica de produto e substituir truthiness
+por nullability explícita.
+Risco de corrigir: gráficos e previsões históricas mudarão.
+Rastreio: comportamento conhecido, não otimizado.
+
+[D12] Custom goal numérico zero não substitui meta calculada
+Localização: daily-nutrition-model.js:11-14;
+historical-goals-model.js:19-22;
+tests/unit/historical-goals-model.test.js:92.
+Descrição/impacto: regra `custom || calculated` ignora zero numérico; usuário não
+consegue expressar meta zero de modo consistente.
+Severidade: MÉDIO.
+Resolução necessária: distinguir undefined/null de zero e migrar valores string.
+Risco de corrigir: altera metas, toasts e snapshots congelados.
+Rastreio: preservado em dois modelos.
+
+[D13] Análises ignoram chaves de refeição traduzidas/legadas
+Localização: week-aggregator.js:14-20; eating-patterns-ai.js:12-15;
+tests/unit/week-aggregator.test.js:155;
+tests/unit/eating-patterns-ai.test.js:128.
+Descrição/impacto: loadMealAnalysis/eating patterns não chamam normalizeMealKeys;
+refeições EN/ES ou antigas podem não entrar nas médias/prompts.
+Severidade: MÉDIO/ALTO para contas antigas.
+Resolução necessária: normalização somente na leitura analítica, sem reescrever
+schema silenciosamente.
+Risco de corrigir: MEAL_KEYS é schema persistido e a posição dos arrays é crítica.
+Rastreio: ausência deliberadamente documentada/testada.
+
+[D14] Snapshots históricos têm formatos diferentes e metadados parcialmente atuais
+Localização: historical-goals-model.js:10-22;
+tests/unit/historical-goals-model.test.js:137.
+Descrição/impacto: snapshot normal e refresh manual têm shapes distintos; frozen
+goal não congela todos os metadados (ex.: base/adjustment), permitindo combinar
+kcal antiga com base recalculada.
+Severidade: MÉDIO/ALTO — comparação histórica inconsistente.
+Resolução necessária: versionar schema de snapshot e normalizar leitura.
+Risco de corrigir: migração retroativa e compatibilidade com goalHistory existente.
+Rastreio: backlog conjunto de metas históricas.
+
+[D15] Exportação de backup não produz arquivo nem feedback na WebView Android
+Localização: validação manual da Subfatia 3 do Capacitor Android em aparelho
+real; backup-modal.js e pontes de exportação do controlador.
+Descrição/impacto: todas as opções de exportação disponíveis foram acionadas,
+mas nenhum arquivo, seletor de destino, compartilhamento, notificação, mensagem
+de sucesso ou erro apareceu no aparelho. O usuário não consegue confirmar nem
+localizar uma cópia dos próprios dados.
+Severidade: ALTO no aplicativo Android — bloqueia portabilidade e recuperação
+por backup e falha silenciosamente.
+Resolução necessária: diagnosticar downloads disparados pela WebView e adotar
+uma ponte explícita e injetável para gravação/compartilhamento no Android,
+preservando o fluxo web; sempre apresentar resultado ou erro acionável.
+Risco de corrigir: formatos, nomes de arquivo e comportamento atual do navegador
+são contratos existentes e não devem mudar ao introduzir a ponte nativa.
+Rastreio: reproduzido em aparelho Android real durante a Subfatia 3; correção
+explicitamente adiada.
+
+[D16] Wrapper Android não declara câmera e impede o scanner antes da permissão
+Localização: validação manual da Subfatia 3 do Capacitor Android em aparelho
+real; AndroidManifest.xml e barcode-scanner.js.
+Descrição/impacto: ao abrir o scanner, o Android não apresenta solicitação de
+permissão. A tela de permissões da Trofia informa que nenhuma permissão é
+necessária e não permite autorizar a câmera manualmente. O scanner exibe o
+fallback de câmera negada, indisponível ou incompatível. A digitação manual do
+código de barras encontra o alimento normalmente.
+Severidade: ALTO para o scanner — a captura por câmera é impossível no wrapper
+atual; o restante do aplicativo e o fallback manual continuam disponíveis.
+Resolução necessária: na subfatia dedicada ao scanner/permissões, declarar
+CAMERA e o recurso de câmera como opcional (`required=false`), implementar o
+fluxo de permissão da WebView/Android e então repetir os testes de concessão,
+negação, leitura real e cleanup.
+Risco de corrigir: permissões afetam a ficha do Google Play e a confiança do
+usuário; conceder acesso não resolve por si só as limitações B09-B11.
+Rastreio: reproduzido em aparelho Android real durante a Subfatia 3; decisão
+definitiva permanece adiada para a subfatia do scanner.
+
+[D17] Botão ou gesto Voltar minimiza o app em vez de fechar o estado interno
+Localização: validação manual da Subfatia 3 do Capacitor Android em aparelho
+real; navegação, modais e configurações do wrapper Capacitor.
+Descrição/impacto: com modal, configurações ou outra tela interna aberta, Voltar
+não retorna à tela anterior nem fecha o estado sobreposto; envia o aplicativo
+ao fundo. O usuário perde a semântica esperada de navegação nativa do Android.
+Severidade: MÉDIO — não há perda de dados observada, mas a navegação é
+consistentemente incorreta no aparelho.
+Resolução necessária: definir uma hierarquia explícita e testável para Voltar
+(fechar modal/submenu, retornar da tela interna, tratar histórico e só então
+enviar o app ao fundo), com ponte nativa injetável quando necessária.
+Risco de corrigir: handlers duplicados entre WebView, histórico web e Capacitor
+podem executar duas ações ou fechar o app prematuramente.
+Rastreio: reproduzido em modal, configurações e outras telas durante a
+Subfatia 3; correção explicitamente adiada.
+
+[D18] Importação confirmada pode não substituir fallback local nem atualizar a UI
+Localização: validação física da Subfatia 6A2; firebase-backup-internal.js;
+firebase-storage.js; backup-modal.js.
+Descrição/impacto: a prévia e a escrita remota terminam e o modal anuncia
+sucesso, mas os valores antigos podem continuar visíveis inclusive após reabrir.
+Para chaves críticas, a leitura escolhe o candidato local mais rico; um fallback
+antigo maior pode vencer o valor importado e voltar a gravá-lo no Firestore.
+Além disso, o botão de atualização chamava `loadAll`, que engole falhas e não
+recarrega todas as telas, mas anunciava "Dados atualizados" mesmo sem mudança
+observável.
+Severidade: ALTO — o usuário recebe confirmação de restauração sem conseguir
+observar com segurança os dados escolhidos.
+Resolução aplicada: após cada escrita importada confirmada, remover somente os
+fallbacks locais correspondentes; manter a reidratação automática e fazer o
+botão "Atualizar dados" recarregar de fato o aplicativo, sem alegar sucesso
+antecipado. Pull-to-refresh permanece fora do escopo.
+Risco de corrigir: remoção ampla de localStorage poderia afetar outra conta;
+por isso a limpeza é limitada à chave importada, em variantes simples e
+namespaced do usuário autenticado. Aguarda nova validação física do ciclo
+exportar/importar.
+
+
+5. CÓDIGO MORTO, DESCONECTADO OU DÍVIDA DE LIMPEZA
+==================================================
+
+[E01] Sugestões de refeição por LLM estão desconectadas e duplicam o GA
+Localização: nutrition-tracker-controller.js:766,1723-1768;
+add-screen.js:10-12; tests/unit/add-screen.test.js:255.
+Descrição/impacto: generateMealSuggestions/loadSuggestionToStaged e estados
+permanecem sem chamador ativo; painel legado contém controles GA duplicados sem
+conexão ao meal-ga ativo.
+Severidade: BAIXO funcional, MÉDIO de manutenção.
+Resolução necessária: decisão de produto: remover ou reativar como fluxo
+explicitamente separado.
+Risco de corrigir: reativar cria segunda estratégia de sugestão com matching
+aproximado e races antigas.
+Rastreio: decisão de produto explicitamente adiada.
+
+[E02] Relatórios avançados têm card/callback, mas nenhum modal ativo
+Localização: metrics-screen.js:1-17,198-233;
+nutrition-tracker-controller.js:798,1862-1898,5326;
+tests/unit/metrics-screen.test.js:367.
+Descrição/impacto: card pode apenas alterar reportModalOpen; não há UI que use o
+estado. Cliente/payload permanecem desconectados e servidor pode estar desabilitado.
+Severidade: BAIXO para dados atuais, MÉDIO para UX/confiança.
+Resolução necessária: decisão de produto e implementação conjunta de serviço +
+modal, ou remoção integral.
+Risco de corrigir: payload contém grande volume de dados pessoais e URL não
+validada foi comportamento histórico.
+Rastreio: código morto conhecido, retomada futura registrada.
+
+[E03] Nó de recentes de Add é estruturalmente inalcançável no Diary
+Localização: diary-screen.js:7-10.
+Descrição/impacto: nó opaco foi preservado na posição original, mas não é
+alcançável pelo fluxo real.
+Severidade: BAIXO.
+Resolução necessária: remover após confirmar ausência de consumidor ou recolocar
+em posição intencional.
+Risco de corrigir: mover markup pode alterar parentage e layout.
+Rastreio: explicitamente marcado como unreachable.
+
+[E04] Variável acc em padrões alimentares é preenchida e nunca usada
+Localização: eating-patterns-ai.js:12-15,85.
+Descrição/impacto: custo/confusão sem efeito no prompt final.
+Severidade: BAIXO.
+Resolução necessária: remover com teste de prompt byte-equivalente.
+Risco de corrigir: baixo, mas o código foi preservado para evitar misturar limpeza
+com refatoração funcional.
+Rastreio: dívida explícita.
+
+[E05] proteinTolerance do GA é aceito e ignorado
+Localização: meal-ga.js:16-21,95,115-124.
+Descrição/impacto: slider/opção sugere efeito que não existe; usuário pode acreditar
+que ajustou tolerância de proteína.
+Severidade: MÉDIO de UX; BAIXO técnico.
+Resolução necessária: implementar a restrição no fitness/limites ou remover a UI.
+Risco de corrigir: muda resultados determinísticos e parâmetros do algoritmo.
+Rastreio: backlog explícito com teste.
+
+[E06] checking do VerifyEmail e healthGuardrails calculados não têm consumidor útil
+Localização: verify-email-screen.js:13-14,71;
+nutrition-tracker-controller.js:2241-2248;
+tests/unit/daily-nutrition-model.test.js:92-117.
+Descrição/impacto: estado de checking não é usado para render; códigos de
+guardrail são calculados/mapeados, mas não chegam à MetricsScreen. Dívida e
+alertas de saúde potencialmente invisíveis.
+Severidade: BAIXO técnico; MÉDIO para guardrails de saúde.
+Resolução necessária: remover estado morto e conectar guardrails em PRs separados.
+Risco de corrigir: apresentar guardrails exige revisão de copy/UX, não apenas wiring.
+Rastreio: checking é cleanup debt explícito; guardrails foram deixados
+desconectados na fatia de Metrics.
+
+
+6. ROBUSTEZ DE INFRAESTRUTURA E CONTRATOS DE COMPATIBILIDADE
+===========================================================
+
+[F01] Sessão Auth tem refresh concorrente, validade superficial e cleanup incompleto
+Localização: firebase-auth-internal.js:12-15,178-218;
+tests/unit/firebase-auth-internal.test.js:107,123,140.
+Descrição/impacto: fbIsLoggedIn só verifica refresh token; fbToken concorrente
+dispara vários refreshes; falha de refresh remove chaves específicas, mas não
+reseta caches/UID interno/fb_email. expiresIn ausente torna token imediatamente
+não-cacheável (historicamente NaN/expirado).
+Severidade: ALTO — sessão incoerente, requests duplicados ou gate enganoso.
+Resolução necessária: single-flight refresh, máquina de estado de sessão e
+cleanup consistente.
+Risco de corrigir: todos os consumidores fb* dependem do contrato atual.
+Rastreio: comportamentos congelados por suíte contratual.
+
+[F02] Firestore converte falhas em ausência e mantém caches incompletos
+Localização: firebase-firestore-internal.js:15-18;
+tests/unit/firebase-firestore-internal.test.js:172,190.
+Descrição/impacto: 404, HTTP não-ok ou rede frequentemente viram null/[]; cache
+root pode guardar {} após falha e não retry até reset; lista parcial pode ficar
+cacheada. Falha é indistinguível de dado inexistente.
+Severidade: ALTO — UI vazia pode induzir autosave/migração/exclusão incorretos.
+Resolução necessária: resultado tipado found/missing/error, cache apenas após
+leitura completa e retry/backoff.
+Risco de corrigir: dezenas de consumidores esperam null/[] e precisariam migração
+contratual coordenada.
+Rastreio: contrato central explicitamente preservado.
+
+[F03] Promoções são fire-and-forget; v2 engole escrita; sem UID há no-op silencioso
+Localização: firebase-firestore-internal.js:15-18;
+tests/unit/firebase-firestore-internal.test.js:210,217.
+Descrição/impacto: fallback recuperado pode não ser promovido; escrita v2 falha
+sem propagar enquanto v3 propaga; operações sem UID retornam null/vazio/sucesso
+aparente em vários caminhos.
+Severidade: ALTO para persistência; MÉDIO para diagnóstico.
+Resolução necessária: resultados explícitos, telemetria e política única de erro.
+Risco de corrigir: a facade window.storage/fb* é o contrato mais usado do app.
+Rastreio: suíte contratual trava esse comportamento.
+
+[F04] Groq não tem timeout/retry/cancelamento e parseia JSON antes de response.ok
+Localização: groq-client.js:11-15;
+tests/unit/groq-client.test.js:93.
+Descrição/impacto: request pode ficar pendente; JSON inválido mascara o erro HTTP
+do provedor; chamadas concorrentes ficam a cargo de cada consumidor.
+Severidade: MÉDIO.
+Resolução necessária: erro tipado que preserve status/body, timeout opcional e
+cancelamento propagado aos consumidores.
+Risco de corrigir: mensagens silenciosas/localizadas diferem por fluxo e os
+testes congelam a ordem parse-before-status.
+Rastreio: comportamento conhecido no cliente.
+
+[F05] Schema i18n mistura labels com chaves persistidas posicionais
+Localização: i18n.js:9-14;
+tests/unit/i18n.test.js:96 (ordem/valores congelados).
+Descrição/impacto: alterar valor ou ordem de MEAL_KEYS ou STRINGS.*.meals pode
+quebrar leitura/escrita e normalizeMealKeys de dados Firestore reais.
+Severidade: CRÍTICO como risco de mudança futura; não é falha ativa hoje.
+Resolução necessária: separar storage IDs estáveis de labels e executar migração
+de dados antes de qualquer alteração.
+Risco de corrigir: máximo; é schema persistido de contas existentes.
+Rastreio: DATA-SCHEMA WARNING explícito e teste posicional.
+
+
+[F06] Rota pública workers.dev pode ficar inalcançável e derrubar toda a IA na Web
+Localização: ai-client.js; image-meal-client.js; dish-description-ai.js;
+meal-review-ai.js; worker/src/ai-worker.js; deployment público
+trofia-ai-proxy.cmagno-dev.workers.dev.
+Descrição/impacto: em 30/08/2026, na versão publicada pelo GitHub Pages, as
+chamadas de descrição, explicação da avaliação e reconhecimento por foto
+falharam juntas antes de receber qualquer status HTTP. O navegador classificou
+o transporte como CORS sem sucesso e status nulo; a interface terminou em erro,
+mas somente depois de uma espera longa. A nota local da avaliação continuou
+funcionando, confirmando que o incidente não pertence ao motor C20 nem à lógica
+de integração do C19.
+Diagnóstico confirmado: o deployment permaneceu ativo, `workers_dev` estava
+habilitado e o preflight do mesmo endpoint retornou HTTP 204 com a allowlist e
+todos os headers CORS corretos em sondas externas de Madrid, Alemanha e EUA
+(medição Globalping 2eTnFOSpre85xdKLh000212nR). A ausência de resposta apenas no
+caminho afetado aponta para conectividade entre navegador/rede/operadora e o
+hostname compartilhado `workers.dev`, não para rejeição CORS produzida pelo
+Worker nem para erro do Gemini. O Android ainda não havia sido testado no
+momento do registro.
+Severidade: ALTO — todas as funcionalidades de IA ficam indisponíveis ao mesmo
+tempo para usuários atingidos, embora o diário e o motor local de pontuação
+continuem operacionais e não haja perda de dados observada.
+Tratamento aprovado: manter como incidente conhecido, sem tentativa de correção
+de código agora. A mitigação futura registrada como P09 é publicar o Worker em
+domínio próprio quando ele for adquirido, eliminando a dependência exclusiva da
+reputação compartilhada do hostname `workers.dev`; medir a incidência por rede e
+navegador até essa migração.
+Risco de corrigir: timeouts curtos demais podem abortar análises de imagem
+válidas; trocar o hostname exige novo deploy, atualização coordenada da
+allowlist/CSP e validação Android/Web sem expor segredos.
+Rastreio: achado no checkpoint visual da C19-C; tratado separadamente do B05 e
+do escopo funcional do C19.
+
+
+RESUMO DE PRIORIDADE
+====================
+
+Mais críticos para investigação antes de mudanças estruturais:
+1. A01+A02 — limpeza de legado pode apagar documentos >120 dias nunca promovidos,
+   agravada por paginação mascarada e verificação sem retry.
+2. A04+A05+A06 — exclusão de conta pode ser parcial, apagar root com listagem
+   falha ou excluir Auth sem garantir limpeza Firestore.
+3. A11 — hidratação/autosave pode sobrescrever dados reais com defaults e
+   considera algumas chaves hidratadas antes do parse.
+4. A10 — visualizar histórico pode gravar metas históricas em goalHistory[TODAY].
+5. B01 — race de navegação histórica pode mostrar A com viewDate B e autosalvar
+   a nota na data errada.
+6. A12 — refeição criada offline aparenta sucesso, atualiza metas e depois é
+   perdida sem qualquer aviso.
+
+Este documento é somente inventário. Nenhum comportamento foi corrigido.
+
+
+BUGS RESOLVIDOS
+===============
+
+Nenhuma entrada deste inventário foi integralmente resolvida nesta rodada.
+Entradas apenas parcialmente relacionadas permanecem no corpo do documento e
+não são classificadas aqui como resolvidas.
+
+[A01] Resolvido — PRs #107–#111, C23 Fatias 1–7.
+O inventário administrativo percorreu todo o conjunto legado sem janela de 120
+dias, classificou as chaves, copiou/mesclou os 54 documentos reais e verificou
+cada destino canônico antes da exclusão. Após 7 dias de observação e um export
+gerenciado confirmado, somente os documentos individualmente verificados foram
+excluídos; a contagem final de documentos legados foi zero.
+
+[A02] Resolvido — PRs #107–#111, C23 Fatias 1–7.
+A listagem administrativa passou a ter paginação completa e comportamento
+fail-closed: erro, página incompleta, chave desconhecida ou conflito não
+resolvido interrompem a operação. O fechamento não depende mais de
+_storageSchemaVerified nem interpreta falha de listagem como coleção vazia.
+
+[A03] Resolvido — PRs #107–#111, C23 Fatias 1–7.
+A migração foi substituída por fases administrativas idempotentes, com política
+de conflito conservadora, verificação individual dos destinos e retomada segura.
+A exclusão física final foi executada atomicamente apenas sobre o conjunto
+verificado, depois do export e da janela de observação; falha de qualquer
+pré-condição impede a remoção.
+
+[A09] Resolvido — PRs #118–#122, C28 Fatias 6A–6E.
+Log, água e suplementos usam identidades estáveis e uma única API funcional de
+mutação por data. No runtime granular, cada alteração persiste somente os
+documentos afetados; operações com vários itens usam um único batch atômico,
+com estado pendente/sincronizado/erro e retries idempotentes. A leitura continua
+retrocompatível durante a migração, e os autosaves agregados deixam de ser
+usados assim que o facade modular é ativado.

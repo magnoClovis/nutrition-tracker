@@ -108,6 +108,8 @@ contractTest("aggregates complete and missing week days with the existing roundi
     fat: 15,
     fiber: 10,
     salt: 1.5,
+    sugars: 0,
+    satfat: 0,
     carbsGoal: 250,
     fatGoal: 70,
     fiberGoal: 30,
@@ -118,6 +120,16 @@ contractTest("aggregates complete and missing week days with the existing roundi
     adjustment: -200,
     metProtein: false,
     metKcal: false,
+    nutrientCoverage: {
+      protein: { knownItemCount: 1, missingItemCount: 1, totalItemCount: 2, complete: false },
+      kcal: { knownItemCount: 2, missingItemCount: 0, totalItemCount: 2, complete: true },
+      carbs: { knownItemCount: 2, missingItemCount: 0, totalItemCount: 2, complete: true },
+      fat: { knownItemCount: 2, missingItemCount: 0, totalItemCount: 2, complete: true },
+      fiber: { knownItemCount: 2, missingItemCount: 0, totalItemCount: 2, complete: true },
+      salt: { knownItemCount: 2, missingItemCount: 0, totalItemCount: 2, complete: true },
+      sugars: { knownItemCount: 0, missingItemCount: 2, totalItemCount: 2, complete: false },
+      satfat: { knownItemCount: 0, missingItemCount: 2, totalItemCount: 2, complete: false }
+    },
     hasData: true,
     isToday: false
   });

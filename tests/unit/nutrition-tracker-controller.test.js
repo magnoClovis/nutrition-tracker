@@ -48,6 +48,16 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
   assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 26);
 });
 
+contractTest("routes browser dialog decisions through the injected generic service", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+
+  assert.doesNotMatch(source, /window\.(?:alert|confirm|prompt)\s*\(/);
+  assert.match(source, /await dialog\.prompt\(\{/);
+  assert.equal((source.match(/await dialog\.confirm\(\{/g) || []).length, 3);
+  assert.match(source, /tone: "danger"/);
+});
+
 contractTest("cuts aggregate daily autosaves only when granular persistence is available", createNutritionTrackerController => {
   const {NutritionTracker} = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
@@ -73,6 +83,38 @@ contractTest("routes historical screens and reports through grouped cache-first 
     assert.match(source, new RegExp(`\\b${loader}\\b`));
   }
   assert.doesNotMatch(source, /await\s+storage\.get\(["']log_v2_/);
+});
+
+contractTest("passes all nutrient coverage to AI feedback without raw profile fields", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+  const feedbackStart = source.indexOf("week: weekData.map(day => ({");
+  const feedbackEnd = source.indexOf("}))", feedbackStart);
+  const feedbackSnapshot = source.slice(feedbackStart, feedbackEnd);
+
+  assert.ok(feedbackStart >= 0);
+  assert.match(feedbackSnapshot, /protein: day\.protein/);
+  assert.match(feedbackSnapshot, /kcal: day\.kcal/);
+  assert.match(feedbackSnapshot, /sugars: day\.sugars/);
+  assert.match(feedbackSnapshot, /satfat: day\.satfat/);
+  assert.match(feedbackSnapshot, /nutrientCoverage: day\.nutrientCoverage/);
+  const generatorStart = source.indexOf("async function generateFeedback(type)");
+  const generatorEnd = source.indexOf("// Genetic Algorithm Meal Suggester", generatorStart);
+  const generator = source.slice(generatorStart, generatorEnd);
+  assert.doesNotMatch(generator, /userName|birthDate|gender|currentWeight|currentHeight|viewWeight|viewHeight/);
+});
+
+contractTest("uses structured pantry suggestions without fuzzy food-name matching", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+  const start = source.indexOf("async function generateMealSuggestions");
+  const end = source.indexOf("function reportDateShift", start);
+  const block = source.slice(start, end);
+
+  assert.match(block, /requestPantrySuggestions\(\{/);
+  assert.match(block, /remaining: \{\s*protein: remainProt,\s*kcal: remainKcal,\s*carbs: remainCarbs\s*\}/);
+  assert.match(block, /buildEntry\(item\.food, item\.quantity\)/);
+  assert.doesNotMatch(block, /callAI\(|JSON\.parse|\.includes\(item\.food|item\.food\.toLowerCase/);
 });
 
 contractTest("computes the next real local midnight across DST transitions", createNutritionTrackerController => {
@@ -240,7 +282,7 @@ contractTest("keeps autosaves suspended when daily hydration fails and retries s
   assert.ok(source.includes("viewDateRef.current === previousDate"));
 });
 
-contractTest("keeps all eleven render-scoped factories in their original order", createNutritionTrackerController => {
+contractTest("keeps all twelve render-scoped factories in their original order", createNutritionTrackerController => {
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
   const factories = [
@@ -248,6 +290,7 @@ contractTest("keeps all eleven render-scoped factories in their original order",
     "SavedMealCardModule.createSavedMealCard",
     "MealGA.createMealGA",
     "MealReviewAI.createMealReviewAI",
+    "PantrySuggestionsAI.createPantrySuggestionsAI",
     "FoodAutofillAI.createFoodAutofillAI",
     "DishDescriptionAI.createDishDescriptionAI",
     "NutritionFeedbackAI.createNutritionFeedbackAI",
@@ -712,21 +755,25 @@ contractTest("keeps every render-scoped factory argument and current-render clos
       dependencies: ["callAI", "pickLang", "getEvaluationCount: mealScoreEvaluationCount"]
     },
     {
+      factory: "PantrySuggestionsAI.createPantrySuggestionsAI",
+      dependencies: ["requestStructuredPantrySuggestions"]
+    },
+    {
       factory: "FoodAutofillAI.createFoodAutofillAI",
-      dependencies: ["callAI", "normalizeLanguage", "pickLang", "getAiLanguageInstruction: aiLang"]
+      dependencies: ["requestStructuredFoodEstimate", "normalizeLanguage"]
     },
     {
       factory: "DishDescriptionAI.createDishDescriptionAI",
       dependencies: [
-        "callAI",
+        "requestStructuredDishEstimate",
         "normalizeLanguage",
-        "getAiLanguageInstruction: aiLang",
+        "normalizeMealEstimate",
         "createEntryId: () => window.DailyEntryModel.createIdempotentEntryId()"
       ]
     },
     {
       factory: "NutritionFeedbackAI.createNutritionFeedbackAI",
-      dependencies: ["callAI", "normalizeLanguage", "pickLang", "activityLevels: ACTIVITY_LEVELS", "calculateAge"]
+      dependencies: ["callAI", "normalizeLanguage", "pickLang"]
     },
     {
       factory: "EatingPatternsAI.createEatingPatternsAI",

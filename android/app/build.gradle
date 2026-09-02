@@ -25,7 +25,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 2
-        versionName "0.10.0-beta"
+        versionName "0.11.0-beta"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -61,10 +61,20 @@ gradle.taskGraph.whenReady { taskGraph ->
             taskName.contains("release") &&
             ["assemble", "bundle", "package", "sign"].any { taskName.startsWith(it) }
     }
-    if (releaseArtifactRequested && releaseSigningError != null) {
-        throw new GradleException("Trofia release signing is not configured. ${releaseSigningError}")
-    }
     if (releaseArtifactRequested) {
+        def googleServicesFile = file("google-services.json")
+        if (!googleServicesFile.isFile() || !googleServicesFile.text?.trim()) {
+            throw new GradleException(
+                "Trofia release Firebase Android configuration is missing: " +
+                "android/app/google-services.json. Copy the local production file into this " +
+                "worktree before building; release artifacts without it are forbidden."
+            )
+        }
+
+        if (releaseSigningError != null) {
+            throw new GradleException("Trofia release signing is not configured. ${releaseSigningError}")
+        }
+
         def requiredReleaseEnvironment = [
             "VITE_FIREBASE_WEB_APP_ID",
             "VITE_RECAPTCHA_ENTERPRISE_SITE_KEY"

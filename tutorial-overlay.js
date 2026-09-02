@@ -114,10 +114,10 @@
           { title: 'Relatórios', text: 'Gere relatórios HTML ou PDF para dia, semana, mês ou histórico completo.', tab: 'metricas', highlight: 'advanced-reports' }
         ],
         'release-highlights': [
-          { title: 'Reconhecer por foto', text: 'Em + Adicionar, escolha Reconhecer por foto para fotografar a refeição ou selecionar uma imagem da galeria.', tab: 'adicionar', highlight: 'add-modes' },
-          { title: 'Revise as estimativas', text: 'Antes de registrar, confira e edite o nome do prato, os alimentos, as quantidades, os nutrientes, a confiança e as suposições da análise.', tab: 'adicionar', highlight: null },
-          { title: 'Adicionar mais simples', text: 'O Diário agora usa um único botão global + Adicionar. As categorias vazias ficam ocultas para deixar o dia mais claro.', tab: 'diario', highlight: 'open-log-sheet' },
-          { title: 'Seu Diário preservado', text: 'Ao concluir um registro, o Trofia fecha o fluxo e devolve você à mesma aba, data e posição de onde começou.', tab: 'diario', highlight: null }
+          { title: 'Avaliação opcional', text: 'Antes de registrar, você pode avaliar a refeição. A nota de 0 a 5 mede como ela se encaixa no restante do seu dia, não a saúde absoluta do prato.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'Entenda a confiança', text: 'A avaliação mostra cobertura e confiança. Quando faltarem nutrientes, a nota aparece como provisória e explica exatamente quais dados estão ausentes.', tab: 'adicionar', highlight: null },
+          { title: 'Revise antes de aceitar', text: 'Confira alimentos, quantidades e nutrientes estimados. Alterações invalidam avaliações antigas para evitar que uma nota desatualizada pareça válida.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'Critérios mais consistentes', text: 'Descrições, fotos, preenchimento nutricional, feedback, padrões e sugestões da despensa agora seguem os mesmos critérios nutricionais e distinguem dado ausente de zero.', tab: 'diario', highlight: 'suggest-meal-button' }
         ]
       } : {
         main: [
@@ -169,10 +169,10 @@
           { title: 'Reports', text: 'Generate HTML or PDF reports for day, week, month, or full history.', tab: 'metricas', highlight: 'advanced-reports' }
         ],
         'release-highlights': [
-          { title: 'Recognize from a photo', text: 'Under + Add, choose Recognize from photo to photograph your meal or select an image from the gallery.', tab: 'adicionar', highlight: 'add-modes' },
-          { title: 'Review the estimates', text: 'Before logging, check and edit the dish name, foods, amounts, nutrients, confidence, and analysis assumptions.', tab: 'adicionar', highlight: null },
-          { title: 'A simpler Add flow', text: 'The Diary now uses one global + Add button. Empty meal categories stay hidden so the day is easier to read.', tab: 'diario', highlight: 'open-log-sheet' },
-          { title: 'Your place is preserved', text: 'After logging, Trofia closes the flow and returns you to the same tab, date, and scroll position where you started.', tab: 'diario', highlight: null }
+          { title: 'Optional evaluation', text: 'Before logging, you can evaluate the meal. The 0-to-5 score measures how it fits the rest of your day, not the dish\'s absolute healthiness.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'Understand confidence', text: 'The evaluation shows coverage and confidence. When nutrients are missing, the score is marked provisional and explains exactly which data is unavailable.', tab: 'adicionar', highlight: null },
+          { title: 'Review before accepting', text: 'Check estimated foods, amounts, and nutrients. Changes invalidate older evaluations so an outdated score is never presented as valid.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'More consistent criteria', text: 'Descriptions, photos, nutrition autofill, feedback, patterns, and pantry suggestions now follow the same nutrition criteria and distinguish missing data from zero.', tab: 'diario', highlight: 'suggest-meal-button' }
         ]
       };
       const spanishStepSets = {
@@ -225,10 +225,10 @@
           { title: 'Informes', text: 'Genera informes HTML o PDF para d\u00eda, semana, mes o historial completo.', tab: 'metricas', highlight: 'advanced-reports' }
         ],
         'release-highlights': [
-          { title: 'Reconocer por foto', text: 'En + A\u00f1adir, elige Reconocer por foto para fotografiar la comida o seleccionar una imagen de la galer\u00eda.', tab: 'adicionar', highlight: 'add-modes' },
-          { title: 'Revisa las estimaciones', text: 'Antes de registrar, comprueba y edita el nombre del plato, los alimentos, las cantidades, los nutrientes, la confianza y las suposiciones del an\u00e1lisis.', tab: 'adicionar', highlight: null },
-          { title: 'Un flujo m\u00e1s sencillo', text: 'El Diario ahora usa un \u00fanico bot\u00f3n global + A\u00f1adir. Las categor\u00edas vac\u00edas permanecen ocultas para mostrar el d\u00eda con mayor claridad.', tab: 'diario', highlight: 'open-log-sheet' },
-          { title: 'Tu posici\u00f3n se conserva', text: 'Al terminar un registro, Trofia cierra el flujo y te devuelve a la misma pesta\u00f1a, fecha y posici\u00f3n donde comenzaste.', tab: 'diario', highlight: null }
+          { title: 'Evaluaci\u00f3n opcional', text: 'Antes de registrar puedes evaluar la comida. La nota de 0 a 5 mide c\u00f3mo encaja con el resto del d\u00eda, no la salud absoluta del plato.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'Entiende la confianza', text: 'La evaluaci\u00f3n muestra cobertura y confianza. Si faltan nutrientes, la nota aparece como provisional y explica exactamente qu\u00e9 datos no est\u00e1n disponibles.', tab: 'adicionar', highlight: null },
+          { title: 'Revisa antes de aceptar', text: 'Comprueba alimentos, cantidades y nutrientes estimados. Los cambios invalidan evaluaciones anteriores para que una nota desactualizada no parezca v\u00e1lida.', tab: 'adicionar', highlight: 'add-modes' },
+          { title: 'Criterios m\u00e1s coherentes', text: 'Descripciones, fotos, autocompletado nutricional, comentarios, patrones y sugerencias de despensa siguen ahora los mismos criterios y distinguen datos ausentes de cero.', tab: 'diario', highlight: 'suggest-meal-button' }
         ]
       };
       const activeStepSets = isEs ? spanishStepSets : stepSets;

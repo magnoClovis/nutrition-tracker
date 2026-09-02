@@ -176,6 +176,7 @@
       }, uiText("Editar", "Edit", "Editar")), context === "pantry" && React.createElement("button", {
         onClick: () => onDelete(template.id),
         title: uiText("Apagar", "Delete", "Eliminar"),
+        "aria-label": uiText("Apagar", "Delete", "Eliminar"),
         style: {
           background: "none", border: "1px solid var(--border3)", color: "var(--dim)",
           borderRadius: 6, padding: "4px 8px", fontSize: 14, cursor: "pointer"

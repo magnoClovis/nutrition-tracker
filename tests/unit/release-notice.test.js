@@ -27,25 +27,25 @@ function contractTest(name, callback) {
   });
 }
 
-contractTest("renders the approved Portuguese 0.10.0 release copy", ReleaseNoticeModal => {
+contractTest("renders the approved Portuguese 0.11.0 release copy", ReleaseNoticeModal => {
   const copy = renderedCopy(ReleaseNoticeModal, "pt");
-  assert.equal(copy.title, "Bem-vindo à versão 0.10.0 Beta! 🎉🥳");
+  assert.equal(copy.title, "Bem-vindo à versão 0.11.0 Beta! 🎉🥳");
   assert.equal(copy.buttonLabel, "Continuar");
-  assert.equal(copy.body, "Seus dados agora funcionam melhor offline, sincronizam com mais seguran\u00e7a e podem ser exclu\u00eddos integralmente por um fluxo confi\u00e1vel.");
+  assert.equal(copy.body, "A avaliação de refeições, a pontuação nutricional e as sugestões da IA agora seguem critérios mais claros e consistentes.");
 });
 
-contractTest("renders the approved English 0.10.0 release copy", ReleaseNoticeModal => {
+contractTest("renders the approved English 0.11.0 release copy", ReleaseNoticeModal => {
   const copy = renderedCopy(ReleaseNoticeModal, "en");
-  assert.equal(copy.title, "Welcome to version 0.10.0 Beta! 🎉🥳");
+  assert.equal(copy.title, "Welcome to version 0.11.0 Beta! 🎉🥳");
   assert.equal(copy.buttonLabel, "Continue");
-  assert.equal(copy.body, "Your data now works better offline, syncs more safely, and can be fully deleted through a reliable account-deletion process.");
+  assert.equal(copy.body, "Meal evaluation, nutrition scores, and AI suggestions now follow clearer and more consistent criteria.");
 });
 
-contractTest("renders the approved Spanish 0.10.0 release copy", ReleaseNoticeModal => {
+contractTest("renders the approved Spanish 0.11.0 release copy", ReleaseNoticeModal => {
   const copy = renderedCopy(ReleaseNoticeModal, "es");
-  assert.equal(copy.title, "¡Bienvenido a la versión 0.10.0 Beta! 🎉🥳");
+  assert.equal(copy.title, "¡Bienvenido a la versión 0.11.0 Beta! 🎉🥳");
   assert.equal(copy.buttonLabel, "Continuar");
-  assert.equal(copy.body, "Tus datos ahora funcionan mejor sin conexi\u00f3n, se sincronizan con mayor seguridad y pueden eliminarse por completo mediante un proceso fiable.");
+  assert.equal(copy.body, "La evaluación de comidas, la puntuación nutricional y las sugerencias de IA ahora siguen criterios más claros y coherentes.");
 });
 
 contractTest("invokes onStartTutorial from the release action", ReleaseNoticeModal => {
@@ -66,16 +66,16 @@ implementations.forEach(([format, load]) => {
     } = await load();
 
     assert.deepEqual(CURRENT_RELEASE, {
-      id: "0.10.0-beta",
-      versionName: "0.10.0-beta",
-      label: "Trofia v0.10.0 Beta",
-      tutorialType: null
+      id: "0.11.0-beta",
+      versionName: "0.11.0-beta",
+      label: "Trofia v0.11.0 Beta",
+      tutorialType: "release-highlights"
     });
-    assert.equal(hasSeenRelease({ value: "0.10.0-beta" }), true);
+    assert.equal(hasSeenRelease({ value: "0.11.0-beta" }), true);
     assert.equal(hasSeenRelease({ value: "0.9.0-beta" }), false);
     assert.equal(hasSeenRelease(null), false);
     assert.equal(resolveReleaseTutorialType("new"), "main");
-    assert.equal(resolveReleaseTutorialType("existing"), null);
+    assert.equal(resolveReleaseTutorialType("existing"), "release-highlights");
     assert.equal(resolveReleaseTutorialType("unknown"), null);
   });
 });

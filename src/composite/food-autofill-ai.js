@@ -1,10 +1,10 @@
 import '../../food-autofill-ai.js';
 import { readLegacyNamespace } from '../leaf/read-legacy-namespace.js';
 
-const { createFoodAutofillAI } = readLegacyNamespace(
+const { createFoodAutofillAI, FoodEstimateValidationError, NUTRIENT_FIELDS } = readLegacyNamespace(
   globalThis,
   'FoodAutofillAI',
-  ['createFoodAutofillAI'],
+  ['createFoodAutofillAI', 'FoodEstimateValidationError', 'NUTRIENT_FIELDS'],
 );
 
-export { createFoodAutofillAI };
+export { createFoodAutofillAI, FoodEstimateValidationError, NUTRIENT_FIELDS };

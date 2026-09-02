@@ -39,9 +39,11 @@
    * @param {Function} dependencies.GaResultCard Active GA result card component.
    * @param {Function} dependencies.ChoiceField App-local controlled list selector.
    * @param {Function} dependencies.SearchableChoiceField Searchable selector for dynamic supplement options.
+   * @param {Function} dependencies.CheckboxField Native-semantic multiple-choice control.
+   * @param {Function} dependencies.SliderField Native-semantic continuous value control.
    * @returns {Object} Controlled Diary component API and meal-ordering helper.
    */
-  function createDiaryScreen({ React, pickLang, sortLocaleForLang, localeForLang, addDays, monthDays, shiftMonth, calendarMonthStats, Ring, Bar, GaResultCard, ChoiceField, SearchableChoiceField, collectValidMealEvaluationGroups }) {
+  function createDiaryScreen({ React, pickLang, sortLocaleForLang, localeForLang, addDays, monthDays, shiftMonth, calendarMonthStats, Ring, Bar, GaResultCard, ChoiceField, SearchableChoiceField, CheckboxField, SliderField, collectValidMealEvaluationGroups }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof sortLocaleForLang !== "function"
       || typeof localeForLang !== "function" || typeof addDays !== "function"
@@ -49,8 +51,9 @@
       || typeof calendarMonthStats !== "function" || typeof Ring !== "function"
       || typeof Bar !== "function" || typeof GaResultCard !== "function"
       || typeof ChoiceField !== "function" || typeof SearchableChoiceField !== "function"
+      || typeof CheckboxField !== "function" || typeof SliderField !== "function"
       || typeof collectValidMealEvaluationGroups !== "function") {
-      throw new TypeError("DiaryScreen requires React, i18n/date/calendar helpers, Ring, Bar, GaResultCard, ChoiceField, SearchableChoiceField, and meal evaluation groups");
+      throw new TypeError("DiaryScreen requires React, i18n/date/calendar helpers, Ring, Bar, GaResultCard, ChoiceField, SearchableChoiceField, CheckboxField, SliderField, and meal evaluation groups");
     }
 
     const inp = { width: "100%", background: "var(--input)", border: "1px solid var(--border2)", color: "var(--text2)", padding: "9px 12px", borderRadius: 6, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", outline: "none", marginTop: 3 };
@@ -342,28 +345,15 @@
             style: { color: "var(--muted)", fontSize: 12, marginBottom: 8 }
           }, uiText("Selecione os alimentos a incluir:", "Select foods to include:", "Selecciona los alimentos que se incluirán:")),
           filteredFoods.length
-            ? filteredFoods.map(food => React.createElement("label", {
+            ? filteredFoods.map(food => React.createElement(CheckboxField, {
               key: food.id,
-              style: {
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "4px 0",
-                color: "var(--text2)",
-                fontSize: 13,
-                cursor: "pointer"
-              }
-            },
-              React.createElement("input", {
-                type: "checkbox",
-                checked: !!gaSelIds[food.id],
-                onChange: e => setGASelIds(prev => ({ ...prev, [food.id]: e.target.checked }))
-              }),
-              React.createElement("span", null, food.name),
-              React.createElement("span", {
-                style: { color: "var(--muted)", fontSize: 12 }
-              }, "(", food.kcal100 || 0, "kcal, ", food.protein100 || 0, "g prot)")
-            ))
+              id: `ga-food-${food.id}`,
+              compact: true,
+              checked: !!gaSelIds[food.id],
+              onChange: checked => setGASelIds(prev => ({ ...prev, [food.id]: checked })),
+              label: food.name,
+              description: `${food.kcal100 || 0} kcal · ${food.protein100 || 0} g ${uiText("proteína", "protein", "proteína")}`
+            }))
             : React.createElement("div", {
               style: { color: "var(--muted)", fontSize: 12 }
             }, uiText("Nenhum alimento encontrado.", "No foods found.", "No se encontraron alimentos."))
@@ -397,75 +387,41 @@
               style: { ...inp, marginTop: 0 }
             })
           ),
-          React.createElement("div", { style: { marginBottom: 14 } },
-            React.createElement("div", {
-              style: {
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                gap: 8,
-                marginBottom: 4
-              }
-            },
-              React.createElement("label", { style: compactLabel }, uiText("Ajuste fino do tamanho", "Fine-tune meal size", "Ajuste fino del tamaño")),
-              React.createElement("span", {
-                style: {
-                  color: gaTolerance > 0 ? "#c8b47e" : gaTolerance < 0 ? "#7ec8c8" : "var(--text2)",
-                  fontSize: 12,
-                  fontWeight: 700
-                }
-              }, (gaTolerance > 0 ? "+" : "") + gaTolerance + "% · " + autoMaxKcal + " kcal")
-            ),
-            React.createElement("input", {
-              type: "range",
-              min: -40,
-              max: 40,
-              value: gaTolerance,
-              onChange: e => setGATolerance(parseInt(e.target.value)),
-              style: { width: "100%" }
-            }),
-            React.createElement("div", {
-              style: {
-                display: "flex",
-                justifyContent: "space-between",
-                color: "var(--muted)",
-                fontSize: 12
-              }
-            },
-              React.createElement("span", null, uiText("- déficit", "- deficit", "- déficit")),
-              React.createElement("span", null, "0%"),
-              React.createElement("span", null, uiText("+ superávit", "+ surplus", "+ superávit"))
-            )
-          ),
-          React.createElement("label", {
-            style: {
-              color: "var(--text2)",
-              fontSize: 13,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              cursor: "pointer",
-              marginBottom: 10
-            }
-          },
-            React.createElement("input", {
-              type: "checkbox",
-              checked: gaUseProtTol,
-              onChange: e => setGAUseProtTol(e.target.checked)
-            }),
-            uiText("Definir flexibilidade de proteína", "Set protein flexibility", "Definir flexibilidad de proteína")
-          ),
-          gaUseProtTol && React.createElement("div", { style: { marginBottom: 12 } },
-            React.createElement("label", { style: compactLabel }, uiText("Flexibilidade de proteína: ", "Protein flexibility: ", "Flexibilidad de proteína: ") + gaProtTolerance + "%"),
-            React.createElement("input", {
-              type: "range",
-              min: 5,
-              max: 50,
-              value: gaProtTolerance,
-              onChange: e => setGAProtTolerance(parseInt(e.target.value)),
-              style: { width: "100%" }
-            })
-          ),
+          React.createElement(SliderField, {
+            id: "ga-meal-size-slider",
+            label: uiText("Ajuste fino do tamanho", "Fine-tune meal size", "Ajuste fino del tamaño"),
+            value: gaTolerance,
+            onChange: setGATolerance,
+            min: -40,
+            max: 40,
+            valueText: (gaTolerance > 0 ? "+" : "") + gaTolerance + "% · " + autoMaxKcal + " kcal",
+            minLabel: uiText("− déficit", "− deficit", "− déficit"),
+            centerLabel: "0%",
+            maxLabel: uiText("+ superávit", "+ surplus", "+ superávit"),
+            style: { marginBottom: 10 }
+          }),
+          React.createElement(CheckboxField, {
+            id: "ga-protein-flexibility-toggle",
+            checked: gaUseProtTol,
+            onChange: setGAUseProtTol,
+            label: uiText("Definir flexibilidade de proteína", "Set protein flexibility", "Definir flexibilidad de proteína"),
+            description: uiText("Exibe o ajuste dependente somente quando ativo.", "Shows the dependent adjustment only while active.", "Muestra el ajuste dependiente solo cuando está activo."),
+            style: { marginBottom: gaUseProtTol ? 4 : 10 }
+          }),
+          gaUseProtTol && React.createElement(SliderField, {
+            id: "ga-protein-flexibility-slider",
+            label: uiText("Flexibilidade de proteína", "Protein flexibility", "Flexibilidad de proteína"),
+            value: gaProtTolerance,
+            onChange: setGAProtTolerance,
+            min: 5,
+            max: 50,
+            valueText: gaProtTolerance + "%",
+            minLabel: "5%",
+            centerLabel: uiText("ajuste fino", "fine adjustment", "ajuste fino"),
+            maxLabel: "50%",
+            tone: "protein",
+            style: { marginBottom: 12, marginLeft: 10, borderLeft: "2px solid var(--accent-protein-fill)" }
+          }),
           React.createElement("div", {
             style: {
               borderTop: "1px solid var(--border2)",
@@ -878,21 +834,14 @@
     options: MEALS.map(meal => ({ value: meal, label: mealLabel(meal) })),
     helperText: uiText("Escolha onde aplicar a sugestão", "Choose where to apply the suggestion", "Elige dónde aplicar la sugerencia"),
     closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector")
-  }))), /*#__PURE__*/React.createElement("label", {
-    style: {
-      display: "flex",
-      gap: 8,
-      alignItems: "flex-start",
-      color: "var(--text2)",
-      fontSize: 13,
-      lineHeight: 1.35,
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "checkbox",
+  }))), /*#__PURE__*/React.createElement(CheckboxField, {
+    id: "ga-use-all-pantry-foods",
     checked: gaUseAll,
-    onChange: e => setGAUseAll(e.target.checked)
-  }), /*#__PURE__*/React.createElement("span", null, uiText("Usar todos os alimentos da despensa automaticamente.", "Use all pantry foods automatically.", "Usar todos los alimentos de la despensa automáticamente."))), renderMealSuggestionAdvancedControls(), /*#__PURE__*/React.createElement("button", {
+    onChange: setGAUseAll,
+    label: uiText("Usar todos os alimentos da despensa automaticamente.", "Use all pantry foods automatically.", "Usar todos los alimentos de la despensa automáticamente."),
+    description: uiText("A seleção manual fica preservada ao desativar.", "The manual selection is preserved when disabled.", "La selección manual se conserva al desactivar."),
+    style: { marginBottom: 10 }
+  }), renderMealSuggestionAdvancedControls(), /*#__PURE__*/React.createElement("button", {
     onClick: runGASafely,
     disabled: gaRunning,
     style: {

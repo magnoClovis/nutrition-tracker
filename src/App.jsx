@@ -15,9 +15,11 @@ import * as BackupModalModule from './components/backup-modal.js';
 import * as BodyMetricsCharts from './components/body-metrics-charts.js';
 import * as ChoiceFieldModule from './components/choice-field.js';
 import * as SearchableChoiceFieldModule from './components/searchable-choice-field.js';
+import * as SelectionControlsModule from './components/selection-controls.js';
 import * as TemporalFieldModule from './components/temporal-field.js';
 import * as DiaryScreenModule from './components/diary-screen.js';
 import * as GaResultCardModule from './components/ga-result-card.js';
+import * as GenericDialogModule from './components/generic-dialog.js';
 import * as ImageMealScreenModule from './components/image-meal-screen.js';
 import * as LoginScreenModule from './components/login-screen.js';
 import * as MealEstimateEditorModule from './components/meal-estimate-editor.js';
@@ -58,6 +60,7 @@ import * as MealEstimate from './composite/meal-estimate.js';
 import * as MealReviewAI from './composite/meal-review-ai.js';
 import * as MealImageCaptureRuntime from './composite/meal-image-capture-runtime.js';
 import * as NutritionFeedbackAI from './composite/nutrition-feedback-ai.js';
+import * as PantrySuggestionsAI from './composite/pantry-suggestions-ai.js';
 import * as ProfileValidation from './composite/profile-validation.js';
 import * as WeekAggregator from './composite/week-aggregator.js';
 import { androidAppRuntime } from './composite/android-app-runtime.js';
@@ -126,6 +129,7 @@ Object.assign(globalThis, {
   MealReviewAI,
   MealScore,
   NutritionFeedbackAI,
+  PantrySuggestionsAI,
   SavedMealCardModule,
 });
 
@@ -197,6 +201,9 @@ const {
 
 const {
   callAI: requestAICompletion,
+  requestFoodEstimate: requestStructuredFoodEstimate,
+  requestDishEstimate: requestStructuredDishEstimate,
+  requestPantrySuggestions: requestStructuredPantrySuggestions,
 } = AIClient.createAIClient({
   fetchRequest: (...args) => window.fetch(...args),
   getIdToken: () => fbToken(),
@@ -214,11 +221,9 @@ const accountDeletionClient = createAccountDeletionClient({
   functionUrl: ACCOUNT_DELETION_FUNCTION_URL,
 });
 const firebaseRuntimeConfigured = Boolean(import.meta.env?.VITE_FIREBASE_WEB_APP_ID?.trim());
-const appCheckInitialization = firebaseRuntimeConfigured ? Promise.resolve()
-  .then(() => initializeAppCheck())
-  .catch(() => {
-    // Account deletion remains fail-closed if platform attestation is unavailable.
-  }) : Promise.resolve();
+const ensureAppCheckInitialized = () => firebaseRuntimeConfigured
+  ? Promise.resolve().then(() => initializeAppCheck())
+  : Promise.resolve();
 
 const imageMealClient = ImageMealClient.createImageMealClient({
   fetchRequest: (...args) => window.fetch(...args),
@@ -240,6 +245,15 @@ const {
 const {
   SearchableChoiceField,
 } = SearchableChoiceFieldModule.createSearchableChoiceField({ React });
+
+const {
+  CheckboxField,
+  SliderField,
+} = SelectionControlsModule.createSelectionControls({ React });
+
+const {
+  useGenericDialog,
+} = GenericDialogModule.createGenericDialog({ React, createPortal, documentObject: document });
 
 const {
   TemporalField,
@@ -315,10 +329,11 @@ const {
     reloadApplication: () => window.location.reload(),
   }),
   FileReader: window.FileReader,
-  alertUser: window.alert.bind(window),
+  alertUser: async () => undefined,
   reportError: (...args) => console.error(...args),
   localToday,
   addCivilDays,
+  CheckboxField,
 });
 
 const {
@@ -487,6 +502,7 @@ const {
 
 const {
   RequiredProfileModal,
+  RequiredProfileReadError,
 } = RequiredProfileModalModule.createRequiredProfileModal({
   React,
   normalizeLanguage,
@@ -559,7 +575,7 @@ const {
 
 const {
   AddScreen,
-} = AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField });
+} = AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField, MealEstimateEditor });
 
 const {
   MetricsScreen,
@@ -591,6 +607,8 @@ const {
   GaResultCard,
   ChoiceField,
   SearchableChoiceField,
+  CheckboxField,
+  SliderField,
   collectValidMealEvaluationGroups: MealScore.collectValidMealEvaluationGroups,
 });
 
@@ -625,6 +643,10 @@ const {
     getOpenFoodFactsProductByBarcode,
     mapOpenFoodFactsProductToForm,
     requestAICompletion,
+    requestStructuredFoodEstimate,
+    requestStructuredDishEstimate,
+    requestStructuredPantrySuggestions,
+    normalizeMealEstimate: mealEstimateDomain.normalizeMealEstimate,
     AIClientError,
     getGreetingPeriod,
     getGreetingEmoji,
@@ -702,6 +724,16 @@ async function markCurrentReleaseSeen() {
   await storage.set(MOST_RECENT_TUTORIAL_KEY, CURRENT_RELEASE_ID).catch(() => {});
 }
 
+function profileReadErrorCode(error) {
+  let current = error;
+  for (let depth = 0; current && depth < 4; depth += 1) {
+    const code = String(current.code || '').trim();
+    if (/^[A-Za-z0-9_./-]{1,100}$/.test(code)) return code;
+    current = current.cause;
+  }
+  return 'firestore-profile-read-failed';
+}
+
 export function App() {
   const [authed, setAuthed] = React.useState(false);
   const [checking, setChecking] = React.useState(true);
@@ -713,6 +745,7 @@ export function App() {
   const [pendingEmail, setPendingEmail] = React.useState('');
   const [pendingName, setPendingName] = React.useState('');
   const [requiredProfile, setRequiredProfile] = React.useState(null);
+  const [profileLoadError, setProfileLoadError] = React.useState(null);
   const [profileChecking, setProfileChecking] = React.useState(false);
   const [lang, setLang] = React.useState(() => normalizeLanguage(localStorage.getItem('appLang') || 'pt'));
   const [showReleaseNotice, setShowReleaseNotice] = React.useState(false);
@@ -729,6 +762,10 @@ export function App() {
     registration => backDispatcherRef.current.register(registration),
     [],
   );
+  const genericDialog = useGenericDialog({
+    registerBackHandler,
+    backHandlerPriority: BACK_HANDLER_PRIORITY.nestedPanel + 1,
+  });
 
   React.useEffect(() => {
     let disposed = false;
@@ -786,6 +823,7 @@ export function App() {
     setChecking(false);
     setProfileChecking(false);
     setRequiredProfile(null);
+    setProfileLoadError(null);
     setShowSettings(false);
     setShowPrivacy(false);
     setShowBackup(false);
@@ -846,17 +884,19 @@ export function App() {
 
   async function checkRequiredProfile() {
     setProfileChecking(true);
-    const profile = await getRequiredProfileData().catch(() => ({
-      birthDate: '',
-      gender: '',
-      activityLevel: '',
-      goalType: '',
-      goalKg: '',
-      goalWeeks: '',
-      manualAdjustment: '',
-    }));
-    setRequiredProfile(hasRequiredProfileData(profile) ? null : profile);
-    setProfileChecking(false);
+    setProfileLoadError(null);
+    try {
+      await ensureAppCheckInitialized();
+      const profile = await getRequiredProfileData();
+      setRequiredProfile(hasRequiredProfileData(profile) ? null : profile);
+      return true;
+    } catch (error) {
+      setRequiredProfile(null);
+      setProfileLoadError(profileReadErrorCode(error));
+      return false;
+    } finally {
+      setProfileChecking(false);
+    }
   }
 
   async function checkVisualUpdateNotice(isNew) {
@@ -868,6 +908,13 @@ export function App() {
 
   async function afterAuthenticated(isNew) {
     setAuthed(true);
+    try {
+      await ensureAppCheckInitialized();
+    } catch (error) {
+      setRequiredProfile(null);
+      setProfileLoadError(profileReadErrorCode(error));
+      return;
+    }
     storage.set('lastLoginAt', new Date().toISOString()).catch(() => {});
     const savedLang = await storage.get('language').catch(() => null);
     const normalizedSavedLang = normalizeLanguage(savedLang?.value || localStorage.getItem('appLang') || lang || 'pt');
@@ -876,7 +923,7 @@ export function App() {
     if (savedLang?.value !== normalizedSavedLang) {
       storage.set('language', normalizedSavedLang).catch(() => {});
     }
-    await checkRequiredProfile();
+    if (!await checkRequiredProfile()) return;
     await checkVisualUpdateNotice(isNew);
     const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(() => null);
     if (!hasSeenCurrentRelease(tutorialVersion)) {
@@ -904,7 +951,7 @@ export function App() {
       setChecking(false);
     }, 8000);
     Promise.all([
-      appCheckInitialization,
+      ensureAppCheckInitialized(),
       Promise.resolve().then(() => initializeFirebase()),
     ])
       .then(() => {
@@ -944,10 +991,15 @@ export function App() {
         setChecking(false);
         await checkRequiredProfile();
       })
-      .catch(() => {
+      .catch(error => {
         clearTimeout(timeout);
-        Promise.resolve().then(() => fbSignOut()).catch(() => {});
-        setAuthed(false);
+        if (fbIsLoggedIn()) {
+          setAuthed(true);
+          setRequiredProfile(null);
+          setProfileLoadError(profileReadErrorCode(error));
+        } else {
+          setAuthed(false);
+        }
         setChecking(false);
         setProfileChecking(false);
       });
@@ -965,13 +1017,13 @@ export function App() {
       return;
     }
 
-    if (!authed || pendingEmail || requiredProfile) {
+    if (!authed || pendingEmail || requiredProfile || profileLoadError) {
       const timer = setTimeout(() => {
         if (typeof window.hideInitialLoading === 'function') window.hideInitialLoading();
       }, 80);
       return () => clearTimeout(timer);
     }
-  }, [checking, profileChecking, authed, pendingEmail, requiredProfile, lang]);
+  }, [checking, profileChecking, authed, pendingEmail, requiredProfile, profileLoadError, lang]);
 
   if (checking || profileChecking) return null;
   if (pendingEmail) {
@@ -1012,14 +1064,21 @@ export function App() {
   return (
     <ErrorBoundary>
       <>
-        {requiredProfile ? (
+        {profileLoadError ? (
+          <RequiredProfileReadError
+            lang={lang}
+            errorCode={profileLoadError}
+            onRetry={checkRequiredProfile}
+            onLogout={handleLogout}
+          />
+        ) : requiredProfile ? (
           <RequiredProfileModal
             lang={lang}
             profile={requiredProfile}
             onComplete={() => setRequiredProfile(null)}
           />
         ) : null}
-        {!requiredProfile && (
+        {!requiredProfile && !profileLoadError && (
           <NutritionTracker
             onOpenSettings={() => setShowSettings(true)}
             onLogout={handleLogout}
@@ -1033,6 +1092,7 @@ export function App() {
             externalDarkMode={darkMode}
             onLanguageChange={toggleLang}
             onDarkModeChange={toggleDark}
+            dialogService={genericDialog}
             registerBackHandler={registerBackHandler}
             backHandlerPriority={BACK_HANDLER_PRIORITY.nutrition}
           />
@@ -1049,11 +1109,12 @@ export function App() {
             lang={lang}
             darkMode={darkMode}
             onClose={() => setShowBackup(false)}
+            alertUser={genericDialog.alert}
             registerBackHandler={registerBackHandler}
             backHandlerPriority={BACK_HANDLER_PRIORITY.nestedPanel}
           />
         ) : null}
-        {showReleaseNotice && !requiredProfile ? (
+        {showReleaseNotice && !requiredProfile && !profileLoadError ? (
           <ReleaseNoticeModal
             lang={lang}
             onStartTutorial={() => {
@@ -1071,13 +1132,13 @@ export function App() {
             }}
           />
         ) : null}
-        {showVisualUpdateNotice && !requiredProfile ? (
+        {showVisualUpdateNotice && !requiredProfile && !profileLoadError ? (
           <VisualUpdateNotice
             lang={lang}
             onDismiss={() => setShowVisualUpdateNotice(false)}
           />
         ) : null}
-        {showTutorial && !requiredProfile ? (
+        {showTutorial && !requiredProfile && !profileLoadError ? (
           <TutorialOverlay
             lang={lang}
             type={tutorialType}
@@ -1105,6 +1166,7 @@ export function App() {
             backHandlerPriority={BACK_HANDLER_PRIORITY.nestedPanel}
           />
         ) : null}
+        {genericDialog.dialogNode}
       </>
     </ErrorBoundary>
   );

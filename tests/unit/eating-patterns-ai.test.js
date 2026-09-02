@@ -15,8 +15,8 @@ function getWeightForDate(history, date) {
     .sort((a, b) => b.date.localeCompare(a.date))[0] || null;
 }
 
-function food(id, protein, kcal, carbs = 0, fiber = 0) {
-  return { id, protein, kcal, carbs, fiber };
+function food(id, protein, kcal, carbs = 0, fiber = 0, fat = 0, salt = 0, sugars = 0, satfat = 0) {
+  return { id, protein, kcal, carbs, fiber, fat, salt, sugars, satfat };
 }
 
 function baseSnapshot(overrides = {}) {
@@ -119,10 +119,12 @@ contractTest("builds the Portuguese prompt from present logs while empty days re
   assert.equal(fixture.calls.length, 1);
   assert.equal(fixture.calls[0].maxTokens, 1200);
   assert.ok(fixture.calls[0].prompt.includes("DADOS (2 dias registrados de 30)"));
-  assert.ok(fixture.calls[0].prompt.includes("Média diária: 120g proteína, 2000 kcal"));
+  assert.ok(fixture.calls[0].prompt.includes("Médias diárias: proteína: 120g | calorias: 2000 kcal"));
   assert.ok(fixture.calls[0].prompt.includes("Dias que atingiram meta de proteína: 1/2"));
   assert.ok(fixture.calls[0].prompt.includes("Variação de proteína: mín 100g, máx 140g"));
-  assert.ok(fixture.calls[0].prompt.includes("Peso atual: 71kg"));
+  assert.ok(fixture.calls[0].prompt.includes("açúcares: 0g"));
+  assert.ok(fixture.calls[0].prompt.includes("gordura saturada: 0g"));
+  assert.doesNotMatch(fixture.calls[0].prompt, /Peso atual|71kg|1990-01-01|female/);
 });
 
 contractTest("preserves separate training and rest summaries in the English prompt", async createFixture => {
@@ -132,9 +134,12 @@ contractTest("preserves separate training and rest summaries in the English prom
 
   const prompt = fixture.calls[0].prompt;
   assert.ok(prompt.includes("DATA (2 logged days out of 30)"));
-  assert.ok(prompt.includes("Training days (1): average 100g protein, 1800 kcal"));
-  assert.ok(prompt.includes("Rest days (1): average 140g protein, 2200 kcal"));
+  assert.ok(prompt.includes("Training days (1): average protein 100g, calories 1800 kcal"));
+  assert.ok(prompt.includes("Rest days (1): average protein 140g, calories 2200 kcal"));
   assert.ok(prompt.includes("Protein range: min 100g, max 140g"));
+  assert.ok(prompt.includes("sugars 0g"));
+  assert.ok(prompt.includes("saturated fat 0g"));
+  assert.ok(prompt.includes("Do not diagnose or make absolute-health claims"));
 });
 
 contractTest("uses default training and historical goals without normalizing meal keys", async createFixture => {
@@ -157,10 +162,74 @@ contractTest("uses default training and historical goals without normalizing mea
   const prompt = fixture.calls[0].prompt;
   assert.ok(prompt.includes("DATOS (1 días registrados de 30)"));
   assert.ok(prompt.includes("Días que alcanzaron la meta de proteína: 1/1"));
-  assert.ok(prompt.includes("Días de entrenamiento (1): media 95g proteína, 1700 kcal"));
+  assert.ok(prompt.includes("Días de entrenamiento (1): media proteína 95g, calorías 1700 kcal"));
 });
 
-contractTest("returns the neutral no-data result without calling Groq", async createFixture => {
+contractTest("excludes incomplete days from averages and explains missing nutrients in PT EN ES", async createFixture => {
+  const cases = [{
+    lang: "pt",
+    average: "Médias diárias: proteína: 80g (1/2 dias com dados completos)",
+    limitation: "proteína: faltam dados para 1 alimento em 1 dia"
+  }, {
+    lang: "en",
+    average: "Daily averages: protein: 80g (1/2 days with complete data)",
+    limitation: "protein: data missing for 1 food across 1 day"
+  }, {
+    lang: "es",
+    average: "Medias diarias: proteína: 80g (1/2 días con datos completos)",
+    limitation: "proteína: faltan datos para 1 alimento en 1 día"
+  }];
+
+  for (const expected of cases) {
+    const fixture = createFixture();
+    await fixture.api.generateEatingPatterns(baseSnapshot({
+      lang: expected.lang,
+      days: [{
+        date: "2026-07-17",
+        log: { Almoço: [food("known", 80, 1200, 100, 12)] }
+      }, {
+        date: "2026-07-16",
+        log: {
+          Almoço: [
+            food("partial", 40, 600, 50, 6),
+            { id: "missing", protein: null, kcal: 400, carbs: null, fiber: null, fat: null, salt: null, sugars: null, satfat: null }
+          ]
+        }
+      }]
+    }));
+
+    const prompt = fixture.calls[0].prompt;
+    assert.ok(prompt.includes(expected.average));
+    assert.ok(prompt.includes(expected.limitation));
+    assert.doesNotMatch(prompt, /proteína: 60g|protein: 60g/);
+  }
+});
+
+contractTest("includes all available nutrients and never serializes raw profile data", async createFixture => {
+  const labels = {
+    pt: ["açúcares: 7g", "gordura saturada: 3g"],
+    en: ["sugars: 7g", "saturated fat: 3g"],
+    es: ["azúcares: 7g", "grasa saturada: 3g"]
+  };
+  for (const lang of ["pt", "en", "es"]) {
+    const fixture = createFixture();
+    await fixture.api.generateEatingPatterns(baseSnapshot({
+      lang,
+      currentWeight: 987,
+      currentHeight: 321,
+      profile: { birthDate: "1901-02-03", gender: "private-marker" },
+      days: [{
+        date: "2026-07-17",
+        log: { Almoço: [food("all", 10, 200, 20, 4, 6, 0.5, 7, 3)] }
+      }]
+    }));
+    const prompt = fixture.calls[0].prompt;
+    for (const label of labels[lang]) assert.ok(prompt.includes(label));
+    assert.doesNotMatch(prompt, /987kg|321cm|1901-02-03|private-marker/);
+  }
+});
+
+contractTest("returns the neutral no-data result without calling the AI provider", async createFixture => {
   const fixture = createFixture();
   const empty = await fixture.api.generateEatingPatterns(baseSnapshot({ days: [] }));
   const onlyEmptyLogs = await fixture.api.generateEatingPatterns(baseSnapshot({
@@ -172,7 +241,7 @@ contractTest("returns the neutral no-data result without calling Groq", async cr
   assert.equal(fixture.calls.length, 0);
 });
 
-contractTest("propagates Groq and malformed parsed-log failures to the React handler", async createFixture => {
+contractTest("propagates provider and malformed parsed-log failures to the React handler", async createFixture => {
   const groqError = new Error("provider unavailable");
   const groqFixture = createFixture([groqError]);
   await assert.rejects(

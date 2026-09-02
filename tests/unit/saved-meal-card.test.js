@@ -133,8 +133,19 @@ contractTest("renders empty expanded templates and pantry delete action", SavedM
     onDelete: id => { deleted = id; }
   }));
   assert.match(textContent(card), /Sem ingredientes salvos\./);
-  buttons(card).find(button => button.props.title === "Apagar").props.onClick();
+  const deleteButton = buttons(card).find(button => button.props.title === "Apagar");
+  assert.equal(deleteButton.props["aria-label"], "Apagar");
+  deleteButton.props.onClick();
   assert.equal(deleted, "empty");
+});
+
+contractTest("localizes the pantry delete button accessible name", SavedMealCard => {
+  for (const [lang, label] of [["pt", "Apagar"], ["en", "Delete"], ["es", "Eliminar"]]) {
+    const card = SavedMealCard(props({ context: "pantry", lang }));
+    const deleteButton = buttons(card).find(button => button.props.title === label);
+    assert.equal(deleteButton.props["aria-label"], label);
+    assert.equal(textContent(deleteButton), "×");
+  }
 });
 
 contractTest("renders the inline edit form and delegates draft/item actions", SavedMealCard => {

@@ -1,6 +1,6 @@
 # Política nutricional da IA
 
-Estado do contrato: referência aprovada da Fatia C08-A. Nenhum prompt, endpoint ou comportamento de produção é alterado por este documento.
+Estado do contrato: implementado e validado até a Fatia C08-F. Os endpoints estruturados foram publicados antes dos clientes correspondentes e mantêm validação integral em modo fail-closed.
 
 Versão do contrato: `c08-ai-nutrition-policy-v1`.
 
@@ -64,28 +64,30 @@ O Worker continua sem persistir ou registrar prompts, fotos, respostas e dados n
 
 ### Respostas estruturadas
 
-- preenchimento nutricional: endpoint planejado `POST /v1/ai/food-estimate`;
-- descrição textual: endpoint planejado `POST /v1/ai/dish-estimate`, retornando o contrato compartilhado de `MealEstimate`;
-- sugestões pela despensa: endpoint planejado `POST /v1/ai/pantry-suggestions`, referenciando alimentos por ID e permitindo recálculo local dos totais;
+- preenchimento nutricional: `POST /v1/ai/food-estimate`, com schema estrito e campos desconhecidos preservados como `null`;
+- descrição textual: `POST /v1/ai/dish-estimate`, retornando o contrato compartilhado de `MealEstimate` e reutilizando o editor da foto;
+- sugestões pela despensa: `POST /v1/ai/pantry-suggestions`, referenciando alimentos exclusivamente por ID; Worker e cliente rejeitam IDs/quantidades inválidos e o cliente recalcula localmente todos os totais;
 - foto: mantém `POST /v1/ai/image-meal` e sua validação estrita existente.
 
-Os três endpoints planejados não existem em produção nesta fatia. A rota pública atual só será alterada nas fatias de integração aprovadas posteriormente.
+Os dois primeiros endpoints foram implementados na Fatia C08-C e publicados no Worker antes do cliente correspondente. O endpoint da despensa foi implementado na C08-E e passou pelo mesmo gate operacional: deploy aditivo do Worker seguido de smoke real autenticado antes de qualquer exposição do cliente.
+
+O gerador visual de combinações atualmente exposto no Diário continua sendo o GA local. A C08-E não troca esse algoritmo nem sua UX: ela isola e torna seguro o caminho estruturado de IA que já existia no controlador, sem ativá-lo silenciosamente como substituto do GA.
 
 ### Respostas narrativas
 
-Feedback diário/semanal, padrões alimentares e explicação da avaliação continuam usando `POST /v1/ai/completion`. Seus construtores de prompt serão versionados e compartilharão esta política, sem exigir schema JSON.
+Feedback diário/semanal, padrões alimentares e explicação da avaliação continuam usando `POST /v1/ai/completion`. Seus construtores de prompt são versionados e compartilham esta política, sem exigir schema JSON.
 
 ## Contrato por superfície
 
-| Superfície | Versão planejada | Resultado | Regra específica |
+| Superfície | Versão do contrato | Resultado | Regra específica |
 |---|---|---|---|
-| Explicação da avaliação | `meal-explanation-v1` | Texto narrativo | Explica o snapshot definitivo e os motivos de cobertura; nunca recalcula a nota. |
+| Explicação da avaliação | `meal-explanation-v1` | Texto narrativo | Explica a adequação contextual do snapshot definitivo, incluindo motivos específicos de provisoriedade; nunca recalcula a nota, diagnostica ou trata ausente como zero. |
 | Descrição textual | `dish-estimate-v2` | `MealEstimate` estruturado | Reutiliza editor, confiança, suposições e semântica `null` do fluxo de foto. |
 | Foto | `image-meal-v1` | `MealEstimate` estruturado | Mantém imagem transitória, itens visíveis e suposições materiais. |
 | Preenchimento nutricional | `food-estimate-v1` | JSON estruturado | Distingue estimativa, recusa e campo desconhecido; não alega verificação inexistente. |
 | Feedback diário/semanal | `nutrition-feedback-v2` | Texto narrativo | Usa metas e cobertura calculadas; não recebe perfil pessoal bruto. |
 | Padrões alimentares | `eating-patterns-v2` | Texto narrativo | Analisa somente dias registrados e todos os nutrientes realmente disponíveis. |
-| Sugestões pela despensa | `pantry-suggestions-v2` | JSON estruturado | Usa apenas itens da despensa e totais recalculados localmente antes de exibir/registrar. |
+| Sugestões pela despensa | `pantry-suggestions-v2` | JSON estruturado | Usa apenas IDs exatos da despensa, rejeita duplicatas e itens desconhecidos, e recalcula localmente os totais antes de exibir/registrar. |
 
 ## Modelo e histórico
 
@@ -95,13 +97,17 @@ Cada contrato identifica sua versão. Alterar critérios de modo incompatível e
 
 ## Validação
 
-`tests/fixtures/ai-nutrition-policy.json` é a matriz executável desta política. Ela congela as sete superfícies, a fronteira híbrida, os nutrientes, a minimização de dados, a paridade de idiomas e os cenários mínimos de segurança sem chamar o provedor real.
+`tests/fixtures/ai-nutrition-policy.json` é a matriz executável desta política. Ela congela as sete superfícies, a fronteira híbrida, os nutrientes, a minimização de dados, a paridade de idiomas e os cenários mínimos de segurança.
 
-Testes futuros de integração devem combinar:
+A validação final da C08 combina:
 
 - fixtures determinísticas para schema, `null`, cobertura e autoridade do score;
+- respostas da despensa com IDs desconhecidos, repetidos, quantidades inválidas e campos extras, todas rejeitadas integralmente;
 - matriz PT-BR/EN/ES;
 - entradas adversariais tratadas como dados;
-- amostras controladas contra o Gemini real, avaliadas por invariantes e não por texto byte a byte;
+- quatro amostras textuais controladas contra o Gemini real (preenchimento em PT, descrição em EN, despensa em ES e explicação narrativa em PT), avaliadas por invariantes e não por texto byte a byte;
+- a evidência multimodal já concluída na validação física e de produção do C24, sem reenviar ou versionar fotos privadas na C08;
 - revisão posterior por nutricionista, sem alterar silenciosamente contratos já versionados.
+
+A execução real usa uma conta Firebase descartável, no máximo quatro chamadas e limpeza obrigatória. Seus logs contêm somente códigos HTTP, validade do contrato e resultado da limpeza; não contêm prompt, resposta, token, senha, e-mail ou dados nutricionais.
 
