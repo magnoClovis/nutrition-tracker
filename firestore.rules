@@ -304,18 +304,6 @@ service cloud.firestore {
             && payload.components.keys().hasOnly([
               'protein', 'kcal', 'fiber', 'salt', 'carbs', 'fat'
             ])
-            && (!payload.components.keys().hasAny(['protein'])
-              || validScoreComponent(payload.components.protein))
-            && (!payload.components.keys().hasAny(['kcal'])
-              || validScoreComponent(payload.components.kcal))
-            && (!payload.components.keys().hasAny(['fiber'])
-              || validScoreComponent(payload.components.fiber))
-            && (!payload.components.keys().hasAny(['salt'])
-              || validScoreComponent(payload.components.salt))
-            && (!payload.components.keys().hasAny(['carbs'])
-              || validScoreComponent(payload.components.carbs))
-            && (!payload.components.keys().hasAny(['fat'])
-              || validScoreComponent(payload.components.fat))
             && (!payload.keys().hasAny(['confidence']) || payload.confidence is string)
             && (!payload.keys().hasAny(['provisional']) || payload.provisional is bool)
             && (!payload.keys().hasAny(['provisionalReasons'])
@@ -326,39 +314,6 @@ service cloud.firestore {
             && (!payload.keys().hasAny(['mealOccurredAt'])
               || (payload.mealOccurredAt is string
                 && payload.mealOccurredAt.size() <= 64));
-        }
-
-        function validScoreComponent(component) {
-          return component is map
-            && component.keys().hasOnly([
-              'key', 'type', 'available', 'applicable', 'required', 'weight',
-              'target', 'consumedBefore', 'mealAmount', 'consumedAfter',
-              'remainingBefore', 'remainingAfter', 'quota', 'ratio',
-              'candidateKnownCount', 'candidateItemCount', 'candidateComplete',
-              'consumedKnownCount', 'consumedItemCount', 'consumedComplete',
-              'score'
-            ])
-            && component.key is string && component.key.size() <= 40
-            && component.type is string && component.type.size() <= 40
-            && component.available is bool
-            && (!component.keys().hasAny(['applicable']) || component.applicable is bool)
-            && component.required is bool
-            && component.weight is number
-            && component.target is number
-            && component.consumedBefore is number
-            && component.mealAmount is number
-            && component.consumedAfter is number
-            && component.remainingBefore is number
-            && component.remainingAfter is number
-            && component.quota is number
-            && (component.ratio == null || component.ratio is number)
-            && component.candidateKnownCount is number
-            && component.candidateItemCount is number
-            && component.candidateComplete is bool
-            && component.consumedKnownCount is number
-            && component.consumedItemCount is number
-            && component.consumedComplete is bool
-            && component.score is number;
         }
 
         function validMealPayload(entryId, payload) {

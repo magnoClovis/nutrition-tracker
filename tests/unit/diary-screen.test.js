@@ -481,17 +481,13 @@ contractTest("renders filled categories chronologically after the sole global Ad
 });
 
 contractTest("renders one accepted-assessment badge per valid evaluation group", DiaryScreen => {
-  const snapshot = {
-    algorithmVersion: "meal-score-v2",
-    score: 4.25,
-    coverage: 0.9,
-    confidence: "high",
-    provisional: false,
-    provisionalReasons: [],
-    components: {
-      protein: { key: "protein", available: true, score: 0.9 }
-    }
-  };
+  const snapshot = MealScore.buildMealScoreSnapshot(MealScore.calculateMealScore({
+    goals: { protein: 150, kcal: 2000, carbs: 240, fat: 70, fiber: 30, salt: 5 },
+    candidateEntries: [{ protein: 35, kcal: 420, carbs: 48, fat: 14, fiber: 8, salt: 1 }],
+    consumedEntries: [{ protein: 80, kcal: 1200, carbs: 140, fat: 40, fiber: 12, salt: 2 }],
+    mealOccurredAt: "2026-07-13T20:00:00-03:00",
+    evaluatedAt: "2026-07-13T20:05:00-03:00"
+  }));
   const entries = [
     { id: "a", name: "Rice", qty: 100, unit: "g", protein: 4, kcal: 130, mealEvaluationId: "review-1", mealScoreSnapshot: snapshot },
     { id: "b", name: "Beans", qty: 100, unit: "g", protein: 8, kcal: 120, mealEvaluationId: "review-1", mealScoreSnapshot: snapshot },
@@ -505,7 +501,7 @@ contractTest("renders one accepted-assessment badge per valid evaluation group",
   }));
   const badges = findNodes(view, node => node.props?.["data-meal-evaluation-badge"]);
   assert.equal(badges.length, 1);
-  assert.equal(textContent(badges[0]), "★ 4.25/5 · Well aligned");
+  assert.equal(textContent(badges[0]), `★ ${snapshot.score.toFixed(2)}/5 · Partially aligned`);
   badges[0].props.onClick();
   assert.equal(opened.evaluationId, "review-1");
   assert.deepEqual(opened.entryIds, ["a", "b"]);

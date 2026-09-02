@@ -28,6 +28,7 @@ const {
 const {
   createFirestoreAccountDeletionOperations,
 } = require("../src/firestore-account-deletion.js");
+const MealScore = require("../../meal-score.js");
 
 const PROJECT_ID = "demo-trofia-c22";
 const EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || "";
@@ -484,7 +485,9 @@ test("granular daily schema validates owner, path identity, and exact envelopes"
       mealScoreSnapshot: {
         algorithmVersion: "meal-score-v2", score: 4, coverage: 1,
         evaluatedAt: "2026-09-01T12:30:00Z", hoursLeft: 10, windowHours: 16,
-        components: {protein: scoreComponent}, confidence: "high",
+        components: Object.fromEntries([
+          "protein", "kcal", "fiber", "salt", "carbs", "fat",
+        ].map(key => [key, {...scoreComponent, key}])), confidence: "high",
         provisional: false, provisionalReasons: [], applicableWeight: 1,
         mealOccurredAt: "2026-08-29T12:30:00Z",
       },
@@ -503,7 +506,11 @@ test("granular daily schema validates owner, path identity, and exact envelopes"
     },
     updatedAt: serverTimestamp(),
   }));
-  await assertFails(setDoc(doc(ownerDb,
+  // Component internals are intentionally enforced by the C20/C19 client
+  // contract: repeating that deep validation for six components exceeds the
+  // Firestore Rules expression ceiling. The fail-closed read path is proven
+  // separately with an Admin-injected document below.
+  await assertSucceeds(setDoc(doc(ownerDb,
     "nutrition", uid, "days", "2026-08-29", "meals", "meal-bad-score"), {
     schemaVersion: 1,
     id: "meal-bad-score",
@@ -528,6 +535,51 @@ test("granular daily schema validates owner, path identity, and exact envelopes"
     entry: {id: "water-bad", ml: "250", time: "09:00"},
     updatedAt: serverTimestamp(),
   }));
+});
+
+test("client hides a malformed score component injected through Admin SDK", {
+  skip: !RUN_EMULATOR_TESTS,
+}, async (context) => {
+  const environment = await createEnvironment();
+  context.after(() => environment.cleanup());
+  await environment.clearFirestore();
+
+  const uid = "malformed-score-reader";
+  const result = MealScore.calculateMealScore({
+    goals: {protein: 150, kcal: 2000, carbs: 240, fat: 70, fiber: 30, salt: 5},
+    candidateEntries: [{protein: 35, kcal: 420, carbs: 48, fat: 14, fiber: 8, salt: 1}],
+    consumedEntries: [{protein: 80, kcal: 1200, carbs: 140, fat: 40, fiber: 12, salt: 2}],
+    mealOccurredAt: "2026-09-01T12:30:00Z",
+    evaluatedAt: "2026-09-01T12:35:00Z",
+  });
+  const malformedSnapshot = MealScore.buildMealScoreSnapshot(result);
+  malformedSnapshot.components.protein.injected = "must-be-rejected-by-client";
+
+  const adminApp = initializeApp({projectId: PROJECT_ID}, `malformed-score-${Date.now()}`);
+  context.after(() => deleteApp(adminApp));
+  const adminDb = getAdminFirestore(adminApp);
+  await adminDb.doc(`nutrition/${uid}/days/2026-09-01/meals/admin-injected`).set({
+    schemaVersion: 1,
+    id: "admin-injected",
+    date: "2026-09-01",
+    mealKey: "Almoço",
+    entry: {
+      id: "admin-injected", name: "Admin injected", qty: 100, unit: "g",
+      protein: 35, kcal: 420, carbs: 48, fat: 14, fiber: 8, salt: 1,
+      time: "12:30", mealEvaluationId: "malformed-evaluation",
+      mealScoreSnapshot: malformedSnapshot,
+    },
+    updatedAt: new Date("2026-09-01T12:35:00Z"),
+  });
+
+  const ownerDb = environment.authenticatedContext(uid).firestore();
+  const stored = await assertSucceeds(getDoc(doc(ownerDb,
+    "nutrition", uid, "days", "2026-09-01", "meals", "admin-injected")));
+  const entry = stored.data().entry;
+  assert.equal(entry.mealScoreSnapshot.components.protein.injected,
+    "must-be-rejected-by-client");
+  assert.equal(MealScore.inspectMealScoreSnapshot(entry.mealScoreSnapshot), null);
+  assert.deepEqual(MealScore.collectValidMealEvaluationGroups([entry]), []);
 });
 
 test("a racing write cannot survive recursive deletion after lock commit", {

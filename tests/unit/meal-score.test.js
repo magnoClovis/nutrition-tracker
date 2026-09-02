@@ -14,6 +14,16 @@ function contractTest(name, callback) {
   });
 }
 
+function canonicalCurrentSnapshot(MealScore) {
+  return MealScore.buildMealScoreSnapshot(MealScore.calculateMealScore({
+    goals,
+    candidateEntries: [{ protein: 35, kcal: 420, carbs: 48, fat: 14, fiber: 8, salt: 1 }],
+    consumedEntries: [{ protein: 80, kcal: 1200, carbs: 140, fat: 40, fiber: 12, salt: 2 }],
+    mealOccurredAt: "2026-07-13T20:00:00-03:00",
+    evaluatedAt: "2026-07-13T20:05:00-03:00"
+  }));
+}
+
 contractTest("returns a deterministic score inside the 0-5 range", (MealScore) => {
   const input = {
     goals,
@@ -60,12 +70,7 @@ contractTest("reads v1.1 and v2 snapshots without upgrading historical scores", 
     evaluatedAt: "2026-06-01T12:00:00.000Z",
     components: { kcal: { score: 0.6 } }
   };
-  const current = {
-    algorithmVersion: "meal-score-v2",
-    score: 3.25,
-    coverage: 0.9,
-    components: { kcal: { score: 0.8 } }
-  };
+  const current = canonicalCurrentSnapshot(MealScore);
 
   const inspectedHistorical = MealScore.inspectMealScoreSnapshot(historical);
   const inspectedCurrent = MealScore.inspectMealScoreSnapshot(current);
@@ -85,11 +90,11 @@ contractTest("reads v1.1 and v2 snapshots without upgrading historical scores", 
 });
 
 contractTest("collects only complete and identical accepted evaluation groups", (MealScore) => {
-  const current = {algorithmVersion: "meal-score-v2", score: 4.1, coverage: 0.9};
+  const current = canonicalCurrentSnapshot(MealScore);
   const historical = {algorithmVersion: "meal-score-v1.1", score: 3.2};
   const entries = [
     {id: "a", mealEvaluationId: "current", mealScoreSnapshot: current},
-    {id: "b", mealEvaluationId: "current", mealScoreSnapshot: {coverage: 0.9, score: 4.1, algorithmVersion: "meal-score-v2"}},
+    {id: "b", mealEvaluationId: "current", mealScoreSnapshot: JSON.parse(JSON.stringify(current))},
     {id: "c", mealEvaluationId: "historical", mealScoreSnapshot: historical},
     {id: "d", mealEvaluationId: "incomplete", mealScoreSnapshot: current},
     {id: "e", mealEvaluationId: "incomplete"},
@@ -109,12 +114,23 @@ contractTest("collects only complete and identical accepted evaluation groups", 
     {evaluationId: "historical", entryIds: ["c"], compatibility: "historical"}
   ]);
   groups[0].snapshot.score = 0;
-  assert.equal(current.score, 4.1);
+  assert.equal(current.score, canonicalCurrentSnapshot(MealScore).score);
   assert.deepEqual(
     MealScore.collectValidMealEvaluationGroups([...entries, {id: "new-unreviewed"}])
       .map(group => group.evaluationId),
     ["current", "historical"]
   );
+});
+
+contractTest("fails closed when a current snapshot component contains an unknown field", (MealScore) => {
+  const malformed = canonicalCurrentSnapshot(MealScore);
+  malformed.components.protein.injected = true;
+  assert.equal(MealScore.inspectMealScoreSnapshot(malformed), null);
+  assert.deepEqual(MealScore.collectValidMealEvaluationGroups([{
+    id: "malformed",
+    mealEvaluationId: "review-malformed",
+    mealScoreSnapshot: malformed
+  }]), []);
 });
 
 contractTest("invalidates an edited or removed entry's whole group without mutating input", (MealScore) => {
