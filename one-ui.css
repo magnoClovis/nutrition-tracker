@@ -1219,6 +1219,12 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
   background: color-mix(in srgb, #0f1815 28%, transparent);
 }
 
+/* Keep viewport-fixed temporal/numeric sheets outside the animated Metrics containing block. */
+[data-app-main="metricas"]:has([data-temporal-field-overlay="true"]) {
+  animation: none !important;
+  transform: none !important;
+}
+
 [data-theme="dark"] [data-temporal-field-overlay="true"] {
   background: color-mix(in srgb, #000 44%, transparent);
 }

@@ -37,6 +37,7 @@
    * @param {function(Object): Object} dependencies.BmrTrendChart BMR chart component.
    * @param {function(Object): Object} dependencies.BodyFatTrendChart Body-fat chart component.
    * @param {function(Object): Object} dependencies.ChoiceField Reusable Trofia list selector.
+   * @param {function(Object): Object} dependencies.NumericField Reusable Trofia numeric selector.
    * @returns {{MetricsScreen: function(Object): Object}} Metrics screen API.
    */
   function createMetricsScreen({
@@ -47,14 +48,15 @@
     WeightTrendChart,
     BmrTrendChart,
     BodyFatTrendChart,
-    ChoiceField
+    ChoiceField,
+    NumericField
   }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof formatDateDMY !== "function"
       || typeof BodyMetricChart !== "function" || typeof WeightTrendChart !== "function"
       || typeof BmrTrendChart !== "function" || typeof BodyFatTrendChart !== "function"
-      || typeof ChoiceField !== "function") {
-      throw new TypeError("MetricsScreen requires React, ChoiceField, i18n/date helpers, and body-metrics chart components");
+      || typeof ChoiceField !== "function" || typeof NumericField !== "function") {
+      throw new TypeError("MetricsScreen requires React, ChoiceField, NumericField, i18n/date helpers, and body-metrics chart components");
     }
     const inp = {
       width: "100%",
@@ -195,6 +197,14 @@
       onOpenAdvancedReports
     }) {
       const uiText = (pt, en, es) => pickLang(lang, pt, en, es);
+      const numericStrings = (title, invalid) => ({
+        title,
+        cancel: uiText("Cancelar", "Cancel", "Cancelar"),
+        confirm: uiText("Confirmar", "Confirm", "Confirmar"),
+        backspace: uiText("Apagar dígito", "Delete digit", "Borrar dígito"),
+        decimal: uiText("Separador decimal", "Decimal separator", "Separador decimal"),
+        invalid
+      });
       const activityOptions = Object.entries(activityLevels).map(([key, data]) => ({
         value: key,
         label: uiText(data.pt, data.en, data.es),
@@ -553,22 +563,25 @@
       gap: 8,
       marginBottom: 8
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, pickLang(lang, "Peso (kg)", "Weight (kg)", "Peso (kg)")), /*#__PURE__*/React.createElement("input", {
-    type: "number",
+  }, /*#__PURE__*/React.createElement(NumericField, {
+    id: "metrics-weight",
+    label: pickLang(lang, "Peso (kg)", "Weight (kg)", "Peso (kg)"),
+    unit: "kg",
     value: weightForm.weight,
-    onChange: e => setWeightForm(f => ({
+    onChange: nextValue => setWeightForm(f => ({
       ...f,
-      weight: e.target.value
+      weight: nextValue
     })),
     placeholder: currentWeight ? String(currentWeight) : text('weightPh'),
-    style: inp
-  })), /*#__PURE__*/React.createElement("div", {
+    minValue: 0.01,
+    maxLength: 6,
+    maxDecimals: 2,
+    strings: numericStrings(
+      uiText("Informar peso", "Enter weight", "Indicar peso"),
+      uiText("Informe um peso maior que zero.", "Enter a weight greater than zero.", "Indica un peso mayor que cero.")
+    ),
+    style: { flex: 1 }
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       display: "none"
@@ -608,37 +621,49 @@
       fontSize: 12,
       lineHeight: 1.4
     }
-  }, pickLang(lang, "Medidas opcionais de composição corporal para gráficos de tendência e estimativas.", "Optional body-composition measurements for trend charts and estimates.", "Medidas opcionales de composición corporal para gráficos de tendencia y estimaciones.")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, pickLang(lang, "Gordura corporal %", "Body fat %", "Grasa corporal %")), /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    min: "1",
-    max: "70",
-    step: "0.1",
+  }, pickLang(lang, "Medidas opcionais de composição corporal para gráficos de tendência e estimativas.", "Optional body-composition measurements for trend charts and estimates.", "Medidas opcionales de composición corporal para gráficos de tendencia y estimaciones.")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(NumericField, {
+    id: "metrics-body-fat",
+    label: pickLang(lang, "Gordura corporal %", "Body fat %", "Grasa corporal %"),
+    unit: "%",
     value: weightForm.bodyFatPct,
-    onChange: e => setWeightForm(f => ({...f, bodyFatPct: e.target.value})),
+    onChange: nextValue => setWeightForm(f => ({...f, bodyFatPct: nextValue})),
     placeholder: bodyComposition.currentFatPct ? String(Math.round(bodyComposition.currentFatPct * 10) / 10) : "",
-    style: inp
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, pickLang(lang, "Cintura (cm)", "Waist (cm)", "Cintura (cm)")), /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    min: "30",
-    step: "0.1",
+    minValue: 1,
+    maxValue: 70,
+    maxLength: 5,
+    maxDecimals: 2,
+    strings: numericStrings(
+      uiText("Informar gordura corporal", "Enter body fat", "Indicar grasa corporal"),
+      uiText("Informe um valor entre 1 e 70%.", "Enter a value between 1 and 70%.", "Indica un valor entre 1 y 70%.")
+    )
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(NumericField, {
+    id: "metrics-waist",
+    label: pickLang(lang, "Cintura (cm)", "Waist (cm)", "Cintura (cm)"),
+    unit: "cm",
     value: weightForm.waistCm,
-    onChange: e => setWeightForm(f => ({...f, waistCm: e.target.value})),
+    onChange: nextValue => setWeightForm(f => ({...f, waistCm: nextValue})),
     placeholder: bodyComposition.latest?.waistCm ? String(bodyComposition.latest.waistCm) : "",
-    style: inp
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, pickLang(lang, "Massa muscular (kg)", "Muscle mass (kg)", "Masa muscular (kg)")), /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    min: "1",
-    step: "0.1",
+    minValue: 30,
+    maxLength: 6,
+    maxDecimals: 2,
+    strings: numericStrings(
+      uiText("Informar cintura", "Enter waist", "Indicar cintura"),
+      uiText("Informe uma medida de pelo menos 30 cm.", "Enter a measurement of at least 30 cm.", "Indica una medida de al menos 30 cm.")
+    )
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(NumericField, {
+    id: "metrics-muscle-mass",
+    label: pickLang(lang, "Massa muscular (kg)", "Muscle mass (kg)", "Masa muscular (kg)"),
+    unit: "kg",
     value: weightForm.muscleMassKg,
-    onChange: e => setWeightForm(f => ({...f, muscleMassKg: e.target.value})),
+    onChange: nextValue => setWeightForm(f => ({...f, muscleMassKg: nextValue})),
     placeholder: bodyComposition.latest?.muscleMassKg ? String(bodyComposition.latest.muscleMassKg) : "",
-    style: inp
+    minValue: 1,
+    maxLength: 6,
+    maxDecimals: 2,
+    strings: numericStrings(
+      uiText("Informar massa muscular", "Enter muscle mass", "Indicar masa muscular"),
+      uiText("Informe uma massa maior que zero.", "Enter a mass greater than zero.", "Indica una masa mayor que cero.")
+    )
   }))), /*#__PURE__*/React.createElement("button", {
     onClick: saveWeight,
     style: btn
@@ -824,21 +849,24 @@
         ...inp,
         colorScheme: "dark"
       }
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, /*#__PURE__*/React.createElement("label", {
-      style: lbl
-    }, uiText("Peso (kg)", "Weight (kg)", "Peso (kg)")), /*#__PURE__*/React.createElement("input", {
-      type: "number",
+    })), /*#__PURE__*/React.createElement(NumericField, {
+      id: `metrics-edit-weight-${e.id || e.date}`,
+      label: uiText("Peso (kg)", "Weight (kg)", "Peso (kg)"),
+      unit: "kg",
       value: editWeightForm.weight,
-      onChange: ev => setEditWeightForm(f => ({
+      onChange: nextValue => setEditWeightForm(f => ({
         ...f,
-        weight: ev.target.value
+        weight: nextValue
       })),
-      style: inp
-    })), /*#__PURE__*/React.createElement("div", {
+      minValue: 0.01,
+      maxLength: 6,
+      maxDecimals: 2,
+      strings: numericStrings(
+        uiText("Informar peso", "Enter weight", "Indicar peso"),
+        uiText("Informe um peso maior que zero.", "Enter a weight greater than zero.", "Indica un peso mayor que cero.")
+      ),
+      style: { flex: 1 }
+    }), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1
       }
@@ -859,19 +887,26 @@
         gap: 8,
         marginBottom: 8
       }
-    }, [["bodyFatPct", uiText("Gordura %", "Body fat %", "Grasa %")], ["waistCm", uiText("Cintura (cm)", "Waist (cm)", "Cintura (cm)")], ["muscleMassKg", uiText("Massa muscular (kg)", "Muscle mass (kg)", "Masa muscular (kg)")]].map(([key, label]) => /*#__PURE__*/React.createElement("div", {
+    }, [
+      { key: "bodyFatPct", label: uiText("Gordura %", "Body fat %", "Grasa %"), unit: "%", minValue: 1, maxValue: 70, title: uiText("Informar gordura corporal", "Enter body fat", "Indicar grasa corporal"), invalid: uiText("Informe um valor entre 1 e 70%.", "Enter a value between 1 and 70%.", "Indica un valor entre 1 y 70%.") },
+      { key: "waistCm", label: uiText("Cintura (cm)", "Waist (cm)", "Cintura (cm)"), unit: "cm", minValue: 30, title: uiText("Informar cintura", "Enter waist", "Indicar cintura"), invalid: uiText("Informe uma medida de pelo menos 30 cm.", "Enter a measurement of at least 30 cm.", "Indica una medida de al menos 30 cm.") },
+      { key: "muscleMassKg", label: uiText("Massa muscular (kg)", "Muscle mass (kg)", "Masa muscular (kg)"), unit: "kg", minValue: 1, title: uiText("Informar massa muscular", "Enter muscle mass", "Indicar masa muscular"), invalid: uiText("Informe uma massa maior que zero.", "Enter a mass greater than zero.", "Indica una masa mayor que cero.") }
+    ].map(({ key, label, unit, minValue, maxValue, title, invalid }) => /*#__PURE__*/React.createElement("div", {
       key
-    }, /*#__PURE__*/React.createElement("label", {
-      style: lbl
-    }, label), /*#__PURE__*/React.createElement("input", {
-      type: "number",
-      step: "0.1",
+    }, /*#__PURE__*/React.createElement(NumericField, {
+      id: `metrics-edit-${key}-${e.id || e.date}`,
+      label,
+      unit,
       value: editWeightForm[key] || "",
-      onChange: ev => setEditWeightForm(f => ({
+      onChange: nextValue => setEditWeightForm(f => ({
         ...f,
-        [key]: ev.target.value
+        [key]: nextValue
       })),
-      style: inp
+      minValue,
+      maxValue,
+      maxLength: 6,
+      maxDecimals: 2,
+      strings: numericStrings(title, invalid)
     })))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
