@@ -1,6 +1,6 @@
 # Resumo de status do Trofia
 
-> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no commit `7662899`, em 01/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `0eeca71`, em 02/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
@@ -17,11 +17,12 @@
 - **Qualidade:** preflight, unitários, smoke legado/Vite, matriz visual e CI autenticado com App Check. G01, C05 e C07 estão fechados.
 - **Controles visuais S8:** `CheckboxField` e `SliderField` customizados foram integrados no PR #166 às superfícies ativas de sugestões de refeição e seleção de categorias de backup.
 - **Incidente App Check/perfil encerrado:** o PR #173 impede release Android sem `google-services.json` e distingue falha de leitura de perfil realmente incompleto. Na build Play versionCode 12, a conta real concluiu login, leitura e alteração de perfil, sincronização e inicialização do App Check sem erro.
+- **Incidente C14-B2 em produção encerrado tecnicamente:** após dois rollbacks seguros para B1, o hotfix definitivo manteve envelope/nutrientes nas rules e transferiu apenas a validação profunda dos componentes ao leitor fail-closed C20/C19. O teste Admin SDK comprova que componente malformado é ocultado. As rules corrigidas foram republicadas em 02/09/2026; o run autenticado `33575611133` ficou totalmente verde antes do deploy (tentativa 2) e novamente contra produção (tentativa 3). Nenhum dado foi excluído. O PR #178 permanece em revisão para integrar código e documentação à `main`. — **Chat:** Trofia-Principal.
+- **[BUG-SAVED-MEAL-ID] — Reutilização de refeição salva:** concluído em 02/09/2026 no PR #179. Modelos atuais e antigos geram um ID novo para cada entrada carregada, mantendo `foodId` apenas como referência; a suíte comprova reutilização na mesma categoria e em categoria diferente. — **Chat:** Trofia-Principal.
 
 ## O que está em andamento agora
 
-- **C14 — revisão geral de segurança:** C14-A e C14-B1 estão concluídas; C14-B2 está em andamento, com inventário real somente leitura e rules completas preparadas, ainda sem deploy B2; C14-C a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
-- **[BUG-SAVED-MEAL-ID] — Reutilização de refeição salva:** correção isolada em validação desde 02/09/2026. Modelos atuais e antigos passam a gerar um ID novo para cada entrada carregada, mantendo `foodId` apenas como referência; testes cobrem reutilização na mesma categoria e em categoria diferente. — **Chat:** Trofia-Principal.
+- **C14 — revisão geral de segurança:** C14-A e C14-B1 estão concluídas; C14-B2 está implementada, publicada e validada, aguardando apenas o merge do PR #178; C14-C a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
@@ -52,11 +53,11 @@
 
 ### [C14-B] - Rules do Firestore e schema canônico
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
-- **Data de conclusão:** não concluída; B1 concluída em 01/09/2026 e B2 em andamento desde 01/09/2026.
+- **Status:** implementação e validação de produção concluídas; PR #178 aguardando merge — **Chat:** Trofia-Principal.
+- **Data de conclusão técnica:** 02/09/2026; encerramento formal no roadmap ocorrerá após o merge do PR #178.
 - **Propósito:** negar exclusão client-side da raiz e restringir envelopes, campos, chaves, tipos e tamanhos sem bloquear dados reais legítimos.
 - **Recursos/arquivos principais envolvidos:** `/firestore.rules`, testes de emulador e ferramenta Admin SDK read-only para inventário/dry-run.
-- **O que foi feito:** B1 nega exclusão client-side da raiz, mantém a exclusão administrativa do C22, limita a raiz a 128 campos e exige `{value: string}` com até 900.000 caracteres em `/data/{key}`; as rules B1 foram publicadas em produção em 01/09/2026 e o CI autenticado pós-deploy ficou verde no run `33512725510` (tentativa 2). B2 criou o inventário Admin SDK paginado/read-only e o executou em produção sem UIDs nem conteúdo: 29 usuários Auth, 29 raízes canônicas, 1.209 documentos `data`, 56 refeições, 2 registros de água e 70 marcadores. Foram detectadas 2 raízes órfãs e 114 descendentes, sem qualquer exclusão. As rules B2 com allowlists/tipos preservam resíduos históricos somente se permanecerem imutáveis e estão apenas em dry-run/emulador, sem deploy. Evidência: [`C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`](C14_B2_FIRESTORE_SCHEMA_INVENTORY.md).
+- **O que foi feito:** B1 nega exclusão client-side da raiz, mantém a exclusão administrativa do C22, limita a raiz a 128 campos e exige `{value: string}` com até 900.000 caracteres em `/data/{key}`. B2 criou o inventário Admin SDK e as allowlists; o primeiro deploy e a primeira revisão excederam o teto de 1.000 expressões em batches legítimos e foram revertidos imediatamente. A correção final valida somente mudanças da raiz, preserva entrada/nutrientes e o envelope superior do score nas rules, e delega apenas o interior dos seis componentes ao leitor C20/C19 fail-closed. O teste integrado injeta campo inválido via Admin SDK e comprova que o cliente o rejeita sem badge/grupo. As rules foram republicadas em 02/09/2026 e o run `33575611133` passou integralmente antes e depois do deploy. A investigação dos órfãos permanece somente leitura, sem exclusão. Evidência: [`C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`](C14_B2_FIRESTORE_SCHEMA_INVENTORY.md). — **Chat:** Trofia-Principal.
 
 ### [C14-C] - App Check no Worker de IA
 

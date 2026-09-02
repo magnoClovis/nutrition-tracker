@@ -16,16 +16,19 @@ const {
   getFirestore: getAdminFirestore,
 } = require("firebase-admin/firestore");
 const {
+  arrayUnion,
   deleteDoc,
   doc,
   getDoc,
   serverTimestamp,
   setDoc,
+  writeBatch,
 } = require("firebase/firestore");
 
 const {
   createFirestoreAccountDeletionOperations,
 } = require("../src/firestore-account-deletion.js");
+const MealScore = require("../../meal-score.js");
 
 const PROJECT_ID = "demo-trofia-c22";
 const EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || "";
@@ -261,12 +264,101 @@ test("root updates preserve but cannot mutate historical residual fields", {
   await environment.withSecurityRulesDisabled(async (adminContext) => {
     await setDoc(doc(adminContext.firestore(), "nutrition", uid), {
       userName: "Historical", pantry_v2: "legacy-residual",
+      height: {legacy: "180"},
     });
   });
 
   await assertSucceeds(setDoc(rootRef, {lastActivityAt: "2026-09-01T12:00:00Z"}, {merge: true}));
   await assertFails(setDoc(rootRef, {pantry_v2: "changed"}, {merge: true}));
   await assertFails(setDoc(rootRef, {newResidual: true}, {merge: true}));
+  await assertFails(setDoc(rootRef, {height: {legacy: "181"}}, {merge: true}));
+  await assertSucceeds(setDoc(rootRef, {height: 181}, {merge: true}));
+});
+
+test("daily replacement batch can atomically mark migration and index its date", {
+  skip: !RUN_EMULATOR_TESTS,
+}, async (context) => {
+  const environment = await createEnvironment();
+  context.after(() => environment.cleanup());
+  await environment.clearFirestore();
+
+  const uid = "daily-replacement-owner";
+  const ownerDb = environment.authenticatedContext(uid).firestore();
+  await environment.withSecurityRulesDisabled(async (adminContext) => {
+    await setDoc(doc(adminContext.firestore(), "nutrition", uid), {
+      userName: "Historical", birthDate: "1997-12-04", gender: "male",
+      height: {legacy: "180"}, activityLevel: "moderate", goalType: "maintenance",
+      goalKg: null, goalWeeks: null, manualCalorieAdjustment: 0,
+      proteinMultiplier: 1.6, bodyFatGoal: null, tutorialSeen: true,
+      language: "pt", lastLoginAt: "2026-09-01T12:00:00Z",
+      lastActivityAt: "2026-09-01T12:00:00Z",
+      tutorial_most_recent_version_seen: "0.11.0-beta",
+      _storageSchemaVerified: true,
+      _storageSchemaVerifiedAt: "2026-09-01T12:00:00Z",
+      _legacyCleanupDone: true, tutorialSeen_main: true,
+      tutorialSeen_diario: true, tutorialSeen_adicionar: true,
+      tutorialSeen_despensa: true, tutorialSeen_semana: true,
+      tutorialSeen_metricas: true,
+      _dailyDates: ["2026-08-26", "2026-08-27", "2026-08-28", "2026-08-29"],
+      _schemaVersion: 3, _schemaNormalizedAt: "2026-08-28T12:00:00Z",
+      _schemaMigratedAt: "2026-08-28T12:00:00Z",
+      _legacyCleanupAt: "2026-08-28T12:00:00Z",
+    });
+    await setDoc(doc(adminContext.firestore(), "nutrition", uid, "days", "2026-08-29", "migrations", "meal"), {
+      schemaVersion: 1,
+      kind: "meal",
+      date: "2026-08-29",
+      complete: true,
+      updatedAt: new Date("2026-08-28T12:00:00Z"),
+    });
+    for (let index = 1; index <= 5; index += 1) {
+      await setDoc(doc(adminContext.firestore(), "nutrition", uid, "days", "2026-08-29", "meals", `meal-${index}`), {
+        id: `meal-${index}`,
+        mealKey: "breakfast",
+        entry: {},
+        createdAt: new Date("2026-08-28T12:00:00Z"),
+        updatedAt: new Date("2026-08-28T12:00:00Z"),
+      });
+    }
+  });
+
+  const batch = writeBatch(ownerDb);
+  for (let index = 1; index <= 5; index += 1) {
+    batch.delete(doc(ownerDb, "nutrition", uid, "days", "2026-08-29", "meals", `meal-${index}`));
+  }
+  batch.set(doc(ownerDb, "nutrition", uid, "days", "2026-08-29", "meals", "meal-new"), {
+    schemaVersion: 1,
+    id: "meal-new",
+    date: "2026-08-29",
+    mealKey: "Almoço",
+    entry: {
+      id: "meal-new", foodId: "food-1", name: "Arroz", qty: 100, unit: "g",
+      foodSnapshot: {
+        id: "food-1", name: "Arroz", unit: "g", protein100: 3,
+        kcal100: 130, carbs100: 28, sugars100: null, fat100: 0.3,
+        satfat100: null, fiber100: 0.4, salt100: 0.01, b12_100: null,
+        niacin100: null, phosphorus100: null, vitd100: null,
+        calcium100: null, iron100: null, potassium100: null,
+        magnesium100: null, zinc100: null, vitc100: null,
+      },
+      protein: 3, kcal: 130, carbs: 28, sugars: null, fat: 0.3,
+      satfat: null, fiber: 0.4, salt: 0.01, b12_: null, niacin: null,
+      phosphorus: null, vitd: null, calcium: null, iron: null,
+      potassium: null, magnesium: null, zinc: null, vitc: null, time: "12:30",
+    },
+    updatedAt: serverTimestamp(),
+  });
+  batch.set(doc(ownerDb, "nutrition", uid, "days", "2026-08-29", "migrations", "meal"), {
+    schemaVersion: 1,
+    kind: "meal",
+    date: "2026-08-29",
+    complete: true,
+    updatedAt: serverTimestamp(),
+  });
+  batch.set(doc(ownerDb, "nutrition", uid), {
+    _dailyDates: arrayUnion("2026-08-29"),
+  }, {merge: true});
+  await assertSucceeds(batch.commit());
 });
 
 test("granular daily schema validates owner, path identity, and exact envelopes", {
@@ -393,7 +485,9 @@ test("granular daily schema validates owner, path identity, and exact envelopes"
       mealScoreSnapshot: {
         algorithmVersion: "meal-score-v2", score: 4, coverage: 1,
         evaluatedAt: "2026-09-01T12:30:00Z", hoursLeft: 10, windowHours: 16,
-        components: {protein: scoreComponent}, confidence: "high",
+        components: Object.fromEntries([
+          "protein", "kcal", "fiber", "salt", "carbs", "fat",
+        ].map(key => [key, {...scoreComponent, key}])), confidence: "high",
         provisional: false, provisionalReasons: [], applicableWeight: 1,
         mealOccurredAt: "2026-08-29T12:30:00Z",
       },
@@ -412,7 +506,11 @@ test("granular daily schema validates owner, path identity, and exact envelopes"
     },
     updatedAt: serverTimestamp(),
   }));
-  await assertFails(setDoc(doc(ownerDb,
+  // Component internals are intentionally enforced by the C20/C19 client
+  // contract: repeating that deep validation for six components exceeds the
+  // Firestore Rules expression ceiling. The fail-closed read path is proven
+  // separately with an Admin-injected document below.
+  await assertSucceeds(setDoc(doc(ownerDb,
     "nutrition", uid, "days", "2026-08-29", "meals", "meal-bad-score"), {
     schemaVersion: 1,
     id: "meal-bad-score",
@@ -437,6 +535,51 @@ test("granular daily schema validates owner, path identity, and exact envelopes"
     entry: {id: "water-bad", ml: "250", time: "09:00"},
     updatedAt: serverTimestamp(),
   }));
+});
+
+test("client hides a malformed score component injected through Admin SDK", {
+  skip: !RUN_EMULATOR_TESTS,
+}, async (context) => {
+  const environment = await createEnvironment();
+  context.after(() => environment.cleanup());
+  await environment.clearFirestore();
+
+  const uid = "malformed-score-reader";
+  const result = MealScore.calculateMealScore({
+    goals: {protein: 150, kcal: 2000, carbs: 240, fat: 70, fiber: 30, salt: 5},
+    candidateEntries: [{protein: 35, kcal: 420, carbs: 48, fat: 14, fiber: 8, salt: 1}],
+    consumedEntries: [{protein: 80, kcal: 1200, carbs: 140, fat: 40, fiber: 12, salt: 2}],
+    mealOccurredAt: "2026-09-01T12:30:00Z",
+    evaluatedAt: "2026-09-01T12:35:00Z",
+  });
+  const malformedSnapshot = MealScore.buildMealScoreSnapshot(result);
+  malformedSnapshot.components.protein.injected = "must-be-rejected-by-client";
+
+  const adminApp = initializeApp({projectId: PROJECT_ID}, `malformed-score-${Date.now()}`);
+  context.after(() => deleteApp(adminApp));
+  const adminDb = getAdminFirestore(adminApp);
+  await adminDb.doc(`nutrition/${uid}/days/2026-09-01/meals/admin-injected`).set({
+    schemaVersion: 1,
+    id: "admin-injected",
+    date: "2026-09-01",
+    mealKey: "Almoço",
+    entry: {
+      id: "admin-injected", name: "Admin injected", qty: 100, unit: "g",
+      protein: 35, kcal: 420, carbs: 48, fat: 14, fiber: 8, salt: 1,
+      time: "12:30", mealEvaluationId: "malformed-evaluation",
+      mealScoreSnapshot: malformedSnapshot,
+    },
+    updatedAt: new Date("2026-09-01T12:35:00Z"),
+  });
+
+  const ownerDb = environment.authenticatedContext(uid).firestore();
+  const stored = await assertSucceeds(getDoc(doc(ownerDb,
+    "nutrition", uid, "days", "2026-09-01", "meals", "admin-injected")));
+  const entry = stored.data().entry;
+  assert.equal(entry.mealScoreSnapshot.components.protein.injected,
+    "must-be-rejected-by-client");
+  assert.equal(MealScore.inspectMealScoreSnapshot(entry.mealScoreSnapshot), null);
+  assert.deepEqual(MealScore.collectValidMealEvaluationGroups([entry]), []);
 });
 
 test("a racing write cannot survive recursive deletion after lock commit", {
