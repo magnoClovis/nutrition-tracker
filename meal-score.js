@@ -368,12 +368,81 @@
    * v1.1 snapshots keep their original shape and score; compatibility metadata
    * is returned separately so calibrations are never mixed accidentally.
    */
+  function hasOnlyKeys(value, allowedKeys) {
+    return value && typeof value === "object" && !Array.isArray(value) &&
+      Object.keys(value).every(key => allowedKeys.includes(key));
+  }
+
+  function isStoredNumber(value) {
+    return typeof value === "number" && !Number.isNaN(value);
+  }
+
+  function validStoredScoreComponent(expectedKey, component) {
+    const allowedKeys = [
+      "key", "type", "available", "applicable", "required", "weight",
+      "target", "consumedBefore", "mealAmount", "consumedAfter",
+      "remainingBefore", "remainingAfter", "quota", "ratio",
+      "candidateKnownCount", "candidateItemCount", "candidateComplete",
+      "consumedKnownCount", "consumedItemCount", "consumedComplete", "score"
+    ];
+    if (!hasOnlyKeys(component, allowedKeys) || component.key !== expectedKey ||
+        typeof component.available !== "boolean" || typeof component.applicable !== "boolean" ||
+        typeof component.required !== "boolean" || !isStoredNumber(component.weight) ||
+        !(component.target === null || isStoredNumber(component.target))) return false;
+
+    const booleanFields = ["candidateComplete", "consumedComplete"];
+    const numberFields = [
+      "consumedBefore", "mealAmount", "consumedAfter", "remainingBefore",
+      "remainingAfter", "quota", "ratio", "candidateKnownCount",
+      "candidateItemCount", "consumedKnownCount", "consumedItemCount", "score"
+    ];
+    if (booleanFields.some(field => field in component && typeof component[field] !== "boolean")) return false;
+    if (numberFields.some(field => field in component && !isStoredNumber(component[field]))) return false;
+    if ("type" in component && !["target", "maximize", "limit"].includes(component.type)) return false;
+
+    if (!component.available) return !("score" in component);
+    return typeof component.type === "string" &&
+      [
+        "consumedBefore", "mealAmount", "consumedAfter", "remainingBefore",
+        "remainingAfter", "quota", "ratio", "candidateKnownCount",
+        "candidateItemCount", "candidateComplete", "consumedKnownCount",
+        "consumedItemCount", "consumedComplete", "score"
+      ].every(field => field in component) && component.score >= 0 && component.score <= 1;
+  }
+
+  function validCurrentMealScoreSnapshot(snapshot) {
+    const snapshotKeys = [
+      "algorithmVersion", "score", "coverage", "confidence", "provisional",
+      "provisionalReasons", "applicableWeight", "mealOccurredAt", "evaluatedAt",
+      "hoursLeft", "windowHours", "components"
+    ];
+    const componentKeys = ["protein", "kcal", "fiber", "salt", "carbs", "fat"];
+    if (!hasOnlyKeys(snapshot, snapshotKeys) || Object.keys(snapshot).length !== snapshotKeys.length ||
+        !isStoredNumber(snapshot.score) || snapshot.score < 0 || snapshot.score > 5 ||
+        !isStoredNumber(snapshot.coverage) || snapshot.coverage < 0 || snapshot.coverage > 1 ||
+        !["high", "medium", "low"].includes(snapshot.confidence) ||
+        typeof snapshot.provisional !== "boolean" || !Array.isArray(snapshot.provisionalReasons) ||
+        !isStoredNumber(snapshot.applicableWeight) || typeof snapshot.mealOccurredAt !== "string" ||
+        typeof snapshot.evaluatedAt !== "string" || !isStoredNumber(snapshot.hoursLeft) ||
+        !isStoredNumber(snapshot.windowHours) || !hasOnlyKeys(snapshot.components, componentKeys)) return false;
+
+    const validReason = reason => hasOnlyKeys(reason, [
+      "nutrient", "scope", "missingItemCount", "totalItemCount"
+    ]) && typeof reason.nutrient === "string" && ["candidate", "consumed"].includes(reason.scope) &&
+      Number.isInteger(reason.missingItemCount) && reason.missingItemCount >= 0 &&
+      Number.isInteger(reason.totalItemCount) && reason.totalItemCount >= 0;
+    return snapshot.provisionalReasons.every(validReason) &&
+      Object.entries(snapshot.components).every(([key, component]) =>
+        validStoredScoreComponent(key, component));
+  }
+
   function inspectMealScoreSnapshot(snapshot) {
     if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return null;
     const algorithmVersion = snapshot.algorithmVersion;
     const supported = algorithmVersion === ALGORITHM_VERSION ||
       HISTORICAL_ALGORITHM_VERSIONS.includes(algorithmVersion);
     if (!supported || !Number.isFinite(snapshot.score) || snapshot.score < 0 || snapshot.score > 5) return null;
+    if (algorithmVersion === ALGORITHM_VERSION && !validCurrentMealScoreSnapshot(snapshot)) return null;
     return {
       algorithmVersion,
       compatibility: algorithmVersion === ALGORITHM_VERSION ? "current" : "historical",
