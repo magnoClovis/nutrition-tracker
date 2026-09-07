@@ -143,16 +143,16 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ### [C14-B] - Rules do Firestore e schema canônico
 
-- **Status:** implementação e validação de produção concluídas; PR #178 aguardando merge.
-- **Data de conclusão técnica:** 02/09/2026; encerramento formal após o merge do PR #178.
+- **Status:** concluído.
+- **Data de conclusão:** validação técnica em 02/09/2026; fechamento formal pelo merge do PR #178 em 07/09/2026.
 - **Propósito:** impedir exclusão client-side do documento raiz e restringir os envelopes, campos, chaves, tipos e tamanhos aceitos pelas rules sem bloquear dados legítimos já existentes.
 - **Recursos/arquivos principais envolvidos:** `/firestore.rules`, testes de rules/emuladores, ferramenta administrativa Admin SDK de inventário somente leitura e documentação de rollback/deploy.
 - **O que foi feito:** B1 nega `delete` da raiz para qualquer cliente e preserva exclusivamente o Admin SDK do C22 para exclusão completa. A raiz recebe um teto conservador de 128 campos; documentos `/data/{key}` exigem o envelope exato `{value: string}` com máximo de 900.000 caracteres. As rules B1 foram publicadas em produção em 01/09/2026 e validadas pelo CI autenticado pós-deploy no run `33512725510` (tentativa 2), totalmente verde. Na B2, uma ferramenta Admin SDK somente leitura passou a enumerar Auth, raízes, `data` e collection groups granulares com paginação completa e saída sanitizada. As rules completas foram mescladas no PR #177 e publicadas, mas as duas tentativas do run pós-deploy `33529042502` e uma reprodução ampliada no emulador confirmaram que a validação exaustiva ultrapassava o limite de 1.000 expressões em batches granulares reais. A primeira versão do hotfix ainda falhou na tentativa 2 do run `33548758342` com snapshots reais de seis componentes e exigiu novo rollback B1, confirmado verde na tentativa 3. A correção final valida creates integralmente, somente campos alterados em updates, entrada/nutrientes e envelope superior do score nas rules; o interior dos componentes passa pelo contrato fail-closed C20/C19. Um teste integrado injeta componente inválido via Admin SDK, lê como usuário e confirma que a avaliação é rejeitada/ocultada. O run `33575611133` ficou verde na tentativa 2 antes do deploy e na tentativa 3 contra as rules republicadas em 02/09/2026. A investigação administrativa separou 2 raízes sem Auth de 114 descendentes em 26 UIDs e encontrou padrão fortemente compatível com contas descartáveis automatizadas; nada foi excluído. O C22 não os descobre sem job conhecido, logo uma limpeza futura requer janitor dedicado e fail-closed.
-- **PRs/commits relacionados:** PR #175, branch `codex/c14-b-rules-hardening`, commit B1 `9a0b228`, merge `8d2ddae`; PR #177, merge B2 `9d16e60`; hotfix definitivo no PR #178, commits `5e8ecf7` e `3b32b7b`, aguardando merge.
+- **PRs/commits relacionados:** PR #175, branch `codex/c14-b-rules-hardening`, commit B1 `9a0b228`, merge `8d2ddae`; PR #177, merge B2 `9d16e60`; hotfix definitivo no PR #178, commits `5e8ecf7`, `3b32b7b` e `f8f3c09`, merge `80bc2ca`.
 
 ### Incidente de produção — rules C14-B2 rejeitando escrita granular legítima
 
-- **Status:** encerrado tecnicamente em 02/09/2026; rules corrigidas publicadas e validadas, PR #178 aguardando merge.
+- **Status:** encerrado; rules corrigidas publicadas e validadas em 02/09/2026, PR #178 mesclado em 07/09/2026.
 - **Data:** 01/09/2026.
 - **Propósito do registro:** preservar a causa, o impacto e o procedimento de recuperação do segundo incidente real em que uma regra/configuração nova rejeitou uma escrita legítima em produção.
 - **Recursos/arquivos principais envolvidos:** `/firestore.rules`, `/firebase-firestore-sdk.js`, `/daily-entry-persistence.js`, testes autenticados em `/tests/smoke/authenticated-flows.spec.js` e inventário [`C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`](../estado-atual/C14_B2_FIRESTORE_SCHEMA_INVENTORY.md).
