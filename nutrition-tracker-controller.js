@@ -863,7 +863,6 @@
         templateEntries,
         templateTotals,
         templateItemEntry,
-        ChoiceField,
         SearchableChoiceField
       });
       const {
@@ -3286,7 +3285,6 @@
         const t = {
           id: Date.now().toString(),
           name: templateName.trim(),
-          meal: staged.meal,
           items: staged.items.map(e => ({
             foodId: e.foodId,
             name: e.name,
@@ -3332,12 +3330,19 @@
       }
       function loadTemplate(t) {
         const items = templateEntries(t).filter(Boolean);
-        setStaged({
-          meal: t.meal,
+        setStaged(staged => ({
+          ...staged,
           items
-        });
+        }));
         setBatchMode(true);
         notify(uiText(`"${t.name}" carregado.`, `"${t.name}" loaded.`, `"${t.name}" cargado.`));
+      }
+      function revealStagedMealSection() {
+        requestAnimationFrame(() => {
+          const section = document?.querySelector?.('[data-add-staged-meal="true"]');
+          if (!section || typeof section.scrollIntoView !== "function") return;
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
       }
       function appendTemplateToStaged(t) {
         const items = templateEntries(t).filter(Boolean);
@@ -3350,10 +3355,13 @@
           return;
         }
         setStaged(s => ({
-          meal: s.items.length ? s.meal : t.meal,
+          ...s,
+          meal: s.meal,
           items: [...s.items, ...items]
         }));
         setBatchMode(true);
+        setAddTemplatesOpen(false);
+        revealStagedMealSection();
         notify(uiText(`"${t.name}" adicionada à preparação.`, `"${t.name}" added to the meal in progress.`, `"${t.name}" añadida a la preparación.`));
       }
       function pctOf(value, target) {
@@ -4204,7 +4212,6 @@
         setExpandedTemplateIds(prev => ({...prev, [tmpl.id]: true}));
         setTemplateEditDraft({
           name: tmpl.name || "",
-          meal: tmpl.meal || MEALS[0],
           addFoodId: "",
           addQty: "",
           items: (tmpl.items || []).map(item => ({...item}))
@@ -4256,7 +4263,6 @@
         const updated = {
           id: editingTemplateId,
           name: templateEditDraft.name.trim(),
-          meal: templateEditDraft.meal,
           items: templateEditDraft.items.map(item => {
             const qty = Number(item.qty) || 0;
             const refreshed = templateItemEntry({...item, qty});
@@ -4290,13 +4296,10 @@
           isMobileView,
           isEditing: editingTemplateId === tmpl.id,
           editDraft: templateEditDraft,
-          mealOptions: MEALS,
           pantryFoods: sortedAllPantry,
-          getMealLabel: mealLabel,
           onToggleExpanded: toggleTemplateExpanded,
           onAppend: appendTemplateToStaged,
           onEdit: beginTemplateEdit,
-          onLoad: loadTemplate,
           onDelete: deleteTemplate,
           onEditDraftChange: setTemplateEditDraft,
           onUpdateItem: updateTemplateDraftItem,
@@ -5125,7 +5128,6 @@
         toggleTemplateExpanded,
         appendTemplateToStaged,
         beginTemplateEdit,
-        loadTemplate,
         deleteTemplate,
         setTemplateEditDraft,
         updateTemplateDraftItem,

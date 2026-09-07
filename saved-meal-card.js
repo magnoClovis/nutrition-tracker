@@ -24,7 +24,6 @@
    * @param {function(Object): Array<Object>} dependencies.templateEntries Entry builder from `food-entry.js`.
    * @param {function(Object): Object} dependencies.templateTotals Totals builder from `food-entry.js`.
    * @param {function(Object): Object} dependencies.templateItemEntry Item calculator from `food-entry.js`.
-   * @param {function(Object): Object} dependencies.ChoiceField App-local controlled list selector.
    * @param {function(Object): Object} dependencies.SearchableChoiceField Searchable selector for dynamic pantry options.
    * @returns {{SavedMealCard: function(Object): Object}} Component API.
    */
@@ -34,14 +33,13 @@
     templateEntries,
     templateTotals,
     templateItemEntry,
-    ChoiceField,
     SearchableChoiceField
   }) {
     if (!React || typeof React.createElement !== "function" || typeof pickLang !== "function"
       || typeof templateEntries !== "function" || typeof templateTotals !== "function"
-      || typeof templateItemEntry !== "function" || typeof ChoiceField !== "function"
+      || typeof templateItemEntry !== "function"
       || typeof SearchableChoiceField !== "function") {
-      throw new TypeError("SavedMealCard requires React, pickLang, food-entry template helpers, ChoiceField, and SearchableChoiceField");
+      throw new TypeError("SavedMealCard requires React, pickLang, food-entry template helpers, and SearchableChoiceField");
     }
 
     const inputStyle = {
@@ -90,13 +88,10 @@
      * @param {boolean} props.isMobileView Whether mobile layout is active.
      * @param {boolean} props.isEditing Whether this template is being edited.
      * @param {Object|null} props.editDraft Current edit draft.
-     * @param {Array<string>} props.mealOptions Fixed persisted meal keys.
      * @param {Array<Object>} props.pantryFoods Pantry options.
-     * @param {function(string): string} props.getMealLabel Localized meal label.
      * @param {function(string): void} props.onToggleExpanded Expansion callback.
      * @param {function(Object): void} props.onAppend Staging append callback.
      * @param {function(Object): void} props.onEdit Edit callback.
-     * @param {function(Object): void} props.onLoad Load callback.
      * @param {function(string): void} props.onDelete Delete callback.
      * @param {function(function(Object): Object): void} props.onEditDraftChange Draft setter.
      * @param {function(number,Object): void} props.onUpdateItem Item update callback.
@@ -115,13 +110,10 @@
       isMobileView,
       isEditing,
       editDraft,
-      mealOptions,
       pantryFoods,
-      getMealLabel,
       onToggleExpanded,
       onAppend,
       onEdit,
-      onLoad,
       onDelete,
       onEditDraftChange,
       onUpdateItem,
@@ -143,7 +135,7 @@
       };
       const entries = templateEntries(template);
       const totals = templateTotals(template);
-      const editing = Boolean(context === "pantry" && isEditing && editDraft);
+      const editing = Boolean(isEditing && editDraft);
       const pctOf = (value, target) => target ? Math.round(value / target * 100) : 0;
       const proteinPct = pctOf(totals.protein, goals.protein);
       const kcalPct = pctOf(totals.kcal, goals.kcal);
@@ -171,7 +163,7 @@
         onClick: () => onAppend(template),
         style: buttonStyle("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)")
       }, uiText("Adicionar", "Add", "A\u00f1adir")), React.createElement("button", {
-        onClick: () => context === "pantry" ? onEdit(template) : onLoad(template),
+        onClick: () => onEdit(template),
         style: buttonStyle("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)")
       }, uiText("Editar", "Edit", "Editar")), context === "pantry" && React.createElement("button", {
         onClick: () => onDelete(template.id),
@@ -229,17 +221,7 @@
         value: editDraft.name,
         onChange: event => onEditDraftChange(draft => ({ ...draft, name: event.target.value })),
         style: inputStyle
-      })), React.createElement("div", {
-        "data-saved-meal-default-choice": "true"
-      }, React.createElement(ChoiceField, {
-        id: "saved-meal-default-" + String(template.id || "template").replace(/[^a-zA-Z0-9_-]/g, "-"),
-        label: uiText("Refei\u00e7\u00e3o padr\u00e3o", "Default meal", "Comida predeterminada"),
-        value: editDraft.meal,
-        onChange: value => onEditDraftChange(draft => ({ ...draft, meal: value })),
-        options: mealOptions.map(meal => ({ value: meal, label: getMealLabel(meal) })),
-        helperText: uiText("Usada ao carregar esta refeição salva", "Used when loading this saved meal", "Se usa al cargar esta comida guardada"),
-        closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector")
-      }))), templateEditRows, React.createElement("div", {
+      })), templateEditRows, React.createElement("div", {
         style: {
           display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "minmax(180px, 1fr) 96px auto",
           gap: 8, alignItems: "end", marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border3)"
@@ -276,7 +258,7 @@
           ...buttonStyle("var(--btn-info)", "var(--btn-info-border)", "var(--btn-info-text)"),
           height: 36, opacity: editDraft.addFoodId && editDraft.addQty ? 1 : 0.45
         }
-      }, uiText("Adicionar", "Add", "A\u00f1adir"))), React.createElement("div", {
+      }, uiText("Adicionar", "Add", "A\u00f1adir")), React.createElement("div", {
         style: { display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }
       }, React.createElement("button", {
         onClick: onCancelEdit,
@@ -288,7 +270,7 @@
           ...buttonStyle("var(--btn-ok)", "var(--btn-ok-border)", "var(--btn-ok-text)"),
           opacity: editDraft.name.trim() && editDraft.items.length ? 1 : 0.45
         }
-      }, uiText("Salvar altera\u00e7\u00f5es", "Save changes", "Guardar cambios"))));
+      }, uiText("Salvar altera\u00e7\u00f5es", "Save changes", "Guardar cambios"))))));
 
       const detailsContent = expanded && !editing && React.createElement("div", {
         style: {

@@ -145,7 +145,6 @@
         toggleTemplateExpanded,
         appendTemplateToStaged,
         beginTemplateEdit,
-        loadTemplate,
         deleteTemplate,
         setTemplateEditDraft,
         updateTemplateDraftItem,
@@ -524,13 +523,10 @@
       isMobileView,
       isEditing: editingTemplateId === tmpl.id,
       editDraft: templateEditDraft,
-      mealOptions: MEALS,
       pantryFoods: sortedAllPantry,
-      getMealLabel: mealLabel,
       onToggleExpanded: toggleTemplateExpanded,
       onAppend: appendTemplateToStaged,
       onEdit: beginTemplateEdit,
-      onLoad: loadTemplate,
       onDelete: deleteTemplate,
       onEditDraftChange: setTemplateEditDraft,
       onUpdateItem: updateTemplateDraftItem,
@@ -806,6 +802,7 @@
       color: "var(--btn-info-text)"
     }
   }, uiText('+ Adicionar à refeição', '+ Add to meal', '+ Agregar a la comida')), batchMode && /*#__PURE__*/React.createElement("div", {
+    "data-add-staged-meal": "true",
     style: {
       marginTop: 14
     }
