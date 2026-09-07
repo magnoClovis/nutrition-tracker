@@ -18,12 +18,12 @@
 - **Controles visuais S8:** `CheckboxField` e `SliderField` customizados foram integrados no PR #166 às superfícies ativas de sugestões de refeição e seleção de categorias de backup.
 - **Diálogos visuais S9:** `GenericDialog` substitui os cinco usos ativos de `alert`, `confirm` e `prompt` do navegador por avisos, confirmações e entradas acessíveis no padrão One UI 8/Glass UI. A implementação e o gate local final estão concluídos no PR #172; o componente passa a compor a `main` com o merge desse PR. — Chat: Trofia-UIUX
 - **Incidente App Check/perfil encerrado:** o PR #173 impede release Android sem `google-services.json` e distingue falha de leitura de perfil realmente incompleto. Na build Play versionCode 12, a conta real concluiu login, leitura e alteração de perfil, sincronização e inicialização do App Check sem erro.
-- **Incidente C14-B2 em produção encerrado tecnicamente:** após dois rollbacks seguros para B1, o hotfix definitivo manteve envelope/nutrientes nas rules e transferiu apenas a validação profunda dos componentes ao leitor fail-closed C20/C19. O teste Admin SDK comprova que componente malformado é ocultado. As rules corrigidas foram republicadas em 02/09/2026; o run autenticado `33575611133` ficou totalmente verde antes do deploy (tentativa 2) e novamente contra produção (tentativa 3). Nenhum dado foi excluído. O PR #178 permanece em revisão para integrar código e documentação à `main`. — **Chat:** Trofia-Principal.
+- **Incidente C14-B2 em produção encerrado:** após dois rollbacks seguros para B1, o hotfix definitivo manteve envelope/nutrientes nas rules e transferiu apenas a validação profunda dos componentes ao leitor fail-closed C20/C19. O teste Admin SDK comprova que componente malformado é ocultado. As rules corrigidas foram republicadas em 02/09/2026; o run autenticado `33575611133` ficou totalmente verde antes do deploy (tentativa 2) e novamente contra produção (tentativa 3). Nenhum dado foi excluído. O PR #178 foi mesclado em 07/09/2026 no commit `80bc2ca`. — **Chat:** Trofia-Principal.
 - **[BUG-SAVED-MEAL-ID] — Reutilização de refeição salva:** concluído em 02/09/2026 no PR #179. Modelos atuais e antigos geram um ID novo para cada entrada carregada, mantendo `foodId` apenas como referência; a suíte comprova reutilização na mesma categoria e em categoria diferente. — **Chat:** Trofia-Principal.
 
 ## O que está em andamento agora
 
-- **C14 — revisão geral de segurança:** C14-A e C14-B1 estão concluídas; C14-B2 está implementada, publicada e validada, aguardando apenas o merge do PR #178; C14-C a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
+- **C14 — revisão geral de segurança:** C14-A, C14-B1 e C14-B2 estão concluídas; C14-C a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
@@ -54,8 +54,8 @@
 
 ### [C14-B] - Rules do Firestore e schema canônico
 
-- **Status:** implementação e validação de produção concluídas; PR #178 aguardando merge — **Chat:** Trofia-Principal.
-- **Data de conclusão técnica:** 02/09/2026; encerramento formal no roadmap ocorrerá após o merge do PR #178.
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de conclusão:** validação técnica em 02/09/2026; fechamento formal pelo merge do PR #178 em 07/09/2026.
 - **Propósito:** negar exclusão client-side da raiz e restringir envelopes, campos, chaves, tipos e tamanhos sem bloquear dados reais legítimos.
 - **Recursos/arquivos principais envolvidos:** `/firestore.rules`, testes de emulador e ferramenta Admin SDK read-only para inventário/dry-run.
 - **O que foi feito:** B1 nega exclusão client-side da raiz, mantém a exclusão administrativa do C22, limita a raiz a 128 campos e exige `{value: string}` com até 900.000 caracteres em `/data/{key}`. B2 criou o inventário Admin SDK e as allowlists; o primeiro deploy e a primeira revisão excederam o teto de 1.000 expressões em batches legítimos e foram revertidos imediatamente. A correção final valida somente mudanças da raiz, preserva entrada/nutrientes e o envelope superior do score nas rules, e delega apenas o interior dos seis componentes ao leitor C20/C19 fail-closed. O teste integrado injeta campo inválido via Admin SDK e comprova que o cliente o rejeita sem badge/grupo. As rules foram republicadas em 02/09/2026 e o run `33575611133` passou integralmente antes e depois do deploy. A investigação dos órfãos permanece somente leitura, sem exclusão. Evidência: [`C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`](C14_B2_FIRESTORE_SCHEMA_INVENTORY.md). — **Chat:** Trofia-Principal.
