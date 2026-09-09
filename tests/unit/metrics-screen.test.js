@@ -13,6 +13,7 @@ function WeightTrendChart() { return null; }
 function BmrTrendChart() { return null; }
 function BodyFatTrendChart() { return null; }
 function ChoiceField() { return null; }
+function NumericField() { return null; }
 
 const { pickLang, normalizeLanguage, localeForLang } = createI18n();
 const { formatDateDMY } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
@@ -207,7 +208,8 @@ function contractTest(name, callback) {
         WeightTrendChart,
         BmrTrendChart,
         BodyFatTrendChart,
-        ChoiceField
+        ChoiceField,
+        NumericField
       });
       return callback(MetricsScreen);
     });
@@ -315,6 +317,53 @@ contractTest("renders and delegates the custom-goal and hidden body-goal editors
   assert.equal(bodyPatch.currentFatPct, "21");
   assert.equal(bodySaved, 1);
   assert.match(textContent(screen), /Suggested healthy pace: about 10 weeks/);
+});
+
+contractTest("reuses NumericField for frequent measurement entry and history editing", MetricsScreen => {
+  let newFormPatch;
+  let editFormPatch;
+  const entry = {
+    id: "measurement-1",
+    date: "2026-07-22",
+    weight: 70,
+    height: 175,
+    bodyFatPct: 18,
+    waistCm: 80,
+    muscleMassKg: 55
+  };
+  const screen = MetricsScreen(baseProps({
+    bodyMetrics: { hasWeightHistory: true },
+    normalizedWeightEntries: [entry],
+    editingWeightId: entry.date,
+    editWeightForm: {
+      weight: "70", height: "175", bodyFatPct: "18",
+      waistCm: "80", muscleMassKg: "55", date: entry.date
+    },
+    setWeightForm: updater => { newFormPatch = updater(baseProps().weightForm); },
+    setEditWeightForm: updater => { editFormPatch = updater(baseProps().editWeightForm); }
+  }));
+  const numericFields = findNodes(screen, node => node.type === NumericField);
+  const ids = numericFields.map(node => node.props.id);
+
+  assert.deepEqual(ids, [
+    "metrics-weight",
+    "metrics-body-fat",
+    "metrics-waist",
+    "metrics-muscle-mass",
+    "metrics-edit-weight-measurement-1",
+    "metrics-edit-bodyFatPct-measurement-1",
+    "metrics-edit-waistCm-measurement-1",
+    "metrics-edit-muscleMassKg-measurement-1"
+  ]);
+  assert.ok(numericFields.every(node => node.props.strings.cancel === "Cancel"));
+  assert.ok(numericFields.every(node => node.props.maxDecimals === 2));
+  assert.equal(numericFields[1].props.maxValue, 70);
+  assert.equal(numericFields[2].props.minValue, 30);
+
+  numericFields[0].props.onChange("72.5");
+  numericFields[6].props.onChange("82.4");
+  assert.equal(newFormPatch.weight, "72.5");
+  assert.equal(editFormPatch.waistCm, "82.4");
 });
 
 contractTest("preserves absent tracking data and complete history/chart presentation", MetricsScreen => {

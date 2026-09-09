@@ -1219,6 +1219,19 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
   background: color-mix(in srgb, #0f1815 28%, transparent);
 }
 
+/* Keep viewport-fixed temporal/numeric sheets outside the animated Metrics containing block. */
+[data-app-main="metricas"]:has([data-temporal-field-overlay="true"]) {
+  animation: none !important;
+  transform: none !important;
+}
+
+/* The glass measurements card also becomes the fixed sheet's containing block. */
+[data-screen="metricas"] [data-tutorial="metrics-measures"]:has([data-temporal-field-overlay="true"]) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  overflow: visible;
+}
+
 [data-theme="dark"] [data-temporal-field-overlay="true"] {
   background: color-mix(in srgb, #000 44%, transparent);
 }

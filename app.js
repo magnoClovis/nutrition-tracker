@@ -419,7 +419,8 @@ const {
   WeightTrendChart,
   BmrTrendChart,
   BodyFatTrendChart,
-  ChoiceField
+  ChoiceField,
+  NumericField
 });
 
 const {
