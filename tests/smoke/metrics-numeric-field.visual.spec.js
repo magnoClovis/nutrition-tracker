@@ -67,11 +67,19 @@ test.describe('authenticated Metrics NumericField visual contract', () => {
 
       const styles = await page.evaluate(() => {
         const triggerNode = document.querySelector('#metrics-weight-trigger');
+        const appMainNode = document.querySelector('[data-app-main="metricas"]');
+        const metricsCardNode = document.querySelector('[data-tutorial="metrics-measures"]');
         const sheetNode = document.querySelector('[data-numeric-field-sheet="true"]');
         const valueNode = document.querySelector('[data-numeric-keypad-value="true"]');
+        const appMainStyle = getComputedStyle(appMainNode);
+        const metricsCardStyle = getComputedStyle(metricsCardNode);
         const sheetStyle = getComputedStyle(sheetNode);
         const valueStyle = getComputedStyle(valueNode);
         return {
+          appMainAnimation: appMainStyle.animationName,
+          appMainTransform: appMainStyle.transform,
+          metricsCardBackdrop: metricsCardStyle.backdropFilter || metricsCardStyle.webkitBackdropFilter,
+          metricsCardOverflow: metricsCardStyle.overflow,
           triggerBackground: getComputedStyle(triggerNode).backgroundColor,
           sheetRadius: sheetStyle.borderTopLeftRadius,
           sheetBackdrop: sheetStyle.backdropFilter || sheetStyle.webkitBackdropFilter,
@@ -84,6 +92,10 @@ test.describe('authenticated Metrics NumericField visual contract', () => {
 
       expect(styles.sheetRadius).toBe('28px');
       expect(styles.sheetBackdrop).not.toBe('none');
+      expect(styles.appMainAnimation).toBe('none');
+      expect(styles.appMainTransform).toBe('none');
+      expect(styles.metricsCardBackdrop).toBe('none');
+      expect(styles.metricsCardOverflow).toBe('visible');
       expect(styles.scrollWidth).toBe(styles.viewportWidth);
       if (theme === 'light') {
         expect(styles.triggerBackground).toBe('rgb(247, 246, 242)');
