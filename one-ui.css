@@ -1225,8 +1225,8 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
   transform: none !important;
 }
 
-/* A glass Metrics card also becomes the fixed sheet's containing block. */
-[data-screen="metricas"] > :has([data-temporal-field-overlay="true"]) {
+/* The glass measurements card also becomes the fixed sheet's containing block. */
+[data-screen="metricas"] [data-tutorial="metrics-measures"]:has([data-temporal-field-overlay="true"]) {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   overflow: visible;
