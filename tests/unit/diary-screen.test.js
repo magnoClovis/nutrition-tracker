@@ -556,6 +556,89 @@ contractTest("opens accepted assessment as read-only detail and explains provisi
   assert.equal(closed, 1);
 });
 
+contractTest("opens the selected diary entry from the Details menu action", DiaryScreen => {
+  let selected = null;
+  const view = DiaryScreen(baseProps({
+    entryMenuId: "entry-1",
+    setDetailFood: value => { selected = value; }
+  }));
+  const detailsButton = findNodes(
+    view,
+    node => node.type === "button" && textContent(node) === "Details"
+  )[0];
+
+  assert.ok(detailsButton);
+  detailsButton.props.onClick();
+  assert.equal(selected, "entry-1");
+});
+
+contractTest("renders read-only entry details, hides missing nutrients, and closes accessibly", DiaryScreen => {
+  const entry = {
+    id: "entry-1",
+    name: "Estimated soup",
+    qty: 250,
+    unit: "g",
+    time: "19:45",
+    protein: 8.5,
+    kcal: 180,
+    fiber: null,
+    salt: 0,
+    _estimated: true,
+    _estimateSource: "description"
+  };
+  const closed = [];
+  const view = DiaryScreen(baseProps({
+    activeLog: { Lunch: [entry] },
+    allEntries: [entry],
+    detailFood: "entry-1",
+    setDetailFood: value => closed.push(value)
+  }));
+  const modal = findNodes(
+    view,
+    node => node.props?.["data-diary-entry-detail-modal"] === "true"
+  )[0];
+
+  assert.ok(modal);
+  assert.equal(modal.props.role, "dialog");
+  assert.equal(modal.props["aria-modal"], "true");
+  assert.equal(modal.props.autoFocus, true);
+  let focused = 0;
+  modal.ref({focus: () => { focused += 1; }});
+  assert.equal(focused, 1);
+  const copy = textContent(modal);
+  assert.match(copy, /Food details/);
+  assert.match(copy, /Estimated soup/);
+  assert.match(copy, /CategoryLunch/);
+  assert.match(copy, /Amount250 g/);
+  assert.match(copy, /Time19:45/);
+  assert.match(copy, /AI estimate from description\./);
+  assert.deepEqual(
+    findNodes(modal, node => node.props?.["data-diary-entry-nutrient"])
+      .map(node => node.props["data-diary-entry-nutrient"]),
+    ["protein", "kcal", "salt"]
+  );
+  assert.doesNotMatch(copy, /Fiber/);
+  assert.match(copy, /Salt0 g/);
+
+  modal.props.onClick();
+  modal.props.onKeyDown({key: "Enter", stopPropagation: () => assert.fail("unexpected")});
+  modal.props.onKeyDown({key: "Escape", stopPropagation: () => {}});
+  const closeButton = findNodes(
+    modal,
+    node => node.type === "button" && textContent(node) === "Close"
+  ).at(-1);
+  closeButton.props.onClick();
+  assert.deepEqual(closed, [null, null, null]);
+});
+
+contractTest("does not render stale detail state when the entry is absent", DiaryScreen => {
+  const view = DiaryScreen(baseProps({detailFood: "missing-entry"}));
+  assert.equal(findNodes(
+    view,
+    node => node.props?.["data-diary-entry-detail-modal"] === "true"
+  ).length, 0);
+});
+
 contractTest("centers the Nutrients label and disclosure arrow as one group", DiaryScreen => {
   const view = DiaryScreen(baseProps({ section: "summary" }));
   const button = findNodes(

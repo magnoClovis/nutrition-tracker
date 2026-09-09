@@ -120,6 +120,143 @@
       const evaluationColor = score => score >= 4
         ? "var(--btn-ok-text)"
         : score >= 3 ? "#c8a96e" : "#c86e8e";
+      const diaryEntryNutrients = [
+        { key: "protein", labelKey: "protein", unit: "g" },
+        { key: "kcal", labelKey: "calories", unit: "kcal" },
+        { key: "carbs", labelKey: "carbs", unit: "g" },
+        { key: "sugars", labelKey: "sugars", unit: "g" },
+        { key: "fat", labelKey: "fat", unit: "g" },
+        { key: "satfat", labelKey: "satfat", unit: "g" },
+        { key: "fiber", labelKey: "fiber", unit: "g" },
+        { key: "salt", labelKey: "salt", unit: "g" },
+        { key: "b12_", labelKey: "vitB12", unit: "µg" },
+        { key: "niacin", labelKey: "niacin", unit: "mg" },
+        { key: "phosphorus", labelKey: "phosphorus", unit: "mg" },
+        { key: "vitd", labelKey: "vitD", unit: "µg" },
+        { key: "calcium", labelKey: "calcium", unit: "mg" },
+        { key: "iron", labelKey: "iron", unit: "mg" },
+        { key: "potassium", labelKey: "potassium", unit: "mg" },
+        { key: "magnesium", labelKey: "magnesium", unit: "mg" },
+        { key: "zinc", labelKey: "zinc", unit: "mg" },
+        { key: "vitc", labelKey: "vitC", unit: "mg" }
+      ];
+      const detailNumber = value => new Intl.NumberFormat(localeForLang(lang), {
+        maximumFractionDigits: 2
+      }).format(value);
+      function selectedDiaryEntryDetail() {
+        if (!detailFood) return null;
+        for (const meal of MEALS || []) {
+          const entry = (activeLog?.[meal] || []).find(item => item?.id === detailFood);
+          if (entry) return { meal, entry };
+        }
+        return null;
+      }
+      function renderDiaryEntryDetail() {
+        const detail = selectedDiaryEntryDetail();
+        if (!detail) return null;
+        const { meal, entry } = detail;
+        const nutrients = diaryEntryNutrients.filter(field =>
+          typeof entry[field.key] === "number" && Number.isFinite(entry[field.key])
+        );
+        const estimatedSource = entry._estimateSource === "image"
+          ? uiText("foto", "photo", "foto")
+          : entry._estimateSource === "description"
+            ? uiText("descrição", "description", "descripción")
+            : null;
+        const quantity = typeof entry.qty === "number" && Number.isFinite(entry.qty)
+          ? `${detailNumber(entry.qty)}${entry.unit ? ` ${entry.unit}` : ""}`
+          : null;
+        const close = () => setDetailFood(null);
+        return React.createElement("div", {
+          "data-diary-entry-detail-modal": "true",
+          "data-safe-area-dialog": "16",
+          role: "dialog",
+          "aria-modal": "true",
+          "aria-label": uiText("Detalhes do alimento", "Food details", "Detalles del alimento"),
+          tabIndex: -1,
+          autoFocus: true,
+          ref: node => {
+            if (node && typeof node.focus === "function") node.focus();
+          },
+          onKeyDown: event => {
+            if (event.key !== "Escape") return;
+            event.stopPropagation();
+            close();
+          },
+          onClick: close,
+          style: {
+            position: "fixed", inset: 0, zIndex: 10020, background: "rgba(0,0,0,0.72)",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16
+          }
+        }, React.createElement("div", {
+          onClick: event => event.stopPropagation(),
+          style: {
+            width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto",
+            background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
+            padding: isMobileView ? 14 : 20, boxShadow: "0 18px 60px rgba(0,0,0,0.4)"
+          }
+        },
+        React.createElement("div", {
+          style: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 14 }
+        }, React.createElement("div", null,
+          React.createElement("div", {
+            style: { fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2, color: "var(--muted)" }
+          }, uiText("Detalhes do alimento", "Food details", "Detalles del alimento")),
+          React.createElement("div", {
+            style: { fontSize: 21, fontWeight: 750, color: "var(--text2)", marginTop: 4 }
+          }, entry.name)
+        ), React.createElement("button", {
+          type: "button", onClick: close,
+          "aria-label": uiText("Fechar", "Close", "Cerrar"),
+          style: { background: "none", border: "none", color: "var(--muted)", fontSize: 22, cursor: "pointer" }
+        }, "×")),
+        entry._estimated === true && React.createElement("div", {
+          "data-diary-entry-ai-estimate": "true",
+          style: {
+            background: "var(--ai-bg)", border: "1px solid var(--ai-border)", color: "var(--ai-text)",
+            borderRadius: 8, padding: "8px 10px", marginBottom: 12, fontSize: 12
+          }
+        }, estimatedSource
+          ? uiText(`Estimativa por IA a partir de ${estimatedSource}.`, `AI estimate from ${estimatedSource}.`, `Estimación por IA a partir de ${estimatedSource}.`)
+          : uiText("Estimativa por IA.", "AI estimate.", "Estimación por IA.")),
+        React.createElement("div", {
+          style: {
+            display: "grid", gridTemplateColumns: isMobileView ? "1fr" : "repeat(3, minmax(0, 1fr))",
+            gap: 8, marginBottom: nutrients.length ? 14 : 0
+          }
+        }, [
+          [uiText("Categoria", "Category", "Categoría"), mealLabel(meal)],
+          [uiText("Quantidade", "Amount", "Cantidad"), quantity],
+          [uiText("Horário", "Time", "Hora"), entry.time]
+        ].filter(([, value]) => value !== null && value !== undefined && value !== "")
+          .map(([label, value]) => React.createElement("div", {
+            key: label,
+            style: { background: "var(--bg)", border: "1px solid var(--border3)", borderRadius: 8, padding: "9px 10px" }
+          }, React.createElement("div", {
+            style: { fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.8 }
+          }, label), React.createElement("div", {
+            style: { fontSize: 14, color: "var(--text2)", fontWeight: 650, marginTop: 3 }
+          }, value)))),
+        nutrients.length > 0 && React.createElement("div", null,
+          React.createElement("div", {
+            style: { fontSize: 12, textTransform: "uppercase", letterSpacing: 1, color: "var(--muted)", marginBottom: 8 }
+          }, uiText("Nutrientes registrados", "Logged nutrients", "Nutrientes registrados")),
+          React.createElement("div", {
+            "data-diary-entry-detail-nutrients": "true",
+            style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }
+          }, nutrients.map(field => React.createElement("div", {
+            key: field.key,
+            "data-diary-entry-nutrient": field.key,
+            style: { background: "var(--surface3)", border: "1px solid var(--border3)", borderRadius: 8, padding: "9px 10px" }
+          }, React.createElement("div", {
+            style: { fontSize: 11, color: "var(--muted)" }
+          }, text(field.labelKey)), React.createElement("div", {
+            style: { fontSize: 15, color: "var(--text2)", fontWeight: 700, marginTop: 3 }
+          }, detailNumber(entry[field.key]), " ", field.unit))))),
+        React.createElement("button", {
+          type: "button", onClick: close, style: { ...btn, marginTop: 14 }
+        }, uiText("Fechar", "Close", "Cerrar"))));
+      }
       function provisionalReasonText(reason) {
         const nutrient = mealScoreLabel(reason?.nutrient);
         const missing = Number(reason?.missingItemCount) || 0;
@@ -1995,7 +2132,7 @@
     }
   }, text('savedNote'))),
 
-  opaqueTrailingNode, renderMealEvaluationDetail()));
+  opaqueTrailingNode, renderDiaryEntryDetail(), renderMealEvaluationDetail()));
       return null;
     }
 

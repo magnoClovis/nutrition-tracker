@@ -211,6 +211,16 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ## Incidentes e trabalhos separados observados
 
+### [DIARY-MENU-A] - Detalhes somente leitura da entrada do Diário
+
+- **Status:** concluído.
+- **Data de conclusão:** 09/09/2026.
+- **Propósito:** completar a ação “Detalhes” que alterava um estado controlado, mas não possuía qualquer interface renderizada, permitindo consultar o registro sem risco de edição acidental.
+- **Recursos:** modal acessível e responsivo; fechamento por botão, backdrop, `Esc` e Voltar do Android; apresentação trilíngue; distinção entre nutriente ausente e valor zero; origem de estimativa por foto ou descrição apresentada sem IDs ou metadados técnicos.
+- **Arquivos principais:** `/diary-screen.js`, `/tests/unit/diary-screen.test.js`, `/tests/smoke/authenticated-flows.spec.js`, `/documentation/estado-atual/RESUMO-STATUS.md` e este histórico.
+- **O que foi feito:** o estado `detailFood`, já reconhecido pelo despachante do botão Voltar do Android, passou a resolver a entrada e a categoria atuais e a renderizar seus dados registrados. Somente nutrientes numéricos presentes são exibidos; dados ausentes não viram zero. A prova unitária cobre abertura pelo menu, conteúdo, estimativa por IA, ausência, zero e todas as formas de fechamento; o smoke autenticado reutiliza uma refeição real da fixture para abrir o modal no fluxo integrado.
+- **PRs/commits relacionados:** branch `codex/diary-menu-details`; PR e commit serão vinculados no fechamento da fatia.
+
 ### [BUG-SAVED-MEAL-ID] - Reutilização de refeição salva com identidade duplicada
 
 - **Status:** concluído.
