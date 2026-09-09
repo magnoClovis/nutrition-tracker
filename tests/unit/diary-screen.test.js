@@ -602,6 +602,9 @@ contractTest("renders read-only entry details, hides missing nutrients, and clos
   assert.equal(modal.props.role, "dialog");
   assert.equal(modal.props["aria-modal"], "true");
   assert.equal(modal.props.autoFocus, true);
+  let focused = 0;
+  modal.ref({focus: () => { focused += 1; }});
+  assert.equal(focused, 1);
   const copy = textContent(modal);
   assert.match(copy, /Food details/);
   assert.match(copy, /Estimated soup/);

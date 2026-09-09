@@ -175,6 +175,9 @@
           "aria-label": uiText("Detalhes do alimento", "Food details", "Detalles del alimento"),
           tabIndex: -1,
           autoFocus: true,
+          ref: node => {
+            if (node && typeof node.focus === "function") node.focus();
+          },
           onKeyDown: event => {
             if (event.key !== "Escape") return;
             event.stopPropagation();
