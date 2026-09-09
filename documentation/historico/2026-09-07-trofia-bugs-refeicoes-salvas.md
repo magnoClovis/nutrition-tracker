@@ -6,9 +6,9 @@ Este registro documenta os ajustes de comportamento e persistência no fluxo de 
 
 ### Relação com a versão de base
 
-- Base principal atual: `origin/main` em 2026-09-07.
+- Base principal atual: `origin/main` no commit `92e6722`, reaplicada em worktree limpa antes da validação final.
 - PRs de referência já integrados: S9 (`#172`) e correção de IDs de refeições salvas (`#179`) no momento da implementação.
-- Esta entrega é local até abertura de PR de conclusão desta frente.
+- A implementação preserva a geração de um ID novo para cada entrada diária; `foodId` continua sendo apenas referência, conforme o PR `#179`.
 
 ## 07/09/2026 — Fluxo de "Refeições salvas" sem ambiguidade
 
@@ -39,6 +39,13 @@ Foram implementadas três correções complementares no fluxo de templates salvo
 
 ## Validação executada
 
-- `npm.cmd run test:unit` — 1195 testes, 1193 aprovados, 2 falhas pré-existentes em `tests/unit/android-release-signing.test.js`.
-- `npm.cmd run test:smoke` — suíte legacy passou com parte pública; testes autenticados com credenciais locais permaneceram pulados por configuração de ambiente ausente.
-- `npm.cmd run test:cutover` e `npm.cmd run test:smoke:vite` não puderam ser concluídos neste ambiente por erro de build do Vite (`Access is denied` ao resolver `vite.config.js`).
+- `node --test tests/unit/add-screen.test.js tests/unit/saved-meal-card.test.js` — 32/32 aprovados na base atualizada.
+- `npm.cmd run test:smoke:legacy` autenticado — 89 aprovados e 8 pulados por serem exclusivos do SDK Vite; desktop/mobile, claro/escuro e PT/EN/ES cobertos.
+- `npm.cmd run test:smoke:vite` autenticado — build Vite verificado e 97/97 aprovados, incluindo cache, offline, segunda aba e reconhecimento por imagem.
+- `npm.cmd test` completo — preflight sem avisos; 1256/1256 unitários; smoke legado com 89 aprovados e 8 exclusivos do Vite pulados; smoke Vite com 97/97 aprovados; matriz `cutover` legado/Vite com 60/60 aprovada.
+
+### Esclarecimento do erro Vite anterior
+
+- O erro `Access is denied / could not resolve vite.config.js` foi reproduzido anteriormente também sobre uma checkout limpa da `main`, portanto não era regressão desta entrega.
+- Na worktree limpa final, com as variáveis públicas de Firebase/App Check carregadas e a execução com as permissões necessárias, o mesmo build concluiu normalmente e passou pela allowlist de 13 arquivos.
+- Uma primeira execução agregada apresentou duas flutuações de carregamento em testes visuais mobile. Ambos passaram imediatamente na repetição focada (3/3 incluindo o setup) e a repetição integral posterior do `npm test` terminou verde.
