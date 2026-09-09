@@ -25,9 +25,6 @@ const foodEntry = createFoodEntry({
     salt: totals.salt + Number(item.salt || 0)
   }), { protein: 0, kcal: 0, carbs: 0, fat: 0, fiber: 0, salt: 0 })
 });
-function ChoiceField() {
-  return null;
-}
 function SearchableChoiceField() {
   return null;
 }
@@ -74,13 +71,10 @@ function props(overrides = {}) {
     isMobileView: false,
     isEditing: false,
     editDraft: null,
-    mealOptions: ["Almo\u00e7o"],
     pantryFoods: [],
-    getMealLabel: value => value,
     onToggleExpanded: () => {},
     onAppend: () => {},
     onEdit: () => {},
-    onLoad: () => {},
     onDelete: () => {},
     onEditDraftChange: () => {},
     onUpdateItem: () => {},
@@ -102,7 +96,6 @@ function contractTest(name, callback) {
         templateEntries: foodEntry.templateEntries,
         templateTotals: foodEntry.templateTotals,
         templateItemEntry: foodEntry.templateItemEntry,
-        ChoiceField,
         SearchableChoiceField
       });
       return callback(SavedMealCard);
@@ -114,14 +107,14 @@ contractTest("renders add-context totals and delegates append/edit", SavedMealCa
   const calls = [];
   const card = SavedMealCard(props({
     onAppend: template => calls.push(["append", template.id]),
-    onLoad: template => calls.push(["load", template.id])
+    onEdit: template => calls.push(["edit", template.id])
   }));
   assert.match(textContent(card), /130 kcal \u00b7 7%/);
   assert.match(textContent(card), /4g prote\u00edna \u00b7 4%/);
   const actions = buttons(card);
   actions.find(button => textContent(button) === "Adicionar").props.onClick();
   actions.find(button => textContent(button) === "Editar").props.onClick();
-  assert.deepEqual(calls, [["append", "meal-1"], ["load", "meal-1"]]);
+  assert.deepEqual(calls, [["append", "meal-1"], ["edit", "meal-1"]]);
 });
 
 contractTest("renders empty expanded templates and pantry delete action", SavedMealCard => {
@@ -174,7 +167,7 @@ contractTest("renders the inline edit form and delegates draft/item actions", Sa
   assert.deepEqual(calls, ["add", "cancel", "save"]);
 });
 
-contractTest("uses the reusable ChoiceField for the saved meal default", SavedMealCard => {
+contractTest("does not render the old default-meal selector", SavedMealCard => {
   const editDraft = {
     name: "Modelo",
     meal: "Almoço",
@@ -187,19 +180,19 @@ contractTest("uses the reusable ChoiceField for the saved meal default", SavedMe
     context: "pantry",
     isEditing: true,
     editDraft,
-    mealOptions: ["Almoço", "Jantar"],
     onEditDraftChange: updater => { nextDraft = updater(editDraft); }
   }));
   const fields = [];
   (function visit(value) {
     if (!value || typeof value !== "object") return;
-    if (value.type === ChoiceField) fields.push(value);
+    if (value.type === "div" && value.props?.["data-saved-meal-default-choice"] === "true") {
+      fields.push(value);
+    }
     React.Children.toArray(value.props && value.props.children).forEach(visit);
   })(card);
 
-  assert.equal(fields[0].props.id, "saved-meal-default-meal-1");
-  fields[0].props.onChange("Jantar");
-  assert.equal(nextDraft.meal, "Jantar");
+  assert.equal(fields.length, 0);
+  assert.equal(nextDraft, null);
 });
 
 contractTest("uses the searchable selector for saved-meal ingredients", SavedMealCard => {

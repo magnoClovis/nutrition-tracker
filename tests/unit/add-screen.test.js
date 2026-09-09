@@ -142,7 +142,6 @@ function baseProps(overrides = {}) {
     toggleTemplateExpanded: noOp,
     appendTemplateToStaged: noOp,
     beginTemplateEdit: noOp,
-    loadTemplate: noOp,
     deleteTemplate: noOp,
     setTemplateEditDraft: noOp,
     updateTemplateDraftItem: noOp,
@@ -281,20 +280,20 @@ contractTest("disables final registration while persistence is in progress", Add
   assert.equal(closeButton.props.disabled, true);
 });
 
-contractTest("passes saved-template state and loading callback to SavedMealCard", AddScreen => {
+contractTest("passes saved-template state and edit callback to SavedMealCard", AddScreen => {
   const template = { id: "template-1", name: "Workout meal", items: [] };
-  let loaded = null;
+  let edited = null;
   const view = AddScreen(baseProps({
     addTemplatesOpen: true,
     mealTemplates: [template],
-    loadTemplate: value => { loaded = value; }
+    beginTemplateEdit: value => { edited = value; }
   }));
   const cards = findNodes(view, node => node.type === SavedMealCard);
   assert.equal(cards.length, 1);
   assert.equal(cards[0].props.context, "add");
   assert.equal(cards[0].props.template, template);
-  cards[0].props.onLoad(template);
-  assert.equal(loaded, template);
+  cards[0].props.onEdit(template);
+  assert.equal(edited, template);
 });
 
 contractTest("renders dish-description loading/result states and delegates actions", AddScreen => {
