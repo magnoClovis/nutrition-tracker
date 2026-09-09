@@ -51,8 +51,9 @@ service cloud.firestore {
         // Historical canonical roots can still contain read-only residual
         // fields from pre-C23 clients. They may survive unchanged, but no
         // client can add, modify, or resurrect one of those fields.
+        let changed = request.resource.data.diff(resource.data).affectedKeys();
         return request.resource.data.keys().size() <= 128
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          && changed.hasOnly([
             'birthDate', 'gender', 'height', 'activityLevel', 'goalType',
             'goalKg', 'goalWeeks', 'manualCalorieAdjustment',
             'proteinMultiplier', 'bodyFatGoal', 'userName', 'tutorialSeen',
@@ -63,7 +64,7 @@ service cloud.firestore {
             'tutorialSeen_adicionar', 'tutorialSeen_despensa',
             'tutorialSeen_semana', 'tutorialSeen_metricas', '_dailyDates'
           ])
-          && validRootFieldTypes();
+          && validChangedRootFieldTypes(changed);
       }
 
       function optionalString(field, maximum) {
@@ -117,6 +118,69 @@ service cloud.firestore {
             || request.resource.data._legacyCleanupDone is bool)
           && (!request.resource.data.keys().hasAny(['_dailyDates'])
             || (request.resource.data._dailyDates is list
+              && request.resource.data._dailyDates.size() <= 4000));
+      }
+
+      function changedStringIsValid(changed, field, maximum) {
+        return !changed.hasAny([field])
+          || (request.resource.data.keys().hasAny([field])
+            && request.resource.data[field] is string
+            && request.resource.data[field].size() <= maximum);
+      }
+
+      function changedNumberOrNullIsValid(changed, field) {
+        return !changed.hasAny([field])
+          || (request.resource.data.keys().hasAny([field])
+            && (request.resource.data[field] == null
+              || request.resource.data[field] is number
+              || (request.resource.data[field] is string
+                && request.resource.data[field].size() <= 40)));
+      }
+
+      function changedBooleanOrStringIsValid(changed, field) {
+        return !changed.hasAny([field])
+          || (request.resource.data.keys().hasAny([field])
+            && (request.resource.data[field] is bool
+              || (request.resource.data[field] is string
+                && request.resource.data[field].size() <= 120)));
+      }
+
+      function validChangedRootFieldTypes(changed) {
+        // Updates validate only fields changed by this request. Historical
+        // values — including obsolete known fields with old encodings — may
+        // remain unchanged, but any mutation must satisfy the current type.
+        return changedStringIsValid(changed, 'birthDate', 32)
+          && changedStringIsValid(changed, 'gender', 32)
+          && changedStringIsValid(changed, 'activityLevel', 40)
+          && changedStringIsValid(changed, 'goalType', 40)
+          && changedStringIsValid(changed, 'userName', 200)
+          && changedStringIsValid(changed, 'language', 12)
+          && changedStringIsValid(changed, 'lastLoginAt', 64)
+          && changedStringIsValid(changed, 'lastActivityAt', 64)
+          && changedStringIsValid(changed, '_storageSchemaVerifiedAt', 64)
+          && changedNumberOrNullIsValid(changed, 'height')
+          && changedNumberOrNullIsValid(changed, 'goalKg')
+          && changedNumberOrNullIsValid(changed, 'goalWeeks')
+          && changedNumberOrNullIsValid(changed, 'manualCalorieAdjustment')
+          && changedNumberOrNullIsValid(changed, 'proteinMultiplier')
+          && changedNumberOrNullIsValid(changed, 'bodyFatGoal')
+          && changedBooleanOrStringIsValid(changed, 'tutorialSeen')
+          && changedBooleanOrStringIsValid(changed, 'tutorial_most_recent_version_seen')
+          && changedBooleanOrStringIsValid(changed, 'tutorialSeen_main')
+          && changedBooleanOrStringIsValid(changed, 'tutorialSeen_diario')
+          && changedBooleanOrStringIsValid(changed, 'tutorialSeen_adicionar')
+          && changedBooleanOrStringIsValid(changed, 'tutorialSeen_despensa')
+          && changedBooleanOrStringIsValid(changed, 'tutorialSeen_semana')
+          && changedBooleanOrStringIsValid(changed, 'tutorialSeen_metricas')
+          && (!changed.hasAny(['_storageSchemaVerified'])
+            || (request.resource.data.keys().hasAny(['_storageSchemaVerified'])
+              && request.resource.data._storageSchemaVerified is bool))
+          && (!changed.hasAny(['_legacyCleanupDone'])
+            || (request.resource.data.keys().hasAny(['_legacyCleanupDone'])
+              && request.resource.data._legacyCleanupDone is bool))
+          && (!changed.hasAny(['_dailyDates'])
+            || (request.resource.data.keys().hasAny(['_dailyDates'])
+              && request.resource.data._dailyDates is list
               && request.resource.data._dailyDates.size() <= 4000));
       }
 
@@ -211,27 +275,10 @@ service cloud.firestore {
               'calcium100', 'iron100', 'potassium100', 'magnesium100',
               'zinc100', 'vitc100'
             ])
-            && payload.id is string && payload.id.size() <= 256
+            && (payload.id == null
+              || (payload.id is string && payload.id.size() <= 256))
             && payload.name is string && payload.name.size() <= 500
             && payload.unit is string && payload.unit.size() <= 40
-            && optionalNutrient(payload, 'protein100')
-            && optionalNutrient(payload, 'kcal100')
-            && optionalNutrient(payload, 'carbs100')
-            && optionalNutrient(payload, 'sugars100')
-            && optionalNutrient(payload, 'fat100')
-            && optionalNutrient(payload, 'satfat100')
-            && optionalNutrient(payload, 'fiber100')
-            && optionalNutrient(payload, 'salt100')
-            && optionalNutrient(payload, 'b12_100')
-            && optionalNutrient(payload, 'niacin100')
-            && optionalNutrient(payload, 'phosphorus100')
-            && optionalNutrient(payload, 'vitd100')
-            && optionalNutrient(payload, 'calcium100')
-            && optionalNutrient(payload, 'iron100')
-            && optionalNutrient(payload, 'potassium100')
-            && optionalNutrient(payload, 'magnesium100')
-            && optionalNutrient(payload, 'zinc100')
-            && optionalNutrient(payload, 'vitc100')
           );
         }
 
@@ -257,18 +304,6 @@ service cloud.firestore {
             && payload.components.keys().hasOnly([
               'protein', 'kcal', 'fiber', 'salt', 'carbs', 'fat'
             ])
-            && (!payload.components.keys().hasAny(['protein'])
-              || validScoreComponent(payload.components.protein))
-            && (!payload.components.keys().hasAny(['kcal'])
-              || validScoreComponent(payload.components.kcal))
-            && (!payload.components.keys().hasAny(['fiber'])
-              || validScoreComponent(payload.components.fiber))
-            && (!payload.components.keys().hasAny(['salt'])
-              || validScoreComponent(payload.components.salt))
-            && (!payload.components.keys().hasAny(['carbs'])
-              || validScoreComponent(payload.components.carbs))
-            && (!payload.components.keys().hasAny(['fat'])
-              || validScoreComponent(payload.components.fat))
             && (!payload.keys().hasAny(['confidence']) || payload.confidence is string)
             && (!payload.keys().hasAny(['provisional']) || payload.provisional is bool)
             && (!payload.keys().hasAny(['provisionalReasons'])
@@ -279,39 +314,6 @@ service cloud.firestore {
             && (!payload.keys().hasAny(['mealOccurredAt'])
               || (payload.mealOccurredAt is string
                 && payload.mealOccurredAt.size() <= 64));
-        }
-
-        function validScoreComponent(component) {
-          return component is map
-            && component.keys().hasOnly([
-              'key', 'type', 'available', 'applicable', 'required', 'weight',
-              'target', 'consumedBefore', 'mealAmount', 'consumedAfter',
-              'remainingBefore', 'remainingAfter', 'quota', 'ratio',
-              'candidateKnownCount', 'candidateItemCount', 'candidateComplete',
-              'consumedKnownCount', 'consumedItemCount', 'consumedComplete',
-              'score'
-            ])
-            && component.key is string && component.key.size() <= 40
-            && component.type is string && component.type.size() <= 40
-            && component.available is bool
-            && (!component.keys().hasAny(['applicable']) || component.applicable is bool)
-            && component.required is bool
-            && component.weight is number
-            && component.target is number
-            && component.consumedBefore is number
-            && component.mealAmount is number
-            && component.consumedAfter is number
-            && component.remainingBefore is number
-            && component.remainingAfter is number
-            && component.quota is number
-            && (component.ratio == null || component.ratio is number)
-            && component.candidateKnownCount is number
-            && component.candidateItemCount is number
-            && component.candidateComplete is bool
-            && component.consumedKnownCount is number
-            && component.consumedItemCount is number
-            && component.consumedComplete is bool
-            && component.score is number;
         }
 
         function validMealPayload(entryId, payload) {
