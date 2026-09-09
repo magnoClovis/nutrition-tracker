@@ -355,6 +355,19 @@ test.describe('authenticated critical data flows', () => {
       }, { timeout: 30000 }).toContain(fixture.name);
       const storedLog = await readDailyLog(page, today);
       const storedEntry = Object.values(storedLog).flat().find(item => item.name === fixture.name);
+      const diaryEntryRow = page.locator('[data-diary-meal-items="true"] > div')
+        .filter({hasText: fixture.name}).first();
+      await diaryEntryRow.getByRole('button', {name: '⋯', exact: true}).click();
+      await diaryEntryRow.getByRole('button', {name: 'Detalhes', exact: true}).click();
+      const entryDetail = page.locator('[data-diary-entry-detail-modal="true"]');
+      await expect(entryDetail).toBeVisible();
+      await expect(entryDetail.getByText(fixture.name, {exact: true})).toBeVisible();
+      await expect(entryDetail.getByText('Categoria', {exact: true})).toBeVisible();
+      await expect(entryDetail.getByText('Café da manhã', {exact: true})).toBeVisible();
+      await expect(entryDetail.locator('[data-diary-entry-nutrient="protein"]')).toContainText('50');
+      await expect(entryDetail.locator('[data-diary-entry-nutrient="kcal"]')).toContainText('360');
+      await page.keyboard.press('Escape');
+      await expect(entryDetail).toBeHidden();
       expect(storedEntry.qty).toBe(200);
       expect(storedEntry.mealScoreSnapshot.algorithmVersion).toBe('meal-score-v2');
       expect(storedEntry.mealScoreSnapshot.confidence).toBe('high');
