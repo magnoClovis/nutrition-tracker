@@ -6,7 +6,7 @@ Este arquivo registra exclusivamente a frente de UI/UX desenvolvida nesta conver
 
 O registro não reivindica trabalhos intercalados de App Check, arquitetura de dados, score, avaliação nutricional ou IA. Esses PRs aparecem na mesma cronologia da `main`, mas pertencem a outras conversas. Também não apresenta protótipos ou decisões aprovadas como se fossem código entregue: itens sem arquivo versionado são identificados explicitamente como auditoria, prototipação ou planejamento.
 
-As datas dos itens implementados são as datas de merge ou, para o PR ainda aberto, as datas dos commits confirmadas no Git/GitHub. Todos os horários observados foram normalizados pelo histórico Git local para `Europe/Madrid`; como o formato solicitado usa data civil, os horários não são reproduzidos abaixo.
+As datas dos itens implementados são as datas de merge ou dos commits confirmadas no Git/GitHub. Todos os horários observados foram normalizados pelo histórico Git local para `Europe/Madrid`; como o formato solicitado usa data civil, os horários não são reproduzidos abaixo.
 
 ### Relação com os códigos formais do projeto
 
@@ -16,13 +16,13 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 
 ## Estado resumido da frente
 
-| Entrega | Estado confirmado em 01/09/2026 |
+| Entrega | Estado confirmado em 10/09/2026 |
 |---|---|
 | PRs #126, #130, #133, #136, #138, #141, #144, #146 e #148 | Mesclados na `main` |
-| PR #150 | Aberto em modo draft; não integrado à `main` |
+| PR #150 — S7b | Mesclado na `main` no merge `d3fdab0`, após correção final e CI autenticado verde |
 | S8 — checkboxes e sliders | Mesclada na `main` pelo PR #166, com CI autenticado integralmente verde |
-| S9 — diálogo genérico | Implementada e validada no PR #172; passa a compor a `main` com o merge desse PR |
-| Fechamento S1–S9 | Pendente exclusivamente da S7b: o PR #150 continua draft e seus commits não integram a `main` |
+| S9 — diálogo genérico | Implementada, validada e mesclada na `main` pelo PR #172 |
+| Fechamento S1–S9 | Concluído: todas as fatias S1–S9 integram a `main` |
 | Sequência I1–I7 | Planejada, sem implementação no app por esta frente |
 
 ## ChoiceField reutilizável para tipo de refeição
@@ -402,7 +402,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 
 ## NumericField para quantidade de alimento
 
-**Data (se determinável):** 31/08/2026.
+**Data (se determinável):** implementação inicial em 31/08/2026; correção final e merge em 10/09/2026.
 
 **Propósito:** reduzir a dependência do teclado numérico do sistema em um campo de uso frequente, sem criar um IME Android. O keypad deveria ser um componente normal dentro do app, preservar acessibilidade e oferecer feedback de validação coerente com a linguagem visual do Trofia.
 
@@ -476,16 +476,25 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - O smoke visual foi criado para verificar os quatro triggers, ausência de `input[type="number"]` visível, estado neutro inicial, entrada decimal, confirmação, idioma, temas e viewports.
 - A primeira execução autenticada mostrou o keypad renderizado atrás do conteúdo de Métricas. O diagnóstico identificou containing/stacking context criado pela animação do container; o commit `ac6dc45` tentou neutralizar `animation`/`transform` do `[data-app-main="metricas"]` enquanto o overlay estivesse aberto.
 - O gate seguinte demonstrou que a correção era insuficiente: `[data-tutorial="metrics-measures"]` também aplica `backdrop-filter` e `overflow: hidden`, recortando o sheet dentro do cartão e fazendo o conteúdo da tela interceptar o clique no dígito `7`.
-- O primeiro teste autenticado expirou; as falhas seguintes foram cascata de `ERR_CONNECTION_REFUSED` após o servidor encerrar. Como o gate não ficou verde, o PR permaneceu draft e **não foi mesclado**.
-- Nenhuma correção adicional do stacking context foi implementada após esse resultado. Portanto, estes campos não devem ser descritos como disponíveis na `main` em 31/08/2026.
+- O primeiro teste autenticado expirou; as falhas seguintes foram cascata de `ERR_CONNECTION_REFUSED` após o servidor encerrar. O PR permaneceu draft até que a causa visual e a concorrência de portas fossem isoladas, sem usar cliques forçados para mascarar o defeito.
+- Na reconciliação final, a branch foi atualizada sobre a `origin/main`. A investigação confirmou um segundo containing/stacking context no próprio cartão Glass `[data-tutorial="metrics-measures"]`: `backdrop-filter: blur(6px)` e `overflow: hidden` mantinham o overlay preso mesmo depois da neutralização do container principal.
+- A correção final desativa `backdrop-filter` e clipping **somente** nesse cartão e **somente** enquanto ele contém um overlay temporal/numérico aberto. Ao fechar o `NumericField`, o vidro e o recorte normais voltam a valer; não houve mudança visual permanente no cartão.
+- O smoke autenticado passou a verificar por `getComputedStyle` a ausência temporária de animação/transform no app main, a ausência temporária de backdrop e o `overflow: visible` no cartão, além de clicar normalmente no keypad em desktop/mobile e claro/escuro.
+- O primeiro CI após essa correção apontou que o seletor CSS ainda mirava o ancestral direto da tela, não o cartão real aninhado. O seletor foi estreitado para `[data-screen="metricas"] [data-tutorial="metrics-measures"]:has(...)`, e o teste impediu que esse falso positivo fosse aceito.
+- O gate local final passou preflight, 1.258/1.258 unitários, smoke legado e Vite e cutover 60/60. Uma diferença intermitente de 15 pixels (0,00449% do frame, delta máximo 9) no canto inferior do caso Métricas ES/mobile/claro foi diagnosticada como antialiasing subpixel: DOM e estilos eram idênticos, os frames eram visualmente indistinguíveis e o caso passou 3/3 isolado antes da repetição integral 60/60.
+- O CI autenticado final `34412674372` passou com 93 testes no legado e somente os oito skips exclusivos/documentados do Vite, 101/101 no Vite e nenhuma falha. O PR #150 foi então mesclado, tornando as medidas corporais customizadas disponíveis na `main` e concluindo a sequência S1–S9.
 
 **PRs/commits relacionados:**
 
-- [PR #150 — S7b: teclado numérico nas métricas corporais — aberto/draft](https://github.com/magnoClovis/nutrition-tracker/pull/150).
+- [PR #150 — S7b: teclado numérico nas métricas corporais — mesclado](https://github.com/magnoClovis/nutrition-tracker/pull/150).
 - [Commit `0059a8d` — NumericField nas medidas corporais](https://github.com/magnoClovis/nutrition-tracker/commit/0059a8dff11e3dad97e68fb0c0a831f65cdbd871).
 - [Commit `73f24c7` — escopo dos asserts na seção de acompanhamento](https://github.com/magnoClovis/nutrition-tracker/commit/73f24c75694e3b9fd83815c8ecd4837a90168342).
 - [Commit `ac6dc45` — tentativa de neutralizar a animação do container](https://github.com/magnoClovis/nutrition-tracker/commit/ac6dc453383540cedf521907485198ef4deb57a5).
 - [CI autenticado `33374098903` — falha que bloqueou o merge](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33374098903).
+- [Commit `bb7665c` — neutralização e prova computada do contexto adicional](https://github.com/magnoClovis/nutrition-tracker/commit/bb7665c).
+- [Commit `8202eb6` — seletor final direcionado ao cartão Glass real](https://github.com/magnoClovis/nutrition-tracker/commit/8202eb6).
+- [CI autenticado final `34412674372`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34412674372).
+- [Merge `d3fdab0`](https://github.com/magnoClovis/nutrition-tracker/commit/d3fdab09eac2f9801861d6a1692a07942d356796).
 
 ## Controles semânticos de checkbox e slider
 
@@ -673,7 +682,7 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - Foi separado o problema em componentes reutilizáveis: listas estáticas (`ChoiceField`), listas longas/dinâmicas (`SearchableChoiceField`), data/horário (`TemporalField`), números frequentes (`NumericField`), seleção múltipla/faixas (`CheckboxField`/`SliderField`) e diálogos (`GenericDialog`).
 - A substituição de um teclado Android real/IME foi explicitamente excluída. O escopo aprovado limitou-se a keypad renderizado dentro da tela do app, preservando o teclado do sistema fora dos campos específicos.
 - A auditoria definiu como requisitos transversais PT/EN/ES controlados pelo app, temas claro/escuro, leitor de tela, foco, teclado, desktop/mobile e validação autenticada em legado/Vite.
-- O fatiamento aprovado foi S1–S9. S1–S6, S7a e S8 foram mescladas; S9 foi implementada no PR #172. A S7b continua no PR draft #150 e seus commits não integram `origin/main`, portanto o fechamento integral da sequência permanece pendente desse único ponto.
+- O fatiamento aprovado foi S1–S9. Todas as fatias foram implementadas, validadas em CI autenticado e mescladas; o fechamento integral ocorreu com o merge da S7b no PR #150 em 10/09/2026.
 
 **PRs/commits relacionados:** não há PR ou commit próprio da auditoria. As decisões materializadas podem ser rastreadas nos PRs #126–#150, #166 e #172 descritos acima.
 
@@ -741,4 +750,4 @@ As datas dos itens implementados são as datas de merge ou, para o PR ainda aber
 - GitHub: PRs #126, #130, #133, #136, #138, #141, #144, #146, #148, #150, #166 e #172; commits e runs autenticados citados nos itens.
 - `documentation/README.md`, `documentation/estado-atual/ROADMAP.md` e `documentation/estado-atual/BUG-INVENTORY.md`, consultados antes da redação para convenção, estados e códigos formais.
 - Datas dos protótipos, da auditoria S1–S9 e da auditoria de concorrentes são **não determinadas**, pois não existe commit/PR próprio que confirme o instante exato.
-- O PR #150 registra implementação parcial e falha confirmada; não deve ser usado como prova de recurso disponível na `main`.
+- O PR #150 registra a implementação, o diagnóstico do stacking context residual, a correção final e o gate autenticado que concluiu S1–S9 na `main`.
