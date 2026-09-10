@@ -1,6 +1,6 @@
 # Resumo de status do Trofia
 
-> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `db01a1a`, em 09/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `3cf0e38`, em 10/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
@@ -24,11 +24,11 @@
 - **[Bugs] Concluído (09/09/2026) —** fluxo de refeições salvas no `Registrar refeição` ajustado com feedback de adição, preservação de `staged.meal`, remoção de sobrescrita do `meal` salvo e separação entre “Adicionar” (pontual) e “Editar” (permanente) em modelo salvo. Gate final verde: 1256 unitários, smoke autenticado legado/Vite e matriz `cutover` 60/60. — Chat: Trofia-Bugs.
 - **[DIARY-MENU-A] Concluído (09/09/2026) — Chat: Trofia-Principal.** A ação “Detalhes” do menu de cada alimento no Diário abre um modal somente leitura com categoria, quantidade, horário, nutrientes realmente disponíveis e indicação sanitizada de estimativa por IA. Campos ausentes permanecem ocultos; fechamento por botão, backdrop, `Esc` e Voltar do Android é coberto sem alterar dados ou persistência.
 - **[DIARY-MENU-B] Concluído (10/09/2026) — Chat: Trofia-Principal.** A ação “Editar” reúne quantidade e tipo de refeição em um único editor, funciona no dia atual e no histórico, preserva ID/horário/origem ao mover e invalida avaliações C19 com aviso explícito. O diff C28 atualiza o mesmo documento granular e o emulador confirma que as rules C14-B2 aceitam a mudança de `mealKey`.
+- **[PHOTO-03] Concluído (10/09/2026) — Chat: Trofia-Principal.** A Fatia PHOTO-03-A criou o domínio proporcional puro e sua cobertura UMD/ESM. A Fatia PHOTO-03-B integrou a regra ao editor compartilhado de foto e descrição: quantidade recalcula peso e os oito nutrientes, peso recalcula nutrientes sem alterar quantidade, e edições nutricionais manuais tornam-se a nova base proporcional. Os builders persistem os valores revisados no Diário sem carregar metadados transitórios da estimativa.
 
 ## O que está em andamento agora
 
 - **C14 — revisão geral de segurança:** C14-A, C14-B1 e C14-B2 estão concluídas; C14-C a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
-- **[PHOTO-03] Recalcular estimativas por quantidade/peso — em andamento (10/09/2026) — Chat: Trofia-Principal.** A Fatia PHOTO-03-A concluiu o domínio proporcional puro e sua cobertura UMD/ESM: oito nutrientes conhecidos são redimensionados, ausências e zeros mantêm sua semântica, quantidade ajusta também o peso estimado e peso não altera a quantidade nominal. A Fatia PHOTO-03-B ainda integrará essa transformação ao editor compartilhado de foto/descrição, aos fluxos, à persistência e à validação completa.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
