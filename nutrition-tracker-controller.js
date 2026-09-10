@@ -1358,6 +1358,7 @@
       const [suppPantryOpen, setSuppPantryOpen] = useState(false);
       const [editEntryId, setEditEntryId] = useState(null);
       const [editEntryQty, setEditEntryQty] = useState("");
+      const [editEntryMeal, setEditEntryMeal] = useState("");
       const saveTimeout = useRef({});
       const dailyEntryPersistenceRef = useRef(null);
       if (!dailyEntryPersistenceRef.current) {
@@ -3120,33 +3121,43 @@
         notify(uiText("Alimento atualizado.", "Food updated.", "Alimento actualizado."));
       }
       // Diary entry edit
-      function startEditEntry(entry) {
+      function cancelEntryEdit() {
+        setEditEntryId(null);
+        setEditEntryMeal("");
+      }
+      function startEditEntry(meal, entry) {
         setEditEntryId(entry.id);
         setEditEntryQty(String(entry.qty));
+        setEditEntryMeal(meal);
       }
-      function saveEntryEdit(meal) {
+      function saveEntryEdit(sourceMeal) {
         const qty = parseFloat(editEntryQty);
         if (isNaN(qty) || qty <= 0) {
-          setEditEntryId(null);
+          notify(uiText(
+            "Informe uma quantidade válida.",
+            "Enter a valid amount.",
+            "Introduce una cantidad válida."
+          ));
           return;
         }
+        const targetMeal = MEALS.includes(editEntryMeal) ? editEntryMeal : sourceMeal;
         setActiveLog(previous => {
           const invalidatedEntries = window.MealScore.invalidateMealEvaluationForEntry(
-            previous[meal],
+            previous[sourceMeal],
             editEntryId
           );
-          return window.DailyEntryModel.applyMealLogMutation(
-            { ...previous, [meal]: invalidatedEntries },
-            meal,
-            {
-              type: "update",
-              entryId: editEntryId,
-              update: entry => recalcEntryQuantity(entry, qty)
-            }
+          return window.DailyEntryModel.updateMealLogEntry(
+            { ...previous, [sourceMeal]: invalidatedEntries },
+            sourceMeal,
+            targetMeal,
+            editEntryId,
+            entry => recalcEntryQuantity(entry, qty)
           );
         });
-        setEditEntryId(null);
-        notify(uiText("Quantidade atualizada.", "Amount updated.", "Cantidad actualizada."));
+        cancelEntryEdit();
+        notify(targetMeal === sourceMeal
+          ? uiText("Refeição atualizada.", "Meal updated.", "Comida actualizada.")
+          : uiText("Refeição atualizada e movida.", "Meal updated and moved.", "Comida actualizada y movida."));
       }
       function openAddForMeal(meal) {
         setAddEntry(a => ({
@@ -5003,7 +5014,7 @@
             setHeaderLanguageMenuOpen(false);
             break;
           case "closeEntryMenu": setEntryMenuId(null); break;
-          case "cancelEntryEdit": setEditEntryId(null); break;
+          case "cancelEntryEdit": cancelEntryEdit(); break;
           case "cancelFoodEdit":
             setEditingId(null);
             setEditForm(null);
@@ -5276,9 +5287,11 @@
         entryMenuId,
         editEntryId,
         editEntryQty,
+        editEntryMeal,
         setEditEntryQty,
+        setEditEntryMeal,
         saveEntryEdit,
-        setEditEntryId,
+        cancelEntryEdit,
         openAddForMeal,
         setEntryMenuId,
         detailFood,

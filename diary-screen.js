@@ -105,7 +105,7 @@
      * @returns {Object|null} React element tree for ticker, summary, or content.
      */
     function DiaryScreen(props) {
-      const { section, tab, lang, isMobileView, darkMode, text, uiText, tickerPhase, tickerDirection, safeTickerIndex, activeTickerSlide, tickerTimerReset, handleTickerPointerDown, handleTickerPointerMove, finishTickerPointer, tickerToneColor, tickerDragOffset, tickerSlides, setTickerTimerReset, moveTicker, greetingText, greetingLine, tot, goals, remainProtein, remainKcal, allEntries, dayProteinPct, dayKcalPct, openMealSuggestions, gaRunning, suggestLoading, showGA, setShowGA, gaTolerance, setGATolerance, gaTargetMeal, setGATargetMeal, MEALS, mealLabel, gaUseAll, setGAUseAll, runGASafely, gaProgress, gaResults, gaHasSearched, expandMicros, setExpandMicros, dailyMicros, hasMicros, getAutomaticMealSuggestionLimits, gaKcalMin, setGAKcalMin, gaProtMin, setGAProtMin, gaKcalMax, setGAKcalMax, gaProtMax, setGAProtMax, gaFoodSearch, setGAFoodSearch, pantry, gaSelIds, setGASelIds, gaAdvancedOpen, setGAAdvancedOpen, gaGlobalMax, setGAGlobalMax, gaUseProtTol, setGAUseProtTol, gaProtTolerance, setGAProtTolerance, activeLog, evaluateMealItems, mealScoreBrief, mealScoreEvaluationText, mealScoreLabel, addGAResultToDiary, TODAY, diaryStatus, dateLabel, viewDate, calendarOpen, setCalendarOpen, changeViewDate, setCalendarMonth, calendarMonth, calendarData, calendarLoading, isToday, viewWeight, isTraining, totalWater, waterExpanded, setWaterExpanded, editWaterGoal, setEditWaterGoal, waterGoalInput, setWaterGoalInput, setWaterGoal, addWater, waterCustomPreset, configureWaterCustomPreset, waterInput, setWaterInput, waterIntake, removeWater, suppLog, removeSuppLog, entryMenuId, editEntryId, editEntryQty, setEditEntryQty, saveEntryEdit, setEditEntryId, openAddForMeal, setEntryMenuId, detailFood, setDetailFood, diaryMealEvaluationDetail, setDiaryMealEvaluationDetail, startEditEntry, duplicateEntry, removeEntry, notesOpen, setNotesOpen, todayNote, historyNote, setTodayNote, setHistoryNote, suppPantry, showSuppAdd, setShowSuppAdd, suppAddId, setSuppAddId, suppAddDose, setSuppAddDose, logSupp, feedbackLoading, feedbackPeriod, generateFeedback, feedbackText, feedbackSaved, saveFeedbackAsNote, setTab, opaqueTrailingNode } = props;
+      const { section, tab, lang, isMobileView, darkMode, text, uiText, tickerPhase, tickerDirection, safeTickerIndex, activeTickerSlide, tickerTimerReset, handleTickerPointerDown, handleTickerPointerMove, finishTickerPointer, tickerToneColor, tickerDragOffset, tickerSlides, setTickerTimerReset, moveTicker, greetingText, greetingLine, tot, goals, remainProtein, remainKcal, allEntries, dayProteinPct, dayKcalPct, openMealSuggestions, gaRunning, suggestLoading, showGA, setShowGA, gaTolerance, setGATolerance, gaTargetMeal, setGATargetMeal, MEALS, mealLabel, gaUseAll, setGAUseAll, runGASafely, gaProgress, gaResults, gaHasSearched, expandMicros, setExpandMicros, dailyMicros, hasMicros, getAutomaticMealSuggestionLimits, gaKcalMin, setGAKcalMin, gaProtMin, setGAProtMin, gaKcalMax, setGAKcalMax, gaProtMax, setGAProtMax, gaFoodSearch, setGAFoodSearch, pantry, gaSelIds, setGASelIds, gaAdvancedOpen, setGAAdvancedOpen, gaGlobalMax, setGAGlobalMax, gaUseProtTol, setGAUseProtTol, gaProtTolerance, setGAProtTolerance, activeLog, evaluateMealItems, mealScoreBrief, mealScoreEvaluationText, mealScoreLabel, addGAResultToDiary, TODAY, diaryStatus, dateLabel, viewDate, calendarOpen, setCalendarOpen, changeViewDate, setCalendarMonth, calendarMonth, calendarData, calendarLoading, isToday, viewWeight, isTraining, totalWater, waterExpanded, setWaterExpanded, editWaterGoal, setEditWaterGoal, waterGoalInput, setWaterGoalInput, setWaterGoal, addWater, waterCustomPreset, configureWaterCustomPreset, waterInput, setWaterInput, waterIntake, removeWater, suppLog, removeSuppLog, entryMenuId, editEntryId, editEntryQty, editEntryMeal, setEditEntryQty, setEditEntryMeal, saveEntryEdit, cancelEntryEdit, openAddForMeal, setEntryMenuId, detailFood, setDetailFood, diaryMealEvaluationDetail, setDiaryMealEvaluationDetail, startEditEntry, duplicateEntry, removeEntry, notesOpen, setNotesOpen, todayNote, historyNote, setTodayNote, setHistoryNote, suppPantry, showSuppAdd, setShowSuppAdd, suppAddId, setSuppAddId, suppAddDose, setSuppAddDose, logSupp, feedbackLoading, feedbackPeriod, generateFeedback, feedbackText, feedbackSaved, saveFeedbackAsNote, setTab, opaqueTrailingNode } = props;
       const visibleMealCategories = getVisibleMealCategories(MEALS, activeLog);
       const scoreBand = score => score >= 4
         ? uiText("Bem alinhada", "Well aligned", "Bien alineada")
@@ -1847,12 +1847,18 @@
         minWidth: 0
       }
     }, editEntryId === e.id ? /*#__PURE__*/React.createElement("div", {
+      "data-diary-entry-editor": e.id,
       style: {
         display: "flex",
-        gap: 6,
-        alignItems: "center"
+        flexDirection: "column",
+        gap: 10,
+        alignItems: "stretch",
+        padding: "4px 0"
       }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: { display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }
     }, /*#__PURE__*/React.createElement("input", {
+      "aria-label": uiText("Quantidade", "Amount", "Cantidad"),
       type: "number",
       value: editEntryQty,
       onChange: ev => setEditEntryQty(ev.target.value),
@@ -1869,7 +1875,36 @@
         fontSize: 14,
         color: "var(--muted)"
       }
-    }, e.unit), /*#__PURE__*/React.createElement("button", {
+    }, e.unit)), /*#__PURE__*/React.createElement(ChoiceField, {
+      id: `diary-entry-meal-${e.id}`,
+      label: uiText("Tipo de refeição", "Meal type", "Tipo de comida"),
+      value: editEntryMeal || meal,
+      onChange: setEditEntryMeal,
+      options: MEALS.map(option => ({ value: option, label: mealLabel(option) })),
+      helperText: uiText(
+        "Mova este item sem alterar o horário ou a origem.",
+        "Move this item without changing its time or source.",
+        "Mueve este elemento sin cambiar su hora ni su origen."
+      ),
+      closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector")
+    }), e.mealEvaluationId && /*#__PURE__*/React.createElement("div", {
+      "data-diary-entry-evaluation-warning": "true",
+      style: {
+        color: "var(--btn-warn-text)",
+        background: "var(--btn-warn)",
+        border: "1px solid var(--btn-warn-border)",
+        borderRadius: 6,
+        padding: "8px 10px",
+        fontSize: 12,
+        lineHeight: 1.4
+      }
+    }, uiText(
+      "Ao confirmar, a avaliação salva desta refeição será removida porque os dados mudaram.",
+      "Confirming will remove this meal's saved assessment because its data changed.",
+      "Al confirmar, se eliminará la evaluación guardada de esta comida porque sus datos cambiaron."
+    )), /*#__PURE__*/React.createElement("div", {
+      style: { display: "flex", gap: 8, justifyContent: "flex-end" }
+    }, /*#__PURE__*/React.createElement("button", {
       onClick: () => saveEntryEdit(meal),
       style: {
         background: "var(--btn-ok)",
@@ -1880,8 +1915,8 @@
         fontSize: 14,
         cursor: "pointer"
       }
-    }, "\u2713"), /*#__PURE__*/React.createElement("button", {
-      onClick: () => setEditEntryId(null),
+    }, uiText("Confirmar", "Confirm", "Confirmar")), /*#__PURE__*/React.createElement("button", {
+      onClick: cancelEntryEdit,
       style: {
         background: "none",
         border: "none",
@@ -1889,7 +1924,7 @@
         cursor: "pointer",
         fontSize: 13
       }
-    }, "\u2715")) : /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    }, uiText("Cancelar", "Cancel", "Cancelar")))) : /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 14,
         color: "var(--text2)",
@@ -1954,8 +1989,8 @@
     }, [[uiText("Detalhes", "Details", "Detalles"), () => {
       setDetailFood(detailFood === e.id ? null : e.id);
       setEntryMenuId(null);
-    }], [uiText("Editar quantidade", "Edit amount", "Editar cantidad"), () => {
-      startEditEntry(e);
+    }], [uiText("Editar", "Edit", "Editar"), () => {
+      startEditEntry(meal, e);
       setEntryMenuId(null);
     }], [uiText("Duplicar", "Duplicate", "Duplicar"), () => duplicateEntry(meal, e)], [uiText("Excluir", "Delete", "Eliminar"), () => removeEntry(meal, e.id)]].map(([label, action], idx) => /*#__PURE__*/React.createElement("button", {
       key: label,

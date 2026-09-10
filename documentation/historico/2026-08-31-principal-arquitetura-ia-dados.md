@@ -221,6 +221,15 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **O que foi feito:** o estado `detailFood`, já reconhecido pelo despachante do botão Voltar do Android, passou a resolver a entrada e a categoria atuais e a renderizar seus dados registrados. Somente nutrientes numéricos presentes são exibidos; dados ausentes não viram zero. A prova unitária cobre abertura pelo menu, conteúdo, estimativa por IA, ausência, zero e todas as formas de fechamento; o smoke autenticado reutiliza uma refeição real da fixture para abrir o modal no fluxo integrado.
 - **PRs/commits relacionados:** branch `codex/diary-menu-details`; PR e commit serão vinculados no fechamento da fatia.
 
+### [DIARY-MENU-B] - Editar quantidade e mover entrada entre refeições
+
+- **Status:** concluído.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** transformar a antiga edição exclusiva de quantidade em um editor único que também permite corrigir a categoria de uma entrada já registrada, inclusive em datas históricas, sem perder identidade, horário, origem ou metadados não alterados.
+- **Recursos:** `ChoiceField` trilíngue para tipo de refeição; quantidade e unidade informativa; aviso explícito antes de invalidar avaliação C19; transformação imutável com ID estável; diff granular C28 por atualização do mesmo documento; validação das rules C14-B2 em emulador.
+- **Arquivos principais:** `/diary-screen.js`, `/nutrition-tracker-controller.js`, `/daily-entry-model.js`, `/src/composite/daily-entry-model.js`, `/functions/test/firestore-rules.emulator.test.js`, testes unitários e smoke autenticado, `/documentation/estado-atual/RESUMO-STATUS.md` e este histórico.
+- **O que foi feito:** a ação foi renomeada para “Editar” e passa a abrir quantidade e categoria juntas. O controlador invalida conservadoramente o grupo avaliado antes da alteração; mover preserva o mesmo `entry.id` e o `DailyEntryPersistence` emite apenas um `set` para atualizar `mealKey`, sem delete/recreate. O teste de emulador comprova que as rules aceitam a atualização de `mealKey` mantendo documento, entrada e horário. A cobertura integrada move uma entrada avaliada, confirma quantidade/horário/ID e verifica a remoção do snapshot. Branch `codex-diary-menu-edit-move`; PR e commit serão vinculados no fechamento da fatia.
+
 ### [BUG-SAVED-MEAL-ID] - Reutilização de refeição salva com identidade duplicada
 
 - **Status:** concluído.
