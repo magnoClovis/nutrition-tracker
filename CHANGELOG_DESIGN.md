@@ -7,6 +7,16 @@ experiência do usuário. Bugs técnicos continuam catalogados separadamente em
 Cada rodada deve receber uma seção datada, um título curto e uma tabela com o
 escopo, os principais arquivos afetados e a referência de implementação.
 
+## 2026-09-10 — D1: shell desktop, cabeçalho e navegação
+
+Referência geral: PR draft [#187](https://github.com/magnoClovis/nutrition-tracker/pull/187), commit [`80f9056`](https://github.com/magnoClovis/nutrition-tracker/commit/80f9056).
+
+| Item | Mudança | Arquivos principais | Referência |
+|---:|---|---|---|
+| 1 | Removida a margem negativa de `42px` que colocava a navegação desktop sobre o peso/IMC e os indicadores do cabeçalho. A barra passa a ocupar toda a largura útil do shell, com margem positiva e alinhamento de até `1080px`. | `app-header-navigation.js`, `one-ui.css` | PR #187 — em andamento |
+| 2 | Os hosts standalone do Diário e interno das demais abas receberam identificação explícita para compartilhar o mesmo contrato visual sem alterar a navegação fixa de mobile. | `app-header-navigation.js`, `tests/unit/app-header-navigation.test.js` | PR #187 — em andamento |
+| 3 | Adicionada cobertura de regressão estrutural e visual: ausência de margem negativa, alinhamento lateral, inexistência de interseção com status/peso, ausência de overflow, três larguras desktop e temas claro/escuro. | `tests/unit/desktop-shell-layout.test.js`, `tests/smoke/desktop-shell.visual.spec.js` | PR #187 — em andamento |
+
 ## 2026-08-31 — S8: checkboxes e sliders semânticos
 
 Referência geral: PR draft [#166](https://github.com/magnoClovis/nutrition-tracker/pull/166), commit [`9a7194b`](https://github.com/magnoClovis/nutrition-tracker/commit/9a7194b).
