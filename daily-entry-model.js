@@ -112,11 +112,52 @@
     return entries === current[mealKey] ? current : {...current, [mealKey]: entries};
   }
 
+  /**
+   * Updates one meal entry and optionally moves it to another category while
+   * preserving the entry's stable identity and all untouched metadata.
+   */
+  function updateMealLogEntry(previous, sourceMeal, targetMeal, entryId, update, options) {
+    const sourceKey = String(sourceMeal || "").trim();
+    const targetKey = String(targetMeal || "").trim();
+    const stableId = safeId(entryId);
+    if (!sourceKey || !targetKey) throw new TypeError("Meal key is required");
+    if (!stableId) throw new TypeError("Daily entry mutation requires entryId");
+    if (typeof update !== "function") throw new TypeError("Update mutation requires an update function");
+
+    const current = previous && typeof previous === "object" ? previous : {};
+    const sourceEntries = Array.isArray(current[sourceKey]) ? current[sourceKey] : [];
+    const original = sourceEntries.find(entry => safeId(entry?.id) === stableId);
+    if (!original) return current;
+
+    const updated = ensureEntryId(update(original), options);
+    if (updated.id !== stableId) {
+      throw new TypeError("Daily entry identity cannot change during update");
+    }
+    if (sourceKey === targetKey) {
+      return applyMealLogMutation(current, sourceKey, {
+        type: "update",
+        entryId: stableId,
+        update: () => updated,
+      }, options);
+    }
+
+    const targetEntries = Array.isArray(current[targetKey]) ? current[targetKey] : [];
+    if (targetEntries.some(entry => safeId(entry?.id) === stableId)) {
+      throw new TypeError("Daily entry identity must be unique across meal categories");
+    }
+    return {
+      ...current,
+      [sourceKey]: sourceEntries.filter(entry => safeId(entry?.id) !== stableId),
+      [targetKey]: [...targetEntries, updated],
+    };
+  }
+
   return {
     createIdempotentEntryId,
     ensureEntryId,
     ensureEntryIds,
     applyEntryListMutation,
     applyMealLogMutation,
+    updateMealLogEntry,
   };
 });

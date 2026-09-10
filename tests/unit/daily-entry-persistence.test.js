@@ -27,6 +27,21 @@ for (const [format, load] of implementations) {
     ]);
   });
 
+  test(`${format}: changing mealKey updates the same granular document without delete/recreate`, async () => {
+    const api = await load();
+    const entry = {id: 'stable-meal', name: 'Rice', qty: 100, time: '12:30'};
+    const operations = api.diffDailyEntrySnapshots('meal', '2026-08-29', {
+      Almoço: [entry],
+    }, {
+      Jantar: [{...entry, qty: 150}],
+    });
+
+    assert.deepEqual(operations, [{
+      type: 'set', kind: 'meal', date: '2026-08-29',
+      entry: {...entry, qty: 150}, mealKey: 'Jantar',
+    }]);
+  });
+
   test(`${format}: migrates once, serializes snapshots, and batches each transition`, async () => {
     const api = await load();
     const events = [];

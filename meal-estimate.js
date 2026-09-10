@@ -73,6 +73,49 @@
     return Number.isFinite(number) ? number : null;
   }
 
+  function roundedScaledValue(value) {
+    return Math.round((value + Number.EPSILON) * 10000) / 10000;
+  }
+
+  /**
+   * Rescales one editable estimate item from its serving quantity or estimated
+   * weight. Edit timing remains the caller's responsibility so a UI can apply
+   * this once from a stable pre-edit snapshot.
+   */
+  function rescaleMealEstimateItem(item, referenceField, nextValue) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new TypeError("Meal estimate item must be an object");
+    }
+    if (referenceField !== "quantity" && referenceField !== "estimatedGrams") {
+      throw new TypeError("Meal estimate reference must be quantity or estimatedGrams");
+    }
+
+    const result = { ...item, [referenceField]: nextValue };
+    const previousReference = finiteNumber(item[referenceField]);
+    const nextReference = finiteNumber(nextValue);
+    if (previousReference === null || previousReference <= 0 ||
+        nextReference === null || nextReference <= 0) {
+      return result;
+    }
+
+    const ratio = nextReference / previousReference;
+    NUTRIENT_FIELDS.forEach(field => {
+      const currentValue = finiteNumber(item[field]);
+      if (currentValue !== null) {
+        result[field] = roundedScaledValue(currentValue * ratio);
+      }
+    });
+
+    if (referenceField === "quantity") {
+      const estimatedGrams = finiteNumber(item.estimatedGrams);
+      if (estimatedGrams !== null) {
+        result.estimatedGrams = roundedScaledValue(estimatedGrams * ratio);
+      }
+    }
+
+    return result;
+  }
+
   function validationError(path, code) {
     return { path, code };
   }
@@ -263,6 +306,7 @@
     MAX_ITEMS,
     MealEstimateValidationError,
     validateMealEstimate,
+    rescaleMealEstimateItem,
     createMealEstimate
   };
 });

@@ -116,7 +116,9 @@ contractTest("renders the diary header, status controls, summary, and one primar
   assert.match(textContent(view), /Nutrition diary/);
   assert.match(textContent(view), /Ticker/);
   assert.match(textContent(view), /Summary/);
+  const navigation = findNodes(view, node => node.props && node.props["data-app-nav"])[0];
   assert.equal(findNodes(view, node => node.props && node.props["data-app-nav"]).length, 1);
+  assert.equal(navigation.props["data-app-nav-placement"], "standalone");
 
   findNodes(view, node => node.props && node.props["data-tutorial"] === "day-type")[0].props.onClick();
   findNodes(view, node => node.type === "button" && node.props.title === "Open metrics")[0].props.onClick();
@@ -176,7 +178,9 @@ contractTest("renders non-diary progress, notifications, and the alternate navig
     notification: "Error loading data"
   }));
 
+  const navigation = findNodes(view, node => node.props && node.props["data-app-nav"])[0];
   assert.equal(findNodes(view, node => node.props && node.props["data-app-nav"]).length, 1);
+  assert.equal(navigation.props["data-app-nav-placement"], "header");
   assert.match(textContent(view), /Protein50 \/ 100g/);
   assert.match(textContent(view), /Goal reached/);
   assert.match(textContent(view), /Error loading data/);

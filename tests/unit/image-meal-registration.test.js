@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { rescaleMealEstimateItem } = require('../../meal-estimate.js');
 
 const implementations = [
   ['UMD', () => Promise.resolve(require('../../image-meal-registration.js'))],
@@ -65,6 +66,22 @@ contractTest('never copies image data, preview URLs, provider metadata, or the a
     '_estimateSource', '_estimated', 'carbs', 'fat', 'fiber', 'foodId', 'id', 'kcal',
     'name', 'protein', 'qty', 'salt', 'satfat', 'sugars', 'time', 'unit',
   ].sort());
+});
+
+contractTest('persists proportionally reviewed values without image metadata', module => {
+  const reviewed = estimate();
+  reviewed.items[0] = rescaleMealEstimateItem(reviewed.items[0], 'estimatedGrams', '60');
+  const registration = module.createImageMealRegistration({
+    createEntryId: () => 'entry-scaled',
+    mealKeys: ['Lunch'],
+  }).buildImageMealRegistration({ estimate: reviewed, meal: 'Lunch', time: '12:30' });
+
+  assert.equal(registration.items[0].qty, 120);
+  assert.equal(registration.items[0].protein, 1.5);
+  assert.equal(registration.items[0].kcal, 78);
+  assert.equal(registration.items[0].carbs, 17);
+  assert.equal(registration.items[0].fiber, 0.25);
+  assert.doesNotMatch(JSON.stringify(registration), /estimatedGrams/);
 });
 
 contractTest('rejects missing estimates, unsupported categories, and invalid times before persistence', module => {

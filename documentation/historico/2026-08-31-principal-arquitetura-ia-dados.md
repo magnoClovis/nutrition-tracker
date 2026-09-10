@@ -221,6 +221,15 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **O que foi feito:** o estado `detailFood`, já reconhecido pelo despachante do botão Voltar do Android, passou a resolver a entrada e a categoria atuais e a renderizar seus dados registrados. Somente nutrientes numéricos presentes são exibidos; dados ausentes não viram zero. A prova unitária cobre abertura pelo menu, conteúdo, estimativa por IA, ausência, zero e todas as formas de fechamento; o smoke autenticado reutiliza uma refeição real da fixture para abrir o modal no fluxo integrado.
 - **PRs/commits relacionados:** branch `codex/diary-menu-details`; PR e commit serão vinculados no fechamento da fatia.
 
+### [DIARY-MENU-B] - Editar quantidade e mover entrada entre refeições
+
+- **Status:** concluído.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** transformar a antiga edição exclusiva de quantidade em um editor único que também permite corrigir a categoria de uma entrada já registrada, inclusive em datas históricas, sem perder identidade, horário, origem ou metadados não alterados.
+- **Recursos:** `ChoiceField` trilíngue para tipo de refeição; quantidade e unidade informativa; aviso explícito antes de invalidar avaliação C19; transformação imutável com ID estável; diff granular C28 por atualização do mesmo documento; validação das rules C14-B2 em emulador.
+- **Arquivos principais:** `/diary-screen.js`, `/nutrition-tracker-controller.js`, `/daily-entry-model.js`, `/src/composite/daily-entry-model.js`, `/functions/test/firestore-rules.emulator.test.js`, testes unitários e smoke autenticado, `/documentation/estado-atual/RESUMO-STATUS.md` e este histórico.
+- **O que foi feito:** a ação foi renomeada para “Editar” e passa a abrir quantidade e categoria juntas. O controlador invalida conservadoramente o grupo avaliado antes da alteração; mover preserva o mesmo `entry.id` e o `DailyEntryPersistence` emite apenas um `set` para atualizar `mealKey`, sem delete/recreate. O teste de emulador comprova que as rules aceitam a atualização de `mealKey` mantendo documento, entrada e horário. A cobertura integrada move uma entrada avaliada, confirma quantidade/horário/ID e verifica a remoção do snapshot. Branch `codex-diary-menu-edit-move`; PR e commit serão vinculados no fechamento da fatia.
+
 ### [BUG-SAVED-MEAL-ID] - Reutilização de refeição salva com identidade duplicada
 
 - **Status:** concluído.
@@ -228,6 +237,24 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Propósito:** permitir que uma refeição salva, inclusive um modelo histórico sem `foodSnapshot`, seja registrada novamente na categoria original ou em outra categoria sem colidir com entradas já existentes no Diário.
 - **Recursos/arquivos principais envolvidos:** `/food-entry.js`, `/tests/unit/food-entry.test.js`, `DailyEntryModel` e `DailyEntryPersistence` como contratos de integração.
 - **O que foi feito:** o diagnóstico reproduziu que modelos antigos reutilizavam `foodId` ou nome como `entry.id`; após o C28 exigir IDs únicos em todo o dia, repetir o modelo na mesma categoria virava no-op e em outra categoria lançava `Daily entry snapshots require unique stable IDs` antes de alcançar o Firestore. A correção gera um ID novo a cada carregamento em todos os formatos e preserva `foodId` somente como referência. Os testes UMD/ESM comprovam duas reutilizações na categoria original e uma terceira em categoria diferente, sem colisão no diff granular. O PR #179, commit `dba47ef`, foi mesclado em `0eeca71` após o run autenticado `33568921326` ficar totalmente verde. Este bug é separado das recusas de rules da C14-B2.
+
+### [PHOTO-03-A] - Transformação proporcional de estimativas nutricionais
+
+- **Status:** concluído.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** criar uma regra de domínio única e testável para manter quantidade, peso estimado e nutrientes coerentes quando o usuário redimensionar uma estimativa compartilhada pelos fluxos de foto e descrição textual.
+- **Recursos/arquivos principais envolvidos:** `/meal-estimate.js`, `/src/composite/meal-estimate.js`, `/tests/unit/meal-estimate.test.js`, editor compartilhado C24/C08-C e este histórico.
+- **O que foi feito:** a transformação pura aceita `quantity` ou `estimatedGrams` como referência, recalcula proporcionalmente os oito nutrientes conhecidos, preserva ausente diferente de zero, mantém a edição manual como nova base e arredonda de forma determinística. Alterar quantidade também ajusta o peso estimado; alterar o peso não muda a quantidade nominal. A API permanece sem uso em produção até a integração da Fatia PHOTO-03-B.
+- **PRs/commits relacionados:** PR #186, branch `codex/photo-estimate-proportional-domain`, commit de implementação `174bf9c`.
+
+### [PHOTO-03-B] - Integração proporcional no editor compartilhado
+
+- **Status:** concluído.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** aplicar a transformação proporcional aprovada na interface comum de revisão, garantindo o mesmo comportamento nas estimativas por foto e por descrição textual e preservando os valores recalculados ao registrar a refeição.
+- **Recursos/arquivos principais envolvidos:** `/meal-estimate-editor.js`, as composições `/app.js`, `/nutrition-tracker.jsx` e `/src/App.jsx`, `/tests/unit/meal-estimate-editor.test.js`, `/tests/unit/dish-description-ai.test.js`, `/tests/unit/image-meal-registration.test.js`, `/documentation/estado-atual/RESUMO-STATUS.md` e este histórico.
+- **O que foi feito:** o editor passou a encaminhar mudanças de `quantity` e `estimatedGrams` à transformação de domínio única. Quantidade recalcula peso e nutrientes; peso recalcula nutrientes sem alterar a quantidade. Uma edição nutricional manual permanece no estado controlado e, numa alteração posterior de peso/quantidade, torna-se a nova base proporcional. Os dois fluxos continuam compartilhando o mesmo editor; os builders de descrição e imagem persistem os valores revisados sem incluir peso estimado ou metadados da imagem nas entradas do Diário.
+- **PRs/commits relacionados:** PR #188, branch `codex/photo-estimate-proportional-integration`, commit de implementação `4755c66`.
 
 - **Reload/troca de idioma após C14-A:** o chat Trofia-UI/UX relatou, sem reprodução estável, uma queda para login em espanhol e um `SearchableChoiceField` preso em `#loading`. Três tentativas isoladas passaram. No PR #175, a tentativa 2 do CI chegou ao mesmo teste, mas o job foi cancelado exatamente pelo teto global de 30 minutos depois de apenas 5,6 segundos da espera de 15 segundos; isso não comprova o travamento. O teto do CI foi ajustado para 45 minutos e ficou registrado investigar, em pausa natural do C14, consumidores de reload/bootstrap que ainda possam presumir o contrato antigo de leitura silenciosa, sem atribuir causalidade à C14-A até existir evidência.
 - **F06 / PR #143:** documentação reconciliada e mesclada em 01/09/2026 no merge `7662899`; a causa de rede específica por usuário/ISP e a futura migração para domínio próprio permanecem registradas fora do C08.

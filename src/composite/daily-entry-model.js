@@ -7,12 +7,14 @@ const {
   ensureEntryIds,
   applyEntryListMutation,
   applyMealLogMutation,
+  updateMealLogEntry,
 } = readLegacyNamespace(globalThis, 'DailyEntryModel', [
   'createIdempotentEntryId',
   'ensureEntryId',
   'ensureEntryIds',
   'applyEntryListMutation',
   'applyMealLogMutation',
+  'updateMealLogEntry',
 ]);
 
 export {
@@ -21,4 +23,5 @@ export {
   ensureEntryIds,
   applyEntryListMutation,
   applyMealLogMutation,
+  updateMealLogEntry,
 };

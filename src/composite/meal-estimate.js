@@ -8,6 +8,7 @@ const {
   MAX_ITEMS,
   MealEstimateValidationError,
   validateMealEstimate,
+  rescaleMealEstimateItem,
   createMealEstimate,
 } = readLegacyNamespace(globalThis, 'MealEstimate', [
   'ESTIMATE_STATUSES',
@@ -16,6 +17,7 @@ const {
   'MAX_ITEMS',
   'MealEstimateValidationError',
   'validateMealEstimate',
+  'rescaleMealEstimateItem',
   'createMealEstimate',
 ]);
 
@@ -26,5 +28,6 @@ export {
   MAX_ITEMS,
   MealEstimateValidationError,
   validateMealEstimate,
+  rescaleMealEstimateItem,
   createMealEstimate,
 };

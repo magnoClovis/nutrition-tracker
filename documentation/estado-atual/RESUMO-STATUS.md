@@ -1,6 +1,6 @@
 # Resumo de status do Trofia
 
-> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `db01a1a`, em 09/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `3ccb852`, em 10/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
@@ -23,10 +23,13 @@
 - **[BUG-SAVED-MEAL-ID] — Reutilização de refeição salva:** concluído em 02/09/2026 no PR #179. Modelos atuais e antigos geram um ID novo para cada entrada carregada, mantendo `foodId` apenas como referência; a suíte comprova reutilização na mesma categoria e em categoria diferente. — **Chat:** Trofia-Principal.
 - **[Bugs] Concluído (09/09/2026) —** fluxo de refeições salvas no `Registrar refeição` ajustado com feedback de adição, preservação de `staged.meal`, remoção de sobrescrita do `meal` salvo e separação entre “Adicionar” (pontual) e “Editar” (permanente) em modelo salvo. Gate final verde: 1256 unitários, smoke autenticado legado/Vite e matriz `cutover` 60/60. — Chat: Trofia-Bugs.
 - **[DIARY-MENU-A] Concluído (09/09/2026) — Chat: Trofia-Principal.** A ação “Detalhes” do menu de cada alimento no Diário abre um modal somente leitura com categoria, quantidade, horário, nutrientes realmente disponíveis e indicação sanitizada de estimativa por IA. Campos ausentes permanecem ocultos; fechamento por botão, backdrop, `Esc` e Voltar do Android é coberto sem alterar dados ou persistência.
+- **[DIARY-MENU-B] Concluído (10/09/2026) — Chat: Trofia-Principal.** A ação “Editar” reúne quantidade e tipo de refeição em um único editor, funciona no dia atual e no histórico, preserva ID/horário/origem ao mover e invalida avaliações C19 com aviso explícito. O diff C28 atualiza o mesmo documento granular e o emulador confirma que as rules C14-B2 aceitam a mudança de `mealKey`.
+- **[PHOTO-03] Concluído (10/09/2026) — Chat: Trofia-Principal.** A Fatia PHOTO-03-A criou o domínio proporcional puro e sua cobertura UMD/ESM. A Fatia PHOTO-03-B integrou a regra ao editor compartilhado de foto e descrição: quantidade recalcula peso e os oito nutrientes, peso recalcula nutrientes sem alterar quantidade, e edições nutricionais manuais tornam-se a nova base proporcional. Os builders persistem os valores revisados no Diário sem carregar metadados transitórios da estimativa.
+- **[D1 — shell desktop/cabeçalho/navegação] Concluído (10/09/2026) — Chat: Trofia-UIUX.** O PR #187 removeu a margem negativa que sobrepunha as abas ao peso/IMC e ao progresso, adotou navegação em largura total centralizada no shell de 1080px e preservou a navegação móvel. O gate final autenticado `34464670583` passou em legado/Vite, desktop/mobile e claro/escuro; merge `3ccb852`.
+- **[Câmera embutida — C2] Concluído (10/09/2026) — Chat: Trofia-UIUX.** O draft PR #185 comprova no Capacitor Android uma vista nativa traseira limitada ao retângulo DOM medido, sem substituir ainda o fluxo C24. No Galaxy S25 Ultra SM-S938B físico, o Android apresentou e concedeu a permissão real de câmera, o preview permaneceu confinado a `348×420` CSS px na origem `18,113`, os controles externos continuaram visíveis/clicáveis, a captura retornou imagem Base64 não vazia e a sessão nativa desconectou após `stop()`. O pacote de prova paralelo `.c2proof` foi removido e nenhum APK/AAB foi publicado; a integração visual permanece C3.
 
 ## O que está em andamento agora
 
-- [Câmera embutida — C2] Em validação (10/09/2026) — Chat: Trofia-UIUX. O draft PR #185 adiciona a dependência Camera Preview 8.0.1 e um serviço Android-only que mede uma superfície DOM e inicia a vista nativa em `x/y/width/height` limitados, sem substituir ainda o fluxo C24. Testes focados, build Vite, sincronização Capacitor, compilação Gradle e cutover local 60/60 passaram; CI autenticado e prova visual em aparelho real permanecem pendentes. Nenhum APK/AAB foi publicado.
 - **C14 — revisão geral de segurança:** C14-A, C14-B1 e C14-B2 estão concluídas; C14-C a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.

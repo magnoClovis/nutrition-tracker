@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
-const { createMealEstimate } = require("../../meal-estimate.js");
+const { createMealEstimate, rescaleMealEstimateItem } = require("../../meal-estimate.js");
 
 const implementations = [
   ["UMD", () => Promise.resolve(require("../../meal-estimate-editor.js"))],
@@ -77,6 +77,7 @@ function contractTest(name, callback) {
         pickLang,
         createEmptyItem: domain.createEmptyItem,
         calculateTotals: domain.calculateTotals,
+        rescaleMealEstimateItem,
         ChoiceField
       });
       return callback(MealEstimateEditor);
@@ -151,6 +152,76 @@ contractTest("uses semantic ChoiceFields for overall and per-item confidence", M
   item.props.onChange("low");
   assert.equal(changes[0].overallConfidence, "high");
   assert.equal(changes[1].items[0].confidence, "low");
+});
+
+contractTest("rescales nutrients and estimated weight when quantity changes", MealEstimateEditor => {
+  const original = estimate();
+  let changed = null;
+  const view = MealEstimateEditor({
+    estimate: original,
+    lang: "en",
+    isMobileView: false,
+    disabled: false,
+    errors: [],
+    onChange: value => { changed = value; }
+  });
+
+  elements(view, "input")
+    .find(input => input.props["data-estimate-field"] === "quantity")
+    .props.onChange({ target: { value: "180" } });
+
+  assert.equal(changed.items[0].quantity, "180");
+  assert.equal(changed.items[0].estimatedGrams, 180);
+  assert.equal(changed.items[0].protein, 4.5);
+  assert.equal(changed.items[0].kcal, 234);
+  assert.equal(changed.items[0].carbs, 51);
+  assert.equal(changed.items[0].fiber, 0.75);
+  assert.equal(changed.items[0].salt, null);
+  assert.equal(original.items[0].quantity, 120);
+  assert.equal(original.items[0].kcal, 156);
+});
+
+contractTest("rescales nutrients from estimated weight without changing quantity", MealEstimateEditor => {
+  let changed = null;
+  const view = MealEstimateEditor({
+    estimate: estimate(),
+    lang: "pt",
+    isMobileView: true,
+    disabled: false,
+    errors: [],
+    onChange: value => { changed = value; }
+  });
+
+  elements(view, "input")
+    .find(input => input.props["data-estimate-field"] === "estimatedGrams")
+    .props.onChange({ target: { value: "60" } });
+
+  assert.equal(changed.items[0].quantity, 120);
+  assert.equal(changed.items[0].estimatedGrams, "60");
+  assert.equal(changed.items[0].protein, 1.5);
+  assert.equal(changed.items[0].kcal, 78);
+  assert.equal(changed.items[0].carbs, 17);
+});
+
+contractTest("uses a manually edited nutrient as the next proportional baseline", MealEstimateEditor => {
+  const manuallyEdited = estimate();
+  manuallyEdited.items[0].protein = "10";
+  let changed = null;
+  const view = MealEstimateEditor({
+    estimate: manuallyEdited,
+    lang: "es",
+    isMobileView: false,
+    disabled: false,
+    errors: [],
+    onChange: value => { changed = value; }
+  });
+
+  elements(view, "input")
+    .find(input => input.props["data-estimate-field"] === "quantity")
+    .props.onChange({ target: { value: "60" } });
+
+  assert.equal(changed.items[0].protein, 5);
+  assert.equal(changed.items[0].kcal, 78);
 });
 
 contractTest("blocks mutations and reports validation while disabled", MealEstimateEditor => {
