@@ -2438,12 +2438,20 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
     left: auto;
     right: auto;
     bottom: auto;
-    width: min(620px, 100%);
-    align-self: flex-end;
-    margin-top: -42px !important;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1080px;
+    align-self: stretch;
+    margin-top: 14px !important;
     margin-bottom: 2px !important;
     padding: 4px !important;
     box-shadow: none !important;
+  }
+
+  [data-app-nav-placement="standalone"] {
+    width: min(1080px, calc(100% - 64px));
+    margin-right: auto !important;
+    margin-left: auto !important;
   }
 
   [data-app-nav] button {

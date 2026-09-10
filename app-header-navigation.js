@@ -69,6 +69,7 @@
     function renderNavigation({ activeTab, isMobileView, navItems, onOpenTab, diaryPlacement }) {
       return h("div", {
         "data-app-nav": "true",
+        "data-app-nav-placement": diaryPlacement ? "standalone" : "header",
         style: diaryPlacement ? {
           display: "flex",
           gap: isMobileView ? 8 : 0,
