@@ -27,7 +27,7 @@ test('verifies CORS and authentication gates without sending a photo', async () 
           headers: {
             'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
             'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+            'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Firebase-AppCheck',
           },
         });
       }

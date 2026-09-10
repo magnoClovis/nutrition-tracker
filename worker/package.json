@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "npm run test:node && npm run test:runtime",
-    "test:node": "node --test ../tests/unit/ai-worker.test.js ../tests/unit/firebase-id-token.test.js",
+    "test:node": "node --test ../tests/unit/ai-worker.test.js ../tests/unit/firebase-id-token.test.js ../tests/unit/firebase-app-check-token.test.js",
     "test:runtime": "vitest run",
     "deploy": "wrangler deploy",
     "deploy:dry-run": "wrangler deploy --dry-run"

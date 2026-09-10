@@ -26,16 +26,24 @@ function response(body, {
 function createFixture({ createAIClient }, {
   idToken = "firebase-id-token",
   tokenError,
+  appCheckToken = "firebase-app-check-token",
+  appCheckError,
   responses = []
 } = {}) {
   const requests = [];
   const tokenReads = [];
+  const appCheckReads = [];
   const queue = [...responses];
   const api = createAIClient({
     getIdToken: async () => {
       tokenReads.push(idToken);
       if (tokenError) throw tokenError;
       return idToken;
+    },
+    getAppCheckToken: async () => {
+      appCheckReads.push(appCheckToken);
+      if (appCheckError) throw appCheckError;
+      return appCheckToken;
     },
     fetchRequest: async (...args) => {
       requests.push(args);
@@ -44,7 +52,7 @@ function createFixture({ createAIClient }, {
       return next;
     }
   });
-  return { api, requests, tokenReads };
+  return { api, requests, tokenReads, appCheckReads };
 }
 
 function contractTest(name, callback) {
@@ -53,13 +61,14 @@ function contractTest(name, callback) {
   });
 }
 
-contractTest("sends the exact managed request with a current Firebase ID token", async module => {
+contractTest("sends the exact managed request with current Auth and App Check tokens", async module => {
   const fixture = createFixture(module, {
     responses: [response({ text: "Expected answer" })]
   });
 
   assert.equal(await fixture.api.callAI("Nutrition prompt", 321), "Expected answer");
   assert.deepEqual(fixture.tokenReads, ["firebase-id-token"]);
+  assert.deepEqual(fixture.appCheckReads, ["firebase-app-check-token"]);
   assert.equal(fixture.requests.length, 1);
   assert.equal(
     fixture.requests[0][0],
@@ -69,7 +78,8 @@ contractTest("sends the exact managed request with a current Firebase ID token",
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": "Bearer firebase-id-token"
+      "Authorization": "Bearer firebase-id-token",
+      "X-Firebase-AppCheck": "firebase-app-check-token"
     },
     body: JSON.stringify({
       prompt: "Nutrition prompt",
@@ -88,6 +98,22 @@ contractTest("rejects a missing Firebase token before making a request", async m
       error.code === "authentication-error"
   );
   assert.equal(fixture.requests.length, 0);
+});
+
+contractTest("fails closed before fetch when App Check is missing or unavailable", async module => {
+  for (const options of [
+    { appCheckToken: "" },
+    { appCheckError: new Error("private provider detail") }
+  ]) {
+    const fixture = createFixture(module, options);
+    await assert.rejects(
+      fixture.api.callAI("prompt"),
+      error => error instanceof module.AIClientError &&
+        error.code === "service-unavailable" &&
+        !error.message.includes("private provider detail")
+    );
+    assert.equal(fixture.requests.length, 0);
+  }
 });
 
 contractTest("maps sanitized Worker HTTP failures and rate-limit metadata to neutral errors", async module => {
@@ -118,6 +144,23 @@ contractTest("maps sanitized Worker HTTP failures and rate-limit metadata to neu
         error.code === code &&
         error.retryAfterSeconds === retryAfterSeconds &&
         error.scope === scope
+    );
+  }
+});
+
+contractTest("does not misclassify App Check rejection as an expired user session", async module => {
+  for (const [status, workerCode] of [
+    [401, "app-check-required"],
+    [401, "invalid-app-check"],
+    [503, "app-check-unavailable"],
+    [503, "app-check-not-configured"]
+  ]) {
+    const fixture = createFixture(module, {
+      responses: [response({ error: { code: workerCode } }, { ok: false, status })]
+    });
+    await assert.rejects(
+      fixture.api.callAI("prompt"),
+      error => error instanceof module.AIClientError && error.code === "service-unavailable"
     );
   }
 });
@@ -171,7 +214,7 @@ contractTest("propagates Firebase refresh failures and sanitizes network failure
   const tokenFixture = createFixture(module, { tokenError });
   await assert.rejects(
     tokenFixture.api.callAI("prompt"),
-    error => error === tokenError
+    error => error instanceof module.AIClientError && error.code === "service-unavailable"
   );
   assert.equal(tokenFixture.requests.length, 0);
 
@@ -256,6 +299,7 @@ contractTest("reads a fresh token per call and preserves the 800-token fallback"
   await fixture.api.callAI("zero", 0);
 
   assert.equal(fixture.tokenReads.length, 3);
+  assert.equal(fixture.appCheckReads.length, 3);
   assert.deepEqual(
     fixture.requests.map(request => JSON.parse(request[1].body).maxTokens),
     [250, 800, 800]

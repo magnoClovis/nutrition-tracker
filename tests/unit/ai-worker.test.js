@@ -70,6 +70,7 @@ function request({
   origin = WEB_ORIGIN,
   method = "POST",
   token = "firebase-id-token",
+  appCheckToken = "firebase-app-check-token",
   contentType = "application/json",
   body = JSON.stringify({ prompt: "Nutrition prompt", maxTokens: 321 }),
   pathName = "/v1/ai/completion",
@@ -79,6 +80,7 @@ function request({
   if (origin !== null) requestHeaders.Origin = origin;
   if (contentType !== null) requestHeaders["Content-Type"] = contentType;
   if (token !== null) requestHeaders.Authorization = `Bearer ${token}`;
+  if (appCheckToken !== null) requestHeaders["X-Firebase-AppCheck"] = appCheckToken;
   return new Request(`https://trofia-ai-proxy.example${pathName}`, {
     method,
     headers: requestHeaders,
@@ -93,6 +95,9 @@ async function responseBody(response) {
 async function createFixture({
   verificationResult = { uid: "firebase-user-1" },
   verificationError,
+  appCheckVerificationResult = { appId: "1:128834310181:web:test" },
+  appCheckVerificationError,
+  appCheckMode = "enforce",
   providerResponse = new Response(JSON.stringify({
     candidates: [{ content: { parts: [{ text: "Expected " }, { text: "answer" }] } }]
   }), {
@@ -107,6 +112,7 @@ async function createFixture({
 } = {}) {
   const module = await import("../../worker/src/ai-worker.js");
   const verifiedTokens = [];
+  const verifiedAppCheckTokens = [];
   const providerRequests = [];
   const rateLimiterNames = [];
   const rateLimiterChecks = [];
@@ -116,6 +122,11 @@ async function createFixture({
       if (verificationError) throw verificationError;
       return verificationResult;
     },
+    verifyFirebaseAppCheckToken: async token => {
+      verifiedAppCheckTokens.push(token);
+      if (appCheckVerificationError) throw appCheckVerificationError;
+      return appCheckVerificationResult;
+    },
     fetchRequest: async (...args) => {
       providerRequests.push(args);
       if (providerResponse instanceof Error) throw providerResponse;
@@ -123,7 +134,9 @@ async function createFixture({
     },
     now: () => now
   });
-  const env = geminiApiKey === null ? {} : { GEMINI_API_KEY: geminiApiKey };
+  const env = geminiApiKey === null
+    ? { APP_CHECK_MODE: appCheckMode }
+    : { GEMINI_API_KEY: geminiApiKey, APP_CHECK_MODE: appCheckMode };
   if (rateLimiterBinding) {
     env.AI_RATE_LIMITER = {
       getByName(name) {
@@ -143,6 +156,7 @@ async function createFixture({
     worker,
     env,
     verifiedTokens,
+    verifiedAppCheckTokens,
     providerRequests,
     rateLimiterNames,
     rateLimiterChecks
@@ -171,14 +185,17 @@ test("accepts the web and Capacitor HTTPS origins in CORS preflight", async () =
       body: undefined,
       headers: {
         "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers": "authorization, content-type"
+        "Access-Control-Request-Headers": "authorization, content-type, x-firebase-appcheck"
       }
     }), fixture.env);
 
     assert.equal(response.status, 204);
     assert.equal(response.headers.get("Access-Control-Allow-Origin"), origin);
     assert.equal(response.headers.get("Access-Control-Allow-Methods"), "POST, OPTIONS");
-    assert.equal(response.headers.get("Access-Control-Allow-Headers"), "Authorization, Content-Type");
+    assert.equal(
+      response.headers.get("Access-Control-Allow-Headers"),
+      "Authorization, Content-Type, X-Firebase-AppCheck"
+    );
     assert.equal(response.headers.get("Vary"), "Origin");
   }
 });
@@ -231,6 +248,7 @@ test("sends the exact stable Gemini generateContent request", async () => {
   assert.equal(response.status, 200);
   assert.deepEqual(await responseBody(response), { text: "Expected answer" });
   assert.deepEqual(fixture.verifiedTokens, ["firebase-id-token"]);
+  assert.deepEqual(fixture.verifiedAppCheckTokens, ["firebase-app-check-token"]);
   assert.deepEqual(fixture.rateLimiterNames, ["gemini-project-quota"]);
   assert.deepEqual(fixture.rateLimiterChecks, [["firebase-user-1", 123_456, "text"]]);
   assert.equal(fixture.providerRequests.length, 1);
@@ -629,6 +647,54 @@ test("maps invalid tokens to 401 and certificate outages to 503", async () => {
     const response = await fixture.worker.fetch(request(), fixture.env);
     assert.equal(response.status, status);
     assert.deepEqual(await responseBody(response), { error: { code } });
+    assert.equal(fixture.providerRequests.length, 0);
+  }
+});
+
+test("enforces App Check before reading the request body or consuming quota", async () => {
+  const appCheckModule = await import("../../worker/src/firebase-app-check-token.js");
+  const cases = [
+    [null, new appCheckModule.FirebaseAppCheckTokenError("invalid-token"), 401, "app-check-required"],
+    ["invalid", new appCheckModule.FirebaseAppCheckTokenError("invalid-token"), 401, "invalid-app-check"],
+    ["token", new appCheckModule.FirebaseAppCheckTokenError("app-not-allowed"), 401, "invalid-app-check"],
+    ["token", new appCheckModule.FirebaseAppCheckTokenError("key-unavailable"), 503, "app-check-unavailable"]
+  ];
+
+  for (const [appCheckToken, appCheckVerificationError, status, code] of cases) {
+    const fixture = await createFixture({ appCheckVerificationError });
+    const response = await fixture.worker.fetch(request({
+      appCheckToken,
+      body: "not-json"
+    }), fixture.env);
+    assert.equal(response.status, status);
+    assert.deepEqual(await responseBody(response), { error: { code } });
+    assert.equal(fixture.rateLimiterChecks.length, 0);
+    assert.equal(fixture.providerRequests.length, 0);
+  }
+});
+
+test("observation mode verifies App Check without rejecting existing clients", async () => {
+  const appCheckModule = await import("../../worker/src/firebase-app-check-token.js");
+  const fixture = await createFixture({
+    appCheckMode: "observe",
+    appCheckVerificationError: new appCheckModule.FirebaseAppCheckTokenError("invalid-token")
+  });
+  const response = await fixture.worker.fetch(request({ appCheckToken: null }), fixture.env);
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(fixture.verifiedAppCheckTokens, [""]);
+  assert.equal(fixture.providerRequests.length, 1);
+});
+
+test("fails closed when the App Check rollout mode is absent or invalid", async () => {
+  for (const appCheckMode of [undefined, "off", "unknown"]) {
+    const fixture = await createFixture({ appCheckMode });
+    if (appCheckMode === undefined) delete fixture.env.APP_CHECK_MODE;
+    const response = await fixture.worker.fetch(request(), fixture.env);
+    assert.equal(response.status, 503);
+    assert.deepEqual(await responseBody(response), {
+      error: { code: "app-check-not-configured" }
+    });
     assert.equal(fixture.providerRequests.length, 0);
   }
 });

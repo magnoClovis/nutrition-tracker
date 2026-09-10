@@ -163,11 +163,11 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ### [C14-C] - App Check no Worker de IA
 
-- **Status:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento.
+- **Data de conclusão:** não concluído.
 - **Propósito:** proteger a cota e os endpoints de IA contra clientes automatizados que possuam apenas uma conta Firebase válida, sem repetir uma quebra de clientes durante o rollout.
-- **Recursos/arquivos principais envolvidos:** `/worker/src/`, `/worker/wrangler.jsonc`, adaptadores de IA do cliente, inicialização App Check web/Android, CI autenticado e testes Worker/Pages/AAB.
-- **O que foi feito:** nenhuma implementação iniciada. Está aprovado o rollout observação → clientes enviam token → debug provider no CI → validação Pages/AAB real → enforcement obrigatório.
+- **Recursos/arquivos principais envolvidos:** `/worker/src/firebase-app-check-token.js`, `/worker/src/ai-worker.js`, `/worker/wrangler.jsonc`, `/ai-client.js`, `/image-meal-client.js`, composições legado/Vite, inicialização App Check web/Android, CI autenticado, testes Worker/Pages/AAB e `/documentation/estado-atual/C14_C_APP_CHECK_WORKER_ROLLOUT.md`.
+- **O que foi feito:** em 10/09/2026 foi implementada a verificação própria dos tokens Firebase App Check no Worker: JWKS oficial com cache limitado a seis horas, assinatura RS256, `typ`, `kid`, emissor, audiência, expiração e allowlist dos app IDs Web/Android. Os clientes de texto e imagem passaram a obter e enviar `X-Firebase-AppCheck`, falhando de forma sanitizada antes do upload quando a prova do app não está disponível. O CORS e os verificadores de deploy reconhecem o cabeçalho. O run autenticado `34478874949` ficou integralmente verde, incluindo o debug provider do App Check, e a versão Worker `632877f3-e51f-4226-92fa-0b139e51e459` foi publicada em `observe` e aprovada no smoke externo. Faltam a publicação/validação do novo cliente no Pages, um AAB real com Play Integrity e, somente depois, a ativação de `enforce` com nova validação para concluir a fatia.
 
 ### [C14-D] - Android e cadeia de release
 

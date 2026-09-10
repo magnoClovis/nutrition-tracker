@@ -84,6 +84,8 @@ test('the active Vite facade cuts Auth over to the shared modular runtime', () =
   assert.match(app, /if \(!verified\)[\s\S]*?return;[\s\S]*?setAuthed\(true\);/);
   assert.match(app, /fbReauthenticate/);
   assert.match(app, /fbUpdatePassword/);
+  assert.match(app, /AIClient\.createAIClient\([\s\S]*?getAppCheckToken/);
+  assert.match(app, /ImageMealClient\.createImageMealClient\([\s\S]*?getAppCheckToken/);
 });
 
 test('the active Vite facade cuts Firestore over without importing the REST adapter', () => {

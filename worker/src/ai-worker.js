@@ -3,6 +3,10 @@ import {
   FirebaseIdTokenError
 } from "./firebase-id-token.js";
 import {
+  createFirebaseAppCheckTokenVerifier,
+  FirebaseAppCheckTokenError
+} from "./firebase-app-check-token.js";
+import {
   geminiImageMealInteractionRequest,
   geminiImageMealInteractionText,
   validateImageMealEstimate,
@@ -26,6 +30,11 @@ const FOOD_ESTIMATE_PATH = "/v1/ai/food-estimate";
 const DISH_ESTIMATE_PATH = "/v1/ai/dish-estimate";
 const PANTRY_SUGGESTIONS_PATH = "/v1/ai/pantry-suggestions";
 const FIREBASE_PROJECT_ID = "nutrition-tracker-780b3";
+const FIREBASE_PROJECT_NUMBER = "128834310181";
+const FIREBASE_APP_CHECK_APP_IDS = [
+  "1:128834310181:web:91e8d303e932c4a84bafcc",
+  "1:128834310181:android:47e0da0a815dfbb74bafcc"
+];
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_COMPLETION_ENDPOINT =
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -45,7 +54,7 @@ function corsHeaders(origin) {
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Firebase-AppCheck",
     "Access-Control-Max-Age": "86400",
     "Vary": "Origin"
   };
@@ -143,13 +152,18 @@ export function createAIWorker({
   verifyFirebaseIdToken = createFirebaseIdTokenVerifier({
     projectId: FIREBASE_PROJECT_ID
   }),
+  verifyFirebaseAppCheckToken = createFirebaseAppCheckTokenVerifier({
+    projectNumber: FIREBASE_PROJECT_NUMBER,
+    allowedAppIds: FIREBASE_APP_CHECK_APP_IDS
+  }),
   fetchRequest = globalThis.fetch,
   now = () => Date.now()
 } = {}) {
   if (typeof verifyFirebaseIdToken !== "function" ||
+      typeof verifyFirebaseAppCheckToken !== "function" ||
       typeof fetchRequest !== "function" ||
       typeof now !== "function") {
-    throw new TypeError("AI Worker requires token verification, fetch, and clock functions");
+    throw new TypeError("AI Worker requires Auth/App Check verification, fetch, and clock functions");
   }
 
   return {
@@ -176,7 +190,7 @@ export function createAIWorker({
           .split(",")
           .map(header => header.trim().toLowerCase())
           .filter(Boolean);
-        const allowedHeaders = new Set(["authorization", "content-type"]);
+        const allowedHeaders = new Set(["authorization", "content-type", "x-firebase-appcheck"]);
         if (requestedMethod !== "POST" ||
             requestedHeaders.some(header => !allowedHeaders.has(header))) {
           return errorResponse(405, "method-not-allowed", origin);
@@ -207,6 +221,29 @@ export function createAIWorker({
           return errorResponse(503, "authentication-unavailable", origin);
         }
         return errorResponse(401, "invalid-authentication", origin);
+      }
+
+      const appCheckMode = env?.APP_CHECK_MODE;
+      if (appCheckMode !== "observe" && appCheckMode !== "enforce") {
+        return errorResponse(503, "app-check-not-configured", origin);
+      }
+      const appCheckToken = request.headers.get("X-Firebase-AppCheck") || "";
+      let appCheckError = null;
+      try {
+        await verifyFirebaseAppCheckToken(appCheckToken);
+      } catch (error) {
+        appCheckError = error;
+      }
+      if (appCheckMode === "enforce" && appCheckError) {
+        if (appCheckError instanceof FirebaseAppCheckTokenError &&
+            appCheckError.code === "key-unavailable") {
+          return errorResponse(503, "app-check-unavailable", origin);
+        }
+        return errorResponse(
+          401,
+          appCheckToken ? "invalid-app-check" : "app-check-required",
+          origin
+        );
       }
 
       let body;

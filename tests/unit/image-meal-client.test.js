@@ -27,6 +27,7 @@ contractTest('sends the exact authenticated image request with AbortSignal', asy
   const estimate = { status: 'identified', items: [] };
   const client = module.createImageMealClient({
     getIdToken: async () => 'fresh-token',
+    getAppCheckToken: async () => 'fresh-app-check-token',
     fetchRequest: async (...args) => {
       calls.push(args);
       return response(200, { estimate });
@@ -43,6 +44,7 @@ contractTest('sends the exact authenticated image request with AbortSignal', asy
     headers: {
       'Content-Type': 'application/json',
       Authorization: 'Bearer fresh-token',
+      'X-Firebase-AppCheck': 'fresh-app-check-token',
     },
     body: JSON.stringify({
       image: { mimeType: 'image/jpeg', data: '/9j/' },
@@ -56,6 +58,7 @@ contractTest('rejects invalid input and an expired local session before fetch', 
   let fetches = 0;
   const client = module.createImageMealClient({
     getIdToken: async () => '',
+    getAppCheckToken: async () => 'app-check-token',
     fetchRequest: async () => { fetches += 1; },
   });
 
@@ -70,6 +73,27 @@ contractTest('rejects invalid input and an expired local session before fetch', 
   assert.equal(fetches, 0);
 });
 
+contractTest('fails closed before image upload when App Check is unavailable', async module => {
+  let fetches = 0;
+  for (const getAppCheckToken of [
+    async () => '',
+    async () => { throw new Error('private attestation detail'); },
+  ]) {
+    const client = module.createImageMealClient({
+      getIdToken: async () => 'token',
+      getAppCheckToken,
+      fetchRequest: async () => { fetches += 1; },
+    });
+    await assert.rejects(
+      client.analyzeImageMeal({ image: { mimeType: 'image/jpeg', data: '/9j/' }, language: 'pt' }),
+      error => error instanceof module.ImageMealClientError &&
+        error.code === 'service-unavailable' &&
+        !error.message.includes('private attestation detail'),
+    );
+  }
+  assert.equal(fetches, 0);
+});
+
 contractTest('maps quota scope, retry time, session, invalid photo, and service failures', async module => {
   const cases = [
     [401, {}, {}, 'session-expired'],
@@ -81,6 +105,7 @@ contractTest('maps quota scope, retry time, session, invalid photo, and service 
   for (const [status, body, headers, code] of cases) {
     const client = module.createImageMealClient({
       getIdToken: async () => 'token',
+      getAppCheckToken: async () => 'app-check-token',
       fetchRequest: async () => response(status, body, headers),
     });
     await assert.rejects(
@@ -97,6 +122,24 @@ contractTest('maps quota scope, retry time, session, invalid photo, and service 
   }
 });
 
+contractTest('maps Worker App Check rejection without reporting an expired user session', async module => {
+  for (const [status, code] of [
+    [401, 'app-check-required'],
+    [401, 'invalid-app-check'],
+    [503, 'app-check-unavailable'],
+  ]) {
+    const client = module.createImageMealClient({
+      getIdToken: async () => 'token',
+      getAppCheckToken: async () => 'app-check-token',
+      fetchRequest: async () => response(status, { error: { code } }),
+    });
+    await assert.rejects(
+      client.analyzeImageMeal({ image: { mimeType: 'image/jpeg', data: '/9j/' }, language: 'es' }),
+      error => error instanceof module.ImageMealClientError && error.code === 'service-unavailable',
+    );
+  }
+});
+
 contractTest('distinguishes invalid JSON and invalid response shape', async module => {
   const responses = [
     { ok: true, status: 200, headers: { get: () => null }, json: async () => { throw new Error('bad json'); } },
@@ -106,6 +149,7 @@ contractTest('distinguishes invalid JSON and invalid response shape', async modu
   for (const nextResponse of responses) {
     const client = module.createImageMealClient({
       getIdToken: async () => 'token',
+      getAppCheckToken: async () => 'app-check-token',
       fetchRequest: async () => nextResponse,
     });
     await assert.rejects(
@@ -122,6 +166,7 @@ contractTest('preserves deliberate cancellation and sanitizes other network fail
   ]) {
     const client = module.createImageMealClient({
       getIdToken: async () => 'token',
+      getAppCheckToken: async () => 'app-check-token',
       fetchRequest: async () => { throw error; },
     });
     if (error.name === 'AbortError') {
