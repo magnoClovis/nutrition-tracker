@@ -395,6 +395,15 @@ test("granular daily schema validates owner, path identity, and exact envelopes"
     },
     updatedAt: serverTimestamp(),
   }));
+  await assertSucceeds(setDoc(mealRef, {
+    mealKey: "Jantar",
+    updatedAt: serverTimestamp(),
+  }, {merge: true}));
+  const movedMeal = await getDoc(mealRef);
+  assert.equal(movedMeal.data().mealKey, "Jantar");
+  assert.equal(movedMeal.data().id, "meal-1");
+  assert.equal(movedMeal.data().entry.id, "meal-1");
+  assert.equal(movedMeal.data().entry.time, "12:30");
   await assertSucceeds(setDoc(waterRef, {
     schemaVersion: 1,
     id: "water-1",

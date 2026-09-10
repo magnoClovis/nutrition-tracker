@@ -70,6 +70,37 @@ contractTest('updates and removes only the addressed entry', model => {
   assert.deepEqual(removed, [{id: 'b', qty: 3}]);
 });
 
+contractTest('edits and moves an entry without changing identity or metadata', model => {
+  const snapshot = {algorithmVersion: 'meal-score-v2', score: 4};
+  const original = {
+    id: 'meal-1', foodId: 'food-1', name: 'Rice', qty: 100, unit: 'g',
+    time: '12:30', _estimated: true, _estimateSource: 'image',
+    mealEvaluationId: 'review-1', mealScoreSnapshot: snapshot,
+  };
+  const previous = {Lunch: [original], Dinner: [{id: 'meal-2', name: 'Soup'}]};
+
+  const moved = model.updateMealLogEntry(
+    previous, 'Lunch', 'Dinner', 'meal-1', entry => ({...entry, qty: 150}),
+  );
+
+  assert.deepEqual(moved.Lunch, []);
+  assert.deepEqual(moved.Dinner, [
+    {id: 'meal-2', name: 'Soup'},
+    {...original, qty: 150},
+  ]);
+  assert.equal(moved.Dinner[1].id, original.id);
+  assert.equal(moved.Dinner[1].time, original.time);
+  assert.equal(moved.Dinner[1]._estimateSource, original._estimateSource);
+  assert.equal(previous.Lunch[0], original);
+});
+
+contractTest('rejects a move that would duplicate an identity across categories', model => {
+  assert.throws(() => model.updateMealLogEntry(
+    {Lunch: [{id: 'same', qty: 1}], Dinner: [{id: 'same', qty: 2}]},
+    'Lunch', 'Dinner', 'same', entry => entry,
+  ), /unique across meal categories/);
+});
+
 contractTest('rejects identity changes during an update', model => {
   assert.throws(() => model.applyEntryListMutation([{id: 'a'}], {
     type: 'update',

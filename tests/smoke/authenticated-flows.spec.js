@@ -391,6 +391,34 @@ test.describe('authenticated critical data flows', () => {
       await expect(savedEvaluation.getByRole('button', { name: /Registrar refeição/i })).toHaveCount(0);
       await savedEvaluation.getByRole('button', { name: 'Fechar', exact: true }).first().click();
       await expect(savedEvaluation).toBeHidden();
+
+      await diaryEntryRow.getByRole('button', {name: '⋯', exact: true}).click();
+      await diaryEntryRow.getByRole('button', {name: 'Editar', exact: true}).click();
+      const entryEditor = page.locator(`[data-diary-entry-editor="${storedEntry.id}"]`);
+      await expect(entryEditor).toBeVisible();
+      await expect(entryEditor.locator('[data-diary-entry-evaluation-warning="true"]')).toBeVisible();
+      await entryEditor.getByLabel('Quantidade', {exact: true}).fill('250');
+      await entryEditor.locator('[data-choice-field-trigger="true"]').click();
+      await page.getByRole('option', {name: 'Jantar', exact: true}).click();
+      await entryEditor.getByRole('button', {name: 'Confirmar', exact: true}).click();
+      await expect.poll(async () => {
+        const current = await readDailyLog(page, today);
+        const moved = (current.Jantar || []).find(item => item.id === storedEntry.id);
+        return moved ? {
+          id: moved.id,
+          qty: moved.qty,
+          time: moved.time,
+          evaluationId: moved.mealEvaluationId || null,
+          hasSnapshot: !!moved.mealScoreSnapshot,
+        } : null;
+      }, {timeout: 30000}).toEqual({
+        id: storedEntry.id,
+        qty: 250,
+        time: storedEntry.time,
+        evaluationId: null,
+        hasSnapshot: false,
+      });
+      await expect(evaluationBadge).toHaveCount(0);
       const unexpectedErrors = errors.filter(error => !/Failed to load resource: net::ERR_TIMED_OUT/i.test(error));
       await expectNoCriticalErrors(unexpectedErrors);
     } finally {

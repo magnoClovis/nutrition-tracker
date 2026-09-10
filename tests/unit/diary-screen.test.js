@@ -212,9 +212,11 @@ function baseProps(overrides = {}) {
     entryMenuId: null,
     editEntryId: null,
     editEntryQty: "",
+    editEntryMeal: "",
     setEditEntryQty: noOp,
+    setEditEntryMeal: noOp,
     saveEntryEdit: noOp,
-    setEditEntryId: noOp,
+    cancelEntryEdit: noOp,
     openAddForMeal: noOp,
     setEntryMenuId: noOp,
     detailFood: null,
@@ -570,6 +572,66 @@ contractTest("opens the selected diary entry from the Details menu action", Diar
   assert.ok(detailsButton);
   detailsButton.props.onClick();
   assert.equal(selected, "entry-1");
+});
+
+contractTest("opens one unified editor for amount and meal category", DiaryScreen => {
+  const entry = {
+    id: "entry-edit", name: "Rice", qty: 100, unit: "g", time: "12:30",
+    mealEvaluationId: "evaluation-1", mealScoreSnapshot: {algorithmVersion: "meal-score-v2"}
+  };
+  let selectedMeal = null;
+  let savedMeal = null;
+  let cancelled = 0;
+  const view = DiaryScreen(baseProps({
+    MEALS: ["Breakfast", "Lunch", "Dinner"],
+    activeLog: {Lunch: [entry]},
+    allEntries: [entry],
+    editEntryId: entry.id,
+    editEntryQty: "150",
+    editEntryMeal: "Dinner",
+    setEditEntryMeal: value => { selectedMeal = value; },
+    saveEntryEdit: meal => { savedMeal = meal; },
+    cancelEntryEdit: () => { cancelled += 1; }
+  }));
+
+  const editor = findNodes(view, node => node.props?.["data-diary-entry-editor"] === entry.id)[0];
+  assert.ok(editor);
+  const category = findNodes(editor, node => node.type === ChoiceField)[0];
+  assert.equal(category.props.id, `diary-entry-meal-${entry.id}`);
+  assert.equal(category.props.value, "Dinner");
+  assert.deepEqual(category.props.options, [
+    {value: "Breakfast", label: "Breakfast"},
+    {value: "Lunch", label: "Lunch"},
+    {value: "Dinner", label: "Dinner"}
+  ]);
+  category.props.onChange("Breakfast");
+  assert.equal(selectedMeal, "Breakfast");
+  assert.match(textContent(editor), /remove.*saved assessment/i);
+
+  const buttons = findNodes(editor, node => node.type === "button");
+  buttons.find(button => textContent(button) === "Confirm").props.onClick();
+  buttons.find(button => textContent(button) === "Cancel").props.onClick();
+  assert.equal(savedMeal, "Lunch");
+  assert.equal(cancelled, 1);
+});
+
+contractTest("renames the Diary menu action to Edit and passes its source category", DiaryScreen => {
+  const entry = {id: "entry-menu", name: "Soup", qty: 1, unit: "un"};
+  let started = null;
+  const view = DiaryScreen(baseProps({
+    MEALS: ["Lunch", "Dinner"],
+    activeLog: {Dinner: [entry]},
+    allEntries: [entry],
+    entryMenuId: entry.id,
+    startEditEntry: (meal, selected) => { started = {meal, selected}; }
+  }));
+  const editButton = findNodes(
+    view,
+    node => node.type === "button" && textContent(node) === "Edit"
+  )[0];
+  assert.ok(editButton);
+  editButton.props.onClick();
+  assert.deepEqual(started, {meal: "Dinner", selected: entry});
 });
 
 contractTest("renders read-only entry details, hides missing nutrients, and closes accessibly", DiaryScreen => {

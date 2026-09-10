@@ -43,7 +43,7 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
 
-  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 156);
+  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 157);
   assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 40);
   assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 26);
 });
@@ -613,8 +613,10 @@ contractTest("invalidates accepted score snapshots conservatively when diary ent
   const removeBlock = source.slice(removeStart, removeEnd);
   const duplicateBlock = source.slice(duplicateStart, duplicateEnd);
 
-  assert.match(editBlock, /invalidateMealEvaluationForEntry\(\s*previous\[meal\],\s*editEntryId\s*\)/);
-  assert.ok(editBlock.indexOf("invalidateMealEvaluationForEntry") < editBlock.indexOf('type: "update"'));
+  assert.match(editBlock, /invalidateMealEvaluationForEntry\(\s*previous\[sourceMeal\],\s*editEntryId\s*\)/);
+  assert.ok(editBlock.indexOf("invalidateMealEvaluationForEntry") < editBlock.indexOf("updateMealLogEntry"));
+  assert.match(editBlock, /updateMealLogEntry\(/);
+  assert.match(editBlock, /sourceMeal,\s*targetMeal,\s*editEntryId/);
   assert.match(removeBlock, /invalidateMealEvaluationForEntry\(\s*previous\[meal\],\s*id\s*\)/);
   assert.ok(removeBlock.indexOf("invalidateMealEvaluationForEntry") < removeBlock.indexOf('type: "remove"'));
   assert.match(duplicateBlock, /stripMealEvaluationMetadata\(\{/);
