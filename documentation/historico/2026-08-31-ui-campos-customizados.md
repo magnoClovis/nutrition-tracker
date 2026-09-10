@@ -610,6 +610,47 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 
 **PRs/commits relacionados:** [PR #172 — S9: diálogo genérico do Trofia](https://github.com/magnoClovis/nutrition-tracker/pull/172); [commit `40795f3` — componente, integrações e testes](https://github.com/magnoClovis/nutrition-tracker/commit/40795f3); [commit `6f531d5` — gesto real de fechamento no smoke](https://github.com/magnoClovis/nutrition-tracker/commit/6f531d5); [commit `7d79c71` — precondição do disclosure de água](https://github.com/magnoClovis/nutrition-tracker/commit/7d79c71); [commit `00a51f3` — correção da sobreposição do contêiner de métricas](https://github.com/magnoClovis/nutrition-tracker/commit/00a51f3); [commit `84a28a7` — nome acessível localizado da exclusão](https://github.com/magnoClovis/nutrition-tracker/commit/84a28a7); [commit `58d8e56` — fixture dos caminhos primário e fallback da exportação web](https://github.com/magnoClovis/nutrition-tracker/commit/58d8e56); [commit `cc9cbe5` — instrumentação isolada temporária](https://github.com/magnoClovis/nutrition-tracker/commit/cc9cbe5); [commit `9e2950f` — remoção integral da instrumentação](https://github.com/magnoClovis/nutrition-tracker/commit/9e2950f); [commit `51fe5fd` — navegação responsiva da aba Alimentos no smoke](https://github.com/magnoClovis/nutrition-tracker/commit/51fe5fd); [commit `8e3738c` — reconciliação com a correção externa do incidente C14-B2](https://github.com/magnoClovis/nutrition-tracker/commit/8e3738c); [run autenticado `33457347380` — diagnóstico do gesto de fechamento](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33457347380); [run autenticado `33460811991` — diagnóstico da precondição do disclosure de água](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33460811991); [run autenticado `33461785140` — diagnóstico da sobreposição do contêiner de métricas](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33461785140); [run autenticado `33478313769` — diagnóstico do nome acessível do botão de exclusão](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33478313769); [run autenticado `33483115991` — diagnóstico da fixture do caminho primário de exportação](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33483115991); [run autenticado `33488032008` — raio responsivo e queda de sessão no ciclo ES desktop](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33488032008); [run autenticado `33497924576` — legado verde, recorrência no reload PT/EN/ES do Vite mobile e timeout global](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33497924576); [run isolado `33502189291` — três repetições Vite mobile sem reprodução do travamento](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33502189291); [run canônico `33504751303`, attempt 2 — navegação fora do viewport no Vite desktop](https://github.com/magnoClovis/nutrition-tracker/actions/runs/33504751303/attempts/2).
 
+## D1 - Shell desktop, cabeçalho e navegação em largura total
+
+**Data (se determinável):** 10/09/2026.
+
+**Propósito:** eliminar a sobreposição histórica entre a navegação principal e o conteúdo do cabeçalho em telas web largas. O layout anterior puxava a barra Diário/Alimentos/Semana/Métricas `42px` para cima no breakpoint desktop; dependendo da aba, essa mesma faixa já continha peso/IMC ou indicadores compactos de proteína e calorias. A D1 também materializa a escolha visual aprovada de usar toda a largura útil do shell, em vez da alternativa compacta alinhada à direita.
+
+**Recursos:**
+
+- React 18 e o componente apresentacional UMD/ESM compartilhado do cabeçalho.
+- CSS responsivo One UI 8/Glass UI no breakpoint desktop de `1024px`.
+- Node Test para contratos estruturais UMD/ESM e proteção do CSS.
+- Playwright para medição de `getBoundingClientRect`, viewport, overflow e estilos computados.
+- Build Vite e carregador legado comparados pela matriz de cutover.
+
+**Arquivos:**
+
+- `app-header-navigation.js`
+- `one-ui.css`
+- `tests/unit/app-header-navigation.test.js`
+- `tests/unit/desktop-shell-layout.test.js`
+- `tests/smoke/desktop-shell.visual.spec.js`
+- `CHANGELOG_DESIGN.md`
+- `documentation/estado-atual/CHANGELOG_DESIGN.md`
+- `documentation/estado-atual/RESUMO-STATUS.md`
+- `documentation/historico/2026-08-31-ui-campos-customizados.md`
+
+**O que foi feito:**
+
+- A margem negativa `margin-top: -42px`, causa direta da colisão, foi removida do contrato desktop. A navegação agora começa com margem positiva de `14px`, depois do conteúdo anterior no fluxo.
+- A barra passou a usar `width: 100%`, `max-width: 1080px`, `box-sizing: border-box` e `align-self: stretch`, acompanhando a largura útil já usada pelo cabeçalho e pelo conteúdo principal.
+- Os dois hosts históricos da navegação foram identificados por `data-app-nav-placement`: `standalone` no Diário e `header` nas demais abas. O host standalone usa `min(1080px, calc(100% - 64px))` e margens automáticas, alinhando suas bordas às do status em 1280, 1440 e 1920px sem deslocar a navegação móvel fixa.
+- Nenhum conteúdo, callback, estado, idioma, regra de navegação ou layout interno das telas foi alterado. Em particular, os cards de macros do Diário permanecem reservados para a D2; a D1 não tentou corrigir esse problema adjacente no mesmo PR.
+- O contrato unitário verifica a classificação dos dois hosts e protege largura, alinhamento, margem positiva e ausência de margem negativa. O smoke autenticado percorre as quatro abas em 1280/1440/1920, claro/escuro, mede status, navegação e botão de peso/IMC, reprova qualquer interseção e exige alinhamento lateral e ausência de overflow horizontal.
+- O teste focado unitário passou em 9/9. A comparação determinística focada de Diário, Alimentos, Semana e Métricas em claro/escuro passou em 8/8, com DOM, estilos e pixels equivalentes entre legado e Vite.
+- O gate local passou com preflight limpo, 1.275 testes unitários sem skip, 40 smokes legado e 40 Vite; os 63 skips de cada runtime são exclusivamente os testes autenticados esperados quando as credenciais locais não estão configuradas. A matriz completa de cutover passou 60/60 sem skip em PT/EN/ES, desktop/mobile e claro/escuro.
+- A primeira tentativa do cutover completo não chegou a executar porque os servidores da comparação focada permaneceram órfãos nas portas 8775/8776 no Windows. Os processos foram confirmados como `tests/smoke/serve-static.js` iniciados pela própria D1, encerrados de forma direcionada, e a repetição integral passou 60/60; não houve alteração de infraestrutura nem uso de `force: true`.
+- O primeiro CI autenticado do PR (`34457136315`) executou 93 smokes, manteve apenas os 8 skips canônicos, mas reprovou os dois projetos Playwright no novo contrato geométrico. O artifact mostrou que, ao sair do Diário para Alimentos em 1280px, o status estava centralizado entre `left: 100px` e `right: 1180px`, enquanto a navegação interna preservava 1080px de largura ancorados em `left: 0`; portanto, não havia mais sobreposição, mas a escolha aprovada de largura total do shell ainda não estava realmente alinhada.
+- A correção adicional foi restrita ao mesmo contrato desktop: `margin-left/right: auto` passou da regra exclusiva do host standalone para a regra base de `[data-app-nav]`. Assim, tanto o Diário quanto Alimentos/Semana/Métricas centralizam a barra de 1080px no shell, sem alterar dimensões, callbacks ou o breakpoint móvel. O teste unitário foi reforçado para exigir a centralização na regra compartilhada.
+
+**PRs/commits relacionados:** PR draft [#187](https://github.com/magnoClovis/nutrition-tracker/pull/187); commit [`80f9056`](https://github.com/magnoClovis/nutrition-tracker/commit/80f9056); [run autenticado `34457136315` — diagnóstico do desalinhamento do host interno](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34457136315). CI autenticado real final: aguardando repetição no PR draft.
+
 ## C07 - Cobertura visual autenticada dos componentes customizados
 
 **Data (se determinável):** 30–31/08/2026.

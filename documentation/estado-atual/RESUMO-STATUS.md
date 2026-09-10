@@ -28,6 +28,7 @@
 
 ## O que está em andamento agora
 
+- **[D1 — shell desktop/cabeçalho/navegação] Em andamento (10/09/2026) — Chat: Trofia-UIUX.** O PR draft #187 remove a margem negativa que sobrepunha as abas ao peso/IMC e ao progresso, adota a navegação em largura total alinhada ao shell de 1080px e preserva a navegação móvel. O gate local está concluído: 1.275 unitários sem skip, smokes legado/Vite com somente os skips autenticados esperados sem credenciais locais e cutover 60/60; falta o CI autenticado real do PR antes de considerar a fatia concluída.
 - **C14 — revisão geral de segurança:** C14-A, C14-B1 e C14-B2 estão concluídas; C14-C a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
