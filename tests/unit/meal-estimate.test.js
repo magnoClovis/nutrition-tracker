@@ -113,6 +113,137 @@ contractTest("creates a neutral user-added item without inventing nutrition", ({
   });
 });
 
+contractTest("rescales every known nutrient and estimated weight from quantity", ({ rescaleMealEstimateItem }) => {
+  const original = {
+    id: "rice",
+    name: "Rice",
+    quantity: 120,
+    unit: "g",
+    estimatedGrams: 120,
+    protein: 3,
+    kcal: 156,
+    carbs: 34,
+    fat: 0.4,
+    fiber: 0.5,
+    salt: 0,
+    sugars: null,
+    satfat: "0.12",
+    confidence: "medium"
+  };
+
+  const scaled = rescaleMealEstimateItem(original, "quantity", "180");
+
+  assert.deepEqual(scaled, {
+    ...original,
+    quantity: "180",
+    estimatedGrams: 180,
+    protein: 4.5,
+    kcal: 234,
+    carbs: 51,
+    fat: 0.6,
+    fiber: 0.75,
+    salt: 0,
+    sugars: null,
+    satfat: 0.18
+  });
+  assert.equal(original.quantity, 120);
+  assert.equal(original.kcal, 156);
+});
+
+contractTest("rescales nutrients from estimated weight without changing quantity", ({ rescaleMealEstimateItem }) => {
+  const original = {
+    quantity: 1,
+    unit: "portion",
+    estimatedGrams: 250,
+    protein: 12,
+    kcal: 310,
+    carbs: null,
+    fat: 10,
+    fiber: "",
+    salt: undefined,
+    sugars: 0,
+    satfat: 2.5
+  };
+
+  const scaled = rescaleMealEstimateItem(original, "estimatedGrams", 300);
+
+  assert.equal(scaled.quantity, 1);
+  assert.equal(scaled.estimatedGrams, 300);
+  assert.equal(scaled.protein, 14.4);
+  assert.equal(scaled.kcal, 372);
+  assert.equal(scaled.fat, 12);
+  assert.equal(scaled.satfat, 3);
+  assert.equal(scaled.sugars, 0);
+  assert.equal(scaled.carbs, null);
+  assert.equal(scaled.fiber, "");
+  assert.equal(scaled.salt, undefined);
+});
+
+contractTest("uses manually edited nutrients as the next proportional baseline", ({ rescaleMealEstimateItem }) => {
+  const original = {
+    quantity: 100,
+    estimatedGrams: 100,
+    protein: 20,
+    kcal: 200,
+    carbs: null,
+    fat: null,
+    fiber: null,
+    salt: null,
+    sugars: null,
+    satfat: null
+  };
+  const manuallyEdited = { ...original, protein: "30" };
+  const scaled = rescaleMealEstimateItem(manuallyEdited, "quantity", 50);
+
+  assert.equal(scaled.protein, 15);
+  assert.equal(scaled.kcal, 100);
+  assert.equal(scaled.estimatedGrams, 50);
+});
+
+contractTest("keeps nutrition unchanged when a proportional reference is not usable", ({ rescaleMealEstimateItem }) => {
+  const item = { quantity: 100, estimatedGrams: 100, protein: 20, kcal: 200 };
+
+  assert.deepEqual(
+    rescaleMealEstimateItem(item, "quantity", ""),
+    { ...item, quantity: "" }
+  );
+  assert.deepEqual(
+    rescaleMealEstimateItem({ ...item, estimatedGrams: 0 }, "estimatedGrams", 200),
+    { ...item, estimatedGrams: 200 }
+  );
+});
+
+contractTest("rounds scaled values deterministically without floating-point noise", ({ rescaleMealEstimateItem }) => {
+  const item = {
+    quantity: 3,
+    estimatedGrams: 100,
+    protein: 0.1,
+    kcal: 47.999984,
+    carbs: null,
+    fat: null,
+    fiber: null,
+    salt: null,
+    sugars: null,
+    satfat: null
+  };
+  const scaled = rescaleMealEstimateItem(item, "quantity", 6);
+
+  assert.equal(scaled.protein, 0.2);
+  assert.equal(scaled.kcal, 96);
+  assert.equal(scaled.estimatedGrams, 200);
+});
+
+contractTest("rejects invalid proportional transformation arguments", ({ rescaleMealEstimateItem }) => {
+  assert.throws(
+    () => rescaleMealEstimateItem(null, "quantity", 2),
+    /must be an object/
+  );
+  assert.throws(
+    () => rescaleMealEstimateItem({ quantity: 1 }, "unit", 2),
+    /quantity or estimatedGrams/
+  );
+});
+
 contractTest("accepts explicit non-actionable results without invented foods", ({ api }) => {
   assert.deepEqual(api.normalizeMealEstimate({
     status: "not-identifiable",
