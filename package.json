@@ -18,6 +18,7 @@
     "test": "npm.cmd run preflight && npm.cmd run test:unit && npm.cmd run test:smoke && npm.cmd run test:cutover"
   },
   "dependencies": {
+    "@capacitor-community/camera-preview": "8.0.1",
     "@capacitor-firebase/app-check": "8.4.0",
     "@capacitor-mlkit/barcode-scanning": "8.1.0",
     "@capacitor/android": "8.4.2",
