@@ -71,6 +71,22 @@ contractTest("builds one diary entry per reviewed item without provider-only met
   assert.doesNotMatch(JSON.stringify(entries), /assumptions|confidence|estimatedGrams|dishName/);
 });
 
+contractTest("persists proportionally reviewed values from the shared editor", async module => {
+  const { api } = fixture(module);
+  const result = await api.requestDishEstimate({ description: "rice", lang: "en" });
+  const reviewed = {
+    ...result.result,
+    items: [MealEstimate.rescaleMealEstimateItem(result.result.items[0], "quantity", "60")]
+  };
+  const [entry] = api.buildDescribedEntries({ estimate: reviewed, description: "rice" });
+
+  assert.equal(entry.qty, 60);
+  assert.equal(entry.protein, 1.5);
+  assert.equal(entry.kcal, 78);
+  assert.equal(entry.carbs, 17);
+  assert.equal(entry.fiber, null);
+});
+
 contractTest("fails closed before UI state when the shared contract is malformed", async module => {
   const invalid = remoteEstimate({ items: [{ ...remoteEstimate().items[0], protein: null }] });
   const { api } = fixture(module, [invalid]);

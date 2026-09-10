@@ -270,6 +270,7 @@ const {
   pickLang,
   createEmptyItem: mealEstimateDomain.createEmptyItem,
   calculateTotals: mealEstimateDomain.calculateTotals,
+  rescaleMealEstimateItem: window.MealEstimate.rescaleMealEstimateItem,
   ChoiceField
 });
 

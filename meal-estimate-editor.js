@@ -25,11 +25,19 @@
     { key: "satfat", pt: "Gordura saturada", en: "Saturated fat", es: "Grasa saturada", unit: "g" }
   ];
 
-  function createMealEstimateEditor({ React, pickLang, createEmptyItem, calculateTotals, ChoiceField }) {
+  function createMealEstimateEditor({
+    React,
+    pickLang,
+    createEmptyItem,
+    calculateTotals,
+    rescaleMealEstimateItem,
+    ChoiceField
+  }) {
     if (!React || typeof React.createElement !== "function" ||
         typeof pickLang !== "function" || typeof createEmptyItem !== "function" ||
-        typeof calculateTotals !== "function" || typeof ChoiceField !== "function") {
-      throw new TypeError("MealEstimateEditor requires React, pickLang, createEmptyItem, calculateTotals, and ChoiceField");
+        typeof calculateTotals !== "function" || typeof rescaleMealEstimateItem !== "function" ||
+        typeof ChoiceField !== "function") {
+      throw new TypeError("MealEstimateEditor requires React, pickLang, createEmptyItem, calculateTotals, rescaleMealEstimateItem, and ChoiceField");
     }
 
     const inputStyle = {
@@ -99,7 +107,12 @@
       function updateItem(itemId, key, value) {
         if (disabled) return;
         replaceEstimate({
-          items: items.map(item => item.id === itemId ? { ...item, [key]: value } : item)
+          items: items.map(item => {
+            if (item.id !== itemId) return item;
+            return key === "quantity" || key === "estimatedGrams"
+              ? rescaleMealEstimateItem(item, key, value)
+              : { ...item, [key]: value };
+          })
         });
       }
 

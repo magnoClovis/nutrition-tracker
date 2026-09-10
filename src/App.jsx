@@ -266,6 +266,7 @@ const { MealEstimateEditor } = MealEstimateEditorModule.createMealEstimateEditor
   pickLang,
   createEmptyItem: mealEstimateDomain.createEmptyItem,
   calculateTotals: mealEstimateDomain.calculateTotals,
+  rescaleMealEstimateItem: MealEstimate.rescaleMealEstimateItem,
   ChoiceField,
 });
 
