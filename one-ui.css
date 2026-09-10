@@ -2443,15 +2443,15 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
     max-width: 1080px;
     align-self: stretch;
     margin-top: 14px !important;
+    margin-right: auto !important;
     margin-bottom: 2px !important;
+    margin-left: auto !important;
     padding: 4px !important;
     box-shadow: none !important;
   }
 
   [data-app-nav-placement="standalone"] {
     width: min(1080px, calc(100% - 64px));
-    margin-right: auto !important;
-    margin-left: auto !important;
   }
 
   [data-app-nav] button {

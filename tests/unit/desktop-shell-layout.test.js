@@ -17,10 +17,10 @@ test('desktop navigation fills the shared 1080px shell without negative overlap'
   assert.match(navRule[1], /max-width:\s*1080px/);
   assert.match(navRule[1], /align-self:\s*stretch/);
   assert.match(navRule[1], /margin-top:\s*14px\s*!important/);
+  assert.match(navRule[1], /margin-right:\s*auto\s*!important/);
+  assert.match(navRule[1], /margin-left:\s*auto\s*!important/);
   assert.doesNotMatch(navRule[1], /margin-top:\s*-/);
 
   assert.ok(standaloneRule, 'standalone diary navigation aligns to the same shell');
   assert.match(standaloneRule[1], /width:\s*min\(1080px,\s*calc\(100%\s*-\s*64px\)\)/);
-  assert.match(standaloneRule[1], /margin-right:\s*auto\s*!important/);
-  assert.match(standaloneRule[1], /margin-left:\s*auto\s*!important/);
 });
