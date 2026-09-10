@@ -26,6 +26,7 @@
 
 ## O que está em andamento agora
 
+- [Câmera embutida — C2] Em validação (10/09/2026) — Chat: Trofia-UIUX. O draft PR #185 adiciona a dependência Camera Preview 8.0.1 e um serviço Android-only que mede uma superfície DOM e inicia a vista nativa em `x/y/width/height` limitados, sem substituir ainda o fluxo C24. Testes focados, build Vite, sincronização Capacitor, compilação Gradle e cutover local 60/60 passaram; CI autenticado e prova visual em aparelho real permanecem pendentes. Nenhum APK/AAB foi publicado.
 - **C14 — revisão geral de segurança:** C14-A, C14-B1 e C14-B2 estão concluídas; C14-C a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
