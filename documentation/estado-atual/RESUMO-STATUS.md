@@ -28,6 +28,7 @@
 ## O que está em andamento agora
 
 - **C14 — revisão geral de segurança:** C14-A, C14-B1 e C14-B2 estão concluídas; C14-C a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
+- **[PHOTO-03] Recalcular estimativas por quantidade/peso — em andamento (10/09/2026) — Chat: Trofia-Principal.** A Fatia PHOTO-03-A concluiu o domínio proporcional puro e sua cobertura UMD/ESM: oito nutrientes conhecidos são redimensionados, ausências e zeros mantêm sua semântica, quantidade ajusta também o peso estimado e peso não altera a quantidade nominal. A Fatia PHOTO-03-B ainda integrará essa transformação ao editor compartilhado de foto/descrição, aos fluxos, à persistência e à validação completa.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 

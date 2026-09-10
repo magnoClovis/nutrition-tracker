@@ -238,6 +238,15 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Recursos/arquivos principais envolvidos:** `/food-entry.js`, `/tests/unit/food-entry.test.js`, `DailyEntryModel` e `DailyEntryPersistence` como contratos de integração.
 - **O que foi feito:** o diagnóstico reproduziu que modelos antigos reutilizavam `foodId` ou nome como `entry.id`; após o C28 exigir IDs únicos em todo o dia, repetir o modelo na mesma categoria virava no-op e em outra categoria lançava `Daily entry snapshots require unique stable IDs` antes de alcançar o Firestore. A correção gera um ID novo a cada carregamento em todos os formatos e preserva `foodId` somente como referência. Os testes UMD/ESM comprovam duas reutilizações na categoria original e uma terceira em categoria diferente, sem colisão no diff granular. O PR #179, commit `dba47ef`, foi mesclado em `0eeca71` após o run autenticado `33568921326` ficar totalmente verde. Este bug é separado das recusas de rules da C14-B2.
 
+### [PHOTO-03-A] - Transformação proporcional de estimativas nutricionais
+
+- **Status:** concluído.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** criar uma regra de domínio única e testável para manter quantidade, peso estimado e nutrientes coerentes quando o usuário redimensionar uma estimativa compartilhada pelos fluxos de foto e descrição textual.
+- **Recursos/arquivos principais envolvidos:** `/meal-estimate.js`, `/src/composite/meal-estimate.js`, `/tests/unit/meal-estimate.test.js`, editor compartilhado C24/C08-C e este histórico.
+- **O que foi feito:** a transformação pura aceita `quantity` ou `estimatedGrams` como referência, recalcula proporcionalmente os oito nutrientes conhecidos, preserva ausente diferente de zero, mantém a edição manual como nova base e arredonda de forma determinística. Alterar quantidade também ajusta o peso estimado; alterar o peso não muda a quantidade nominal. A API permanece sem uso em produção até a integração da Fatia PHOTO-03-B.
+- **PRs/commits relacionados:** branch `codex/photo-estimate-proportional-domain`; PR e commit serão vinculados no fechamento da fatia.
+
 - **Reload/troca de idioma após C14-A:** o chat Trofia-UI/UX relatou, sem reprodução estável, uma queda para login em espanhol e um `SearchableChoiceField` preso em `#loading`. Três tentativas isoladas passaram. No PR #175, a tentativa 2 do CI chegou ao mesmo teste, mas o job foi cancelado exatamente pelo teto global de 30 minutos depois de apenas 5,6 segundos da espera de 15 segundos; isso não comprova o travamento. O teto do CI foi ajustado para 45 minutos e ficou registrado investigar, em pausa natural do C14, consumidores de reload/bootstrap que ainda possam presumir o contrato antigo de leitura silenciosa, sem atribuir causalidade à C14-A até existir evidência.
 - **F06 / PR #143:** documentação reconciliada e mesclada em 01/09/2026 no merge `7662899`; a causa de rede específica por usuário/ISP e a futura migração para domínio próprio permanecem registradas fora do C08.
 - **PR #101:** draft antigo de leituras do Firestore, fechado sem merge em 01/09/2026 por ter sido substituído pelo C28, especialmente PRs #113–#117.
