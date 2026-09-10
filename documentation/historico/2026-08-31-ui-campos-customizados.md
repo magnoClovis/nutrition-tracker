@@ -649,7 +649,7 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - O primeiro CI autenticado do PR (`34457136315`) executou 93 smokes, manteve apenas os 8 skips canônicos, mas reprovou os dois projetos Playwright no novo contrato geométrico. O artifact mostrou que, ao sair do Diário para Alimentos em 1280px, o status estava centralizado entre `left: 100px` e `right: 1180px`, enquanto a navegação interna preservava 1080px de largura ancorados em `left: 0`; portanto, não havia mais sobreposição, mas a escolha aprovada de largura total do shell ainda não estava realmente alinhada.
 - A correção adicional foi restrita ao mesmo contrato desktop: `margin-left/right: auto` passou da regra exclusiva do host standalone para a regra base de `[data-app-nav]`. Assim, tanto o Diário quanto Alimentos/Semana/Métricas centralizam a barra de 1080px no shell, sem alterar dimensões, callbacks ou o breakpoint móvel. O teste unitário foi reforçado para exigir a centralização na regra compartilhada.
 
-**PRs/commits relacionados:** PR draft [#187](https://github.com/magnoClovis/nutrition-tracker/pull/187); commit [`80f9056`](https://github.com/magnoClovis/nutrition-tracker/commit/80f9056); [run autenticado `34457136315` — diagnóstico do desalinhamento do host interno](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34457136315). CI autenticado real final: aguardando repetição no PR draft.
+**PRs/commits relacionados:** [PR #187](https://github.com/magnoClovis/nutrition-tracker/pull/187), mesclado em `3ccb852`; commits [`80f9056`](https://github.com/magnoClovis/nutrition-tracker/commit/80f9056), [`72fca87`](https://github.com/magnoClovis/nutrition-tracker/commit/72fca87) e [`09ce928`](https://github.com/magnoClovis/nutrition-tracker/commit/09ce928); [run autenticado `34457136315` — diagnóstico do desalinhamento do host interno](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34457136315); [run autenticado final `34464670583`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34464670583), verde em legado/Vite, desktop/mobile e claro/escuro.
 
 ## C07 - Cobertura visual autenticada dos componentes customizados
 
@@ -756,6 +756,79 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - As aprovações ocorreram na conversa e não deixaram PR/commit independente. Somente as partes materializadas nos PRs citados são consideradas implementadas.
 
 **PRs/commits relacionados:** não há PR ou commit exclusivo dos protótipos. As implementações resultantes estão nos PRs #126, #130, #133, #136, #138, #141, #144, #146, #148, no draft #150, no PR #166 e no PR #172.
+
+## Câmera embutida — protótipo visual C1
+
+**Data (se determinável):** não determinado.
+
+**Propósito:** validar, antes de qualquer integração nativa, uma câmera para reconhecimento de refeição que ocupe uma seção dedicada da tela em vez de cobrir o Trofia inteiro. O protótipo precisava demonstrar que o restante da interface continuaria reconhecível, que abrir/capturar não produziria mudanças abruptas e que estados de permissão e movimento reduzido teriam tratamento explícito.
+
+**Recursos:**
+
+- Protótipo interativo em HTML, CSS e JavaScript apresentado fora do código de produção.
+- Linguagem One UI 8/Glass UI já aprovada no Trofia.
+- Temas claro e escuro, layouts desktop e mobile e media query `prefers-reduced-motion`.
+- Área visual simulada de câmera; nenhuma API de câmera, foto real ou permissão Android foi acionada pelo protótipo.
+
+**Arquivos:** nenhum arquivo do protótipo C1 foi versionado no repositório. A prova visual permaneceu externa ao app e não alterou runtime, Android ou fluxo de reconhecimento por foto.
+
+**O que foi feito:**
+
+- Foram apresentados os estados fechado, abrindo, câmera ativa, capturado e permissão negada, nos temas claro e escuro e em dimensões desktop/mobile.
+- A abertura expande a área dedicada até o enquadramento ativo; após a captura, a mesma área contrai e preserva a fotografia no espaço reservado, sem substituir a tela inteira.
+- A variante mobile recebeu uma correção específica para que a contração não causasse salto ou recorte inadequado do conteúdo.
+- Em `prefers-reduced-motion: reduce`, a troca de estado permanece funcional, mas a pulsação/interpolação visual é removida.
+- O responsável revisou o arquivo interativo, confirmou a animação em movimento e aprovou definitivamente a direção antes da C2.
+
+**PRs/commits relacionados:** não há PR ou commit; C1 foi exclusivamente uma etapa de prototipação e aprovação visual.
+
+## Câmera embutida — prova técnica Android C2
+
+**Data (se determinável):** 10/09/2026.
+
+**Propósito:** comprovar que o app Capacitor Android pode hospedar uma vista nativa de câmera limitada a um retângulo medido da interface, sem abrir o picker de câmera em tela cheia e sem antecipar a integração visual/funcional da C3. A prova também precisava preservar integralmente o fluxo atual enquanto o risco técnico de geometria, compatibilidade do plugin e compilação Android era isolado.
+
+**Recursos:**
+
+- Capacitor 8.4.2 e `@capacitor-community/camera-preview` 8.0.1.
+- API nativa Android do plugin Camera Preview, configurada com câmera traseira e limites `x`, `y`, `width` e `height` em DIP.
+- React/Vite apenas como composição do runtime; o fluxo visual de reconhecimento existente não foi substituído.
+- Node.js Test Runner, Vite, Capacitor CLI, Gradle, Android SDK e JDK 21 do Android Studio.
+- Playwright para regressão completa dos runtimes legado/Vite e da matriz PT/EN/ES, desktop/mobile e claro/escuro.
+
+**Arquivos:**
+
+- `package.json`
+- `package-lock.json`
+- `android/capacitor.settings.gradle`
+- `android/app/capacitor.build.gradle`
+- `src/App.jsx`
+- `src/composite/embedded-camera-preview.js`
+- `src/composite/embedded-camera-preview-runtime.js`
+- `tests/unit/embedded-camera-preview.test.js`
+
+**O que foi feito:**
+
+- O plugin Camera Preview foi fixado em 8.0.1, cuja dependência de `@capacitor/core >= 8.0.2` é compatível com a versão 8.4.2 do Trofia, e sincronizado como módulo Gradle do Android.
+- Foi criado um serviço isolado, disponível somente no runtime Capacitor Android, sem trocar o callback `captureFromCamera` atual e sem alterar a tela de reconhecimento; a integração com os estados e transições aprovados permanece responsabilidade da C3.
+- `measureEmbeddedPreview` converte o `getBoundingClientRect()` da superfície dedicada em inteiros compatíveis com DIP e rejeita elementos ausentes, medidas não finitas ou áreas menores que 48 × 48.
+- `start()` exige Android nativo, impede sessões duplicadas e inicia a câmera traseira com `toBack: false`, `storeToFile: false`, zoom habilitado e o retângulo explícito. Nesta prova, a vista nativa fica acima do WebView somente dentro dos limites informados, evitando tornar todo o fundo do app transparente.
+- `capture()` exige sessão ativa, solicita JPEG de até 1280 × 1280 com qualidade máxima para posterior pré-processamento pelo contrato C24 existente e rejeita retorno nativo vazio. `stop()` é idempotente quando a câmera já está inativa e sempre restaura o estado interno mesmo se o plugin falhar ao encerrar.
+- Seis testes focados cobrem medição, opções nativas exatas, captura, parada, plataforma web, geometria inválida, duplicidade e normalização de falhas, sem skips.
+- O build Vite foi verificado, `npx cap sync android` reconheceu os sete plugins e `gradlew assembleDebug` terminou com `BUILD SUCCESSFUL` usando Android SDK local e JDK 21. O APK gerado foi somente artefato local de debug e não foi publicado.
+- O gate local passou com 1270/1270 testes unitários, smoke legado/Vite sem falhas funcionais e cutover 60/60. Os smokes locais omitiram 61 cenários autenticados por runtime por ausência deliberada de credenciais locais; esses cenários permanecem obrigatórios no CI autenticado do PR.
+- Uma primeira execução do cutover foi interrompida em 44/60 por `ERR_CONNECTION_REFUSED`. A investigação comprovou que a worktree `.codex-diary-menu-b` iniciou simultaneamente servidores nas mesmas portas fixas 8775/8776. Nenhuma correção de app/teste foi feita na C2; após a suíte concorrente terminar, a repetição isolada passou 60/60.
+- A validação física foi concluída em um Galaxy S25 Ultra SM-S938B (Android, 1440 × 3120 px físicos, densidade 600) conectado por USB. Como a C2 não expõe ainda um gatilho de produção, foi usado um harness visual temporário somente no build debug; ele não foi versionado.
+- Para preservar integralmente a instalação real versionCode 12 e seus dados, a tentativa de substituição foi abandonada diante dos bloqueios Android `INSTALL_FAILED_VERSION_DOWNGRADE` e `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. O harness foi instalado como pacote paralelo temporário `com.hermegas.trofia.c2proof`, com assinatura debug, e removido ao fim da prova.
+- Com a permissão inicialmente revogada, tocar em abrir apresentou o pedido nativo real de câmera do Android; a opção de uso em primeiro plano foi concedida e `dumpsys package` confirmou `android.permission.CAMERA: granted=true`.
+- O preview traseiro abriu dentro do retângulo DOM medido de `348 × 420` CSS px, na origem `18,113`, sem ocupar a tela inteira. Título, status e botões externos permaneceram visíveis e acionáveis; a imagem nativa não vazou para fora dos limites retangulares informados.
+- A captura física retornou JPEG Base64 não vazio com 690.208 caracteres, a fotografia foi renderizada de volta no espaço dedicado e o serviço executou `stop()`. O log de câmera registrou `DISCONNECT device 0` para o pacote da prova, confirmando a liberação da sessão nativa.
+- A prova confirmou o risco visual que fica deliberadamente para C3: com `toBack: false`, a superfície nativa respeita o retângulo, mas se sobrepõe ao acabamento WebView e portanto não herda automaticamente cantos arredondados/borda CSS. A integração deverá desenhar o enquadramento de forma compatível com essa limitação, sem confundir a comprovação geométrica da C2 com o polimento visual da C3.
+
+**PRs/commits relacionados:**
+
+- [PR #185 — Android: prova técnica da câmera embutida (C2)](https://github.com/magnoClovis/nutrition-tracker/pull/185), aberto em draft.
+- [Commit `1cd1d18` — serviço e integração técnica Android](https://github.com/magnoClovis/nutrition-tracker/commit/1cd1d1847f313b683a553ea2a0c8f2c5286ab7e4).
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
