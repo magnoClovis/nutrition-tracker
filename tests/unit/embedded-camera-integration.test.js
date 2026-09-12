@@ -15,6 +15,9 @@ test('C3 composes the bounded native preview into the real image-meal flow', () 
   assert.match(controller, /onEmbeddedCapture:[\s\S]*captureEmbeddedCamera/);
   assert.match(controller, /onCancelCamera:[\s\S]*cancelEmbeddedCamera/);
   assert.match(app, /addAppStateListener:[\s\S]*androidAppRuntime\.addAppStateListener/);
+  assert.match(app, /openCameraSettings:[\s\S]*androidAppRuntime\.openSettings/);
+  assert.match(controller, /data-camera-open-settings[\s\S]*data-image-meal-choose-gallery/);
+  assert.match(controller, /data-camera-cancel[\s\S]*focus\(\{ preventScroll: true \}\)/);
   assert.match(controller, /!isActive[\s\S]*interruptEmbeddedCamera/);
   assert.match(controller, /imageMealCameraActive:[\s\S]*cancelImageMealCamera/);
 });
@@ -31,4 +34,7 @@ test('C3 preserves a localized transparent viewport, HTML controls, theme tokens
   assert.match(css, /\[data-camera-corner\][\s\S]*var\(--surface-block\)/);
   assert.match(css, /\[data-camera-shutter="true"\][\s\S]*var\(--accent-action-fill\)/);
   assert.match(css, /body:has\(\[data-camera-native-active="true"\]\)[\s\S]*overflow:\s*hidden/);
+  assert.match(css, /data-camera-shutter[\s\S]*\):focus\s*\{[\s\S]*outline:\s*3px/);
+  assert.match(css, /data-image-meal-announcement[\s\S]*clip:\s*rect/);
+  assert.match(css, /data-camera-permission-recovery[\s\S]*accent-danger-bg/);
 });

@@ -193,6 +193,47 @@ contractTest('ignores a native start rejection that arrives after camera cancell
   assert.equal(state.error, null);
 });
 
+contractTest('disposes a late preprocessed capture after the flow is destroyed', async module => {
+  const pendingCapture = deferred();
+  const calls = [];
+  const fixture = createFixture(module, {
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() { calls.push('start'); },
+      capture: () => pendingCapture.promise,
+      async stop() { calls.push('stop'); },
+    },
+  });
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  const capture = fixture.flow.captureEmbeddedCamera();
+  fixture.flow.destroy();
+  pendingCapture.resolve('late-jpeg');
+  await capture;
+  const latePhoto = fixture.photos.find(photo => photo.name === 'embedded-late-jpeg');
+  assert.equal(latePhoto.disposed, true);
+  assert.equal(fixture.flow.getState().phase, 'empty');
+  assert.ok(calls.filter(call => call === 'stop').length >= 1);
+});
+
+contractTest('destroy disposes the retained photo while an embedded camera session is active', async module => {
+  const fixture = createFixture(module, {
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() {},
+      async capture() { return 'unused'; },
+      async stop() {},
+    },
+  });
+  await fixture.flow.chooseFromGallery();
+  const retained = fixture.flow.getState().photo;
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  fixture.flow.destroy();
+  assert.equal(retained.disposed, true);
+  assert.equal(fixture.flow.getState().photo, null);
+});
+
 contractTest('processes a photo into an editable normalized result with stable item ids', async module => {
   const analyzed = [];
   const fixture = createFixture(module, {

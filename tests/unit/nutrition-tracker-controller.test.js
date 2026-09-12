@@ -44,8 +44,8 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
   const source = NutritionTracker.toString();
 
   assert.equal((source.match(/\buseState\s*\(/g) || []).length, 157);
-  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 41);
-  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 26);
+  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 42);
+  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 27);
 });
 
 contractTest("routes browser dialog decisions through the injected generic service", createNutritionTrackerController => {

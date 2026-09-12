@@ -930,12 +930,68 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - Home liberou o cliente da câmera antes do retorno; Voltar produziu `BACK_STOPPED`, manteve a Activity aberta e removeu o cliente nativo. Três ciclos consecutivos abrir/cancelar tiveram câmera ativa ao abrir e liberação confirmada após cada cancelamento.
 - A captura física retornou JPEG Base64 não vazio com 664.996 caracteres, exibiu a fotografia no espaço dedicado, retornou a fase a `idle` e deixou `dumpsys media.camera` sem cliente do pacote. A negativa real de permissão retornou `START_ERROR camera-permission-denied` sem abrir ou prender a câmera.
 - Depois da prova, o bundle Vite de produção foi restaurado no projeto Android, `npx cap sync android` reconheceu os sete plugins e `gradlew assembleDebug` concluiu com `BUILD SUCCESSFUL` usando o JDK 21 do Android Studio.
-- O gate focado final passou com 105/105 casos sem skip, cobrindo permissões, timeouts, segunda limpeza tardia, retry de parada, captura após cancelamento, background, Voltar e integração UMD/ESM. O gate local completo terminou com preflight limpo, 1.337/1.337 unitários sem skip, smokes legado e Vite com 40 aprovações e somente os 63 skips autenticados esperados em cada runtime, e cutover 60/60 sem skip em PT/EN/ES, desktop/mobile e claro/escuro. O CI autenticado do draft PR permanece obrigatório antes de qualquer aprovação/merge.
+- O gate focado final passou com 105/105 casos sem skip, cobrindo permissões, timeouts, segunda limpeza tardia, retry de parada, captura após cancelamento, background, Voltar e integração UMD/ESM. O gate local completo terminou com preflight limpo, 1.337/1.337 unitários sem skip, smokes legado e Vite com 40 aprovações e somente os 63 skips autenticados esperados em cada runtime, e cutover 60/60 sem skip em PT/EN/ES, desktop/mobile e claro/escuro. O CI autenticado `34699425213` passou com todos os cenários reais habilitados; o PR foi mesclado na `main` em 12/09/2026.
 
 **PRs/commits relacionados:**
 
-- [PR #192 — Android: robustecer ciclo de vida da câmera embutida (C4a)](https://github.com/magnoClovis/nutrition-tracker/pull/192), aberto em draft.
+- [PR #192 — Android: robustecer ciclo de vida da câmera embutida (C4a)](https://github.com/magnoClovis/nutrition-tracker/pull/192), mesclado na `main`.
 - [Commit `ad84f4f` — robustez nativa, ciclo de vida, testes e registro documental](https://github.com/magnoClovis/nutrition-tracker/commit/ad84f4f50ee80230822a93d41a8a0076f773a26e).
+- [Merge `e6f8bef` — incorporação do PR #192 na `main`](https://github.com/magnoClovis/nutrition-tracker/commit/e6f8bef74c89d6beb30670e0303bfc8ef6a49013).
+
+## Câmera embutida — acessibilidade e acabamento resiliente C4b
+
+**Data de conclusão:** pendente de merge.
+
+**Tempo decorrido:** pendente de merge.
+
+**Minutos de CI:** pendente da execução autenticada do PR.
+
+**Propósito:** concluir a câmera embutida sem ampliar suas funções fotográficas, cobrindo as garantias que uma superfície nativa costuma oferecer e que precisam ser reconstruídas na composição híbrida WebView/Android. A subfatia deve permitir uso previsível com TalkBack, teclado e fonte ampliada; anunciar mudanças de fase sem duplicidade; manter foco e ações em ordem lógica; oferecer recuperação real após negação de permissão; conservar contraste e alvos de toque nos dois temas; localizar toda a recuperação em PT/EN/ES; e garantir que fotos temporárias não sobrevivam ao descarte, teardown ou resolução assíncrona tardia.
+
+**Recursos:**
+
+- React e máquina de estados controlada do reconhecimento por foto C24.
+- Capacitor Android, Camera Preview e a API `openSettings()` já fornecida por `@capacitor-mlkit/barcode-scanning`, reutilizada apenas para abrir os detalhes do aplicativo no sistema.
+- Semântica web nativa (`button`, foco programático, `role=status`, `aria-live=polite`, `aria-atomic=true` e `role=alert`) exposta pelo WebView ao serviço de acessibilidade Android.
+- CSS One UI 8/Glass UI com tokens de tema, foco persistente, contraste reforçado, layout flexível e alvos mínimos de 48 px.
+- Node.js Test Runner, Vite, Playwright, Capacitor CLI, Gradle, Android SDK, JDK 21, Chrome DevTools Protocol e inspeção ADB de acessibilidade/câmera.
+- Galaxy S25 Ultra SM-S938B físico com Samsung TalkBack e escala de fonte Android em 200% para comprovação em aparelho real.
+
+**Arquivos:**
+
+- `src/composite/android-app-runtime.js`
+- `src/App.jsx`
+- `nutrition-tracker-controller.js`
+- `image-meal-screen.js`
+- `one-ui.css`
+- `tests/unit/android-app-runtime.test.js`
+- `tests/unit/embedded-camera-integration.test.js`
+- `tests/unit/image-meal-flow.test.js`
+- `tests/unit/image-meal-screen.test.js`
+- `tests/unit/nutrition-tracker-controller.test.js`
+- `documentation/historico/2026-08-31-ui-campos-customizados.md`
+- `documentation/estado-atual/RESUMO-STATUS.md`
+
+**O que se planeja fazer:** preservar o desenho C3 aprovado e implementar exclusivamente robustez acessível: foco claramente visível e restaurado em cada transição; anúncios localizados de abertura, câmera pronta e foto capturada; ordem Cancelar/Capturar coerente; recuperação de permissão por Configurações ou galeria; resistência a fonte 200%; contraste e alvos de toque suficientes; e descarte comprovado de blobs/Base64 temporários. Zoom, flash, troca de câmera, gestos e edição fotográfica permanecem fora do escopo.
+
+**O que foi feito:**
+
+- O runtime Android ganhou `canOpenSettings()` e `openSettings()` com comportamento inerte fora do Capacitor Android. A composição reutiliza a implementação nativa já instalada do ML Kit somente para abrir a página real de detalhes/permissões do Trofia, sem introduzir plugin ou permissão novos.
+- O controlador registra a fase anterior e move o foco, sem alterar o scroll, para o próximo alvo lógico: Cancelar durante a abertura, Abrir configurações/galeria após negação, Analisar foto após captura e o gatilho da câmera depois de cancelar. A regra de foco usa seletores estáveis e não depende do texto traduzido.
+- O contorno de foco da câmera passou a ser explícito e persistente enquanto o elemento está focado: anel interno de 3 px baseado na superfície e anel externo de 6 px azul, perceptíveis por teclado, foco programático e navegação assistiva, sem timer.
+- Um único live region oculto anuncia, em PT/EN/ES, abertura, câmera pronta e captura concluída. O indicador visual “Câmera ativa” permanece na tela, mas é ocultado da árvore acessível para impedir fala duplicada; erros de permissão continuam como alerta imediato.
+- O estado de permissão negada ganhou título e instrução localizados, botão primário para abrir as configurações reais e recuperação secundária por galeria. A ordem física e semântica mantém Cancelar antes de Capturar durante o preview e Configurações antes das alternativas no erro.
+- Os controles da câmera podem quebrar linha e crescer, têm altura mínima de 48 px e mantêm espaçamento mesmo com fonte ampliada. A ação de captura recebeu preenchimento verde mais escuro para preservar contraste de texto branco nos temas claro e escuro; o botão de configurações no modo escuro apresentou contraste calculado de aproximadamente 7,92:1.
+- A máquina de fluxo ganhou testes para descartar uma captura pré-processada que resolve depois do teardown e para liberar uma foto retida quando a tela é destruída durante sessão nativa, sem persistir a imagem reconhecida.
+- A validação física foi feita com APK debug isolado `com.hermegas.trofia.c4bproof`, composto pelos mesmos screen, CSS e runtimes de produção; nenhum AAB/APK foi publicado e o pacote/harness foram removidos ao fim.
+- No Galaxy, TalkBack foi habilitado temporariamente e a árvore Android registrou foco real na ação localizada “Abrir ajustes”. A câmera traseira abriu, capturou JPEG Base64 não vazio, anunciou “Câmera ativa. Pronta para capturar.” e “Foto capturada. Confira a imagem antes de analisar.”, transferiu foco para “Analisar foto” com os dois anéis visíveis e liberou o cliente nativo após capturar.
+- Com fonte do sistema em 200%, Cancelar e Capturar empilharam sem corte ou sobreposição e mediram aproximadamente 58,9 px de altura cada; o preview permaneceu confinado ao card. A recuperação PT/EN/ES foi conferida no aparelho, e “Abrir configurações” levou efetivamente a `com.android.settings/.applications.InstalledAppDetails`.
+- As preferências temporárias do dispositivo foram restauradas ao final: TalkBack desligado, fonte em 100%, APK paralelo desinstalado, forward ADB removido e nenhuma sessão ativa da câmera mantida.
+- O gate focado final passou com 114/114 casos sem skip. O primeiro `npm test` revelou somente dependências locais ausentes do Worker e contagens estruturais desatualizadas após a adição intencional de um efeito/ref; as dependências foram instaladas pelo lockfile e a expectativa foi alinhada de 41/26 para 42/27, sem mudança funcional fora da C4b. A repetição integral terminou com preflight limpo, 1.360/1.360 unitários sem skip, 40 aprovações e apenas os 63 skips autenticados esperados em cada smoke local legado/Vite, e cutover 60/60 sem skip em PT/EN/ES, desktop/mobile e claro/escuro. O CI autenticado permanece pendente da abertura do PR.
+
+**Alinhamento:** 100% até a conclusão da implementação e da prova física: todos os cenários aprovados foram cobertos e nenhum recurso fotográfico fora do escopo foi adicionado. O fechamento formal permanece dependente do gate completo, CI autenticado e merge; se qualquer um deles exigir mudança de escopo, este campo será atualizado em vez de preservar artificialmente o percentual.
+
+**PRs/commits relacionados:** pendentes da abertura do draft PR da C4b.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 

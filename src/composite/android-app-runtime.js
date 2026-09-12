@@ -1,11 +1,13 @@
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { BarcodeScanner as MlKitBarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
 
 /**
  * Small injectable boundary around the Android-only App plugin behavior.
  */
 export function createAndroidAppRuntime({
   appPlugin,
+  appSettingsPlugin,
   isNativeAndroid,
 }) {
   if (!appPlugin || typeof appPlugin.addListener !== 'function'
@@ -32,11 +34,19 @@ export function createAndroidAppRuntime({
     if (isNativeAndroid()) await appPlugin.minimizeApp();
   }
 
+  async function openSettings() {
+    if (!isNativeAndroid() || typeof appSettingsPlugin?.openSettings !== 'function') return false;
+    await appSettingsPlugin.openSettings();
+    return true;
+  }
+
   return {
     isAvailable: isNativeAndroid,
+    canOpenSettings: () => isNativeAndroid() && typeof appSettingsPlugin?.openSettings === 'function',
     addBackButtonListener,
     addAppStateListener,
     minimize,
+    openSettings,
   };
 }
 
@@ -46,5 +56,6 @@ const isNativeAndroid = () => (
 
 export const androidAppRuntime = createAndroidAppRuntime({
   appPlugin: CapacitorApp,
+  appSettingsPlugin: MlKitBarcodeScanner,
   isNativeAndroid,
 });
