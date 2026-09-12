@@ -1,4 +1,6 @@
 const MIN_PREVIEW_EDGE = 48;
+const DEFAULT_OPERATION_TIMEOUT_MS = 12000;
+const GRANTED_CAMERA_PERMISSIONS = new Set(['granted', 'limited']);
 
 function isPermissionFailure(error) {
   const value = `${error?.code || ''} ${error?.message || ''}`.toLowerCase();
@@ -43,18 +45,59 @@ export function measureEmbeddedPreview(element) {
  */
 export function createEmbeddedCameraPreview({
   cameraPreviewPlugin,
+  cameraPermissionPlugin,
   isNativeAndroid,
+  operationTimeoutMs = DEFAULT_OPERATION_TIMEOUT_MS,
+  setTimer = setTimeout,
+  clearTimer = clearTimeout,
 }) {
   if (!cameraPreviewPlugin
     || typeof cameraPreviewPlugin.start !== 'function'
     || typeof cameraPreviewPlugin.capture !== 'function'
     || typeof cameraPreviewPlugin.stop !== 'function'
+    || !cameraPermissionPlugin
+    || typeof cameraPermissionPlugin.checkPermissions !== 'function'
+    || typeof cameraPermissionPlugin.requestPermissions !== 'function'
     || typeof isNativeAndroid !== 'function') {
     throw new TypeError('Embedded camera preview requires native dependencies');
   }
 
   let phase = 'idle';
   let operationId = 0;
+
+  function withTimeout(operation, code) {
+    let timerId;
+    const timeout = new Promise((_, reject) => {
+      timerId = setTimer(() => reject(new EmbeddedCameraPreviewError(code)), operationTimeoutMs);
+    });
+    return Promise.race([Promise.resolve(operation), timeout])
+      .finally(() => clearTimer(timerId));
+  }
+
+  async function stopNative() {
+    let firstFailure;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        await withTimeout(cameraPreviewPlugin.stop(), 'preview-stop-timeout');
+        return;
+      } catch (cause) {
+        firstFailure ||= cause;
+      }
+    }
+    throw firstFailure;
+  }
+
+  async function ensureCameraPermission() {
+    let permission = await cameraPermissionPlugin.checkPermissions();
+    if (GRANTED_CAMERA_PERMISSIONS.has(permission?.camera)) return;
+    if (permission?.camera === 'denied') {
+      throw new EmbeddedCameraPreviewError('camera-permission-denied');
+    }
+    permission = await cameraPermissionPlugin.requestPermissions({ permissions: ['camera'] });
+    if (!GRANTED_CAMERA_PERMISSIONS.has(permission?.camera)) {
+      throw new EmbeddedCameraPreviewError('camera-permission-denied');
+    }
+  }
 
   async function start(surface) {
     if (!isNativeAndroid()) {
@@ -68,7 +111,10 @@ export function createEmbeddedCameraPreview({
     const currentOperation = ++operationId;
     phase = 'starting';
     try {
-      await cameraPreviewPlugin.start({
+      await ensureCameraPermission();
+      if (currentOperation !== operationId) return;
+      let startTimedOut = false;
+      const nativeStart = Promise.resolve(cameraPreviewPlugin.start({
         ...bounds,
         position: 'rear',
         // The native camera surface stays behind the WebView. C3 makes only the
@@ -76,16 +122,33 @@ export function createEmbeddedCameraPreview({
         toBack: true,
         storeToFile: false,
         disableExifHeaderStripping: false,
-        enableZoom: true,
-        lockAndroidOrientation: false,
-      });
+        // C4 remains deliberately capture-only: no pinch zoom or camera extras.
+        enableZoom: false,
+        // Keeping the current orientation stable avoids stale native bounds
+        // while the WebView changes layout underneath the camera surface.
+        lockAndroidOrientation: true,
+      }));
+      void nativeStart.then(() => {
+        if (startTimedOut) return stopNative().catch(() => {});
+        return undefined;
+      }).catch(() => {});
+      try {
+        await withTimeout(nativeStart, 'preview-start-timeout');
+      } catch (cause) {
+        startTimedOut = cause?.code === 'preview-start-timeout';
+        throw cause;
+      }
       if (currentOperation !== operationId) {
-        await cameraPreviewPlugin.stop().catch(() => {});
+        await stopNative().catch(() => {});
         return;
       }
       phase = 'active';
     } catch (cause) {
-      if (currentOperation === operationId) phase = 'idle';
+      if (currentOperation !== operationId) return;
+      operationId += 1;
+      await stopNative().catch(() => {});
+      phase = 'idle';
+      if (cause instanceof EmbeddedCameraPreviewError) throw cause;
       throw new EmbeddedCameraPreviewError(
         isPermissionFailure(cause) ? 'camera-permission-denied' : 'preview-start-failed',
         cause,
@@ -98,20 +161,24 @@ export function createEmbeddedCameraPreview({
       throw new EmbeddedCameraPreviewError('preview-not-active');
     }
 
+    const currentOperation = operationId;
     phase = 'capturing';
     try {
-      const result = await cameraPreviewPlugin.capture({
+      const result = await withTimeout(cameraPreviewPlugin.capture({
         quality: 100,
         width: 1280,
         height: 1280,
-      });
+      }), 'preview-capture-timeout');
+      if (currentOperation !== operationId) {
+        throw new EmbeddedCameraPreviewError('preview-capture-cancelled');
+      }
       if (!result?.value || typeof result.value !== 'string') {
         throw new EmbeddedCameraPreviewError('preview-capture-empty');
       }
       phase = 'active';
       return result.value;
     } catch (cause) {
-      phase = 'active';
+      if (currentOperation === operationId) phase = 'active';
       if (cause instanceof EmbeddedCameraPreviewError) throw cause;
       throw new EmbeddedCameraPreviewError('preview-capture-failed', cause);
     }
@@ -122,8 +189,9 @@ export function createEmbeddedCameraPreview({
     operationId += 1;
     phase = 'stopping';
     try {
-      await cameraPreviewPlugin.stop();
+      await stopNative();
     } catch (cause) {
+      if (cause instanceof EmbeddedCameraPreviewError) throw cause;
       throw new EmbeddedCameraPreviewError('preview-stop-failed', cause);
     } finally {
       phase = 'idle';

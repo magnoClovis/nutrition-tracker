@@ -135,6 +135,9 @@ contractTest('maps embedded preview permission and startup errors without hiding
   for (const [sourceCode, expected] of [
     ['camera-permission-denied', 'permission-denied'],
     ['preview-start-failed', 'camera-unavailable'],
+    ['preview-start-timeout', 'camera-unavailable'],
+    ['preview-capture-timeout', 'camera-unavailable'],
+    ['preview-capture-empty', 'invalid-photo'],
   ]) {
     const fixture = createFixture(module, {
       embeddedCameraPreview: {
@@ -149,6 +152,45 @@ contractTest('maps embedded preview permission and startup errors without hiding
     assert.equal(state.phase, 'error');
     assert.equal(state.error, expected);
   }
+});
+
+contractTest('background interruption cancels only the embedded camera and preserves the previous photo', async module => {
+  const calls = [];
+  const fixture = createFixture(module, {
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() { calls.push('start'); },
+      async capture() { return 'unused'; },
+      async stop() { calls.push('stop'); },
+    },
+  });
+  await fixture.flow.chooseFromGallery();
+  const previous = fixture.flow.getState().photo;
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  const state = await fixture.flow.interruptEmbeddedCamera();
+  assert.equal(state.phase, 'photo');
+  assert.equal(state.photo, previous);
+  assert.deepEqual(calls, ['start', 'stop']);
+});
+
+contractTest('ignores a native start rejection that arrives after camera cancellation', async module => {
+  const pending = deferred();
+  const fixture = createFixture(module, {
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      start: () => pending.promise,
+      async capture() { return 'unused'; },
+      async stop() {},
+    },
+  });
+  await fixture.flow.captureFromCamera();
+  const starting = fixture.flow.startEmbeddedCamera({});
+  await fixture.flow.cancelEmbeddedCamera();
+  pending.reject(Object.assign(new Error('late failure'), { code: 'preview-start-failed' }));
+  const state = await starting;
+  assert.equal(state.phase, 'empty');
+  assert.equal(state.error, null);
 });
 
 contractTest('processes a photo into an editable normalized result with stable item ids', async module => {
