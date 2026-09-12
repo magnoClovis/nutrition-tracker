@@ -932,7 +932,10 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - Depois da prova, o bundle Vite de produção foi restaurado no projeto Android, `npx cap sync android` reconheceu os sete plugins e `gradlew assembleDebug` concluiu com `BUILD SUCCESSFUL` usando o JDK 21 do Android Studio.
 - O gate focado final passou com 105/105 casos sem skip, cobrindo permissões, timeouts, segunda limpeza tardia, retry de parada, captura após cancelamento, background, Voltar e integração UMD/ESM. O gate local completo terminou com preflight limpo, 1.337/1.337 unitários sem skip, smokes legado e Vite com 40 aprovações e somente os 63 skips autenticados esperados em cada runtime, e cutover 60/60 sem skip em PT/EN/ES, desktop/mobile e claro/escuro. O CI autenticado do draft PR permanece obrigatório antes de qualquer aprovação/merge.
 
-**PRs/commits relacionados:** não determinado; o PR da C4a ainda não havia sido aberto neste checkpoint documental.
+**PRs/commits relacionados:**
+
+- [PR #192 — Android: robustecer ciclo de vida da câmera embutida (C4a)](https://github.com/magnoClovis/nutrition-tracker/pull/192), aberto em draft.
+- [Commit `ad84f4f` — robustez nativa, ciclo de vida, testes e registro documental](https://github.com/magnoClovis/nutrition-tracker/commit/ad84f4f50ee80230822a93d41a8a0076f773a26e).
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
