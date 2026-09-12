@@ -60,6 +60,8 @@ Feedback e padrões recebem metas já calculadas, data/período, tipo de dia, to
 
 O Worker continua sem persistir ou registrar prompts, fotos, respostas e dados nutricionais. Segredos permanecem fora do cliente e do repositório.
 
+Além do Firebase ID token, os clientes de IA enviam um token Firebase App Check no cabeçalho `X-Firebase-AppCheck`. O Worker valida assinatura RS256, `kid`, emissor, audiência, expiração e o identificador do app contra a lista explícita dos apps Web e Android do Trofia. O rollout permanece em modo de observação até Pages, CI e um AAB distribuído pela Play serem validados; somente depois disso o modo obrigatório pode ser publicado.
+
 ## Fronteira de transporte aprovada
 
 ### Respostas estruturadas

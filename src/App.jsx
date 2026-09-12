@@ -208,6 +208,7 @@ const {
 } = AIClient.createAIClient({
   fetchRequest: (...args) => window.fetch(...args),
   getIdToken: () => fbToken(),
+  getAppCheckToken,
 });
 const { AIClientError } = AIClient;
 
@@ -229,6 +230,7 @@ const ensureAppCheckInitialized = () => firebaseRuntimeConfigured
 const imageMealClient = ImageMealClient.createImageMealClient({
   fetchRequest: (...args) => window.fetch(...args),
   getIdToken: () => fbToken(),
+  getAppCheckToken,
 });
 
 const mealEstimateDomain = MealEstimate.createMealEstimate({

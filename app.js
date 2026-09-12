@@ -80,6 +80,11 @@ const {
   fetchRequest: (...args) => window.fetch(...args)
 });
 
+const appCheckClient = window.AppCheckClient.createAppCheckClient({
+  getPlugin: () => window.Capacitor?.Plugins?.FirebaseAppCheck,
+  isNativePlatform: () => Boolean(window.Capacitor?.isNativePlatform?.())
+});
+
 const {
   callAI: requestAICompletion,
   requestFoodEstimate: requestStructuredFoodEstimate,
@@ -87,15 +92,12 @@ const {
   requestPantrySuggestions: requestStructuredPantrySuggestions
 } = window.AIClient.createAIClient({
   fetchRequest: (...args) => window.fetch(...args),
-  getIdToken: () => fbToken()
+  getIdToken: () => fbToken(),
+  getAppCheckToken: () => appCheckClient.getToken()
 });
 const { AIClientError } = window.AIClient;
 const ACCOUNT_DELETION_FUNCTION_URL =
   'https://europe-southwest1-nutrition-tracker-780b3.cloudfunctions.net/requestAccountDeletion';
-const appCheckClient = window.AppCheckClient.createAppCheckClient({
-  getPlugin: () => window.Capacitor?.Plugins?.FirebaseAppCheck,
-  isNativePlatform: () => Boolean(window.Capacitor?.isNativePlatform?.())
-});
 const accountDeletionClient = window.AccountDeletionClient.createAccountDeletionClient({
   fetchRequest: (...args) => window.fetch(...args),
   getIdToken: () => fbToken(),

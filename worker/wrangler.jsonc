@@ -6,6 +6,11 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  "vars": {
+    // First rollout stage. Promote to "enforce" only after the updated Pages
+    // client and a Play-distributed AAB both prove valid App Check tokens.
+    "APP_CHECK_MODE": "observe"
+  },
   "durable_objects": {
     "bindings": [
       {

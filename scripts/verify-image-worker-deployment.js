@@ -34,7 +34,7 @@ async function verifyImageWorkerDeployment(
     headers: {
       Origin: ALLOWED_ORIGIN,
       'Access-Control-Request-Method': 'POST',
-      'Access-Control-Request-Headers': 'authorization, content-type',
+      'Access-Control-Request-Headers': 'authorization, content-type, x-firebase-appcheck',
     },
     cache: 'no-store',
   });
@@ -46,7 +46,9 @@ async function verifyImageWorkerDeployment(
     throw new Error('allowed CORS preflight is missing POST');
   }
   const allowedHeaders = preflight.headers.get('access-control-allow-headers') || '';
-  if (!/authorization/i.test(allowedHeaders) || !/content-type/i.test(allowedHeaders)) {
+  if (!/authorization/i.test(allowedHeaders) ||
+      !/content-type/i.test(allowedHeaders) ||
+      !/x-firebase-appcheck/i.test(allowedHeaders)) {
     throw new Error('allowed CORS preflight is missing required request headers');
   }
 
@@ -55,7 +57,7 @@ async function verifyImageWorkerDeployment(
     headers: {
       Origin: BLOCKED_ORIGIN,
       'Access-Control-Request-Method': 'POST',
-      'Access-Control-Request-Headers': 'authorization, content-type',
+      'Access-Control-Request-Headers': 'authorization, content-type, x-firebase-appcheck',
     },
     cache: 'no-store',
   });

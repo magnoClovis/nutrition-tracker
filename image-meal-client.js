@@ -26,7 +26,11 @@
     }
   }
 
-  function errorCodeForStatus(status) {
+  function errorCodeForStatus(status, providerCode) {
+    if (providerCode === "app-check-required" ||
+        providerCode === "invalid-app-check" ||
+        providerCode === "app-check-unavailable" ||
+        providerCode === "app-check-not-configured") return "service-unavailable";
     if (status === 400 || status === 413 || status === 415) return "invalid-photo";
     if (status === 401) return "session-expired";
     if (status === 429) return "quota-reached";
@@ -34,9 +38,11 @@
     return "service-unavailable";
   }
 
-  function createImageMealClient({ fetchRequest, getIdToken }) {
-    if (typeof fetchRequest !== "function" || typeof getIdToken !== "function") {
-      throw new TypeError("ImageMealClient requires fetchRequest and getIdToken functions");
+  function createImageMealClient({ fetchRequest, getIdToken, getAppCheckToken }) {
+    if (typeof fetchRequest !== "function" ||
+        typeof getIdToken !== "function" ||
+        typeof getAppCheckToken !== "function") {
+      throw new TypeError("ImageMealClient requires fetch, Auth, and App Check functions");
     }
 
     async function analyzeImageMeal({ image, language, signal }) {
@@ -44,9 +50,18 @@
           image.data.length === 0 || !LANGUAGES.has(language)) {
         throw new ImageMealClientError("invalid-photo");
       }
-      const token = await getIdToken();
+      let token;
+      let appCheckToken;
+      try {
+        [token, appCheckToken] = await Promise.all([getIdToken(), getAppCheckToken()]);
+      } catch (_) {
+        throw new ImageMealClientError("service-unavailable");
+      }
       if (typeof token !== "string" || token.length === 0) {
         throw new ImageMealClientError("session-expired");
+      }
+      if (typeof appCheckToken !== "string" || appCheckToken.length === 0) {
+        throw new ImageMealClientError("service-unavailable");
       }
 
       let response;
@@ -55,7 +70,8 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": "Bearer " + token
+            "Authorization": "Bearer " + token,
+            "X-Firebase-AppCheck": appCheckToken
           },
           body: JSON.stringify({ image, language }),
           signal
@@ -78,7 +94,7 @@
           ? data.error.scope
           : undefined;
         throw new ImageMealClientError(
-          errorCodeForStatus(response.status),
+          errorCodeForStatus(response.status, data?.error?.code),
           Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
           response.status === 429 ? scope : undefined
         );

@@ -30,7 +30,7 @@
 
 ## O que está em andamento agora
 
-- **C14 — revisão geral de segurança:** C14-A, C14-B1 e C14-B2 estão concluídas; C14-C a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
+- **C14 — revisão geral de segurança:** C14-A, C14-B1 e C14-B2 estão concluídas; C14-C está em andamento; C14-D a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 
@@ -68,11 +68,11 @@
 
 ### [C14-C] - App Check no Worker de IA
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento (10/09/2026) — **Chat:** Trofia-Principal.
+- **Data de conclusão:** não concluído.
 - **Propósito:** exigir prova de app legítimo além do Firebase ID token sem quebrar clientes existentes durante a transição.
-- **Recursos/arquivos principais envolvidos:** `/worker/src/`, clientes de IA, App Check web/Android, CI, Pages e AAB real.
-- **O que foi feito:** nenhuma implementação iniciada; rollout aprovado em observação, envio de token, debug provider no CI, validação real e somente então enforcement.
+- **Recursos/arquivos principais envolvidos:** `/worker/src/firebase-app-check-token.js`, `/worker/src/ai-worker.js`, `/worker/wrangler.jsonc`, clientes de IA, App Check web/Android, CI, Pages, AAB real e [`C14_C_APP_CHECK_WORKER_ROLLOUT.md`](C14_C_APP_CHECK_WORKER_ROLLOUT.md).
+- **O que foi feito:** o Worker passou a validar criptograficamente o token App Check e a restringir os apps aceitos ao Web e Android do Trofia; todos os clientes enviam `X-Firebase-AppCheck` e falham de modo sanitizado antes de transmitir dados se não obtiverem token. A versão Worker `632877f3-e51f-4226-92fa-0b139e51e459` foi publicada em `observe` e passou no smoke externo. O run autenticado `34478874949` validou o código e o debug provider no CI. Permanecem como gates a publicação/validação do cliente no Pages, um AAB real com Play Integrity e somente então o enforcement obrigatório com nova validação.
 
 ### [C14-D] - Android e cadeia de release
 

@@ -36,7 +36,11 @@
     }
   }
 
-  function responseErrorCode(status) {
+  function responseErrorCode(status, providerCode) {
+    if (providerCode === "app-check-required" ||
+        providerCode === "invalid-app-check" ||
+        providerCode === "app-check-unavailable" ||
+        providerCode === "app-check-not-configured") return "service-unavailable";
     if (status === 401) return "authentication-error";
     if (status === 429) return "rate-limited";
     if (status >= 500) return "service-unavailable";
@@ -50,17 +54,29 @@
    * @param {Object} dependencies Injected HTTP and authentication dependencies.
    * @param {function(string,Object): Promise<Response>} dependencies.fetchRequest Fetch-compatible request function.
    * @param {function(): Promise<string|null|undefined>} dependencies.getIdToken Returns a current Firebase ID token.
+   * @param {function(): Promise<string|null|undefined>} dependencies.getAppCheckToken Returns a current Firebase App Check token.
    * @returns {{callAI: function(string,number=): Promise<string>}} Configured completion API.
    */
-  function createAIClient({ fetchRequest, getIdToken }) {
-    if (typeof fetchRequest !== "function" || typeof getIdToken !== "function") {
-      throw new TypeError("AIClient requires fetchRequest and getIdToken functions");
+  function createAIClient({ fetchRequest, getIdToken, getAppCheckToken }) {
+    if (typeof fetchRequest !== "function" ||
+        typeof getIdToken !== "function" ||
+        typeof getAppCheckToken !== "function") {
+      throw new TypeError("AIClient requires fetch, Auth, and App Check functions");
     }
 
     async function postAuthenticated(endpoint, body) {
-      const token = await getIdToken();
+      let token;
+      let appCheckToken;
+      try {
+        [token, appCheckToken] = await Promise.all([getIdToken(), getAppCheckToken()]);
+      } catch (_) {
+        throw new AIClientError("service-unavailable");
+      }
       if (typeof token !== "string" || token.length === 0) {
         throw new AIClientError("authentication-error");
+      }
+      if (typeof appCheckToken !== "string" || appCheckToken.length === 0) {
+        throw new AIClientError("service-unavailable");
       }
 
       let response;
@@ -69,7 +85,8 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": "Bearer " + token
+            "Authorization": "Bearer " + token,
+            "X-Firebase-AppCheck": appCheckToken
           },
           body: JSON.stringify(body)
         });
@@ -90,7 +107,7 @@
           ? data.error.scope
           : undefined;
         throw new AIClientError(
-          responseErrorCode(response.status),
+          responseErrorCode(response.status, data?.error?.code),
           Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
           response.status === 429 ? scope : undefined
         );
