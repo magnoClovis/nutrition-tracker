@@ -1,5 +1,10 @@
 const MIN_PREVIEW_EDGE = 48;
 
+function isPermissionFailure(error) {
+  const value = `${error?.code || ''} ${error?.message || ''}`.toLowerCase();
+  return value.includes('permission') && (value.includes('denied') || value.includes('not granted'));
+}
+
 export class EmbeddedCameraPreviewError extends Error {
   constructor(code, cause) {
     super(code);
@@ -66,17 +71,25 @@ export function createEmbeddedCameraPreview({
       await cameraPreviewPlugin.start({
         ...bounds,
         position: 'rear',
-        toBack: false,
+        // The native camera surface stays behind the WebView. C3 makes only the
+        // measured viewport transparent and keeps accessible HTML controls above it.
+        toBack: true,
         storeToFile: false,
         disableExifHeaderStripping: false,
         enableZoom: true,
         lockAndroidOrientation: false,
       });
-      if (currentOperation !== operationId) return;
+      if (currentOperation !== operationId) {
+        await cameraPreviewPlugin.stop().catch(() => {});
+        return;
+      }
       phase = 'active';
     } catch (cause) {
       if (currentOperation === operationId) phase = 'idle';
-      throw new EmbeddedCameraPreviewError('preview-start-failed', cause);
+      throw new EmbeddedCameraPreviewError(
+        isPermissionFailure(cause) ? 'camera-permission-denied' : 'preview-start-failed',
+        cause,
+      );
     }
   }
 

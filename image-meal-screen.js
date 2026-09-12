@@ -30,6 +30,9 @@
       isMobileView,
       onClose,
       onCapture,
+      onCameraSurface,
+      onEmbeddedCapture,
+      onCancelCamera,
       onChoose,
       onProcess,
       onCancelProcessing,
@@ -41,7 +44,8 @@
       if (!state) return null;
       const text = (pt, en, es) => pickLang(lang, pt, en, es);
       const phase = state.phase || "empty";
-      const busy = phase === "capturing" || phase === "processing" || phase === "confirming";
+      const cameraVisible = phase === "camera-opening" || phase === "camera-active" || phase === "camera-capturing";
+      const busy = phase === "capturing" || cameraVisible || phase === "processing" || phase === "confirming";
 
       const errorMessages = {
         "permission-denied": text(
@@ -53,6 +57,11 @@
           "Não foi possível usar esta foto. Escolha uma imagem válida e tente novamente.",
           "This photo could not be used. Choose a valid image and try again.",
           "No se pudo usar esta foto. Elige una imagen válida e inténtalo de nuevo."
+        ),
+        "camera-unavailable": text(
+          "Não foi possível abrir a câmera dentro do app. Você ainda pode escolher uma foto da galeria.",
+          "The in-app camera could not be opened. You can still choose a photo from the gallery.",
+          "No se pudo abrir la cámara dentro de la app. Aún puedes elegir una foto de la galería."
         ),
         "quota-reached": text(
           "O limite de análises por imagem foi atingido.",
@@ -129,6 +138,45 @@
         React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" } },
           action(text("Tirar foto", "Take photo", "Tomar foto"), onCapture, true),
           action(text("Escolher da galeria", "Choose from gallery", "Elegir de la galería"), onChoose, false)));
+      } else if (cameraVisible) {
+        const cameraReady = phase === "camera-active";
+        content = React.createElement("div", {
+          "data-image-meal-state": phase,
+          "data-embedded-camera": "true"
+        },
+        React.createElement("div", {
+          ref: onCameraSurface,
+          "data-embedded-camera-surface": "true",
+          "aria-hidden": "true"
+        },
+        React.createElement("span", { "data-camera-corner": "top-left" }),
+        React.createElement("span", { "data-camera-corner": "top-right" }),
+        React.createElement("span", { "data-camera-corner": "bottom-left" }),
+        React.createElement("span", { "data-camera-corner": "bottom-right" }),
+        React.createElement("div", { "data-camera-focus-frame": "true" })),
+        React.createElement("div", {
+          role: "status",
+          "aria-live": "polite",
+          "data-camera-active-indicator": "true"
+        }, cameraReady
+          ? text("Câmera ativa", "Camera active", "Cámara activa")
+          : phase === "camera-capturing"
+            ? text("Capturando...", "Capturing...", "Capturando...")
+            : text("Abrindo câmera...", "Opening camera...", "Abriendo cámara...")),
+        React.createElement("div", { "data-camera-controls": "true" },
+          action(text("Cancelar", "Cancel", "Cancelar"), onCancelCamera, false, {
+            allowWhileBusy: true,
+            props: { "data-camera-cancel": "true" }
+          }),
+          action(text("Capturar foto", "Capture photo", "Capturar foto"), onEmbeddedCapture, true, {
+            allowWhileBusy: true,
+            props: {
+              "data-camera-shutter": "true",
+              "aria-label": text("Capturar foto", "Capture photo", "Capturar foto"),
+              disabled: !cameraReady
+            },
+            style: { opacity: cameraReady ? 1 : .5 }
+          })));
       } else if (phase === "capturing") {
         content = React.createElement("div", {
           role: "status",
@@ -247,6 +295,7 @@
 
       return React.createElement("section", {
         "data-image-meal-screen": "true",
+        "data-camera-native-active": cameraVisible ? "true" : undefined,
         style: {
           width: "100%",
           maxWidth: 820,

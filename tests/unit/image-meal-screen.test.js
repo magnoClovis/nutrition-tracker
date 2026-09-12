@@ -42,6 +42,9 @@ function baseProps(state, overrides = {}) {
     isMobileView: false,
     onClose: () => {},
     onCapture: () => {},
+    onCameraSurface: () => {},
+    onEmbeddedCapture: () => {},
+    onCancelCamera: () => {},
     onChoose: () => {},
     onProcess: () => {},
     onCancelProcessing: () => {},
@@ -102,6 +105,28 @@ contractTest('shows a captured photo and cancellable processing indicator', Imag
   assert.equal(cancelled, 1);
   const close = elements(view, 'button').find(button => button.props['aria-label'] === 'Fechar');
   assert.equal(close.props.disabled, true);
+});
+
+contractTest('renders the embedded camera as an accessible HTML overlay in every camera phase', ImageMealScreen => {
+  for (const [phase, expectedStatus, shutterDisabled] of [
+    ['camera-opening', 'Abrindo câmera', true],
+    ['camera-active', 'Câmera ativa', false],
+    ['camera-capturing', 'Capturando', true],
+  ]) {
+    const calls = [];
+    const view = ImageMealScreen(baseProps({ phase }, {
+      onEmbeddedCapture: () => calls.push('capture'),
+      onCancelCamera: () => calls.push('cancel'),
+    }));
+    assert.equal(view.props['data-camera-native-active'], 'true');
+    assert.match(textContent(view), new RegExp(expectedStatus));
+    const shutter = elements(view, 'button').find(button => button.props['data-camera-shutter'] === 'true');
+    const cancel = elements(view, 'button').find(button => button.props['data-camera-cancel'] === 'true');
+    assert.equal(shutter.props.disabled, shutterDisabled);
+    if (!shutterDisabled) shutter.props.onClick();
+    cancel.props.onClick();
+    assert.deepEqual(calls, shutterDisabled ? ['cancel'] : ['capture', 'cancel']);
+  }
 });
 
 contractTest('shows the captured-photo checkpoint before analysis', ImageMealScreen => {
@@ -179,6 +204,7 @@ contractTest('renders every mapped error distinctly, including Retry-After quota
   const expectations = {
     'permission-denied': /Permissão da câmera negada/,
     'invalid-photo': /Não foi possível usar esta foto/,
+    'camera-unavailable': /Não foi possível abrir a câmera dentro do app/,
     'quota-reached': /limite de análises por imagem foi atingido/,
     'session-expired': /sessão expirou/,
     'service-unavailable': /temporariamente indisponível/,

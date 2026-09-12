@@ -180,6 +180,164 @@ body:has([data-one-ui-root][data-theme="dark"]) {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-action-fill) 16%, transparent) !important;
 }
 
+/* C3: the Android camera remains a bounded native surface behind the WebView.
+   The viewport is square at the native layer; four HTML corner masks preserve
+   the Trofia rounded-card silhouette while real semantic controls stay above it. */
+[data-image-meal-screen="true"] {
+  position: relative;
+}
+
+[data-embedded-camera="true"] {
+  position: relative;
+  isolation: isolate;
+  min-height: clamp(360px, 54vh, 510px);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
+  border-radius: 26px;
+  background: transparent;
+  box-shadow:
+    0 0 0 100vmax var(--surface-block),
+    0 18px 54px color-mix(in srgb, #163b30 18%, transparent);
+  animation: embeddedCameraOpen var(--dur-base) var(--ease-spring) both;
+}
+
+/* CameraPreview(toBack:true) needs a transparent WebView chain. The bounded
+   native rectangle plus the viewport's opaque outer spread keep transparency
+   localized; no camera pixels exist outside the measured rectangle. */
+html:has([data-camera-native-active="true"]),
+body:has([data-camera-native-active="true"]),
+body:has([data-camera-native-active="true"]) [data-one-ui-root],
+body:has([data-camera-native-active="true"]) [data-app-main="adicionar"] {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+body:has([data-camera-native-active="true"]) [data-app-main="adicionar"] {
+  overflow: hidden !important;
+}
+
+[data-image-meal-screen="true"] > header {
+  position: relative;
+  z-index: 3;
+}
+
+[data-embedded-camera-surface="true"] {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: transparent;
+}
+
+[data-camera-corner] {
+  position: absolute;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--camera-corner-origin), transparent 0 25px, var(--surface-block) 25.5px);
+}
+
+[data-camera-corner="top-left"] { top: 0; left: 0; --camera-corner-origin: 100% 100%; }
+[data-camera-corner="top-right"] { top: 0; right: 0; --camera-corner-origin: 0 100%; }
+[data-camera-corner="bottom-left"] { bottom: 0; left: 0; --camera-corner-origin: 100% 0; }
+[data-camera-corner="bottom-right"] { right: 0; bottom: 0; --camera-corner-origin: 0 0; }
+
+[data-camera-focus-frame="true"] {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: min(42%, 190px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, .72);
+  border-radius: 22px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), inset 0 0 28px rgba(0, 0, 0, .08);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+[data-camera-active-indicator="true"] {
+  position: absolute;
+  z-index: 4;
+  top: 16px;
+  left: 50%;
+  min-height: 34px;
+  padding: 7px 14px;
+  border: 1px solid rgba(255, 255, 255, .28);
+  border-radius: var(--radius-pill);
+  background: rgba(17, 25, 22, .66);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  transform: translateX(-50%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  backdrop-filter: blur(14px) saturate(130%);
+}
+
+[data-camera-controls="true"] {
+  position: absolute;
+  z-index: 4;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 22px;
+  background: rgba(17, 25, 22, .58);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+  backdrop-filter: blur(16px) saturate(135%);
+}
+
+[data-camera-controls="true"] button {
+  min-height: 48px !important;
+  padding-inline: 20px !important;
+}
+
+[data-camera-shutter="true"] {
+  background: color-mix(in srgb, var(--accent-action-fill) 91%, white) !important;
+  color: #fff !important;
+}
+
+[data-camera-cancel="true"] {
+  background: rgba(255, 255, 255, .14) !important;
+  border-color: rgba(255, 255, 255, .22) !important;
+  color: #fff !important;
+}
+
+@keyframes embeddedCameraOpen {
+  from { opacity: 0; clip-path: inset(42% 7% 42% 7% round 22px); }
+  to { opacity: 1; clip-path: inset(0 round 26px); }
+}
+
+[data-embedded-camera="true"][data-image-meal-state="camera-capturing"] {
+  pointer-events: none;
+  animation: embeddedCameraCapture var(--dur-base) ease-in both;
+}
+
+@keyframes embeddedCameraCapture {
+  from { opacity: 1; clip-path: inset(0 round 26px); }
+  to { opacity: .12; clip-path: inset(42% 7% 42% 7% round 22px); }
+}
+
+@media (max-width: 640px) {
+  [data-embedded-camera="true"] {
+    min-height: clamp(330px, 52vh, 460px);
+    border-radius: 24px;
+  }
+  [data-camera-controls="true"] { right: 10px; bottom: 10px; left: 10px; }
+  [data-camera-controls="true"] button { flex: 1; padding-inline: 12px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-embedded-camera="true"] { animation: none; }
+}
+
 /* Native-semantic multiple selection. Circular marks are reserved for radio
    choices; switch-shaped controls are reserved for persistent preferences. */
 [data-checkbox-field="true"] {

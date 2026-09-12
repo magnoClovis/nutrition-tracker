@@ -59,7 +59,7 @@ test('starts a rear camera preview constrained to the measured rectangle', async
     width: 336,
     height: 252,
     position: 'rear',
-    toBack: false,
+    toBack: true,
     storeToFile: false,
     disableExifHeaderStripping: false,
     enableZoom: true,
@@ -105,9 +105,9 @@ test('rejects browser use, invalid surfaces, duplicate starts, and capture befor
 
 test('normalizes start and capture failures without leaving a stuck phase', async () => {
   const module = await loadModule();
-  const failedStart = createFixture(module, { startError: new Error('permission denied') });
+  const failedStart = createFixture(module, { startError: new Error('native preview unavailable') });
   await assert.rejects(failedStart.preview.start(failedStart.surface), error => (
-    error.code === 'preview-start-failed' && error.cause.message === 'permission denied'
+    error.code === 'preview-start-failed' && error.cause.message === 'native preview unavailable'
   ));
   assert.equal(failedStart.preview.getPhase(), 'idle');
 
@@ -115,4 +115,35 @@ test('normalizes start and capture failures without leaving a stuck phase', asyn
   await failedCapture.preview.start(failedCapture.surface);
   await assert.rejects(failedCapture.preview.capture(), error => error.code === 'preview-capture-empty');
   assert.equal(failedCapture.preview.getPhase(), 'active');
+});
+
+test('maps a native permission rejection to the shared camera error', async () => {
+  const module = await loadModule();
+  const fixture = createFixture(module, { startError: new Error('Camera permission denied') });
+  await assert.rejects(
+    fixture.preview.start(fixture.surface),
+    error => error.code === 'camera-permission-denied',
+  );
+});
+
+test('stops a preview whose native start finishes after cancellation', async () => {
+  const module = await loadModule();
+  let releaseStart;
+  const started = new Promise(resolve => { releaseStart = resolve; });
+  const calls = { stop: 0 };
+  const preview = module.createEmbeddedCameraPreview({
+    cameraPreviewPlugin: {
+      start: () => started,
+      async capture() { return { value: 'unused' }; },
+      async stop() { calls.stop += 1; },
+    },
+    isNativeAndroid: () => true,
+  });
+  const surface = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 200 }) };
+  const opening = preview.start(surface);
+  await preview.stop();
+  releaseStart();
+  await opening;
+  assert.equal(preview.getPhase(), 'idle');
+  assert.equal(calls.stop, 2);
 });

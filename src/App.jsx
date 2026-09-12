@@ -290,6 +290,12 @@ const imageMealFeature = Object.freeze({
   buildRegistration: imageMealRegistration.buildImageMealRegistration,
   createFlow: ({ onReview, onConfirm }) => ImageMealFlow.createImageMealFlow({
     captureFromCamera: MealImageCaptureRuntime.captureMealImageFromCamera,
+    embeddedCameraPreview: embeddedMealCameraPreview,
+    preprocessEmbeddedCapture: base64 => MealImageCaptureRuntime.preprocessMealImage(
+      new Blob([Uint8Array.from(atob(base64), character => character.charCodeAt(0))], {
+        type: 'image/jpeg',
+      }),
+    ),
     chooseFromGallery: MealImageCaptureRuntime.chooseMealImageFromGallery,
     analyzeImageMeal: imageMealClient.analyzeImageMeal,
     normalizeMealEstimate: mealEstimateDomain.normalizeMealEstimate,

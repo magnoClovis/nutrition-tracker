@@ -42,6 +42,7 @@ function createFixture(module, overrides = {}) {
   const reviews = [];
   const confirmations = [];
   const aborts = [];
+  const embeddedCalls = [];
   class ClientError extends Error {
     constructor(code, retryAfterSeconds, scope) {
       super(code);
@@ -63,6 +64,8 @@ function createFixture(module, overrides = {}) {
   }
   const flow = module.createImageMealFlow({
     captureFromCamera: overrides.captureFromCamera || (async () => photo('camera')),
+    embeddedCameraPreview: overrides.embeddedCameraPreview,
+    preprocessEmbeddedCapture: overrides.preprocessEmbeddedCapture || (async value => photo(`embedded-${value}`)),
     chooseFromGallery: overrides.chooseFromGallery || (async () => photo('gallery')),
     analyzeImageMeal: overrides.analyzeImageMeal || (async () => remoteEstimate()),
     normalizeMealEstimate: domain.normalizeMealEstimate,
@@ -79,7 +82,7 @@ function createFixture(module, overrides = {}) {
     ImageMealClientError: ClientError,
     MealEstimateValidationError: MealEstimate.MealEstimateValidationError,
   });
-  return { flow, photos, reviews, confirmations, aborts, photo, ClientError };
+  return { flow, photos, reviews, confirmations, aborts, embeddedCalls, photo, ClientError };
 }
 
 contractTest('moves from empty to camera/gallery photo and disposes replaced or discarded blobs', async module => {
@@ -98,6 +101,54 @@ contractTest('moves from empty to camera/gallery photo and disposes replaced or 
   assert.equal(fixture.photos[1].disposed, true);
   assert.equal(fixture.flow.getState().phase, 'empty');
   assert.deepEqual(phases, ['capturing', 'photo', 'capturing', 'photo', 'empty']);
+});
+
+contractTest('opens, captures, and cancels the bounded Android preview without invoking fullscreen capture', async module => {
+  let fullscreenCalls = 0;
+  const calls = [];
+  const embeddedCameraPreview = {
+    isSupported: () => true,
+    async start(surface) { calls.push(['start', surface]); },
+    async capture() { calls.push(['capture']); return 'native-jpeg'; },
+    async stop() { calls.push(['stop']); },
+  };
+  const fixture = createFixture(module, {
+    captureFromCamera: async () => { fullscreenCalls += 1; return fixture.photo('fullscreen'); },
+    embeddedCameraPreview,
+  });
+  const surface = { id: 'camera-surface' };
+
+  assert.equal((await fixture.flow.captureFromCamera()).phase, 'camera-opening');
+  assert.equal((await fixture.flow.startEmbeddedCamera(surface)).phase, 'camera-active');
+  assert.equal((await fixture.flow.captureEmbeddedCamera()).phase, 'photo');
+  assert.equal(fixture.flow.getState().photo.previewUrl, 'blob:embedded-native-jpeg');
+  assert.equal(fullscreenCalls, 0);
+  assert.deepEqual(calls, [['start', surface], ['capture'], ['stop']]);
+
+  await fixture.flow.captureFromCamera();
+  assert.equal((await fixture.flow.cancelEmbeddedCamera()).phase, 'photo');
+  assert.equal(fixture.flow.getState().photo.previewUrl, 'blob:embedded-native-jpeg');
+  assert.deepEqual(calls.at(-1), ['stop']);
+});
+
+contractTest('maps embedded preview permission and startup errors without hiding gallery recovery', async module => {
+  for (const [sourceCode, expected] of [
+    ['camera-permission-denied', 'permission-denied'],
+    ['preview-start-failed', 'camera-unavailable'],
+  ]) {
+    const fixture = createFixture(module, {
+      embeddedCameraPreview: {
+        isSupported: () => true,
+        async start() { throw Object.assign(new Error(sourceCode), { code: sourceCode }); },
+        async capture() { return 'unused'; },
+        async stop() {},
+      },
+    });
+    await fixture.flow.captureFromCamera();
+    const state = await fixture.flow.startEmbeddedCamera({});
+    assert.equal(state.phase, 'error');
+    assert.equal(state.error, expected);
+  }
 });
 
 contractTest('processes a photo into an editable normalized result with stable item ids', async module => {
