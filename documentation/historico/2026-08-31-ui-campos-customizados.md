@@ -872,12 +872,70 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - A abertura usa expansão por `clip-path`; ao capturar, o mesmo card contrai antes de mostrar a foto processada. Em `prefers-reduced-motion: reduce`, as animações são eliminadas sem remover estados ou ações.
 - O encerramento é acionado ao cancelar, fechar/desmontar a tela, descartar ou concluir a captura. Foi coberta também a corrida em que o usuário cancela antes de `CameraPreview.start()` terminar: o serviço tenta parar imediatamente e repete a limpeza após o `start` atrasado, impedindo uma sessão nativa órfã.
 - Os testes focados terminaram com 107/107 casos e nenhum skip. O gate local completo passou com preflight limpo, 1.328/1.328 testes unitários sem skip, smokes legado e Vite sem falhas no perfil local e cutover 60/60 sem skip em PT/EN/ES, desktop/mobile e claro/escuro. Os 63 skips por runtime nos smokes locais são exclusivamente os testes autenticados já documentados, ausentes por falta deliberada de credenciais locais; o CI autenticado do PR permanece o gate externo obrigatório.
-- O PR foi aberto em draft. Até o CI autenticado terminar e o PR ser aprovado/mesclado, C3 permanece registrada como em andamento, sem APK/AAB publicado.
+- O PR passou pelo CI autenticado, foi retirado do modo draft por autorização explícita e mesclado na `main`. Nenhum APK/AAB foi publicado.
 
 **PRs/commits relacionados:**
 
-- [PR #190 — Android: integrar câmera embutida no reconhecimento (C3)](https://github.com/magnoClovis/nutrition-tracker/pull/190), aberto em draft.
+- [PR #190 — Android: integrar câmera embutida no reconhecimento (C3)](https://github.com/magnoClovis/nutrition-tracker/pull/190), mesclado na `main`.
 - [Commit `02805cd` — integração visual e funcional da câmera embutida](https://github.com/magnoClovis/nutrition-tracker/commit/02805cd).
+- [Merge `c6a4e4f` — incorporação do PR #190 na `main`](https://github.com/magnoClovis/nutrition-tracker/commit/c6a4e4f9aaccf768d1fbd85f25ed9bb49a4bb72f).
+
+## Câmera embutida — robustez nativa e ciclo de vida C4a
+
+**Data (se determinável):** 12/09/2026.
+
+**Propósito:** tornar a câmera embutida da C3 resiliente aos eventos e falhas reais do Android sem ampliar seu conjunto de funções. A subfatia precisava impedir sessões nativas órfãs quando o usuário cancela, usa Voltar, envia o app ao background ou abandona uma operação ainda pendente; limitar esperas indefinidas do plugin; estabilizar a geometria entre WebView e superfície nativa; e tratar permissão, captura vazia e indisponibilidade de maneira previsível. Zoom, troca de câmera, flash, gestos e edição fotográfica permaneceram explicitamente fora do escopo.
+
+**Recursos:**
+
+- Capacitor 8.4.2, `@capacitor-community/camera-preview` 8.0.1, `@capacitor/app` 8.1.1 e `@capacitor/camera` 8.2.1.
+- Eventos Android `appStateChange` e `backButton`, Camera Preview traseiro com `toBack:true` e API de permissão real do Capacitor Camera.
+- React e máquina de estados do fluxo C24 para coordenar abertura, captura, interrupção, descarte e recuperação.
+- CSS One UI 8/Glass UI para congelamento temporário de scroll/overscroll somente durante a sessão nativa.
+- Node.js Test Runner, Vite, Playwright, Capacitor CLI, Gradle, Android SDK, JDK 21 e inspeção ADB com `dumpsys media.camera`/`dumpsys window`.
+- Galaxy S25 Ultra SM-S938B físico, conectado por USB, para validação de permissão, geometria, orientação, captura e ciclo de vida reais.
+
+**Arquivos:**
+
+- `src/composite/embedded-camera-preview.js`
+- `src/composite/embedded-camera-preview-runtime.js`
+- `src/composite/android-app-runtime.js`
+- `src/composite/android-back-navigation.js`
+- `src/App.jsx`
+- `image-meal-flow.js`
+- `nutrition-tracker-controller.js`
+- `one-ui.css`
+- `tests/unit/embedded-camera-preview.test.js`
+- `tests/unit/embedded-camera-integration.test.js`
+- `tests/unit/image-meal-flow.test.js`
+- `tests/unit/android-app-runtime.test.js`
+- `tests/unit/android-back-navigation.test.js`
+- `tests/unit/nutrition-tracker-controller.test.js`
+- `documentation/historico/2026-08-31-ui-campos-customizados.md`
+- `documentation/estado-atual/RESUMO-STATUS.md`
+
+**O que foi feito:**
+
+- O runtime da câmera passou a receber o plugin Capacitor Camera exclusivamente para consultar e solicitar `CAMERA`; estados `granted`/`limited` permitem a abertura, `prompt` aciona a solicitação nativa e negativa explícita retorna `camera-permission-denied` antes de iniciar o preview.
+- `start`, `capture` e cada tentativa de `stop` receberam limite de 12 segundos. A parada nativa tenta novamente uma única vez após falha transitória e sempre devolve o serviço ao estado `idle`, evitando bloqueio permanente da interface.
+- A janela assíncrona de abertura foi fechada em dois caminhos: cancelamento enquanto `start()` está pendente e resolução do plugin depois de um timeout. Em ambos, uma limpeza tardia adicional impede que a superfície nativa reapareça após a UI já ter abandonado a câmera.
+- Uma captura que termina depois de cancelamento é rejeitada como `preview-capture-cancelled` e não pode restaurar a fase ativa. Retorno nativo sem Base64 é classificado como foto inválida; falhas/timeouts de abertura, captura ou encerramento reutilizam a recuperação existente de câmera indisponível, mantendo a galeria acessível.
+- O Camera Preview passou a usar `lockAndroidOrientation:true` para impedir que uma rotação invalide as coordenadas DOM já enviadas à superfície nativa. `enableZoom:false` registra tecnicamente o escopo aprovado de captura simples, sem introduzir gesto ou recurso novo.
+- O runtime Android ganhou inscrição removível em `appStateChange`. Ao perder o foreground, o controlador interrompe apenas uma câmera embutida ativa, preservando a fotografia anterior quando existente. A limpeza também ocorre no teardown do listener.
+- O resolvedor central de Voltar recebeu `imageMealCameraActive` no nível das superfícies do fluxo de adição. O primeiro Voltar cancela a câmera e permanece na tela; só um Voltar posterior continua a hierarquia normal de navegação.
+- Enquanto `[data-camera-native-active="true"]` existe, o `body` bloqueia scroll e overscroll, estabilizando o retângulo passado ao Android sem alterar a rolagem normal antes/depois da sessão.
+- A prova física usou um APK debug temporário e isolado no pacote `com.hermegas.trofia.c4proof`, construído com os serviços reais da branch. O pacote não substituiu a instalação oficial, não foi publicado e foi desinstalado ao fim; os fontes temporários do harness não foram versionados.
+- No Galaxy, o Android apresentou a permissão real (interface do sistema em espanhol) e a concessão “durante o uso” abriu a câmera traseira como cliente `com.hermegas.trofia.c4proof`. O preview permaneceu confinado ao card arredondado, com indicador e botões HTML visíveis/clicáveis sobre a imagem.
+- Uma solicitação temporária de rotação para 90° manteve a Activity e o viewport em `ROTATION_0`/`portrait-primary`; as configurações originais de autorrotação foram restauradas imediatamente depois.
+- Home liberou o cliente da câmera antes do retorno; Voltar produziu `BACK_STOPPED`, manteve a Activity aberta e removeu o cliente nativo. Três ciclos consecutivos abrir/cancelar tiveram câmera ativa ao abrir e liberação confirmada após cada cancelamento.
+- A captura física retornou JPEG Base64 não vazio com 664.996 caracteres, exibiu a fotografia no espaço dedicado, retornou a fase a `idle` e deixou `dumpsys media.camera` sem cliente do pacote. A negativa real de permissão retornou `START_ERROR camera-permission-denied` sem abrir ou prender a câmera.
+- Depois da prova, o bundle Vite de produção foi restaurado no projeto Android, `npx cap sync android` reconheceu os sete plugins e `gradlew assembleDebug` concluiu com `BUILD SUCCESSFUL` usando o JDK 21 do Android Studio.
+- O gate focado final passou com 105/105 casos sem skip, cobrindo permissões, timeouts, segunda limpeza tardia, retry de parada, captura após cancelamento, background, Voltar e integração UMD/ESM. O gate local completo terminou com preflight limpo, 1.337/1.337 unitários sem skip, smokes legado e Vite com 40 aprovações e somente os 63 skips autenticados esperados em cada runtime, e cutover 60/60 sem skip em PT/EN/ES, desktop/mobile e claro/escuro. O CI autenticado do draft PR permanece obrigatório antes de qualquer aprovação/merge.
+
+**PRs/commits relacionados:**
+
+- [PR #192 — Android: robustecer ciclo de vida da câmera embutida (C4a)](https://github.com/magnoClovis/nutrition-tracker/pull/192), aberto em draft.
+- [Commit `ad84f4f` — robustez nativa, ciclo de vida, testes e registro documental](https://github.com/magnoClovis/nutrition-tracker/commit/ad84f4f50ee80230822a93d41a8a0076f773a26e).
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 

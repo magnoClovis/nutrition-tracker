@@ -38,7 +38,15 @@
     if (error && error.name === "AbortError") return "cancelled";
     if (error && error.code === "capture-cancelled") return "cancelled";
     if (error && error.code === "camera-permission-denied") return "permission-denied";
-    if (error && error.code === "preview-start-failed") return "camera-unavailable";
+    if (error && [
+      "preview-start-failed",
+      "preview-start-timeout",
+      "preview-capture-failed",
+      "preview-capture-timeout",
+      "preview-stop-failed",
+      "preview-stop-timeout"
+    ].includes(error.code)) return "camera-unavailable";
+    if (error && error.code === "preview-capture-empty") return "invalid-photo";
     if (error && INVALID_PHOTO_CODES.has(error.code)) return "invalid-photo";
     if (ImageMealClientError && error instanceof ImageMealClientError) return error.code;
     if (MealEstimateValidationError && error instanceof MealEstimateValidationError) {
@@ -134,14 +142,16 @@
 
     async function startEmbeddedCamera(surface) {
       if (state.phase !== "camera-opening") return snapshot();
+      const currentOperation = operationId;
       try {
         await embeddedCameraPreview.start(surface);
-        if (state.phase !== "camera-opening") {
+        if (currentOperation !== operationId || state.phase !== "camera-opening") {
           await embeddedCameraPreview.stop().catch(() => {});
           return snapshot();
         }
         return patch({ phase: "camera-active", error: null });
       } catch (error) {
+        if (currentOperation !== operationId) return snapshot();
         const code = classifyError(error, ImageMealClientError, MealEstimateValidationError);
         cameraPreviousPhoto = null;
         return patch({ phase: "error", error: code, photo: state.photo });
@@ -180,6 +190,10 @@
       const previousPhoto = cameraPreviousPhoto;
       cameraPreviousPhoto = null;
       return emit({ ...initialState(), phase: previousPhoto ? "photo" : "empty", photo: previousPhoto });
+    }
+
+    async function interruptEmbeddedCamera() {
+      return cancelEmbeddedCamera();
     }
 
     async function process(language) {
@@ -311,6 +325,7 @@
       startEmbeddedCamera,
       captureEmbeddedCamera,
       cancelEmbeddedCamera,
+      interruptEmbeddedCamera,
       chooseFromGallery: () => acquire("gallery"),
       process,
       cancelProcessing,

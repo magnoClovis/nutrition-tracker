@@ -14,6 +14,9 @@ test('C3 composes the bounded native preview into the real image-meal flow', () 
   assert.match(controller, /onCameraSurface:[\s\S]*startEmbeddedCamera/);
   assert.match(controller, /onEmbeddedCapture:[\s\S]*captureEmbeddedCamera/);
   assert.match(controller, /onCancelCamera:[\s\S]*cancelEmbeddedCamera/);
+  assert.match(app, /addAppStateListener:[\s\S]*androidAppRuntime\.addAppStateListener/);
+  assert.match(controller, /!isActive[\s\S]*interruptEmbeddedCamera/);
+  assert.match(controller, /imageMealCameraActive:[\s\S]*cancelImageMealCamera/);
 });
 
 test('C3 preserves a localized transparent viewport, HTML controls, theme tokens, and reduced motion', () => {
@@ -27,4 +30,5 @@ test('C3 preserves a localized transparent viewport, HTML controls, theme tokens
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\[data-embedded-camera="true"\]\s*\{\s*animation:\s*none/);
   assert.match(css, /\[data-camera-corner\][\s\S]*var\(--surface-block\)/);
   assert.match(css, /\[data-camera-shutter="true"\][\s\S]*var\(--accent-action-fill\)/);
+  assert.match(css, /body:has\(\[data-camera-native-active="true"\]\)[\s\S]*overflow:\s*hidden/);
 });

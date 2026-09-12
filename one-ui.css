@@ -216,6 +216,11 @@ body:has([data-camera-native-active="true"]) [data-app-main="adicionar"] {
   overflow: hidden !important;
 }
 
+body:has([data-camera-native-active="true"]) {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
 [data-image-meal-screen="true"] > header {
   position: relative;
   z-index: 3;

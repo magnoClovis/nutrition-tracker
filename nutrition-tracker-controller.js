@@ -2113,6 +2113,24 @@
         if (typeof unsubscribe === "function") unsubscribe();
         if (flow && typeof flow.destroy === "function") flow.destroy();
       }, []);
+      useEffect(() => {
+        if (!imageMealFeature || typeof imageMealFeature.addAppStateListener !== "function") return undefined;
+        let disposed = false;
+        let removeListener = () => {};
+        imageMealFeature.addAppStateListener(({ isActive }) => {
+          if (!isActive) void imageMealFlowRef.current?.interruptEmbeddedCamera?.();
+        }).then(remove => {
+          if (disposed) {
+            void remove();
+            return;
+          }
+          removeListener = remove;
+        }).catch(() => {});
+        return () => {
+          disposed = true;
+          void removeListener();
+        };
+      }, []);
       function applySelectedMealTime(items) {
         return applyMealRegistrationTime(
           items,
@@ -4978,6 +4996,7 @@
           mealTemplatesOpen,
           suppPantryOpen,
           addTemplatesOpen,
+          imageMealCameraActive: Boolean(imageMealState?.phase?.startsWith("camera-")),
           tab,
           viewDate,
           today: TODAY,
@@ -5035,6 +5054,7 @@
           case "closeMealTemplates": setMealTemplatesOpen(false); break;
           case "closeSupplementPantry": setSuppPantryOpen(false); break;
           case "closeAddTemplates": setAddTemplatesOpen(false); break;
+          case "cancelImageMealCamera": void imageMealFlowRef.current?.cancelEmbeddedCamera(); break;
           case "returnToToday": changeViewDate(TODAY); break;
           case "leaveAddScreen": {
             closeMealRegistration();

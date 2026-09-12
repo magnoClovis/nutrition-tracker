@@ -17,8 +17,10 @@ test('Android app runtime is inert outside native Android', async () => {
   });
 
   const remove = await runtime.addBackButtonListener(() => {});
+  const removeState = await runtime.addAppStateListener(() => {});
   await runtime.minimize();
   remove();
+  removeState();
 
   assert.deepEqual(calls, []);
 });
@@ -37,14 +39,19 @@ test('Android app runtime owns one removable listener and native minimize', asyn
     isNativeAndroid: () => true,
   });
   const listener = () => {};
+  const stateListener = () => {};
 
   const remove = await runtime.addBackButtonListener(listener);
+  const removeState = await runtime.addAppStateListener(stateListener);
   await runtime.minimize();
   await remove();
+  await removeState();
 
   assert.deepEqual(calls, [
     ['listen', 'backButton', listener],
+    ['listen', 'appStateChange', stateListener],
     ['minimize'],
+    ['remove'],
     ['remove'],
   ]);
 });

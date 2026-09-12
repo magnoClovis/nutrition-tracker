@@ -75,6 +75,7 @@ const ACTIONS_BY_LEVEL = Object.freeze([
     ['showRecentMeals', 'closeRecentMeals'],
   ],
   [
+    ['imageMealCameraActive', 'cancelImageMealCamera'],
     ['newFoodOpen', 'closeNewFood'],
     ['pantryItemsOpen', 'closePantryItems'],
     ['mealTemplatesOpen', 'closeMealTemplates'],

@@ -22,6 +22,12 @@ export function createAndroidAppRuntime({
     return () => handle.remove();
   }
 
+  async function addAppStateListener(listener) {
+    if (!isNativeAndroid()) return () => {};
+    const handle = await appPlugin.addListener('appStateChange', listener);
+    return () => handle.remove();
+  }
+
   async function minimize() {
     if (isNativeAndroid()) await appPlugin.minimizeApp();
   }
@@ -29,6 +35,7 @@ export function createAndroidAppRuntime({
   return {
     isAvailable: isNativeAndroid,
     addBackButtonListener,
+    addAppStateListener,
     minimize,
   };
 }
