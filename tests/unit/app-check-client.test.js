@@ -5,6 +5,7 @@ const implementations = [
   ['UMD', () => Promise.resolve(require('../../app-check-client.js'))],
   ['ESM factory', async () => import('../../app-check-client.js').then(() => globalThis.AppCheckClient)],
 ];
+const validSdkToken = 'eyJhbGciOiJSUzI1NiJ9.eyJleHAiOjk5OTk5OTk5OTl9.signature';
 
 for (const [format, load] of implementations) {
   test(`${format}: accepts only a non-expired native Play Integrity token`, async () => {
@@ -63,11 +64,11 @@ for (const [format, load] of implementations) {
     const client = createAppCheckClient({
       isNativePlatform: () => true,
       async initializeNativeBridge() { calls.push('initializeNativeBridge'); },
-      async getSdkToken() { calls.push('getSdkToken'); return {token: 'native-sdk-token'}; },
+      async getSdkToken() { calls.push('getSdkToken'); return {token: validSdkToken}; },
     });
 
     await Promise.all([client.initialize(), client.initialize()]);
-    assert.equal(await client.getToken(), 'native-sdk-token');
+    assert.equal(await client.getToken(), validSdkToken);
     assert.deepEqual(calls, ['initializeNativeBridge', 'getSdkToken']);
   });
 
@@ -77,11 +78,11 @@ for (const [format, load] of implementations) {
     const client = createAppCheckClient({
       isNativePlatform: () => false,
       async initializeWeb() { calls.push('initializeWeb'); },
-      async getSdkToken() { calls.push('getSdkToken'); return {token: 'web-sdk-token'}; },
+      async getSdkToken() { calls.push('getSdkToken'); return {token: validSdkToken}; },
     });
 
     await Promise.all([client.initialize(), client.initialize()]);
-    assert.equal(await client.getToken(), 'web-sdk-token');
+    assert.equal(await client.getToken(), validSdkToken);
     assert.deepEqual(calls, ['initializeWeb', 'getSdkToken']);
   });
 
@@ -126,6 +127,26 @@ for (const [format, load] of implementations) {
       await assert.rejects(client.getToken(), error =>
         error instanceof AppCheckClientError &&
         error.code === 'app-check-token-unavailable' && error.cause === cause);
+    });
+    await t.test('Firebase dummy result with an attached error', async () => {
+      const client = createAppCheckClient({
+        isNativePlatform: () => false,
+        async initializeWeb() {},
+        async getSdkToken() {
+          return {token: 'eyJlcnJvciI6IlVOS05PV05fRVJST1IifQ==', error: new Error('attestation')};
+        },
+      });
+      await assert.rejects(client.getToken(), error =>
+        error instanceof AppCheckClientError && error.code === 'app-check-token-invalid');
+    });
+    await t.test('detached Firebase dummy token', async () => {
+      const client = createAppCheckClient({
+        isNativePlatform: () => false,
+        async initializeWeb() {},
+        async getSdkToken() { return {token: 'eyJlcnJvciI6IlVOS05PV05fRVJST1IifQ=='}; },
+      });
+      await assert.rejects(client.getToken(), error =>
+        error instanceof AppCheckClientError && error.code === 'app-check-token-invalid');
     });
   });
 }

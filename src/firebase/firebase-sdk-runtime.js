@@ -87,6 +87,7 @@ function createModularFirebaseRuntime({
     storage: Object.freeze({
       get: firestoreRuntime.client.fbGet3,
       getMany: firestoreRuntime.client.fbGetMany3,
+      getProfileFromServer: firestoreRuntime.client.fbGetProfileFromServer3,
       set: firestoreRuntime.client.fbSet3,
       delete: firestoreRuntime.client.fbDel3,
       list: firestoreRuntime.client.fbList3,

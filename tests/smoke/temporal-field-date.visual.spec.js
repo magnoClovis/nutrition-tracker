@@ -1,5 +1,5 @@
 const { test, expect } = require('./app-check-fixture');
-const { expectNoCriticalErrors, openApp } = require('./test-helpers');
+const { expectNoCriticalErrors, openApp, setDateFieldValue } = require('./test-helpers');
 
 async function startLoggedOut(page, theme, language = 'pt') {
   await page.addInitScript(({ nextTheme, nextLanguage }) => {
@@ -18,7 +18,10 @@ async function installRequiredProfileFixture(page) {
   await page.evaluate(() => {
     window.__dateFieldVisual = { language: 'pt' };
     window.fbSignIn = async email => localStorage.setItem('fb_email', email);
+    window.fbSignUp = async email => localStorage.setItem('fb_email', email);
     window.fbCheckEmailVerified = async () => true;
+    window.fbUpdateProfile = async () => {};
+    window.fbSendVerificationEmail = async () => {};
     window.storage.get = async key => Object.prototype.hasOwnProperty.call(window.__dateFieldVisual, key)
       ? { value: window.__dateFieldVisual[key] } : null;
     window.storage.set = async (key, value) => { window.__dateFieldVisual[key] = value; return true; };
@@ -26,10 +29,42 @@ async function installRequiredProfileFixture(page) {
       key, Object.prototype.hasOwnProperty.call(window.__dateFieldVisual, key)
         ? { value: window.__dateFieldVisual[key] } : null
     ]));
+    window.storage.getProfileFromServer = async keys => Object.fromEntries(keys.map(key => [
+      key, Object.prototype.hasOwnProperty.call(window.__dateFieldVisual, key)
+        ? {value: window.__dateFieldVisual[key]} : null
+    ]));
+    window.fbSet = (...args) => window.storage.set(...args);
     window.storage.readDailyStateCompatible = async () => ({ log: {}, waterIntake: [], supplementLog: [] });
     window.storage.migrateDailyEntries = async () => ({ migrated: false });
     window.storage.subscribeMany = () => () => {};
   });
+}
+
+async function createAccountUntilRequiredProfile(page) {
+  await page.getByRole('button', {name: /Criar conta|Create account/i}).first().click();
+  await page.locator('input[type="email"]').fill('new-date-profile@example.test');
+  await page.locator('input[autocomplete="new-password"]').nth(0).fill('secret123');
+  await page.locator('input[autocomplete="new-password"]').nth(1).fill('secret123');
+  await page.locator('input[autocomplete="name"]').fill('New Profile');
+  await setDateFieldValue(page, '#registration-birth-date-trigger', '1990-06-15');
+  await page.locator('#registration-gender-trigger').click();
+  await page.getByRole('option', {name: 'Feminino', exact: true}).click();
+  await page.getByRole('button', {name: /Criar conta|Create account/i}).last().click();
+  await expect(page.getByRole('heading', {name: /Verifique seu email|Verify your email/i})).toBeVisible();
+  await expect(page.locator('[data-required-profile-modal="true"]')).toBeVisible({timeout: 10000});
+}
+
+async function openRequiredProfile(page) {
+  const usesModularRuntime = await page.evaluate(
+    () => typeof window.debugFirestoreReadMetrics === 'function',
+  );
+  if (usesModularRuntime) {
+    await createAccountUntilRequiredProfile(page);
+    return;
+  }
+  await page.locator('input[type="email"]').fill('verified@example.test');
+  await page.locator('input[type="password"]').fill('secret123');
+  await page.getByRole('button', {name: /Entrar|Sign in/i}).last().click();
 }
 
 for (const theme of ['light', 'dark']) {
@@ -81,9 +116,7 @@ for (const theme of ['light', 'dark']) {
   test(`required profile also uses the shared ${theme} date picker`, async ({ page }) => {
     const errors = await startLoggedOut(page, theme);
     await installRequiredProfileFixture(page);
-    await page.locator('input[type="email"]').fill('verified@example.test');
-    await page.locator('input[type="password"]').fill('secret123');
-    await page.getByRole('button', { name: /Entrar|Sign in/i }).last().click();
+    await openRequiredProfile(page);
     await expect(page.locator('[data-required-profile-modal="true"]')).toBeVisible();
     await expect(page.locator('input[type="date"]')).toHaveCount(0);
     await page.locator('#required-profile-birth-date-trigger').click();

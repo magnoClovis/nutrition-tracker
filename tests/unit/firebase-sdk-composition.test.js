@@ -73,10 +73,12 @@ test('the modular Firestore adapter uses SDK operations instead of raw REST fetc
 test('the active Vite facade cuts Auth over to the shared modular runtime', () => {
   const activeFacade = read('src/firebase/firebase-storage.js');
   const app = read('src/App.jsx');
+  const firestoreComposition = read('src/firebase/firebase-firestore-sdk.js');
   assert.match(activeFacade, /createModularFirebaseRuntime/);
   assert.match(activeFacade, /initializeFirebase/);
   assert.doesNotMatch(activeFacade, /firebase-auth-internal/);
-  assert.match(app, /Promise\.resolve\(\)\s*\.then\(\(\) => initializeAppCheck\(\)\)/);
+  assert.match(app, /ensureAppCheckInitialized\(\)\.then\(\(\) => getAppCheckToken\(\)\)/);
+  assert.match(firestoreComposition, /getDocFromServer/);
   assert.match(app, /if \(!firebaseRuntimeConfigured\)/);
   assert.match(app, /Promise\.resolve\(\)\.then\(\(\) => initializeFirebase\(\)\)/);
   assert.match(app, /fbCheckEmailVerified\(\{reload:\s*false\}\)/);

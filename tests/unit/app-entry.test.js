@@ -64,7 +64,10 @@ test('preserves the authentication and profile gates without legacy normalizatio
   assert.match(appSource, /<ErrorBoundary>[\s\S]*?<RequiredProfileModal/);
   assert.doesNotMatch(appSource, /getRequiredProfileData\(\)\.catch\(\(\) => \(\{/);
   assert.match(appSource, /setProfileLoadError\(profileReadErrorCode\(error\)\)/);
-  assert.match(appSource, /await ensureAppCheckInitialized\(\)/);
+  assert.match(appSource, /await ensureAppCheckReady\(\)/);
+  assert.match(appSource, /getRequiredProfileData\(\{serverConfirmed: true\}\)/);
+  assert.match(appSource, /isNewAccount:\s*isNew === true/);
+  assert.match(appSource, /profile-incomplete-existing-account/);
 });
 
 test('installs exactly the fifteen ESM namespaces still resolved by the controller', () => {

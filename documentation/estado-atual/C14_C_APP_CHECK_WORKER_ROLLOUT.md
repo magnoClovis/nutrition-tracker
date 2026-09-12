@@ -2,7 +2,7 @@
 
 Estado: em andamento desde 10/09/2026. Este documento é o procedimento operacional do rollout; não declara o enforcement concluído antes dos gates reais.
 
-Progresso em 10/09/2026: o Worker `632877f3-e51f-4226-92fa-0b139e51e459` está publicado em observação e passou no smoke externo; o run autenticado `34478874949` validou a implementação e o debug provider. O cliente ainda aguarda merge/publicação e o enforcement continua desligado.
+Progresso em 12/09/2026: o Worker `632877f3-e51f-4226-92fa-0b139e51e459` está publicado em observação e passou no smoke externo; o run autenticado `34478874949` validou a implementação e o debug provider. O PR #189 publicou o cliente e a validação manual do Pages confirmou Descrever prato, Reconhecer por foto e Avaliar refeição com explicação. A mesma validação revelou uma corrida no gate do perfil entre token App Check e snapshot de cache; o hotfix `C14-C-PROFILE-GATE` está em andamento. Por isso, a fase 4 permanece aberta, nenhum AAB novo foi solicitado e o enforcement continua desligado.
 
 ## Contrato de segurança
 
@@ -26,6 +26,10 @@ As chaves públicas são mantidas em memória conforme `Cache-Control`, com teto
 ## Critérios de rollback
 
 Se um cliente legítimo falhar após o enforcement, restaurar imediatamente `APP_CHECK_MODE = "observe"` e republicar o Worker. Não remover a obtenção de tokens dos clientes nem enfraquecer a validação criptográfica. Investigar a plataforma afetada antes de tentar novo enforcement.
+
+## Gate adicional descoberto na validação do Pages
+
+Antes do AAB, o bootstrap autenticado precisa comprovar que inicialização do provedor não é confundida com token App Check válido, que dummy tokens são rejeitados e que o perfil obrigatório é decidido somente por leitura confirmada no servidor. Falha de atestação/rede deve abrir o erro recuperável, nunca o modal de criação. Esse modal só pode ser alcançado pelo evento explícito de conta recém-criada; login e reload de contas existentes não têm esse caminho.
 
 ## Evidência necessária para conclusão
 
