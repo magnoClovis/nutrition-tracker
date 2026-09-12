@@ -827,8 +827,57 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 
 **PRs/commits relacionados:**
 
-- [PR #185 — Android: prova técnica da câmera embutida (C2)](https://github.com/magnoClovis/nutrition-tracker/pull/185), aberto em draft.
+- [PR #185 — Android: prova técnica da câmera embutida (C2)](https://github.com/magnoClovis/nutrition-tracker/pull/185), mesclado na `main`.
 - [Commit `1cd1d18` — serviço e integração técnica Android](https://github.com/magnoClovis/nutrition-tracker/commit/1cd1d1847f313b683a553ea2a0c8f2c5286ab7e4).
+
+## Câmera embutida — integração visual e funcional C3
+
+**Data (se determinável):** 12/09/2026.
+
+**Propósito:** substituir, no Android, a abertura de câmera em tela cheia do fluxo C24 por uma captura realmente embutida na tela de reconhecimento de refeição, sem perder o pré-processamento seguro já existente. A integração precisava reproduzir o protótipo aprovado — área expansível, preview limitado ao card, moldura Glass UI arredondada, controles sobre a imagem e contração após capturar — e resolver a limitação técnica observada na C2, em que `toBack: false` colocava a superfície nativa acima de qualquer acabamento HTML.
+
+**Recursos:**
+
+- Capacitor 8.4.2 e `@capacitor-community/camera-preview` 8.0.1.
+- React e máquina de estados controlada do reconhecimento por foto.
+- WebView Android transparente de forma condicionada e Camera Preview traseiro com `toBack: true`.
+- Pipeline C24 já existente para decodificação, correção de orientação, redesenho em JPEG, remoção de metadados, redução para até 1280 px e limite de 1,5 MB.
+- CSS One UI 8/Glass UI, tokens de tema claro/escuro, `clip-path`, máscaras radiais de canto, `backdrop-filter` e `prefers-reduced-motion`.
+- Node.js Test Runner, Vite, Playwright e Galaxy S25 Ultra físico para a prova curta da composição nativa.
+
+**Arquivos:**
+
+- `src/composite/embedded-camera-preview.js`
+- `src/App.jsx`
+- `image-meal-flow.js`
+- `image-meal-screen.js`
+- `nutrition-tracker-controller.js`
+- `one-ui.css`
+- `tests/unit/embedded-camera-preview.test.js`
+- `tests/unit/embedded-camera-integration.test.js`
+- `tests/unit/image-meal-flow.test.js`
+- `tests/unit/image-meal-screen.test.js`
+- `documentation/historico/2026-08-31-ui-campos-customizados.md`
+- `documentation/estado-atual/RESUMO-STATUS.md`
+
+**O que foi feito:**
+
+- Antes da integração, foi executado um harness temporário e não versionado no Galaxy S25 Ultra, sob o pacote paralelo `com.hermegas.trofia.c3proof`, para validar especificamente `toBack: true` sem tocar na instalação real do Trofia. O preview traseiro ficou restrito a `348 × 420` CSS px na origem `18,162`; a área local do WebView tornou-se transparente, enquanto o restante da tela permaneceu protegido.
+- A prova física confirmou os três critérios condicionantes: imagem nativa visível somente no viewport; indicador “Câmera ativa”, foco, Cancelar e captura HTML clicáveis acima dela; e moldura arredondada sem vazamento nos cantos ou fora do retângulo. Cancelar gerou `CANCEL_OK` e desconexão da câmera; a captura gerou `CAPTURE_OK`, JPEG Base64 não vazio com 112.300 caracteres e desconexão. O pacote, arquivos e capturas temporários foram removidos após a prova.
+- O serviço C2 passou a iniciar a superfície com `toBack: true`. A câmera continua recebendo somente `x`, `y`, `width` e `height` medidos do elemento real, portanto não produz pixels fora do card mesmo quando a cadeia do WebView fica transparente durante a sessão.
+- A máquina de estados ganhou `camera-opening`, `camera-active` e `camera-capturing`. Em Android nativo, “Tirar foto” abre o viewport dentro da própria tela; em web ou plataforma não compatível, o callback anterior continua acionando o seletor/captura do navegador, preservando o fallback.
+- O resultado Base64 do preview é convertido em `Blob` JPEG e entregue a `preprocessMealImage`; nenhuma segunda implementação de tratamento de imagem foi criada. Orientação, descarte de metadados, dimensões, compressão, URL transitória, descarte e payload da análise continuam sob o contrato C24.
+- A interface usa botões HTML semânticos para Cancelar e Capturar, `role=status` com `aria-live=polite` para abertura/atividade/captura e rótulos localizados em PT/EN/ES. Falta de permissão reutiliza o erro específico existente; indisponibilidade de abertura recebe mensagem própria com recuperação pela galeria.
+- Quatro máscaras radiais HTML cobrem os cantos do retângulo nativo e mantêm raio de 26 px no desktop e 24 px no mobile. Indicador, quadro de foco e barra de ações permanecem acima da câmera com contraste independente do tema; cores externas vêm dos tokens ativos do Trofia.
+- A abertura usa expansão por `clip-path`; ao capturar, o mesmo card contrai antes de mostrar a foto processada. Em `prefers-reduced-motion: reduce`, as animações são eliminadas sem remover estados ou ações.
+- O encerramento é acionado ao cancelar, fechar/desmontar a tela, descartar ou concluir a captura. Foi coberta também a corrida em que o usuário cancela antes de `CameraPreview.start()` terminar: o serviço tenta parar imediatamente e repete a limpeza após o `start` atrasado, impedindo uma sessão nativa órfã.
+- Os testes focados terminaram com 107/107 casos e nenhum skip. O gate local completo passou com preflight limpo, 1.328/1.328 testes unitários sem skip, smokes legado e Vite sem falhas no perfil local e cutover 60/60 sem skip em PT/EN/ES, desktop/mobile e claro/escuro. Os 63 skips por runtime nos smokes locais são exclusivamente os testes autenticados já documentados, ausentes por falta deliberada de credenciais locais; o CI autenticado do PR permanece o gate externo obrigatório.
+- O PR foi aberto em draft. Até o CI autenticado terminar e o PR ser aprovado/mesclado, C3 permanece registrada como em andamento, sem APK/AAB publicado.
+
+**PRs/commits relacionados:**
+
+- [PR #190 — Android: integrar câmera embutida no reconhecimento (C3)](https://github.com/magnoClovis/nutrition-tracker/pull/190), aberto em draft.
+- [Commit `02805cd` — integração visual e funcional da câmera embutida](https://github.com/magnoClovis/nutrition-tracker/commit/02805cd).
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 

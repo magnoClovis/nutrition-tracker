@@ -38,6 +38,7 @@
     if (error && error.name === "AbortError") return "cancelled";
     if (error && error.code === "capture-cancelled") return "cancelled";
     if (error && error.code === "camera-permission-denied") return "permission-denied";
+    if (error && error.code === "preview-start-failed") return "camera-unavailable";
     if (error && INVALID_PHOTO_CODES.has(error.code)) return "invalid-photo";
     if (ImageMealClientError && error instanceof ImageMealClientError) return error.code;
     if (MealEstimateValidationError && error instanceof MealEstimateValidationError) {
@@ -48,6 +49,8 @@
 
   function createImageMealFlow({
     captureFromCamera,
+    embeddedCameraPreview,
+    preprocessEmbeddedCapture,
     chooseFromGallery,
     analyzeImageMeal,
     normalizeMealEstimate,
@@ -69,6 +72,7 @@
     let state = initialState();
     let operationId = 0;
     let activeAbortController = null;
+    let cameraPreviousPhoto = null;
     const listeners = new Set();
 
     function snapshot() {
@@ -116,6 +120,66 @@
         }
         return patch({ phase: "error", photo: previousPhoto, error: code });
       }
+    }
+
+    async function openCamera() {
+      if (!embeddedCameraPreview || !embeddedCameraPreview.isSupported()) {
+        return acquire("camera");
+      }
+      operationId += 1;
+      abortActive();
+      cameraPreviousPhoto = state.photo;
+      return patch({ phase: "camera-opening", error: null, validationErrors: [] });
+    }
+
+    async function startEmbeddedCamera(surface) {
+      if (state.phase !== "camera-opening") return snapshot();
+      try {
+        await embeddedCameraPreview.start(surface);
+        if (state.phase !== "camera-opening") {
+          await embeddedCameraPreview.stop().catch(() => {});
+          return snapshot();
+        }
+        return patch({ phase: "camera-active", error: null });
+      } catch (error) {
+        const code = classifyError(error, ImageMealClientError, MealEstimateValidationError);
+        cameraPreviousPhoto = null;
+        return patch({ phase: "error", error: code, photo: state.photo });
+      }
+    }
+
+    async function captureEmbeddedCamera() {
+      if (state.phase !== "camera-active") return snapshot();
+      const currentOperation = ++operationId;
+      patch({ phase: "camera-capturing", error: null });
+      try {
+        const base64 = await embeddedCameraPreview.capture();
+        await embeddedCameraPreview.stop();
+        const photo = await preprocessEmbeddedCapture(base64);
+        if (currentOperation !== operationId) {
+          disposePhoto(photo);
+          return snapshot();
+        }
+        if (cameraPreviousPhoto && cameraPreviousPhoto !== photo) disposePhoto(cameraPreviousPhoto);
+        cameraPreviousPhoto = null;
+        return emit({ ...initialState(), phase: "photo", photo });
+      } catch (error) {
+        await embeddedCameraPreview.stop().catch(() => {});
+        if (currentOperation !== operationId) return snapshot();
+        const code = classifyError(error, ImageMealClientError, MealEstimateValidationError);
+        const previousPhoto = cameraPreviousPhoto;
+        cameraPreviousPhoto = null;
+        return patch({ phase: "error", photo: previousPhoto, error: code });
+      }
+    }
+
+    async function cancelEmbeddedCamera() {
+      if (!state.phase.startsWith("camera-")) return snapshot();
+      operationId += 1;
+      await embeddedCameraPreview.stop().catch(() => {});
+      const previousPhoto = cameraPreviousPhoto;
+      cameraPreviousPhoto = null;
+      return emit({ ...initialState(), phase: previousPhoto ? "photo" : "empty", photo: previousPhoto });
     }
 
     async function process(language) {
@@ -228,6 +292,8 @@
     function discard() {
       operationId += 1;
       abortActive();
+      if (embeddedCameraPreview) embeddedCameraPreview.stop().catch(() => {});
+      cameraPreviousPhoto = null;
       disposePhoto(state.photo);
       return emit(initialState());
     }
@@ -241,7 +307,10 @@
     return {
       getState: snapshot,
       subscribe,
-      captureFromCamera: () => acquire("camera"),
+      captureFromCamera: openCamera,
+      startEmbeddedCamera,
+      captureEmbeddedCamera,
+      cancelEmbeddedCamera,
       chooseFromGallery: () => acquire("gallery"),
       process,
       cancelProcessing,
