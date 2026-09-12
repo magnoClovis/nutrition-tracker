@@ -84,18 +84,26 @@
     /**
      * Reads the persisted fields used by the required-profile gate.
      *
+     * @param {{serverConfirmed?: boolean}} options Read policy for the authentication gate.
      * @returns {Promise<Object>} Profile values with empty-string fallbacks for missing records.
      */
-    async function getRequiredProfileData() {
-      const [birthDate, gender, activityLevel, goalType, goalKg, goalWeeks, manualAdjustment] = await Promise.all([
-        storage.get('birthDate'),
-        storage.get('gender'),
-        storage.get('activityLevel'),
-        storage.get('goalType'),
-        storage.get('goalKg'),
-        storage.get('goalWeeks'),
-        storage.get('manualCalorieAdjustment')
-      ]);
+    async function getRequiredProfileData({serverConfirmed = false} = {}) {
+      const keys = [
+        'birthDate', 'gender', 'activityLevel', 'goalType', 'goalKg', 'goalWeeks',
+        'manualCalorieAdjustment'
+      ];
+      const records = serverConfirmed
+        ? await (() => {
+          if (typeof storage.getProfileFromServer !== 'function') {
+            const error = new Error('Server-confirmed profile reader unavailable');
+            error.code = 'firestore-profile-server-read-unavailable';
+            throw error;
+          }
+          return storage.getProfileFromServer(keys);
+        })()
+        : Object.fromEntries(await Promise.all(keys.map(async key => [key, await storage.get(key)])));
+      const [birthDate, gender, activityLevel, goalType, goalKg, goalWeeks, manualAdjustment] =
+        keys.map(key => records[key]);
       return {
         birthDate: birthDate && birthDate.value ? birthDate.value : '',
         gender: gender && gender.value ? gender.value : '',

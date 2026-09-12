@@ -138,3 +138,26 @@ contractTest("propagates storage failures instead of converting them into an emp
 
   await assert.rejects(api.getRequiredProfileData(), error => error === failure);
 });
+
+contractTest("uses the explicit server-confirmed reader for the authentication gate", async (_createApi, createProfileValidation) => {
+  const calls = [];
+  const records = {
+    birthDate: {value: "1990-06-15"}, gender: {value: "female"},
+    activityLevel: {value: "moderate"}, goalType: {value: "maintenance"},
+    goalKg: null, goalWeeks: null, manualCalorieAdjustment: null,
+  };
+  const api = createProfileValidation({
+    storage: {
+      async get() { throw new Error("cache reader must not be used"); },
+      async getProfileFromServer(keys) { calls.push(keys); return records; },
+    },
+    activityLevels: ACTIVITY_LEVELS,
+  });
+
+  const profile = await api.getRequiredProfileData({serverConfirmed: true});
+  assert.equal(api.hasRequiredProfileData(profile), true);
+  assert.deepEqual(calls, [[
+    "birthDate", "gender", "activityLevel", "goalType", "goalKg", "goalWeeks",
+    "manualCalorieAdjustment",
+  ]]);
+});

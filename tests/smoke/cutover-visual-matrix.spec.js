@@ -1,6 +1,6 @@
 const crypto = require('node:crypto');
 const { test, expect } = require('./app-check-fixture');
-const { isIgnorableConsoleError, setDateFieldValue } = require('./test-helpers');
+const { isIgnorableConsoleError } = require('./test-helpers');
 
 const ORIGINS = {
   legacy: 'http://127.0.0.1:8775',
@@ -98,7 +98,11 @@ async function installDeterministicServices(page) {
       tutorialSeen_adicionar: 'true',
       tutorialSeen_despensa: 'true',
       tutorialSeen_semana: 'true',
-      tutorialSeen_metricas: 'true'
+      tutorialSeen_metricas: 'true',
+      birthDate: '1990-06-15',
+      gender: 'female',
+      activityLevel: 'moderate',
+      goalType: 'maintenance'
     };
     window.fbSignIn = async email => localStorage.setItem('fb_email', email);
     window.fbCheckEmailVerified = async () => true;
@@ -120,6 +124,11 @@ async function installDeterministicServices(page) {
         ? { value: window.__cutoverProfile[key] }
         : null])
     );
+    window.storage.getProfileFromServer = async keys => Object.fromEntries(
+      keys.map(key => [key, Object.prototype.hasOwnProperty.call(window.__cutoverProfile, key)
+        ? { value: window.__cutoverProfile[key] }
+        : null])
+    );
     window.storage.readDailyStateCompatible = async () => ({
       log: {},
       waterIntake: [],
@@ -134,15 +143,6 @@ async function authenticateAndCompleteProfile(page) {
   await page.locator('input[type="email"]').fill('cutover@example.test');
   await page.locator('input[type="password"]').fill('secret123');
   await page.getByRole('button', { name: /Entrar|Sign in|Iniciar sesi[oó]n/i }).last().click();
-
-  await setDateFieldValue(page, '#required-profile-birth-date-trigger', '1990-06-15');
-  await page.locator('#required-profile-gender-trigger').click();
-  await page.getByRole('option', { name: /Feminino|Female|Femenino/i }).click();
-  await page.locator('#required-profile-activity-trigger').click();
-  await page.getByRole('option').filter({ hasText: /Moderadamente ativo|Moderately active|Moderadamente activo/i }).click();
-  await page.locator('#required-profile-goal-trigger').click();
-  await page.getByRole('option').filter({ hasText: /Manutenção do peso|Weight maintenance|Mantenimiento del peso/i }).click();
-  await page.locator('button[type="submit"]').click();
   await expect(page.locator('[data-screen="diario"]')).toBeVisible({ timeout: 15000 });
 }
 

@@ -209,7 +209,7 @@
     dailyWriteCoordinator = null,
   }) {
     const required = [
-      "doc", "collection", "getDoc", "setDoc", "deleteDoc", "getDocs", "deleteField",
+      "doc", "collection", "getDoc", "getDocFromServer", "setDoc", "deleteDoc", "getDocs", "deleteField",
       "serverTimestamp", "writeBatch", "arrayUnion"
     ];
     if (!firestore || typeof getUid !== "function" || !sdk ||
@@ -362,6 +362,40 @@
         readError.code = error?.code || "firestore-root-read-failed";
         throw readError;
       }
+    }
+
+    async function fetchRootFieldsFromServer() {
+      if (!getUid()) return {};
+      try {
+        readMetrics.serverRequests++;
+        const snapshot = await sdk.getDocFromServer(userDocRef());
+        if (snapshot.exists()) readMetrics.serverDocuments++;
+        const fields = snapshot.exists() ? {...(snapshot.data() || {})} : {};
+        rootDocCache = fields;
+        rootDocLoaded = true;
+        return fields;
+      } catch (error) {
+        console.warn("Firestore server-confirmed profile read failed", {
+          uid: getUid(),
+          code: error?.code || "unknown"
+        });
+        const readError = new Error("Firestore server-confirmed profile read failed", {cause: error});
+        readError.code = error?.code || "firestore-profile-server-read-failed";
+        throw readError;
+      }
+    }
+
+    async function fbGetProfileFromServer3(keys) {
+      if (!getUid()) return {};
+      const requested = Array.from(new Set((keys || []).map(String)));
+      if (requested.some(key => !isProfileKey(key))) {
+        throw new TypeError("Server-confirmed profile reads accept profile fields only");
+      }
+      const fields = await fetchRootFieldsFromServer();
+      return Object.fromEntries(requested.map(key => {
+        if (fields[key] === undefined || fields[key] === null) return [key, null];
+        return [key, storageRecord(key, normalizeProfileValue(key, fields[key]))];
+      }));
     }
 
     async function loadRootFields() {
@@ -1034,6 +1068,7 @@
       fbDel3,
       fbList3,
       fbGetMany3,
+      fbGetProfileFromServer3,
       fbSubscribeMany3,
       fbSetDailyEntry3,
       fbDelDailyEntry3,

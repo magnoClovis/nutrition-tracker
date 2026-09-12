@@ -94,6 +94,15 @@ function createBackend({root = {}, data = {}, granular = {}, failures = {}, dela
         ? {exists: () => true, data: () => ({value: dataDocs.get(key)})}
         : {exists: () => false, data: () => undefined};
     },
+    async getDocFromServer(reference) {
+      calls.push({operation: 'getDocFromServer', path: reference.path});
+      if (reference.path !== `nutrition/${UID}`) throw new Error('unexpected server profile read');
+      if (failures.rootServerRead) {
+        throw Object.assign(new Error('root server read'), {code: 'unavailable'});
+      }
+      const snapshot = clone(rootFields);
+      return {exists: () => true, data: () => snapshot, metadata: {fromCache: false}};
+    },
     async getDocFromCache(reference) {
       calls.push({operation: 'getDocFromCache', path: reference.path});
       if (reference.path === `nutrition/${UID}`) {
@@ -228,7 +237,7 @@ contractTest('publishes the canonical CRUD contract and narrow backup support po
   const {client} = create();
   assert.deepEqual(Object.keys(client).sort(), [
     'fbApplyDailyEntryBatch3', 'fbDel3', 'fbDelDailyEntry3', 'fbGet3', 'fbGetDailyMigration3',
-    'fbGetMany3', 'fbList3', 'fbListDailyDates3', 'fbListDailyEntries3',
+    'fbGetMany3', 'fbGetProfileFromServer3', 'fbList3', 'fbListDailyDates3', 'fbListDailyEntries3',
     'fbListDailyEntriesCompatible3', 'fbMigrateDailyEntries3', 'fbReadDailyStateCompatible3',
     'fbReplaceDailyAggregate3', 'fbSet3', 'fbSetDailyEntry3',
     'fbSubscribeMany3', 'resetStorageCaches', 'support',
@@ -236,6 +245,31 @@ contractTest('publishes the canonical CRUD contract and narrow backup support po
   assert.equal(typeof client.support.loadRootFields, 'function');
   assert.equal(typeof client.support.listDataKeys, 'function');
   assert.equal('legacyGet2' in client.support, false);
+});
+
+contractTest('profile gate bypasses an incomplete cache and requires the server snapshot', async create => {
+  const backend = createBackend({root: {
+    birthDate: '1990-06-15', gender: 'female', activityLevel: 'moderate', goalType: 'maintenance',
+  }});
+  const {client} = create({backend});
+  const records = await client.fbGetProfileFromServer3([
+    'birthDate', 'gender', 'activityLevel', 'goalType', 'goalKg', 'goalWeeks',
+  ]);
+
+  assert.equal(records.birthDate.value, '1990-06-15');
+  assert.equal(records.goalKg, null);
+  assert.equal(backend.calls.filter(call => call.operation === 'getDocFromServer').length, 1);
+  assert.equal(backend.calls.filter(call => call.operation === 'getDoc').length, 0);
+  assert.equal(backend.calls.filter(call => call.operation === 'getDocFromCache').length, 0);
+});
+
+contractTest('server-confirmed profile failures propagate instead of becoming missing fields', async create => {
+  const backend = createBackend({failures: {rootServerRead: true}});
+  const {client} = create({backend});
+  await assert.rejects(
+    client.fbGetProfileFromServer3(['birthDate']),
+    error => error.code === 'unavailable' && /server-confirmed/.test(error.message),
+  );
 });
 
 contractTest('commits multi-entry mutations atomically and reports every identity', async create => {

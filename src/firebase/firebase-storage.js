@@ -35,6 +35,7 @@ const fbHeaders = async () => ({Authorization: `Bearer ${await fbToken()}`});
 const storage = {
   get: (...args) => getRuntime().storage.get(...args),
   getMany: (...args) => getRuntime().storage.getMany(...args),
+  getProfileFromServer: (...args) => getRuntime().storage.getProfileFromServer(...args),
   set: (...args) => getRuntime().storage.set(...args),
   delete: (...args) => getRuntime().storage.delete(...args),
   list: (...args) => getRuntime().storage.list(...args),

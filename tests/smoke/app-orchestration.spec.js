@@ -28,6 +28,10 @@ test('preserves the login, verification, required-profile, and authenticated-app
 
   await page.evaluate(() => {
     window.__smokeProfile = {
+      birthDate: '1990-06-15',
+      gender: 'female',
+      activityLevel: 'moderate',
+      goalType: 'maintenance',
       'seenVisualUpdateNotice_0.8.1': 'true',
       tutorial_most_recent_version_seen: '0.8.0-beta',
       tutorialSeen_main: 'true'
@@ -52,6 +56,11 @@ test('preserves the login, verification, required-profile, and authenticated-app
         ? { value: window.__smokeProfile[key] }
         : null])
     );
+    window.storage.getProfileFromServer = async keys => Object.fromEntries(
+      keys.map(key => [key, Object.prototype.hasOwnProperty.call(window.__smokeProfile, key)
+        ? {value: window.__smokeProfile[key]}
+        : null])
+    );
     window.storage.readDailyStateCompatible = async () => ({
       log: {},
       waterIntake: [],
@@ -64,17 +73,6 @@ test('preserves the login, verification, required-profile, and authenticated-app
   await page.locator('input[type="email"]').fill('verified@example.test');
   await page.locator('input[type="password"]').fill('secret123');
   await page.getByRole('button', { name: /Entrar|Sign in/i }).last().click();
-
-  await expect(page.getByText(/Completar perfil nutricional|Complete nutrition profile/i)).toBeVisible();
-  await setDateFieldValue(page, '#required-profile-birth-date-trigger', '1990-06-15');
-  await page.locator('#required-profile-gender-trigger').click();
-  await page.getByRole('option', { name: /Feminino|Female/i }).click();
-  await page.locator('#required-profile-activity-trigger').click();
-  await page.getByRole('option').filter({ hasText: /Moderadamente ativo|Moderately active/i }).click();
-  await page.locator('#required-profile-goal-trigger').click();
-  await page.getByRole('option').filter({ hasText: /Manutenção do peso|Weight maintenance/i }).click();
-  await expect(page.locator('[data-choice-field-options="true"]')).toHaveCount(0);
-  await page.getByRole('button', { name: /Salvar e continuar|Save and continue/i }).click();
 
   await expect(page.locator('[data-screen="diario"]')).toBeVisible({ timeout: 15000 });
   await expect(page.getByText(/Completar perfil nutricional|Complete nutrition profile/i)).toHaveCount(0);
@@ -146,6 +144,19 @@ test('shows a retryable read error instead of an incomplete-profile modal', asyn
         ? {value: window.__smokeProfile[key]}
         : null])
     );
+    window.storage.getProfileFromServer = async keys => {
+      if (window.__smokeFailProfileRead) {
+        throw Object.assign(new Error('simulated server-confirmed profile read failure'), {
+          code: 'permission-denied'
+        });
+      }
+      return Object.fromEntries(keys.map(key => [
+        key,
+        Object.prototype.hasOwnProperty.call(window.__smokeProfile, key)
+          ? {value: window.__smokeProfile[key]}
+          : null
+      ]));
+    };
     window.storage.readDailyStateCompatible = async () => ({
       log: {},
       waterIntake: [],

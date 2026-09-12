@@ -102,6 +102,7 @@ import * as I18n from './leaf/i18n.js';
 import * as MealScore from './leaf/meal-score.js';
 import * as OpenFoodFacts from './leaf/open-food-facts.js';
 import * as RecentMealsModel from './leaf/recent-meals-model.js';
+import { resolveAuthenticatedProfileGate } from './leaf/authenticated-profile-gate.js';
 
 const Recharts = {
   Line,
@@ -226,6 +227,9 @@ const firebaseRuntimeConfigured = Boolean(import.meta.env?.VITE_FIREBASE_WEB_APP
 const ensureAppCheckInitialized = () => firebaseRuntimeConfigured
   ? Promise.resolve().then(() => initializeAppCheck())
   : Promise.resolve();
+const ensureAppCheckReady = () => firebaseRuntimeConfigured
+  ? ensureAppCheckInitialized().then(() => getAppCheckToken())
+  : Promise.resolve(null);
 
 const imageMealClient = ImageMealClient.createImageMealClient({
   fetchRequest: (...args) => window.fetch(...args),
@@ -346,8 +350,8 @@ const {
 } = VerifyEmailScreenModule.createVerifyEmailScreen({
   React,
   authService: {
-    checkEmailVerified: fbCheckEmailVerified,
-    sendVerificationEmail: window.fbSendVerificationEmail,
+    checkEmailVerified: (...args) => window.fbCheckEmailVerified(...args),
+    sendVerificationEmail: (...args) => window.fbSendVerificationEmail(...args),
   },
   localStorage,
   timers: {
@@ -757,6 +761,7 @@ export function App() {
   const [showVisualUpdateNotice, setShowVisualUpdateNotice] = React.useState(false);
   const [darkMode, setDarkMode] = React.useState(readPreferredDarkMode);
   const releaseAudienceRef = React.useRef(null);
+  const profileCompletionAllowedRef = React.useRef(false);
   const backDispatcherRef = React.useRef(null);
   if (!backDispatcherRef.current) {
     backDispatcherRef.current = createBackNavigationDispatcher({
@@ -835,6 +840,7 @@ export function App() {
     setShowTutorial(false);
     setShowReleaseNotice(false);
     setShowVisualUpdateNotice(false);
+    profileCompletionAllowedRef.current = false;
     releaseAudienceRef.current = null;
   }
 
@@ -887,13 +893,25 @@ export function App() {
     showVisualUpdateNotice,
   ]);
 
-  async function checkRequiredProfile() {
+  async function checkRequiredProfile({isNewAccount = profileCompletionAllowedRef.current} = {}) {
     setProfileChecking(true);
     setProfileLoadError(null);
     try {
-      await ensureAppCheckInitialized();
-      const profile = await getRequiredProfileData();
-      setRequiredProfile(hasRequiredProfileData(profile) ? null : profile);
+      const result = await resolveAuthenticatedProfileGate({
+        isNewAccount,
+        getAppCheckToken: ensureAppCheckReady,
+        readServerProfile: () => getRequiredProfileData({serverConfirmed: true}),
+        hasRequiredProfileData,
+      });
+      if (result.status === 'requires-completion') {
+        setRequiredProfile(result.profile);
+        return true;
+      }
+      setRequiredProfile(null);
+      if (result.status === 'incomplete-existing') {
+        setProfileLoadError('profile-incomplete-existing-account');
+        return false;
+      }
       return true;
     } catch (error) {
       setRequiredProfile(null);
@@ -913,8 +931,9 @@ export function App() {
 
   async function afterAuthenticated(isNew) {
     setAuthed(true);
+    profileCompletionAllowedRef.current = isNew === true;
     try {
-      await ensureAppCheckInitialized();
+      await ensureAppCheckReady();
     } catch (error) {
       setRequiredProfile(null);
       setProfileLoadError(profileReadErrorCode(error));
@@ -928,7 +947,7 @@ export function App() {
     if (savedLang?.value !== normalizedSavedLang) {
       storage.set('language', normalizedSavedLang).catch(() => {});
     }
-    if (!await checkRequiredProfile()) return;
+    if (!await checkRequiredProfile({isNewAccount: isNew === true})) return;
     await checkVisualUpdateNotice(isNew);
     const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(() => null);
     if (!hasSeenCurrentRelease(tutorialVersion)) {
@@ -955,13 +974,10 @@ export function App() {
       setAuthed(false);
       setChecking(false);
     }, 8000);
-    Promise.all([
-      ensureAppCheckInitialized(),
-      Promise.resolve().then(() => initializeFirebase()),
-    ])
+    Promise.resolve().then(() => initializeFirebase())
       .then(() => {
+        clearTimeout(timeout);
         if (!active || !fbIsLoggedIn()) {
-          clearTimeout(timeout);
           if (active) setChecking(false);
           return null;
         }
@@ -969,7 +985,7 @@ export function App() {
       })
       .then(async () => {
         if (!active || !fbIsLoggedIn()) return;
-        clearTimeout(timeout);
+        await ensureAppCheckReady();
         const verified = await fbCheckEmailVerified({reload: false});
         if (!verified) {
           setAuthed(false);
@@ -994,7 +1010,8 @@ export function App() {
           setShowReleaseNotice(true);
         }
         setChecking(false);
-        await checkRequiredProfile();
+        profileCompletionAllowedRef.current = false;
+        await checkRequiredProfile({isNewAccount: false});
       })
       .catch(error => {
         clearTimeout(timeout);
@@ -1080,7 +1097,10 @@ export function App() {
           <RequiredProfileModal
             lang={lang}
             profile={requiredProfile}
-            onComplete={() => setRequiredProfile(null)}
+            onComplete={() => {
+              profileCompletionAllowedRef.current = false;
+              setRequiredProfile(null);
+            }}
           />
         ) : null}
         {!requiredProfile && !profileLoadError && (

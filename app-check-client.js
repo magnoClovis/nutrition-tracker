@@ -28,6 +28,24 @@
     return {token: result.token, expireTimeMillis: result.expireTimeMillis};
   }
 
+  function isDummyAppCheckToken(token) {
+    const text = String(token || "").trim();
+    if (!text || text.includes(".")) return false;
+    try {
+      const normalized = text.replace(/-/g, "+").replace(/_/g, "/");
+      const padding = "=".repeat((4 - normalized.length % 4) % 4);
+      const decoded = typeof atob === "function"
+        ? atob(normalized + padding)
+        : typeof Buffer !== "undefined"
+          ? Buffer.from(normalized + padding, "base64").toString("utf8")
+          : "";
+      const payload = JSON.parse(decoded);
+      return !!payload && typeof payload === "object" && typeof payload.error === "string";
+    } catch (_) {
+      return false;
+    }
+  }
+
   function createAppCheckClient({
     getPlugin,
     isNativePlatform,
@@ -88,7 +106,10 @@
               return plugin.getToken({forceRefresh: false});
             })()
             : {token: await getWebToken()};
-        if (!result || typeof result.token !== "string" || !result.token.trim()) {
+        if (!result || result.error || result.internalError ||
+            typeof result.token !== "string" || !result.token.trim() ||
+            (usesSharedSdk && (isDummyAppCheckToken(result.token) ||
+              result.token.split(".").length !== 3))) {
           throw new AppCheckClientError("app-check-token-invalid");
         }
         return result.token;
@@ -101,5 +122,10 @@
     return Object.freeze({initialize, getToken});
   }
 
-  return {AppCheckClientError, createAppCheckClient, normalizeNativeAppCheckToken};
+  return {
+    AppCheckClientError,
+    createAppCheckClient,
+    isDummyAppCheckToken,
+    normalizeNativeAppCheckToken
+  };
 });
