@@ -940,11 +940,11 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 
 ## Câmera embutida — acessibilidade e acabamento resiliente C4b
 
-**Data de conclusão:** pendente de merge.
+**Data de conclusão:** 12/09/2026.
 
-**Tempo decorrido:** pendente de merge.
+**Tempo decorrido:** 48 min 33 s, do primeiro commit da fatia (`d6b7066`, 12/09/2026 às 18:01:15 UTC) ao merge (`050182d`, 12/09/2026 às 18:49:48 UTC).
 
-**Minutos de CI:** pendente da execução autenticada do PR.
+**Minutos de CI:** 30 min 17 s no total — leve: 25 s (`Documentation preflight`, run `34710539830`); pesado: 29 min 52 s (`CI`, run `34710539851`).
 
 **Propósito:** concluir a câmera embutida sem ampliar suas funções fotográficas, cobrindo as garantias que uma superfície nativa costuma oferecer e que precisam ser reconstruídas na composição híbrida WebView/Android. A subfatia deve permitir uso previsível com TalkBack, teclado e fonte ampliada; anunciar mudanças de fase sem duplicidade; manter foco e ações em ordem lógica; oferecer recuperação real após negação de permissão; conservar contraste e alvos de toque nos dois temas; localizar toda a recuperação em PT/EN/ES; e garantir que fotos temporárias não sobrevivam ao descarte, teardown ou resolução assíncrona tardia.
 
@@ -987,11 +987,16 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - No Galaxy, TalkBack foi habilitado temporariamente e a árvore Android registrou foco real na ação localizada “Abrir ajustes”. A câmera traseira abriu, capturou JPEG Base64 não vazio, anunciou “Câmera ativa. Pronta para capturar.” e “Foto capturada. Confira a imagem antes de analisar.”, transferiu foco para “Analisar foto” com os dois anéis visíveis e liberou o cliente nativo após capturar.
 - Com fonte do sistema em 200%, Cancelar e Capturar empilharam sem corte ou sobreposição e mediram aproximadamente 58,9 px de altura cada; o preview permaneceu confinado ao card. A recuperação PT/EN/ES foi conferida no aparelho, e “Abrir configurações” levou efetivamente a `com.android.settings/.applications.InstalledAppDetails`.
 - As preferências temporárias do dispositivo foram restauradas ao final: TalkBack desligado, fonte em 100%, APK paralelo desinstalado, forward ADB removido e nenhuma sessão ativa da câmera mantida.
-- O gate focado final passou com 114/114 casos sem skip. O primeiro `npm test` revelou somente dependências locais ausentes do Worker e contagens estruturais desatualizadas após a adição intencional de um efeito/ref; as dependências foram instaladas pelo lockfile e a expectativa foi alinhada de 41/26 para 42/27, sem mudança funcional fora da C4b. A repetição integral terminou com preflight limpo, 1.360/1.360 unitários sem skip, 40 aprovações e apenas os 63 skips autenticados esperados em cada smoke local legado/Vite, e cutover 60/60 sem skip em PT/EN/ES, desktop/mobile e claro/escuro. O CI autenticado permanece pendente da abertura do PR.
+- O gate focado final passou com 114/114 casos sem skip. O primeiro `npm test` revelou somente dependências locais ausentes do Worker e contagens estruturais desatualizadas após a adição intencional de um efeito/ref; as dependências foram instaladas pelo lockfile e a expectativa foi alinhada de 41/26 para 42/27, sem mudança funcional fora da C4b. A repetição integral terminou com preflight limpo, 1.360/1.360 unitários sem skip, 40 aprovações e apenas os 63 skips autenticados esperados em cada smoke local legado/Vite, e cutover 60/60 sem skip em PT/EN/ES, desktop/mobile e claro/escuro. O CI autenticado pesado `34710539851` e o preflight documental `34710539830` passaram integralmente, sem skip adicional; o PR foi retirado do draft e mesclado na `main`.
 
-**Alinhamento:** 100% até a conclusão da implementação e da prova física: todos os cenários aprovados foram cobertos e nenhum recurso fotográfico fora do escopo foi adicionado. O fechamento formal permanece dependente do gate completo, CI autenticado e merge; se qualquer um deles exigir mudança de escopo, este campo será atualizado em vez de preservar artificialmente o percentual.
+**Alinhamento:** 100%: todos os cenários aprovados foram implementados e comprovados por testes locais, CI autenticado e validação física, sem adicionar zoom, flash, troca de câmera, gestos ou edição fotográfica. O impacto final foi positivo: a câmera embutida preserva o desenho C3 e agora oferece recuperação de permissão, foco, anúncios, contraste, alvos e descarte temporário compatíveis com o escopo resiliente aprovado.
 
-**PRs/commits relacionados:** pendentes da abertura do draft PR da C4b.
+**PRs/commits relacionados:**
+
+- [PR #194 — Android: concluir acessibilidade da câmera embutida (C4b)](https://github.com/magnoClovis/nutrition-tracker/pull/194), mesclado na `main`.
+- [Commit `d6b7066` — acessibilidade, recuperação, testes e documentação da C4b](https://github.com/magnoClovis/nutrition-tracker/commit/d6b70665b72aee330704c85ff07e515ea91efda4).
+- [Merge `050182d` — incorporação do PR #194 na `main`](https://github.com/magnoClovis/nutrition-tracker/commit/050182d8094b22c72f1e79fcc893fd37bd6069c5).
+- [CI autenticado `34710539851`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34710539851) e [preflight documental `34710539830`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34710539830), ambos concluídos com sucesso.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 

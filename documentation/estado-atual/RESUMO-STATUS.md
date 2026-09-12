@@ -1,6 +1,6 @@
 # Resumo de status do Trofia
 
-> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `e6f8bef`, em 12/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `050182d`, em 12/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
@@ -29,6 +29,7 @@
 - **[D1 — shell desktop/cabeçalho/navegação] Concluído (10/09/2026) — Chat: Trofia-UIUX.** O PR #187 removeu a margem negativa que sobrepunha as abas ao peso/IMC e ao progresso, adotou navegação em largura total centralizada no shell de 1080px e preservou a navegação móvel. O gate final autenticado `34464670583` passou em legado/Vite, desktop/mobile e claro/escuro; merge `3ccb852`.
 - **[Câmera embutida — C2] Concluído (10/09/2026) — Chat: Trofia-UIUX.** O PR #185, já mesclado, comprova no Capacitor Android uma vista nativa traseira limitada ao retângulo DOM medido, sem substituir ainda o fluxo C24. No Galaxy S25 Ultra SM-S938B físico, o Android apresentou e concedeu a permissão real de câmera, o preview permaneceu confinado a `348×420` CSS px na origem `18,113`, os controles externos continuaram visíveis/clicáveis, a captura retornou imagem Base64 não vazia e a sessão nativa desconectou após `stop()`. O pacote de prova paralelo `.c2proof` foi removido e nenhum APK/AAB foi publicado.
 - **[Câmera embutida — C3] Concluído (12/09/2026) — Chat: Trofia-UIUX.** O PR #190 integrou o preview traseiro ao fluxo real C24 com `toBack:true`, viewport medido, máscaras arredondadas Glass UI, controles HTML acessíveis acima da câmera, PT/EN/ES, abertura/contração e `prefers-reduced-motion`. A prova física no Galaxy validou transparência localizada, cliques sobre o preview, recorte sem vazamento, cancelamento e captura Base64; merge `c6a4e4f`.
+- **[Câmera embutida — C4b] Concluído (12/09/2026) — Chat: Trofia-UIUX.** O que se planeja fazer: concluir acessibilidade, recuperação de permissão e acabamento resiliente sem ampliar funções fotográficas. O que foi feito: o PR #194 entregou foco persistente e restaurado, anúncios PT/EN/ES sem duplicidade, abertura real das Configurações, fonte 200%, contraste/alvos de 48 px e descarte temporário; Galaxy físico, gate local e CI autenticado `34710539851` ficaram verdes, com merge `050182d`, encerrando toda a sequência CAM-C1–C4b. Alinhamento: 100%, sem zoom, flash, troca de câmera, gestos ou edição.
 
 ## O que está em andamento agora
 
@@ -188,7 +189,7 @@
 - **[CAM-C2] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: provar preview nativo limitado ao retângulo. O que foi feito: prova Android entregue no PR #185.
 - **[CAM-C3] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: integrar preview embutido ao fluxo C24. O que foi feito: integração entregue no PR #190.
 - **[CAM-C4a] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: endurecer permissões, timeouts, lifecycle e limpeza nativa. O que foi feito: entregue no PR #192.
-- **[CAM-C4b] — Status: em andamento — Chat: Trofia-UIUX.** O que se planeja fazer: garantir TalkBack, foco/anúncios, ordem das ações, fonte 200%, contraste, alvos, PT/EN/ES e descarte temporário, sem novos recursos fotográficos. O que foi feito: implementação e prova física no Galaxy concluídas localmente; 114/114 focados, 1.360/1.360 unitários e cutover 60/60 passaram, restando draft PR e CI autenticado. Alinhamento: 100% até o gate local, sem zoom, flash, troca de câmera, gestos ou edição.
+- **[CAM-C4b] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: garantir TalkBack, foco/anúncios, ordem das ações, fonte 200%, contraste, alvos, PT/EN/ES e descarte temporário, sem novos recursos fotográficos. O que foi feito: entregue no PR #194, validado no Galaxy e no CI autenticado `34710539851`, e mesclado como `050182d`. Alinhamento: 100%, sem zoom, flash, troca de câmera, gestos ou edição.
 
 ## Estado detalhado das fatias C14
 
