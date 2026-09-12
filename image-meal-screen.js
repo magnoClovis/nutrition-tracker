@@ -33,6 +33,8 @@
       onCameraSurface,
       onEmbeddedCapture,
       onCancelCamera,
+      canOpenCameraSettings,
+      onOpenCameraSettings,
       onChoose,
       onProcess,
       onCancelProcessing,
@@ -46,6 +48,12 @@
       const phase = state.phase || "empty";
       const cameraVisible = phase === "camera-opening" || phase === "camera-active" || phase === "camera-capturing";
       const busy = phase === "capturing" || cameraVisible || phase === "processing" || phase === "confirming";
+      const phaseAnnouncements = {
+        "camera-opening": text("Abrindo câmera.", "Opening camera.", "Abriendo cámara."),
+        "camera-active": text("Câmera ativa. Pronta para capturar.", "Camera active. Ready to capture.", "Cámara activa. Lista para capturar."),
+        "camera-capturing": text("Capturando foto.", "Capturing photo.", "Capturando foto."),
+        photo: text("Foto capturada. Confira a imagem antes de analisar.", "Photo captured. Check the image before analyzing.", "Foto capturada. Comprueba la imagen antes de analizar.")
+      };
 
       const errorMessages = {
         "permission-denied": text(
@@ -136,8 +144,12 @@
           "Fotografía la comida o elige una imagen para estimar alimentos y nutrientes."
         )),
         React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" } },
-          action(text("Tirar foto", "Take photo", "Tomar foto"), onCapture, true),
-          action(text("Escolher da galeria", "Choose from gallery", "Elegir de la galería"), onChoose, false)));
+          action(text("Tirar foto", "Take photo", "Tomar foto"), onCapture, true, {
+            props: { "data-image-meal-open-camera": "true" }
+          }),
+          action(text("Escolher da galeria", "Choose from gallery", "Elegir de la galería"), onChoose, false, {
+            props: { "data-image-meal-choose-gallery": "true" }
+          })));
       } else if (cameraVisible) {
         const cameraReady = phase === "camera-active";
         content = React.createElement("div", {
@@ -155,8 +167,7 @@
         React.createElement("span", { "data-camera-corner": "bottom-right" }),
         React.createElement("div", { "data-camera-focus-frame": "true" })),
         React.createElement("div", {
-          role: "status",
-          "aria-live": "polite",
+          "aria-hidden": "true",
           "data-camera-active-indicator": "true"
         }, cameraReady
           ? text("Câmera ativa", "Camera active", "Cámara activa")
@@ -192,9 +203,15 @@
             "Comprueba que la comida sea visible antes de iniciar el análisis."
           )),
           React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" } },
-            action(text("Analisar foto", "Analyze photo", "Analizar foto"), onProcess, true),
-            action(text("Tirar outra", "Take another", "Tomar otra"), onCapture, false),
-            action(text("Escolher outra", "Choose another", "Elegir otra"), onChoose, false),
+            action(text("Analisar foto", "Analyze photo", "Analizar foto"), onProcess, true, {
+              props: { "data-image-meal-analyze": "true" }
+            }),
+            action(text("Tirar outra", "Take another", "Tomar otra"), onCapture, false, {
+              props: { "data-image-meal-open-camera": "true" }
+            }),
+            action(text("Escolher outra", "Choose another", "Elegir otra"), onChoose, false, {
+              props: { "data-image-meal-choose-gallery": "true" }
+            }),
             action(text("Descartar", "Discard", "Descartar"), onDiscard, false)));
       } else if (phase === "processing") {
         content = React.createElement("div", { "data-image-meal-state": "processing" },
@@ -269,8 +286,12 @@
               "No se pudieron reconocer los alimentos con fiabilidad."
             )),
             React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" } },
-              action(text("Tentar outra foto", "Try another photo", "Probar otra foto"), onCapture, true),
-              action(text("Escolher da galeria", "Choose from gallery", "Elegir de la galería"), onChoose, false),
+              action(text("Tentar outra foto", "Try another photo", "Probar otra foto"), onCapture, true, {
+                props: { "data-image-meal-open-camera": "true" }
+              }),
+              action(text("Escolher da galeria", "Choose from gallery", "Elegir de la galería"), onChoose, false, {
+                props: { "data-image-meal-choose-gallery": "true" }
+              }),
               action(text("Descartar", "Discard", "Descartar"), onDiscard, false))));
       } else if (phase === "confirmed") {
         content = React.createElement("div", {
@@ -283,13 +304,37 @@
         const retrySuffix = state.error === "quota-reached" && state.retryAfterSeconds
           ? " " + text("Tente novamente em", "Try again in", "Inténtalo de nuevo en") + ` ${state.retryAfterSeconds}s.`
           : "";
-        content = React.createElement("div", { "data-image-meal-state": "error" },
+        const permissionDenied = state.error === "permission-denied";
+        content = React.createElement("div", {
+          "data-image-meal-state": "error",
+          "data-camera-permission-recovery": permissionDenied ? "true" : undefined
+        },
           photo,
-          React.createElement("div", { role: "alert", style: { padding: 16, textAlign: "center", color: "var(--danger, #c86e8e)" } }, message, retrySuffix),
+          permissionDenied ? React.createElement("div", {
+            role: "alert",
+            "data-camera-permission-alert": "true"
+          },
+          React.createElement("span", { "aria-hidden": "true", "data-camera-permission-mark": "true" }, "!"),
+          React.createElement("strong", null, text(
+            "Acesso à câmera desativado",
+            "Camera access is turned off",
+            "El acceso a la cámara está desactivado"
+          )),
+          React.createElement("p", null, message))
+            : React.createElement("div", { role: "alert", style: { padding: 16, textAlign: "center", color: "var(--danger, #c86e8e)" } }, message, retrySuffix),
           React.createElement("div", { style: { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" } },
             state.photo ? action(text("Tentar novamente", "Try again", "Intentar de nuevo"), onProcess, true) : null,
-            action(text("Tirar outra foto", "Take another photo", "Tomar otra foto"), onCapture, !state.photo),
-            action(text("Escolher da galeria", "Choose from gallery", "Elegir de la galería"), onChoose, false),
+            permissionDenied && canOpenCameraSettings && typeof onOpenCameraSettings === "function"
+              ? action(text("Abrir configurações", "Open settings", "Abrir ajustes"), onOpenCameraSettings, true, {
+                  props: { "data-camera-open-settings": "true" }
+                })
+              : null,
+            action(text("Tirar outra foto", "Take another photo", "Tomar otra foto"), onCapture, !state.photo && !permissionDenied, {
+              props: { "data-image-meal-open-camera": "true" }
+            }),
+            action(text("Escolher da galeria", "Choose from gallery", "Elegir de la galería"), onChoose, false, {
+              props: { "data-image-meal-choose-gallery": "true" }
+            }),
             state.photo ? action(text("Descartar", "Discard", "Descartar"), onDiscard, false) : null));
       }
 
@@ -324,6 +369,12 @@
         props: { "aria-label": text("Fechar", "Close", "Cerrar") },
         style: { padding: "5px 10px", fontSize: 20 }
       })),
+      React.createElement("p", {
+        role: "status",
+        "aria-live": "polite",
+        "aria-atomic": "true",
+        "data-image-meal-announcement": "true"
+      }, phaseAnnouncements[phase] || ""),
       content);
     }
 

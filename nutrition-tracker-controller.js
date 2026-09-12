@@ -1036,6 +1036,7 @@
       const imageMealFlowRef = useRef(null);
       const imageMealUnsubscribeRef = useRef(null);
       const imageMealRegistrationRef = useRef(null);
+      const imageMealPreviousPhaseRef = useRef(null);
       function openTab(nextTab, opts = {}) {
         const normalizedTab = normalizeTabKey(nextTab);
         setTab(currentTab => {
@@ -2131,6 +2132,29 @@
           void removeListener();
         };
       }, []);
+      useEffect(() => {
+        if (!imageMealOpen || !imageMealState) {
+          imageMealPreviousPhaseRef.current = null;
+          return;
+        }
+        const phase = imageMealState.phase;
+        const previousPhase = imageMealPreviousPhaseRef.current;
+        imageMealPreviousPhaseRef.current = phase;
+        let selector = null;
+        if (phase === "camera-opening") selector = "[data-camera-cancel='true']";
+        else if (phase === "error" && imageMealState.error === "permission-denied") {
+          selector = "[data-camera-open-settings='true'], [data-image-meal-choose-gallery='true']";
+        } else if (phase === "photo" && previousPhase === "camera-capturing") {
+          selector = "[data-image-meal-analyze='true']";
+        } else if ((phase === "empty" || phase === "photo") && previousPhase?.startsWith("camera-")) {
+          selector = "[data-image-meal-open-camera='true']";
+        }
+        if (!selector) return;
+        requestAnimationFrame(() => {
+          const target = document.querySelector(selector);
+          if (target && typeof target.focus === "function") target.focus({ preventScroll: true });
+        });
+      }, [imageMealOpen, imageMealState?.phase, imageMealState?.error]);
       function applySelectedMealTime(items) {
         return applyMealRegistrationTime(
           items,
@@ -5110,6 +5134,8 @@
             onCameraSurface: surface => imageMealFlowRef.current?.startEmbeddedCamera(surface),
             onEmbeddedCapture: () => imageMealFlowRef.current?.captureEmbeddedCamera(),
             onCancelCamera: () => imageMealFlowRef.current?.cancelEmbeddedCamera(),
+            canOpenCameraSettings: Boolean(imageMealFeature.canOpenCameraSettings?.()),
+            onOpenCameraSettings: () => imageMealFeature.openCameraSettings?.(),
             onChoose: () => imageMealFlowRef.current?.chooseFromGallery(),
             onProcess: () => imageMealFlowRef.current?.process(lang),
             onCancelProcessing: () => imageMealFlowRef.current?.cancelProcessing(),

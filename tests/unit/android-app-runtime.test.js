@@ -55,3 +55,25 @@ test('Android app runtime owns one removable listener and native minimize', asyn
     ['remove'],
   ]);
 });
+
+test('Android app runtime opens application settings only on native Android', async () => {
+  const { createAndroidAppRuntime } = await loadFactory();
+  const calls = [];
+  const dependencies = {
+    appPlugin: {
+      async addListener() {},
+      async minimizeApp() {},
+    },
+    appSettingsPlugin: {
+      async openSettings() { calls.push('settings'); },
+    },
+  };
+  const nativeRuntime = createAndroidAppRuntime({ ...dependencies, isNativeAndroid: () => true });
+  assert.equal(nativeRuntime.canOpenSettings(), true);
+  assert.equal(await nativeRuntime.openSettings(), true);
+
+  const webRuntime = createAndroidAppRuntime({ ...dependencies, isNativeAndroid: () => false });
+  assert.equal(webRuntime.canOpenSettings(), false);
+  assert.equal(await webRuntime.openSettings(), false);
+  assert.deepEqual(calls, ['settings']);
+});

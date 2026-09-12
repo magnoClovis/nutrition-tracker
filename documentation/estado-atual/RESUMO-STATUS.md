@@ -32,8 +32,6 @@
 
 ## O que está em andamento agora
 
-- **[Câmera embutida — C4a] Concluído (12/09/2026) — Chat: Trofia-UIUX.** O PR #192 adicionou permissão explícita, timeouts, retry e limpeza tardia do Camera Preview; interrupção por background e Voltar; bloqueio de orientação e estabilidade de scroll. O merge `e6f8bef` integra a subfatia à `main`.
-- **[Câmera embutida — C4b] Em andamento (12/09/2026) — Chat: Trofia-UIUX.** O chat UI/UX trabalha no worktree dedicado `.codex-ui-camera-embedded-c4b`; a subfatia permanece sem merge e deve registrar seu escopo final e evidências antes de ser marcada como concluída.
 - **C14 — revisão geral de segurança:** C14-A, C14-B1 e C14-B2 estão concluídas; C14-C está em andamento; C14-D a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
@@ -170,19 +168,27 @@
 - **[S8] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: customizar checkboxes e sliders. O que foi feito: entregue no PR #166.
 - **[S9] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: substituir diálogos nativos por `GenericDialog`. O que foi feito: entregue no PR #172.
 
+- **[I1 — carregamento animado] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: prototipar e implementar logo pulsando/expandindo, mínimo de 800–1000 ms, claro/escuro e alternativa estática em reduced-motion. O que foi feito: não iniciado.
+- **[I2 — registro progressivo por campo] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: reorganizar o onboarding em decisões progressivas reconstruídas na linguagem One UI 8/Glass UI. O que foi feito: não iniciado.
+- **[I3 — política e migração de tema] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: migrar todos os usuários uma única vez para claro e depois respeitar escolha manual ou acompanhamento do dispositivo. O que foi feito: não iniciado.
+- **[I4 — ação principal e menu “o que criar”] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: avaliar FAB estendido e menu de criação com subtítulos sem copiar a aparência dos concorrentes. O que foi feito: não iniciado.
+- **[I5 — Configurações em tela cheia] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: prototipar hierarquia de Configurações em tela cheia coordenada com D7. O que foi feito: não iniciado.
+- **[I6 — hierarquia visual da tela inicial] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: reprojetar a organização da tela inicial com aprovação específica por ser a mudança mais subjetiva e ampla. O que foi feito: não iniciado.
+- **[I7 — gamificação de metas] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: adicionar contadores de meta ativos por padrão e preferência para desativá-los, sem coletar dados sensíveis novos. O que foi feito: não iniciado.
+
 - **[D1] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: corrigir shell desktop, cabeçalho e navegação. O que foi feito: entregue no PR #187.
-- **[D2] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: tratar os cards de macros do Diário conforme a sequência visual aprovada. O que foi feito: não iniciado.
-- **[D3 — Alimentos] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: escopo detalhado pendente de confirmação pelo chat UI/UX; somente o nome básico está confirmado. O que foi feito: não iniciado.
-- **[D4 — Métricas] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: escopo detalhado pendente de confirmação pelo chat UI/UX; somente o nome básico está confirmado. O que foi feito: não iniciado.
-- **[D5 — Semana] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: escopo detalhado pendente de confirmação pelo chat UI/UX; somente o nome básico está confirmado. O que foi feito: não iniciado.
-- **[D6 — Overlays] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: escopo detalhado pendente de confirmação pelo chat UI/UX; somente o nome básico está confirmado. O que foi feito: não iniciado.
-- **[D7 — Configurações] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: escopo detalhado pendente de confirmação pelo chat UI/UX; somente o nome básico está confirmado. O que foi feito: não iniciado.
+- **[D2 — Diário] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: corrigir sobreposições dos cards de macros/água e distribuir o Diário adequadamente em 1280/1440/1920 px. O que foi feito: não iniciado.
+- **[D3 — Alimentos] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: ampliar a área útil e reorganizar lista, ações e estados vazio/preenchido para telas largas. O que foi feito: não iniciado.
+- **[D4 — Métricas] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: adaptar cartões, grade de progresso/previsão e formulários para desktop sem quebrar overlays. O que foi feito: não iniciado.
+- **[D5 — Semana] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: validar comparativamente nas três larguras e só implementar se o protótipo demonstrar ganho real. O que foi feito: não iniciado.
+- **[D6 — Overlays] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: revisar modais, bottom sheets e editores em telas largas após a integração visual C3. O que foi feito: não iniciado.
+- **[D7 — Configurações] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: tratar a responsividade de Configurações em conjunto com o protótipo de tela cheia I5. O que foi feito: não iniciado.
 
 - **[CAM-C1] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: validar protótipo visual da câmera embutida. O que foi feito: protótipo aprovado fora do runtime.
 - **[CAM-C2] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: provar preview nativo limitado ao retângulo. O que foi feito: prova Android entregue no PR #185.
 - **[CAM-C3] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: integrar preview embutido ao fluxo C24. O que foi feito: integração entregue no PR #190.
 - **[CAM-C4a] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: endurecer permissões, timeouts, lifecycle e limpeza nativa. O que foi feito: entregue no PR #192.
-- **[CAM-C4b] — Status: em andamento — Chat: Trofia-UIUX.** O que se planeja fazer: concluir acessibilidade, recuperação de permissão e clareza das ações/estados da câmera conforme a aprovação do chat UI/UX. O que foi feito: implementação local em andamento no worktree dedicado; ainda sem PR/merge.
+- **[CAM-C4b] — Status: em andamento — Chat: Trofia-UIUX.** O que se planeja fazer: garantir TalkBack, foco/anúncios, ordem das ações, fonte 200%, contraste, alvos, PT/EN/ES e descarte temporário, sem novos recursos fotográficos. O que foi feito: implementação e prova física no Galaxy concluídas localmente; 114/114 focados, 1.360/1.360 unitários e cutover 60/60 passaram, restando draft PR e CI autenticado. Alinhamento: 100% até o gate local, sem zoom, flash, troca de câmera, gestos ou edição.
 
 ## Estado detalhado das fatias C14
 

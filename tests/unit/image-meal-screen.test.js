@@ -122,11 +122,55 @@ contractTest('renders the embedded camera as an accessible HTML overlay in every
     assert.match(textContent(view), new RegExp(expectedStatus));
     const shutter = elements(view, 'button').find(button => button.props['data-camera-shutter'] === 'true');
     const cancel = elements(view, 'button').find(button => button.props['data-camera-cancel'] === 'true');
+    const visibleIndicator = elements(view, 'div').find(node => node.props['data-camera-active-indicator'] === 'true');
+    const announcement = elements(view, 'p').find(node => node.props['data-image-meal-announcement'] === 'true');
     assert.equal(shutter.props.disabled, shutterDisabled);
+    assert.equal(visibleIndicator.props['aria-hidden'], 'true');
+    assert.equal(announcement.props.role, 'status');
+    assert.equal(announcement.props['aria-live'], 'polite');
+    assert.equal(announcement.props['aria-atomic'], 'true');
+    assert.match(textContent(announcement), new RegExp(expectedStatus));
     if (!shutterDisabled) shutter.props.onClick();
     cancel.props.onClick();
     assert.deepEqual(calls, shutterDisabled ? ['cancel'] : ['capture', 'cancel']);
   }
+});
+
+contractTest('offers localized permission recovery through Android settings and gallery', ImageMealScreen => {
+  for (const [lang, settingsLabel, title] of [
+    ['pt', 'Abrir configurações', 'Acesso à câmera desativado'],
+    ['en', 'Open settings', 'Camera access is turned off'],
+    ['es', 'Abrir ajustes', 'El acceso a la cámara está desactivado'],
+  ]) {
+    const calls = [];
+    const view = ImageMealScreen(baseProps({ phase: 'error', error: 'permission-denied' }, {
+      lang,
+      canOpenCameraSettings: true,
+      onOpenCameraSettings: () => calls.push('settings'),
+      onChoose: () => calls.push('gallery'),
+    }));
+    assert.match(textContent(view), new RegExp(title));
+    const alert = elements(view, 'div').find(node => node.props['data-camera-permission-alert'] === 'true');
+    const settings = elements(view, 'button').find(button => button.props['data-camera-open-settings'] === 'true');
+    const gallery = elements(view, 'button').find(button => button.props['data-image-meal-choose-gallery'] === 'true');
+    assert.equal(alert.props.role, 'alert');
+    assert.equal(textContent(settings), settingsLabel);
+    settings.props.onClick();
+    gallery.props.onClick();
+    assert.deepEqual(calls, ['settings', 'gallery']);
+  }
+});
+
+contractTest('keeps camera actions semantic and exposes stable focus targets', ImageMealScreen => {
+  const empty = ImageMealScreen(baseProps({ phase: 'empty' }));
+  const emptyCamera = elements(empty, 'button').find(button => button.props['data-image-meal-open-camera'] === 'true');
+  assert.equal(emptyCamera.props.type, 'button');
+
+  const photo = ImageMealScreen(baseProps({ phase: 'photo', photo: { previewUrl: 'blob:meal' } }));
+  const analyze = elements(photo, 'button').find(button => button.props['data-image-meal-analyze'] === 'true');
+  const retake = elements(photo, 'button').find(button => button.props['data-image-meal-open-camera'] === 'true');
+  assert.equal(analyze.props.type, 'button');
+  assert.equal(retake.props.type, 'button');
 });
 
 contractTest('shows the captured-photo checkpoint before analysis', ImageMealScreen => {

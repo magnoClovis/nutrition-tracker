@@ -291,6 +291,8 @@ const imageMealRegistration = ImageMealRegistration.createImageMealRegistration(
 const imageMealFeature = Object.freeze({
   embeddedCameraPreviewProof: embeddedMealCameraPreview,
   addAppStateListener: listener => androidAppRuntime.addAppStateListener(listener),
+  canOpenCameraSettings: () => androidAppRuntime.canOpenSettings(),
+  openCameraSettings: () => androidAppRuntime.openSettings(),
   ImageMealScreen,
   buildRegistration: imageMealRegistration.buildImageMealRegistration,
   createFlow: ({ onReview, onConfirm }) => ImageMealFlow.createImageMealFlow({
