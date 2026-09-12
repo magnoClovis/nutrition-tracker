@@ -32,8 +32,10 @@ test('authenticate disposable test account', async ({ page }) => {
   const requiredProfile = page.getByText(
     /Completar perfil nutricional|Complete nutrition profile/i
   );
+  const incompleteExistingProfile = page.getByText(/profile-incomplete-existing-account/i);
   await expect.poll(async () => (
-    await appNavigation.isVisible() || await requiredProfile.isVisible()
+    await appNavigation.isVisible() || await requiredProfile.isVisible() ||
+    await incompleteExistingProfile.isVisible()
   ), { timeout: 20000 }).toBe(true);
 
   // The authenticated fixture is disposable and may legitimately have no
@@ -50,6 +52,22 @@ test('authenticate disposable test account', async ({ page }) => {
     await page.getByRole('button', {
       name: /Salvar e continuar|Save and continue|Guardar y continuar/i
     }).click();
+  }
+
+  // The production Vite runtime intentionally never opens the creation-only
+  // profile modal from a normal login. Repair this disposable fixture through
+  // its authenticated storage port, then exercise the same retry path a real
+  // existing account would use after its server data is restored.
+  if (await incompleteExistingProfile.isVisible()) {
+    await page.evaluate(async () => {
+      await Promise.all([
+        window.storage.set('birthDate', '1990-06-15'),
+        window.storage.set('gender', 'female'),
+        window.storage.set('activityLevel', 'moderate'),
+        window.storage.set('goalType', 'maintenance'),
+      ]);
+    });
+    await page.getByRole('button', {name: /Tentar novamente|Try again|Intentar de nuevo/i}).click();
   }
 
   await expect(appNavigation).toBeVisible({ timeout: 20000 });
