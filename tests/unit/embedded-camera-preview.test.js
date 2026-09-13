@@ -60,6 +60,84 @@ test('measures the dedicated surface in Android DIP-compatible CSS pixels', asyn
   }), { x: 12, y: 149, width: 336, height: 252 });
 });
 
+test('scrolls the complete camera card into the add-meal viewport before measurement', async () => {
+  const module = await loadModule();
+  const frameCallbacks = [];
+  let scrollTop = 120;
+  let cardTop = 530;
+  const scrollViewport = {
+    get scrollTop() { return scrollTop; },
+    set scrollTop(value) { scrollTop = value; },
+    getBoundingClientRect: () => ({ top: 80, bottom: 680, height: 600 }),
+    scrollBy({ top }) {
+      scrollTop += top;
+      cardTop -= top;
+    },
+  };
+  const card = {
+    dataset: {},
+    getBoundingClientRect: () => ({ top: cardTop, bottom: cardTop + 360, height: 360 }),
+  };
+  const surface = {
+    ownerDocument: {
+      defaultView: {
+        requestAnimationFrame(callback) {
+          frameCallbacks.push(callback);
+          setImmediate(callback);
+        },
+      },
+    },
+    closest(selector) {
+      if (selector === '[data-embedded-camera="true"]') return card;
+      if (selector === '[data-app-main="adicionar"]') return scrollViewport;
+      return null;
+    },
+  };
+
+  assert.equal(await module.prepareEmbeddedPreviewSurface(surface), true);
+  assert.equal(scrollTop, 342);
+  assert.equal(card.getBoundingClientRect().bottom, 668);
+  assert.equal(card.dataset.cameraGeometryReady, 'true');
+  assert.equal(frameCallbacks.length, 3);
+});
+
+test('measures native bounds only after the camera card has settled in the viewport', async () => {
+  const module = await loadModule();
+  let cardTop = 520;
+  const calls = { start: [] };
+  const card = {
+    dataset: {},
+    getBoundingClientRect: () => ({ top: cardTop, bottom: cardTop + 360, height: 360 }),
+  };
+  const viewport = {
+    getBoundingClientRect: () => ({ top: 60, bottom: 700, height: 640 }),
+    scrollBy({ top }) { cardTop -= top; },
+  };
+  const surface = {
+    ownerDocument: { defaultView: { requestAnimationFrame: callback => setImmediate(callback) } },
+    closest(selector) {
+      if (selector === '[data-embedded-camera="true"]') return card;
+      if (selector === '[data-app-main="adicionar"]') return viewport;
+      return null;
+    },
+    getBoundingClientRect: () => ({ left: 18, top: cardTop, width: 340, height: 360 }),
+  };
+  const preview = module.createEmbeddedCameraPreview({
+    cameraPreviewPlugin: {
+      async start(options) { calls.start.push(options); },
+      async capture() { return { value: 'jpeg' }; },
+      async stop() {},
+    },
+    cameraPermissionPlugin: createPermissionPlugin(),
+    isNativeAndroid: () => true,
+  });
+
+  await preview.start(surface);
+  assert.equal(calls.start[0].y, 328);
+  assert.equal(calls.start[0].height, 360);
+  assert.equal(card.dataset.cameraGeometryReady, 'true');
+});
+
 test('starts a rear camera preview constrained to the measured rectangle', async () => {
   const module = await loadModule();
   const fixture = createFixture(module);

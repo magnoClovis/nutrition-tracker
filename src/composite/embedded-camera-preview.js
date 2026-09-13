@@ -1,6 +1,7 @@
 const MIN_PREVIEW_EDGE = 48;
 const DEFAULT_OPERATION_TIMEOUT_MS = 12000;
 const GRANTED_CAMERA_PERMISSIONS = new Set(['granted', 'limited']);
+const PREVIEW_VIEWPORT_GUTTER = 12;
 
 function isPermissionFailure(error) {
   const value = `${error?.code || ''} ${error?.message || ''}`.toLowerCase();
@@ -35,6 +36,57 @@ export function measureEmbeddedPreview(element) {
   }
 
   return measured;
+}
+
+function nextLayoutFrame(element) {
+  const view = element?.ownerDocument?.defaultView;
+  return new Promise(resolve => {
+    if (typeof view?.requestAnimationFrame === 'function') {
+      view.requestAnimationFrame(() => resolve());
+      return;
+    }
+    setTimeout(resolve, 0);
+  });
+}
+
+/**
+ * Places the complete camera card inside the add-meal viewport before its
+ * native bounds are measured. The viewport is locked after settling and
+ * before CameraPreview starts so HTML controls cannot drift from the surface.
+ */
+export async function prepareEmbeddedPreviewSurface(element) {
+  if (!element || typeof element.closest !== 'function') return false;
+  const card = element.closest('[data-embedded-camera="true"]');
+  const scrollViewport = element.closest('[data-app-main="adicionar"]');
+  if (!card || !scrollViewport
+    || typeof card.getBoundingClientRect !== 'function'
+    || typeof scrollViewport.getBoundingClientRect !== 'function') {
+    return false;
+  }
+
+  const cardRect = card.getBoundingClientRect();
+  const viewportRect = scrollViewport.getBoundingClientRect();
+  const availableHeight = viewportRect.height - (PREVIEW_VIEWPORT_GUTTER * 2);
+  let scrollDelta = 0;
+
+  if (cardRect.height <= availableHeight && cardRect.top < viewportRect.top + PREVIEW_VIEWPORT_GUTTER) {
+    scrollDelta = cardRect.top - viewportRect.top - PREVIEW_VIEWPORT_GUTTER;
+  } else if (cardRect.bottom > viewportRect.bottom - PREVIEW_VIEWPORT_GUTTER) {
+    scrollDelta = cardRect.bottom - viewportRect.bottom + PREVIEW_VIEWPORT_GUTTER;
+  }
+
+  if (scrollDelta !== 0) {
+    if (typeof scrollViewport.scrollBy === 'function') {
+      scrollViewport.scrollBy({ top: scrollDelta, behavior: 'auto' });
+    } else if (Number.isFinite(scrollViewport.scrollTop)) {
+      scrollViewport.scrollTop += scrollDelta;
+    }
+    await nextLayoutFrame(element);
+    await nextLayoutFrame(element);
+  }
+  if (card.dataset) card.dataset.cameraGeometryReady = 'true';
+  await nextLayoutFrame(element);
+  return true;
 }
 
 /**
@@ -107,12 +159,14 @@ export function createEmbeddedCameraPreview({
       throw new EmbeddedCameraPreviewError('preview-already-active');
     }
 
-    const bounds = measureEmbeddedPreview(surface);
     const currentOperation = ++operationId;
     phase = 'starting';
     try {
       await ensureCameraPermission();
       if (currentOperation !== operationId) return;
+      await prepareEmbeddedPreviewSurface(surface);
+      if (currentOperation !== operationId) return;
+      const bounds = measureEmbeddedPreview(surface);
       let startTimedOut = false;
       const nativeStart = Promise.resolve(cameraPreviewPlugin.start({
         ...bounds,

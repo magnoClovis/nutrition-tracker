@@ -107,7 +107,11 @@ test.describe('authenticated ChoiceField visual contract', () => {
       expect(styles.sheetRadius).toBe('22px');
       expect(styles.sheetBackdrop).not.toBe('none');
       expect(styles.overlayPosition).toBe('fixed');
-      expect(styles.selectedHeight).toBeGreaterThanOrEqual(48);
+      const minimumTouchTargetPx = 48;
+      const subpixelRoundingTolerancePx = 0.5;
+      expect(styles.selectedHeight).toBeGreaterThanOrEqual(
+        minimumTouchTargetPx - subpixelRoundingTolerancePx,
+      );
       expect(styles.scrollWidth).toBe(styles.viewportWidth);
       if (theme === 'light') {
         expect(styles.triggerBackground).toBe('rgb(247, 246, 242)');

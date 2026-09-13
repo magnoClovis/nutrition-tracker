@@ -16,8 +16,7 @@
 - **Privacidade e compliance:** política trilíngue pública, instruções de exclusão e referência atual de Data Safety.
 - **Qualidade:** preflight, unitários, smoke legado/Vite, matriz visual e CI autenticado com App Check. G01, C05 e C07 estão fechados.
 - **Controles visuais S8:** `CheckboxField` e `SliderField` customizados foram integrados no PR #166 às superfícies ativas de sugestões de refeição e seleção de categorias de backup.
-- **Diálogos visuais S9:** `GenericDialog` substitui os cinco usos ativos de `alert`, `confirm` e `prompt` do navegador por avisos, confirmações e entradas acessíveis no padrão One UI 8/Glass UI. A implementação e o gate local final estão concluídos no PR #172; o componente passa a compor a `main` com o merge desse PR. — Chat: Trofia-UIUX
-- **Sequência visual S1–S9 concluída (10/09/2026):** todos os seletores e campos customizados planejados integram a `main`. O fechamento ocorreu com a S7b no PR #150: `NumericField` em peso, gordura corporal, cintura e massa muscular, com o containing/stacking context do cartão Glass neutralizado apenas enquanto o overlay está aberto. Gate final: CI autenticado `34412674372`, legado com 93 aprovados e oito skips exclusivos/documentados do Vite, Vite 101/101; merge `d3fdab0`. I1–I7 permanecem planejadas e cada novo tipo visual exige protótipo aprovado antes de código. — Chat: Trofia-UIUX
+- **Sequência visual S1–S9 concluída (10/09/2026):** seletores, campos numéricos, controles e diálogos nativos planejados foram substituídos por componentes One UI 8/Glass UI; rastreabilidade por fatia, PR e comportamento está na seção formal S1–S9 abaixo. I1–I7 permanecem planejadas e exigem protótipo aprovado antes de código. — Chat: Trofia-UIUX
 - **Incidente App Check/perfil encerrado:** o PR #173 impede release Android sem `google-services.json` e distingue falha de leitura de perfil realmente incompleto. Na build Play versionCode 12, a conta real concluiu login, leitura e alteração de perfil, sincronização e inicialização do App Check sem erro.
 - **[C14-C-PROFILE-GATE] Concluído (12/09/2026) — Chat: Trofia-Principal.** O PR #191 corrigiu a corrida de bootstrap: a primeira leitura protegida exige token App Check real, o gate usa confirmação do servidor, falhas exibem recuperação e o modal obrigatório ficou exclusivo da criação de conta. O Pages foi validado após o merge sem reabrir o modal no login normal; a fase Android/AAB e o enforcement do Worker continuam separados dentro da C14-C.
 - **Incidente C14-B2 em produção encerrado:** após dois rollbacks seguros para B1, o hotfix definitivo manteve envelope/nutrientes nas rules e transferiu apenas a validação profunda dos componentes ao leitor fail-closed C20/C19. O teste Admin SDK comprova que componente malformado é ocultado. As rules corrigidas foram republicadas em 02/09/2026; o run autenticado `33575611133` ficou totalmente verde antes do deploy (tentativa 2) e novamente contra produção (tentativa 3). Nenhum dado foi excluído. O PR #178 foi mesclado em 07/09/2026 no commit `80bc2ca`. — **Chat:** Trofia-Principal.
@@ -158,38 +157,371 @@
 
 ### UI/UX — sequências aprovadas compartilhadas
 
-- **[S1] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: criar a base reutilizável `ChoiceField`. O que foi feito: entregue no PR #126.
-- **[S2] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: substituir seletores estáticos de refeição. O que foi feito: entregue no PR #130.
-- **[S3] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: aplicar ChoiceField a cadastro, perfil, métricas e unidades. O que foi feito: entregue nos PRs #133, #136 e #138.
-- **[S4] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: criar seletores pesquisáveis para listas dinâmicas. O que foi feito: entregue no PR #141.
-- **[S5] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: criar `TemporalField` de horário. O que foi feito: entregue no PR #144.
-- **[S6] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: criar `TemporalField` de data. O que foi feito: entregue no PR #146.
-- **[S7a] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: criar keypad numérico para quantidade. O que foi feito: entregue no PR #148.
-- **[S7b] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: aplicar keypad às métricas corporais. O que foi feito: entregue no PR #150.
-- **[S8] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: customizar checkboxes e sliders. O que foi feito: entregue no PR #166.
-- **[S9] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: substituir diálogos nativos por `GenericDialog`. O que foi feito: entregue no PR #172.
+### [S1] - ChoiceField reutilizável
 
-- **[I1 — carregamento animado] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: prototipar e implementar logo pulsando/expandindo, mínimo de 800–1000 ms, claro/escuro e alternativa estática em reduced-motion. O que foi feito: não iniciado.
-- **[I2 — registro progressivo por campo] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: reorganizar o onboarding em decisões progressivas reconstruídas na linguagem One UI 8/Glass UI. O que foi feito: não iniciado.
-- **[I3 — política e migração de tema] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: migrar todos os usuários uma única vez para claro e depois respeitar escolha manual ou acompanhamento do dispositivo. O que foi feito: não iniciado.
-- **[I4 — ação principal e menu “o que criar”] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: avaliar FAB estendido e menu de criação com subtítulos sem copiar a aparência dos concorrentes. O que foi feito: não iniciado.
-- **[I5 — Configurações em tela cheia] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: prototipar hierarquia de Configurações em tela cheia coordenada com D7. O que foi feito: não iniciado.
-- **[I6 — hierarquia visual da tela inicial] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: reprojetar a organização da tela inicial com aprovação específica por ser a mudança mais subjetiva e ampla. O que foi feito: não iniciado.
-- **[I7 — gamificação de metas] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: adicionar contadores de meta ativos por padrão e preferência para desativá-los, sem coletar dados sensíveis novos. O que foi feito: não iniciado.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** substituir o seletor nativo de tipo de refeição por uma base visual e acessível reutilizável.
+- **O que se planeja fazer:** criar bottom sheet One UI 8/Glass UI com seleção imediata, foco e PT/EN/ES.
+- **Recursos/arquivos principais envolvidos:** React, CSS, `choice-field.js`, registro de refeição e Playwright.
+- **O que foi feito:** o PR #126 entregou o componente controlado e migrou o tipo de refeição com fechamento imediato.
+- **Alinhamento:** 100%.
 
-- **[D1] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: corrigir shell desktop, cabeçalho e navegação. O que foi feito: entregue no PR #187.
-- **[D2 — Diário] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: corrigir sobreposições dos cards de macros/água e distribuir o Diário adequadamente em 1280/1440/1920 px. O que foi feito: não iniciado.
-- **[D3 — Alimentos] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: ampliar a área útil e reorganizar lista, ações e estados vazio/preenchido para telas largas. O que foi feito: não iniciado.
-- **[D4 — Métricas] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: adaptar cartões, grade de progresso/previsão e formulários para desktop sem quebrar overlays. O que foi feito: não iniciado.
-- **[D5 — Semana] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: validar comparativamente nas três larguras e só implementar se o protótipo demonstrar ganho real. O que foi feito: não iniciado.
-- **[D6 — Overlays] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: revisar modais, bottom sheets e editores em telas largas após a integração visual C3. O que foi feito: não iniciado.
-- **[D7 — Configurações] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: tratar a responsividade de Configurações em conjunto com o protótipo de tela cheia I5. O que foi feito: não iniciado.
+### [S2] - ChoiceField nos seletores de refeição
 
-- **[CAM-C1] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: validar protótipo visual da câmera embutida. O que foi feito: protótipo aprovado fora do runtime.
-- **[CAM-C2] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: provar preview nativo limitado ao retângulo. O que foi feito: prova Android entregue no PR #185.
-- **[CAM-C3] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: integrar preview embutido ao fluxo C24. O que foi feito: integração entregue no PR #190.
-- **[CAM-C4a] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: endurecer permissões, timeouts, lifecycle e limpeza nativa. O que foi feito: entregue no PR #192.
-- **[CAM-C4b] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: garantir TalkBack, foco/anúncios, ordem das ações, fonte 200%, contraste, alvos, PT/EN/ES e descarte temporário, sem novos recursos fotográficos. O que foi feito: entregue no PR #194, validado no Galaxy e no CI autenticado `34710539851`, e mesclado como `050182d`. Alinhamento: 100%, sem zoom, flash, troca de câmera, gestos ou edição.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** remover pickers nativos dos demais contextos estáticos ligados a refeições.
+- **O que se planeja fazer:** migrar categoria da foto, refeição alvo, refeição padrão e confiança da estimativa.
+- **Recursos/arquivos principais envolvidos:** `choice-field.js`, fluxos de foto/GA/refeições salvas, CSS e Playwright.
+- **O que foi feito:** o PR #130 integrou os quatro contextos, incluindo descrição e barra semântica de confiança.
+- **Alinhamento:** 100%.
+
+### [S3] - ChoiceField global em perfil, métricas e unidades
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** aplicar uma régua única aos seletores estáticos globais sem tornar decisões pequenas excessivamente pesadas.
+- **O que se planeja fazer:** usar inline até cinco opções sem descrição e bottom sheet para listas maiores ou descritas.
+- **Recursos/arquivos principais envolvidos:** `choice-field.js`, cadastro/perfil obrigatório, Métricas, Alimentos e testes visuais.
+- **O que foi feito:** PRs #133, #136 e #138 migraram gênero/unidade de alimento inline e atividade/objetivo/suplemento em sheet.
+- **Alinhamento:** 100%.
+
+### [S4] - SearchableChoiceField dinâmico
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** tornar listas longas e dinâmicas pesquisáveis sem depender do seletor do sistema.
+- **O que se planeja fazer:** criar sheet com busca fixa, filtragem sem acentos, contagem, destaque e scrollbar temática.
+- **Recursos/arquivos principais envolvidos:** `searchable-choice-field.js`, refeição salva, suplemento do Diário, CSS e Playwright.
+- **O que foi feito:** o PR #141 integrou os dois contextos dinâmicos com busca, resultado vazio acessível e claro/escuro.
+- **Alinhamento:** 100%.
+
+### [S5] - TemporalField de horário
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** remover o relógio Android no idioma do sistema e alinhar horário ao idioma interno do app.
+- **O que se planeja fazer:** oferecer steppers e digitação direta de hora/minuto pelo keypad próprio.
+- **Recursos/arquivos principais envolvidos:** `temporal-field.js`, `numeric-field.js`, registro de refeição, CSS e Playwright.
+- **O que foi feito:** o PR #144 entregou horário controlado, locale independente e entrada direta com confirmação imediata.
+- **Alinhamento:** 100%.
+
+### [S6] - TemporalField de data
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** substituir a data de nascimento nativa por calendário coerente e trilíngue.
+- **O que se planeja fazer:** criar calendário civil com navegação mensal e salto rápido de ano por digitação.
+- **Recursos/arquivos principais envolvidos:** `temporal-field.js`, `login-screen.js`, `required-profile-modal.js`, CSS e Playwright.
+- **O que foi feito:** o PR #146 migrou cadastro e perfil obrigatório preservando validação de datas e PT/EN/ES.
+- **Alinhamento:** 100%.
+
+### [S7a] - NumericField para quantidade de alimento
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 31/08/2026.
+- **Data de conclusão:** 31/08/2026.
+- **Propósito:** acelerar a edição frequente de quantidade sem substituir o IME Android global.
+- **O que se planeja fazer:** criar keypad interno 0–9, decimal, apagar e confirmar para a quantidade principal.
+- **Recursos/arquivos principais envolvidos:** `numeric-field.js`, `add-screen.js`, CSS e Playwright autenticado.
+- **O que foi feito:** o PR #148 integrou o keypad e corrigiu o estado vazio para neutro até interação inválida.
+- **Alinhamento:** 100%.
+
+### [S7b] - NumericField em medidas corporais
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 31/08/2026.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** reutilizar o keypad nos campos corporais de maior frequência sem quebrar overlays de Métricas.
+- **O que se planeja fazer:** migrar peso, gordura, cintura e massa muscular e validar stacking/containing contexts.
+- **Recursos/arquivos principais envolvidos:** `numeric-field.js`, tela/controlador de Métricas, `one-ui.css` e Playwright.
+- **O que foi feito:** o PR #150 integrou quatro medidas e neutralizou o containing context do card somente com overlay aberto.
+- **Alinhamento:** desvio positivo; a validação ampliou o endurecimento de stacking sem alterar o escopo funcional.
+
+### [S8] - Checkboxes e sliders semânticos
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 31/08/2026.
+- **Data de conclusão:** 31/08/2026.
+- **Propósito:** alinhar controles de seleção/intervalo ao visual do app preservando semântica nativa.
+- **O que se planeja fazer:** criar checkbox quadrado para seleção múltipla e slider temático com teclado, min/max e leitor de tela.
+- **Recursos/arquivos principais envolvidos:** `selection-controls.js`, Configurações/sugestões/backup, CSS e Playwright.
+- **O que foi feito:** o PR #166 integrou `CheckboxField`/`SliderField` e consolidou círculo exclusivo, quadrado múltiplo e toggle persistente.
+- **Alinhamento:** 100%.
+
+### [S9] - GenericDialog
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 01/09/2026.
+- **Data de conclusão:** 01/09/2026.
+- **Propósito:** eliminar `alert`, `confirm` e `prompt` nativos sem perder hierarquia, foco ou validação.
+- **O que se planeja fazer:** criar aviso, confirmação e entrada acessíveis, com ação destrutiva distinta e PT/EN/ES.
+- **Recursos/arquivos principais envolvidos:** `generic-dialog.js`, controlador/Configurações/água/refeições, CSS e Playwright.
+- **O que foi feito:** o PR #172 substituiu os cinco diálogos ativos e validou claro/escuro, responsividade, foco e estados bloqueados.
+- **Alinhamento:** desvio positivo; fixtures e navegação foram endurecidas durante o gate sem mudar o componente aprovado.
+
+### [I1] - Carregamento animado
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** transformar a espera inicial em uma transição deliberada e coerente com a identidade do Trofia.
+- **O que se planeja fazer:** prototipar e implementar logo pulsando/expandindo, mínimo de 800–1000 ms, claro/escuro e alternativa estática em reduced-motion.
+- **Recursos/arquivos principais envolvidos:** bootstrap/loading do app, logo Trofia, CSS de animação, temporização JS e Playwright visual.
+
+### [I2] - Registro progressivo por campo
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** reduzir a carga cognitiva do cadastro apresentando uma decisão clara por etapa.
+- **O que se planeja fazer:** reorganizar o onboarding em decisões progressivas reconstruídas na linguagem One UI 8/Glass UI.
+- **Recursos/arquivos principais envolvidos:** `login-screen.js`, `required-profile-modal.js`, ChoiceField/TemporalField, i18n e Playwright.
+
+### [I3] - Política e migração de tema
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** tornar o claro o padrão visual comum sem retirar do usuário o controle posterior do tema.
+- **O que se planeja fazer:** migrar todos os usuários uma única vez para claro e depois respeitar escolha manual ou acompanhamento do dispositivo.
+- **Recursos/arquivos principais envolvidos:** preferências de tema, storage local, Configurações, tokens claro/escuro e testes de migração.
+
+### [I4] - Ação principal e menu “o que criar”
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** tornar a ação principal mais encontrável e esclarecer as alternativas de criação antes da escolha.
+- **O que se planeja fazer:** avaliar FAB estendido e menu de criação com subtítulos, adaptando a hierarquia concorrente ao One UI 8/Glass UI.
+- **Recursos/arquivos principais envolvidos:** navegação/Diário, fluxo Adicionar, menu de criação, ícones SVG, CSS e Playwright.
+
+### [I5] - Configurações em tela cheia
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** dar às preferências uma hierarquia própria e aproveitar melhor telas móveis e largas.
+- **O que se planeja fazer:** prototipar Configurações em tela cheia, coordenando a estrutura e os breakpoints com a fatia D7.
+- **Recursos/arquivos principais envolvidos:** tela de Configurações, SelectionControls, GenericDialog, shell desktop, `one-ui.css` e Playwright.
+
+### [I6] - Hierarquia visual da tela inicial
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** priorizar informações e ações da página inicial sem copiar a aparência dos aplicativos de referência.
+- **O que se planeja fazer:** reprojetar a organização da tela inicial com protótipo e aprovação específicos por ser a mudança mais subjetiva e ampla.
+- **Recursos/arquivos principais envolvidos:** Diário/home, cabeçalho, cards nutricionais, ações principais, estados vazios, `one-ui.css` e Playwright.
+
+### [I7] - Gamificação de metas
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** tornar progresso e consistência mais legíveis sem impor o contador a quem não o deseja.
+- **O que se planeja fazer:** adicionar contadores de meta ativos por padrão e preferência para desativá-los, sem coletar dados sensíveis novos.
+- **Recursos/arquivos principais envolvidos:** Diário/home, cálculo de metas existentes, Configurações, storage/Firestore já autorizado, i18n e testes.
+
+### [D1] - Shell desktop, cabeçalho e navegação
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 10/09/2026.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** remover a sobreposição global das abas sobre peso/IMC e aproveitar a largura do shell desktop.
+- **O que se planeja fazer:** adotar navegação de largura total abaixo do cabeçalho em 1280/1440/1920 px sem alterar mobile.
+- **Recursos/arquivos principais envolvidos:** `one-ui.css`, shell/cabeçalho, navegação e `tests/smoke/desktop-shell.visual.spec.js`.
+- **O que foi feito:** o PR #187 removeu a margem negativa, centralizou a navegação no shell de 1080 px e passou no CI `34464670583`.
+- **Alinhamento:** 100%.
+
+### [D2] - Responsividade do Diário
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** eliminar a sobreposição dos cards de macros/água e a coluna móvel estreita em telas largas.
+- **O que se planeja fazer:** prototipar vazio/preenchido em 1280/1440/1920 px e então redistribuir cards e conteúdo do Diário.
+- **Recursos/arquivos principais envolvidos:** Diário/controlador, cards de macros/água, `one-ui.css` e Playwright visual.
+
+### [D3] - Responsividade de Alimentos
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** usar melhor o espaço desktop em listas, busca, ações e estados da despensa.
+- **O que se planeja fazer:** escopo detalhado pendente de confirmação após protótipo vazio/preenchido nas três larguras.
+- **Recursos/arquivos principais envolvidos:** tela de Alimentos, cards/listas, seletores, `one-ui.css` e Playwright visual.
+
+### [D4] - Responsividade de Métricas
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** adaptar cartões, formulários e progresso/previsão sem reintroduzir conflitos de overlay.
+- **O que se planeja fazer:** escopo detalhado pendente de confirmação após protótipo claro/escuro vazio/preenchido.
+- **Recursos/arquivos principais envolvidos:** tela/controlador de Métricas, gráficos, NumericField/ChoiceField, `one-ui.css` e Playwright.
+
+### [D5] - Validação responsiva de Semana
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** evitar mudança desnecessária se a tela semanal já aproveitar corretamente o desktop.
+- **O que se planeja fazer:** escopo pendente de confirmação; comparar 1280/1440/1920 px e implementar apenas ganho demonstrável.
+- **Recursos/arquivos principais envolvidos:** tela Semana, gráficos/resumo, `one-ui.css` e Playwright visual comparativo.
+
+### [D6] - Responsividade de overlays
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** tornar modais, sheets e editores proporcionais a telas largas sem quebrar composição nativa.
+- **O que se planeja fazer:** escopo pendente de confirmação e coordenado com o estado final da câmera antes do protótipo.
+- **Recursos/arquivos principais envolvidos:** modais/bottom sheets, GenericDialog, campos customizados, câmera e `one-ui.css`.
+
+### [D7] - Responsividade de Configurações
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** resolver o uso de largura da tela de preferências sem duplicar a decisão estrutural de I5.
+- **O que se planeja fazer:** escopo pendente de confirmação; prototipar em conjunto com Configurações em tela cheia I5.
+- **Recursos/arquivos principais envolvidos:** tela de Configurações, SelectionControls, GenericDialog, `one-ui.css` e Playwright.
+
+### [CAM-C1] - Protótipo visual da câmera embutida
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não determinada.
+- **Propósito:** validar a direção visual antes de assumir o risco da integração nativa.
+- **O que se planeja fazer:** prototipar estados, expansão/contração, temas, mobile/desktop e movimento reduzido.
+- **Recursos/arquivos principais envolvidos:** protótipo HTML/CSS/JS externo, sem alteração do runtime.
+- **O que foi feito:** protótipo interativo revisado e aprovado antes da C2.
+- **Alinhamento:** 100%.
+
+### [CAM-C2] - Prova técnica Android da câmera embutida
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 10/09/2026.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** comprovar preview nativo retangular sem substituir o fluxo de produção.
+- **O que se planeja fazer:** integrar o plugin atrás de um serviço Android isolado e validar geometria, captura e compilação.
+- **Recursos/arquivos principais envolvidos:** Camera Preview, Capacitor, Gradle, `src/composite/embedded-camera-preview.js`.
+- **O que foi feito:** prova técnica e validação física em pacote paralelo concluídas no PR #185.
+- **Alinhamento:** 100%.
+
+### [CAM-C3] - Integração visual e funcional da câmera embutida
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 12/09/2026.
+- **Data de conclusão:** 12/09/2026.
+- **Propósito:** substituir a câmera Android em tela cheia pelo preview aprovado dentro do fluxo C24.
+- **O que se planeja fazer:** integrar `toBack:true`, controles HTML, moldura, estados e pré-processamento existente.
+- **Recursos/arquivos principais envolvidos:** Camera Preview, React, `image-meal-flow.js`, `image-meal-screen.js`, `one-ui.css`.
+- **O que foi feito:** composição nativa/HTML, captura e transições entregues no PR #190.
+- **Alinhamento:** 100%.
+
+### [CAM-C4a] - Robustez nativa e ciclo de vida
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 12/09/2026.
+- **Data de conclusão:** 12/09/2026.
+- **Propósito:** impedir sessões órfãs e estados presos em eventos e falhas reais do Android.
+- **O que se planeja fazer:** cobrir permissão, timeout, cancelamento tardio, background, Voltar, orientação e limpeza.
+- **Recursos/arquivos principais envolvidos:** Capacitor App/Camera, Camera Preview, fluxo C24 e testes Android.
+- **O que foi feito:** lifecycle e falhas endurecidos, com prova física e CI, no PR #192.
+- **Alinhamento:** 100%.
+
+### [CAM-C4b] - Acessibilidade e acabamento resiliente
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 12/09/2026.
+- **Data de conclusão:** 12/09/2026.
+- **Propósito:** reconstruir na composição híbrida as garantias acessíveis esperadas de um controle nativo.
+- **O que se planeja fazer:** garantir TalkBack, foco/anúncios, fonte 200%, contraste, alvos, PT/EN/ES e descarte temporário.
+- **Recursos/arquivos principais envolvidos:** semântica HTML/ARIA, Android settings, `image-meal-screen.js`, `one-ui.css`.
+- **O que foi feito:** acessibilidade validada no Galaxy e no CI `34710539851`, entregue no PR #194.
+- **Alinhamento:** 100%.
+
+### [CAM-INC-1] - Hotfix da câmera na build publicada
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 13/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** restaurar preview e ações que ficaram invisíveis/inacessíveis na build da Play.
+- **O que se planeja fazer:** corrigir transparência escura e ordenar scroll, medição e bloqueio sem redesenhar a câmera.
+- **Recursos/arquivos principais envolvidos:** `one-ui.css`, `image-meal-screen.js`, preview composto e testes unitários/Playwright/Android.
+- **O que foi feito:** o PR draft #196 corrigiu a especificidade da transparência escura, passou a posicionar o card antes de medir/bloquear a geometria, obteve CI autenticado verde no run `34750821834` e comprovou no Galaxy preview, captura e cancelamento em release de prova nos dois temas.
+
+### [CAM-INC-2] - Validação do hotfix pela Play Store
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** impedir que diferenças entre build local e distribuição escondam novamente uma falha crítica.
+- **O que se planeja fazer:** publicar AAB assinado no canal interno, instalar pela Play e validar fisicamente no Galaxy.
+- **Recursos/arquivos principais envolvidos:** Gradle signing, AAB, Google Play Console e Galaxy físico.
+
+### [CAM-RED-1] - Protótipo do redesenho centralizado
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** decidir visualmente o novo comportamento sem misturá-lo ao hotfix urgente.
+- **O que se planeja fazer:** prototipar preview central, backdrop, X, flash, transições, temas, idiomas e acessibilidade.
+- **Recursos/arquivos principais envolvidos:** protótipo HTML/CSS/JS externo e referências One UI 8/Glass UI.
+
+### [CAM-RED-2] - Prova técnica do redesenho no Android
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** validar no aparelho as premissas nativas antes da integração visual definitiva.
+- **O que se planeja fazer:** provar empilhamento, máscara, controles HTML, scroll bloqueado e suporte real de flash.
+- **Recursos/arquivos principais envolvidos:** Camera Preview, WebView transparente, Capacitor/Gradle e Galaxy físico.
+
+### [CAM-RED-3] - Overlay, fechamento e transições
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** implementar a estrutura visual aprovada sem acoplar prematuramente o flash.
+- **O que se planeja fazer:** integrar preview central, backdrop, X dedicado e expansão/contração ao fluxo real.
+- **Recursos/arquivos principais envolvidos:** React, fluxo C24, `image-meal-screen.js`, `one-ui.css` e Camera Preview.
+
+### [CAM-RED-4] - Flash da câmera embutida
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** oferecer iluminação sem assumir suporte inexistente ou deixar hardware ligado.
+- **O que se planeja fazer:** detectar suporte, controlar flash com estados localizados/acessíveis e restaurá-lo em toda saída.
+- **Recursos/arquivos principais envolvidos:** API de flash do Camera Preview, estado React e testes Android.
+
+### [CAM-RED-5] - Robustez e acessibilidade do redesenho
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** preservar as garantias C4a/C4b depois da mudança estrutural da câmera.
+- **O que se planeja fazer:** validar TalkBack, fonte 200%, contraste, PT/EN/ES, reduced-motion, permissões e lifecycle.
+- **Recursos/arquivos principais envolvidos:** ARIA/TalkBack, CSS responsivo, Playwright, Capacitor e Galaxy físico.
+
+### [CAM-RED-6] - Validação final do redesenho pela Play Store
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** concluir o redesenho somente com evidência do mesmo artefato entregue ao usuário.
+- **O que se planeja fazer:** publicar o AAB final no canal interno, instalar pela Play e executar a matriz física.
+- **Recursos/arquivos principais envolvidos:** AAB assinado, Google Play Console, telemetria de versão e Galaxy físico.
 
 ## Estado detalhado das fatias C14
 
@@ -260,7 +592,15 @@
 
 ## Observações não confirmadas sob acompanhamento
 
-- **Reload/troca de idioma e bootstrap:** o chat Trofia-UI/UX relatou uma queda intermitente para a tela de login e um `SearchableChoiceField` temporariamente preso em `#loading` após reload. Três tentativas isoladas passaram, sem erro de leitura confirmado. A tentativa 2 do CI do PR #175 foi interrompida pelo teto global de 30 minutos enquanto essa asserção tinha executado por apenas 5,6 dos 15 segundos previstos; portanto, esse run não comprova travamento do produto. A investigação futura deve conferir consumidores que ainda presumam o contrato antigo `null`/`[]` após falha transitória, sem atribuir causalidade à C14-A até haver reprodução e evidência. — **Chat:** Trofia-Principal (achado original: Trofia-UI/UX).
+### [INV-RELOAD-SESSAO] - Sessão e loading após reload/troca de idioma
+
+- **Status:** em investigação — **Chat:** Trofia-UIUX.
+- **Data de início:** 01/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** monitorar uma possível inconsistência de restauração da sessão e do bootstrap após reload durante ciclos PT/EN/ES.
+- **O que se planeja fazer:** aguardar recorrência reproduzível e então isolar estado de autenticação, término do loading e consumidores do contrato de leitura, coordenando qualquer correção fora de UI com o chat principal.
+- **Recursos/arquivos principais envolvidos:** `setAppLanguage`, `pantry-choice-field.visual.spec.js`, `searchable-choice-field.visual.spec.js`, Firebase Auth/App Check e CI autenticado.
+- **O que foi feito:** os runs `33488032008` e `33497924576` registraram ocorrências diferentes após reload, mas o diagnóstico isolado `33502189291` passou em 3/3 repetições PT/EN/ES sem erro de leitura, console ou requisição pendente; permanece intermitente, sem causa confirmada e sem correção aplicada.
 
 ## Onde aprofundar
 

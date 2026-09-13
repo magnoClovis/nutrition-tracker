@@ -119,6 +119,10 @@ contractTest('renders the embedded camera as an accessible HTML overlay in every
       onCancelCamera: () => calls.push('cancel'),
     }));
     assert.equal(view.props['data-camera-native-active'], 'true');
+    assert.equal(
+      view.props['data-camera-geometry-locked'],
+      phase === 'camera-active' || phase === 'camera-capturing' ? 'true' : undefined,
+    );
     assert.match(textContent(view), new RegExp(expectedStatus));
     const shutter = elements(view, 'button').find(button => button.props['data-camera-shutter'] === 'true');
     const cancel = elements(view, 'button').find(button => button.props['data-camera-cancel'] === 'true');
