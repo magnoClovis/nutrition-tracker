@@ -1,6 +1,6 @@
 # Resumo de status do Trofia
 
-> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `050182d`, em 12/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
+> Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `13bd540`, em 13/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
 
@@ -452,13 +452,14 @@
 
 ### [CAM-INC-1] - Hotfix da câmera na build publicada
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 13/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 13/09/2026.
 - **Propósito:** restaurar preview e ações que ficaram invisíveis/inacessíveis na build da Play.
 - **O que se planeja fazer:** corrigir transparência escura e ordenar scroll, medição e bloqueio sem redesenhar a câmera.
 - **Recursos/arquivos principais envolvidos:** `one-ui.css`, `image-meal-screen.js`, preview composto e testes unitários/Playwright/Android.
-- **O que foi feito:** o PR draft #196 corrigiu a especificidade da transparência escura, passou a posicionar o card antes de medir/bloquear a geometria, obteve CI autenticado verde no run `34750821834` e comprovou no Galaxy preview, captura e cancelamento em release de prova nos dois temas.
+- **O que foi feito:** o PR #196/merge `13bd540` corrigiu transparência e geometria, passou no CI autenticado `34757379713` sem skips e comprovou preview, captura e cancelamento no Galaxy em release de prova claro/escuro.
+- **Alinhamento:** 100%.
 
 ### [CAM-INC-2] - Validação do hotfix pela Play Store
 
