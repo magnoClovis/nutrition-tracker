@@ -458,7 +458,7 @@
 - **Propósito:** restaurar preview e ações que ficaram invisíveis/inacessíveis na build da Play.
 - **O que se planeja fazer:** corrigir transparência escura e ordenar scroll, medição e bloqueio sem redesenhar a câmera.
 - **Recursos/arquivos principais envolvidos:** `one-ui.css`, `image-meal-screen.js`, preview composto e testes unitários/Playwright/Android.
-- **O que foi feito:** o PR draft #196 corrigiu a especificidade da transparência escura e passou a posicionar o card antes de medir e bloquear a geometria; CI autenticado e prova física do release candidato seguem em andamento.
+- **O que foi feito:** o PR draft #196 corrigiu a especificidade da transparência escura, passou a posicionar o card antes de medir/bloquear a geometria, obteve CI autenticado verde no run `34750821834` e comprovou no Galaxy preview, captura e cancelamento em release de prova nos dois temas.
 
 ### [CAM-INC-2] - Validação do hotfix pela Play Store
 
