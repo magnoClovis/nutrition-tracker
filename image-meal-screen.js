@@ -341,6 +341,7 @@
       return React.createElement("section", {
         "data-image-meal-screen": "true",
         "data-camera-native-active": cameraVisible ? "true" : undefined,
+        "data-camera-geometry-locked": phase === "camera-active" || phase === "camera-capturing" ? "true" : undefined,
         style: {
           width: "100%",
           maxWidth: 820,

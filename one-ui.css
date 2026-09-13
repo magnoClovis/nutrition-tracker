@@ -206,13 +206,15 @@ body:has([data-one-ui-root][data-theme="dark"]) {
    localized; no camera pixels exist outside the measured rectangle. */
 html:has([data-camera-native-active="true"]),
 body:has([data-camera-native-active="true"]),
+body:has([data-one-ui-root][data-theme="dark"]):has([data-camera-native-active="true"]),
 body:has([data-camera-native-active="true"]) [data-one-ui-root],
 body:has([data-camera-native-active="true"]) [data-app-main="adicionar"] {
   background-color: transparent !important;
   background-image: none !important;
 }
 
-body:has([data-camera-native-active="true"]) [data-app-main="adicionar"] {
+body:has([data-camera-geometry-ready="true"]) [data-app-main="adicionar"],
+body:has([data-camera-geometry-locked="true"]) [data-app-main="adicionar"] {
   overflow: hidden !important;
 }
 

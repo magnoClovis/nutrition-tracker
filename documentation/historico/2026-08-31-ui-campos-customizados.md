@@ -759,7 +759,11 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 
 ## Câmera embutida — protótipo visual C1
 
-**Data (se determinável):** não determinado.
+**Data de conclusão:** não determinada.
+
+**Tempo decorrido:** não aplicável; C1 foi um protótipo externo sem commit ou merge próprio que permita medir o intervalo exigido.
+
+**Minutos de CI:** não aplicável; C1 não alterou código versionado e não abriu PR.
 
 **Propósito:** validar, antes de qualquer integração nativa, uma câmera para reconhecimento de refeição que ocupe uma seção dedicada da tela em vez de cobrir o Trofia inteiro. O protótipo precisava demonstrar que o restante da interface continuaria reconhecível, que abrir/capturar não produziria mudanças abruptas e que estados de permissão e movimento reduzido teriam tratamento explícito.
 
@@ -772,6 +776,8 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 
 **Arquivos:** nenhum arquivo do protótipo C1 foi versionado no repositório. A prova visual permaneceu externa ao app e não alterou runtime, Android ou fluxo de reconhecimento por foto.
 
+**O que se planeja fazer:** construir, antes de qualquer código real, um protótipo interativo que mostrasse a câmera como seção dedicada do fluxo de foto nos estados fechado, abrindo, ativo, capturado e permissão negada. O desenho aprovado deveria contemplar desktop/mobile, claro/escuro, expansão na abertura, contração na captura e alternativa sem animação para `prefers-reduced-motion`, sem assumir que a superfície nativa aceitaria o mesmo acabamento do HTML.
+
 **O que foi feito:**
 
 - Foram apresentados os estados fechado, abrindo, câmera ativa, capturado e permissão negada, nos temas claro e escuro e em dimensões desktop/mobile.
@@ -780,11 +786,17 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - Em `prefers-reduced-motion: reduce`, a troca de estado permanece funcional, mas a pulsação/interpolação visual é removida.
 - O responsável revisou o arquivo interativo, confirmou a animação em movimento e aprovou definitivamente a direção antes da C2.
 
+**Alinhamento:** 100%. Todos os estados, temas, larguras e variantes de movimento aprovados foram apresentados antes da prova técnica; como era uma etapa exclusivamente visual, não houve desvio de escopo nem impacto sobre o runtime. O impacto final foi positivo para o projeto porque isolou decisões de aparência antes de assumir dependências Android.
+
 **PRs/commits relacionados:** não há PR ou commit; C1 foi exclusivamente uma etapa de prototipação e aprovação visual.
 
 ## Câmera embutida — prova técnica Android C2
 
-**Data (se determinável):** 10/09/2026.
+**Data de conclusão:** 10/09/2026.
+
+**Tempo decorrido:** 9 h 24 min 54 s, do primeiro commit da fatia (`1cd1d18`, 10/09/2026 às 03:31:24 UTC) ao merge (`a20a492`, 10/09/2026 às 12:56:18 UTC).
+
+**Minutos de CI:** 37 min 53 s no total — leve: 35 s (`Documentation preflight`, run `34473574053`); pesado: 37 min 18 s (`CI`, run `34473574033`).
 
 **Propósito:** comprovar que o app Capacitor Android pode hospedar uma vista nativa de câmera limitada a um retângulo medido da interface, sem abrir o picker de câmera em tela cheia e sem antecipar a integração visual/funcional da C3. A prova também precisava preservar integralmente o fluxo atual enquanto o risco técnico de geometria, compatibilidade do plugin e compilação Android era isolado.
 
@@ -807,6 +819,8 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - `src/composite/embedded-camera-preview-runtime.js`
 - `tests/unit/embedded-camera-preview.test.js`
 
+**O que se planeja fazer:** instalar e isolar o Camera Preview compatível com Capacitor 8, medir uma superfície DOM em coordenadas aceitas pelo Android, provar abertura/captura/parada e compilar o projeto nativo sem substituir ainda o callback de produção. A validação deveria separar o risco geométrico e de plugin da futura composição visual, conservar o fallback web e não publicar APK/AAB.
+
 **O que foi feito:**
 
 - O plugin Camera Preview foi fixado em 8.0.1, cuja dependência de `@capacitor/core >= 8.0.2` é compatível com a versão 8.4.2 do Trofia, e sincronizado como módulo Gradle do Android.
@@ -825,6 +839,8 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - A captura física retornou JPEG Base64 não vazio com 690.208 caracteres, a fotografia foi renderizada de volta no espaço dedicado e o serviço executou `stop()`. O log de câmera registrou `DISCONNECT device 0` para o pacote da prova, confirmando a liberação da sessão nativa.
 - A prova confirmou o risco visual que fica deliberadamente para C3: com `toBack: false`, a superfície nativa respeita o retângulo, mas se sobrepõe ao acabamento WebView e portanto não herda automaticamente cantos arredondados/borda CSS. A integração deverá desenhar o enquadramento de forma compatível com essa limitação, sem confundir a comprovação geométrica da C2 com o polimento visual da C3.
 
+**Alinhamento:** 100%. A fatia entregou exatamente a prova técnica isolada, compilação, testes e validação física aprovados, mantendo a integração visual fora do escopo. O bloqueio de instalação sobre o pacote oficial levou ao uso seguro de um pacote paralelo temporário, sem alterar o objetivo nem a aplicação distribuída; o impacto foi positivo por preservar dados do usuário e ainda produzir evidência física equivalente para a geometria nativa.
+
 **PRs/commits relacionados:**
 
 - [PR #185 — Android: prova técnica da câmera embutida (C2)](https://github.com/magnoClovis/nutrition-tracker/pull/185), mesclado na `main`.
@@ -832,7 +848,11 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 
 ## Câmera embutida — integração visual e funcional C3
 
-**Data (se determinável):** 12/09/2026.
+**Data de conclusão:** 12/09/2026.
+
+**Tempo decorrido:** 1 h 32 min 37 s, do primeiro commit da fatia (`02805cd`, 12/09/2026 às 10:33:57 UTC) ao merge (`c6a4e4f`, 12/09/2026 às 12:06:34 UTC).
+
+**Minutos de CI:** 28 min 28 s no total — leve: 26 s (`Documentation preflight`, run `34688905498`); pesado: 28 min 02 s (`CI`, run `34688905479`).
 
 **Propósito:** substituir, no Android, a abertura de câmera em tela cheia do fluxo C24 por uma captura realmente embutida na tela de reconhecimento de refeição, sem perder o pré-processamento seguro já existente. A integração precisava reproduzir o protótipo aprovado — área expansível, preview limitado ao card, moldura Glass UI arredondada, controles sobre a imagem e contração após capturar — e resolver a limitação técnica observada na C2, em que `toBack: false` colocava a superfície nativa acima de qualquer acabamento HTML.
 
@@ -860,6 +880,8 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - `documentation/historico/2026-08-31-ui-campos-customizados.md`
 - `documentation/estado-atual/RESUMO-STATUS.md`
 
+**O que se planeja fazer:** conectar a prova C2 ao fluxo real C24 usando `toBack:true`, transparência localizada da WebView, card arredondado com controles HTML acima do preview, estados explícitos de abertura/atividade/captura, contração após a foto e fallback intacto fora do Android. A viabilidade da moldura sobre a superfície nativa deveria ser comprovada fisicamente antes da implementação definitiva.
+
 **O que foi feito:**
 
 - Antes da integração, foi executado um harness temporário e não versionado no Galaxy S25 Ultra, sob o pacote paralelo `com.hermegas.trofia.c3proof`, para validar especificamente `toBack: true` sem tocar na instalação real do Trofia. O preview traseiro ficou restrito a `348 × 420` CSS px na origem `18,162`; a área local do WebView tornou-se transparente, enquanto o restante da tela permaneceu protegido.
@@ -874,6 +896,8 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - Os testes focados terminaram com 107/107 casos e nenhum skip. O gate local completo passou com preflight limpo, 1.328/1.328 testes unitários sem skip, smokes legado e Vite sem falhas no perfil local e cutover 60/60 sem skip em PT/EN/ES, desktop/mobile e claro/escuro. Os 63 skips por runtime nos smokes locais são exclusivamente os testes autenticados já documentados, ausentes por falta deliberada de credenciais locais; o CI autenticado do PR permanece o gate externo obrigatório.
 - O PR passou pelo CI autenticado, foi retirado do modo draft por autorização explícita e mesclado na `main`. Nenhum APK/AAB foi publicado.
 
+**Alinhamento:** 100%. A composição final reproduziu o protótipo aprovado e resolveu a limitação `toBack:false` descoberta na C2 por meio de `toBack:true`, transparência localizada e máscaras HTML, sem duplicar o pipeline de imagem nem ampliar funções fotográficas. A adaptação técnica foi parte prevista da prova condicionante e teve impacto positivo ao manter controles acessíveis e o acabamento Glass UI sobre a câmera real.
+
 **PRs/commits relacionados:**
 
 - [PR #190 — Android: integrar câmera embutida no reconhecimento (C3)](https://github.com/magnoClovis/nutrition-tracker/pull/190), mesclado na `main`.
@@ -882,7 +906,11 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 
 ## Câmera embutida — robustez nativa e ciclo de vida C4a
 
-**Data (se determinável):** 12/09/2026.
+**Data de conclusão:** 12/09/2026.
+
+**Tempo decorrido:** 1 h 01 min 30 s, do primeiro commit da fatia (`ad84f4f`, 12/09/2026 às 14:06:14 UTC) ao merge (`e6f8bef`, 12/09/2026 às 15:07:44 UTC).
+
+**Minutos de CI:** 30 min 43 s no total — leve: 23 s (`Documentation preflight`, run `34699425320`); pesado: 30 min 20 s (`CI`, run `34699425213`).
 
 **Propósito:** tornar a câmera embutida da C3 resiliente aos eventos e falhas reais do Android sem ampliar seu conjunto de funções. A subfatia precisava impedir sessões nativas órfãs quando o usuário cancela, usa Voltar, envia o app ao background ou abandona uma operação ainda pendente; limitar esperas indefinidas do plugin; estabilizar a geometria entre WebView e superfície nativa; e tratar permissão, captura vazia e indisponibilidade de maneira previsível. Zoom, troca de câmera, flash, gestos e edição fotográfica permaneceram explicitamente fora do escopo.
 
@@ -914,6 +942,8 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - `documentation/historico/2026-08-31-ui-campos-customizados.md`
 - `documentation/estado-atual/RESUMO-STATUS.md`
 
+**O que se planeja fazer:** endurecer exclusivamente a operação nativa já aprovada contra permissão negada, timeouts, falhas de parada, resultados assíncronos tardios, background, Voltar e mudança de orientação; comprovar repetição, captura e liberação da câmera no Galaxy; e manter zoom, flash, troca de câmera, gestos e edição explicitamente fora do escopo.
+
 **O que foi feito:**
 
 - O runtime da câmera passou a receber o plugin Capacitor Camera exclusivamente para consultar e solicitar `CAMERA`; estados `granted`/`limited` permitem a abertura, `prompt` aciona a solicitação nativa e negativa explícita retorna `camera-permission-denied` antes de iniciar o preview.
@@ -931,6 +961,8 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - A captura física retornou JPEG Base64 não vazio com 664.996 caracteres, exibiu a fotografia no espaço dedicado, retornou a fase a `idle` e deixou `dumpsys media.camera` sem cliente do pacote. A negativa real de permissão retornou `START_ERROR camera-permission-denied` sem abrir ou prender a câmera.
 - Depois da prova, o bundle Vite de produção foi restaurado no projeto Android, `npx cap sync android` reconheceu os sete plugins e `gradlew assembleDebug` concluiu com `BUILD SUCCESSFUL` usando o JDK 21 do Android Studio.
 - O gate focado final passou com 105/105 casos sem skip, cobrindo permissões, timeouts, segunda limpeza tardia, retry de parada, captura após cancelamento, background, Voltar e integração UMD/ESM. O gate local completo terminou com preflight limpo, 1.337/1.337 unitários sem skip, smokes legado e Vite com 40 aprovações e somente os 63 skips autenticados esperados em cada runtime, e cutover 60/60 sem skip em PT/EN/ES, desktop/mobile e claro/escuro. O CI autenticado `34699425213` passou com todos os cenários reais habilitados; o PR foi mesclado na `main` em 12/09/2026.
+
+**Alinhamento:** 100%. Todos os cenários de robustez aprovados foram implementados e fisicamente verificados sem introduzir qualquer função fotográfica excluída. Os mecanismos adicionais de segunda limpeza tardia e retry único de `stop()` materializaram riscos identificados durante a auditoria, permaneceram dentro do escopo de robustez e tiveram impacto positivo ao reduzir a possibilidade de sessão nativa órfã.
 
 **PRs/commits relacionados:**
 
@@ -997,6 +1029,43 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - [Commit `d6b7066` — acessibilidade, recuperação, testes e documentação da C4b](https://github.com/magnoClovis/nutrition-tracker/commit/d6b70665b72aee330704c85ff07e515ea91efda4).
 - [Merge `050182d` — incorporação do PR #194 na `main`](https://github.com/magnoClovis/nutrition-tracker/commit/050182d8094b22c72f1e79fcc893fd37bd6069c5).
 - [CI autenticado `34710539851`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34710539851) e [preflight documental `34710539830`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34710539830), ambos concluídos com sucesso.
+
+## Incidente crítico da câmera embutida na build publicada — CAM-INC-1
+
+**Data de conclusão:** não concluído.
+
+**Tempo decorrido:** pendente de merge.
+
+**Minutos de CI:** pendente de conclusão dos runs.
+
+**Propósito:** restaurar com urgência a câmera embutida que ficou inutilizável na build distribuída pela Play. No aparelho do usuário, ao selecionar “Foto”, a tela chegava ao estado “Câmera ativa”, mas o preview permanecia preto e as ações Cancelar/Capturar ficavam fora da área alcançável; o modal aparentava estar preso porque a mesma regra que estabilizava a geometria nativa bloqueava a rolagem antes de posicionar o card. Esta primeira fatia preserva deliberadamente o desenho C1–C4 e corrige somente a cadeia de transparência e a ordem entre reposicionamento, medição e bloqueio. O incidente continuará aberto até a CAM-INC-2 comprovar a correção instalada a partir do artefato real da Play Store.
+
+**Recursos:**
+
+- CSS One UI 8/Glass UI, cascade/especificidade de `:has()` e inspeção real com `getComputedStyle` em Chromium.
+- React e a máquina de estados da câmera (`camera-opening`, `camera-active`, `camera-capturing`).
+- `@capacitor-community/camera-preview` com `toBack:true`, medição DOM em CSS pixels e sincronização por `requestAnimationFrame` antes do início nativo.
+- Node.js Test Runner, Playwright, Vite, Capacitor CLI, Gradle/Android SDK e Galaxy físico para a prova do release candidato.
+
+**Arquivos:**
+
+- `one-ui.css`
+- `image-meal-screen.js`
+- `src/composite/embedded-camera-preview.js`
+- `tests/unit/embedded-camera-preview.test.js`
+- `tests/unit/embedded-camera-integration.test.js`
+- `tests/unit/image-meal-screen.test.js`
+- `tests/smoke/embedded-camera-hotfix.visual.spec.js`
+- `documentation/historico/2026-08-31-ui-campos-customizados.md`
+- `documentation/estado-atual/RESUMO-STATUS.md`
+
+**O que se planeja fazer:** tornar toda a cadeia WebView transparente em claro e escuro enquanto o preview nativo estiver ativo; permitir que o modal role automaticamente até o card completo durante a abertura; medir a superfície somente depois de dois frames de estabilização; travar o scroll apenas após o preview atingir a fase ativa; comprovar a cascade por `getComputedStyle` e a presença das ações no viewport em desktop/mobile, legado/Vite; executar o gate completo, gerar um release candidato e validar preview, captura e saída no Galaxy sem adicionar flash, X dedicado ou qualquer elemento do redesenho futuro.
+
+**O que foi feito:** em andamento. A investigação confirmou que o plugin estava incluído no Android e que o estado “Câmera ativa” provava a resolução do runtime nativo; a ausência de imagem no tema escuro vinha da regra `body:has([data-one-ui-root][data-theme="dark"])`, mais específica que a transparência da câmera, enquanto as ações inacessíveis vinham do bloqueio de `overflow` aplicado ainda em `camera-opening`. O hotfix elevou explicitamente a especificidade da transparência escura, separou “câmera visível” de “geometria travada” e passou a rolar o card completo para dentro do viewport antes de medir a superfície nativa. O serviço aguarda dois frames após o scroll, marca a geometria como pronta, espera a aplicação do lock e só então envia `x`, `y`, `width` e `height` ao plugin, eliminando a janela em que usuário e preview poderiam divergir. Testes unitários cobrem o delta de scroll, a ordem de medição e os novos estados; um teste Playwright usa `getComputedStyle` real para comprovar fundo transparente e controles no viewport em claro/escuro, desktop/mobile, legado/Vite. O gate local passou com preflight limpo, 1.362/1.362 unitários sem skip, smokes legado/Vite sem falhas e somente os skips autenticados esperados pela ausência de credenciais locais, e cutover 60/60 sem skip. Ainda faltam CI autenticado e prova física do release candidato antes do merge.
+
+**Alinhamento:** pendente até a conclusão da fatia.
+
+**PRs/commits relacionados:** não determinado; PR ainda não aberto.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 

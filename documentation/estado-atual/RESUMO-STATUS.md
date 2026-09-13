@@ -185,11 +185,119 @@
 - **[D6 — Overlays] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: revisar modais, bottom sheets e editores em telas largas após a integração visual C3. O que foi feito: não iniciado.
 - **[D7 — Configurações] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: tratar a responsividade de Configurações em conjunto com o protótipo de tela cheia I5. O que foi feito: não iniciado.
 
-- **[CAM-C1] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: validar protótipo visual da câmera embutida. O que foi feito: protótipo aprovado fora do runtime.
-- **[CAM-C2] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: provar preview nativo limitado ao retângulo. O que foi feito: prova Android entregue no PR #185.
-- **[CAM-C3] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: integrar preview embutido ao fluxo C24. O que foi feito: integração entregue no PR #190.
-- **[CAM-C4a] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: endurecer permissões, timeouts, lifecycle e limpeza nativa. O que foi feito: entregue no PR #192.
-- **[CAM-C4b] — Status: concluído — Chat: Trofia-UIUX.** O que se planeja fazer: garantir TalkBack, foco/anúncios, ordem das ações, fonte 200%, contraste, alvos, PT/EN/ES e descarte temporário, sem novos recursos fotográficos. O que foi feito: entregue no PR #194, validado no Galaxy e no CI autenticado `34710539851`, e mesclado como `050182d`. Alinhamento: 100%, sem zoom, flash, troca de câmera, gestos ou edição.
+### [CAM-C1] - Protótipo visual da câmera embutida
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de conclusão:** não determinada.
+- **Propósito:** validar a direção visual antes de assumir o risco da integração nativa.
+- **O que se planeja fazer:** prototipar estados, expansão/contração, temas, mobile/desktop e movimento reduzido.
+- **Recursos/arquivos principais envolvidos:** protótipo HTML/CSS/JS externo, sem alteração do runtime.
+- **O que foi feito:** protótipo interativo revisado e aprovado antes da C2.
+- **Alinhamento:** 100%.
+
+### [CAM-C2] - Prova técnica Android da câmera embutida
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** comprovar preview nativo retangular sem substituir o fluxo de produção.
+- **O que se planeja fazer:** integrar o plugin atrás de um serviço Android isolado e validar geometria, captura e compilação.
+- **Recursos/arquivos principais envolvidos:** Camera Preview, Capacitor, Gradle, `src/composite/embedded-camera-preview.js`.
+- **O que foi feito:** prova técnica e validação física em pacote paralelo concluídas no PR #185.
+- **Alinhamento:** 100%.
+
+### [CAM-C3] - Integração visual e funcional da câmera embutida
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de conclusão:** 12/09/2026.
+- **Propósito:** substituir a câmera Android em tela cheia pelo preview aprovado dentro do fluxo C24.
+- **O que se planeja fazer:** integrar `toBack:true`, controles HTML, moldura, estados e pré-processamento existente.
+- **Recursos/arquivos principais envolvidos:** Camera Preview, React, `image-meal-flow.js`, `image-meal-screen.js`, `one-ui.css`.
+- **O que foi feito:** composição nativa/HTML, captura e transições entregues no PR #190.
+- **Alinhamento:** 100%.
+
+### [CAM-C4a] - Robustez nativa e ciclo de vida
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de conclusão:** 12/09/2026.
+- **Propósito:** impedir sessões órfãs e estados presos em eventos e falhas reais do Android.
+- **O que se planeja fazer:** cobrir permissão, timeout, cancelamento tardio, background, Voltar, orientação e limpeza.
+- **Recursos/arquivos principais envolvidos:** Capacitor App/Camera, Camera Preview, fluxo C24 e testes Android.
+- **O que foi feito:** lifecycle e falhas endurecidos, com prova física e CI, no PR #192.
+- **Alinhamento:** 100%.
+
+### [CAM-C4b] - Acessibilidade e acabamento resiliente
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de conclusão:** 12/09/2026.
+- **Propósito:** reconstruir na composição híbrida as garantias acessíveis esperadas de um controle nativo.
+- **O que se planeja fazer:** garantir TalkBack, foco/anúncios, fonte 200%, contraste, alvos, PT/EN/ES e descarte temporário.
+- **Recursos/arquivos principais envolvidos:** semântica HTML/ARIA, Android settings, `image-meal-screen.js`, `one-ui.css`.
+- **O que foi feito:** acessibilidade validada no Galaxy e no CI `34710539851`, entregue no PR #194.
+- **Alinhamento:** 100%.
+
+### [CAM-INC-1] - Hotfix da câmera na build publicada
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de conclusão:** não concluído.
+- **Propósito:** restaurar preview e ações que ficaram invisíveis/inacessíveis na build da Play.
+- **O que se planeja fazer:** corrigir transparência escura e ordenar scroll, medição e bloqueio sem redesenhar a câmera.
+- **Recursos/arquivos principais envolvidos:** `one-ui.css`, `image-meal-screen.js`, preview composto e testes unitários/Playwright/Android.
+
+### [CAM-INC-2] - Validação do hotfix pela Play Store
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** impedir que diferenças entre build local e distribuição escondam novamente uma falha crítica.
+- **O que se planeja fazer:** publicar AAB assinado no canal interno, instalar pela Play e validar fisicamente no Galaxy.
+- **Recursos/arquivos principais envolvidos:** Gradle signing, AAB, Google Play Console e Galaxy físico.
+
+### [CAM-RED-1] - Protótipo do redesenho centralizado
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** decidir visualmente o novo comportamento sem misturá-lo ao hotfix urgente.
+- **O que se planeja fazer:** prototipar preview central, backdrop, X, flash, transições, temas, idiomas e acessibilidade.
+- **Recursos/arquivos principais envolvidos:** protótipo HTML/CSS/JS externo e referências One UI 8/Glass UI.
+
+### [CAM-RED-2] - Prova técnica do redesenho no Android
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** validar no aparelho as premissas nativas antes da integração visual definitiva.
+- **O que se planeja fazer:** provar empilhamento, máscara, controles HTML, scroll bloqueado e suporte real de flash.
+- **Recursos/arquivos principais envolvidos:** Camera Preview, WebView transparente, Capacitor/Gradle e Galaxy físico.
+
+### [CAM-RED-3] - Overlay, fechamento e transições
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** implementar a estrutura visual aprovada sem acoplar prematuramente o flash.
+- **O que se planeja fazer:** integrar preview central, backdrop, X dedicado e expansão/contração ao fluxo real.
+- **Recursos/arquivos principais envolvidos:** React, fluxo C24, `image-meal-screen.js`, `one-ui.css` e Camera Preview.
+
+### [CAM-RED-4] - Flash da câmera embutida
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** oferecer iluminação sem assumir suporte inexistente ou deixar hardware ligado.
+- **O que se planeja fazer:** detectar suporte, controlar flash com estados localizados/acessíveis e restaurá-lo em toda saída.
+- **Recursos/arquivos principais envolvidos:** API de flash do Camera Preview, estado React e testes Android.
+
+### [CAM-RED-5] - Robustez e acessibilidade do redesenho
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** preservar as garantias C4a/C4b depois da mudança estrutural da câmera.
+- **O que se planeja fazer:** validar TalkBack, fonte 200%, contraste, PT/EN/ES, reduced-motion, permissões e lifecycle.
+- **Recursos/arquivos principais envolvidos:** ARIA/TalkBack, CSS responsivo, Playwright, Capacitor e Galaxy físico.
+
+### [CAM-RED-6] - Validação final do redesenho pela Play Store
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** concluir o redesenho somente com evidência do mesmo artefato entregue ao usuário.
+- **O que se planeja fazer:** publicar o AAB final no canal interno, instalar pela Play e executar a matriz física.
+- **Recursos/arquivos principais envolvidos:** AAB assinado, Google Play Console, telemetria de versão e Galaxy físico.
 
 ## Estado detalhado das fatias C14
 

@@ -34,6 +34,9 @@ test('C3 preserves a localized transparent viewport, HTML controls, theme tokens
   assert.match(css, /\[data-camera-corner\][\s\S]*var\(--surface-block\)/);
   assert.match(css, /\[data-camera-shutter="true"\][\s\S]*var\(--accent-action-fill\)/);
   assert.match(css, /body:has\(\[data-camera-native-active="true"\]\)[\s\S]*overflow:\s*hidden/);
+  assert.match(css, /body:has\(\[data-camera-geometry-locked="true"\]\) \[data-app-main="adicionar"\][\s\S]*overflow:\s*hidden/);
+  assert.match(css, /body:has\(\[data-camera-geometry-ready="true"\]\) \[data-app-main="adicionar"\]/);
+  assert.match(css, /body:has\(\[data-one-ui-root\]\[data-theme="dark"\]\):has\(\[data-camera-native-active="true"\]\)/);
   assert.match(css, /data-camera-shutter[\s\S]*\):focus\s*\{[\s\S]*outline:\s*3px/);
   assert.match(css, /data-image-meal-announcement[\s\S]*clip:\s*rect/);
   assert.match(css, /data-camera-permission-recovery[\s\S]*accent-danger-bg/);
