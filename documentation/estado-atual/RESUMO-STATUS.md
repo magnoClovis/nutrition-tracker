@@ -16,8 +16,7 @@
 - **Privacidade e compliance:** política trilíngue pública, instruções de exclusão e referência atual de Data Safety.
 - **Qualidade:** preflight, unitários, smoke legado/Vite, matriz visual e CI autenticado com App Check. G01, C05 e C07 estão fechados.
 - **Controles visuais S8:** `CheckboxField` e `SliderField` customizados foram integrados no PR #166 às superfícies ativas de sugestões de refeição e seleção de categorias de backup.
-- **Diálogos visuais S9:** `GenericDialog` substitui os cinco usos ativos de `alert`, `confirm` e `prompt` do navegador por avisos, confirmações e entradas acessíveis no padrão One UI 8/Glass UI. A implementação e o gate local final estão concluídos no PR #172; o componente passa a compor a `main` com o merge desse PR. — Chat: Trofia-UIUX
-- **Sequência visual S1–S9 concluída (10/09/2026):** todos os seletores e campos customizados planejados integram a `main`. O fechamento ocorreu com a S7b no PR #150: `NumericField` em peso, gordura corporal, cintura e massa muscular, com o containing/stacking context do cartão Glass neutralizado apenas enquanto o overlay está aberto. Gate final: CI autenticado `34412674372`, legado com 93 aprovados e oito skips exclusivos/documentados do Vite, Vite 101/101; merge `d3fdab0`. I1–I7 permanecem planejadas e cada novo tipo visual exige protótipo aprovado antes de código. — Chat: Trofia-UIUX
+- **Sequência visual S1–S9 concluída (10/09/2026):** seletores, campos numéricos, controles e diálogos nativos planejados foram substituídos por componentes One UI 8/Glass UI; rastreabilidade por fatia, PR e comportamento está na seção formal S1–S9 abaixo. I1–I7 permanecem planejadas e exigem protótipo aprovado antes de código. — Chat: Trofia-UIUX
 - **Incidente App Check/perfil encerrado:** o PR #173 impede release Android sem `google-services.json` e distingue falha de leitura de perfil realmente incompleto. Na build Play versionCode 12, a conta real concluiu login, leitura e alteração de perfil, sincronização e inicialização do App Check sem erro.
 - **[C14-C-PROFILE-GATE] Concluído (12/09/2026) — Chat: Trofia-Principal.** O PR #191 corrigiu a corrida de bootstrap: a primeira leitura protegida exige token App Check real, o gate usa confirmação do servidor, falhas exibem recuperação e o modal obrigatório ficou exclusivo da criação de conta. O Pages foi validado após o merge sem reabrir o modal no login normal; a fase Android/AAB e o enforcement do Worker continuam separados dentro da C14-C.
 - **Incidente C14-B2 em produção encerrado:** após dois rollbacks seguros para B1, o hotfix definitivo manteve envelope/nutrientes nas rules e transferiu apenas a validação profunda dos componentes ao leitor fail-closed C20/C19. O teste Admin SDK comprova que componente malformado é ocultado. As rules corrigidas foram republicadas em 02/09/2026; o run autenticado `33575611133` ficou totalmente verde antes do deploy (tentativa 2) e novamente contra produção (tentativa 3). Nenhum dado foi excluído. O PR #178 foi mesclado em 07/09/2026 no commit `80bc2ca`. — **Chat:** Trofia-Principal.
@@ -268,13 +267,68 @@
 - **O que foi feito:** o PR #172 substituiu os cinco diálogos ativos e validou claro/escuro, responsividade, foco e estados bloqueados.
 - **Alinhamento:** desvio positivo; fixtures e navegação foram endurecidas durante o gate sem mudar o componente aprovado.
 
-- **[I1 — carregamento animado] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: prototipar e implementar logo pulsando/expandindo, mínimo de 800–1000 ms, claro/escuro e alternativa estática em reduced-motion. O que foi feito: não iniciado.
-- **[I2 — registro progressivo por campo] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: reorganizar o onboarding em decisões progressivas reconstruídas na linguagem One UI 8/Glass UI. O que foi feito: não iniciado.
-- **[I3 — política e migração de tema] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: migrar todos os usuários uma única vez para claro e depois respeitar escolha manual ou acompanhamento do dispositivo. O que foi feito: não iniciado.
-- **[I4 — ação principal e menu “o que criar”] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: avaliar FAB estendido e menu de criação com subtítulos sem copiar a aparência dos concorrentes. O que foi feito: não iniciado.
-- **[I5 — Configurações em tela cheia] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: prototipar hierarquia de Configurações em tela cheia coordenada com D7. O que foi feito: não iniciado.
-- **[I6 — hierarquia visual da tela inicial] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: reprojetar a organização da tela inicial com aprovação específica por ser a mudança mais subjetiva e ampla. O que foi feito: não iniciado.
-- **[I7 — gamificação de metas] — Status: não iniciado — Chat: Trofia-UIUX.** O que se planeja fazer: adicionar contadores de meta ativos por padrão e preferência para desativá-los, sem coletar dados sensíveis novos. O que foi feito: não iniciado.
+### [I1] - Carregamento animado
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** transformar a espera inicial em uma transição deliberada e coerente com a identidade do Trofia.
+- **O que se planeja fazer:** prototipar e implementar logo pulsando/expandindo, mínimo de 800–1000 ms, claro/escuro e alternativa estática em reduced-motion.
+- **Recursos/arquivos principais envolvidos:** bootstrap/loading do app, logo Trofia, CSS de animação, temporização JS e Playwright visual.
+
+### [I2] - Registro progressivo por campo
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** reduzir a carga cognitiva do cadastro apresentando uma decisão clara por etapa.
+- **O que se planeja fazer:** reorganizar o onboarding em decisões progressivas reconstruídas na linguagem One UI 8/Glass UI.
+- **Recursos/arquivos principais envolvidos:** `login-screen.js`, `required-profile-modal.js`, ChoiceField/TemporalField, i18n e Playwright.
+
+### [I3] - Política e migração de tema
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** tornar o claro o padrão visual comum sem retirar do usuário o controle posterior do tema.
+- **O que se planeja fazer:** migrar todos os usuários uma única vez para claro e depois respeitar escolha manual ou acompanhamento do dispositivo.
+- **Recursos/arquivos principais envolvidos:** preferências de tema, storage local, Configurações, tokens claro/escuro e testes de migração.
+
+### [I4] - Ação principal e menu “o que criar”
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** tornar a ação principal mais encontrável e esclarecer as alternativas de criação antes da escolha.
+- **O que se planeja fazer:** avaliar FAB estendido e menu de criação com subtítulos, adaptando a hierarquia concorrente ao One UI 8/Glass UI.
+- **Recursos/arquivos principais envolvidos:** navegação/Diário, fluxo Adicionar, menu de criação, ícones SVG, CSS e Playwright.
+
+### [I5] - Configurações em tela cheia
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** dar às preferências uma hierarquia própria e aproveitar melhor telas móveis e largas.
+- **O que se planeja fazer:** prototipar Configurações em tela cheia, coordenando a estrutura e os breakpoints com a fatia D7.
+- **Recursos/arquivos principais envolvidos:** tela de Configurações, SelectionControls, GenericDialog, shell desktop, `one-ui.css` e Playwright.
+
+### [I6] - Hierarquia visual da tela inicial
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** priorizar informações e ações da página inicial sem copiar a aparência dos aplicativos de referência.
+- **O que se planeja fazer:** reprojetar a organização da tela inicial com protótipo e aprovação específicos por ser a mudança mais subjetiva e ampla.
+- **Recursos/arquivos principais envolvidos:** Diário/home, cabeçalho, cards nutricionais, ações principais, estados vazios, `one-ui.css` e Playwright.
+
+### [I7] - Gamificação de metas
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** tornar progresso e consistência mais legíveis sem impor o contador a quem não o deseja.
+- **O que se planeja fazer:** adicionar contadores de meta ativos por padrão e preferência para desativá-los, sem coletar dados sensíveis novos.
+- **Recursos/arquivos principais envolvidos:** Diário/home, cálculo de metas existentes, Configurações, storage/Firestore já autorizado, i18n e testes.
 
 ### [D1] - Shell desktop, cabeçalho e navegação
 
@@ -538,7 +592,15 @@
 
 ## Observações não confirmadas sob acompanhamento
 
-- **Reload/troca de idioma e bootstrap:** o chat Trofia-UI/UX relatou uma queda intermitente para a tela de login e um `SearchableChoiceField` temporariamente preso em `#loading` após reload. Três tentativas isoladas passaram, sem erro de leitura confirmado. A tentativa 2 do CI do PR #175 foi interrompida pelo teto global de 30 minutos enquanto essa asserção tinha executado por apenas 5,6 dos 15 segundos previstos; portanto, esse run não comprova travamento do produto. A investigação futura deve conferir consumidores que ainda presumam o contrato antigo `null`/`[]` após falha transitória, sem atribuir causalidade à C14-A até haver reprodução e evidência. — **Chat:** Trofia-Principal (achado original: Trofia-UI/UX).
+### [INV-RELOAD-SESSAO] - Sessão e loading após reload/troca de idioma
+
+- **Status:** em investigação — **Chat:** Trofia-UIUX.
+- **Data de início:** 01/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** monitorar uma possível inconsistência de restauração da sessão e do bootstrap após reload durante ciclos PT/EN/ES.
+- **O que se planeja fazer:** aguardar recorrência reproduzível e então isolar estado de autenticação, término do loading e consumidores do contrato de leitura, coordenando qualquer correção fora de UI com o chat principal.
+- **Recursos/arquivos principais envolvidos:** `setAppLanguage`, `pantry-choice-field.visual.spec.js`, `searchable-choice-field.visual.spec.js`, Firebase Auth/App Check e CI autenticado.
+- **O que foi feito:** os runs `33488032008` e `33497924576` registraram ocorrências diferentes após reload, mas o diagnóstico isolado `33502189291` passou em 3/3 repetições PT/EN/ES sem erro de leitura, console ou requisição pendente; permanece intermitente, sem causa confirmada e sem correção aplicada.
 
 ## Onde aprofundar
 
