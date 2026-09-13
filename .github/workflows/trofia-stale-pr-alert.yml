@@ -1,0 +1,31 @@
+name: Trofia - alerta de PR parado
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+      timezone: Europe/Madrid
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.18.0
+      - name: Check stale pull requests and send alert when needed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GMAIL_CLIENT_ID: ${{ secrets.TROFIA_GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.TROFIA_GMAIL_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.TROFIA_GMAIL_REFRESH_TOKEN }}
+          GMAIL_SENDER: clovis.automatik@gmail.com
+          REPORT_RECIPIENT: cmagno.dev@gmail.com
+        run: node scripts/trofia-cloud-automation.mjs stale-pr
