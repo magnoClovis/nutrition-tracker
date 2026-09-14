@@ -1095,7 +1095,7 @@ O primeiro CI disparado depois do registro físico (`34753921127`) executou 106 
 
 - Vite e Capacitor para gerar e sincronizar o bundle web de produção.
 - Gradle/Android SDK e a chave local de upload para produzir o Android App Bundle release.
-- `apksigner`, `keytool` e SHA-256 para confirmar integridade e identidade da assinatura de upload sem expor certificados privados.
+- `jarsigner`, `keytool` e SHA-256 para confirmar integridade e identidade da assinatura de upload sem expor a chave privada.
 - CI autenticado real com Firebase App Check, matriz Playwright legado/Vite e testes de cutover.
 - Google Play Console, faixa de teste interno e Galaxy físico para a validação definitiva do APK entregue e assinado pela Play.
 
@@ -1108,11 +1108,19 @@ O primeiro CI disparado depois do registro físico (`34753921127`) executou 106 
 
 **O que se planeja fazer:** partir da `origin/main` atualizada em worktree isolada; registrar o início formal; executar teste focado e `npm test` completo; obter CI autenticado real em PR draft; gerar um AAB release com `versionCode` superior ao 13 já distribuído, usando as configurações locais de produção sem versioná-las; confirmar que o bundle está assinado pela chave de upload esperada e registrar seu SHA-256; entregar o caminho exato do artefato ao responsável para upload manual na faixa interna; aguardar a Play processar/assinar o bundle; instalar a atualização pelo próprio app da Play Store; validar no Galaxy, em tema claro e escuro, imagem real do preview e alcance de Cancelar/Capturar; somente depois dessa confirmação marcar CAM-INC-2 como concluída e o incidente como encerrado.
 
-**O que foi feito:** em andamento. A branch `codex/ui-camera-play-validation` foi criada diretamente da `origin/main` no commit `31bc44d`, sem tocar nas alterações paralelas presentes no checkout principal. A documentação foi iniciada antes dos testes e do empacotamento, conforme o ciclo planejado/feito/alinhamento.
+**O que foi feito:** em andamento.
+
+- A branch `codex/ui-camera-play-validation` foi criada diretamente da `origin/main` no commit `31bc44d`, sem tocar nas alterações paralelas presentes no checkout principal. O início foi registrado no commit `d8a508a` e no PR draft #200 antes dos testes e do empacotamento, conforme o ciclo planejado/feito/alinhamento.
+- O gate local completo passou: preflight sem aviso; 1.362/1.362 testes unitários; 44 testes executáveis aprovados no legado e 44 no Vite, com os 63 casos autenticados de cada runtime pulados somente porque as credenciais descartáveis não existem no ambiente local; matriz de cutover 60/60 aprovada em PT/EN/ES, desktop/mobile e claro/escuro. O contrato focado do hotfix da câmera aprovou quatro cenários por runtime, cobrindo os dois temas e viewports.
+- As variáveis web de produção já incorporadas ao artefato v13 foram recuperadas somente em memória para o build, sem imprimir valores nem criar arquivo versionado. `android/keystore.properties`, `android/app/google-services.json` e `android/local.properties` foram copiados temporariamente do checkout local, permaneceram ignorados pelo Git e foram removidos após o empacotamento.
+- O fail-closed de release foi provado por execução seca e reversível: ao retirar temporariamente `android/app/google-services.json`, `:app:bundleRelease` encerrou com código 1 e a mensagem explícita que proíbe artefatos sem a configuração Firebase Android. No build válido, `processReleaseGoogleServices` gerou os recursos `google_app_id`, `google_api_key` e `project_id`.
+- O AAB `trofia-v14-cam-inc-2-upload-signed.aab` foi produzido com pacote `com.hermegas.trofia`, `versionCode 14` e `versionName 0.11.0-beta`. O próprio bundle lista os sete plugins Capacitor esperados, incluindo `@capacitor-firebase/app-check` e `@capacitor-community/camera-preview`. Os merges dos PRs #189 (`323610e`) e #191 (`e118872`) são ancestrais da branch, portanto o código de App Check no Worker/cliente e o hotfix de readiness de perfil estão presentes no artefato.
+- `jarsigner` confirmou `jar verified`; o certificado público de upload tem SHA-256 `07:7A:61:E3:7B:7A:59:7C:B9:BF:F8:85:8A:E5:60:EB:F6:73:AF:D2:5B:AD:FD:0D:68:11:B6:E0:4B:5E:EE:4A`, idêntico ao AAB v13 anteriormente aceito pela Play. O arquivo final tem 23.143.458 bytes e SHA-256 `022C8FEEEFCB8DA10151ED4FD774F85C54E82AB56115C40F80EA4834768E8F38`; foi preservado fora do Git em `C:\Users\clovi\AppData\Local\Temp\trofia-cam-inc-2-play-upload\trofia-v14-cam-inc-2-upload-signed.aab`.
+- A continuidade da chave confirma a identidade de upload registrada e já aceita pela Play, mas não substitui a prova de Play Integrity: a Play reaplica sua chave de app-signing ao APK distribuído. A conclusão permanece condicionada ao CI autenticado real, à aceitação do AAB na faixa interna e aos testes de câmera e C14-C no app instalado pela própria Play Store.
 
 **Alinhamento:** pendente até a conclusão da validação física pela Play Store.
 
-**PRs/commits relacionados:** não determinado; PR ainda não aberto.
+**PRs/commits relacionados:** PR draft #200; commit inicial de documentação `d8a508a`; hotfix base PR #196/merge `13bd540`; PR #189/merge `323610e`; PR #191/merge `e118872`; run autenticado desta preparação ainda em andamento.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 

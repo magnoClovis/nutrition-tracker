@@ -1095,7 +1095,7 @@
 - **Propósito:** impedir que diferenças entre build local e distribuição escondam novamente uma falha crítica.
 - **O que se planeja fazer:** publicar AAB assinado no canal interno, instalar pela Play e validar fisicamente no Galaxy.
 - **Recursos/arquivos principais envolvidos:** Gradle signing, AAB, Google Play Console e Galaxy físico.
-- **O que foi feito:** preparação iniciada sobre `origin/main` para executar gates, gerar o próximo AAB release assinado e registrar certificado/SHA-256 antes do upload manual.
+- **O que foi feito:** o PR draft #200 registrou a fatia; o gate local passou, e o AAB release `versionCode 14` foi gerado com Firebase/App Check, assinatura de upload e SHA-256 verificados, aguardando o CI autenticado e a instalação pela Play.
 
 ### [CAM-RED-1] - Protótipo do redesenho centralizado
 
