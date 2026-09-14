@@ -1089,12 +1089,13 @@
 
 ### [CAM-INC-2] - Validação do hotfix pela Play Store
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 14/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** impedir que diferenças entre build local e distribuição escondam novamente uma falha crítica.
 - **O que se planeja fazer:** publicar AAB assinado no canal interno, instalar pela Play e validar fisicamente no Galaxy.
 - **Recursos/arquivos principais envolvidos:** Gradle signing, AAB, Google Play Console e Galaxy físico.
+- **O que foi feito:** o PR draft #200 registrou a fatia; gates local e autenticado passaram, e o AAB release `versionCode 14` foi gerado com Firebase/App Check, assinatura de upload e SHA-256 verificados, aguardando instalação pela Play.
 
 ### [CAM-RED-1] - Protótipo do redesenho centralizado
 
