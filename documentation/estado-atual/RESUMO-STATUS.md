@@ -35,6 +35,7 @@
 - **C14 — revisão geral de segurança:** C14-A, C14-B1 e C14-B2 estão concluídas; C14-C está em andamento; C14-D a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
+- **[DOC-TRACKING-193] Concluído (12/09/2026) — Chat: Trofia-Principal.** O que se planeja fazer: registrar integralmente as sequências aprovadas e formalizar planejamento, entrega, alinhamento e métricas. O que foi feito: 100 entradas de fatias foram normalizadas no PR #193, com escopos incertos de D3–D7 explicitamente delegados ao chat UI/UX. Alinhamento: 100%.
 
 ## O que está apenas planejado, ainda sem código completo
 
@@ -58,102 +59,717 @@
 
 - Assim que um fatiamento for aprovado, a sequência completa deve ser registrada aqui, inclusive as fatias ainda não iniciadas, e seus estados devem ser atualizados sem remover etapas futuras.
 - Cada fatia nova registra `O que se planeja fazer` antes da implementação; ao concluir, registra `O que foi feito` e `Alinhamento`. Neste resumo, cada campo permanece em uma frase breve.
+- Toda entrada da frente Trofia-Principal usa cabeçalho próprio `### [CÓDIGO] - Título` e campos separados para `Status`/`Chat`, `Data de início`, `Data de conclusão`, `Propósito`, `O que se planeja fazer` e `Recursos/arquivos principais envolvidos`; `O que foi feito` só aparece após progresso real e `Alinhamento` somente quando a fatia estiver concluída.
+- Datas só podem ser preenchidas com evidência real; quando a data de início não puder ser confirmada, registra-se `não determinado`, sem estimativa retrospectiva.
 - O histórico detalhado da frente registra os mesmos três campos. Quando o alinhamento for inferior a 100%, deve explicar o desvio real e classificar o impacto como positivo, negativo ou neutro.
 - Toda entrada de fatia/PR em `documentation/historico/*.md` registra `Tempo decorrido` e `Minutos de CI` logo após a data de conclusão. Antes do merge, o tempo permanece literalmente `pendente de merge`; depois do merge, o mesmo valor é copiado para a descrição do PR.
 - Commits e descrições de PR novos terminam com `Chat-Origin: <nome do chat>`; neste arquivo, toda atualização identifica o chat responsável pelo item.
 
 ### Frente principal — sequências concluídas
 
-- **[C01-A] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: corrigir textos/mojibake e ampliar a proteção de encoding. O que foi feito: proteção PT/EN/ES e scanner de módulos runtime concluídos no PR #83.
-- **[C01-B] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: unificar o domínio de datas civis, janelas e DST. O que foi feito: helpers e consumidores foram unificados no PR #84.
-- **[C01-C] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: tornar a virada da meia-noite reativa e reidratar o novo dia com segurança. O que foi feito: relógio local reativo e proteção dos autosaves concluídos no PR #85.
+### [C01-A] - Textos e proteção de encoding
 
-- **[UX80-F1] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: corrigir tooltip semanal duplicado e centralização de “Nutrientes”. O que foi feito: itens 1 e 3 entregues no PR #80.
-- **[UX80-F2] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: reposicionar ajuda e navegação de data sem sobreposição. O que foi feito: item 2 entregue no PR #80.
-- **[UX80-F3] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: adicionar horário opcional ao registro de refeição. O que foi feito: item 9 entregue no PR #80.
-- **[UX80-F4] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: fechar o modal somente após registro bem-sucedido e restaurar a origem. O que foi feito: item 6 entregue no PR #80.
-- **[UX80-F5] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: ocultar categorias vazias e usar um único botão global no Diário. O que foi feito: item 7 entregue no PR #80.
-- **[UX80-F6] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: compactar o bloco de água em resumo colapsável. O que foi feito: item 8 entregue no PR #80.
-- **[UX80-F7] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: mostrar o estado local da IA e enriquecer limites 429. O que foi feito: item 4 entregue no PR #80.
-- **[UX80-F8] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: fechar documentação, validação e PR da rodada. O que foi feito: changelog/inventário e gate final foram incorporados ao PR #80.
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 01/08/2026.
+- **Data de conclusão:** 01/08/2026.
+- **Propósito:** eliminar textos corrompidos e impedir regressões de codificação nos módulos executados pelo app.
+- **O que se planeja fazer:** corrigir D01/D02, ampliar o scanner de mojibake para todo o runtime e validar PT/EN/ES.
+- **Recursos/arquivos principais envolvidos:** `nutrition-feedback-ai.js`, `verify-email-screen.js`, `scripts/audit-i18n.js`, `scripts/encoding-audit.js` e testes de encoding/i18n.
+- **O que foi feito:** O PR #83 ampliou a auditoria de encoding e corrigiu as superfícies PT/EN/ES afetadas.
+- **Alinhamento:** 100%.
 
-- **[C20-A] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: formalizar contrato e matriz do score 0–5 sem mudar produção. O que foi feito: contrato/calibração registrados no PR #129.
-- **[C20-B] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: criar algoritmo v2 com horário real, curvas, pesos e cobertura. O que foi feito: `meal-score-v2` concluído no PR #131.
-- **[C20-C] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: integrar score v2 ao controlador/GA preservando snapshots. O que foi feito: integração retrocompatível concluída no PR #132.
-- **[C20-D] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: apresentar rótulos, confiança e faixas sem diagnóstico. O que foi feito: apresentação mínima concluída no PR #134.
-- **[C20-E] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: validar integralmente PT/EN/ES e runtimes. O que foi feito: fechamento técnico concluído no PR #135.
+### [C01-B] - Domínio de datas civis
 
-- **[C19-A] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: proteger integridade e invalidação dos snapshots aceitos. O que foi feito: contrato fail-closed concluído no PR #137.
-- **[C19-B] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: estabilizar explicação opcional e retry contextual. O que foi feito: fluxo opcional concluído no PR #139.
-- **[C19-C] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: incluir avaliação opcional no fluxo de foto. O que foi feito: integração C24 concluída no PR #140.
-- **[C19-D] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: exibir badge agrupado e detalhe somente leitura no Diário. O que foi feito: integração do Diário concluída no PR #142.
-- **[C19-E] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: executar validação final completa. O que foi feito: C19 encerrado no PR #145.
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 01/08/2026.
+- **Data de conclusão:** 01/08/2026.
+- **Propósito:** evitar deslocamentos de data, erros de DST e divergências entre loaders e metas históricas.
+- **O que se planeja fazer:** criar helpers únicos de hoje local, soma/diferença civil e migrar janelas semanais/mensais, nascimento e metas.
+- **Recursos/arquivos principais envolvidos:** `date-utils.js`, `history-loaders.js`, `goal-calculator.js`, `body-metrics-model.js`, `firebase-storage.js`, controladores e testes de datas.
+- **O que foi feito:** O PR #84 centralizou as operações de data civil e migrou os consumidores sem alterar chaves históricas.
+- **Alinhamento:** 100%.
 
-- **[C08-A] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: formalizar política nutricional e matriz canônica das sete superfícies. O que foi feito: política `c08-ai-nutrition-policy-v1` concluída no PR #147. Alinhamento: 100%.
-- **[C08-B] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: impedir que nutriente ausente vire zero. O que foi feito: ausência, zero e cobertura foram separados no PR #149. Alinhamento: 100%.
-- **[C08-C] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: alinhar estimativas estruturadas de alimento, texto e foto. O que foi feito: contratos/editor compartilhado concluídos no PR #151. Alinhamento: 100%.
-- **[C08-D] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: minimizar dados pessoais e alinhar feedback/padrões. O que foi feito: prompts e cobertura concluídos no PR #152. Alinhamento: 100%.
-- **[C08-E] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: validar sugestões contra a despensa e alinhar explicação C19. O que foi feito: endpoint/contratos fail-closed concluídos no PR #165. Alinhamento: 100%.
-- **[C08-F] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: validar idiomas, dados ausentes, respostas malformadas e prompts adversariais. O que foi feito: matriz e prova controlada concluídas no PR #167. Alinhamento: 100%.
+### [C01-C] - Virada reativa da meia-noite
 
-- **[C22-F1] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: criar infraestrutura Functions e emuladores. O que foi feito: base 2nd gen/Admin SDK entregue no PR #99.
-- **[C22-F2] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: implementar saga idempotente de exclusão. O que foi feito: motor e testes puros entregues no PR #100.
-- **[C22-F3] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: bloquear escrita e excluir recursivamente dados canônicos. O que foi feito: lock/rules/recursão entregues no PR #103.
-- **[C22-F4] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: adicionar Cloud Tasks, retries e reconciliação. O que foi feito: processamento assíncrono entregue no PR #104.
-- **[C22-F5] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: integrar painel, App Check e limpeza local. O que foi feito: cliente protegido entregue no PR #105.
-- **[C22-F6] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: realizar deploy controlado e teste destrutivo descartável. O que foi feito: backend e teste real concluídos durante o rollout do PR #105.
-- **[C22-F7] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: validar matriz final, política e rollout Play Integrity. O que foi feito: fechamento operacional entregue no PR #106 e validado na build Play.
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 01/08/2026.
+- **Data de conclusão:** 01/08/2026.
+- **Propósito:** trocar o dia ativo sem carregar ou salvar estado pertencente ao dia anterior.
+- **O que se planeja fazer:** substituir TODAY estático, suspender autosaves durante a troca e reidratar log, água, suplementos e nota.
+- **Recursos/arquivos principais envolvidos:** `autosave-scheduler.js`, `nutrition-tracker-controller.js`, `app.js`, `nutrition-tracker.jsx`, `src/App.jsx` e testes com relógio/fuso.
+- **O que foi feito:** O PR #85 implementou relógio local reativo, suspensão dos autosaves e reidratação segura do novo dia.
+- **Alinhamento:** 100%.
 
-- **[C23-F1] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: criar inventário/migrador Admin SDK em dry-run. O que foi feito: ferramenta fail-closed entregue no PR #107.
-- **[C23-F2] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: copiar, mesclar e verificar individualmente dados legados. O que foi feito: 54 documentos migrados/verificados no PR #108.
-- **[C23-F3] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: retirar exclusão legada do cliente mantendo leitura transitória. O que foi feito: rules transitórias entregues no PR #109.
-- **[C23-F4] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: cortar normalização/exclusão legada no cliente e preservar importação antiga. O que foi feito: cutover do cliente entregue no PR #110.
-- **[C23-F5] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: observar a build intermediária por sete dias. O que foi feito: dados semanais e relatos dos testers permaneceram normais durante a janela aprovada.
-- **[C23-F6] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: exportar, excluir apenas legados verificados e fechar leitura antiga. O que foi feito: export gerenciado, zero legado e rules finais concluídos no PR #111.
-- **[C23-F7] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: documentar fechamento, retrocompatibilidade e retenção. O que foi feito: C23 encerrado no PR #112.
+### [UX80-F1] - Tooltip semanal e centralização de Nutrientes
 
-- **[C24-F1] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: compartilhar contrato/editor de estimativas. O que foi feito: domínio compartilhado entregue no PR #89.
-- **[C24-F2] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: criar endpoint multimodal autenticado e limitado. O que foi feito: Worker de imagem entregue no PR #90.
-- **[C24-F3] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: capturar e pré-processar câmera/galeria sem metadados. O que foi feito: pipeline entregue no PR #91.
-- **[C24-F4] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: criar tela dedicada e estados/erros. O que foi feito: interface de reconhecimento entregue no PR #92.
-- **[C24-F5] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: persistir revisão como entradas individuais estimadas. O que foi feito: persistência entregue no PR #94.
-- **[C24-F6] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: atualizar privacidade, Data Safety e publicação antes dos testers. O que foi feito: compliance entregue no PR #95 e confirmado externamente.
-- **[C24-F7] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: validar Worker, Android físico e qualidade High/Medium. O que foi feito: gates e rollout concluídos nos PRs #96–#97.
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/07/2026.
+- **Data de conclusão:** 31/07/2026.
+- **Propósito:** remover a duplicação do tooltip de ontem e alinhar texto/seta como um único bloco.
+- **O que se planeja fazer:** corrigir os itens 1 e 3 da rodada visual sem alterar os demais gráficos.
+- **Recursos/arquivos principais envolvidos:** `week-screen.js`, `diary-screen.js` e testes unitários das telas Semana/Diário.
+- **O que foi feito:** O PR #80 corrigiu a composição duplicada do tooltip e centralizou o controle “Nutrientes”.
+- **Alinhamento:** 100%.
 
-- **[C28-F1] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: reduzir leituras redundantes e serializar CI por SHA. O que foi feito: quick wins entregues no PR #113.
-- **[C28-F2] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: compartilhar Firebase App/Auth e ponte App Check. O que foi feito: fundação modular entregue no PR #114.
-- **[C28-F3] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: substituir REST por adaptador Firestore SDK mantendo contrato. O que foi feito: adaptador entregue no PR #115.
-- **[C28-F4] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: ativar cache persistente multi-tab e lifecycle seguro. O que foi feito: cache/limpeza entregues no PR #116.
-- **[C28-F5] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: tornar loaders históricos cache-first e deduplicados. O que foi feito: carregamentos/subscriptions entregues no PR #117.
-- **[C28-F6A] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: introduzir IDs idempotentes e mutações diárias. O que foi feito: fundação de escrita granular entregue no PR #118.
-- **[C28-F6B] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: criar esquema granular de log/água/suplementos. O que foi feito: esquema entregue no PR #119.
-- **[C28-F6C] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: ler agregado antigo e granular novo durante a migração. O que foi feito: retrocompatibilidade entregue no PR #120.
-- **[C28-F6D] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: expor estados pendente/sincronizado/erro e retries. O que foi feito: estado de sincronização entregue no PR #121.
-- **[C28-F6E] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: cortar autosaves agregados e encerrar A09. O que foi feito: cutover final entregue no PR #122.
-- **[C28-F7] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: adaptar backup/restauração/exclusão ao SDK e pending writes. O que foi feito: lifecycle seguro entregue no PR #123.
-- **[C28-F8] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: validar offline, multi-tab, Android e leituras reais. O que foi feito: rollout e medição concluídos no PR #124.
+### [UX80-F2] - Ajuda e navegação de data sem sobreposição
 
-- **[DIARY-MENU-A] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: abrir detalhes somente leitura pelo menu do Diário. O que foi feito: modal acessível entregue no PR #182. Alinhamento: 100%.
-- **[DIARY-MENU-B] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: editar quantidade/tipo preservando identidade e invalidando C19. O que foi feito: editor/movimentação e prova das rules entregues no PR #184. Alinhamento: 100%.
-- **[PHOTO-03-A] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: criar transformação proporcional pura de peso/quantidade e nutrientes. O que foi feito: domínio entregue no PR #186. Alinhamento: 100%.
-- **[PHOTO-03-B] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: integrar a transformação aos fluxos de foto/texto e persistência. O que foi feito: integração entregue no PR #188. Alinhamento: 100%.
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/07/2026.
+- **Data de conclusão:** 31/07/2026.
+- **Propósito:** impedir que o botão de ajuda cubra navegação, Hoje ou o fechamento do modal.
+- **O que se planeja fazer:** reposicionar a ajuda e organizar a navegação de data em duas linhas responsivas.
+- **Recursos/arquivos principais envolvidos:** `app.js`, `add-screen.js`, `nutrition-tracker-controller.js` e testes de layout/navegação.
+- **O que foi feito:** O PR #80 reposicionou o botão de ajuda e estabilizou a navegação de data nas superfícies afetadas.
+- **Alinhamento:** 100%.
 
-### Segurança C14 — sequência aprovada e rollout interno
+### [UX80-F3] - Horário opcional da refeição
 
-- **[C14-A] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: tornar leituras/backups fail-closed. O que foi feito: entregue no PR #174. Alinhamento: 100%.
-- **[C14-B1] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: negar exclusão client-side e proteger envelopes canônicos. O que foi feito: rules iniciais entregues no PR #175.
-- **[C14-B2] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: aplicar schema completo após inventário real. O que foi feito: após rollback e hotfix de orçamento, rules finais encerradas no PR #178. Alinhamento: divergiu do desenho estrito original — a validação profunda dos componentes foi movida para o leitor fail-closed porque as rules excediam o orçamento; impacto final positivo para compatibilidade, com incidente documentado.
-- **[C14-C1 — observação] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: publicar validação App Check no Worker sem enforcement. O que foi feito: modo `observe` publicado e validado.
-- **[C14-C2 — clientes enviam token] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: enviar `X-Firebase-AppCheck` em todas as superfícies. O que foi feito: clientes integrados no PR #189.
-- **[C14-C3 — debug provider CI] — Status: concluído — Chat: Trofia-Principal.** O que se planeja fazer: fornecer atestação válida no CI autenticado. O que foi feito: run autenticado do PR #189 validou o provider de debug.
-- **[C14-C4 — validar Pages/AAB real] — Status: em andamento — Chat: Trofia-Principal.** O que se planeja fazer: validar Web real e AAB Play Integrity antes do enforcement. O que foi feito: Pages e os três fluxos de IA foram validados após o hotfix #191; AAB físico ainda não foi concluído. Alinhamento: parcial — a fase revelou e corrigiu a corrida do perfil antes de prosseguir; impacto positivo para segurança do rollout.
-- **[C14-C5 — enforcement] — Status: não iniciado — Chat: Trofia-Principal.** O que se planeja fazer: tornar App Check obrigatório no Worker e repetir as validações. O que foi feito: não iniciado.
-- **[C14-D] — Status: não iniciado — Chat: Trofia-Principal.** O que se planeja fazer: endurecer Android, Auto Backup e cadeia de release. O que foi feito: não iniciado.
-- **[C14-E] — Status: não iniciado — Chat: Trofia-Principal.** O que se planeja fazer: endurecer senha, sessão web e onboarding recuperável. O que foi feito: não iniciado.
-- **[C14-F1] — Status: não iniciado — Chat: Trofia-Principal.** O que se planeja fazer: preparar tiers/rate limit, timeout e métricas sanitizadas. O que foi feito: não iniciado.
-- **[C14-F2] — Status: não iniciado — Chat: Trofia-Principal.** O que se planeja fazer: auditar IAM, invocadores e dependências antes de alterar privilégios. O que foi feito: não iniciado.
-- **[C14-G] — Status: não iniciado — Chat: Trofia-Principal.** O que se planeja fazer: aplicar CSP e restringir superfícies de debug. O que foi feito: não iniciado.
-- **[C14-H] — Status: não iniciado — Chat: Trofia-Principal.** O que se planeja fazer: criar staging e executar validação/rollout final. O que foi feito: não iniciado.
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/07/2026.
+- **Data de conclusão:** 31/07/2026.
+- **Propósito:** permitir registrar a hora real da refeição sem tornar o fluxo mais pesado.
+- **O que se planeja fazer:** adicionar “+ Informar horário”, aplicando o mesmo horário a todos os itens e mantendo agora como padrão.
+- **Recursos/arquivos principais envolvidos:** `add-screen.js`, `nutrition-tracker-controller.js`, `meal-review-modal.js` e testes de registro.
+- **O que foi feito:** O PR #80 adicionou o controle recolhido e persistiu o horário escolhido em todos os métodos de registro.
+- **Alinhamento:** 100%.
+
+### [UX80-F4] - Fechamento seguro do modal Adicionar
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/07/2026.
+- **Data de conclusão:** 31/07/2026.
+- **Propósito:** fechar o modal somente depois de persistência bem-sucedida e devolver o usuário à origem exata.
+- **O que se planeja fazer:** capturar aba/data/scroll, restaurá-los no sucesso e manter o modal aberto em qualquer erro.
+- **Recursos/arquivos principais envolvidos:** `add-screen.js`, `nutrition-tracker-controller.js`, `app.js`, navegação Android e testes.
+- **O que foi feito:** O PR #80 passou a fechar após sucesso e restaurar aba, data e rolagem; validação, IA ou persistência falhas não fecham.
+- **Alinhamento:** 100%.
+
+### [UX80-F5] - Categorias do Diário somente quando preenchidas
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/07/2026.
+- **Data de conclusão:** 31/07/2026.
+- **Propósito:** reduzir ruído visual e ordenar refeições pelo horário real.
+- **O que se planeja fazer:** ocultar categorias vazias, manter apenas o botão global Adicionar e ordenar por primeiro horário com fallback MEALS.
+- **Recursos/arquivos principais envolvidos:** `diary-screen.js`, `nutrition-tracker-controller.js` e testes unitários/autenticados do Diário.
+- **O que foi feito:** O PR #80 ocultou categorias vazias, removeu botões individuais e aplicou ordenação cronológica estável.
+- **Alinhamento:** 100%.
+
+### [UX80-F6] - Água em resumo colapsável
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/07/2026.
+- **Data de conclusão:** 31/07/2026.
+- **Propósito:** reduzir a altura do bloco de água sem perder nenhuma ação.
+- **O que se planeja fazer:** mostrar resumo e barra fina fechados; expor rápidos, personalizado, lista e meta ao expandir.
+- **Recursos/arquivos principais envolvidos:** `app.js`, `nutrition-tracker-controller.js` e testes da interface de água.
+- **O que foi feito:** O PR #80 entregou o resumo colapsável preservando valores rápidos, customização, histórico e meta.
+- **Alinhamento:** 100%.
+
+### [UX80-F7] - Estado local da Trofia IA
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/07/2026.
+- **Data de conclusão:** 31/07/2026.
+- **Propósito:** informar o estado da última chamada sem criar uma consulta adicional ao Worker.
+- **O que se planeja fazer:** adicionar Trofia IA ao menu, sanitizar sessionStorage e distinguir 429 por escopo/Retry-After.
+- **Recursos/arquivos principais envolvidos:** `ai-client.js`, `worker/src/ai-worker.js`, `app.js` e testes do cliente/Worker.
+- **O que foi feito:** O PR #80 adicionou os seis estados locais e enriqueceu respostas 429 com `scope` sanitizado.
+- **Alinhamento:** 100%.
+
+### [UX80-F8] - Documentação e validação da rodada UX
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/07/2026.
+- **Data de conclusão:** 31/07/2026.
+- **Propósito:** encerrar a rodada com rastreabilidade e regressão completa.
+- **O que se planeja fazer:** atualizar inventário/changelog e validar unitários, smoke, Vite e cutover.
+- **Recursos/arquivos principais envolvidos:** `CHANGELOG_DESIGN.md`, `bug-inventory.txt`, `STABILITY_TODO.md` e suítes de teste.
+- **O que foi feito:** O PR #80 registrou a rodada e fechou os gates locais e autenticados.
+- **Alinhamento:** 100%.
+
+### [C20-A] - Contrato e matriz de calibração do score
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** definir o significado contextual da nota 0–5 antes de alterar produção.
+- **O que se planeja fazer:** formalizar componentes, faixas, cobertura, confiança e casos de referência.
+- **Recursos/arquivos principais envolvidos:** `NUTRITION_SCORE.md`, `tests/fixtures/meal-score-calibration.json`, i18n e testes de calibração.
+- **O que foi feito:** O PR #129 estabeleceu o contrato e a matriz canônica, incluindo a correção de sal versus sódio.
+- **Alinhamento:** 100%.
+
+### [C20-B] - Algoritmo meal-score-v2
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** calibrar a nota contextual com horário real, curvas e dados opcionais completos.
+- **O que se planeja fazer:** implementar v2 versionada sem recalcular snapshots históricos.
+- **Recursos/arquivos principais envolvidos:** `meal-score.js`, `nutrition-feedback-ai.js`, `nutrition-tracker-controller.js`, fixture de calibração e testes.
+- **O que foi feito:** O PR #131 implementou `meal-score-v2`, cobertura/confiança e componentes opcionais de carboidrato e gordura.
+- **Alinhamento:** 100%.
+
+### [C20-C] - Integração do score v2
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** usar o algoritmo calibrado no controlador e no GA preservando resultados já salvos.
+- **O que se planeja fazer:** integrar v2 aos fluxos ativos e manter retrocompatibilidade de snapshots.
+- **Recursos/arquivos principais envolvidos:** `meal-score.js`, `meal-ga.js`, `ga-result-card.js`, `nutrition-tracker-controller.js` e testes autenticados.
+- **O que foi feito:** O PR #132 integrou a nota v2 ao GA/controlador e manteve leitura dos snapshots anteriores.
+- **Alinhamento:** 100%.
+
+### [C20-D] - Apresentação mínima da pontuação
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** explicar nota, faixas, confiança e provisoriedade sem linguagem diagnóstica.
+- **O que se planeja fazer:** apresentar rótulos corretos e o motivo específico da baixa cobertura.
+- **Recursos/arquivos principais envolvidos:** `ga-result-card.js`, `meal-review-modal.js` e testes unitários/autenticados da apresentação.
+- **O que foi feito:** O PR #134 exibiu confiança, faixas e razões específicas para nota provisória.
+- **Alinhamento:** 100%.
+
+### [C20-E] - Validação final da pontuação
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** comprovar estabilidade do C20 nos idiomas e runtimes suportados.
+- **O que se planeja fazer:** executar matriz PT/EN/ES, desktop/mobile e suíte autenticada completa.
+- **Recursos/arquivos principais envolvidos:** `ROADMAP.md`, `tests/smoke/authenticated-flows.spec.js` e pipelines CI/Pages.
+- **O que foi feito:** O PR #135 encerrou o C20 com matriz integral verde.
+- **Alinhamento:** 100%.
+
+### [C19-A] - Contrato e integridade dos snapshots
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** garantir que avaliações aceitas não sobrevivam a edições incompatíveis nem apareçam malformadas.
+- **O que se planeja fazer:** definir agrupamento, invalidação conservadora, duplicação sem metadados e leitura fail-closed.
+- **Recursos/arquivos principais envolvidos:** `meal-score.js`, `nutrition-tracker-controller.js` e respectivos testes unitários.
+- **O que foi feito:** O PR #137 implementou contrato, invalidação do grupo e ocultação fail-closed.
+- **Alinhamento:** 100%.
+
+### [C19-B] - Avaliação opcional e retry contextual
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** eliminar loading/retry inadequado sem tornar a avaliação obrigatória.
+- **O que se planeja fazer:** manter Registrar refeição e oferecer retry apenas quando a explicação de IA falhar.
+- **Recursos/arquivos principais envolvidos:** `meal-review-ai.js`, `meal-review-modal.js`, `nutrition-tracker-controller.js` e testes smoke/unitários.
+- **O que foi feito:** O PR #139 estabilizou o fluxo opcional, renomeou a ação e restringiu o retry à falha explicativa.
+- **Alinhamento:** 100%.
+
+### [C19-C] - Avaliação opcional no fluxo de foto
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** oferecer o mesmo motor calibrado após reconhecimento por imagem sem bloquear a confirmação.
+- **O que se planeja fazer:** integrar a ação opcional à revisão C24 preservando Confirmar refeição.
+- **Recursos/arquivos principais envolvidos:** `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `src/App.jsx` e testes.
+- **O que foi feito:** O PR #140 integrou a avaliação opcional à foto e preservou o caminho direto de confirmação.
+- **Alinhamento:** 100%.
+
+### [C19-D] - Badge da avaliação aceita no Diário
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** tornar avaliações persistidas consultáveis sem permitir edição acidental.
+- **O que se planeja fazer:** agrupar por `mealEvaluationId`, mostrar badge e abrir detalhe somente leitura.
+- **Recursos/arquivos principais envolvidos:** `diary-screen.js`, `nutrition-tracker-controller.js`, entrypoints, navegação Android e testes.
+- **O que foi feito:** O PR #142 entregou badge agrupado e detalhe somente leitura no Diário.
+- **Alinhamento:** 100%.
+
+### [C19-E] - Validação final da avaliação
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** encerrar a integração C19 com cobertura real nos idiomas e layouts.
+- **O que se planeja fazer:** executar suíte completa, CI autenticado e matriz PT/EN/ES desktop/mobile.
+- **Recursos/arquivos principais envolvidos:** `ROADMAP.md`, testes smoke autenticados e pipelines CI/Pages.
+- **O que foi feito:** O PR #145 fechou o C19 com toda a matriz verde.
+- **Alinhamento:** 100%.
+
+### [C08-A] - Política e matriz nutricional da IA
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 30/08/2026.
+- **Data de conclusão:** 30/08/2026.
+- **Propósito:** alinhar sete superfícies de IA aos critérios canônicos C20/C19.
+- **O que se planeja fazer:** formalizar nutrientes, ausência, cobertura, linguagem e contratos antes de produção.
+- **Recursos/arquivos principais envolvidos:** `AI_NUTRITION_POLICY.md`, `PENDENCIAS.md`, fixture `ai-nutrition-policy.json` e testes.
+- **O que foi feito:** O PR #147 criou a política versionada `c08-ai-nutrition-policy-v1` e sua matriz executável.
+- **Alinhamento:** 100%.
+
+### [C08-B] - Ausente não é zero
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/08/2026.
+- **Data de conclusão:** 31/08/2026.
+- **Propósito:** impedir que dados nutricionais desconhecidos sejam tratados como zero real.
+- **O que se planeja fazer:** distinguir ausência, zero declarado e cobertura nas superfícies afetadas.
+- **Recursos/arquivos principais envolvidos:** `dish-description-ai.js`, `eating-patterns-ai.js`, `nutrition-feedback-ai.js`, controlador e testes.
+- **O que foi feito:** O PR #149 separou ausência de zero e passou a relatar cobertura exata em PT/EN/ES.
+- **Alinhamento:** 100%.
+
+### [C08-C] - Estimativas estruturadas
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/08/2026.
+- **Data de conclusão:** 31/08/2026.
+- **Propósito:** uniformizar preenchimento de alimento, descrição textual e foto com validação estrita.
+- **O que se planeja fazer:** criar endpoints estruturados e reutilizar o contrato/editor compartilhado do C24.
+- **Recursos/arquivos principais envolvidos:** `food-autofill-ai.js`, `dish-description-ai.js`, `ai-client.js`, `add-screen.js`, Worker e testes.
+- **O que foi feito:** O PR #151 alinhou os três fluxos, adicionou endpoints estruturados e validação fail-closed.
+- **Alinhamento:** 100%.
+
+### [C08-D] - Feedback e padrões alimentares
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/08/2026.
+- **Data de conclusão:** 31/08/2026.
+- **Propósito:** melhorar análises narrativas usando dados disponíveis sem enviar atributos pessoais desnecessários.
+- **O que se planeja fazer:** incluir cobertura real, linguagem não diagnóstica e minimizar nome/idade/sexo/antropometria.
+- **Recursos/arquivos principais envolvidos:** `nutrition-feedback-ai.js`, `eating-patterns-ai.js`, política/fixture e testes.
+- **O que foi feito:** O PR #152 incluiu nutrientes disponíveis, cobertura e minimização de dados nos prompts narrativos.
+- **Alinhamento:** 100%.
+
+### [C08-E] - Despensa e explicação da avaliação
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/08/2026.
+- **Data de conclusão:** 31/08/2026.
+- **Propósito:** garantir que sugestões usem somente itens válidos da despensa e alinhar a explicação C19.
+- **O que se planeja fazer:** extrair prompts embutidos, estruturar sugestões e validar a saída contra a despensa.
+- **Recursos/arquivos principais envolvidos:** `pantry-suggestions-ai.js`, `meal-review-ai.js`, `ai-client.js`, Worker, política e documentação.
+- **O que foi feito:** O PR #165 criou `/v1/ai/pantry-suggestions`, validação fail-closed e alinhou a explicação de avaliação.
+- **Alinhamento:** 100%.
+
+### [C08-F] - Validação final dos critérios de IA
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/08/2026.
+- **Data de conclusão:** 31/08/2026.
+- **Propósito:** provar os contratos contra idiomas, dados adversariais e Gemini real.
+- **O que se planeja fazer:** cobrir PT/EN/ES, ausentes, respostas malformadas, prompts adversariais e avaliação controlada.
+- **Recursos/arquivos principais envolvidos:** workflows C08/pantry, `AI_NUTRITION_POLICY.md`, `ROADMAP.md`, testes e Worker publicado.
+- **O que foi feito:** O PR #167 concluiu a matriz e a prova controlada após deploy do Worker.
+- **Alinhamento:** 100%.
+
+### [C22-F1] - Infraestrutura de Functions e emuladores
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 18/08/2026.
+- **Data de conclusão:** 18/08/2026.
+- **Propósito:** criar uma base administrativa separada do Worker para exclusão integral de contas.
+- **O que se planeja fazer:** configurar Functions 2nd gen, Admin SDK, emuladores e contratos de infraestrutura.
+- **Recursos/arquivos principais envolvidos:** `functions/`, `firebase.json`, `.firebaserc`, workflows e testes de infraestrutura.
+- **O que foi feito:** O PR #99 criou a base em `europe-southwest1` e os ambientes de teste.
+- **Alinhamento:** 100%.
+
+### [C22-F2] - Motor idempotente de exclusão
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 18/08/2026.
+- **Data de conclusão:** 18/08/2026.
+- **Propósito:** transformar exclusão em saga retomável e segura contra repetição.
+- **O que se planeja fazer:** implementar estados, idempotência, falhas/retries e testes puros.
+- **Recursos/arquivos principais envolvidos:** `functions/src/account-deletion-engine.js`, testes do motor e fixtures autenticadas.
+- **O que foi feito:** O PR #100 implementou o motor da saga e estabilizou fixtures relacionadas.
+- **Alinhamento:** 100%.
+
+### [C22-F3] - Lock e exclusão recursiva
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 21/08/2026.
+- **Data de conclusão:** 21/08/2026.
+- **Propósito:** impedir novas escritas enquanto todos os dados canônicos e subcoleções são removidos.
+- **O que se planeja fazer:** adicionar lock nas rules, recursão administrativa e testes de concorrência.
+- **Recursos/arquivos principais envolvidos:** `firestore.rules`, `functions/src/firestore-account-deletion.js` e testes de rules/recursão.
+- **O que foi feito:** O PR #103 implementou lock, remoção recursiva e cenários concorrentes.
+- **Alinhamento:** 100%.
+
+### [C22-F4] - Fila, retries e reconciliação
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 21/08/2026.
+- **Data de conclusão:** 21/08/2026.
+- **Propósito:** processar exclusões assincronamente sem perder jobs falhos ou duplicados.
+- **O que se planeja fazer:** integrar Cloud Tasks, backoff por etapa, retenção/TTL de falhos e entrega duplicada.
+- **Recursos/arquivos principais envolvidos:** `functions/src/account-deletion-jobs.js`, `account-deletion-task.js`, índices/TTL, `firebase.json` e testes.
+- **O que foi feito:** O PR #104 entregou fila em `europe-west1`, reconciliação e idempotência de tarefas.
+- **Alinhamento:** 100%.
+
+### [C22-F5] - Cliente, App Check e limpeza local
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 21/08/2026.
+- **Data de conclusão:** 21/08/2026.
+- **Propósito:** iniciar a exclusão protegida e impedir persistência local posterior ao aceite do job.
+- **O que se planeja fazer:** integrar painel, callable protegida, suspensão de autosave e limpeza mantendo idioma/tema.
+- **Recursos/arquivos principais envolvidos:** `account-deletion-client.js`, `privacy-panel.js`, `app-check-client.js`, entrypoints Android/web e testes.
+- **O que foi feito:** O PR #105 integrou o fluxo assíncrono, App Check e o lifecycle local seguro.
+- **Alinhamento:** 100%.
+
+### [C22-F6] - Deploy e teste destrutivo descartável
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 21/08/2026.
+- **Data de conclusão:** 21/08/2026.
+- **Propósito:** comprovar a saga em produção sem tocar em conta real.
+- **O que se planeja fazer:** publicar Functions/Tasks e executar exclusão real com conta descartável criada dinamicamente.
+- **Recursos/arquivos principais envolvidos:** Firebase Functions, Cloud Tasks, App Check Android/web, scripts de teste destrutivo e logs sanitizados.
+- **O que foi feito:** O rollout do PR #105 validou aceite, lock, remoção Auth/Firestore e idempotência numa conta descartável.
+- **Alinhamento:** 100%.
+
+### [C22-F7] - Validação final, política e rollout
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 21/08/2026.
+- **Data de conclusão:** 21/08/2026.
+- **Propósito:** fechar operação, compliance e prova Play Integrity da exclusão administrativa.
+- **O que se planeja fazer:** validar matriz final, atualizar/publicar política e Data Safety e testar AAB distribuído pela Play.
+- **Recursos/arquivos principais envolvidos:** `C22_ROLLOUT.md`, políticas PT/EN/ES, `GOOGLE_PLAY_DATA_SAFETY.md`, índices/TTL e AAB Play.
+- **O que foi feito:** O PR #106 e a validação física posterior encerraram o C22 em produção.
+- **Alinhamento:** 100%.
+
+### [C23-F1] - Inventário e migrador administrativo
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 22/08/2026.
+- **Data de conclusão:** 22/08/2026.
+- **Propósito:** classificar dados legados e conflitos antes de qualquer escrita ou exclusão.
+- **O que se planeja fazer:** criar dry-run paginado, fail-closed e testável via Admin SDK.
+- **Recursos/arquivos principais envolvidos:** `functions/scripts/c23-legacy-dry-run.js`, `legacy-migration-inventory.js`, `firebase.json` e testes.
+- **O que foi feito:** O PR #107 entregou inventário/migrador somente leitura com classificação conservadora.
+- **Alinhamento:** 100%.
+
+### [C23-F2] - Cópia e verificação dos legados
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 23/08/2026.
+- **Data de conclusão:** 23/08/2026.
+- **Propósito:** migrar dados reais sem apagar a origem e parar diante de conflitos.
+- **O que se planeja fazer:** copiar/mesclar os 54 documentos, verificar cada destino e manter legados intactos.
+- **Recursos/arquivos principais envolvidos:** `c23-legacy-copy.js`, `legacy-migration-copy.js`, inventário e testes.
+- **O que foi feito:** O PR #108 registrou a ferramenta; a execução real verificou individualmente os 54 destinos sem conflito.
+- **Alinhamento:** 100%.
+
+### [C23-F3] - Rules transitórias
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 23/08/2026.
+- **Data de conclusão:** 23/08/2026.
+- **Propósito:** retirar a exclusão legada do cliente antes do corte de leitura.
+- **O que se planeja fazer:** negar delete legado, manter leitura temporária e testar owner/outro usuário/lock/canônico.
+- **Recursos/arquivos principais envolvidos:** `firestore.rules` e testes de emulador em `functions/test/firestore-rules.emulator.test.js`.
+- **O que foi feito:** O PR #109 publicou a transição que preservava leitura e removia exclusão client-side.
+- **Alinhamento:** 100%.
+
+### [C23-F4] - Corte do cliente legado
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 27/08/2026.
+- **Data de conclusão:** 27/08/2026.
+- **Propósito:** parar normalização automática e exclusão client-side sem quebrar backups antigos.
+- **O que se planeja fazer:** simplificar Firestore interno, remover módulo de exclusão e extrair helpers de merge retrocompatíveis.
+- **Recursos/arquivos principais envolvidos:** `firebase-firestore-internal.js`, `firebase-account-data-internal.js`, módulos de backup/migração e três entrypoints.
+- **O que foi feito:** O PR #110 cortou caminhos runtime legados e manteve importação de backups antigos.
+- **Alinhamento:** 100%.
+
+### [C23-F5] - Janela observacional
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 27/08/2026.
+- **Data de conclusão:** não determinado.
+- **Propósito:** detectar regressões tardias antes da exclusão física irreversível.
+- **O que se planeja fazer:** distribuir build intermediária e observar Semana/dados/testers por sete dias completos.
+- **Recursos/arquivos principais envolvidos:** AAB intermediário, Play Console, aba Semana e relatos dos testers.
+- **O que foi feito:** A janela aprovada terminou sem duplicação, ausência de dados ou relato de erro.
+- **Alinhamento:** 100%.
+
+### [C23-F6] - Fechamento físico dos legados
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 27/08/2026.
+- **Data de conclusão:** 27/08/2026.
+- **Propósito:** eliminar somente fontes verificadas após criar uma recuperação externa.
+- **O que se planeja fazer:** exportar Firestore, reconfirmar destinos, excluir legados verificados e fechar leitura nas rules.
+- **Recursos/arquivos principais envolvidos:** `c23-legacy-delete.js`, `legacy-migration-delete.js`, `firestore.rules`, export gerenciado e testes.
+- **O que foi feito:** O PR #111 fechou as rules e a execução administrativa confirmou contagem final de zero documentos legados.
+- **Alinhamento:** 100%.
+
+### [C23-F7] - Documentação e retenção
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 27/08/2026.
+- **Data de conclusão:** 28/08/2026.
+- **Propósito:** registrar o corte, a compatibilidade preservada e a retenção do export.
+- **O que se planeja fazer:** marcar roadmap/bugs, manter import antigo e limpeza C22, e aplicar lifecycle de 90 dias ao export.
+- **Recursos/arquivos principais envolvidos:** `ROADMAP.md`, `bug-inventory.txt`, bucket de export e documentação operacional.
+- **O que foi feito:** O PR #112 encerrou C23 e registrou A01/A02/A03 como resolvidos; lifecycle de 90 dias foi aplicado.
+- **Alinhamento:** 100%.
+
+### [C24-F1] - Contrato e editor compartilhado
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 01/08/2026.
+- **Data de conclusão:** 01/08/2026.
+- **Propósito:** criar uma representação reutilizável para revisar estimativas de refeição.
+- **O que se planeja fazer:** extrair domínio/editor compartilhado antes de implementar captura e IA.
+- **Recursos/arquivos principais envolvidos:** `meal-estimate.js`, `meal-estimate-editor.js`, cópias ESM e testes unitários.
+- **O que foi feito:** O PR #89 criou contrato/editor compartilhados por foto e descrição.
+- **Alinhamento:** 100%.
+
+### [C24-F2] - Worker multimodal
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 02/08/2026.
+- **Data de conclusão:** 02/08/2026.
+- **Propósito:** analisar JPEG autenticado sem persistir imagem e sob limites próprios.
+- **O que se planeja fazer:** criar `/v1/ai/image-meal`, schema estruturado, limites 1,5/2,2 MB e rate limit 2 imagens/min.
+- **Recursos/arquivos principais envolvidos:** `worker/src/ai-worker.js`, `image-meal.js`, `rate-limiter.js` e testes do Worker.
+- **O que foi feito:** O PR #90 entregou endpoint multimodal, validação e limites acumulados.
+- **Alinhamento:** 100%.
+
+### [C24-F3] - Captura e pré-processamento
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 02/08/2026.
+- **Data de conclusão:** 02/08/2026.
+- **Propósito:** obter câmera/galeria com payload consistente e sem metadados persistidos.
+- **O que se planeja fazer:** integrar Camera 8.x, fallback web, orientação, 1.280 px e JPEG 80%.
+- **Recursos/arquivos principais envolvidos:** `meal-image-capture.js`, `@capacitor/camera`, `src/App.jsx`, Gradle/Capacitor e testes.
+- **O que foi feito:** O PR #91 implementou captura, galeria, normalização, preview e descarte temporário.
+- **Alinhamento:** 100%.
+
+### [C24-F4] - Tela dedicada de reconhecimento
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 02/08/2026.
+- **Data de conclusão:** 02/08/2026.
+- **Propósito:** oferecer estados completos de captura, processamento, revisão e erros.
+- **O que se planeja fazer:** criar tela com cancelamento, resultado editável e mensagens distintas por categoria de falha.
+- **Recursos/arquivos principais envolvidos:** `image-meal-screen.js`, `image-meal-flow.js`, `image-meal-client.js`, componentes ESM e testes.
+- **O que foi feito:** O PR #92 entregou a máquina de estados e a revisão editável.
+- **Alinhamento:** 100%.
+
+### [C24-F5] - Persistência da refeição reconhecida
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 08/08/2026.
+- **Data de conclusão:** 09/08/2026.
+- **Propósito:** registrar estimativas revisadas sem guardar a imagem e sem perder a origem da navegação.
+- **O que se planeja fazer:** persistir itens individuais com `_estimated`/`_estimateSource`, categoria/horário e falha recuperável.
+- **Recursos/arquivos principais envolvidos:** `image-meal-registration.js`, `nutrition-tracker-controller.js`, `src/App.jsx` e testes.
+- **O que foi feito:** O PR #94 integrou `saveMealRegistration()`, preservou a tela no erro e restaurou a origem no sucesso.
+- **Alinhamento:** 100%.
+
+### [C24-F6] - Privacidade e Data Safety
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 09/08/2026.
+- **Data de conclusão:** 09/08/2026.
+- **Propósito:** tornar a coleta transitória de fotos transparente antes de expor o recurso.
+- **O que se planeja fazer:** sincronizar políticas PT/EN/ES, guia do Play e publicação pública antes dos testers.
+- **Recursos/arquivos principais envolvidos:** `PRIVACY_POLICY_PT-BR.md`, `PRIVACY_POLICY_EN.md`, `PRIVACY_POLICY_ES.md`, `GOOGLE_PLAY_DATA_SAFETY.md` e testes.
+- **O que foi feito:** O PR #95 atualizou compliance; política, Data Safety e Cloud Billing foram confirmados antes do rollout.
+- **Alinhamento:** 100%.
+
+### [C24-F7] - Validação física e rollout
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 13/08/2026.
+- **Data de conclusão:** 17/08/2026.
+- **Propósito:** validar qualidade, robustez e integração real antes de liberar aos testers.
+- **O que se planeja fazer:** publicar Worker, comparar High/Medium, testar fotos reais/Android e liberar navegação somente após gates.
+- **Recursos/arquivos principais envolvidos:** `C24_FATIA_7_VALIDACAO.md`, Worker/Interactions API, captura, scripts de deploy e matriz Android.
+- **O que foi feito:** Os PRs #96–#97 corrigiram o adaptador do provider, validaram fotos reais e liberaram Reconhecer por foto.
+- **Alinhamento:** aproximadamente 90% — o contrato público permaneceu igual, mas o adaptador interno precisou migrar para a Interactions API após rejeições do schema; impacto final positivo para compatibilidade real.
+
+### [C28-F1] - Quick wins de leitura e CI por SHA
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 28/08/2026.
+- **Data de conclusão:** 28/08/2026.
+- **Propósito:** reduzir imediatamente leituras redundantes e duplicação da suíte autenticada.
+- **O que se planeja fazer:** coalescer leituras óbvias e executar o CI autenticado uma única vez por SHA.
+- **Recursos/arquivos principais envolvidos:** `.github/workflows/ci.yml`, `.github/workflows/pages.yml`, `firebase-firestore-internal.js` e testes.
+- **O que foi feito:** O PR #113 reaplicou os quick wins válidos e eliminou a duplicação entre workflows.
+- **Alinhamento:** 100%.
+
+### [C28-F2] - Firebase App, Auth modular e App Check
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 28/08/2026.
+- **Data de conclusão:** 28/08/2026.
+- **Propósito:** estabelecer uma instância modular compartilhada e autenticação compatível com cache protegido.
+- **O que se planeja fazer:** migrar Auth, integrar reCAPTCHA web e ponte Play Integrity Android sem ativar o cutover ainda.
+- **Recursos/arquivos principais envolvidos:** `firebase-app-client.js`, `firebase-auth-sdk.js`, `app-check-client.js`, cópias ESM e testes.
+- **O que foi feito:** O PR #114 entregou a fundação modular e a ponte de App Check.
+- **Alinhamento:** 100%.
+
+### [C28-F3] - Adaptador Firestore SDK
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 28/08/2026.
+- **Data de conclusão:** 28/08/2026.
+- **Propósito:** substituir REST pelo SDK oficial sem alterar o contrato público de storage.
+- **O que se planeja fazer:** implementar get/set/delete/list sobre o schema canônico C23.
+- **Recursos/arquivos principais envolvidos:** `firebase-firestore-sdk.js`, cópia ESM e testes de composição/contrato.
+- **O que foi feito:** O PR #115 introduziu o adaptador modular mantendo a API pública existente.
+- **Alinhamento:** 100%.
+
+### [C28-F4] - Cache persistente e lifecycle
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 28/08/2026.
+- **Data de conclusão:** 28/08/2026.
+- **Propósito:** oferecer cache offline protegido sem replay entre contas ou após exclusão.
+- **O que se planeja fazer:** ativar IndexedDB multi-tab/100 MB e limpar cache em logout, troca de conta e exclusão.
+- **Recursos/arquivos principais envolvidos:** `firebase-firestore-lifecycle.js`, Auth/Firestore SDK, runtime ESM e testes.
+- **O que foi feito:** O PR #116 implementou cache persistente, escolha de confiança web e encerramento seguro.
+- **Alinhamento:** 100%.
+
+### [C28-F5] - Loaders cache-first e deduplicação
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 29/08/2026.
+- **Data de conclusão:** 29/08/2026.
+- **Propósito:** evitar refetches repetitivos ao navegar por dados já consultados.
+- **O que se planeja fazer:** agrupar Semana/calendário/recentes/padrões/relatórios e reutilizar subscriptions.
+- **Recursos/arquivos principais envolvidos:** `history-loaders.js`, `firebase-firestore-sdk.js`, `nutrition-tracker-controller.js` e testes.
+- **O que foi feito:** O PR #117 entregou leituras cache-first e subscriptions reutilizáveis.
+- **Alinhamento:** 100%.
+
+### [C28-F6A] - IDs idempotentes e mutações diárias
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 29/08/2026.
+- **Data de conclusão:** 29/08/2026.
+- **Propósito:** criar identidade estável para escritas offline e preparar granularização concorrente.
+- **O que se planeja fazer:** introduzir IDs idempotentes e transformação pura das entradas do dia.
+- **Recursos/arquivos principais envolvidos:** `daily-entry-model.js`, `nutrition-tracker-controller.js`, `src/App.jsx`, baseline/fixtures e testes.
+- **O que foi feito:** O PR #118 criou o domínio idempotente para entradas diárias.
+- **Alinhamento:** 100%.
+
+### [C28-F6B] - Esquema granular de alta concorrência
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 29/08/2026.
+- **Data de conclusão:** 29/08/2026.
+- **Propósito:** evitar que autosaves agregados sobrescrevam alterações concorrentes.
+- **O que se planeja fazer:** persistir log, água e suplementos em documentos granulares aceitos pelas rules.
+- **Recursos/arquivos principais envolvidos:** `firebase-firestore-sdk.js`, `firestore.rules`, runtime ESM e testes de emulador/SDK.
+- **O que foi feito:** O PR #119 criou o esquema granular e suas regras.
+- **Alinhamento:** 100%.
+
+### [C28-F6C] - Leitura retrocompatível durante migração
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 29/08/2026.
+- **Data de conclusão:** 29/08/2026.
+- **Propósito:** manter dados antigos visíveis enquanto novos registros usam o formato granular.
+- **O que se planeja fazer:** mesclar leitura agregada antiga com documentos granulares novos sem duplicação.
+- **Recursos/arquivos principais envolvidos:** `firebase-firestore-sdk.js`, `firestore.rules`, runtime e testes de composição/emulador.
+- **O que foi feito:** O PR #120 implementou leitura híbrida retrocompatível.
+- **Alinhamento:** 100%.
+
+### [C28-F6D] - Estados de sincronização e retries
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 29/08/2026.
+- **Data de conclusão:** 29/08/2026.
+- **Propósito:** tornar escritas offline observáveis e recuperáveis.
+- **O que se planeja fazer:** expor pendente/sincronizado/erro, aguardar confirmações e oferecer retry seguro.
+- **Recursos/arquivos principais envolvidos:** `firebase-sync-state.js`, `firebase-firestore-lifecycle.js`, SDK/runtime e testes.
+- **O que foi feito:** O PR #121 implementou estados e retries sem duplicar mutações.
+- **Alinhamento:** 100%.
+
+### [C28-F6E] - Cutover final e fechamento do A09
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 29/08/2026.
+- **Data de conclusão:** 29/08/2026.
+- **Propósito:** eliminar a causa raiz das sobrescritas por autosave agregado.
+- **O que se planeja fazer:** migrar consumidores para persistência granular e retirar autosaves concorrentes antigos.
+- **Recursos/arquivos principais envolvidos:** `daily-entry-persistence.js`, `meal-ga.js`, `history-loaders.js`, controlador, entrypoints, SDK e inventário.
+- **O que foi feito:** O PR #122 concluiu o cutover granular e marcou A09 como resolvido.
+- **Alinhamento:** 100%.
+
+### [C28-F7] - Backup, restauração e exclusão
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 29/08/2026.
+- **Data de conclusão:** 29/08/2026.
+- **Propósito:** adaptar operações globais ao cache e às escritas pendentes sem exportar estado enganoso.
+- **O que se planeja fazer:** aguardar pending writes online, indicar export offline e encerrar SDK com segurança no C22.
+- **Recursos/arquivos principais envolvidos:** `firebase-backup-internal.js`, Auth/lifecycle, `privacy-panel.js`, controladores/entrypoints e testes.
+- **O que foi feito:** O PR #123 integrou backup/restauração/exclusão ao novo lifecycle.
+- **Alinhamento:** 100%.
+
+### [C28-F8] - Validação e rollout offline-first
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 29/08/2026.
+- **Data de conclusão:** 29/08/2026.
+- **Propósito:** comprovar o sistema em cenários reais de cache, concorrência e Android.
+- **O que se planeja fazer:** validar emuladores, meia-noite, multi-aba, reconexão, encerramento, troca, backup, exclusão e leituras.
+- **Recursos/arquivos principais envolvidos:** SDKs Firebase, Functions/emuladores, matriz física Android, testes e medição do Firestore.
+- **O que foi feito:** O PR #124 encerrou C28 após CI, Pages e validação física/medição reais.
+- **Alinhamento:** 100%.
+
+### [DIARY-MENU-A] - Detalhes somente leitura no Diário
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 09/09/2026.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** fazer a ação Detalhes mostrar informação útil sem permitir mutação.
+- **O que se planeja fazer:** abrir modal com campos disponíveis, estimativa sanitizada e fechamento acessível.
+- **Recursos/arquivos principais envolvidos:** `diary-screen.js`, testes unitários e smoke autenticado, além da documentação desta frente.
+- **O que foi feito:** O PR #182 entregou modal somente leitura com fechamento por botão, backdrop, Esc e Voltar Android.
+- **Alinhamento:** 100%.
+
+### [DIARY-MENU-B] - Editar quantidade e mover refeição
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 10/09/2026.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** editar quantidade/tipo preservando identidade e integridade dos snapshots.
+- **O que se planeja fazer:** criar editor único, mover pelo mesmo ID, invalidar C19 com aviso e provar aceitação das rules.
+- **Recursos/arquivos principais envolvidos:** `daily-entry-model.js`, `diary-screen.js`, `nutrition-tracker-controller.js`, rules/emulador e testes.
+- **O que foi feito:** O PR #184 entregou edição/movimentação em dias atuais e históricos e validou `mealKey` no emulador.
+- **Alinhamento:** 100%.
+
+### [PHOTO-03-A] - Transformação proporcional de estimativas
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 10/09/2026.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** recalcular nutrientes coerentemente quando peso ou quantidade muda.
+- **O que se planeja fazer:** criar função pura em que quantidade ajusta gramas/nutrientes e gramas ajustam apenas nutrientes.
+- **Recursos/arquivos principais envolvidos:** `meal-estimate.js`, cópia ESM e testes unitários de domínio.
+- **O que foi feito:** O PR #186 implementou a transformação, usando cada edição manual posterior como nova base proporcional.
+- **Alinhamento:** 100%.
+
+### [PHOTO-03-B] - Integração proporcional no editor
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 10/09/2026.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** aplicar a regra de domínio igualmente a foto e descrição e persistir o resultado revisado.
+- **O que se planeja fazer:** integrar o editor compartilhado aos dois fluxos sem guardar metadados transitórios.
+- **Recursos/arquivos principais envolvidos:** `meal-estimate-editor.js`, `app.js`, `nutrition-tracker.jsx`, `src/App.jsx` e testes dos builders/persistência.
+- **O que foi feito:** O PR #188 integrou quantidade, gramas e oito nutrientes aos fluxos de foto/texto e persistência.
+- **Alinhamento:** 100%.
 
 ### UI/UX — sequências aprovadas compartilhadas
 
@@ -529,67 +1145,141 @@
 ### [C14-A] - Integridade fail-closed e encerramento documental
 
 - **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 01/09/2026.
 - **Data de conclusão:** 01/09/2026.
-- **Propósito:** impedir que falhas de leitura/listagem pareçam ausência legítima e que um backup incompleto seja apresentado como bem-sucedido.
-- **Recursos/arquivos principais envolvidos:** `/firebase-firestore-sdk.js`, `/firebase-backup-internal.js`, testes unitários UMD/ESM, histórico e este resumo.
-- **O que foi feito:** leituras de documentos e listagens agora propagam erro e permitem retry; exportação exige raiz, lista, documentos e agregados diários comprovadamente completos. PR #174, commit `bd62a32`, merge `141da412`.
+- **Propósito:** impedir que falhas de leitura/listagem pareçam ausência legítima e que backup incompleto seja declarado bem-sucedido.
+- **O que se planeja fazer:** propagar erros em fetch/list, exigir completude comprovada do backup e registrar o incidente da build 12.
+- **Recursos/arquivos principais envolvidos:** `firebase-firestore-sdk.js`, `firebase-backup-internal.js`, testes UMD/ESM, histórico e este resumo.
+- **O que foi feito:** O PR #174 (`bd62a32`, merge `141da412`) tornou leituras/listagens recuperáveis e exportações fail-closed.
+- **Alinhamento:** 100%.
 
-### [C14-B] - Rules do Firestore e schema canônico
+### [C14-B1] - Proteção inicial das rules
 
 - **Status:** concluído — **Chat:** Trofia-Principal.
-- **Data de conclusão:** validação técnica em 02/09/2026; fechamento formal pelo merge do PR #178 em 07/09/2026.
-- **Propósito:** negar exclusão client-side da raiz e restringir envelopes, campos, chaves, tipos e tamanhos sem bloquear dados reais legítimos.
-- **Recursos/arquivos principais envolvidos:** `/firestore.rules`, testes de emulador e ferramenta Admin SDK read-only para inventário/dry-run.
-- **O que foi feito:** B1 nega exclusão client-side da raiz, mantém a exclusão administrativa do C22, limita a raiz a 128 campos e exige `{value: string}` com até 900.000 caracteres em `/data/{key}`. B2 criou o inventário Admin SDK e as allowlists; o primeiro deploy e a primeira revisão excederam o teto de 1.000 expressões em batches legítimos e foram revertidos imediatamente. A correção final valida somente mudanças da raiz, preserva entrada/nutrientes e o envelope superior do score nas rules, e delega apenas o interior dos seis componentes ao leitor C20/C19 fail-closed. O teste integrado injeta campo inválido via Admin SDK e comprova que o cliente o rejeita sem badge/grupo. As rules foram republicadas em 02/09/2026 e o run `33575611133` passou integralmente antes e depois do deploy. A investigação dos órfãos permanece somente leitura, sem exclusão. Evidência: [`C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`](C14_B2_FIRESTORE_SCHEMA_INVENTORY.md). — **Chat:** Trofia-Principal.
+- **Data de início:** 01/09/2026.
+- **Data de conclusão:** 01/09/2026.
+- **Propósito:** negar exclusão client-side da raiz e proteger envelopes canônicos sem fechar o schema prematuramente.
+- **O que se planeja fazer:** remover delete do cliente, limitar raiz/data e preservar a exclusão administrativa C22.
+- **Recursos/arquivos principais envolvidos:** `firestore.rules`, testes de emulador, workflow CI e documentação.
+- **O que foi feito:** O PR #175 publicou a negação de exclusão, limite de 128 campos e envelope `{value: string}` até 900.000 caracteres.
+- **Alinhamento:** 100%.
 
-### [C14-C] - App Check no Worker de IA
+### [C14-B2] - Schema completo das rules
 
-- **Status:** em andamento (10/09/2026) — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 01/09/2026.
+- **Data de conclusão:** 07/09/2026.
+- **Propósito:** restringir campos, tipos e tamanhos com base em inventário real sem rejeitar escrita legítima.
+- **O que se planeja fazer:** inventariar dados via Admin SDK, aplicar allowlists e validar owner, lock, entradas e score.
+- **Recursos/arquivos principais envolvidos:** `firestore.rules`, `C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`, Admin SDK, testes de emulador/cliente e documentação.
+- **O que foi feito:** O PR #178 fechou B2 após rollback do primeiro deploy: `diff().affectedKeys()` passou a validar só mudanças, nutrientes duplicados foram removidos de `foodSnapshot` e um teste Admin comprova leitura fail-closed de componente malformado; run pós-deploy `33575611133` verde.
+- **Alinhamento:** divergiu do desenho estrito original — a validação profunda dos seis componentes passou ao leitor C20/C19 porque as rules excediam o orçamento de 1.000 expressões; impacto final positivo para compatibilidade e segurança observável.
+
+### [C14-C1] - Observação do App Check no Worker
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 10/09/2026.
+- **Data de conclusão:** 10/09/2026.
+- **Propósito:** medir tokens App Check válidos/inválidos antes de bloquear clientes.
+- **O que se planeja fazer:** validar criptograficamente o token no Worker em modo observe, com métricas sanitizadas e apps permitidos.
+- **Recursos/arquivos principais envolvidos:** `worker/src/firebase-app-check-token.js`, `worker/src/ai-worker.js`, `worker/wrangler.jsonc`, testes e rollout C14-C.
+- **O que foi feito:** O modo `observe` foi publicado e o smoke externo confirmou validação sem enforcement.
+- **Alinhamento:** 100%.
+
+### [C14-C2] - Clientes enviam token App Check
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 10/09/2026.
+- **Data de conclusão:** 12/09/2026.
+- **Propósito:** anexar atestação a todas as chamadas de IA sem enviar conteúdo quando ela falhar.
+- **O que se planeja fazer:** obter token real e enviar `X-Firebase-AppCheck` nas sete superfícies web/Android.
+- **Recursos/arquivos principais envolvidos:** `app-check-client.js`, `ai-client.js`, `image-meal-client.js`, demais clientes IA, entrypoints e testes.
+- **O que foi feito:** O PR #189 integrou o cabeçalho em todos os clientes e falha sanitizada antes da transmissão.
+- **Alinhamento:** 100%.
+
+### [C14-C3] - Debug provider no CI
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 10/09/2026.
+- **Data de conclusão:** 12/09/2026.
+- **Propósito:** manter o CI autenticado compatível com App Check sem usar atestação de produção.
+- **O que se planeja fazer:** configurar provider/token de debug no pipeline e validar chamadas reais.
+- **Recursos/arquivos principais envolvidos:** workflows autenticados, secrets de debug App Check, clientes Firebase/IA e testes.
+- **O que foi feito:** O run autenticado `34478874949` do PR #189 validou o provider de debug e todas as superfícies.
+- **Alinhamento:** 100%.
+
+### [C14-C4] - Validação Pages e AAB real
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 12/09/2026.
 - **Data de conclusão:** não concluído.
-- **Propósito:** exigir prova de app legítimo além do Firebase ID token sem quebrar clientes existentes durante a transição.
-- **Recursos/arquivos principais envolvidos:** `/worker/src/firebase-app-check-token.js`, `/worker/src/ai-worker.js`, `/worker/wrangler.jsonc`, clientes de IA, App Check web/Android, CI, Pages, AAB real e [`C14_C_APP_CHECK_WORKER_ROLLOUT.md`](C14_C_APP_CHECK_WORKER_ROLLOUT.md).
-- **O que foi feito:** o Worker passou a validar criptograficamente o token App Check e a restringir os apps aceitos ao Web e Android do Trofia; todos os clientes enviam `X-Firebase-AppCheck` e falham de modo sanitizado antes de transmitir dados se não obtiverem token. A versão Worker `632877f3-e51f-4226-92fa-0b139e51e459` foi publicada em `observe` e passou no smoke externo. O run autenticado `34478874949` validou o código e o debug provider no CI. Após o PR #191, o Pages validou login normal e os três fluxos de IA sem abrir indevidamente o modal de perfil. Permanecem como gates um AAB real com Play Integrity e somente então o enforcement obrigatório com nova validação.
-- **Achado da fase 4:** a validação manual revelou uma corrida de bootstrap capaz de mostrar o modal exclusivo de criação a uma conta antiga. O PR #191 encerrou esse subincidente ao exigir token real, confirmação do servidor e erro recuperável; AAB/enforcement permanecem bloqueados apenas pelos gates normais do rollout.
+- **Propósito:** provar web e Play Integrity reais antes de tornar o Worker obrigatório.
+- **O que se planeja fazer:** validar login e três fluxos de IA no Pages; depois gerar/distribuir AAB e repetir no aparelho físico.
+- **Recursos/arquivos principais envolvidos:** `profile-validation.js`, `firebase-firestore-sdk.js`, `app-check-client.js`, Pages, AAB Play, aparelho real e `C14_C_APP_CHECK_WORKER_ROLLOUT.md`.
+- **O que foi feito:** O Pages e os três fluxos de IA passaram após o PR #191; a fase também corrigiu a corrida que abria onboarding numa conta antiga ao exigir token real, leitura de servidor e erro recuperável. Falta a validação do AAB com Play Integrity.
+
+### [C14-C5] - Enforcement obrigatório no Worker
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** rejeitar chamadas de IA sem atestação válida somente depois dos gates web/Android.
+- **O que se planeja fazer:** ativar enforcement, repetir smokes/CI/Pages/AAB e documentar rollback.
+- **Recursos/arquivos principais envolvidos:** Worker, configuração Wrangler, App Check Firebase, CI, Pages, AAB real e documentação de rollout.
 
 ### [C14-D] - Android e cadeia de release
 
 - **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
 - **Data de conclusão:** não iniciado.
-- **Propósito:** proteger dados locais e tornar o AAB verificável e fail-closed quanto à configuração Firebase e ao manifesto.
+- **Propósito:** proteger dados locais e tornar o AAB fail-closed e verificável.
+- **O que se planeja fazer:** desligar Auto Backup, revisar FileProvider/cleartext e reforçar validação de google-services/manifesto/hash.
 - **Recursos/arquivos principais envolvidos:** AndroidManifest, `file_paths.xml`, Gradle, scripts/testes de release, AAB assinado e aparelho físico.
-- **O que foi feito:** nenhuma implementação iniciada; Auto Backup será desligado, e FileProvider, cleartext, validação semântica de `google-services.json` e manifesto/hash do release serão endurecidos.
 
 ### [C14-E] - Auth, sessão e onboarding recuperável
 
 - **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
 - **Data de conclusão:** não iniciado.
-- **Propósito:** evitar onboarding parcialmente salvo, alinhar senha mínima e controlar a persistência da sessão web.
-- **Recursos/arquivos principais envolvidos:** `/login-screen.js`, Firebase Auth modular, i18n PT/EN/ES, testes e Firebase Console.
-- **O que foi feito:** nenhuma implementação iniciada; senha mínima aprovada em 12 caracteres sem composição forçada; “Manter logado” usará `LOCAL`, enquanto desmarcado usará `SESSION`.
+- **Propósito:** evitar cadastro parcialmente salvo e controlar credenciais/sessão com política explícita.
+- **O que se planeja fazer:** aplicar senha mínima 12, checkbox Manter logado (`LOCAL`/`SESSION`) e fluxo recuperável PT/EN/ES.
+- **Recursos/arquivos principais envolvidos:** `login-screen.js`, `profile-validation.js`, Firebase Auth modular, i18n, testes e Firebase Console.
 
-### [C14-F] - Worker, observabilidade, Functions, IAM e dependências
+### [C14-F1] - Worker, tiers e observabilidade
 
 - **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
 - **Data de conclusão:** não iniciado.
-- **Propósito:** preparar limites por tier sem ativá-los nos testes, reduzir riscos do provider, observar falhas sem dados pessoais e auditar privilégios reais.
-- **Recursos/arquivos principais envolvidos:** Worker/Durable Object, Functions/Tasks, Google Cloud IAM/Logging, lockfiles e testes de backend.
-- **O que foi feito:** nenhuma implementação iniciada; F1 cobrirá tiers desligados, pseudonimização, timeout/saída e métricas por 30 dias; F2 auditará IAM/invocadores e dependências antes de qualquer service account nova.
+- **Propósito:** preparar limites comerciais e monitoramento sem dados pessoais antes da distribuição pública.
+- **O que se planeja fazer:** modelar tiers com enforcement desligado, pseudonimização, timeouts/saída e métricas sanitizadas por 30 dias.
+- **Recursos/arquivos principais envolvidos:** Worker, Durable Object, rate limiter, Google Cloud Logging/Monitoring, contratos e testes.
 
-### [C14-G] - Web, CSP e superfícies de debug
+### [C14-F2] - IAM, invocadores e dependências
 
 - **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
 - **Data de conclusão:** não iniciado.
-- **Propósito:** reduzir impacto de XSS e limitar diagnósticos globais em produção.
-- **Recursos/arquivos principais envolvidos:** `/index.html`, CSP via meta, Firebase/reCAPTCHA/Worker/Google APIs, globals de debug e matriz Pages PT/EN/ES.
-- **O que foi feito:** nenhuma implementação iniciada; CSP imediata no GitHub Pages foi aprovada.
+- **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
+- **O que se planeja fazer:** auditar IAM, contas de serviço, invocadores, Functions/Tasks e lockfiles antes de criar identidades mínimas.
+- **Recursos/arquivos principais envolvidos:** Google Cloud IAM, Firebase Functions, Cloud Tasks, Artifact Registry, lockfiles e relatórios administrativos.
+
+### [C14-G] - CSP e superfícies de debug
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** reduzir impacto de XSS e impedir diagnósticos globais desnecessários em produção.
+- **O que se planeja fazer:** aplicar CSP via meta compatível com Firebase/reCAPTCHA/Worker e restringir globals de debug.
+- **Recursos/arquivos principais envolvidos:** `index.html`, CSP, Firebase/reCAPTCHA/Google APIs, globals de debug, Pages e matriz PT/EN/ES.
 
 ### [C14-H] - Staging, validação final e rollout
 
 - **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
 - **Data de conclusão:** não iniciado.
-- **Propósito:** validar o endurecimento completo em ambiente destrutivo separado e preparar o gate operacional de C16/C25.
-- **Recursos/arquivos principais envolvidos:** projeto Firebase staging, emuladores, CI, Pages, Worker, Functions, AAB Play e documentação de operação/rollback.
-- **O que foi feito:** nenhuma implementação iniciada; staging separado foi aprovado e a matriz final cobrirá cross-account, App Check, payloads, rate limit, lifecycle/cache, backup/exclusão, Auto Backup, IAM, secrets e rollback.
+- **Propósito:** validar o endurecimento completo fora da produção e preparar o gate de lançamento.
+- **O que se planeja fazer:** criar Firebase staging e executar matriz cross-account, App Check, payloads, rate limit, cache, backup, exclusão, IAM e rollback.
+- **Recursos/arquivos principais envolvidos:** projeto Firebase staging, emuladores, CI, Pages, Worker, Functions, AAB Play e runbooks.
 
 ## Observações não confirmadas sob acompanhamento
 
