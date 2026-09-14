@@ -1077,6 +1077,43 @@ O primeiro CI disparado depois do registro físico (`34753921127`) executou 106 
 - [Merge `13bd540` — incorporação do PR #196 na `main`](https://github.com/magnoClovis/nutrition-tracker/commit/13bd540f1e52f5af86cf0af7bb71795e9f2a6ff5).
 - [CI autenticado final `34757379713`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34757379713) e [preflight documental final `34757379696`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34757379696), ambos concluídos com sucesso e sem skip no SHA mesclado.
 
+## Validação final do hotfix pelo artefato real da Play Store — CAM-INC-2
+
+**Status:** em andamento — **Chat:** Trofia-UIUX.
+
+**Data de início:** 14/09/2026.
+
+**Data de conclusão:** não concluído.
+
+**Tempo decorrido:** pendente de merge.
+
+**Minutos de CI:** pendente da conclusão dos runs desta fatia.
+
+**Propósito:** encerrar a lacuna de validação que permitiu o incidente crítico da câmera chegar à build distribuída. CAM-INC-1 comprovou a correção em um pacote release isolado e preservou o app oficial instalado, mas apenas a Play conhece e aplica a chave final de app-signing e o mesmo caminho de distribuição recebido pelos usuários. Esta fatia existe para demonstrar que o AAB produzido a partir da `origin/main` atual, processado e assinado pela Play, mantém o preview visível e as ações alcançáveis no aparelho real.
+
+**Recursos:**
+
+- Vite e Capacitor para gerar e sincronizar o bundle web de produção.
+- Gradle/Android SDK e a chave local de upload para produzir o Android App Bundle release.
+- `apksigner`, `keytool` e SHA-256 para confirmar integridade e identidade da assinatura de upload sem expor certificados privados.
+- CI autenticado real com Firebase App Check, matriz Playwright legado/Vite e testes de cutover.
+- Google Play Console, faixa de teste interno e Galaxy físico para a validação definitiva do APK entregue e assinado pela Play.
+
+**Arquivos:**
+
+- `android/app/build.gradle` — `versionCode` ajustado somente no ambiente local de empacotamento, sem commit, para atender à monotonicidade exigida pela Play.
+- `android/keystore.properties`, `android/app/google-services.json` e `android/local.properties` — configurações locais ignoradas pelo Git, copiadas temporariamente para a worktree e removidas após o build.
+- `documentation/estado-atual/RESUMO-STATUS.md`
+- `documentation/historico/2026-08-31-ui-campos-customizados.md`
+
+**O que se planeja fazer:** partir da `origin/main` atualizada em worktree isolada; registrar o início formal; executar teste focado e `npm test` completo; obter CI autenticado real em PR draft; gerar um AAB release com `versionCode` superior ao 13 já distribuído, usando as configurações locais de produção sem versioná-las; confirmar que o bundle está assinado pela chave de upload esperada e registrar seu SHA-256; entregar o caminho exato do artefato ao responsável para upload manual na faixa interna; aguardar a Play processar/assinar o bundle; instalar a atualização pelo próprio app da Play Store; validar no Galaxy, em tema claro e escuro, imagem real do preview e alcance de Cancelar/Capturar; somente depois dessa confirmação marcar CAM-INC-2 como concluída e o incidente como encerrado.
+
+**O que foi feito:** em andamento. A branch `codex/ui-camera-play-validation` foi criada diretamente da `origin/main` no commit `31bc44d`, sem tocar nas alterações paralelas presentes no checkout principal. A documentação foi iniciada antes dos testes e do empacotamento, conforme o ciclo planejado/feito/alinhamento.
+
+**Alinhamento:** pendente até a conclusão da validação física pela Play Store.
+
+**PRs/commits relacionados:** não determinado; PR ainda não aberto.
+
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
 **Data (se determinável):** não determinado.
