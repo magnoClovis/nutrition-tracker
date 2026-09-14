@@ -1087,7 +1087,7 @@ O primeiro CI disparado depois do registro físico (`34753921127`) executou 106 
 
 **Tempo decorrido:** pendente de merge.
 
-**Minutos de CI:** pendente da conclusão dos runs desta fatia.
+**Minutos de CI:** 30 min 34 s no total — 24 s de check leve documental (run `34885691155`) e 30 min 10 s de gate pesado autenticado (reexecução do run `34757379713`).
 
 **Propósito:** encerrar a lacuna de validação que permitiu o incidente crítico da câmera chegar à build distribuída. CAM-INC-1 comprovou a correção em um pacote release isolado e preservou o app oficial instalado, mas apenas a Play conhece e aplica a chave final de app-signing e o mesmo caminho de distribuição recebido pelos usuários. Esta fatia existe para demonstrar que o AAB produzido a partir da `origin/main` atual, processado e assinado pela Play, mantém o preview visível e as ações alcançáveis no aparelho real.
 
@@ -1116,11 +1116,12 @@ O primeiro CI disparado depois do registro físico (`34753921127`) executou 106 
 - O fail-closed de release foi provado por execução seca e reversível: ao retirar temporariamente `android/app/google-services.json`, `:app:bundleRelease` encerrou com código 1 e a mensagem explícita que proíbe artefatos sem a configuração Firebase Android. No build válido, `processReleaseGoogleServices` gerou os recursos `google_app_id`, `google_api_key` e `project_id`.
 - O AAB `trofia-v14-cam-inc-2-upload-signed.aab` foi produzido com pacote `com.hermegas.trofia`, `versionCode 14` e `versionName 0.11.0-beta`. O próprio bundle lista os sete plugins Capacitor esperados, incluindo `@capacitor-firebase/app-check` e `@capacitor-community/camera-preview`. Os merges dos PRs #189 (`323610e`) e #191 (`e118872`) são ancestrais da branch, portanto o código de App Check no Worker/cliente e o hotfix de readiness de perfil estão presentes no artefato.
 - `jarsigner` confirmou `jar verified`; o certificado público de upload tem SHA-256 `07:7A:61:E3:7B:7A:59:7C:B9:BF:F8:85:8A:E5:60:EB:F6:73:AF:D2:5B:AD:FD:0D:68:11:B6:E0:4B:5E:EE:4A`, idêntico ao AAB v13 anteriormente aceito pela Play. O arquivo final tem 23.143.458 bytes e SHA-256 `022C8FEEEFCB8DA10151ED4FD774F85C54E82AB56115C40F80EA4834768E8F38`; foi preservado fora do Git em `C:\Users\clovi\AppData\Local\Temp\trofia-cam-inc-2-play-upload\trofia-v14-cam-inc-2-upload-signed.aab`.
-- A continuidade da chave confirma a identidade de upload registrada e já aceita pela Play, mas não substitui a prova de Play Integrity: a Play reaplica sua chave de app-signing ao APK distribuído. A conclusão permanece condicionada ao CI autenticado real, à aceitação do AAB na faixa interna e aos testes de câmera e C14-C no app instalado pela própria Play Store.
+- A continuidade da chave confirma a identidade de upload registrada e já aceita pela Play, mas não substitui a prova de Play Integrity: a Play reaplica sua chave de app-signing ao APK distribuído. Com os gates concluídos, a fatia permanece condicionada à aceitação do AAB na faixa interna e aos testes de câmera e C14-C no app instalado pela própria Play Store.
+- O gate autenticado real `34757379713` concluiu em 30 min 10 s: preflight sem aviso, 1.362/1.362 unitários sem skip, 36/36 testes Node e 5/5 de runtime do Worker, 74/74 testes de Functions/rules, legado com 99 aprovados e os mesmos oito skips esperados da execução verde anterior, e Vite com 107/107 aprovados sem skip. O run usa o commit de runtime `879d183`; entre ele e a branch do AAB existem somente documentação e automações operacionais/relatórios, sem alteração no runtime do aplicativo. O check documental próprio do PR #200 (`34885691155`) também passou em 24 s.
 
 **Alinhamento:** pendente até a conclusão da validação física pela Play Store.
 
-**PRs/commits relacionados:** PR draft #200; commit inicial de documentação `d8a508a`; hotfix base PR #196/merge `13bd540`; PR #189/merge `323610e`; PR #191/merge `e118872`; run autenticado desta preparação ainda em andamento.
+**PRs/commits relacionados:** PR draft #200; commits de documentação `d8a508a` e `173d5ee`; hotfix base PR #196/merge `13bd540`; PR #189/merge `323610e`; PR #191/merge `e118872`; CI pesado autenticado `34757379713`; check documental `34885691155`.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
