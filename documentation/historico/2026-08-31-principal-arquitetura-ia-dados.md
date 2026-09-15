@@ -155,28 +155,44 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 ### [C14-A] - Integridade fail-closed e encerramento documental
 
 - **Status:** concluído.
+- **Data de início:** 01/09/2026.
 - **Data de conclusão:** 01/09/2026.
 - **Tempo decorrido:** 43 min.
 - **Minutos de CI:** 32 min (1 leve + 31 pesado).
-- **O que se planeja fazer:** propagar falhas de leitura/listagem, não cacheá-las como ausência e impedir exportação de backup incompleta.
 - **Propósito:** estender a correção fail-closed do documento raiz aos documentos canônicos de dados e à enumeração usada pelo backup completo, impedindo que falhas sejam interpretadas como ausência.
+- **O que se planeja fazer:** propagar falhas de leitura/listagem, não cacheá-las como ausência e impedir exportação de backup incompleta.
 - **Recursos/arquivos principais envolvidos:** `/firebase-firestore-sdk.js`, `/firebase-backup-internal.js`, testes unitários UMD/ESM, `/documentation/estado-atual/RESUMO-STATUS.md` e este histórico.
 - **O que foi feito:** `fetchDataDoc()` e `listDataKeys()` deixaram de converter falha de rede, permissão ou App Check em `null`/`[]`; falhas não são cacheadas como ausência. O backup só é produzido depois de todas as leituras canônicas concluírem e aborta explicitamente se raiz, listagem, documento ou agregado diário não puder ser comprovado. O incidente da build 11 foi encerrado documentalmente após a build Play versionCode 12 validar App Check, leitura, escrita e sincronização com a conta real.
 - **Alinhamento:** 100%; o escopo fail-closed e o encerramento documental foram entregues integralmente. Impacto final positivo.
 - **PRs/commits relacionados:** PR #174, commit de implementação `bd62a32`, merge `141da412`; incidente original corrigido no PR #173.
 
-### [C14-B] - Rules do Firestore e schema canônico
+### [C14-B1] - Proteção inicial das rules
 
 - **Status:** concluído.
-- **Data de conclusão:** validação técnica em 02/09/2026; fechamento formal pelo merge do PR #178 em 07/09/2026.
-- **Tempo decorrido:** B1: 2 h 13 min; B2/hotfix final: 5 d 11 h 20 min.
-- **Minutos de CI:** B1: 30 min (1 leve + 29 pesado); B2/hotfix final: 59 min (1 leve + 58 pesado).
-- **O que se planeja fazer:** negar exclusão client-side, inventariar dados reais e aplicar allowlists/tipos/tamanhos ao esquema canônico sem bloquear escritas legítimas.
-- **Propósito:** impedir exclusão client-side do documento raiz e restringir os envelopes, campos, chaves, tipos e tamanhos aceitos pelas rules sem bloquear dados legítimos já existentes.
-- **Recursos/arquivos principais envolvidos:** `/firestore.rules`, testes de rules/emuladores, ferramenta administrativa Admin SDK de inventário somente leitura e documentação de rollback/deploy.
-- **O que foi feito:** B1 nega `delete` da raiz para qualquer cliente e preserva exclusivamente o Admin SDK do C22 para exclusão completa. A raiz recebe um teto conservador de 128 campos; documentos `/data/{key}` exigem o envelope exato `{value: string}` com máximo de 900.000 caracteres. As rules B1 foram publicadas em produção em 01/09/2026 e validadas pelo CI autenticado pós-deploy no run `33512725510` (tentativa 2), totalmente verde. Na B2, uma ferramenta Admin SDK somente leitura passou a enumerar Auth, raízes, `data` e collection groups granulares com paginação completa e saída sanitizada. As rules completas foram mescladas no PR #177 e publicadas, mas as duas tentativas do run pós-deploy `33529042502` e uma reprodução ampliada no emulador confirmaram que a validação exaustiva ultrapassava o limite de 1.000 expressões em batches granulares reais. A primeira versão do hotfix ainda falhou na tentativa 2 do run `33548758342` com snapshots reais de seis componentes e exigiu novo rollback B1, confirmado verde na tentativa 3. A correção final valida creates integralmente, somente campos alterados em updates, entrada/nutrientes e envelope superior do score nas rules; o interior dos componentes passa pelo contrato fail-closed C20/C19. Um teste integrado injeta componente inválido via Admin SDK, lê como usuário e confirma que a avaliação é rejeitada/ocultada. O run `33575611133` ficou verde na tentativa 2 antes do deploy e na tentativa 3 contra as rules republicadas em 02/09/2026. A investigação administrativa separou 2 raízes sem Auth de 114 descendentes em 26 UIDs e encontrou padrão fortemente compatível com contas descartáveis automatizadas; nada foi excluído. O C22 não os descobre sem job conhecido, logo uma limpeza futura requer janitor dedicado e fail-closed.
-- **Alinhamento:** divergiu do escopo original — a validação profunda de todos os componentes nas rules excedeu o orçamento de expressões e causou rollback; a solução final preservou envelope/allowlist e transferiu o interior ao leitor fail-closed. O impacto final foi positivo, embora tenha havido impacto negativo temporário em produção, registrado no incidente abaixo.
-- **PRs/commits relacionados:** PR #175, branch `codex/c14-b-rules-hardening`, commit B1 `9a0b228`, merge `8d2ddae`; PR #177, merge B2 `9d16e60`; hotfix definitivo no PR #178, commits `5e8ecf7`, `3b32b7b` e `f8f3c09`, merge `80bc2ca`.
+- **Data de início:** 01/09/2026.
+- **Data de conclusão:** 01/09/2026.
+- **Tempo decorrido:** 2 h 13 min.
+- **Minutos de CI:** 30 min (1 leve + 29 pesado).
+- **Propósito:** impedir exclusão client-side do documento raiz e aplicar limites conservadores sem fechar prematuramente o schema canônico.
+- **O que se planeja fazer:** remover `delete` do cliente, limitar raiz e documentos `data` e preservar exclusivamente a exclusão administrativa C22.
+- **Recursos/arquivos principais envolvidos:** `/firestore.rules`, testes de rules/emuladores, workflow autenticado e documentação de deploy.
+- **O que foi feito:** o PR #175 negou `delete` da raiz para qualquer cliente, preservou o Admin SDK do C22, limitou a raiz a 128 campos e exigiu nos documentos `/data/{key}` o envelope exato `{value: string}` com máximo de 900.000 caracteres. As rules foram publicadas em 01/09/2026 e o run pós-deploy `33512725510` (tentativa 2) ficou totalmente verde.
+- **Alinhamento:** 100%. O escopo conservador foi entregue e validado em produção sem antecipar a allowlist da B2; impacto positivo.
+- **PRs/commits relacionados:** PR #175, branch `codex/c14-b-rules-hardening`, commit `9a0b228`, merge `8d2ddae`.
+
+### [C14-B2] - Schema completo das rules
+
+- **Status:** concluído.
+- **Data de início:** 01/09/2026.
+- **Data de conclusão:** 07/09/2026.
+- **Tempo decorrido:** 5 d 11 h 20 min.
+- **Minutos de CI:** 59 min (1 leve + 58 pesado).
+- **Propósito:** restringir campos, tipos e tamanhos do esquema canônico com base em dados reais, sem rejeitar escritas legítimas do cliente granular C28.
+- **O que se planeja fazer:** inventariar administrativamente os documentos reais, aplicar allowlists e validar proprietário, lock, entradas, nutrientes e snapshots de score.
+- **Recursos/arquivos principais envolvidos:** `/firestore.rules`, `/documentation/estado-atual/C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`, ferramenta Admin SDK somente leitura, testes de emulador/cliente e documentação de rollback/deploy.
+- **O que foi feito:** a ferramenta administrativa enumerou Auth, raízes, `data` e collection groups granulares com paginação fail-closed e saída sanitizada. O primeiro deploy do PR #177 excedeu o teto de 1.000 expressões das Security Rules em batches reais e foi revertido duas vezes para B1. O hotfix definitivo do PR #178 valida creates integralmente, somente campos alterados em updates, entrada/nutrientes e o envelope superior do score; o contrato fail-closed C20/C19 valida o interior dos componentes. Um teste injeta componente inválido via Admin SDK e comprova que o cliente oculta a avaliação. O run `33575611133` ficou verde antes e depois da republicação. O inventário encontrou duas raízes sem Auth e 114 descendentes com padrão de contas descartáveis; nada foi excluído.
+- **Alinhamento:** divergiu do desenho estrito original — a validação profunda dos seis componentes nas rules excedia o orçamento de expressões. A solução preservou envelope e allowlist e delegou apenas a validação interna ao leitor fail-closed; impacto final positivo, após impacto temporário negativo em produção registrado abaixo.
+- **PRs/commits relacionados:** PR #177, merge `9d16e60`; PR #178, commits `5e8ecf7`, `3b32b7b` e `f8f3c09`, merge `80bc2ca`; PR #180, fechamento documental, merge `92e6722`.
 
 ### Incidente de produção — rules C14-B2 rejeitando escrita granular legítima
 
@@ -189,18 +205,47 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Timeline e resposta:** PR #177 mesclado no merge `9d16e60`; deploy B2 concluído; tentativas 1 e 2 do run `33529042502` falharam após o deploy; diagnóstico isolado confirmou que não era concorrência de portas; B1 do merge `8d2ddae` foi restaurada em 01/09/2026 com hash verificado `bd1398b58bfa618797f6819a51c393b885af298a`. A tentativa 3 do mesmo run ficou totalmente verde, com 95/95 cenários Playwright e os oito fluxos Vite antes bloqueados restaurados.
 - **Correção definitiva publicada e validada:** creates continuam integralmente validados; em updates, somente a allowlist canônica pode mudar e cada campo afetado tem o tipo validado. Campos históricos podem sobreviver apenas inalterados. A entrada mantém allowlist, identidade, tipos centrais e nutrientes; `foodSnapshot` não duplica as 18 verificações. Para o score, as rules validam o envelope superior e os nomes `protein`/`kcal`/`fiber`/`salt`/`carbs`/`fat`; o cliente valida profundamente cada componente e oculta o grupo inteiro ao encontrar campo/tipo malformado. O emulador cobre o snapshot completo e uma injeção administrativa malformada lida pelo cliente. Em 02/09/2026, a tentativa 2 do run `33575611133` validou o SHA antes do deploy; após a publicação, a tentativa 3 repetiu toda a matriz autenticada contra produção e ficou verde.
 
-### [C14-C] - App Check no Worker de IA
+### [C14-C1] - Observação do App Check no Worker
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 10/09/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge da conclusão da C14-C.
-- **Minutos de CI:** 85 min acumulados até aqui (PR #189: 1 leve + 39 pesado; PR #191: 1 leve + 44 pesado).
-- **Propósito:** proteger a cota e os endpoints de IA contra clientes automatizados que possuam apenas uma conta Firebase válida, sem repetir uma quebra de clientes durante o rollout.
-- **O que se planeja fazer:** executar rollout progressivo em cinco fases — observação, envio pelos clientes, debug provider no CI, validação Pages/AAB e enforcement.
-- **Recursos/arquivos principais envolvidos:** `/worker/src/firebase-app-check-token.js`, `/worker/src/ai-worker.js`, `/worker/wrangler.jsonc`, `/ai-client.js`, `/image-meal-client.js`, composições legado/Vite, inicialização App Check web/Android, CI autenticado, testes Worker/Pages/AAB e `/documentation/estado-atual/C14_C_APP_CHECK_WORKER_ROLLOUT.md`.
-- **O que foi feito:** em 10/09/2026 foi implementada a verificação própria dos tokens Firebase App Check no Worker: JWKS oficial com cache limitado a seis horas, assinatura RS256, `typ`, `kid`, emissor, audiência, expiração e allowlist dos app IDs Web/Android. Os clientes de texto e imagem passaram a obter e enviar `X-Firebase-AppCheck`, falhando de forma sanitizada antes do upload quando a prova do app não está disponível. O CORS e os verificadores de deploy reconhecem o cabeçalho. O run autenticado `34478874949` ficou integralmente verde, incluindo o debug provider do App Check, e a versão Worker `632877f3-e51f-4226-92fa-0b139e51e459` foi publicada em `observe` e aprovada no smoke externo. Depois do hotfix #191, o Pages foi validado com login normal e os três fluxos de IA. Em 15/09/2026, o AAB versionCode 16 distribuído pela Play concluiu a prova Android/Play Integrity da C14-C4 com conta descartável e os mesmos três fluxos; resta somente ativar e validar `enforce` na C14-C5.
-- **Alinhamento:** parcial — fases 1–4 foram concluídas; somente o enforcement permanece. A descoberta do gate de perfil ampliou a validação sem alterar o objetivo e teve impacto positivo.
+- **Data de conclusão:** 10/09/2026.
+- **Tempo decorrido:** não separado individualmente; C14-C1 a C14-C3 foram entregues no PR #189, cujo tempo total foi 1 d 16 h 20 min.
+- **Minutos de CI:** não separados individualmente; PR #189 totalizou 40 min (1 leve + 39 pesado).
+- **Propósito:** medir tokens App Check válidos e inválidos antes de bloquear clientes legítimos.
+- **O que se planeja fazer:** validar criptograficamente o token no Worker em modo `observe`, com métricas sanitizadas e allowlist de apps.
+- **Recursos/arquivos principais envolvidos:** `/worker/src/firebase-app-check-token.js`, `/worker/src/ai-worker.js`, `/worker/wrangler.jsonc`, JWKS Firebase, testes do Worker e runbook C14-C.
+- **O que foi feito:** o Worker passou a verificar RS256, `typ`, `kid`, emissor, audiência, expiração e app ID com JWKS cacheado por no máximo seis horas. A versão `632877f3-e51f-4226-92fa-0b139e51e459` foi publicada em `observe` e passou no smoke externo sem bloquear clientes antigos.
+- **Alinhamento:** 100%. A observação foi implantada antes de qualquer enforcement, como aprovado; impacto positivo.
+- **PRs/commits relacionados:** PR #189, commit `c9d8796`, merge `323610e`.
+
+### [C14-C2] - Clientes enviam token App Check
+
+- **Status:** concluído.
+- **Data de início:** 10/09/2026.
+- **Data de conclusão:** 12/09/2026.
+- **Tempo decorrido:** não separado individualmente; C14-C1 a C14-C3 foram entregues no PR #189, cujo tempo total foi 1 d 16 h 20 min.
+- **Minutos de CI:** não separados individualmente; PR #189 totalizou 40 min (1 leve + 39 pesado).
+- **Propósito:** anexar atestação às chamadas de IA sem transmitir conteúdo quando a prova do app falhar.
+- **O que se planeja fazer:** obter token real e enviar `X-Firebase-AppCheck` nas superfícies de texto e imagem, em Web e Android.
+- **Recursos/arquivos principais envolvidos:** `/app-check-client.js`, `/src/firebase/app-check-client.js`, `/ai-client.js`, `/image-meal-client.js`, demais clientes de IA, composições legado/Vite e ponte `@capacitor-firebase/app-check`.
+- **O que foi feito:** todos os clientes de IA passaram a obter e enviar `X-Firebase-AppCheck`; erro ou token dummy é rejeitado de forma sanitizada antes do upload de prompt ou imagem. CORS e verificadores de deploy reconhecem o novo cabeçalho.
+- **Alinhamento:** 100%. O envio foi integrado sem alterar contratos funcionais dos sete fluxos; impacto positivo.
+- **PRs/commits relacionados:** PR #189, commit `c9d8796`, merge `323610e`.
+
+### [C14-C3] - Debug provider no CI
+
+- **Status:** concluído.
+- **Data de início:** 10/09/2026.
+- **Data de conclusão:** 12/09/2026.
+- **Tempo decorrido:** não separado individualmente; C14-C1 a C14-C3 foram entregues no PR #189, cujo tempo total foi 1 d 16 h 20 min.
+- **Minutos de CI:** não separados individualmente; PR #189 totalizou 40 min (1 leve + 39 pesado).
+- **Propósito:** permitir que o CI autenticado exercite App Check sem usar atestação real de produção.
+- **O que se planeja fazer:** configurar o debug provider registrado e comprovar chamadas autenticadas no pipeline, mantendo o segredo somente no GitHub Actions.
+- **Recursos/arquivos principais envolvidos:** workflows autenticados, segredo do debug provider, inicialização Firebase/App Check, clientes de IA e matriz Playwright.
+- **O que foi feito:** o run autenticado `34478874949` validou o debug provider e a matriz integral do PR #189 sem expor o segredo no repositório ou nos logs.
+- **Alinhamento:** 100%. O CI permaneceu funcional depois da introdução do cabeçalho App Check; impacto positivo.
+- **PRs/commits relacionados:** PR #189, commit `c9d8796`, merge `323610e`.
 
 ### [C14-C4] - Validação real no Pages e no AAB distribuído pela Play
 
@@ -214,16 +259,28 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Recursos/arquivos principais envolvidos:** `/app-check-client.js`, `/src/firebase/app-check-client.js`, `/ai-client.js`, `/image-meal-client.js`, ponte `@capacitor-firebase/app-check`, Worker em modo `observe`, Pages, AAB versionCode 16, Play Store interna, Galaxy SM-S938B, ADB/logcat e `/documentation/estado-atual/C14_C_APP_CHECK_WORKER_ROLLOUT.md`.
 - **O que foi feito:** após o PR #191, o Pages foi validado com login normal, ausência do modal indevido de perfil e sucesso nos três fluxos de IA. Em 15/09/2026, reutilizou-se o AAB real da CAM-RED-2, versionCode 16, instalado pela Play com `installerPackageName=com.android.vending`. A automação ADB usou exclusivamente uma conta descartável e confirmou login, Descrever prato, Reconhecer por foto com cópia sanitizada de foto aprovada e Avaliar refeição com explicação. Nenhuma refeição foi persistida; o logcat amostrado não apresentou erro fatal, recusa do Firestore ou falha de transporte de IA. O modo `observe` não produz prova server-side definitiva da aceitação criptográfica do token; por desenho, essa prova final ocorre na C14-C5 quando chamadas sem App Check forem recusadas e os mesmos fluxos legítimos continuarem verdes. Ao final, a sessão descartável, mídia temporária e processos ADB foram removidos e DND, sincronização e timeout de tela voltaram aos valores anteriores.
 - **Alinhamento:** 100%. Todo o escopo aprovado para Pages e AAB real foi comprovado; reaproveitar o artefato já distribuído evitou novo build/instalação sem enfraquecer a evidência. O impacto foi positivo. A limitação deliberada do modo `observe` não é desvio: o enforcement e sua prova negativa pertencem à C14-C5.
-- **PRs/commits relacionados:** PR #189 (cliente App Check), PR #191 (gate de perfil), PR #203/CAM-RED-2 (AAB versionCode 16, merge `caeb515`) e PR #205 (fechamento documental da C14-C4, merge `c9f5713`). — **Chat:** Trofia-Principal.
+- **PRs/commits relacionados:** PR #189 (cliente App Check), PR #191 (gate de perfil), PR #203/CAM-RED-2 (AAB versionCode 16, merge `caeb515`), PR #205 (fechamento documental, merge `c9f5713`) e PR #206 (métricas pós-merge, merge `8ead0ee`). — **Chat:** Trofia-Principal.
+
+### [C14-C5] - Enforcement obrigatório no Worker
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** rejeitar chamadas de IA sem atestação válida somente após os gates Web, CI e Android reais.
+- **O que se planeja fazer:** registrar a versão `observe`, ativar `APP_CHECK_MODE = "enforce"`, exigir `401 app-check-required` sem token, repetir via ADB os três fluxos legítimos no AAB versionCode 16 e reverter imediatamente ao primeiro erro inesperado do cliente real.
+- **Recursos/arquivos principais envolvidos:** Worker, Wrangler, versão de rollback `observe`, Firebase App Check, CI, Pages, AAB versionCode 16, Galaxy SM-S938B e documentação de rollout.
 
 ### [C14-C-PROFILE-GATE] - Corrida entre App Check, cache e perfil obrigatório
 
 - **Status:** concluído.
+- **Data de início:** 12/09/2026.
 - **Data de conclusão:** 12/09/2026.
 - **Tempo decorrido:** 1 h 31 min.
 - **Minutos de CI:** 45 min (1 leve + 44 pesado).
-- **O que se planeja fazer:** exigir token App Check real, usar leitura de servidor no gate e impedir o modal de cadastro em login normal ou falha transitória.
 - **Propósito:** impedir que uma leitura aparentemente bem-sucedida, mas atendida por cache desatualizado durante a obtenção do token App Check, seja interpretada como perfil ausente e abra uma tela exclusiva da criação de conta.
+- **O que se planeja fazer:** exigir token App Check real, usar leitura de servidor no gate e impedir o modal de cadastro em login normal ou falha transitória.
 - **Recursos/arquivos principais envolvidos:** `/app-check-client.js`, `/src/firebase/app-check-client.js`, `/firebase-firestore-sdk.js`, `/src/firebase/firebase-firestore-sdk.js`, `/profile-validation.js`, `/src/App.jsx`, testes unitários/smoke e documentação de C14-C.
 - **O que foi feito:** em 12/09/2026, durante a fase 4 do rollout C14-C no Pages, uma conta antiga com perfil completo recebeu o modal “Completar perfil nutricional”; após F5 o modal desapareceu e Descrever prato, Reconhecer por foto e Avaliar refeição com explicação funcionaram. O diagnóstico comprovou uma categoria distinta da C14-A: não houve exceção mascarada, mas uma leitura `getDoc()` aceita como sucesso a partir de cache antigo. O hotfix rejeita resultados/dummy tokens, espera token real antes da primeira leitura protegida, usa `getDocFromServer()` para o gate, remove App Check do timeout de autenticação, mostra erro recuperável e só retorna `requires-completion` quando `isNewAccount === true`. Após o merge, o login e os três fluxos de IA foram validados no Pages sem reabrir o modal.
 - **Alinhamento:** 100%; todos os cenários aprovados foram cobertos e a prova real confirmou a correção. Impacto final positivo.
@@ -232,55 +289,70 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 ### [C14-D] - Android e cadeia de release
 
 - **Status:** não iniciado.
+- **Data de início:** não iniciado.
 - **Data de conclusão:** não iniciado.
 - **Tempo decorrido:** pendente de merge.
 - **Minutos de CI:** 0 min; não iniciado.
-- **O que se planeja fazer:** desligar Auto Backup, restringir FileProvider/cleartext e tornar configuração/manifests do AAB verificáveis.
 - **Propósito:** reduzir exposição de dados locais e tornar o artefato Android verificável e fail-closed quanto à configuração Firebase e às propriedades de segurança do manifesto.
+- **O que se planeja fazer:** desligar Auto Backup, restringir FileProvider/cleartext e tornar configuração/manifests do AAB verificáveis.
 - **Recursos/arquivos principais envolvidos:** `/android/app/src/main/AndroidManifest.xml`, `/android/app/src/main/res/xml/file_paths.xml`, `/android/app/build.gradle`, scripts/testes de release, AAB assinado e aparelho físico.
 - **O que foi feito:** nenhuma implementação iniciada. Está aprovado desligar o Auto Backup Android; também serão tratados `FileProvider` restrito, cleartext explicitamente negado, validação semântica de `google-services.json` e manifesto/hash reproduzível do release.
 
 ### [C14-E] - Auth, sessão e onboarding recuperável
 
 - **Status:** não iniciado.
+- **Data de início:** não iniciado.
 - **Data de conclusão:** não iniciado.
 - **Tempo decorrido:** pendente de merge.
 - **Minutos de CI:** 0 min; não iniciado.
-- **O que se planeja fazer:** aplicar senha mínima de 12 caracteres, sessão `SESSION`/`LOCAL` explícita e onboarding recuperável.
 - **Propósito:** impedir contas parcialmente configuradas por falhas silenciosas, alinhar a senha mínima e dar ao usuário controle explícito sobre a persistência da sessão web.
+- **O que se planeja fazer:** aplicar senha mínima de 12 caracteres, sessão `SESSION`/`LOCAL` explícita e onboarding recuperável.
 - **Recursos/arquivos principais envolvidos:** `/login-screen.js`, runtime Firebase Auth modular, i18n PT/EN/ES, testes de onboarding/sessão e configuração manual da política de senha no Firebase Console.
 - **O que foi feito:** nenhuma implementação iniciada. Estão aprovados mínimo de 12 caracteres sem composição forçada e o checkbox “Manter logado”: desmarcado usa persistência `SESSION`; marcado usa `LOCAL`, sem janela de tolerância após fechar.
 
-### [C14-F] - Worker, observabilidade, Functions, IAM e dependências
+### [C14-F1] - Worker, tiers e observabilidade
 
 - **Status:** não iniciado.
+- **Data de início:** não iniciado.
 - **Data de conclusão:** não iniciado.
 - **Tempo decorrido:** pendente de merge.
 - **Minutos de CI:** 0 min; não iniciado.
-- **O que se planeja fazer:** executar F1 (tiers, limites, observabilidade) e F2 (auditoria IAM/invocadores/dependências) na ordem aprovada.
-- **Propósito:** limitar abuso e falhas do backend, criar observabilidade sanitizada e auditar privilégios efetivos da infraestrutura sem ampliar IAM antes de conhecer o estado real.
-- **Recursos/arquivos principais envolvidos:** `/worker/src/`, Durable Object/rate limiter, `/functions/`, Cloud Functions/Tasks, Google Cloud IAM, Artifact/Cloud Logging, lockfiles e testes de backend.
-- **O que foi feito:** nenhuma implementação iniciada. O plano aprovado divide a fatia em F1 (infraestrutura de tiers por UID mantida desligada nos testes, UID pseudonimizado, timeout/limite de resposta, métricas endpoint/status/escopo/latência por 30 dias e compatibilidade do Worker) e F2 (auditoria somente leitura de IAM/invocadores, alertas e atualizações controladas; criação de service accounts de privilégio mínimo depende do resultado da auditoria).
+- **Propósito:** preparar limites comerciais e monitoramento sem dados pessoais antes da distribuição pública.
+- **O que se planeja fazer:** modelar tiers com enforcement individual desligado durante os testes, pseudonimizar identificadores, limitar timeout/saída e manter métricas sanitizadas por 30 dias.
+- **Recursos/arquivos principais envolvidos:** `/worker/src/`, Durable Object, rate limiter, Cloudflare/Google Cloud Logging e Monitoring, contratos e testes.
+
+### [C14-F2] - IAM, invocadores e dependências
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** reduzir privilégios e dependências somente depois de conhecer o estado administrativo real.
+- **O que se planeja fazer:** auditar IAM, contas de serviço, invocadores, Functions/Tasks e lockfiles antes de criar identidades mínimas ou alterar privilégios.
+- **Recursos/arquivos principais envolvidos:** Google Cloud IAM, Firebase Functions, Cloud Tasks, Artifact Registry, lockfiles, relatórios administrativos e documentação de decisões.
 
 ### [C14-G] - Web, CSP e superfícies de debug
 
 - **Status:** não iniciado.
+- **Data de início:** não iniciado.
 - **Data de conclusão:** não iniciado.
 - **Tempo decorrido:** pendente de merge.
 - **Minutos de CI:** 0 min; não iniciado.
-- **O que se planeja fazer:** aplicar CSP compatível com os provedores atuais e restringir superfícies globais de debug.
 - **Propósito:** reduzir o impacto de uma eventual XSS e impedir que APIs globais de diagnóstico permaneçam disponíveis indevidamente em produção.
+- **O que se planeja fazer:** aplicar CSP compatível com os provedores atuais e restringir superfícies globais de debug.
 - **Recursos/arquivos principais envolvidos:** `/index.html`, CSP via `<meta http-equiv>`, integrações Firebase/reCAPTCHA/Worker/Google APIs, globals de debug e matriz PT/EN/ES em Pages.
 - **O que foi feito:** nenhuma implementação iniciada. Está aprovada a CSP imediata no GitHub Pages, inicialmente via meta e compatível com os serviços atualmente necessários.
 
 ### [C14-H] - Staging, validação final e rollout
 
 - **Status:** não iniciado.
+- **Data de início:** não iniciado.
 - **Data de conclusão:** não iniciado.
 - **Tempo decorrido:** pendente de merge.
 - **Minutos de CI:** 0 min; não iniciado.
-- **O que se planeja fazer:** criar staging separado e executar a matriz destrutiva/final antes do lançamento público.
 - **Propósito:** comprovar o endurecimento completo em um ambiente destrutivo separado antes do lançamento público e produzir o handoff operacional para C16/C25.
+- **O que se planeja fazer:** criar staging separado e executar a matriz destrutiva/final antes do lançamento público.
 - **Recursos/arquivos principais envolvidos:** novo projeto Firebase staging, emuladores, CI, Pages, Worker, Functions/Tasks, AAB distribuído pela Play, matriz offline/multiaba/backup/exclusão, inventário IAM/secrets/dependências e documentação operacional.
 - **O que foi feito:** nenhuma implementação iniciada. Está aprovada a criação de um projeto Firebase separado para testes destrutivos; a matriz final cobrirá cross-account, payloads malformados, App Check, rate limit, tarefas duplicadas, cache/lifecycle, Auto Backup, rollback e validação física.
 
@@ -397,6 +469,31 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 **Alinhamento:** parcial — o PR entregou corretamente observação, envio pelos clientes e debug provider no CI; a validação do Pages revelou uma corrida de perfil corrigida no PR #191, enquanto AAB e enforcement permaneceram nos gates aprovados. O desvio teve impacto positivo por impedir um enforcement prematuro.
 
 **PRs/commits relacionados:** PR [#189](https://github.com/magnoClovis/nutrition-tracker/pull/189); head c9d87966; merge 323610e0.
+
+### [DOC-FORMAT-198] - Padronização detalhada das entradas históricas
+
+- **Status:** concluído.
+- **Data de início:** 14/09/2026.
+- **Data de conclusão:** 14/09/2026.
+- **Tempo decorrido:** 2 min.
+- **Minutos de CI:** 1 min (1 leve + 0 pesado).
+- **Propósito:** substituir registros compactados por um formato verificável e consistente, com rastreabilidade suficiente para comparar planejamento e entrega.
+- **O que se planeja fazer:** reformatar as entradas da frente principal no `RESUMO-STATUS.md`, acrescentar datas, propósito, escopo aprovado, recursos, entrega e alinhamento e consolidar as duplicações conhecidas do C14.
+- **Recursos/arquivos principais envolvidos:** `/documentation/estado-atual/RESUMO-STATUS.md`, histórico Git/PRs, validação estrutural e preflight documental.
+- **O que foi feito:** o PR #198 normalizou 78 entradas e consolidou no resumo compartilhado C14-B1/B2, C14-C1–C5 e C14-F1/F2. A auditoria de 15/09 confirmou, porém, que o histórico desta frente ainda preservava B, C e F como agregados; essa lacuna residual passou a ser tratada separadamente em DOC-RECONCILIACAO-C14.
+- **Alinhamento:** divergiu parcialmente do objetivo completo — o `RESUMO-STATUS.md` foi corrigido, mas a mesma granularidade não chegou ao histórico. O impacto inicial foi positivo, e o desvio documental está sendo corrigido sem alterar fatos de produto.
+- **PRs/commits relacionados:** PR #198, commit `edb8a9f`, merge `8c6c9a9`.
+
+### [DOC-RECONCILIACAO-C14] - Granularidade e gate documental da frente principal
+
+- **Status:** em andamento.
+- **Data de início:** 15/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** pendente de conclusão dos checks documentais.
+- **Propósito:** corrigir a divergência entre a granularidade já existente no resumo compartilhado e o histórico da frente principal e impedir que documentação volte a ser tratada como acabamento opcional.
+- **O que se planeja fazer:** separar C14-B1/B2, C14-C1–C5 e C14-F1/F2 em registros completos, eliminar agregados duplicados, formalizar a Definition of Done documental e torná-la instrução operacional carregada no repositório.
+- **Recursos/arquivos principais envolvidos:** `/AGENTS.md`, `/documentation/PADRAO-DOCUMENTACAO.md`, `/documentation/README.md`, `/documentation/estado-atual/RESUMO-STATUS.md` e este histórico.
 
 ## Métricas retroativas
 
