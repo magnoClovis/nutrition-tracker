@@ -1291,13 +1291,14 @@
 
 ### [C14-C4] - Validação Pages e AAB real
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 12/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 15/09/2026.
 - **Propósito:** provar web e Play Integrity reais antes de tornar o Worker obrigatório.
 - **O que se planeja fazer:** validar login e três fluxos de IA no Pages; depois gerar/distribuir AAB e repetir no aparelho físico.
-- **Recursos/arquivos principais envolvidos:** `profile-validation.js`, `firebase-firestore-sdk.js`, `app-check-client.js`, Pages, AAB Play, aparelho real e `C14_C_APP_CHECK_WORKER_ROLLOUT.md`.
-- **O que foi feito:** O Pages e os três fluxos de IA passaram após o PR #191; a fase também corrigiu a corrida que abria onboarding numa conta antiga ao exigir token real, leitura de servidor e erro recuperável. Falta a validação do AAB com Play Integrity.
+- **Recursos/arquivos principais envolvidos:** `profile-validation.js`, `firebase-firestore-sdk.js`, `app-check-client.js`, ponte nativa `@capacitor-firebase/app-check`, Worker em modo `observe`, Pages, AAB Play versionCode 16, Galaxy SM-S938B, ADB/logcat e `C14_C_APP_CHECK_WORKER_ROLLOUT.md`.
+- **O que foi feito:** O Pages e os três fluxos de IA passaram após o PR #191; em 15/09, a mesma instalação versionCode 16 da CAM-RED-2, distribuída pela Play (`installerPackageName=com.android.vending`), validou com conta descartável login sem modal indevido, Descrever prato, Reconhecer por foto e Avaliar refeição com explicação, sem persistir refeição nem registrar falhas fatais, de Firestore ou transporte de IA.
+- **Alinhamento:** 100%; a reutilização do AAB real já instalado evitou outro upload sem reduzir a prova aprovada, e a confirmação criptográfica definitiva do bloqueio permanece corretamente reservada à C14-C5.
 
 ### [C14-C5] - Enforcement obrigatório no Worker
 
@@ -1305,7 +1306,7 @@
 - **Data de início:** não iniciado.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** rejeitar chamadas de IA sem atestação válida somente depois dos gates web/Android.
-- **O que se planeja fazer:** ativar enforcement, repetir smokes/CI/Pages/AAB e documentar rollback.
+- **O que se planeja fazer:** registrar a versão `observe`, ativar `APP_CHECK_MODE = "enforce"`, exigir `401 app-check-required` sem token, repetir via ADB os três fluxos legítimos no AAB versionCode 16 e reverter imediatamente ao primeiro erro inesperado do cliente real.
 - **Recursos/arquivos principais envolvidos:** Worker, configuração Wrangler, App Check Firebase, CI, Pages, AAB real e documentação de rollout.
 
 ### [C14-D] - Android e cadeia de release

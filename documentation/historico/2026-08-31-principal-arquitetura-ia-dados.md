@@ -192,14 +192,29 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 ### [C14-C] - App Check no Worker de IA
 
 - **Status:** em andamento.
+- **Data de início:** 10/09/2026.
 - **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge da conclusão da C14-C.
 - **Minutos de CI:** 85 min acumulados até aqui (PR #189: 1 leve + 39 pesado; PR #191: 1 leve + 44 pesado).
-- **O que se planeja fazer:** executar rollout progressivo em cinco fases — observação, envio pelos clientes, debug provider no CI, validação Pages/AAB e enforcement.
 - **Propósito:** proteger a cota e os endpoints de IA contra clientes automatizados que possuam apenas uma conta Firebase válida, sem repetir uma quebra de clientes durante o rollout.
+- **O que se planeja fazer:** executar rollout progressivo em cinco fases — observação, envio pelos clientes, debug provider no CI, validação Pages/AAB e enforcement.
 - **Recursos/arquivos principais envolvidos:** `/worker/src/firebase-app-check-token.js`, `/worker/src/ai-worker.js`, `/worker/wrangler.jsonc`, `/ai-client.js`, `/image-meal-client.js`, composições legado/Vite, inicialização App Check web/Android, CI autenticado, testes Worker/Pages/AAB e `/documentation/estado-atual/C14_C_APP_CHECK_WORKER_ROLLOUT.md`.
-- **O que foi feito:** em 10/09/2026 foi implementada a verificação própria dos tokens Firebase App Check no Worker: JWKS oficial com cache limitado a seis horas, assinatura RS256, `typ`, `kid`, emissor, audiência, expiração e allowlist dos app IDs Web/Android. Os clientes de texto e imagem passaram a obter e enviar `X-Firebase-AppCheck`, falhando de forma sanitizada antes do upload quando a prova do app não está disponível. O CORS e os verificadores de deploy reconhecem o cabeçalho. O run autenticado `34478874949` ficou integralmente verde, incluindo o debug provider do App Check, e a versão Worker `632877f3-e51f-4226-92fa-0b139e51e459` foi publicada em `observe` e aprovada no smoke externo. Depois do hotfix #191, o Pages foi validado com login normal e os três fluxos de IA. Faltam um AAB real com Play Integrity e, somente depois, a ativação de `enforce` com nova validação para concluir a fatia.
-- **Alinhamento:** parcial — fases 1–3 e a validação Pages da fase 4 foram concluídas; AAB real e enforcement permanecem. A descoberta do gate de perfil ampliou a validação sem alterar o objetivo e teve impacto positivo.
+- **O que foi feito:** em 10/09/2026 foi implementada a verificação própria dos tokens Firebase App Check no Worker: JWKS oficial com cache limitado a seis horas, assinatura RS256, `typ`, `kid`, emissor, audiência, expiração e allowlist dos app IDs Web/Android. Os clientes de texto e imagem passaram a obter e enviar `X-Firebase-AppCheck`, falhando de forma sanitizada antes do upload quando a prova do app não está disponível. O CORS e os verificadores de deploy reconhecem o cabeçalho. O run autenticado `34478874949` ficou integralmente verde, incluindo o debug provider do App Check, e a versão Worker `632877f3-e51f-4226-92fa-0b139e51e459` foi publicada em `observe` e aprovada no smoke externo. Depois do hotfix #191, o Pages foi validado com login normal e os três fluxos de IA. Em 15/09/2026, o AAB versionCode 16 distribuído pela Play concluiu a prova Android/Play Integrity da C14-C4 com conta descartável e os mesmos três fluxos; resta somente ativar e validar `enforce` na C14-C5.
+- **Alinhamento:** parcial — fases 1–4 foram concluídas; somente o enforcement permanece. A descoberta do gate de perfil ampliou a validação sem alterar o objetivo e teve impacto positivo.
+
+### [C14-C4] - Validação real no Pages e no AAB distribuído pela Play
+
+- **Status:** concluído.
+- **Data de início:** 12/09/2026.
+- **Data de conclusão:** 15/09/2026.
+- **Tempo decorrido:** pendente de merge do PR documental da conclusão C14-C4.
+- **Minutos de CI:** 0 min adicionais nesta etapa; a validação física reutilizou o AAB versionCode 16 produzido após os gates verdes da CAM-RED-2.
+- **Propósito:** retirar o risco de bloquear clientes legítimos ao transformar App Check de observação em requisito obrigatório, validando reCAPTCHA Enterprise no Pages e Play Integrity no pacote efetivamente distribuído.
+- **O que se planeja fazer:** comprovar, antes do enforcement, que o cliente Web real e um AAB assinado instalado pela Play obtêm App Check e concluem Descrever prato, Reconhecer por foto e Avaliar refeição com explicação, sempre com conta descartável no aparelho.
+- **Recursos/arquivos principais envolvidos:** `/app-check-client.js`, `/src/firebase/app-check-client.js`, `/ai-client.js`, `/image-meal-client.js`, ponte `@capacitor-firebase/app-check`, Worker em modo `observe`, Pages, AAB versionCode 16, Play Store interna, Galaxy SM-S938B, ADB/logcat e `/documentation/estado-atual/C14_C_APP_CHECK_WORKER_ROLLOUT.md`.
+- **O que foi feito:** após o PR #191, o Pages foi validado com login normal, ausência do modal indevido de perfil e sucesso nos três fluxos de IA. Em 15/09/2026, reutilizou-se o AAB real da CAM-RED-2, versionCode 16, instalado pela Play com `installerPackageName=com.android.vending`. A automação ADB usou exclusivamente uma conta descartável e confirmou login, Descrever prato, Reconhecer por foto com cópia sanitizada de foto aprovada e Avaliar refeição com explicação. Nenhuma refeição foi persistida; o logcat amostrado não apresentou erro fatal, recusa do Firestore ou falha de transporte de IA. O modo `observe` não produz prova server-side definitiva da aceitação criptográfica do token; por desenho, essa prova final ocorre na C14-C5 quando chamadas sem App Check forem recusadas e os mesmos fluxos legítimos continuarem verdes. Ao final, a sessão descartável, mídia temporária e processos ADB foram removidos e DND, sincronização e timeout de tela voltaram aos valores anteriores.
+- **Alinhamento:** 100%. Todo o escopo aprovado para Pages e AAB real foi comprovado; reaproveitar o artefato já distribuído evitou novo build/instalação sem enfraquecer a evidência. O impacto foi positivo. A limitação deliberada do modo `observe` não é desvio: o enforcement e sua prova negativa pertencem à C14-C5.
+- **PRs/commits relacionados:** PR #189 (cliente App Check), PR #191 (gate de perfil), PR #203/CAM-RED-2 (AAB versionCode 16, merge `caeb515`) e PR documental da C14-C4 pendente nesta atualização. — **Chat:** Trofia-Principal.
 
 ### [C14-C-PROFILE-GATE] - Corrida entre App Check, cache e perfil obrigatório
 
@@ -344,17 +359,17 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ## Estado ao encerrar esta cronologia
 
-- Base atual verificada: `origin/main` no merge `e6f8bef`, em 12/09/2026.
+- Base atual verificada: `origin/main` no merge `caeb515`, em 15/09/2026.
 - Versão nomeada preparada no código: `0.11.0-beta`.
 - C22, C23, C28, C20 e C19: concluídos segundo o roadmap.
 - C08: implementação A–F concluída e mesclada no PR #167.
-- C14-A, C14-B1 e C14-B2: concluídas; C14-C: em andamento, com Pages validado depois do PR #191 e AAB/Play Integrity ainda pendente antes do enforcement.
+- C14-A, C14-B1 e C14-B2: concluídas; C14-C: em andamento, com fases C1–C4 concluídas no Pages e no AAB Play versionCode 16; falta somente C14-C5, enforcement obrigatório e sua validação pós-deploy.
 - Próximos gates de lançamento público no roadmap: conclusão de C14, C16 e C25.
 
 ## Fontes consultadas e limitações
 
 - GitHub: lista de PRs mesclados e abertos, títulos, datas e commits.
-- Git: `origin/main` no merge `e6f8bef` no momento desta atualização.
+- Git: `origin/main` no merge `caeb515` no momento desta atualização.
 - Documentos: `/ROADMAP.md`, `/VERSIONING.md`, `/PENDENCIAS.md`, `/AI_NUTRITION_POLICY.md`, `/NUTRITION_SCORE.md`, `/C22_ROLLOUT.md` e `/C24_FATIA_7_VALIDACAO.md`.
 - O histórico integral das conversas não existe no Git; decisões que dependem somente do diálogo e não deixaram evidência versionada são **não determinadas**.
 - APIs do GitHub estavam acessíveis durante esta captura; nenhum intervalo foi omitido por indisponibilidade da API.
