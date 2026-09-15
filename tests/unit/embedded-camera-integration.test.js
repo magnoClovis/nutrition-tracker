@@ -19,7 +19,7 @@ test('C3 composes the bounded native preview into the real image-meal flow', () 
   assert.match(app, /addAppStateListener:[\s\S]*androidAppRuntime\.addAppStateListener/);
   assert.match(app, /openCameraSettings:[\s\S]*androidAppRuntime\.openSettings/);
   assert.match(controller, /data-camera-open-settings[\s\S]*data-image-meal-choose-gallery/);
-  assert.match(controller, /data-camera-cancel[\s\S]*focus\(\{ preventScroll: true \}\)/);
+  assert.match(controller, /data-camera-close[\s\S]*focus\(\{ preventScroll: true \}\)/);
   assert.match(controller, /!isActive[\s\S]*interruptEmbeddedCamera/);
   assert.match(controller, /imageMealCameraActive:[\s\S]*cancelImageMealCamera/);
 });
@@ -43,4 +43,7 @@ test('C3 preserves a localized transparent viewport, HTML controls, theme tokens
   assert.match(css, /data-image-meal-announcement[\s\S]*clip:\s*rect/);
   assert.match(css, /data-camera-permission-recovery[\s\S]*accent-danger-bg/);
   assert.match(css, /data-image-meal-state="camera-frozen"[\s\S]*data-camera-frozen-photo/);
+  assert.match(css, /data-camera-stage-overlay[\s\S]*position:\s*fixed/);
+  assert.match(css, /data-camera-backdrop-pane[\s\S]*backdrop-filter:\s*blur/);
+  assert.match(css, /data-camera-stage-viewport[\s\S]*grid-area:\s*2 \/ 2/);
 });

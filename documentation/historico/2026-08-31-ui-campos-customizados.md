@@ -1183,6 +1183,30 @@ O gate remoto do PR #203 passou integralmente: execução leve `34985381035` em 
 
 **PRs/commits relacionados:** [PR #203](https://github.com/magnoClovis/nutrition-tracker/pull/203), commits [`50f9d8d`](https://github.com/magnoClovis/nutrition-tracker/commit/50f9d8d) (prova de handoff para a foto congelada) e [`d31132c`](https://github.com/magnoClovis/nutrition-tracker/commit/d31132c) (correção segura de lifecycle/captura), CI leve [`34985381035`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34985381035) e CI pesado autenticado [`34985380991`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34985380991). O commit documental final e o merge permanecem pendentes.
 
+## CAM-RED-3 — palco centralizado da câmera
+
+**Status:** em andamento — **Chat:** Trofia-UIUX.
+
+**Data de início:** 15/09/2026.
+
+**Data de conclusão:** não concluído.
+
+**Tempo decorrido:** pendente de merge.
+
+**Minutos de CI:** pendente.
+
+**Propósito:** tornar visível no aparelho a primeira parte do redesenho Proposta A, substituindo o preview embutido no card por um palco de captura centralizado e modal, sem alterar a base nativa comprovada pela CAM-RED-2 nem antecipar flash, análise em tela cheia ou resultado compartilhado.
+
+**Recursos:** React, CSS Glass UI/One UI 8, Camera Preview nativo com `toBack:true`, `camera-frozen`, `prefers-reduced-motion`, Playwright legado/Vite e Galaxy físico.
+
+**Arquivos:** `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, testes unitários e visuais da câmera, `documentation/estado-atual/RESUMO-STATUS.md` e este histórico.
+
+**O que se planeja fazer:** renderizar um retângulo de câmera centralizado; escurecer e desfocar somente o app ao redor sem aplicar blur à superfície nativa; bloquear scroll; manter dois fechamentos semanticamente distintos — câmera e reconhecimento —; animar expansão na abertura e contração no fechamento/captura; preservar redução de movimento, temas claro/escuro e textos/nomes acessíveis em PT/EN/ES; executar gates completos e apresentar prints ou vídeo do comportamento real no Galaxy antes de qualquer CAM-RED-4.
+
+**O que foi feito:** em andamento.
+
+**PRs/commits relacionados:** pendentes.
+
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
 **Data (se determinável):** não determinado.

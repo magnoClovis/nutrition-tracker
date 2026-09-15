@@ -128,6 +128,17 @@
         requestFrame(() => requestFrame(() => onEmbeddedPhotoPainted()));
       }
 
+      function closeCameraWithMotion(event, callback = onCancelCamera) {
+        const overlay = event?.currentTarget?.closest?.('[data-camera-stage-overlay="true"]');
+        const view = event?.currentTarget?.ownerDocument?.defaultView;
+        if (!overlay || view?.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+          callback?.();
+          return;
+        }
+        overlay.dataset.cameraStageClosing = "true";
+        view.setTimeout(() => callback?.(), 220);
+      }
+
       const photo = state.photo && state.photo.previewUrl
         ? React.createElement("img", {
             src: state.photo.previewUrl,
@@ -173,7 +184,26 @@
         const cameraReady = phase === "camera-active";
         content = React.createElement("div", {
           "data-image-meal-state": phase,
-          "data-embedded-camera": "true"
+          "data-camera-stage-overlay": "true",
+          role: "dialog",
+          "aria-modal": "true",
+          "aria-label": text("Câmera de refeição", "Meal camera", "Cámara de comida")
+        },
+        React.createElement("div", { "aria-hidden": "true", "data-camera-backdrop-pane": "top" }),
+        React.createElement("div", { "aria-hidden": "true", "data-camera-backdrop-pane": "left" }),
+        React.createElement("div", { "aria-hidden": "true", "data-camera-backdrop-pane": "right" }),
+        React.createElement("div", { "aria-hidden": "true", "data-camera-backdrop-pane": "bottom" }),
+        action("×", event => closeCameraWithMotion(event, onClose), false, {
+          allowWhileBusy: true,
+          props: {
+            "data-camera-recognition-close": "true",
+            "aria-label": text("Fechar reconhecimento", "Close recognition", "Cerrar reconocimiento")
+          }
+        }),
+        React.createElement("div", {
+          "data-camera-stage-viewport": "true",
+          "data-embedded-camera": "true",
+          "data-image-meal-state": phase
         },
         React.createElement("div", {
           ref: onCameraSurface,
@@ -193,12 +223,19 @@
           : phase === "camera-capturing"
             ? text("Capturando...", "Capturing...", "Capturando...")
             : text("Abrindo câmera...", "Opening camera...", "Abriendo cámara...")),
+        action("×", closeCameraWithMotion, false, {
+          allowWhileBusy: true,
+          props: {
+            "data-camera-close": "true",
+            "aria-label": text("Fechar câmera", "Close camera", "Cerrar cámara")
+          }
+        }),
+        React.createElement("span", { "aria-hidden": "true", "data-camera-frame-label": "true" },
+          phase === "camera-capturing"
+            ? text("Segure firme", "Hold still", "Mantén firme")
+            : text("Enquadre o prato", "Frame the plate", "Encuadra el plato"))),
         React.createElement("div", { "data-camera-controls": "true" },
-          action(text("Cancelar", "Cancel", "Cancelar"), onCancelCamera, false, {
-            allowWhileBusy: true,
-            props: { "data-camera-cancel": "true" }
-          }),
-          action(text("Capturar foto", "Capture photo", "Capturar foto"), onEmbeddedCapture, true, {
+          action("", onEmbeddedCapture, true, {
             allowWhileBusy: true,
             props: {
               "data-camera-shutter": "true",
@@ -210,10 +247,22 @@
       } else if (phase === "camera-frozen") {
         content = React.createElement("div", {
           "data-image-meal-state": "camera-frozen",
-          "data-embedded-camera": "true",
+          "data-camera-stage-overlay": "true",
+          role: "dialog",
+          "aria-modal": "true",
+          "aria-label": text("Foto capturada", "Captured photo", "Foto capturada"),
           "data-camera-flash-modes": Array.isArray(state.cameraFlashModes) ? state.cameraFlashModes.join(",") : "",
           "data-camera-flash-probe": state.cameraFlashProbe || "not-run"
-        }, photo);
+        },
+        React.createElement("div", { "aria-hidden": "true", "data-camera-backdrop-pane": "top" }),
+        React.createElement("div", { "aria-hidden": "true", "data-camera-backdrop-pane": "left" }),
+        React.createElement("div", { "aria-hidden": "true", "data-camera-backdrop-pane": "right" }),
+        React.createElement("div", { "aria-hidden": "true", "data-camera-backdrop-pane": "bottom" }),
+        React.createElement("div", {
+          "data-camera-stage-viewport": "true",
+          "data-embedded-camera": "true",
+          "data-image-meal-state": "camera-frozen"
+        }, photo));
       } else if (phase === "capturing") {
         content = React.createElement("div", {
           role: "status",
