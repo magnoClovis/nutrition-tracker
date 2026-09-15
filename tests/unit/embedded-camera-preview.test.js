@@ -275,10 +275,38 @@ test('does not resurrect an active phase when capture settles after cancellation
   });
   await fixture.preview.start(fixture.surface);
   const capture = fixture.preview.capture();
-  await fixture.preview.stop();
+  const stopping = fixture.preview.stop();
   releaseCapture({ value: 'late-jpeg' });
+  await stopping;
   await assert.rejects(capture, error => error.code === 'preview-capture-cancelled');
   assert.equal(fixture.preview.getPhase(), 'idle');
+});
+
+test('serializes native stop after an in-flight capture settles', async () => {
+  const module = await loadModule();
+  let releaseCapture;
+  const nativeCapture = new Promise(resolve => { releaseCapture = resolve; });
+  const calls = [];
+  const preview = module.createEmbeddedCameraPreview({
+    cameraPreviewPlugin: {
+      async start() {},
+      capture() { calls.push('capture'); return nativeCapture; },
+      async stop() { calls.push('stop'); },
+    },
+    cameraPermissionPlugin: createPermissionPlugin(),
+    isNativeAndroid: () => true,
+  });
+  await preview.start({ getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 200 }) });
+
+  const capture = preview.capture();
+  const stopping = preview.stop();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(calls, ['capture']);
+
+  releaseCapture({ value: 'late-jpeg' });
+  await stopping;
+  await assert.rejects(capture, error => error.code === 'preview-capture-cancelled');
+  assert.deepEqual(calls, ['capture', 'stop']);
 });
 
 test('retries one transient native stop failure before releasing the session', async () => {

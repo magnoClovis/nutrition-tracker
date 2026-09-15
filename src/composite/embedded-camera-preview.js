@@ -117,6 +117,7 @@ export function createEmbeddedCameraPreview({
 
   let phase = 'idle';
   let operationId = 0;
+  let pendingCapture = null;
 
   function withTimeout(operation, code) {
     let timerId;
@@ -219,11 +220,13 @@ export function createEmbeddedCameraPreview({
     const currentOperation = operationId;
     phase = 'capturing';
     try {
-      const result = await withTimeout(cameraPreviewPlugin.capture({
+      const nativeCapture = withTimeout(cameraPreviewPlugin.capture({
         quality: 100,
         width: 1280,
         height: 1280,
       }), 'preview-capture-timeout');
+      pendingCapture = nativeCapture;
+      const result = await nativeCapture;
       if (currentOperation !== operationId) {
         throw new EmbeddedCameraPreviewError('preview-capture-cancelled');
       }
@@ -236,6 +239,8 @@ export function createEmbeddedCameraPreview({
       if (currentOperation === operationId) phase = 'active';
       if (cause instanceof EmbeddedCameraPreviewError) throw cause;
       throw new EmbeddedCameraPreviewError('preview-capture-failed', cause);
+    } finally {
+      pendingCapture = null;
     }
   }
 
@@ -244,6 +249,7 @@ export function createEmbeddedCameraPreview({
     operationId += 1;
     phase = 'stopping';
     try {
+      if (pendingCapture) await pendingCapture.catch(() => {});
       await stopNative();
     } catch (cause) {
       if (cause instanceof EmbeddedCameraPreviewError) throw cause;
