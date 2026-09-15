@@ -66,13 +66,14 @@
 
 ### Encerramento do servidor de smoke legado no Windows
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 15/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 15/09/2026.
 - **Propósito:** impedir que o gate local fique aberto após todos os testes terminarem por causa de um processo auxiliar Node residual.
 - **O que se planeja fazer:** reproduzir em `origin/main`, confirmar porta/árvore de processos, tornar o encerramento do servidor determinístico no Windows e repetir o smoke completo sem alterar testes nem requisitos.
 - **Recursos/arquivos principais envolvidos:** `tests/smoke/serve-static.js`, `tests/smoke/server-global-teardown.js`, `playwright.config.js`, teste unitário dedicado, Playwright, Node.js e Windows.
-- **O que foi feito:** a baseline limpa isolou o processo Node órfão; um endpoint local de encerramento acionado pelo `globalTeardown` tornou o shutdown determinístico, e o gate local passou em 1.363 unitários, smoke legado/Vite e cutover 60/60.
+- **O que foi feito:** o PR #201 (`3165e91`, merge `a16ba79`) isolou o Node descendente órfão e adicionou shutdown local acionado pelo `globalTeardown`; o gate local e a segunda tentativa do CI autenticado `34913949788` passaram integralmente.
+- **Alinhamento:** 100%.
 
 > Regra de manutenção: nenhuma fatia aprovada é removida desta seção. Cada chat deve atualizar o status `não iniciado` → `em andamento` → `concluído`; novas fatias devem registrar, antes do código, `O que se planeja fazer` e, ao terminar, `O que foi feito` e `Alinhamento`.
 
@@ -1109,57 +1110,115 @@
 
 ### [CAM-RED-1] - Protótipo do redesenho centralizado
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Data de conclusão:** 15/09/2026.
 - **Propósito:** decidir visualmente o novo comportamento sem misturá-lo ao hotfix urgente.
 - **O que se planeja fazer:** prototipar preview central, backdrop, X, flash, transições, temas, idiomas e acessibilidade.
-- **Recursos/arquivos principais envolvidos:** protótipo HTML/CSS/JS externo e referências One UI 8/Glass UI.
+- **Recursos/arquivos principais envolvidos:** protótipo externo Claude Design em HTML/CSS/JS, exports claro/escuro e referências One UI 8/Glass UI; nenhum arquivo de runtime foi alterado.
+- **O que foi feito:** a Proposta A, “Continuidade total”, foi revisada e aprovada para câmera centralizada, análise sobre a foto capturada, sheet de resultado e reaproveitamento visual na busca manual antes de qualquer implementação real.
+- **Alinhamento:** 100%.
+
+> **Regra transversal dos gates CAM-RED:** monitorar especificamente `profile-incomplete-existing-account`; se reaparecer em qualquer execução local ou CI autenticada, parar a sequência e apresentar o padrão antes de prosseguir, sem reclassificá-lo automaticamente como falha isolada.
 
 ### [CAM-RED-2] - Prova técnica do redesenho no Android
 
 - **Status:** não iniciado — **Chat:** Trofia-UIUX.
 - **Data de início:** não determinado.
 - **Data de conclusão:** não iniciado.
-- **Propósito:** validar no aparelho as premissas nativas antes da integração visual definitiva.
-- **O que se planeja fazer:** provar empilhamento, máscara, controles HTML, scroll bloqueado e suporte real de flash.
-- **Recursos/arquivos principais envolvidos:** Camera Preview, WebView transparente, Capacitor/Gradle e Galaxy físico.
+- **Propósito:** comprovar a continuidade entre preview nativo, fotografia congelada e análise antes da integração visual definitiva.
+- **O que se planeja fazer:** introduzir e provar no fluxo real um estado de congelamento que exiba a foto antes de `stop()`, encerre a câmera logo após a primeira pintura confirmada, preserve cancelamento/background/timeouts e levante os modos reais de flash no Galaxy.
+- **Recursos/arquivos principais envolvidos:** `image-meal-flow.js`, `src/composite/embedded-camera-preview.js`, `image-meal-screen.js`, Camera Preview com `toBack:true`, testes unitários e Galaxy físico em build release.
 
-### [CAM-RED-3] - Overlay, fechamento e transições
-
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
-- **Propósito:** implementar a estrutura visual aprovada sem acoplar prematuramente o flash.
-- **O que se planeja fazer:** integrar preview central, backdrop, X dedicado e expansão/contração ao fluxo real.
-- **Recursos/arquivos principais envolvidos:** React, fluxo C24, `image-meal-screen.js`, `one-ui.css` e Camera Preview.
-
-### [CAM-RED-4] - Flash da câmera embutida
+### [CAM-RED-3] - Palco centralizado da câmera
 
 - **Status:** não iniciado — **Chat:** Trofia-UIUX.
 - **Data de início:** não determinado.
 - **Data de conclusão:** não iniciado.
-- **Propósito:** oferecer iluminação sem assumir suporte inexistente ou deixar hardware ligado.
-- **O que se planeja fazer:** detectar suporte, controlar flash com estados localizados/acessíveis e restaurá-lo em toda saída.
-- **Recursos/arquivos principais envolvidos:** API de flash do Camera Preview, estado React e testes Android.
+- **Propósito:** implementar a composição centralizada da Proposta A sem voltar ao card embutido antigo.
+- **O que se planeja fazer:** extrair o palco de captura, aplicar backdrop escurecido/desfoque somente ao app, bloquear scroll, separar o X da câmera do X do reconhecimento e animar expansão/contração com movimento reduzido; código de barras permanece fora do escopo.
+- **Recursos/arquivos principais envolvidos:** novo componente de captura UMD/ESM, `image-meal-screen.js`, `image-meal-flow.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `i18n.js` e testes visuais legado/Vite.
 
-### [CAM-RED-5] - Robustez e acessibilidade do redesenho
+### [CAM-RED-4] - Flash visual e funcional
 
 - **Status:** não iniciado — **Chat:** Trofia-UIUX.
 - **Data de início:** não determinado.
 - **Data de conclusão:** não iniciado.
-- **Propósito:** preservar as garantias C4a/C4b depois da mudança estrutural da câmera.
-- **O que se planeja fazer:** validar TalkBack, fonte 200%, contraste, PT/EN/ES, reduced-motion, permissões e lifecycle.
-- **Recursos/arquivos principais envolvidos:** ARIA/TalkBack, CSS responsivo, Playwright, Capacitor e Galaxy físico.
+- **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
+- **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
+- **Recursos/arquivos principais envolvidos:** `getSupportedFlashModes()`, `setFlashMode()`, serviço de preview, componente de captura, fluxo, CSS e validação física no Galaxy.
 
-### [CAM-RED-6] - Validação final do redesenho pela Play Store
+### [CAM-RED-5] - Análise honesta em tela cheia
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** substituir o processamento inline pela análise contínua sobre a fotografia capturada.
+- **O que se planeja fazer:** ocupar a tela com a foto sem blur, aplicar overlay translúcido, progresso indeterminado e Cancelar fixo, iniciar a análise automaticamente e usar textos honestos sem simular fases que o Worker não informa.
+- **Recursos/arquivos principais envolvidos:** novo componente de análise UMD/ESM, `image-meal-screen.js`, `image-meal-flow.js`, `one-ui.css`, `i18n.js`, safe areas e testes visuais.
+
+### [CAM-RED-6] - Timeout, classificação de falhas e retry
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** eliminar o carregamento infinito e permitir que o usuário saiba quando repetir ou abandonar a análise.
+- **O que se planeja fazer:** impor timeout inicialmente configurável em 45 s, separar falha de transporte, timeout, Worker/IA indisponível, resposta inválida, sessão e quota, preservar a foto no retry e ignorar respostas tardias; começa por protótipo focado dos erros.
+- **Recursos/arquivos principais envolvidos:** `image-meal-client.js`, `image-meal-flow.js`, componente de análise, `i18n.js`, AbortController/timers e testes unitários/smoke; nenhuma alteração em `worker/`.
+
+### [CAM-RED-7] - Resultado compartilhado e integração da foto
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** converter o resultado aprovado em componente reutilizável sem perder validação ou edição nutricional.
+- **O que se planeja fazer:** criar um sheet controlado de aproximadamente 68% com foto acima, porção, macros, nutrientes secundários, ingredientes editáveis, refeição e CTA fixo, integrando primeiro o resultado da foto e cobrindo confiança/dados incompletos/listas extensas.
+- **Recursos/arquivos principais envolvidos:** novo `meal-result-sheet.js` UMD/ESM, `meal-estimate-editor.js`, `meal-estimate.js`, `image-meal-screen.js`, ChoiceField, NumericField, `one-ui.css` e testes.
+
+### [CAM-RED-8] - Busca manual com o mesmo resultado
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** eliminar a duplicação visual e comportamental entre alimento pesquisado e estimativa por foto.
+- **O que se planeja fazer:** modernizar resultados dos alimentos salvos e abrir o mesmo `MealResultSheet` com origem verificada, porção e nutrientes recalculados; busca textual em base aberta permanece fora do escopo.
+- **Recursos/arquivos principais envolvidos:** `add-screen.js`, adaptador de resultado manual, `meal-result-sheet.js`, `nutrition-tracker-controller.js`, NumericField, ChoiceField, `one-ui.css`, `i18n.js` e testes.
+
+### [CAM-RED-9] - Robustez, acessibilidade e estados extremos
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** preservar integralmente CAM-C4a/C4b e os contratos nutricionais após a mudança estrutural.
+- **O que se planeja fazer:** revalidar permissão/Configurações/galeria, TalkBack, foco, 200%, contraste, 48 px, PT/EN/ES, reduced-motion, lifecycle, descarte temporário, baixa confiança, dados parciais, nomes/listas longos e zero ingredientes.
+- **Recursos/arquivos principais envolvidos:** componentes CAM-RED, ARIA/TalkBack, CSS responsivo, Playwright legado/Vite, Capacitor e Galaxy físico.
+
+### [CAM-RED-10] - Validação final do redesenho pela Play Store
 
 - **Status:** não iniciado — **Chat:** Trofia-UIUX.
 - **Data de início:** não determinado.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** concluir o redesenho somente com evidência do mesmo artefato entregue ao usuário.
-- **O que se planeja fazer:** publicar o AAB final no canal interno, instalar pela Play e executar a matriz física.
-- **Recursos/arquivos principais envolvidos:** AAB assinado, Google Play Console, telemetria de versão e Galaxy físico.
+- **O que se planeja fazer:** executar gates completos, gerar AAB fail-closed e assinado, publicar no canal interno, instalar pela Play e validar fisicamente câmera, flash, captura, análise, retry, resultado, registro, temas e lifecycle.
+- **Recursos/arquivos principais envolvidos:** Gradle/Capacitor, `google-services.json` fail-closed, AAB assinado, CI autenticado, Google Play Console e Galaxy físico.
+
+### Atalho de código de barras dentro da câmera — avaliação futura
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** avaliar separadamente se o scanner já existente deve compartilhar a nova superfície da câmera de refeição.
+- **O que se planeja fazer:** auditar UX e conflito de ciclo de vida entre Camera Preview e o scanner ML Kit antes de qualquer integração; o atalho está excluído de CAM-RED-2–10.
+- **Recursos/arquivos principais envolvidos:** fluxo de código de barras existente, `@capacitor-mlkit/barcode-scanning`, Camera Preview e Galaxy físico.
+
+### Busca textual em base aberta — avaliação futura
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não determinado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** avaliar uma fonte de busca além dos alimentos salvos sem introduzir dependência de dados dentro do redesenho visual.
+- **O que se planeja fazer:** definir provedor, contrato, privacidade, disponibilidade e UX em coordenação própria; CAM-RED-8 continuará restrita à fonte local já existente.
+- **Recursos/arquivos principais envolvidos:** fonte de alimentos ainda não definida, camada de dados, busca manual e coordenação com Trofia-Principal.
 
 ## Estado detalhado das fatias C14
 
