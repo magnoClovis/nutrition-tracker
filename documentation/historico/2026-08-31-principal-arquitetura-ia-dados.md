@@ -207,14 +207,14 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Status:** concluído.
 - **Data de início:** 12/09/2026.
 - **Data de conclusão:** 15/09/2026.
-- **Tempo decorrido:** pendente de merge do PR documental da conclusão C14-C4.
-- **Minutos de CI:** 0 min adicionais nesta etapa; a validação física reutilizou o AAB versionCode 16 produzido após os gates verdes da CAM-RED-2.
+- **Tempo decorrido:** 1 min 55 s.
+- **Minutos de CI:** 1 min (1 leve + 0 pesado); a validação física reutilizou o AAB versionCode 16 produzido após os gates verdes da CAM-RED-2.
 - **Propósito:** retirar o risco de bloquear clientes legítimos ao transformar App Check de observação em requisito obrigatório, validando reCAPTCHA Enterprise no Pages e Play Integrity no pacote efetivamente distribuído.
 - **O que se planeja fazer:** comprovar, antes do enforcement, que o cliente Web real e um AAB assinado instalado pela Play obtêm App Check e concluem Descrever prato, Reconhecer por foto e Avaliar refeição com explicação, sempre com conta descartável no aparelho.
 - **Recursos/arquivos principais envolvidos:** `/app-check-client.js`, `/src/firebase/app-check-client.js`, `/ai-client.js`, `/image-meal-client.js`, ponte `@capacitor-firebase/app-check`, Worker em modo `observe`, Pages, AAB versionCode 16, Play Store interna, Galaxy SM-S938B, ADB/logcat e `/documentation/estado-atual/C14_C_APP_CHECK_WORKER_ROLLOUT.md`.
 - **O que foi feito:** após o PR #191, o Pages foi validado com login normal, ausência do modal indevido de perfil e sucesso nos três fluxos de IA. Em 15/09/2026, reutilizou-se o AAB real da CAM-RED-2, versionCode 16, instalado pela Play com `installerPackageName=com.android.vending`. A automação ADB usou exclusivamente uma conta descartável e confirmou login, Descrever prato, Reconhecer por foto com cópia sanitizada de foto aprovada e Avaliar refeição com explicação. Nenhuma refeição foi persistida; o logcat amostrado não apresentou erro fatal, recusa do Firestore ou falha de transporte de IA. O modo `observe` não produz prova server-side definitiva da aceitação criptográfica do token; por desenho, essa prova final ocorre na C14-C5 quando chamadas sem App Check forem recusadas e os mesmos fluxos legítimos continuarem verdes. Ao final, a sessão descartável, mídia temporária e processos ADB foram removidos e DND, sincronização e timeout de tela voltaram aos valores anteriores.
 - **Alinhamento:** 100%. Todo o escopo aprovado para Pages e AAB real foi comprovado; reaproveitar o artefato já distribuído evitou novo build/instalação sem enfraquecer a evidência. O impacto foi positivo. A limitação deliberada do modo `observe` não é desvio: o enforcement e sua prova negativa pertencem à C14-C5.
-- **PRs/commits relacionados:** PR #189 (cliente App Check), PR #191 (gate de perfil), PR #203/CAM-RED-2 (AAB versionCode 16, merge `caeb515`) e PR #205 (fechamento documental da C14-C4). — **Chat:** Trofia-Principal.
+- **PRs/commits relacionados:** PR #189 (cliente App Check), PR #191 (gate de perfil), PR #203/CAM-RED-2 (AAB versionCode 16, merge `caeb515`) e PR #205 (fechamento documental da C14-C4, merge `c9f5713`). — **Chat:** Trofia-Principal.
 
 ### [C14-C-PROFILE-GATE] - Corrida entre App Check, cache e perfil obrigatório
 
