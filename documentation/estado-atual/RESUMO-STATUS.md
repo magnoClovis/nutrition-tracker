@@ -79,6 +79,7 @@
 
 ### Protocolo permanente de rastreamento
 
+- O padrão completo e a checklist obrigatória estão em `documentation/PADRAO-DOCUMENTACAO.md`; documentação é gate de conclusão, não etapa opcional posterior.
 - Assim que um fatiamento for aprovado, a sequência completa deve ser registrada aqui, inclusive as fatias ainda não iniciadas, e seus estados devem ser atualizados sem remover etapas futuras.
 - Cada fatia nova registra `O que se planeja fazer` antes da implementação; ao concluir, registra `O que foi feito` e `Alinhamento`. Neste resumo, cada campo permanece em uma frase breve.
 - Toda entrada da frente Trofia-Principal usa cabeçalho próprio `### [CÓDIGO] - Título` e campos separados para `Status`/`Chat`, `Data de início`, `Data de conclusão`, `Propósito`, `O que se planeja fazer` e `Recursos/arquivos principais envolvidos`; `O que foi feito` só aparece após progresso real e `Alinhamento` somente quando a fatia estiver concluída.
@@ -86,6 +87,15 @@
 - O histórico detalhado da frente registra os mesmos três campos. Quando o alinhamento for inferior a 100%, deve explicar o desvio real e classificar o impacto como positivo, negativo ou neutro.
 - Toda entrada de fatia/PR em `documentation/historico/*.md` registra `Tempo decorrido` e `Minutos de CI` logo após a data de conclusão. Antes do merge, o tempo permanece literalmente `pendente de merge`; depois do merge, o mesmo valor é copiado para a descrição do PR.
 - Commits e descrições de PR novos terminam com `Chat-Origin: <nome do chat>`; neste arquivo, toda atualização identifica o chat responsável pelo item.
+
+### [DOC-RECONCILIACAO-C14] - Granularidade e gate documental da frente principal
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 15/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** eliminar lacunas entre o resumo compartilhado e o histórico detalhado e impedir que novas fatias sejam encerradas sem documentação completa.
+- **O que se planeja fazer:** separar no histórico C14-B1/B2, C14-C1–C5 e C14-F1/F2, formalizar o padrão obrigatório e torná-lo instrução operacional do repositório.
+- **Recursos/arquivos principais envolvidos:** `AGENTS.md`, `documentation/PADRAO-DOCUMENTACAO.md`, `documentation/README.md`, `documentation/estado-atual/RESUMO-STATUS.md` e `documentation/historico/2026-08-31-principal-arquitetura-ia-dados.md`.
 
 ### Frente principal — sequências concluídas
 
