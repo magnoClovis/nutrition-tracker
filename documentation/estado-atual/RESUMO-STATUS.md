@@ -48,6 +48,17 @@
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 - **[DOC-TRACKING-193] Concluído (12/09/2026) — Chat: Trofia-Principal.** O que se planeja fazer: registrar integralmente as sequências aprovadas e formalizar planejamento, entrega, alinhamento e métricas. O que foi feito: 100 entradas de fatias foram normalizadas no PR #193, com escopos incertos de D3–D7 explicitamente delegados ao chat UI/UX. Alinhamento: 100%.
 
+### [DOC-FORMAT-198] - Padronização detalhada das entradas históricas
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 14/09/2026.
+- **Data de conclusão:** 14/09/2026.
+- **Propósito:** transformar registros compactados da frente principal em entradas verificáveis com campos separados e preservar a granularidade das sequências aprovadas.
+- **O que se planeja fazer:** reformatar as entradas sob responsabilidade da frente principal, adicionar datas, planejamento, recursos, entrega e alinhamento e consolidar duplicatas C14.
+- **Recursos/arquivos principais envolvidos:** `documentation/estado-atual/RESUMO-STATUS.md`, evidências de PR/commit e preflight documental.
+- **O que foi feito:** o PR #198 reformatou 78 entradas, consolidou o bloco C14 no resumo e registrou o padrão permanente então aprovado; a reconciliação posterior DOC-RECONCILIACAO-C14 corrige a granularidade que ainda faltava no histórico detalhado.
+- **Alinhamento:** divergiu parcialmente — o resumo foi normalizado, mas o histórico ainda agregava algumas sub-fatias C14; o impacto inicial foi positivo e a lacuna residual está sendo corrigida explicitamente no PR #208.
+
 ## O que está apenas planejado, ainda sem código completo
 
 ### Indispensável antes do lançamento público

@@ -259,7 +259,7 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Recursos/arquivos principais envolvidos:** `/app-check-client.js`, `/src/firebase/app-check-client.js`, `/ai-client.js`, `/image-meal-client.js`, ponte `@capacitor-firebase/app-check`, Worker em modo `observe`, Pages, AAB versionCode 16, Play Store interna, Galaxy SM-S938B, ADB/logcat e `/documentation/estado-atual/C14_C_APP_CHECK_WORKER_ROLLOUT.md`.
 - **O que foi feito:** após o PR #191, o Pages foi validado com login normal, ausência do modal indevido de perfil e sucesso nos três fluxos de IA. Em 15/09/2026, reutilizou-se o AAB real da CAM-RED-2, versionCode 16, instalado pela Play com `installerPackageName=com.android.vending`. A automação ADB usou exclusivamente uma conta descartável e confirmou login, Descrever prato, Reconhecer por foto com cópia sanitizada de foto aprovada e Avaliar refeição com explicação. Nenhuma refeição foi persistida; o logcat amostrado não apresentou erro fatal, recusa do Firestore ou falha de transporte de IA. O modo `observe` não produz prova server-side definitiva da aceitação criptográfica do token; por desenho, essa prova final ocorre na C14-C5 quando chamadas sem App Check forem recusadas e os mesmos fluxos legítimos continuarem verdes. Ao final, a sessão descartável, mídia temporária e processos ADB foram removidos e DND, sincronização e timeout de tela voltaram aos valores anteriores.
 - **Alinhamento:** 100%. Todo o escopo aprovado para Pages e AAB real foi comprovado; reaproveitar o artefato já distribuído evitou novo build/instalação sem enfraquecer a evidência. O impacto foi positivo. A limitação deliberada do modo `observe` não é desvio: o enforcement e sua prova negativa pertencem à C14-C5.
-- **PRs/commits relacionados:** PR #189 (cliente App Check), PR #191 (gate de perfil), PR #203/CAM-RED-2 (AAB versionCode 16, merge `caeb515`) e PR #205 (fechamento documental da C14-C4, merge `c9f5713`). — **Chat:** Trofia-Principal.
+- **PRs/commits relacionados:** PR #189 (cliente App Check), PR #191 (gate de perfil), PR #203/CAM-RED-2 (AAB versionCode 16, merge `caeb515`), PR #205 (fechamento documental, merge `c9f5713`) e PR #206 (métricas pós-merge, merge `8ead0ee`). — **Chat:** Trofia-Principal.
 
 ### [C14-C5] - Enforcement obrigatório no Worker
 
@@ -469,6 +469,20 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 **Alinhamento:** parcial — o PR entregou corretamente observação, envio pelos clientes e debug provider no CI; a validação do Pages revelou uma corrida de perfil corrigida no PR #191, enquanto AAB e enforcement permaneceram nos gates aprovados. O desvio teve impacto positivo por impedir um enforcement prematuro.
 
 **PRs/commits relacionados:** PR [#189](https://github.com/magnoClovis/nutrition-tracker/pull/189); head c9d87966; merge 323610e0.
+
+### [DOC-FORMAT-198] - Padronização detalhada das entradas históricas
+
+- **Status:** concluído.
+- **Data de início:** 14/09/2026.
+- **Data de conclusão:** 14/09/2026.
+- **Tempo decorrido:** 2 min.
+- **Minutos de CI:** 1 min (1 leve + 0 pesado).
+- **Propósito:** substituir registros compactados por um formato verificável e consistente, com rastreabilidade suficiente para comparar planejamento e entrega.
+- **O que se planeja fazer:** reformatar as entradas da frente principal no `RESUMO-STATUS.md`, acrescentar datas, propósito, escopo aprovado, recursos, entrega e alinhamento e consolidar as duplicações conhecidas do C14.
+- **Recursos/arquivos principais envolvidos:** `/documentation/estado-atual/RESUMO-STATUS.md`, histórico Git/PRs, validação estrutural e preflight documental.
+- **O que foi feito:** o PR #198 normalizou 78 entradas e consolidou no resumo compartilhado C14-B1/B2, C14-C1–C5 e C14-F1/F2. A auditoria de 15/09 confirmou, porém, que o histórico desta frente ainda preservava B, C e F como agregados; essa lacuna residual passou a ser tratada separadamente em DOC-RECONCILIACAO-C14.
+- **Alinhamento:** divergiu parcialmente do objetivo completo — o `RESUMO-STATUS.md` foi corrigido, mas a mesma granularidade não chegou ao histórico. O impacto inicial foi positivo, e o desvio documental está sendo corrigido sem alterar fatos de produto.
+- **PRs/commits relacionados:** PR #198, commit `edb8a9f`, merge `8c6c9a9`.
 
 ### [DOC-RECONCILIACAO-C14] - Granularidade e gate documental da frente principal
 
