@@ -2,7 +2,7 @@
 
 Estado: em andamento desde 10/09/2026. Este documento é o procedimento operacional do rollout; não declara o enforcement concluído antes dos gates reais.
 
-Progresso em 12/09/2026: o Worker `632877f3-e51f-4226-92fa-0b139e51e459` está publicado em observação e passou no smoke externo; o run autenticado `34478874949` validou a implementação e o debug provider. O PR #189 publicou o cliente e a validação manual do Pages confirmou Descrever prato, Reconhecer por foto e Avaliar refeição com explicação. A mesma validação revelou uma corrida no gate do perfil entre token App Check e snapshot de cache; o hotfix `C14-C-PROFILE-GATE` está em andamento. Por isso, a fase 4 permanece aberta, nenhum AAB novo foi solicitado e o enforcement continua desligado.
+Progresso em 15/09/2026: o Worker `632877f3-e51f-4226-92fa-0b139e51e459` continua publicado em observação e passou no smoke externo; o run autenticado `34478874949` validou a implementação e o debug provider. O PR #189 publicou o cliente, e o PR #191 corrigiu a corrida do gate de perfil descoberta na primeira validação do Pages. Depois do hotfix, Pages, login normal e os três fluxos de IA passaram. A fase 4 foi concluída no Android com o AAB versionCode 16 da CAM-RED-2, instalado pela Play (`installerPackageName=com.android.vending`) e validado no Galaxy SM-S938B com conta descartável. O enforcement continua desligado até a execução controlada da fase 5.
 
 ## Contrato de segurança
 
@@ -17,19 +17,19 @@ As chaves públicas são mantidas em memória conforme `Cache-Control`, com teto
 
 ## Fases obrigatórias
 
-1. **Observação:** publicar o Worker com `APP_CHECK_MODE = "observe"`. Tokens válidos e inválidos percorrem a verificação, mas a ausência/invalidade ainda não bloqueia clientes antigos.
-2. **Clientes:** publicar o cliente Web e gerar um AAB que enviem `X-Firebase-AppCheck` em toda chamada de texto ou imagem.
-3. **CI:** executar a suíte autenticada com o debug provider registrado do Firebase App Check. O segredo permanece somente no GitHub Actions.
-4. **Validação real:** confirmar no Pages e em um AAB instalado pela Play que texto, foto e ao menos um endpoint estruturado respondem com sucesso.
-5. **Enforcement:** alterar exclusivamente `APP_CHECK_MODE` para `"enforce"`, publicar o Worker e repetir os smokes reais. Ausência ou token inválido passa a receber `401`; indisponibilidade das chaves públicas recebe `503`.
+1. **Concluída — Observação:** publicar o Worker com `APP_CHECK_MODE = "observe"`. Tokens válidos e inválidos percorrem a verificação, mas a ausência/invalidade ainda não bloqueia clientes antigos.
+2. **Concluída — Clientes:** publicar o cliente Web e gerar um AAB que enviem `X-Firebase-AppCheck` em toda chamada de texto ou imagem.
+3. **Concluída — CI:** executar a suíte autenticada com o debug provider registrado do Firebase App Check. O segredo permanece somente no GitHub Actions.
+4. **Concluída — Validação real:** Pages e AAB Play versionCode 16 concluíram login e os fluxos Descrever prato, Reconhecer por foto e Avaliar refeição com explicação. A prova Android usou conta descartável, ADB e Galaxy físico.
+5. **Não iniciada — Enforcement:** alterar exclusivamente `APP_CHECK_MODE` para `"enforce"`, publicar o Worker e repetir os smokes reais. Ausência ou token inválido passa a receber `401`; indisponibilidade das chaves públicas recebe `503`.
 
 ## Critérios de rollback
 
-Se um cliente legítimo falhar após o enforcement, restaurar imediatamente `APP_CHECK_MODE = "observe"` e republicar o Worker. Não remover a obtenção de tokens dos clientes nem enfraquecer a validação criptográfica. Investigar a plataforma afetada antes de tentar novo enforcement.
+Antes do enforcement, registrar o identificador exato da versão Worker em `observe`. Fazer rollback imediato para essa versão se qualquer fluxo legítimo do AAB versionCode 16 retornar `401 app-check-required`, `401 app-check-invalid`, `503 app-check-unavailable`, falhar na inicialização do token, expirar inesperadamente ou encerrar o app; também reverter se a sonda sem App Check não retornar exatamente `401 app-check-required`. A reversão usa `wrangler rollback <observe-version-id>` e deve ser iniciada antes de qualquer fluxo seguinte: comando em até 30 segundos, confirmação operacional esperada em 1–2 minutos e limite máximo de 3 minutos. Confirmar a restauração com uma requisição autenticada sem App Check e corpo vazio: em `observe`, ela deve alcançar a validação do corpo e responder `400 invalid-request`, sem chamar o Gemini. Não remover a obtenção de tokens dos clientes nem enfraquecer a validação criptográfica.
 
 ## Gate adicional descoberto na validação do Pages
 
-Antes do AAB, o bootstrap autenticado precisa comprovar que inicialização do provedor não é confundida com token App Check válido, que dummy tokens são rejeitados e que o perfil obrigatório é decidido somente por leitura confirmada no servidor. Falha de atestação/rede deve abrir o erro recuperável, nunca o modal de criação. Esse modal só pode ser alcançado pelo evento explícito de conta recém-criada; login e reload de contas existentes não têm esse caminho.
+Antes do AAB, o bootstrap autenticado precisava comprovar que inicialização do provedor não era confundida com token App Check válido, que dummy tokens eram rejeitados e que o perfil obrigatório era decidido somente por leitura confirmada no servidor. O PR #191 implementou esse gate; a validação real posterior confirmou que falha de atestação/rede abre erro recuperável, nunca o modal de criação, e que login/reload de conta existente não alcançam esse modal.
 
 ## Evidência necessária para conclusão
 
@@ -38,3 +38,11 @@ Antes do AAB, o bootstrap autenticado precisa comprovar que inicialização do p
 - Pages publicado e validado com token reCAPTCHA Enterprise real;
 - AAB distribuído pela Play e validado com Play Integrity real;
 - enforcement publicado e nova verificação pós-deploy verde.
+
+## Evidência da fase 4
+
+- Web: Pages validado depois do PR #191 com login normal e sem modal indevido de perfil; Descrever prato, Reconhecer por foto e Avaliar refeição com explicação passaram.
+- Android: AAB versionCode 16, pacote `com.hermegas.trofia`, assinatura reconhecida e instalação pela Play confirmada por `installerPackageName=com.android.vending`.
+- Dispositivo: Galaxy SM-S938B, conta descartável, automação ADB; os mesmos três fluxos passaram e nenhuma refeição foi persistida.
+- Higiene: foto de teste sanitizada, mídia temporária e log bruto removidos; sessão descartável encerrada; DND, sincronização e timeout de tela restaurados; processos ADB/logcat/scrcpy encerrados.
+- Limite da evidência: como `observe` aceita também ausência/invalidade, a recusa criptográfica obrigatória só será comprovada na fase 5.
