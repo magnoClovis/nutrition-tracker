@@ -101,12 +101,14 @@
 
 ### [DOC-RECONCILIACAO-C14] - Granularidade e gate documental da frente principal
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 15/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 15/09/2026.
 - **Propósito:** eliminar lacunas entre o resumo compartilhado e o histórico detalhado e impedir que novas fatias sejam encerradas sem documentação completa.
 - **O que se planeja fazer:** separar no histórico C14-B1/B2, C14-C1–C5 e C14-F1/F2, formalizar o padrão obrigatório e torná-lo instrução operacional do repositório.
 - **Recursos/arquivos principais envolvidos:** `AGENTS.md`, `documentation/PADRAO-DOCUMENTACAO.md`, `documentation/README.md`, `documentation/estado-atual/RESUMO-STATUS.md` e `documentation/historico/2026-08-31-principal-arquitetura-ia-dados.md`.
+- **O que foi feito:** o PR #208 eliminou os agregados C14-B/C/F do histórico, criou uma entrada completa por fatia, registrou DOC-FORMAT-198 e tornou o padrão documental uma instrução obrigatória do repositório.
+- **Alinhamento:** 100%; todas as lacunas confirmadas na reconciliação foram corrigidas sem alterar registros de outras frentes por inferência.
 
 ### Frente principal — sequências concluídas
 
