@@ -1079,15 +1079,15 @@ O primeiro CI disparado depois do registro físico (`34753921127`) executou 106 
 
 ## Encerramento determinístico do servidor de smoke legado no Windows
 
-**Status:** em andamento — **Chat:** Trofia-UIUX.
+**Status:** concluído — **Chat:** Trofia-UIUX.
 
 **Data de início:** 15/09/2026.
 
-**Data de conclusão:** não concluído.
+**Data de conclusão:** 15/09/2026.
 
-**Tempo decorrido:** pendente de merge.
+**Tempo decorrido:** 6h06m33s, do primeiro commit (`3165e91`, 15/09/2026 00:36:29 UTC) ao merge (`a16ba79`, 15/09/2026 06:43:02 UTC).
 
-**Minutos de CI:** pendente; nenhum run remoto foi disparado antes da correção e da validação local.
+**Minutos de CI:** 65m59s no total (leve: 0m28s; pesado: 65m31s), somando as duas tentativas do run autenticado `34913949788`.
 
 **Propósito:** remover um bloqueio de infraestrutura descoberto durante o gate exclusivamente documental do CAM-RED-1. Todos os casos do smoke legado terminavam, mas o comando não devolvia controle ao `npm test`, impedindo o Vite e o cutover de começar e tornando impossível declarar o gate completo. A correção deve permanecer separada do runtime da câmera e não pode reduzir cobertura, tolerâncias ou tempos funcionais da matriz.
 
@@ -1097,11 +1097,51 @@ O primeiro CI disparado depois do registro físico (`34753921127`) executou 106 
 
 **O que se planeja fazer:** reproduzir primeiro na `origin/main` limpa; registrar a quantidade e o resultado dos testes, a porta e os processos remanescentes; isolar a relação com o watchdog sem editar requisitos; aplicar somente uma correção determinística de shutdown; repetir a execução integral; abrir PR técnico draft próprio com `Chat-Origin: Trofia-UIUX`; e somente depois retomar CAM-RED-2.
 
-**O que foi feito:** em andamento. A baseline `31bc44d` executou os 107 casos do smoke legado até o último teste, liberou a porta 8765 e fechou os navegadores, mas manteve vivos `npm`, Playwright, o wrapper `cmd.exe` e o processo Node iniciado por `serve-static.js`. A execução isolada do servidor repetiu o sintoma: `Ctrl+C` fechou imediatamente a porta 8767 sem encerrar o Node. Ao reduzir apenas por variável de ambiente o watchdog ocioso de 30 minutos para 10 segundos, um roteiro focado concluiu exatamente após esse intervalo, provando que o processo só estava saindo pelo watchdog. O aumento do watchdog para 30 minutos no PR #171 tornou visível uma limitação anterior: no Windows, o Playwright encerra o wrapper `cmd.exe`, mas o descendente Node pode sobreviver e manter aberto o pipe do reporter. A correção adicionou ao servidor estático um endpoint estritamente local `POST /__smoke_shutdown__`, acionado por um `globalTeardown` comum ao legado e ao Vite; o teardown tolera servidor já encerrado e não mascara o resultado funcional do teste. Um teste unitário inicia o servidor real em porta dinâmica, solicita o shutdown, exige HTTP 204 e comprova saída limpa com código zero. O gate local passou em 1.363/1.363 unitários, smoke legado com 44 casos executados e 63 skips autenticados esperados, smoke Vite com a mesma cobertura e matriz cutover 60/60; os três comandos devolveram controle normalmente, sem aguardar o watchdog e sem alteração de requisitos ou código do app.
+**O que foi feito:** a baseline `31bc44d` executou os 107 casos do smoke legado até o último teste, liberou a porta 8765 e fechou os navegadores, mas manteve vivos `npm`, Playwright, o wrapper `cmd.exe` e o processo Node iniciado por `serve-static.js`. A execução isolada do servidor repetiu o sintoma: `Ctrl+C` fechou imediatamente a porta 8767 sem encerrar o Node. Ao reduzir apenas por variável de ambiente o watchdog ocioso de 30 minutos para 10 segundos, um roteiro focado concluiu exatamente após esse intervalo, provando que o processo só estava saindo pelo watchdog. O aumento do watchdog para 30 minutos no PR #171 tornou visível uma limitação anterior: no Windows, o Playwright encerra o wrapper `cmd.exe`, mas o descendente Node pode sobreviver e manter aberto o pipe do reporter. A correção adicionou ao servidor estático um endpoint estritamente local `POST /__smoke_shutdown__`, acionado por um `globalTeardown` comum ao legado e ao Vite; o teardown tolera servidor já encerrado e não mascara o resultado funcional do teste. Um teste unitário inicia o servidor real em porta dinâmica, solicita o shutdown, exige HTTP 204 e comprova saída limpa com código zero. O gate local passou em 1.363/1.363 unitários, smoke legado com 44 casos executados e 63 skips autenticados esperados, smoke Vite com a mesma cobertura e matriz cutover 60/60; os três comandos devolveram controle normalmente, sem aguardar o watchdog e sem alteração de requisitos ou código do app. No CI autenticado `34913949788`, a primeira tentativa comprovou que o shutdown já funcionava, mas terminou em 106/107 porque o caso Vite mobile `profile-incomplete-existing-account` recebeu inesperadamente a tela de perfil obrigatório. O caso não se repetiu na segunda tentativa: o job pesado passou em 29m33s com 1.363/1.363 unitários, 36/36 testes do Worker, 74/74 de Functions, legado com 99 casos e os oito skips estruturais esperados e Vite com 107/107 sem skip. Nenhum código de autenticação ou perfil foi alterado. A ocorrência permanece classificada como intermitente e passa a ser monitorada explicitamente em todos os gates CAM-RED; se reaparecer localmente ou no CI, a sequência deve parar para apresentação do padrão antes de prosseguir.
 
-**Alinhamento:** pendente até o gate e o merge. A investigação permaneceu no escopo aprovado e não alterou testes ou requisitos.
+**Alinhamento:** 100%. A entrega correspondeu ao diagnóstico e à correção técnica isolada aprovados, sem alterar requisitos, tolerâncias ou runtime do app. A ocorrência única de `profile-incomplete-existing-account` foi externa ao escopo, não foi mascarada e não motivou mudança indevida; seu impacto foi neutro para esta correção, mas criou um critério de parada explícito para os gates CAM-RED seguintes.
 
-**PRs/commits relacionados:** pendentes.
+**PRs/commits relacionados:** [PR #201](https://github.com/magnoClovis/nutrition-tracker/pull/201), commit [`3165e91`](https://github.com/magnoClovis/nutrition-tracker/commit/3165e91e53b643634d7fe928a6b52b3b3943f3f4), merge [`a16ba79`](https://github.com/magnoClovis/nutrition-tracker/commit/a16ba7970baf6cd151ddbe6797cc9e99644cd53d) e [CI autenticado `34913949788`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34913949788), cuja segunda tentativa concluiu totalmente verde.
+
+## CAM-RED-1 — protótipo externo do redesenho centralizado da câmera
+
+**Status:** concluído — **Chat:** Trofia-UIUX.
+
+**Data de início:** não determinado.
+
+**Data de conclusão:** 15/09/2026.
+
+**Tempo decorrido:** não aplicável; CAM-RED-1 foi produzido externamente, sem primeiro commit ou merge próprio que permita aplicar a métrica de uma fatia versionada.
+
+**Minutos de CI:** não aplicável; a aprovação visual não modificou o runtime, não gerou artefato Android e não exigiu CI de código.
+
+**Propósito:** escolher, antes de alterar novamente a integração híbrida WebView/Android, uma direção visual completa para o reconhecimento de refeição por câmera. O protótipo precisava separar o acionamento da câmera do card de registro atual, preservar a linguagem One UI 8/Glass UI, mostrar uma progressão contínua entre enquadramento, captura, análise e resultado e permitir comparar a mesma composição nos temas claro e escuro. A validação antecipada também evita que decisões de aparência sejam tomadas durante as fatias técnicas que precisam preservar as garantias de ciclo de vida, permissão e acessibilidade já entregues em CAM-C3, CAM-C4a e CAM-C4b.
+
+**Recursos:**
+
+- Protótipo externo criado no Claude Design, composto por HTML, CSS e JavaScript estáticos e por exports visuais dos estados aprovados.
+- Referências de linguagem One UI 8/Glass UI, temas claro e escuro e textos demonstrativos em português e inglês.
+- Estado real do Trofia usado como referência conceitual: fluxo C24 de reconhecimento por foto, editor de estimativa nutricional, busca de alimentos salvos, ChoiceField e NumericField.
+- Nenhuma API nativa, chamada ao Worker/Gemini, captura real, permissão Android, persistência ou código de produção foi executado pelo protótipo.
+
+**Arquivos:** nenhum arquivo de runtime ou teste do repositório foi criado ou alterado por CAM-RED-1. Os materiais externos revisados foram `CameraScreen.dc.html`, `FlowScreen.dc.html`, `ResultCard.dc.html`, `SearchScreen.dc.html`, `Trofia - Flow demo.dc.html` e os exports `00-current-state.png`, `01-camera-idle.png`, `02-camera-flash.png`, `03-camera-capturing.png`, `04-A-analyzing.png`, `05-A-result.png`, `10-search-list.png`, `11-search-portion.png` e `12-search-keypad.png`, todos fornecidos como referência visual e não incorporados ao repositório.
+
+**O que se planeja fazer:** validar visualmente uma câmera em retângulo centralizado, sobre backdrop escurecido/borrado, com flash, X dedicado à câmera, X separado para todo o reconhecimento e expansão/contração sem cortes abruptos; transformar a foto capturada em fundo da análise de tela cheia, com overlay escuro translúcido, progresso e cancelamento; apresentar o resultado em sheet cobrindo aproximadamente 68% da tela, mantendo a foto visível, com porção, macros, nutrientes secundários, ingredientes editáveis, refeição-alvo e ação final; e explorar o mesmo componente de resultado na busca manual sem implementar silenciosamente essa ampliação de escopo.
+
+**O que foi feito:**
+
+- A Proposta A, denominada “Continuidade total”, foi escolhida e aprovada visualmente antes da fatia técnica seguinte. A distinção aprovada em relação à Proposta C é a ausência de um corte de tela perceptível entre captura e análise.
+- Nos estados de câmera parada e flash ativo, o preview ocupa um retângulo centralizado; o restante do app permanece reconhecível sob escurecimento/desfoque; há controles separados para fechar apenas a câmera e para encerrar todo o reconhecimento; o estado do flash muda de forma legível nos dois temas.
+- Na captura, o retângulo contrai levemente e o texto muda para “Segure firme”/“Hold still”, mantendo continuidade espacial em vez de inserir uma tela intermediária abrupta.
+- Na análise, a fotografia capturada passa a ocupar toda a área disponível e recebe um overlay escuro translúcido — sem aplicar blur à própria foto —, textos de etapa, indicador de três pontos e Cancelar fixo na região inferior.
+- No resultado, um bottom sheet sobe sobre aproximadamente 68% da tela e conserva a foto visível acima. O desenho reúne miniatura, nome com quebra de linha, origem/confiança, ajuste de porção, quatro macros, nutrientes secundários expansíveis, ingredientes adicionáveis/removíveis, escolha da refeição e CTA de registro.
+- A busca manual demonstra resultados com nome, porção de referência e calorias antes da abertura e reaplica a mesma estrutura visual do sheet ao alimento escolhido, inclusive o NumericField aprovado para digitação de quantidade. A unificação foi reconhecida como ampliação de escopo e deverá ser implementada em fatia própria, não escondida na câmera.
+- O protótipo cobriu apenas o caminho feliz. Ficou registrado que permissão negada, recuperação por Configurações/galeria, TalkBack, foco, fonte 200%, contraste, alvos de 48 px, PT/EN/ES, movimento reduzido, baixa confiança, nutrientes incompletos, listas longas, nomes extensos e ausência de ingredientes continuam requisitos obrigatórios das fatias de runtime.
+- A aprovação visual não comprova a continuidade do preview nativo com `toBack:true`, o momento seguro de encerrar a sessão Android, o suporte real do flash ou a classificação de falhas de rede/Worker. Esses pontos permanecem deliberadamente para a prova técnica e para fatias funcionais subsequentes.
+
+**Alinhamento:** 100%. O objetivo desta fatia era decidir a direção visual antes de código real, e a Proposta A foi revisada e aprovada com os estados necessários para orientar a implementação. O ganho adicional do card compartilhado não foi absorvido silenciosamente pelo escopo existente: foi explicitamente separado para novo fatiamento. O impacto final foi positivo, pois amplia a referência de UX sem enfraquecer as validações técnicas ainda obrigatórias.
+
+**PRs/commits relacionados:** não há PR ou commit de runtime do protótipo externo. O registro documental da aprovação será versionado separadamente; as implementações futuras deverão apontar seus próprios PRs, commits, gates e provas físicas.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
