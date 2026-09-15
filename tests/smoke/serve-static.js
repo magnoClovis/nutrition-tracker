@@ -51,6 +51,12 @@ function sendNotFound(response) {
 const server = http.createServer((request, response) => {
   scheduleIdleShutdown();
 
+  if (request.url === '/__smoke_shutdown__' && request.method === 'POST') {
+    response.writeHead(204, { 'Connection': 'close' });
+    response.end(() => shutdown());
+    return;
+  }
+
   if (!request.url || !['GET', 'HEAD'].includes(request.method)) {
     response.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' });
     response.end('Method not allowed');
