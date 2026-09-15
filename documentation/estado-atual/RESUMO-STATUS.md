@@ -1129,7 +1129,7 @@
 - **Propósito:** comprovar a continuidade entre preview nativo, fotografia congelada e análise antes da integração visual definitiva.
 - **O que se planeja fazer:** introduzir e provar no fluxo real um estado de congelamento que exiba a foto antes de `stop()`, encerre a câmera logo após a primeira pintura confirmada, preserve cancelamento/background/timeouts e levante os modos reais de flash no Galaxy.
 - **Recursos/arquivos principais envolvidos:** `image-meal-flow.js`, `src/composite/embedded-camera-preview.js`, `image-meal-screen.js`, `scripts/patch-camera-preview-android.js`, Camera Preview 8.0.1 com `toBack:true`, testes unitários e Galaxy físico em build release da Play.
-- **O que foi feito:** a fotografia congelada antes de `stop()` e os modos `off/auto/on/torch` foram comprovados no Galaxy; dois crashes nativos de lifecycle/captura foram reproduzidos e receberam correção fail-closed que aguarda repetição física específica antes do fechamento.
+- **O que foi feito:** no PR #203, a fotografia congelada antes de `stop()` e os modos `off/auto/on/torch` foram comprovados; os dois crashes nativos foram corrigidos de forma fail-closed e deixaram de ocorrer em três repetições físicas diretas por cenário no Galaxy com a versão 16 instalada pela Play, preservando captura sem quadro preto, permissão negada, cancelamento e orientação; aguarda revisão/merge para conclusão formal.
 
 ### [CAM-RED-3] - Palco centralizado da câmera
 
