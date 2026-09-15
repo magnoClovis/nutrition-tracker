@@ -5,7 +5,7 @@ Este checklist é obrigatório para toda validação do Trofia realizada em Gala
 ## Antes de usar o aparelho
 
 1. Confirmar o dispositivo exato com `adb devices -l`; nunca operar um aparelho não autorizado explicitamente.
-2. Registrar os valores atuais de timeout da tela, `stay_on_while_plugged_in`, modo Não Perturbar e sincronização principal antes de alterá-los.
+2. Registrar os valores atuais de timeout da tela, `stay_on_while_plugged_in`, modo Não Perturbar, sincronização principal, `accelerometer_rotation` e orientação bloqueada antes de alterá-los.
 3. Confirmar que o usuário saiu da conta real e que o Trofia está na tela de login.
 4. Usar exclusivamente uma conta descartável criada ou designada para o teste. Nunca executar exclusão, gravação de fixture ou automação destrutiva na conta real.
 5. Manter a tela ligada enquanto o aparelho for necessário. Ativar Não Perturbar por tempo indefinido somente quando notificações não fizerem parte da matriz.
@@ -29,8 +29,8 @@ Se qualquer estado inicial não puder ser lido ou preservado, interromper antes 
 4. Desativar Não Perturbar.
 5. Reativar a sincronização principal.
 6. Restaurar o timeout da tela para 30 segundos, salvo se o valor inicial registrado for diferente e o usuário pedir sua restauração exata.
-7. Restaurar `stay_on_while_plugged_in` e qualquer outra configuração alterada ao valor capturado no preflight.
-8. Confirmar novamente os valores restaurados antes de liberar o aparelho.
+7. Restaurar `stay_on_while_plugged_in`, rotação automática/orientação e qualquer outra configuração alterada ao valor capturado no preflight.
+8. Confirmar novamente todos os valores restaurados, incluindo `accelerometer_rotation`, antes de liberar o aparelho.
 9. Encerrar logcat, scrcpy, servidores auxiliares e subprocessos; executar `adb kill-server` e verificar que não restou processo relacionado ao Galaxy.
 10. Avisar imediatamente ao usuário que o Galaxy já pode ser desconectado, sem esperar testes ou documentação que continuem apenas no PC.
 
@@ -42,5 +42,6 @@ Se qualquer estado inicial não puder ser lido ou preservado, interromper antes 
 - fluxos executados e resultado de cada um;
 - erros relevantes encontrados ou ausência deles no recorte observado;
 - artefatos removidos e configurações restauradas;
+- comparação explícita antes/depois de timeout, tela ativa, DND, sincronização e rotação;
 - horário em que o aparelho foi liberado;
 - limitações da evidência, sem transformar inferência em comprovação.
