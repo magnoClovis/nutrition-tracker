@@ -81,6 +81,9 @@ function createFixture(module, overrides = {}) {
     },
     ImageMealClientError: ClientError,
     MealEstimateValidationError: MealEstimate.MealEstimateValidationError,
+    frozenPhotoPaintTimeoutMs: overrides.frozenPhotoPaintTimeoutMs,
+    setTimer: overrides.setTimer,
+    clearTimer: overrides.clearTimer,
   });
   return { flow, photos, reviews, confirmations, aborts, embeddedCalls, photo, ClientError };
 }
@@ -109,6 +112,7 @@ contractTest('opens, captures, and cancels the bounded Android preview without i
   const embeddedCameraPreview = {
     isSupported: () => true,
     async start(surface) { calls.push(['start', surface]); },
+    async getSupportedFlashModes() { calls.push(['flash-modes']); return ['off', 'on', 'auto']; },
     async capture() { calls.push(['capture']); return 'native-jpeg'; },
     async stop() { calls.push(['stop']); },
   };
@@ -120,15 +124,94 @@ contractTest('opens, captures, and cancels the bounded Android preview without i
 
   assert.equal((await fixture.flow.captureFromCamera()).phase, 'camera-opening');
   assert.equal((await fixture.flow.startEmbeddedCamera(surface)).phase, 'camera-active');
-  assert.equal((await fixture.flow.captureEmbeddedCamera()).phase, 'photo');
+  assert.equal((await fixture.flow.captureEmbeddedCamera()).phase, 'camera-frozen');
   assert.equal(fixture.flow.getState().photo.previewUrl, 'blob:embedded-native-jpeg');
+  assert.deepEqual(fixture.flow.getState().cameraFlashModes, ['off', 'on', 'auto']);
   assert.equal(fullscreenCalls, 0);
-  assert.deepEqual(calls, [['start', surface], ['capture'], ['stop']]);
+  assert.deepEqual(calls, [['start', surface], ['flash-modes'], ['capture']]);
+  assert.equal((await fixture.flow.confirmEmbeddedPhotoPainted()).phase, 'photo');
+  assert.deepEqual(calls.at(-1), ['stop']);
 
   await fixture.flow.captureFromCamera();
   assert.equal((await fixture.flow.cancelEmbeddedCamera()).phase, 'photo');
   assert.equal(fixture.flow.getState().photo.previewUrl, 'blob:embedded-native-jpeg');
   assert.deepEqual(calls.at(-1), ['stop']);
+});
+
+contractTest('keeps the native camera alive until the frozen photo paint is confirmed', async module => {
+  const calls = [];
+  const fixture = createFixture(module, {
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() { calls.push('start'); },
+      async getSupportedFlashModes() { calls.push('flash-modes'); return ['off', 'torch']; },
+      async capture() { calls.push('capture'); return 'paint-order'; },
+      async stop() { calls.push('stop'); },
+    },
+  });
+
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  const frozen = await fixture.flow.captureEmbeddedCamera();
+  assert.equal(frozen.phase, 'camera-frozen');
+  assert.deepEqual(calls, ['start', 'flash-modes', 'capture']);
+
+  const painted = await fixture.flow.confirmEmbeddedPhotoPainted();
+  assert.equal(painted.phase, 'photo');
+  assert.deepEqual(calls, ['start', 'flash-modes', 'capture', 'stop']);
+});
+
+contractTest('restores the previous photo when frozen handoff is interrupted', async module => {
+  const calls = [];
+  const fixture = createFixture(module, {
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() {},
+      async capture() { return 'replacement'; },
+      async stop() { calls.push('stop'); },
+    },
+  });
+  await fixture.flow.chooseFromGallery();
+  const previous = fixture.flow.getState().photo;
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  await fixture.flow.captureEmbeddedCamera();
+  const replacement = fixture.flow.getState().photo;
+
+  const cancelled = await fixture.flow.interruptEmbeddedCamera();
+  assert.equal(cancelled.phase, 'photo');
+  assert.equal(cancelled.photo, previous);
+  assert.equal(replacement.disposed, true);
+  assert.equal(previous.disposed, false);
+  assert.deepEqual(calls, ['stop']);
+});
+
+contractTest('stops and rejects a frozen frame that never paints', async module => {
+  let timeoutCallback;
+  const calls = [];
+  const fixture = createFixture(module, {
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() {},
+      async capture() { return 'never-painted'; },
+      async stop() { calls.push('stop'); },
+    },
+    frozenPhotoPaintTimeoutMs: 25,
+    setTimer(callback) { timeoutCallback = callback; return 7; },
+    clearTimer() {},
+  });
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  const frozen = await fixture.flow.captureEmbeddedCamera();
+  const failedPhoto = frozen.photo;
+  assert.equal(frozen.phase, 'camera-frozen');
+
+  timeoutCallback();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(fixture.flow.getState().phase, 'error');
+  assert.equal(fixture.flow.getState().error, 'camera-unavailable');
+  assert.equal(failedPhoto.disposed, true);
+  assert.deepEqual(calls, ['stop']);
 });
 
 contractTest('maps embedded preview permission and startup errors without hiding gallery recovery', async module => {

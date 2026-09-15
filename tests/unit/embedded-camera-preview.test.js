@@ -18,7 +18,7 @@ function createPermissionPlugin(overrides = {}, calls = {}) {
 }
 
 function createFixture(module, overrides = {}) {
-  const calls = { start: [], capture: [], stop: 0 };
+  const calls = { start: [], capture: [], stop: 0, flashModes: 0 };
   const plugin = {
     async start(options) {
       calls.start.push(options);
@@ -32,6 +32,11 @@ function createFixture(module, overrides = {}) {
     async stop() {
       calls.stop += 1;
       if (overrides.stopError) throw overrides.stopError;
+    },
+    async getSupportedFlashModes() {
+      calls.flashModes += 1;
+      if (overrides.flashModesError) throw overrides.flashModesError;
+      return { result: overrides.flashModes || ['off', 'on', 'auto', 'unknown', 'on'] };
     },
   };
   return {
@@ -169,6 +174,18 @@ test('captures one bounded-preview frame and keeps the preview active', async ()
   assert.deepEqual(fixture.calls.capture, [{ quality: 100, width: 1280, height: 1280 }]);
 });
 
+test('reports normalized rear-camera flash modes only while the preview is active', async () => {
+  const module = await loadModule();
+  const fixture = createFixture(module);
+  await assert.rejects(
+    fixture.preview.getSupportedFlashModes(),
+    error => error.code === 'preview-not-active',
+  );
+  await fixture.preview.start(fixture.surface);
+  assert.deepEqual(await fixture.preview.getSupportedFlashModes(), ['off', 'on', 'auto']);
+  assert.equal(fixture.calls.flashModes, 1);
+});
+
 test('stops idempotently and restores idle even when native stop fails', async () => {
   const module = await loadModule();
   const fixture = createFixture(module, { stopError: new Error('native stop failed') });
@@ -258,10 +275,38 @@ test('does not resurrect an active phase when capture settles after cancellation
   });
   await fixture.preview.start(fixture.surface);
   const capture = fixture.preview.capture();
-  await fixture.preview.stop();
+  const stopping = fixture.preview.stop();
   releaseCapture({ value: 'late-jpeg' });
+  await stopping;
   await assert.rejects(capture, error => error.code === 'preview-capture-cancelled');
   assert.equal(fixture.preview.getPhase(), 'idle');
+});
+
+test('serializes native stop after an in-flight capture settles', async () => {
+  const module = await loadModule();
+  let releaseCapture;
+  const nativeCapture = new Promise(resolve => { releaseCapture = resolve; });
+  const calls = [];
+  const preview = module.createEmbeddedCameraPreview({
+    cameraPreviewPlugin: {
+      async start() {},
+      capture() { calls.push('capture'); return nativeCapture; },
+      async stop() { calls.push('stop'); },
+    },
+    cameraPermissionPlugin: createPermissionPlugin(),
+    isNativeAndroid: () => true,
+  });
+  await preview.start({ getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 200 }) });
+
+  const capture = preview.capture();
+  const stopping = preview.stop();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(calls, ['capture']);
+
+  releaseCapture({ value: 'late-jpeg' });
+  await stopping;
+  await assert.rejects(capture, error => error.code === 'preview-capture-cancelled');
+  assert.deepEqual(calls, ['capture', 'stop']);
 });
 
 test('retries one transient native stop failure before releasing the session', async () => {

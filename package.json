@@ -3,6 +3,7 @@
   "version": "0.11.0-beta",
   "private": true,
   "scripts": {
+    "postinstall": "node scripts/patch-camera-preview-android.js",
     "preflight": "powershell -ExecutionPolicy Bypass -File scripts/preflight-release.ps1",
     "audit:i18n": "node scripts/audit-i18n.js",
     "dev:vite": "vite --config vite.config.js",

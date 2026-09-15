@@ -44,6 +44,8 @@ function baseProps(state, overrides = {}) {
     onCapture: () => {},
     onCameraSurface: () => {},
     onEmbeddedCapture: () => {},
+    onEmbeddedPhotoPainted: () => {},
+    onEmbeddedPhotoPaintFailed: () => {},
     onCancelCamera: () => {},
     onChoose: () => {},
     onProcess: () => {},
@@ -163,6 +165,41 @@ contractTest('offers localized permission recovery through Android settings and 
     gallery.props.onClick();
     assert.deepEqual(calls, ['settings', 'gallery']);
   }
+});
+
+contractTest('keeps the native layer active until two frames after the frozen photo loads', ImageMealScreen => {
+  const calls = [];
+  const frames = [];
+  const view = ImageMealScreen(baseProps({
+    phase: 'camera-frozen',
+    photo: { previewUrl: 'blob:frozen' },
+    cameraFlashModes: ['off', 'on', 'auto'],
+    cameraFlashProbe: 'complete',
+  }, {
+    onEmbeddedPhotoPainted: () => calls.push('painted'),
+    onEmbeddedPhotoPaintFailed: () => calls.push('failed'),
+  }));
+  assert.equal(view.props['data-camera-native-active'], 'true');
+  assert.equal(view.props['data-camera-geometry-locked'], 'true');
+  const frozen = elements(view, 'div').find(node => node.props['data-image-meal-state'] === 'camera-frozen');
+  assert.equal(frozen.props['data-camera-flash-modes'], 'off,on,auto');
+  assert.equal(frozen.props['data-camera-flash-probe'], 'complete');
+  const image = elements(view, 'img')[0];
+  assert.equal(image.props['data-camera-frozen-photo'], 'true');
+  image.props.onLoad({
+    currentTarget: {
+      ownerDocument: {
+        defaultView: { requestAnimationFrame: callback => frames.push(callback) },
+      },
+    },
+  });
+  assert.deepEqual(calls, []);
+  frames.shift()();
+  assert.deepEqual(calls, []);
+  frames.shift()();
+  assert.deepEqual(calls, ['painted']);
+  image.props.onError();
+  assert.deepEqual(calls, ['painted', 'failed']);
 });
 
 contractTest('keeps camera actions semantic and exposes stable focus targets', ImageMealScreen => {

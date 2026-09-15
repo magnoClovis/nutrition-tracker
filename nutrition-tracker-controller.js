@@ -2144,7 +2144,7 @@
         if (phase === "camera-opening") selector = "[data-camera-cancel='true']";
         else if (phase === "error" && imageMealState.error === "permission-denied") {
           selector = "[data-camera-open-settings='true'], [data-image-meal-choose-gallery='true']";
-        } else if (phase === "photo" && previousPhase === "camera-capturing") {
+        } else if (phase === "photo" && previousPhase === "camera-frozen") {
           selector = "[data-image-meal-analyze='true']";
         } else if ((phase === "empty" || phase === "photo") && previousPhase?.startsWith("camera-")) {
           selector = "[data-image-meal-open-camera='true']";
@@ -5133,6 +5133,8 @@
             onCapture: () => imageMealFlowRef.current?.captureFromCamera(),
             onCameraSurface: surface => imageMealFlowRef.current?.startEmbeddedCamera(surface),
             onEmbeddedCapture: () => imageMealFlowRef.current?.captureEmbeddedCamera(),
+            onEmbeddedPhotoPainted: () => imageMealFlowRef.current?.confirmEmbeddedPhotoPainted(),
+            onEmbeddedPhotoPaintFailed: () => imageMealFlowRef.current?.rejectEmbeddedPhotoPaint(),
             onCancelCamera: () => imageMealFlowRef.current?.cancelEmbeddedCamera(),
             canOpenCameraSettings: Boolean(imageMealFeature.canOpenCameraSettings?.()),
             onOpenCameraSettings: () => imageMealFeature.openCameraSettings?.(),

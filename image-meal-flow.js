@@ -20,6 +20,7 @@
     "processed-image-too-large",
     "invalid-photo"
   ]);
+  const DEFAULT_FROZEN_PHOTO_PAINT_TIMEOUT_MS = 2500;
 
   function initialState() {
     return {
@@ -30,7 +31,9 @@
       validationErrors: [],
       retryAfterSeconds: undefined,
       scope: undefined,
-      notIdentifiableReason: null
+      notIdentifiableReason: null,
+      cameraFlashModes: [],
+      cameraFlashProbe: "not-run"
     };
   }
 
@@ -67,7 +70,10 @@
     onConfirm,
     createAbortController,
     ImageMealClientError,
-    MealEstimateValidationError
+    MealEstimateValidationError,
+    frozenPhotoPaintTimeoutMs = DEFAULT_FROZEN_PHOTO_PAINT_TIMEOUT_MS,
+    setTimer = setTimeout,
+    clearTimer = clearTimeout
   }) {
     if (typeof captureFromCamera !== "function" || typeof chooseFromGallery !== "function" ||
         typeof analyzeImageMeal !== "function" || typeof normalizeMealEstimate !== "function" ||
@@ -81,10 +87,16 @@
     let operationId = 0;
     let activeAbortController = null;
     let cameraPreviousPhoto = null;
+    let frozenPhotoPaintTimer = null;
+    let frozenPhotoStopPending = false;
     const listeners = new Set();
 
     function snapshot() {
-      return { ...state, validationErrors: [...state.validationErrors] };
+      return {
+        ...state,
+        validationErrors: [...state.validationErrors],
+        cameraFlashModes: [...state.cameraFlashModes]
+      };
     }
     function emit(next) {
       state = next;
@@ -98,6 +110,10 @@
     function abortActive() {
       if (activeAbortController) activeAbortController.abort();
       activeAbortController = null;
+    }
+    function clearFrozenPhotoPaintTimer() {
+      if (frozenPhotoPaintTimer !== null) clearTimer(frozenPhotoPaintTimer);
+      frozenPhotoPaintTimer = null;
     }
     function disposePhoto(photo) {
       if (photo && typeof photo.dispose === "function") photo.dispose();
@@ -149,7 +165,24 @@
           await embeddedCameraPreview.stop().catch(() => {});
           return snapshot();
         }
-        return patch({ phase: "camera-active", error: null });
+        let cameraFlashModes = [];
+        let cameraFlashProbe = "unsupported";
+        if (typeof embeddedCameraPreview.getSupportedFlashModes === "function") {
+          try {
+            cameraFlashModes = await embeddedCameraPreview.getSupportedFlashModes();
+            cameraFlashProbe = "complete";
+          } catch (error) {
+            cameraFlashProbe = error?.code || "preview-flash-modes-failed";
+          }
+        }
+        if (currentOperation !== operationId || state.phase !== "camera-opening") {
+          await embeddedCameraPreview.stop().catch(() => {});
+          return snapshot();
+        }
+        if (typeof console !== "undefined" && typeof console.info === "function") {
+          console.info(`[CAM-RED-2] rear camera flash modes: ${cameraFlashModes.join(",") || "none"} (${cameraFlashProbe})`);
+        }
+        return patch({ phase: "camera-active", error: null, cameraFlashModes, cameraFlashProbe });
       } catch (error) {
         if (currentOperation !== operationId) return snapshot();
         const code = classifyError(error, ImageMealClientError, MealEstimateValidationError);
@@ -164,16 +197,28 @@
       patch({ phase: "camera-capturing", error: null });
       try {
         const base64 = await embeddedCameraPreview.capture();
-        await embeddedCameraPreview.stop();
         const photo = await preprocessEmbeddedCapture(base64);
         if (currentOperation !== operationId) {
           disposePhoto(photo);
           return snapshot();
         }
-        if (cameraPreviousPhoto && cameraPreviousPhoto !== photo) disposePhoto(cameraPreviousPhoto);
-        cameraPreviousPhoto = null;
-        return emit({ ...initialState(), phase: "photo", photo });
+        const cameraFlashModes = [...state.cameraFlashModes];
+        const cameraFlashProbe = state.cameraFlashProbe;
+        frozenPhotoStopPending = false;
+        const frozen = emit({
+          ...initialState(),
+          phase: "camera-frozen",
+          photo,
+          cameraFlashModes,
+          cameraFlashProbe
+        });
+        clearFrozenPhotoPaintTimer();
+        frozenPhotoPaintTimer = setTimer(() => {
+          void rejectEmbeddedPhotoPaint("frozen-photo-paint-timeout");
+        }, frozenPhotoPaintTimeoutMs);
+        return frozen;
       } catch (error) {
+        clearFrozenPhotoPaintTimer();
         await embeddedCameraPreview.stop().catch(() => {});
         if (currentOperation !== operationId) return snapshot();
         const code = classifyError(error, ImageMealClientError, MealEstimateValidationError);
@@ -183,12 +228,59 @@
       }
     }
 
+    async function confirmEmbeddedPhotoPainted() {
+      if (state.phase !== "camera-frozen" || frozenPhotoStopPending) return snapshot();
+      const currentOperation = operationId;
+      frozenPhotoStopPending = true;
+      clearFrozenPhotoPaintTimer();
+      try {
+        await embeddedCameraPreview.stop();
+        if (currentOperation !== operationId || state.phase !== "camera-frozen") return snapshot();
+        if (cameraPreviousPhoto && cameraPreviousPhoto !== state.photo) disposePhoto(cameraPreviousPhoto);
+        cameraPreviousPhoto = null;
+        frozenPhotoStopPending = false;
+        return patch({ phase: "photo", error: null });
+      } catch (error) {
+        if (currentOperation !== operationId) return snapshot();
+        if (cameraPreviousPhoto && cameraPreviousPhoto !== state.photo) disposePhoto(cameraPreviousPhoto);
+        cameraPreviousPhoto = null;
+        frozenPhotoStopPending = false;
+        return patch({
+          phase: "error",
+          error: classifyError(error, ImageMealClientError, MealEstimateValidationError)
+        });
+      }
+    }
+
+    async function rejectEmbeddedPhotoPaint(code = "invalid-photo") {
+      if (state.phase !== "camera-frozen" || frozenPhotoStopPending) return snapshot();
+      operationId += 1;
+      frozenPhotoStopPending = true;
+      clearFrozenPhotoPaintTimer();
+      await embeddedCameraPreview.stop().catch(() => {});
+      const failedPhoto = state.photo;
+      const previousPhoto = cameraPreviousPhoto;
+      cameraPreviousPhoto = null;
+      frozenPhotoStopPending = false;
+      if (failedPhoto && failedPhoto !== previousPhoto) disposePhoto(failedPhoto);
+      return emit({
+        ...initialState(),
+        phase: "error",
+        photo: previousPhoto,
+        error: code === "frozen-photo-paint-timeout" ? "camera-unavailable" : "invalid-photo"
+      });
+    }
+
     async function cancelEmbeddedCamera() {
       if (!state.phase.startsWith("camera-")) return snapshot();
       operationId += 1;
+      clearFrozenPhotoPaintTimer();
+      frozenPhotoStopPending = false;
       await embeddedCameraPreview.stop().catch(() => {});
       const previousPhoto = cameraPreviousPhoto;
+      const interruptedPhoto = state.photo;
       cameraPreviousPhoto = null;
+      if (interruptedPhoto && interruptedPhoto !== previousPhoto) disposePhoto(interruptedPhoto);
       return emit({ ...initialState(), phase: previousPhoto ? "photo" : "empty", photo: previousPhoto });
     }
 
@@ -306,7 +398,10 @@
     function discard() {
       operationId += 1;
       abortActive();
+      clearFrozenPhotoPaintTimer();
+      frozenPhotoStopPending = false;
       if (embeddedCameraPreview) embeddedCameraPreview.stop().catch(() => {});
+      if (cameraPreviousPhoto && cameraPreviousPhoto !== state.photo) disposePhoto(cameraPreviousPhoto);
       cameraPreviousPhoto = null;
       disposePhoto(state.photo);
       return emit(initialState());
@@ -324,6 +419,8 @@
       captureFromCamera: openCamera,
       startEmbeddedCamera,
       captureEmbeddedCamera,
+      confirmEmbeddedPhotoPainted,
+      rejectEmbeddedPhotoPaint,
       cancelEmbeddedCamera,
       interruptEmbeddedCamera,
       chooseFromGallery: () => acquire("gallery"),

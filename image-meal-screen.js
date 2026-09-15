@@ -32,6 +32,8 @@
       onCapture,
       onCameraSurface,
       onEmbeddedCapture,
+      onEmbeddedPhotoPainted,
+      onEmbeddedPhotoPaintFailed,
       onCancelCamera,
       canOpenCameraSettings,
       onOpenCameraSettings,
@@ -46,12 +48,14 @@
       if (!state) return null;
       const text = (pt, en, es) => pickLang(lang, pt, en, es);
       const phase = state.phase || "empty";
-      const cameraVisible = phase === "camera-opening" || phase === "camera-active" || phase === "camera-capturing";
-      const busy = phase === "capturing" || cameraVisible || phase === "processing" || phase === "confirming";
+      const liveCameraVisible = phase === "camera-opening" || phase === "camera-active" || phase === "camera-capturing";
+      const cameraSessionOpen = liveCameraVisible || phase === "camera-frozen";
+      const busy = phase === "capturing" || cameraSessionOpen || phase === "processing" || phase === "confirming";
       const phaseAnnouncements = {
         "camera-opening": text("Abrindo câmera.", "Opening camera.", "Abriendo cámara."),
         "camera-active": text("Câmera ativa. Pronta para capturar.", "Camera active. Ready to capture.", "Cámara activa. Lista para capturar."),
         "camera-capturing": text("Capturando foto.", "Capturing photo.", "Capturando foto."),
+        "camera-frozen": text("Foto capturada.", "Photo captured.", "Foto capturada."),
         photo: text("Foto capturada. Confira a imagem antes de analisar.", "Photo captured. Check the image before analyzing.", "Foto capturada. Comprueba la imagen antes de analizar.")
       };
 
@@ -115,17 +119,32 @@
         }, label);
       }
 
+      function confirmFrozenPhotoAfterPaint(event) {
+        if (phase !== "camera-frozen" || typeof onEmbeddedPhotoPainted !== "function") return;
+        const view = event?.currentTarget?.ownerDocument?.defaultView;
+        const requestFrame = typeof view?.requestAnimationFrame === "function"
+          ? callback => view.requestAnimationFrame(callback)
+          : callback => setTimeout(callback, 0);
+        requestFrame(() => requestFrame(() => onEmbeddedPhotoPainted()));
+      }
+
       const photo = state.photo && state.photo.previewUrl
         ? React.createElement("img", {
             src: state.photo.previewUrl,
             alt: text("Foto da refeição", "Meal photo", "Foto de la comida"),
             "data-image-meal-preview": "true",
+            "data-camera-frozen-photo": phase === "camera-frozen" ? "true" : undefined,
+            onLoad: phase === "camera-frozen" ? confirmFrozenPhotoAfterPaint : undefined,
+            onError: phase === "camera-frozen" && typeof onEmbeddedPhotoPaintFailed === "function"
+              ? onEmbeddedPhotoPaintFailed
+              : undefined,
             style: {
               display: "block",
               width: "100%",
-              maxHeight: isMobileView ? "34vh" : 360,
-              objectFit: "contain",
-              borderRadius: 10,
+              height: phase === "camera-frozen" ? "100%" : undefined,
+              maxHeight: phase === "camera-frozen" ? "none" : isMobileView ? "34vh" : 360,
+              objectFit: phase === "camera-frozen" ? "cover" : "contain",
+              borderRadius: phase === "camera-frozen" ? "inherit" : 10,
               background: "#111"
             }
           })
@@ -150,7 +169,7 @@
           action(text("Escolher da galeria", "Choose from gallery", "Elegir de la galería"), onChoose, false, {
             props: { "data-image-meal-choose-gallery": "true" }
           })));
-      } else if (cameraVisible) {
+      } else if (liveCameraVisible) {
         const cameraReady = phase === "camera-active";
         content = React.createElement("div", {
           "data-image-meal-state": phase,
@@ -188,6 +207,13 @@
             },
             style: { opacity: cameraReady ? 1 : .5 }
           })));
+      } else if (phase === "camera-frozen") {
+        content = React.createElement("div", {
+          "data-image-meal-state": "camera-frozen",
+          "data-embedded-camera": "true",
+          "data-camera-flash-modes": Array.isArray(state.cameraFlashModes) ? state.cameraFlashModes.join(",") : "",
+          "data-camera-flash-probe": state.cameraFlashProbe || "not-run"
+        }, photo);
       } else if (phase === "capturing") {
         content = React.createElement("div", {
           role: "status",
@@ -340,8 +366,8 @@
 
       return React.createElement("section", {
         "data-image-meal-screen": "true",
-        "data-camera-native-active": cameraVisible ? "true" : undefined,
-        "data-camera-geometry-locked": phase === "camera-active" || phase === "camera-capturing" ? "true" : undefined,
+        "data-camera-native-active": cameraSessionOpen ? "true" : undefined,
+        "data-camera-geometry-locked": phase === "camera-active" || phase === "camera-capturing" || phase === "camera-frozen" ? "true" : undefined,
         style: {
           width: "100%",
           maxWidth: 820,

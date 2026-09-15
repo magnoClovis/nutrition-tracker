@@ -2,6 +2,7 @@ const MIN_PREVIEW_EDGE = 48;
 const DEFAULT_OPERATION_TIMEOUT_MS = 12000;
 const GRANTED_CAMERA_PERMISSIONS = new Set(['granted', 'limited']);
 const PREVIEW_VIEWPORT_GUTTER = 12;
+const FLASH_MODE_VALUES = new Set(['off', 'on', 'auto', 'red-eye', 'torch']);
 
 function isPermissionFailure(error) {
   const value = `${error?.code || ''} ${error?.message || ''}`.toLowerCase();
@@ -116,6 +117,7 @@ export function createEmbeddedCameraPreview({
 
   let phase = 'idle';
   let operationId = 0;
+  let pendingCapture = null;
 
   function withTimeout(operation, code) {
     let timerId;
@@ -218,11 +220,13 @@ export function createEmbeddedCameraPreview({
     const currentOperation = operationId;
     phase = 'capturing';
     try {
-      const result = await withTimeout(cameraPreviewPlugin.capture({
+      const nativeCapture = withTimeout(cameraPreviewPlugin.capture({
         quality: 100,
         width: 1280,
         height: 1280,
       }), 'preview-capture-timeout');
+      pendingCapture = nativeCapture;
+      const result = await nativeCapture;
       if (currentOperation !== operationId) {
         throw new EmbeddedCameraPreviewError('preview-capture-cancelled');
       }
@@ -235,6 +239,8 @@ export function createEmbeddedCameraPreview({
       if (currentOperation === operationId) phase = 'active';
       if (cause instanceof EmbeddedCameraPreviewError) throw cause;
       throw new EmbeddedCameraPreviewError('preview-capture-failed', cause);
+    } finally {
+      pendingCapture = null;
     }
   }
 
@@ -243,6 +249,7 @@ export function createEmbeddedCameraPreview({
     operationId += 1;
     phase = 'stopping';
     try {
+      if (pendingCapture) await pendingCapture.catch(() => {});
       await stopNative();
     } catch (cause) {
       if (cause instanceof EmbeddedCameraPreviewError) throw cause;
@@ -252,10 +259,29 @@ export function createEmbeddedCameraPreview({
     }
   }
 
+  async function getSupportedFlashModes() {
+    if (phase !== 'active') {
+      throw new EmbeddedCameraPreviewError('preview-not-active');
+    }
+    if (typeof cameraPreviewPlugin.getSupportedFlashModes !== 'function') return [];
+    try {
+      const response = await withTimeout(
+        cameraPreviewPlugin.getSupportedFlashModes(),
+        'preview-flash-modes-timeout',
+      );
+      const modes = Array.isArray(response?.result) ? response.result : [];
+      return [...new Set(modes.filter(mode => FLASH_MODE_VALUES.has(mode)))];
+    } catch (cause) {
+      if (cause instanceof EmbeddedCameraPreviewError) throw cause;
+      throw new EmbeddedCameraPreviewError('preview-flash-modes-failed', cause);
+    }
+  }
+
   return {
     start,
     capture,
     stop,
+    getSupportedFlashModes,
     getPhase: () => phase,
     isSupported: () => isNativeAndroid(),
   };
