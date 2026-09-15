@@ -61,5 +61,57 @@ test.describe('embedded camera release hotfix CSS contract', () => {
       await expect(page.locator('[data-camera-cancel="true"]')).toBeInViewport();
       await expect(page.locator('[data-camera-shutter="true"]')).toBeInViewport();
     });
+
+    test(`${theme} frozen photo covers the native viewport before shutdown`, async ({ page }) => {
+      await page.goto('index.html', { waitUntil: 'domcontentloaded' });
+      await page.evaluate((themeName) => {
+        document.documentElement.dataset.theme = themeName;
+        document.body.innerHTML = `
+          <div data-one-ui-root data-theme="${themeName}">
+            <main data-app-main="adicionar">
+              <section data-image-meal-screen="true" data-camera-native-active="true" data-camera-geometry-locked="true">
+                <div data-embedded-camera="true" data-image-meal-state="camera-frozen">
+                  <div data-embedded-camera-surface="true"></div>
+                  <img
+                    data-camera-frozen-photo="true"
+                    alt="Foto congelada"
+                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='500'%3E%3Crect width='400' height='500' fill='%231d6b57'/%3E%3C/svg%3E"
+                  >
+                </div>
+              </section>
+            </main>
+          </div>`;
+      }, theme);
+
+      const frozen = page.locator('[data-camera-frozen-photo="true"]');
+      await expect(frozen).toBeVisible();
+      const metrics = await page.evaluate(() => {
+        const surface = document.querySelector('[data-embedded-camera-surface="true"]');
+        const image = document.querySelector('[data-camera-frozen-photo="true"]');
+        const surfaceRect = surface.getBoundingClientRect();
+        const imageRect = image.getBoundingClientRect();
+        const style = getComputedStyle(image);
+        return {
+          deltaLeft: Math.abs(surfaceRect.left - imageRect.left),
+          deltaTop: Math.abs(surfaceRect.top - imageRect.top),
+          deltaWidth: Math.abs(surfaceRect.width - imageRect.width),
+          deltaHeight: Math.abs(surfaceRect.height - imageRect.height),
+          position: style.position,
+          opacity: style.opacity,
+          zIndex: style.zIndex,
+          bodyBackground: getComputedStyle(document.body).backgroundColor,
+        };
+      });
+      expect(metrics.deltaLeft).toBeLessThanOrEqual(0.5);
+      expect(metrics.deltaTop).toBeLessThanOrEqual(0.5);
+      expect(metrics.deltaWidth).toBeLessThanOrEqual(0.5);
+      expect(metrics.deltaHeight).toBeLessThanOrEqual(0.5);
+      expect(metrics).toMatchObject({
+        position: 'absolute',
+        opacity: '1',
+        zIndex: '2',
+        bodyBackground: 'rgba(0, 0, 0, 0)',
+      });
+    });
   }
 });

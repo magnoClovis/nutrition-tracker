@@ -1111,9 +1111,9 @@ O primeiro CI disparado depois do registro físico (`34753921127`) executou 106 
 
 **Data de conclusão:** 15/09/2026.
 
-**Tempo decorrido:** não aplicável; CAM-RED-1 foi produzido externamente, sem primeiro commit ou merge próprio que permita aplicar a métrica de uma fatia versionada.
+**Tempo decorrido:** não aplicável ao protótipo externo; seu registro documental no PR #202 levou 23m27s, do primeiro commit (`7a3addd`, 15/09/2026 06:49:54 UTC) ao merge (`daa2140`, 15/09/2026 07:13:21 UTC).
 
-**Minutos de CI:** não aplicável; a aprovação visual não modificou o runtime, não gerou artefato Android e não exigiu CI de código.
+**Minutos de CI:** 0m26s no total para o registro documental do PR #202 (leve: 0m26s; pesado: 0m00s); a aprovação visual não modificou o runtime, não gerou artefato Android e não exigiu CI pesado.
 
 **Propósito:** escolher, antes de alterar novamente a integração híbrida WebView/Android, uma direção visual completa para o reconhecimento de refeição por câmera. O protótipo precisava separar o acionamento da câmera do card de registro atual, preservar a linguagem One UI 8/Glass UI, mostrar uma progressão contínua entre enquadramento, captura, análise e resultado e permitir comparar a mesma composição nos temas claro e escuro. A validação antecipada também evita que decisões de aparência sejam tomadas durante as fatias técnicas que precisam preservar as garantias de ciclo de vida, permissão e acessibilidade já entregues em CAM-C3, CAM-C4a e CAM-C4b.
 
@@ -1141,7 +1141,35 @@ O primeiro CI disparado depois do registro físico (`34753921127`) executou 106 
 
 **Alinhamento:** 100%. O objetivo desta fatia era decidir a direção visual antes de código real, e a Proposta A foi revisada e aprovada com os estados necessários para orientar a implementação. O ganho adicional do card compartilhado não foi absorvido silenciosamente pelo escopo existente: foi explicitamente separado para novo fatiamento. O impacto final foi positivo, pois amplia a referência de UX sem enfraquecer as validações técnicas ainda obrigatórias.
 
-**PRs/commits relacionados:** não há PR ou commit de runtime do protótipo externo. O registro documental da aprovação será versionado separadamente; as implementações futuras deverão apontar seus próprios PRs, commits, gates e provas físicas.
+**PRs/commits relacionados:** não há PR ou commit de runtime do protótipo externo. A aprovação e o roadmap foram versionados no [PR #202](https://github.com/magnoClovis/nutrition-tracker/pull/202), commit [`7a3addd`](https://github.com/magnoClovis/nutrition-tracker/commit/7a3adddc050b21f6451c91c72bc0ee1033dbd957), merge [`daa2140`](https://github.com/magnoClovis/nutrition-tracker/commit/daa2140a81ad55bf55c1c630f02815bde203c8a9) e [preflight documental `34938793687`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34938793687). As implementações futuras deverão apontar seus próprios PRs, commits, gates e provas físicas.
+
+## CAM-RED-2 — prova técnica da continuidade entre câmera nativa e fotografia congelada
+
+**Status:** em andamento — **Chat:** Trofia-UIUX.
+
+**Data de início:** 15/09/2026.
+
+**Data de conclusão:** não concluído.
+
+**Tempo decorrido:** pendente de merge.
+
+**Minutos de CI:** pendente; a prova ainda não chegou ao gate remoto.
+
+**Propósito:** eliminar o principal risco técnico da Proposta A antes de construir o novo palco visual: comprovar no Android real que a captura pode substituir o preview nativo por uma fotografia congelada já efetivamente pintada pela WebView e somente então encerrar a sessão da câmera, sem quadro preto, relâmpago visual ou câmera ligada durante a chamada de IA. A mesma prova precisa preservar as garantias de permissão, timeout, cancelamento tardio, background, botão Voltar, orientação bloqueada e descarte de dados temporários já validadas em CAM-C4a/C4b.
+
+**Recursos:** React/WebView, Capacitor Android, `@capacitor-community/camera-preview` 8.0.1 com `toBack:true`, `requestAnimationFrame`, ciclo de vida do app, build Android `release`, ADB/logcat e Galaxy físico.
+
+**Arquivos:** `image-meal-flow.js`, `image-meal-screen.js`, `src/composite/embedded-camera-preview.js`, `nutrition-tracker-controller.js`, testes unitários de fluxo/preview/tela, `documentation/estado-atual/RESUMO-STATUS.md` e este histórico. Nenhum arquivo de `worker/`, `functions/`, Firestore ou autenticação integra o escopo.
+
+**O que se planeja fazer:** acrescentar um estado técnico intermediário de fotografia congelada; pré-processar a captura mantendo a sessão nativa ativa; renderizar a fotografia opaca sobre a área do preview; confirmar a primeira pintura por evento de carga seguido de frames reais da WebView; chamar `stop()` somente após essa confirmação; manter cancelamento, interrupção e descarte seguros durante toda a janela; consultar sem ativar o flash os modos declarados pelo plugin para a câmera traseira; cobrir ordem de eventos, respostas tardias, falhas e limpeza por testes; e repetir fisicamente no Galaxy em build `release`, sem harness ou emulador. A fatia não implementará o palco centralizado, backdrop, controles visuais ou botão funcional de flash de CAM-RED-3/4.
+
+**O que foi feito:** em andamento; branch isolada `codex/cam-red-2-android-proof` criada diretamente do merge `daa2140` da `origin/main`. O fluxo ganhou a fase intermediária `camera-frozen`: `capture()` retorna a imagem sem chamar `stop()`, o pré-processamento cria a URL local, a tela cobre a superfície nativa com a fotografia opaca e o `onLoad` aguarda dois `requestAnimationFrame` antes de confirmar a primeira pintura e encerrar o plugin. Um timeout de 2,5 segundos fecha a câmera e falha de modo recuperável se a imagem nunca pintar; cancelamento, ida ao background, descarte e respostas tardias invalidam a operação, fecham a sessão e liberam somente os blobs correspondentes. A prova também consulta `getSupportedFlashModes()` apenas depois do preview ativo, normaliza os valores conhecidos sem ligar o flash e registra o resultado para coleta física.
+
+Os testes focados passaram em 76/76 casos unitários e em 8/8 células visuais por runtime (claro/escuro, desktop/mobile). O gate local completo passou com preflight limpo, 1372/1372 testes unitários, 48/48 smokes públicos no legado, 48/48 no Vite e matriz cutover 60/60; os 63 skips em cada smoke foram exclusivamente os autenticados esperados sem credenciais locais. O caso monitorado `profile-incomplete-existing-account` não executa localmente e permanece obrigatório no CI autenticado.
+
+Um APK `release` assinado foi compilado somente para preparar a prova e confirmou pacote `com.hermegas.trofia`, versionName `0.11.0-beta`, inclusão dos sete plugins e presença dos marcadores da nova fase no bundle. Antes de instalar, a assinatura desse candidato foi comparada com a do app versionCode 14 instalado pela Play no Galaxy SM-S938B e não coincidiu: o release local usa a chave de upload, enquanto a instalação pública usa a chave de app-signing da Play. Nenhum pacote foi instalado, rebaixado ou removido e nenhum dado do aparelho foi tocado. Como a fatia proíbe harness/debug e a desinstalação do app oficial seria destrutiva, a prova visual e a leitura dos modos retornados pelo plugin foram corretamente adiadas para um AAB rastreável distribuído pela faixa interna. A inspeção somente leitura das características Camera2 confirmou flash físico disponível na câmera traseira, mas não foi tratada como substituta da consulta real do plugin.
+
+**PRs/commits relacionados:** pendentes.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 

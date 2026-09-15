@@ -400,6 +400,16 @@ body:has([data-camera-native-active="true"]) {
   animation: embeddedCameraCapture var(--dur-base) ease-in both;
 }
 
+/* CAM-RED-2 handoff: an opaque captured frame occupies the exact native
+   viewport before the CameraPreview session is stopped after paint. */
+[data-embedded-camera="true"][data-image-meal-state="camera-frozen"] [data-camera-frozen-photo="true"] {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+}
+
 @keyframes embeddedCameraCapture {
   from { opacity: 1; clip-path: inset(0 round 26px); }
   to { opacity: .12; clip-path: inset(42% 7% 42% 7% round 22px); }

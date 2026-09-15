@@ -2,6 +2,7 @@ const MIN_PREVIEW_EDGE = 48;
 const DEFAULT_OPERATION_TIMEOUT_MS = 12000;
 const GRANTED_CAMERA_PERMISSIONS = new Set(['granted', 'limited']);
 const PREVIEW_VIEWPORT_GUTTER = 12;
+const FLASH_MODE_VALUES = new Set(['off', 'on', 'auto', 'red-eye', 'torch']);
 
 function isPermissionFailure(error) {
   const value = `${error?.code || ''} ${error?.message || ''}`.toLowerCase();
@@ -252,10 +253,29 @@ export function createEmbeddedCameraPreview({
     }
   }
 
+  async function getSupportedFlashModes() {
+    if (phase !== 'active') {
+      throw new EmbeddedCameraPreviewError('preview-not-active');
+    }
+    if (typeof cameraPreviewPlugin.getSupportedFlashModes !== 'function') return [];
+    try {
+      const response = await withTimeout(
+        cameraPreviewPlugin.getSupportedFlashModes(),
+        'preview-flash-modes-timeout',
+      );
+      const modes = Array.isArray(response?.result) ? response.result : [];
+      return [...new Set(modes.filter(mode => FLASH_MODE_VALUES.has(mode)))];
+    } catch (cause) {
+      if (cause instanceof EmbeddedCameraPreviewError) throw cause;
+      throw new EmbeddedCameraPreviewError('preview-flash-modes-failed', cause);
+    }
+  }
+
   return {
     start,
     capture,
     stop,
+    getSupportedFlashModes,
     getPhase: () => phase,
     isSupported: () => isNativeAndroid(),
   };

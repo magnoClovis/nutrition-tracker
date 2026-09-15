@@ -13,6 +13,8 @@ test('C3 composes the bounded native preview into the real image-meal flow', () 
   assert.match(app, /preprocessEmbeddedCapture:[\s\S]*preprocessMealImage/);
   assert.match(controller, /onCameraSurface:[\s\S]*startEmbeddedCamera/);
   assert.match(controller, /onEmbeddedCapture:[\s\S]*captureEmbeddedCamera/);
+  assert.match(controller, /onEmbeddedPhotoPainted:[\s\S]*confirmEmbeddedPhotoPainted/);
+  assert.match(controller, /onEmbeddedPhotoPaintFailed:[\s\S]*rejectEmbeddedPhotoPaint/);
   assert.match(controller, /onCancelCamera:[\s\S]*cancelEmbeddedCamera/);
   assert.match(app, /addAppStateListener:[\s\S]*androidAppRuntime\.addAppStateListener/);
   assert.match(app, /openCameraSettings:[\s\S]*androidAppRuntime\.openSettings/);
@@ -40,4 +42,5 @@ test('C3 preserves a localized transparent viewport, HTML controls, theme tokens
   assert.match(css, /data-camera-shutter[\s\S]*\):focus\s*\{[\s\S]*outline:\s*3px/);
   assert.match(css, /data-image-meal-announcement[\s\S]*clip:\s*rect/);
   assert.match(css, /data-camera-permission-recovery[\s\S]*accent-danger-bg/);
+  assert.match(css, /data-image-meal-state="camera-frozen"[\s\S]*data-camera-frozen-photo/);
 });
