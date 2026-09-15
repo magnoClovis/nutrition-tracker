@@ -1,8 +1,8 @@
 # C14-C — Rollout do App Check no Worker de IA
 
-Estado: em andamento desde 10/09/2026. Este documento é o procedimento operacional do rollout; não declara o enforcement concluído antes dos gates reais.
+Estado: concluído em 15/09/2026. O rollout progressivo foi encerrado somente depois das provas externas negativa e legítima no AAB distribuído pela Play.
 
-Progresso em 15/09/2026: o Worker `632877f3-e51f-4226-92fa-0b139e51e459` continua publicado em observação e passou no smoke externo; o run autenticado `34478874949` validou a implementação e o debug provider. O PR #189 publicou o cliente, e o PR #191 corrigiu a corrida do gate de perfil descoberta na primeira validação do Pages. Depois do hotfix, Pages, login normal e os três fluxos de IA passaram. A fase 4 foi concluída no Android com o AAB versionCode 16 da CAM-RED-2, instalado pela Play (`installerPackageName=com.android.vending`) e validado no Galaxy SM-S938B com conta descartável. O enforcement continua desligado até a execução controlada da fase 5.
+Fechamento em 15/09/2026: o PR #210 registrou a versão `observe` `632877f3-e51f-4226-92fa-0b139e51e459` para rollback e preparou a promoção isolada. O Worker `cf6f8d82-566c-483f-9fb0-2a587dda0dab` foi publicado com `APP_CHECK_MODE = "enforce"`; o run externo `35024249874` comprovou `401 app-check-required` sem App Check. Na mesma instalação Play versionCode 16, os fluxos Descrever prato, Reconhecer por foto e Avaliar refeição com explicação concluíram via conta descartável, demonstrando que o token Play Integrity legítimo continuou aceito. O rollback não foi necessário.
 
 ## Contrato de segurança
 
@@ -21,7 +21,7 @@ As chaves públicas são mantidas em memória conforme `Cache-Control`, com teto
 2. **Concluída — Clientes:** publicar o cliente Web e gerar um AAB que enviem `X-Firebase-AppCheck` em toda chamada de texto ou imagem.
 3. **Concluída — CI:** executar a suíte autenticada com o debug provider registrado do Firebase App Check. O segredo permanece somente no GitHub Actions.
 4. **Concluída — Validação real:** Pages e AAB Play versionCode 16 concluíram login e os fluxos Descrever prato, Reconhecer por foto e Avaliar refeição com explicação. A prova Android usou conta descartável, ADB e Galaxy físico.
-5. **Em andamento desde 15/09/2026 — Enforcement:** a promoção isolada de `APP_CHECK_MODE` para `"enforce"` e a sonda fail-closed de modo estão em preparação e ainda não foram publicadas. Ausência ou token inválido passará a receber `401`; indisponibilidade das chaves públicas receberá `503`. O deploy e a matriz física permanecem bloqueados até o Galaxy estar conectado e autorizado pelo usuário. O deployment ativo de baseline foi consultado em 15/09/2026 e aponta 100% para a versão `632877f3-e51f-4226-92fa-0b139e51e459`, que é o alvo explícito de rollback.
+5. **Concluída — Enforcement:** o Worker `cf6f8d82-566c-483f-9fb0-2a587dda0dab` está publicado com `APP_CHECK_MODE = "enforce"`. A sonda externa sem token foi recusada com `401 app-check-required`, e os três fluxos legítimos do AAB Play versionCode 16 permaneceram operacionais com Play Integrity real. A versão `observe` `632877f3-e51f-4226-92fa-0b139e51e459` foi preservada durante toda a janela como alvo explícito de rollback; nenhum critério de reversão ocorreu.
 
 ## Critérios de rollback
 
@@ -52,3 +52,13 @@ Antes do AAB, o bootstrap autenticado precisava comprovar que inicialização do
 - Dispositivo: Galaxy SM-S938B, conta descartável, automação ADB; os mesmos três fluxos passaram e nenhuma refeição foi persistida.
 - Higiene: foto de teste sanitizada, mídia temporária e log bruto removidos; sessão descartável encerrada; DND, sincronização e timeout de tela restaurados; processos ADB/logcat/scrcpy encerrados.
 - Limite da evidência: como `observe` aceita também ausência/invalidade, a recusa criptográfica obrigatória só será comprovada na fase 5.
+
+## Evidência da fase 5
+
+- Deploy: Worker `cf6f8d82-566c-483f-9fb0-2a587dda0dab`, com `APP_CHECK_MODE = "enforce"`.
+- Prova negativa: run `35024249874`, executado sobre o merge `f799a93`, recebeu exatamente `401 app-check-required` para uma requisição autenticada sem App Check e corpo vazio, sem alcançar Gemini ou rate limiter.
+- Prova legítima Android: AAB Play versionCode 16, pacote `com.hermegas.trofia`, `installerPackageName=com.android.vending`, Galaxy SM-S938B e conta descartável.
+- Matriz legítima: Descrever prato retornou estimativa estruturada; Reconhecer por foto retornou estimativa estruturada; Avaliar refeição exibiu nota local e explicação da IA. Nenhuma refeição foi confirmada ou persistida.
+- Inferência criptográfica controlada: como o mesmo Worker em `enforce` recusou a ausência de token e aceitou os três fluxos do pacote Play, o cabeçalho produzido pela ponte Play Integrity foi validado pelo contrato do Worker. O logcat não expôs token e não foi usado como fonte de segredo.
+- Higiene: sessão descartável encerrada; app finalizado; 38 artefatos temporários removidos do aparelho; mídia sintética removida; DND desligado; sincronização mestre ativa; timeout restaurado para 30 segundos; `stay_on_while_plugged_in` restaurado a `0`; servidor e processos ADB encerrados. A rotação automática ficou ativada inadvertidamente e não foi verificada no fechamento; o usuário a restaurou manualmente. O procedimento permanente passou a exigir captura e comparação explícita de `accelerometer_rotation` antes/depois.
+- Rollback: não acionado, pois nenhum fluxo legítimo retornou `401`, `503`, timeout, crash ou falha inesperada.
