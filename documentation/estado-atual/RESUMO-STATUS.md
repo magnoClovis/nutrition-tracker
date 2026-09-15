@@ -1325,12 +1325,13 @@
 
 ### [C14-C5] - Enforcement obrigatório no Worker
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 15/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** rejeitar chamadas de IA sem atestação válida somente depois dos gates web/Android.
 - **O que se planeja fazer:** registrar a versão `observe`, ativar `APP_CHECK_MODE = "enforce"`, exigir `401 app-check-required` sem token, repetir via ADB os três fluxos legítimos no AAB versionCode 16 e reverter imediatamente ao primeiro erro inesperado do cliente real.
 - **Recursos/arquivos principais envolvidos:** Worker, configuração Wrangler, App Check Firebase, CI, Pages, AAB real e documentação de rollout.
+- **O que foi feito:** preparação isolada iniciada na `origin/main`: configuração ainda não publicada, sonda descartável e gate externo fail-closed preparados, dry-run e suíte local completos verdes, e versão `observe` `632877f3-e51f-4226-92fa-0b139e51e459` registrada para rollback; deploy e Galaxy permanecem deliberadamente pendentes.
 
 ### [C14-D] - Android e cadeia de release
 

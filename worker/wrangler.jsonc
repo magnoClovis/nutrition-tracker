@@ -7,9 +7,9 @@
     "nodejs_compat"
   ],
   "vars": {
-    // First rollout stage. Promote to "enforce" only after the updated Pages
-    // client and a Play-distributed AAB both prove valid App Check tokens.
-    "APP_CHECK_MODE": "observe"
+    // C14-C5: deploy only with the approved rollback version recorded and the
+    // Play-distributed Android client ready for the immediate post-deploy gate.
+    "APP_CHECK_MODE": "enforce"
   },
   "durable_objects": {
     "bindings": [
