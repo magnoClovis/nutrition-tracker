@@ -42,6 +42,7 @@
 
 ## O que está em andamento agora
 
+- **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.
 - **C14 — revisão geral de segurança:** C14-A, C14-B1 e C14-B2 estão concluídas; C14-C está em andamento; C14-D a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
@@ -62,6 +63,16 @@
 - Revisão externa por nutricionista e eventual comparação/troca do modelo Gemini permanecem decisões futuras registradas em `PENDENCIAS.md`.
 
 ## Sequências de fatias aprovadas — registro completo
+
+### Encerramento do servidor de smoke legado no Windows
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 15/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** impedir que o gate local fique aberto após todos os testes terminarem por causa de um processo auxiliar Node residual.
+- **O que se planeja fazer:** reproduzir em `origin/main`, confirmar porta/árvore de processos, tornar o encerramento do servidor determinístico no Windows e repetir o smoke completo sem alterar testes nem requisitos.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/serve-static.js`, `tests/smoke/server-global-teardown.js`, `playwright.config.js`, teste unitário dedicado, Playwright, Node.js e Windows.
+- **O que foi feito:** a baseline limpa isolou o processo Node órfão; um endpoint local de encerramento acionado pelo `globalTeardown` tornou o shutdown determinístico, e o gate local passou em 1.363 unitários, smoke legado/Vite e cutover 60/60.
 
 > Regra de manutenção: nenhuma fatia aprovada é removida desta seção. Cada chat deve atualizar o status `não iniciado` → `em andamento` → `concluído`; novas fatias devem registrar, antes do código, `O que se planeja fazer` e, ao terminar, `O que foi feito` e `Alinhamento`.
 

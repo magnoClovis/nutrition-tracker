@@ -12,6 +12,7 @@ module.exports = defineConfig({
   testDir: './tests/smoke',
   testIgnore: /cutover-visual-matrix\.spec\.js/,
   globalSetup: require.resolve('./tests/smoke/app-check-global-setup.js'),
+  globalTeardown: require.resolve('./tests/smoke/server-global-teardown.js'),
   timeout: 30000,
   fullyParallel: false,
   workers: 1,

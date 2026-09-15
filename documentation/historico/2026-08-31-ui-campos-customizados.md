@@ -1077,6 +1077,32 @@ O primeiro CI disparado depois do registro físico (`34753921127`) executou 106 
 - [Merge `13bd540` — incorporação do PR #196 na `main`](https://github.com/magnoClovis/nutrition-tracker/commit/13bd540f1e52f5af86cf0af7bb71795e9f2a6ff5).
 - [CI autenticado final `34757379713`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34757379713) e [preflight documental final `34757379696`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34757379696), ambos concluídos com sucesso e sem skip no SHA mesclado.
 
+## Encerramento determinístico do servidor de smoke legado no Windows
+
+**Status:** em andamento — **Chat:** Trofia-UIUX.
+
+**Data de início:** 15/09/2026.
+
+**Data de conclusão:** não concluído.
+
+**Tempo decorrido:** pendente de merge.
+
+**Minutos de CI:** pendente; nenhum run remoto foi disparado antes da correção e da validação local.
+
+**Propósito:** remover um bloqueio de infraestrutura descoberto durante o gate exclusivamente documental do CAM-RED-1. Todos os casos do smoke legado terminavam, mas o comando não devolvia controle ao `npm test`, impedindo o Vite e o cutover de começar e tornando impossível declarar o gate completo. A correção deve permanecer separada do runtime da câmera e não pode reduzir cobertura, tolerâncias ou tempos funcionais da matriz.
+
+**Recursos:** Node.js HTTP server, Playwright `webServer`, cmd.exe/PowerShell no Windows, inspeção de portas TCP e árvore de processos.
+
+**Arquivos:** `tests/smoke/serve-static.js`, `tests/smoke/server-global-teardown.js`, `tests/unit/smoke-server-shutdown.test.js`, `playwright.config.js`, `documentation/estado-atual/RESUMO-STATUS.md` e `documentation/historico/2026-08-31-ui-campos-customizados.md`.
+
+**O que se planeja fazer:** reproduzir primeiro na `origin/main` limpa; registrar a quantidade e o resultado dos testes, a porta e os processos remanescentes; isolar a relação com o watchdog sem editar requisitos; aplicar somente uma correção determinística de shutdown; repetir a execução integral; abrir PR técnico draft próprio com `Chat-Origin: Trofia-UIUX`; e somente depois retomar CAM-RED-2.
+
+**O que foi feito:** em andamento. A baseline `31bc44d` executou os 107 casos do smoke legado até o último teste, liberou a porta 8765 e fechou os navegadores, mas manteve vivos `npm`, Playwright, o wrapper `cmd.exe` e o processo Node iniciado por `serve-static.js`. A execução isolada do servidor repetiu o sintoma: `Ctrl+C` fechou imediatamente a porta 8767 sem encerrar o Node. Ao reduzir apenas por variável de ambiente o watchdog ocioso de 30 minutos para 10 segundos, um roteiro focado concluiu exatamente após esse intervalo, provando que o processo só estava saindo pelo watchdog. O aumento do watchdog para 30 minutos no PR #171 tornou visível uma limitação anterior: no Windows, o Playwright encerra o wrapper `cmd.exe`, mas o descendente Node pode sobreviver e manter aberto o pipe do reporter. A correção adicionou ao servidor estático um endpoint estritamente local `POST /__smoke_shutdown__`, acionado por um `globalTeardown` comum ao legado e ao Vite; o teardown tolera servidor já encerrado e não mascara o resultado funcional do teste. Um teste unitário inicia o servidor real em porta dinâmica, solicita o shutdown, exige HTTP 204 e comprova saída limpa com código zero. O gate local passou em 1.363/1.363 unitários, smoke legado com 44 casos executados e 63 skips autenticados esperados, smoke Vite com a mesma cobertura e matriz cutover 60/60; os três comandos devolveram controle normalmente, sem aguardar o watchdog e sem alteração de requisitos ou código do app.
+
+**Alinhamento:** pendente até o gate e o merge. A investigação permaneceu no escopo aprovado e não alterou testes ou requisitos.
+
+**PRs/commits relacionados:** pendentes.
+
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
 **Data (se determinável):** não determinado.
