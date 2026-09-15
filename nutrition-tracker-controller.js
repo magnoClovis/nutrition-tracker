@@ -2141,7 +2141,7 @@
         const previousPhase = imageMealPreviousPhaseRef.current;
         imageMealPreviousPhaseRef.current = phase;
         let selector = null;
-        if (phase === "camera-opening") selector = "[data-camera-cancel='true']";
+        if (phase === "camera-opening") selector = "[data-camera-close='true']";
         else if (phase === "error" && imageMealState.error === "permission-denied") {
           selector = "[data-camera-open-settings='true'], [data-image-meal-choose-gallery='true']";
         } else if (phase === "photo" && previousPhase === "camera-frozen") {
