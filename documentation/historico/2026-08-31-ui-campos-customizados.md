@@ -1145,15 +1145,15 @@ O primeiro CI disparado depois do registro físico (`34753921127`) executou 106 
 
 ## CAM-RED-2 — prova técnica da continuidade entre câmera nativa e fotografia congelada
 
-**Status:** em andamento — **Chat:** Trofia-UIUX.
+**Status:** concluído — **Chat:** Trofia-UIUX.
 
 **Data de início:** 15/09/2026.
 
-**Data de conclusão:** não concluído.
+**Data de conclusão:** 15/09/2026.
 
-**Tempo decorrido:** pendente de merge.
+**Tempo decorrido:** 8h57m18s, do primeiro commit da fatia (`50f9d8d`, 15/09/2026 08:29:53 UTC) ao merge (`caeb515`, 15/09/2026 17:27:11 UTC).
 
-**Minutos de CI:** 36m51s no total até esta etapa (leve: 0m29s, run `34985381035`; pesado: 36m22s, run autenticado `34985380991`). O gate remoto passou integralmente; no Playwright, o legado fechou com 103 casos aprovados e 8 skips já esperados/documentados, o Vite com 111 casos aprovados e nenhum skip, e `profile-incomplete-existing-account` não reapareceu.
+**Minutos de CI:** 67m01s no total (leve: 0m54s — runs `34985381035` em 0m29s e `34996010051` em 0m25s; pesado: 66m07s — runs autenticados `34985380991` em 36m22s e `34996010049` em 29m45s). Os gates remotos passaram integralmente; no gate funcional, o Playwright legado fechou com 103 casos aprovados e 8 skips já esperados/documentados, o Vite com 111 casos aprovados e nenhum skip, e `profile-incomplete-existing-account` não reapareceu.
 
 **Propósito:** eliminar o principal risco técnico da Proposta A antes de construir o novo palco visual: comprovar no Android real que a captura pode substituir o preview nativo por uma fotografia congelada já efetivamente pintada pela WebView e somente então encerrar a sessão da câmera, sem quadro preto, relâmpago visual ou câmera ligada durante a chamada de IA. A mesma prova precisa preservar as garantias de permissão, timeout, cancelamento tardio, background, botão Voltar, orientação bloqueada e descarte de dados temporários já validadas em CAM-C4a/C4b.
 
@@ -1179,9 +1179,11 @@ O candidato corrigido foi recompilado como AAB assinado, distribuído pela faixa
 
 A regressão funcional foi verificada no mesmo artefato: uma captura normal pintou a fotografia congelada antes de desconectar o cliente de câmera, sem quadro preto; Cancelar liberou a câmera; revogar temporariamente a permissão exibiu o estado localizado com “Abrir configurações” e a permissão foi restaurada; o bloqueio de orientação foi mantido durante a sessão e restaurado ao final. Os modos `off`, `auto`, `on` e `torch` já haviam sido retornados pelo próprio plugin na prova física da versão 15 e permaneceram protegidos pela cobertura automatizada; a correção nativa da versão 16 não alterou a API nem o caminho de flash. O log contínuo final registrou zero ocorrências de `FATAL EXCEPTION`, encerramento do processo do Trofia, `takePicture failed` e erro de transação após `onSaveInstanceState`.
 
-O gate remoto do PR #203 passou integralmente: execução leve `34985381035` em 0m29s e execução pesada autenticada `34985380991` em 36m22s. O Playwright legado aprovou 103 casos com apenas 8 skips já esperados/documentados; o Vite aprovou 111 casos sem skip; o caso monitorado `profile-incomplete-existing-account` não reapareceu. Ao terminar a prova, os arquivos temporários do aparelho foram removidos, a permissão ficou restaurada, rotação e permanência de tela voltaram ao estado inicial, Não Perturbar foi desativado, a sincronização permaneceu ativa, o timeout foi restabelecido para 30 segundos por último e todos os processos/encaminhamentos ADB foram encerrados. A implementação e a prova física estão completas, mas o status documental permanece “em andamento” até revisão e merge do PR; CAM-RED-3 não foi iniciada.
+O gate remoto do PR #203 passou integralmente, inclusive a repetição disparada pelo fechamento documental. O Playwright legado aprovou 103 casos com apenas 8 skips já esperados/documentados; o Vite aprovou 111 casos sem skip; o caso monitorado `profile-incomplete-existing-account` não reapareceu. Ao terminar a prova, os arquivos temporários do aparelho foram removidos, a permissão ficou restaurada, rotação e permanência de tela voltaram ao estado inicial, Não Perturbar foi desativado, a sincronização permaneceu ativa, o timeout foi restabelecido para 30 segundos por último e todos os processos/encaminhamentos ADB foram encerrados. O PR foi aprovado e mesclado; CAM-RED-3 não foi iniciada.
 
-**PRs/commits relacionados:** [PR #203](https://github.com/magnoClovis/nutrition-tracker/pull/203), commits [`50f9d8d`](https://github.com/magnoClovis/nutrition-tracker/commit/50f9d8d) (prova de handoff para a foto congelada) e [`d31132c`](https://github.com/magnoClovis/nutrition-tracker/commit/d31132c) (correção segura de lifecycle/captura), CI leve [`34985381035`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34985381035) e CI pesado autenticado [`34985380991`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34985380991). O commit documental final e o merge permanecem pendentes.
+**Alinhamento:** 100%. A entrega correspondeu à prova aprovada: estabeleceu o handoff contínuo do preview para a fotografia congelada antes de `stop()`, mediu os modos reais de flash e preservou o ciclo de vida no Galaxy. Os dois crashes encontrados durante a validação ampliaram o trabalho técnico, mas foram defeitos diretamente pertencentes à robustez que a própria fatia exigia; corrigi-los antes do redesenho teve impacto positivo, porque impede que CAM-RED-3 seja construída sobre uma base nativa instável.
+
+**PRs/commits relacionados:** [PR #203](https://github.com/magnoClovis/nutrition-tracker/pull/203), commits [`50f9d8d`](https://github.com/magnoClovis/nutrition-tracker/commit/50f9d8d) (prova de handoff), [`d31132c`](https://github.com/magnoClovis/nutrition-tracker/commit/d31132c) (correção segura de lifecycle/captura), [`b5169fd`](https://github.com/magnoClovis/nutrition-tracker/commit/b5169fd) (evidência física) e merge [`caeb515`](https://github.com/magnoClovis/nutrition-tracker/commit/caeb5150536fa835e6378d93cab6ec1c428f25e2); CI leve [`34985381035`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34985381035) e [`34996010051`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34996010051); CI pesado autenticado [`34985380991`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34985380991) e [`34996010049`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/34996010049).
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
