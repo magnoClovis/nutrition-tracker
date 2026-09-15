@@ -486,14 +486,17 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ### [DOC-RECONCILIACAO-C14] - Granularidade e gate documental da frente principal
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 15/09/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** pendente de conclusão dos checks documentais.
+- **Data de conclusão:** 15/09/2026.
+- **Tempo decorrido:** 5 min 33 s.
+- **Minutos de CI:** 1 min (1 leve + 0 pesado).
 - **Propósito:** corrigir a divergência entre a granularidade já existente no resumo compartilhado e o histórico da frente principal e impedir que documentação volte a ser tratada como acabamento opcional.
 - **O que se planeja fazer:** separar C14-B1/B2, C14-C1–C5 e C14-F1/F2 em registros completos, eliminar agregados duplicados, formalizar a Definition of Done documental e torná-la instrução operacional carregada no repositório.
 - **Recursos/arquivos principais envolvidos:** `/AGENTS.md`, `/documentation/PADRAO-DOCUMENTACAO.md`, `/documentation/README.md`, `/documentation/estado-atual/RESUMO-STATUS.md` e este histórico.
+- **O que foi feito:** o PR #208 substituiu os blocos agregados por entradas individuais completas, preservou o incidente C14-B2 e o gate de perfil como registros próprios, acrescentou o registro formal ausente do PR #198 e vinculou o fechamento C14-C4 aos PRs #205/#206. O novo `AGENTS.md` obriga todas as frentes a ler a regra, e `PADRAO-DOCUMENTACAO.md` fixa campos, momentos de atualização, métricas, limites entre chats e a checklist de encerramento. A validação confirmou uma ocorrência e todos os campos obrigatórios em 16/16 entradas C14, zero agregados B/C/F remanescentes e preflight sem avisos.
+- **Alinhamento:** 100%. A reconciliação cobriu todas as lacunas comprovadas da frente principal e acrescentou uma barreira operacional permanente. Não foram inferidos nem alterados escopos pertencentes a UI/UX ou Trofia-Bugs; impacto final positivo.
+- **PRs/commits relacionados:** PR #208, commits `ba8eb8d` e `7afe844`, merge `1a3d75f`; run documental `35015749125`.
 
 ## Métricas retroativas
 
