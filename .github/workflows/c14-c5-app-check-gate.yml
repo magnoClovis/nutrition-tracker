@@ -1,0 +1,47 @@
+name: C14-C5 App Check production gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'worker/wrangler.jsonc'
+      - 'scripts/verify-ai-worker-app-check-mode.js'
+      - 'tests/unit/ai-worker-app-check-mode-verifier.test.js'
+      - '.github/workflows/c14-c5-app-check-gate.yml'
+  workflow_dispatch:
+    inputs:
+      expected_mode:
+        description: Deployed App Check mode to prove
+        required: true
+        type: choice
+        options:
+          - observe
+          - enforce
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c14-c5-app-check-production-gate
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify deployed App Check mode
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.18.0
+
+      - name: Verify current deployment without invoking Gemini
+        env:
+          EXPECTED_MODE: ${{ github.event_name == 'pull_request' && 'observe' || inputs.expected_mode }}
+        run: node scripts/verify-ai-worker-app-check-mode.js "$EXPECTED_MODE"

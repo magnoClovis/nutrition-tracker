@@ -263,14 +263,15 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ### [C14-C5] - Enforcement obrigatório no Worker
 
-- **Status:** não iniciado.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento.
+- **Data de início:** 15/09/2026.
+- **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; não iniciado.
+- **Minutos de CI:** pendente; validações ainda não concluídas.
 - **Propósito:** rejeitar chamadas de IA sem atestação válida somente após os gates Web, CI e Android reais.
 - **O que se planeja fazer:** registrar a versão `observe`, ativar `APP_CHECK_MODE = "enforce"`, exigir `401 app-check-required` sem token, repetir via ADB os três fluxos legítimos no AAB versionCode 16 e reverter imediatamente ao primeiro erro inesperado do cliente real.
 - **Recursos/arquivos principais envolvidos:** Worker, Wrangler, versão de rollback `observe`, Firebase App Check, CI, Pages, AAB versionCode 16, Galaxy SM-S938B e documentação de rollout.
+- **O que foi feito:** a execução começou em worktree isolada da `origin/main`. Foi preparada a mudança mínima de `APP_CHECK_MODE` para `enforce` sem deploy, juntamente com uma sonda operacional que cria e remove uma conta descartável, envia corpo inválido sem App Check e exige a resposta exata de cada modo antes/depois da publicação, sem alcançar rate limiter ou Gemini. O dry-run do Wrangler 4.115.0 produziu o bundle com `APP_CHECK_MODE = "enforce"` sem publicar. A consulta somente leitura confirmou que o deployment ativo em `observe` serve 100% pela versão `632877f3-e51f-4226-92fa-0b139e51e459`, preservada como alvo de rollback. Como a sonda local encontrou o bloqueio F06 de `workers.dev`, foi preparado um gate leve no GitHub Actions: baseline `observe` no PR e verificação manual `enforce` pós-deploy, sem comandos de publicação. Os 35 testes focados, os 1.380 unitários, 48 smokes públicos legado, 48 Vite e os 60 cenários cutover passaram; os 63 skips de cada smoke local foram exclusivamente os autenticados documentados, reservados ao CI com credenciais. CI, deploy e matriz ADB ainda são gates pendentes; nenhum comando foi executado no Galaxy.
 
 ### [C14-C-PROFILE-GATE] - Corrida entre App Check, cache e perfil obrigatório
 
