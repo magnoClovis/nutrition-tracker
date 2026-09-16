@@ -1412,6 +1412,17 @@
 - **O que se planeja fazer:** criar Firebase staging e executar matriz cross-account, App Check, payloads, rate limit, cache, backup, exclusão, IAM e rollback.
 - **Recursos/arquivos principais envolvidos:** projeto Firebase staging, emuladores, CI, Pages, Worker, Functions, AAB Play e runbooks.
 
+### [DOC-PR170-CLOSEOUT] - Encerramento de PR documental obsoleto
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/08/2026.
+- **Data de conclusão:** 16/09/2026.
+- **Propósito:** retirar um PR duplicado sem regredir a documentação atual da S8/S9.
+- **O que se planeja fazer:** confirmar que o PR #170 estava superado e sem trabalho exclusivo antes de fechar e limpar seus resíduos.
+- **Recursos/arquivos principais envolvidos:** PR #170, histórico UI/UX, RESUMO-STATUS, branch `codex/docs-s8-completion` e worktree `.codex-ui-s8-status`.
+- **O que foi feito:** o PR #170 foi fechado sem merge porque os PRs #169, #172 e #196 já incorporavam informações mais atuais; worktree limpo e branches foram removidos sem tocar no produto.
+- **Alinhamento:** 100%; limpeza administrativa concluída sem perda de conteúdo.
+
 ## Observações não confirmadas sob acompanhamento
 
 ### [INV-RELOAD-SESSAO] - Sessão e loading após reload/troca de idioma
