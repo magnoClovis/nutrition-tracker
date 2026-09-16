@@ -305,15 +305,16 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ### [C14-E] - Auth, sessão e onboarding recuperável
 
-- **Status:** não iniciado.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento.
+- **Data de início:** 16/09/2026.
+- **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; não iniciado.
+- **Minutos de CI:** pendente de execução.
 - **Propósito:** impedir contas parcialmente configuradas por falhas silenciosas, alinhar a senha mínima e dar ao usuário controle explícito sobre a persistência da sessão web.
 - **O que se planeja fazer:** aplicar senha mínima de 12 caracteres, sessão `SESSION`/`LOCAL` explícita e onboarding recuperável.
 - **Recursos/arquivos principais envolvidos:** `/login-screen.js`, runtime Firebase Auth modular, i18n PT/EN/ES, testes de onboarding/sessão e configuração manual da política de senha no Firebase Console.
-- **O que foi feito:** nenhuma implementação iniciada. Estão aprovados mínimo de 12 caracteres sem composição forçada e o checkbox “Manter logado”: desmarcado usa persistência `SESSION`; marcado usa `LOCAL`, sem janela de tolerância após fechar.
+- **O que foi feito:** a auditoria confirmou `browserLocalPersistence` forçada, mínimo local de 6 caracteres e falhas de perfil engolidas. A implementação passou a preservar a persistência restaurada pelo Firebase e a selecionar `SESSION` no login web sem opt-in, `LOCAL` com “Manter logado” e persistência local no Android. Cadastro e troca de senha agora exigem 12 caracteres com mensagens equivalentes em PT/EN/ES. O cadastro grava um marcador não sensível apenas na sessão, conserva um checkpoint com ID estável quando uma escrita inicial falha e permite repetir as gravações sem novo `createUser`; login normal remove esse marcador e conta antiga continua sem acesso ao modal exclusivo de criação. Falha ao enviar e-mail de verificação foi separada de falha de persistência, evitando mensagem enganosa. Os entrypoints UMD/Vite receberam as mesmas dependências, `app.js` e `nutrition-tracker.jsx` permanecem byte a byte sincronizados e o gate de perfil Vite consome o marcador somente para uma criação confirmada. A validação local final passou com preflight, 1.396 unitários, 48/48 smoke legado, 48/48 smoke Vite e 60/60 cutover; os skips autenticados locais são os esperados e ainda serão exercitados no CI real. A política efetiva de senha mínima no Firebase Console continua como gate manual antes de encerrar a fatia.
+- **PRs/commits relacionados:** branch `codex/c14-e-auth-session-onboarding`; PR ainda não aberto. — **Chat:** Trofia-Principal.
 
 ### [C14-F1] - Worker, tiers e observabilidade
 

@@ -25,6 +25,7 @@
       "emailCredential", "reauthenticateWithCredential", "updatePassword",
     ];
     if (!auth || !sdk || required.some(name => typeof sdk[name] !== "function") ||
+        !sdk.browserLocalPersistence || !sdk.browserSessionPersistence ||
         !localStorage || typeof resetStorageCaches !== "function" ||
         (userLifecycle && ["synchronizeUser", "clearForSignOut", "flushBeforeAccountDeletion", "sealAccountDeletion"]
           .some(name => typeof userLifecycle[name] !== "function"))) {
@@ -61,7 +62,6 @@
     function initialize() {
       if (initialization) return initialization;
       initialization = Promise.resolve()
-        .then(() => sdk.setPersistence(auth, sdk.browserLocalPersistence))
         .then(async () => {
           if (typeof auth.authStateReady === "function") await auth.authStateReady();
           knownUid = auth.currentUser?.uid || null;
@@ -76,8 +76,14 @@
       return initialization;
     }
 
-    async function synchronizeSession(operation) {
+    async function synchronizeSession(operation, {remember} = {}) {
       await initialize();
+      if (typeof remember === "boolean") {
+        await sdk.setPersistence(
+          auth,
+          remember ? sdk.browserLocalPersistence : sdk.browserSessionPersistence,
+        );
+      }
       const previousUid = auth.currentUser?.uid || knownUid;
       const result = await operation();
       const nextUid = auth.currentUser?.uid || result?.user?.uid || null;
@@ -90,12 +96,12 @@
       return result;
     }
 
-    async function fbSignIn(email, password) {
+    async function fbSignIn(email, password, options) {
       const normalizedEmail = String(email || "").trim();
       let result;
       try {
         result = await synchronizeSession(() =>
-          sdk.signInWithEmailAndPassword(auth, normalizedEmail, password));
+          sdk.signInWithEmailAndPassword(auth, normalizedEmail, password), options);
       } catch (error) {
         throw normalizeAuthError(error);
       }
@@ -103,12 +109,12 @@
       return result;
     }
 
-    async function fbSignUp(email, password) {
+    async function fbSignUp(email, password, options) {
       const normalizedEmail = String(email || "").trim();
       let result;
       try {
         result = await synchronizeSession(() =>
-          sdk.createUserWithEmailAndPassword(auth, normalizedEmail, password));
+          sdk.createUserWithEmailAndPassword(auth, normalizedEmail, password), options);
       } catch (error) {
         throw normalizeAuthError(error);
       }

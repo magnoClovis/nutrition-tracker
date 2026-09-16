@@ -52,7 +52,7 @@ test('derives all runtime labels and tutorial routing from the release contract'
 
 test('queues the same notice before choosing the new or existing user tutorial', () => {
   for (const source of [legacyApp, viteApp]) {
-    assert.match(source, /if \(!hasSeenCurrentRelease\(tutorialVersion\)\) \{\s*releaseAudienceRef\.current = isNew \? ['"]new['"] : ['"]existing['"];\s*setShowReleaseNotice\(true\);\s*return;/);
+    assert.match(source, /if \(!hasSeenCurrentRelease\(tutorialVersion\)\) \{\s*releaseAudienceRef\.current = (?:effectiveIsNew|isNew) \? ['"]new['"] : ['"]existing['"];\s*setShowReleaseNotice\(true\);\s*return;/);
     assert.match(source, /resolveReleaseTutorialType\(releaseAudienceRef\.current, CURRENT_RELEASE\)/);
     assert.match(source, /if \(releaseAudienceRef\.current\) \{\s*markCurrentReleaseSeen\(\);\s*releaseAudienceRef\.current = null;/);
   }

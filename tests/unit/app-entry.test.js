@@ -66,7 +66,10 @@ test('preserves the authentication and profile gates without legacy normalizatio
   assert.match(appSource, /setProfileLoadError\(profileReadErrorCode\(error\)\)/);
   assert.match(appSource, /await ensureAppCheckReady\(\)/);
   assert.match(appSource, /getRequiredProfileData\(\{serverConfirmed: true\}\)/);
-  assert.match(appSource, /isNewAccount:\s*isNew === true/);
+  assert.match(appSource, /const effectiveIsNew = isNew === true \|\|\s*sessionStorage\.getItem\(NEW_ACCOUNT_ONBOARDING_SESSION_KEY\) === 'true'/);
+  assert.match(appSource, /isNewAccount:\s*effectiveIsNew/);
+  assert.match(appSource, /sessionStorage\.getItem\(NEW_ACCOUNT_ONBOARDING_SESSION_KEY\)/);
+  assert.match(appSource, /sessionStorage\.removeItem\(NEW_ACCOUNT_ONBOARDING_SESSION_KEY\)/);
   assert.match(appSource, /profile-incomplete-existing-account/);
 });
 

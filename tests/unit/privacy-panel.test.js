@@ -159,7 +159,7 @@ function openChangePassword(fixture) {
   fixture.harness.render();
 }
 
-function fillChangePassword(fixture, current = "current123", next = "newpass123", confirmation = "newpass123") {
+function fillChangePassword(fixture, current = "current123", next = "newpass123456", confirmation = "newpass123456") {
   change(findInput(fixture.harness.tree, "Current password"), current);
   change(findInput(fixture.harness.tree, "New password"), next);
   change(findInput(fixture.harness.tree, "Confirm new password"), confirmation);
@@ -196,7 +196,7 @@ contractTest("uses the modular reauthentication password port when available", a
   fillChangePassword(fixture);
   await findButton(fixture.harness.tree, "Save new password").props.onClick();
   assert.deepEqual(fixture.events, [
-    "changePassword:current123:newpass123",
+    "changePassword:current123:newpass123456",
     "setTimeout:1500",
   ]);
 });
@@ -222,6 +222,29 @@ contractTest("changes the password, saves returned tokens, and keeps the exact 1
   fixture.timers[0].callback();
   fixture.harness.render();
   assert.match(elementText(fixture.harness.tree), /Privacy & security/);
+});
+
+contractTest("rejects a password below twelve characters in English and Spanish before reauthentication", async createPrivacyPanel => {
+  const english = createFixture(createPrivacyPanel, {modularChangePassword: true});
+  openChangePassword(english);
+  fillChangePassword(english, "current123", "short123", "short123");
+  await findButton(english.harness.tree, "Save new password").props.onClick();
+  english.harness.render();
+  assert.match(elementText(english.harness.tree), /at least 12 characters/);
+  assert.equal(english.events.length, 0);
+
+  const spanish = createFixture(createPrivacyPanel, {modularChangePassword: true, lang: "es"});
+  spanish.harness.render();
+  findButton(spanish.harness.tree, "Cambiar contraseña").props.onClick();
+  spanish.harness.render();
+  change(findInput(spanish.harness.tree, "Contraseña actual"), "current123");
+  change(findInput(spanish.harness.tree, "Nueva contraseña"), "short123");
+  change(findInput(spanish.harness.tree, "Confirmar nueva contraseña"), "short123");
+  spanish.harness.render();
+  await findButton(spanish.harness.tree, "Guardar nueva contraseña").props.onClick();
+  spanish.harness.render();
+  assert.match(elementText(spanish.harness.tree), /al menos 12 caracteres/);
+  assert.equal(spanish.events.length, 0);
 });
 
 contractTest("preserves the generic password-change error for reauthentication and REST failures", async createPrivacyPanel => {

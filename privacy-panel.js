@@ -123,6 +123,11 @@
             ? 'La verificaci\u00f3n de seguridad no est\u00e1 disponible en este dispositivo.'
             : 'Security verification is not available on this device.'
       };
+      const passwordText = lang === 'pt'
+        ? {required:'Preencha todos os campos.',mismatch:'As senhas não coincidem.',short:'A senha deve ter pelo menos 12 caracteres.',success:'Senha alterada com sucesso!',failed:'Senha atual incorreta ou erro ao alterar.',title:'Alterar senha',current:'Senha atual',next:'Nova senha',confirm:'Confirmar nova senha',save:'Salvar nova senha'}
+        : lang === 'es'
+          ? {required:'Completa todos los campos.',mismatch:'Las contraseñas no coinciden.',short:'La contraseña debe tener al menos 12 caracteres.',success:'¡Contraseña actualizada correctamente!',failed:'La contraseña actual es incorrecta o no se pudo actualizar.',title:'Cambiar contraseña',current:'Contraseña actual',next:'Nueva contraseña',confirm:'Confirmar nueva contraseña',save:'Guardar nueva contraseña'}
+          : {required:'Fill all fields.',mismatch:'Passwords do not match.',short:'Password must be at least 12 characters.',success:'Password changed successfully!',failed:'Current password incorrect or error changing password.',title:'Change password',current:'Current password',next:'New password',confirm:'Confirm new password',save:'Save new password'};
 
       const overlay = {
         position:'fixed', inset:0, zIndex:99998,
@@ -151,13 +156,13 @@
 
       async function changePassword() {
         setErr(''); setStatus('');
-        if (!curPwd || !newPwd || !newPwd2) { setErr(isPt?'Preencha todos os campos.':'Fill all fields.'); return; }
-        if (newPwd !== newPwd2) { setErr(isPt?'As senhas não coincidem.':'Passwords do not match.'); return; }
-        if (newPwd.length < 6) { setErr(isPt?'A senha deve ter pelo menos 6 caracteres.':'Password must be at least 6 characters.'); return; }
+        if (!curPwd || !newPwd || !newPwd2) { setErr(passwordText.required); return; }
+        if (newPwd !== newPwd2) { setErr(passwordText.mismatch); return; }
+        if (newPwd.length < 12) { setErr(passwordText.short); return; }
         try {
           if (typeof accountService.changePassword === 'function') {
             await accountService.changePassword(curPwd, newPwd);
-            setStatus(isPt?'Senha alterada com sucesso!':'Password changed successfully!');
+            setStatus(passwordText.success);
             setCurPwd(''); setNewPwd(''); setNewPwd2('');
             setTimeout(()=>setSection('main'),1500);
             return;
@@ -175,11 +180,11 @@
           if (!r.ok) throw new Error(d.error?.message || 'error');
           // Save new session tokens
           if (d.idToken) window._saveSession && window._saveSession(d);
-          setStatus(isPt?'Senha alterada com sucesso!':'Password changed successfully!');
+          setStatus(passwordText.success);
           setCurPwd(''); setNewPwd(''); setNewPwd2('');
           setTimeout(()=>setSection('main'),1500);
         } catch(e) {
-          setErr(isPt?'Senha atual incorreta ou erro ao alterar.':'Current password incorrect or error changing password.');
+          setErr(passwordText.failed);
         }
       }
 
@@ -234,17 +239,17 @@
 
       if (section === 'changePassword') return React.createElement('div', {'data-safe-area-dialog':'16', style:overlay},
         React.createElement('div', {style:box},
-          header(isPt?'Alterar senha':'Change password'),
+          header(passwordText.title),
           err && React.createElement('p', {style:{color:'#c87e7e', fontSize:12, marginBottom:10}}, err),
           status && React.createElement('p', {style:{color:'#7ec87e', fontSize:12, marginBottom:10}}, status),
           React.createElement('input', {type:'password', value:curPwd, onChange:e=>setCurPwd(e.target.value),
-            placeholder:isPt?'Senha atual':'Current password', style:inp}),
+            placeholder:passwordText.current, style:inp}),
           React.createElement('input', {type:'password', value:newPwd, onChange:e=>setNewPwd(e.target.value),
-            placeholder:isPt?'Nova senha':'New password', style:inp}),
+            placeholder:passwordText.next, style:inp}),
           React.createElement('input', {type:'password', value:newPwd2, onChange:e=>setNewPwd2(e.target.value),
-            placeholder:isPt?'Confirmar nova senha':'Confirm new password', style:{...inp,marginBottom:16}}),
+            placeholder:passwordText.confirm, style:{...inp,marginBottom:16}}),
           React.createElement('button', {onClick:changePassword, style:btn()},
-            isPt?'Salvar nova senha':'Save new password')
+            passwordText.save)
         )
       );
 
@@ -315,7 +320,7 @@
             React.createElement('span', {style:{fontSize:20}}, '\uD83D\uDD11'),
             React.createElement('div', null,
               React.createElement('div', {style:{fontWeight:600, marginBottom:2}},
-                isPt?'Alterar senha':'Change password'),
+                isPt?'Alterar senha':lang==='es'?'Cambiar contraseña':'Change password'),
               React.createElement('div', {style:{fontSize:11, color:'var(--text2)'}},
                 isPt?'Atualize a senha da sua conta':'Update your account password')
             )

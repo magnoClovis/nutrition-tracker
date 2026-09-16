@@ -43,7 +43,7 @@
 ## O que está em andamento agora
 
 - **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.
-- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C e C14-D estão concluídas; C14-E a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
+- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C e C14-D estão concluídas; C14-E está em andamento; C14-F1 a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 - **[DOC-TRACKING-193] Concluído (12/09/2026) — Chat: Trofia-Principal.** O que se planeja fazer: registrar integralmente as sequências aprovadas e formalizar planejamento, entrega, alinhamento e métricas. O que foi feito: 100 entradas de fatias foram normalizadas no PR #193, com escopos incertos de D3–D7 explicitamente delegados ao chat UI/UX. Alinhamento: 100%.
@@ -1365,12 +1365,13 @@
 
 ### [C14-E] - Auth, sessão e onboarding recuperável
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 16/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** evitar cadastro parcialmente salvo e controlar credenciais/sessão com política explícita.
 - **O que se planeja fazer:** aplicar senha mínima 12, checkbox Manter logado (`LOCAL`/`SESSION`) e fluxo recuperável PT/EN/ES.
 - **Recursos/arquivos principais envolvidos:** `login-screen.js`, `profile-validation.js`, Firebase Auth modular, i18n, testes e Firebase Console.
+- **O que foi feito:** o cliente agora escolhe `SESSION` por padrão e `LOCAL` apenas com “Manter logado” na web, preserva sessão no Android, exige 12 caracteres em PT/EN/ES e retoma gravações iniciais falhas sem criar outra conta; suíte local completa verde, pendentes CI autenticado e política efetiva no Firebase Console.
 
 ### [C14-F1] - Worker, tiers e observabilidade
 

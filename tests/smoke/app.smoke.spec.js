@@ -136,8 +136,8 @@ test.describe('public boot and login screen', () => {
     });
     await page.getByRole('button', { name: /Criar conta|Create account/i }).first().click();
     await page.locator('input[type="email"]').fill('new@example.com');
-    await page.locator('input[type="password"]').nth(0).fill('secret123');
-    await page.locator('input[type="password"]').nth(1).fill('secret123');
+    await page.locator('input[type="password"]').nth(0).fill('secret123456');
+    await page.locator('input[type="password"]').nth(1).fill('secret123456');
     await page.locator('input[autocomplete="name"]').fill('New User');
     await setDateFieldValue(page, '#registration-birth-date-trigger', '1990-01-01');
     await page.locator('#registration-gender-trigger').click();
