@@ -391,3 +391,9 @@ O arquivo meal-score.js e a lógica matemática de pontuação não foram modifi
 - Os códigos formais foram criados em 31/07/2026; associações neste documento são retroativas e delimitadas.
 - O commit 5ca7a2a é misto. Alterações não ligadas aos pedidos desta conversa foram excluídas.
 - A existência de texto UTF-8 correto no manifest é comprovável; uma modificação textual específica do arquivo naquele commit não é. Esse detalhe permanece **não determinado**.
+
+## Métricas retroativas
+
+| PR | Tempo decorrido | Minutos de CI | Chat-Origin |
+|---:|---:|---:|---|
+| [#1](https://github.com/magnoClovis/nutrition-tracker/pull/1) | 2 h 36 min | 4 min (0 leve + 4 pesado) | Trofia-Principal |

@@ -813,3 +813,9 @@ de chats do Codex (os 11 mapeados na mesma parte). Esta conversa também **não
 é o fim** — no momento deste documento, o C08-F (validação final) ainda está
 pendente, a pendência do modelo Gemini segue sem resolução, e a sequência S8/S9
 + I1-I7 de UI/UX ainda está em andamento.
+
+## Métricas retroativas
+
+| PR | Tempo decorrido | Minutos de CI | Chat-Origin |
+|---:|---:|---:|---|
+| [#154](https://github.com/magnoClovis/nutrition-tracker/pull/154) | 1 h 0 min | 20 min (0 leve + 20 pesado) | Trofia-Docs |

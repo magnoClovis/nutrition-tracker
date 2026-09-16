@@ -530,6 +530,19 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Alinhamento:** 100%. A reconciliação cobriu todas as lacunas comprovadas da frente principal e acrescentou uma barreira operacional permanente. Não foram inferidos nem alterados escopos pertencentes a UI/UX ou Trofia-Bugs; impacto final positivo.
 - **PRs/commits relacionados:** PR #208, commits `ba8eb8d` e `7afe844`, merge `1a3d75f`; run documental `35015749125`.
 
+## [DOC-SYNC-LOCAL-20260916] - Reconciliação segura do checkout principal
+
+- **Status:** em andamento.
+- **Data de início:** 16/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** pendente de CI.
+- **Propósito:** corrigir a reincidência em que o checkout principal permaneceu desatualizado enquanto trabalho documental retroativo era acumulado diretamente sobre uma `main` local suja, impedindo que a pasta `documentation/` refletisse os merges remotos.
+- **O que se planeja fazer:** auditar a divergência sem alterar arquivos, criar backup externo com hashes, distinguir adições exclusivas de snapshots regressivos, transplantar somente o conteúdo válido sobre uma worktree da `origin/main`, publicar a reconciliação e atualizar o checkout principal por fast-forward, preservando seletivamente os ajustes locais autorizados.
+- **Recursos/arquivos principais envolvidos:** Git, `git worktree`, backup `C:\Users\clovi\AppData\Local\Trofia\safety-backups\main-sync-20260916`, nove arquivos em `documentation/historico/`, `documentation/estado-atual/RESUMO-STATUS.md`, `android/app/build.gradle`, `android/build.gradle`, `bug-inventory.txt`, `android/app/google-services.json` e `android/keystore.properties`.
+- **O que foi feito:** a auditoria comprovou que o checkout principal estava na `main` local `06ce74a`, 49 commits atrás de `origin/main` `9ec964e`, com 13 arquivos rastreados modificados. O trabalho exclusivo foi reduzido a 240 linhas de métricas e registros retroativos; estados antigos de C14 e CAM-RED foram deliberadamente descartados da reconciliação para não regredir a documentação vigente. Um backup externo de 21 arquivos, patch integral e hashes foi criado antes de qualquer mudança; a worktree limpa passou no preflight local com zero avisos. O merge, a reaplicação seletiva dos três arquivos locais e a verificação final permanecem pendentes.
+- **PRs/commits relacionados:** branch `codex/reconcile-retroactive-doc-metrics`; PR e merge pendentes. — **Chat:** Trofia-Principal.
+
 ## Métricas retroativas
 
 | PR | Tempo decorrido | Minutos de CI | Chat-Origin |
@@ -615,3 +628,4 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 | [#188](https://github.com/magnoClovis/nutrition-tracker/pull/188) | 37 min | 35 min (1 leve + 34 pesado) | Trofia-Principal |
 | [#189](https://github.com/magnoClovis/nutrition-tracker/pull/189) | 1 d 16 h 20 min | 40 min (1 leve + 39 pesado) | Trofia-Principal |
 | [#191](https://github.com/magnoClovis/nutrition-tracker/pull/191) | 1 h 31 min | 45 min (1 leve + 44 pesado) | Trofia-Principal |
+| [#198](https://github.com/magnoClovis/nutrition-tracker/pull/198) | 2 min | 1 min (1 leve + 0 pesado) | Trofia-Principal |

@@ -879,3 +879,118 @@ Os bugs citados pelos códigos atuais de `documentation/estado-atual/BUG-INVENTO
 - **Frentes entregues:** domínio inicial; nove componentes React; correção destrutiva isolada; GA; oito integrações ativas; suíte e seis módulos internos Firebase; seis fatias de histórico/hidratação; decomposição final das telas e controlador.
 - **Princípio técnico dominante:** factories UMD/CommonJS com dependências explícitas, sem build, preservação de `app.js`/`nutrition-tracker.jsx` idênticos e manutenção deliberada de comportamento observável, inclusive bugs conhecidos.
 - **Trabalho conscientemente não implementado:** sugestões LLM desconectadas, relatórios avançados, correções dos riscos catalogados, execução do `git-filter-repo` e migração Vite efetiva.
+
+## [PR-002] - Extract diary ticker module
+
+**Data de início:** 2026-07-16 00:35:38 +02:00
+
+**Data de conclusão:** 2026-07-16 00:46:31 +02:00
+
+**Tempo decorrido:** 10 min
+
+**Minutos de CI:** 4 min (0 leve + 4 pesado)
+
+**Chat-Origin:** Trofia-Principal
+
+**Propósito:** isolar o ticker do Diário em um módulo testável sem alterar seu comportamento.
+
+**Recursos/arquivos principais envolvidos:** diary-ticker.js, app.js, nutrition-tracker.jsx e testes unitários/smoke.
+
+**O que foi feito:** foram extraídos período de saudação, emoji, formatação de valores e construção dos slides nutricionais para um módulo UMD/CommonJS com dependências injetadas.
+
+**PRs/commits relacionados:** PR [#2](https://github.com/magnoClovis/nutrition-tracker/pull/2); head 229efe19; merge 86147c2f.
+
+## [PR-003] - Extract date utilities module
+
+**Data de início:** 2026-07-16 01:03:34 +02:00
+
+**Data de conclusão:** 2026-07-16 01:30:21 +02:00
+
+**Tempo decorrido:** 26 min
+
+**Minutos de CI:** 5 min (0 leve + 5 pesado)
+
+**Chat-Origin:** Trofia-Principal
+
+**Propósito:** isolar utilitários de data, quantidade e navegação civil em um módulo reutilizável e testável.
+
+**Recursos/arquivos principais envolvidos:** date-utils.js, app.js, nutrition-tracker.jsx e testes unitários/smoke.
+
+**O que foi feito:** foram extraídas funções de arredondamento, unidades, datas localizadas e navegação por dias, preservando deliberadamente o comportamento de timezone existente.
+
+**PRs/commits relacionados:** PR [#3](https://github.com/magnoClovis/nutrition-tracker/pull/3); head 7274c499; merge 6159775a.
+
+## [PR-004] - Bump 0.8.1-beta and extract nutrition goal calculator
+
+**Data de início:** 2026-07-16 01:37:37 +02:00
+
+**Data de conclusão:** 2026-07-16 05:15:08 +02:00
+
+**Tempo decorrido:** 3 h 37 min
+
+**Minutos de CI:** 5 min (0 leve + 5 pesado)
+
+**Chat-Origin:** Trofia-Principal
+
+**Propósito:** preparar a versão 0.8.1-beta e extrair o cálculo de metas nutricionais do monólito.
+
+**Recursos/arquivos principais envolvidos:** goal-calculator.js, package.json, package-lock.json, index.html, release-notice.js, tutorial-overlay.js e testes.
+
+**O que foi feito:** a versão foi atualizada, o aviso visual foi introduzido e os cálculos de atividade, descanso, idade, objetivo e proteína foram movidos para um módulo UMD/CommonJS sem mudança funcional planejada.
+
+**PRs/commits relacionados:** PR [#4](https://github.com/magnoClovis/nutrition-tracker/pull/4); head a687c523; merge ef4e614f.
+
+## Métricas retroativas
+
+| PR | Tempo decorrido | Minutos de CI | Chat-Origin |
+|---:|---:|---:|---|
+| [#2](https://github.com/magnoClovis/nutrition-tracker/pull/2) | 10 min | 4 min (0 leve + 4 pesado) | Trofia-Principal |
+| [#3](https://github.com/magnoClovis/nutrition-tracker/pull/3) | 26 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#4](https://github.com/magnoClovis/nutrition-tracker/pull/4) | 3 h 37 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#5](https://github.com/magnoClovis/nutrition-tracker/pull/5) | 18 min | 4 min (0 leve + 4 pesado) | Trofia-Principal |
+| [#6](https://github.com/magnoClovis/nutrition-tracker/pull/6) | 7 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#7](https://github.com/magnoClovis/nutrition-tracker/pull/7) | 18 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#8](https://github.com/magnoClovis/nutrition-tracker/pull/8) | 1 h 5 min | 4 min (0 leve + 4 pesado) | Trofia-Principal |
+| [#9](https://github.com/magnoClovis/nutrition-tracker/pull/9) | 28 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#10](https://github.com/magnoClovis/nutrition-tracker/pull/10) | 12 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#11](https://github.com/magnoClovis/nutrition-tracker/pull/11) | 13 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#12](https://github.com/magnoClovis/nutrition-tracker/pull/12) | 10 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#13](https://github.com/magnoClovis/nutrition-tracker/pull/13) | 14 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#14](https://github.com/magnoClovis/nutrition-tracker/pull/14) | 15 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#15](https://github.com/magnoClovis/nutrition-tracker/pull/15) | 10 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#16](https://github.com/magnoClovis/nutrition-tracker/pull/16) | 24 min | 6 min (0 leve + 6 pesado) | Trofia-Principal |
+| [#17](https://github.com/magnoClovis/nutrition-tracker/pull/17) | 8 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#18](https://github.com/magnoClovis/nutrition-tracker/pull/18) | 21 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#19](https://github.com/magnoClovis/nutrition-tracker/pull/19) | 13 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#20](https://github.com/magnoClovis/nutrition-tracker/pull/20) | 7 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#21](https://github.com/magnoClovis/nutrition-tracker/pull/21) | 21 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#22](https://github.com/magnoClovis/nutrition-tracker/pull/22) | 2 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#23](https://github.com/magnoClovis/nutrition-tracker/pull/23) | 8 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#24](https://github.com/magnoClovis/nutrition-tracker/pull/24) | 7 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#25](https://github.com/magnoClovis/nutrition-tracker/pull/25) | 15 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#26](https://github.com/magnoClovis/nutrition-tracker/pull/26) | 9 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#27](https://github.com/magnoClovis/nutrition-tracker/pull/27) | 8 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#28](https://github.com/magnoClovis/nutrition-tracker/pull/28) | 12 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#29](https://github.com/magnoClovis/nutrition-tracker/pull/29) | 14 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#30](https://github.com/magnoClovis/nutrition-tracker/pull/30) | 17 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#31](https://github.com/magnoClovis/nutrition-tracker/pull/31) | 7 min | 6 min (0 leve + 6 pesado) | Trofia-Principal |
+| [#32](https://github.com/magnoClovis/nutrition-tracker/pull/32) | 20 min | 6 min (0 leve + 6 pesado) | Trofia-Principal |
+| [#33](https://github.com/magnoClovis/nutrition-tracker/pull/33) | 7 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#34](https://github.com/magnoClovis/nutrition-tracker/pull/34) | 15 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#35](https://github.com/magnoClovis/nutrition-tracker/pull/35) | 31 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#36](https://github.com/magnoClovis/nutrition-tracker/pull/36) | 5 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#37](https://github.com/magnoClovis/nutrition-tracker/pull/37) | 5 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#38](https://github.com/magnoClovis/nutrition-tracker/pull/38) | 29 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#39](https://github.com/magnoClovis/nutrition-tracker/pull/39) | 41 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#40](https://github.com/magnoClovis/nutrition-tracker/pull/40) | 11 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#41](https://github.com/magnoClovis/nutrition-tracker/pull/41) | 7 min | 6 min (0 leve + 6 pesado) | Trofia-Principal |
+| [#42](https://github.com/magnoClovis/nutrition-tracker/pull/42) | 4 h 6 min | 6 min (0 leve + 6 pesado) | Trofia-Principal |
+| [#43](https://github.com/magnoClovis/nutrition-tracker/pull/43) | 9 h 40 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#44](https://github.com/magnoClovis/nutrition-tracker/pull/44) | 9 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#45](https://github.com/magnoClovis/nutrition-tracker/pull/45) | 12 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#46](https://github.com/magnoClovis/nutrition-tracker/pull/46) | 24 min | 6 min (0 leve + 6 pesado) | Trofia-Principal |
+| [#47](https://github.com/magnoClovis/nutrition-tracker/pull/47) | 13 min | 6 min (0 leve + 6 pesado) | Trofia-Principal |
+| [#48](https://github.com/magnoClovis/nutrition-tracker/pull/48) | 17 h 47 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#49](https://github.com/magnoClovis/nutrition-tracker/pull/49) | 0 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |
+| [#50](https://github.com/magnoClovis/nutrition-tracker/pull/50) | 8 min | 6 min (0 leve + 6 pesado) | Trofia-Principal |
+| [#51](https://github.com/magnoClovis/nutrition-tracker/pull/51) | 6 min | 5 min (0 leve + 5 pesado) | Trofia-Principal |

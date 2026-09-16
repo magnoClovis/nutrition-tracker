@@ -49,3 +49,52 @@ Foram implementadas três correções complementares no fluxo de templates salvo
 - O erro `Access is denied / could not resolve vite.config.js` foi reproduzido anteriormente também sobre uma checkout limpa da `main`, portanto não era regressão desta entrega.
 - Na worktree limpa final, com as variáveis públicas de Firebase/App Check carregadas e a execução com as permissões necessárias, o mesmo build concluiu normalmente e passou pela allowlist de 13 arquivos.
 - Uma primeira execução agregada apresentou duas flutuações de carregamento em testes visuais mobile. Ambos passaram imediatamente na repetição focada (3/3 incluindo o setup) e a repetição integral posterior do `npm test` terminou verde.
+
+## [PR-181] - Fix: corrigir comportamento de refeições salvas
+
+**Data de início:** 2026-09-07 15:32:59 +02:00
+
+**Data de conclusão:** 2026-09-09 20:35:34 +02:00
+
+**Tempo decorrido:** 2 d 5 h 2 min
+
+**Minutos de CI:** 29 min (1 leve + 28 pesado)
+
+**Chat-Origin:** Trofia-Bugs
+
+**Propósito:** corrigir o fluxo de carregamento e edição permanente de refeições salvas.
+
+**Recursos/arquivos principais envolvidos:** componentes e modelos de refeições salvas, composições legado/Vite, testes unitários, smoke autenticado e documentação.
+
+**O que foi feito:** o painel passou a fechar e rolar para a refeição carregada, o tipo escolhido pelo usuário passou a ser preservado e a edição permanente de nome, ingredientes e quantidades foi separada do ajuste pontual ao adicionar.
+
+**PRs/commits relacionados:** PR [#181](https://github.com/magnoClovis/nutrition-tracker/pull/181); head ed7d85f6; merge db01a1a5.
+
+## [DOC-BUG-SAVED-MEALS-STATUS] - Padronização do registro no resumo
+
+**Data de início:** 2026-09-14 20:18:57 +02:00
+
+**Data de conclusão:** 2026-09-14 20:20:24 +02:00
+
+**Tempo decorrido:** 1 min 27 s
+
+**Minutos de CI:** 1 min (1 leve + 0 pesado)
+
+**Chat-Origin:** Trofia-Bugs
+
+**Propósito:** adequar a entrada do PR #181 no `RESUMO-STATUS.md` ao padrão detalhado obrigatório usado pelas fatias C14.
+
+**O que se planeja fazer:** substituir o registro compacto por cabeçalho próprio e campos separados de status, datas, propósito, planejamento, recursos, entrega e alinhamento, preservando as evidências técnicas já registradas.
+
+**Recursos/arquivos principais envolvidos:** `documentation/estado-atual/RESUMO-STATUS.md`, histórico Git, metadados dos PRs #179, #181 e #199 e workflow `Documentation preflight`.
+
+**O que foi feito:** o PR [#199](https://github.com/magnoClovis/nutrition-tracker/pull/199), commit `5800a5e2` e merge `31bc44dd`, reformulou a entrada como `[BUG-SAVED-MEALS]`, acrescentou todos os campos obrigatórios e manteve explícitas a compatibilidade com IDs novos e a validação da entrega original.
+
+**Alinhamento:** 100% — o formato e os campos solicitados foram entregues integralmente; a mudança permaneceu exclusivamente documental, com impacto positivo para a rastreabilidade do projeto.
+
+## Métricas retroativas
+
+| PR | Tempo decorrido | Minutos de CI | Chat-Origin |
+|---:|---:|---:|---|
+| [#181](https://github.com/magnoClovis/nutrition-tracker/pull/181) | 2 d 5 h 2 min | 29 min (1 leve + 28 pesado) | Trofia-Bugs |
+| [#199](https://github.com/magnoClovis/nutrition-tracker/pull/199) | 1 min 27 s | 1 min (1 leve + 0 pesado) | Trofia-Bugs |
