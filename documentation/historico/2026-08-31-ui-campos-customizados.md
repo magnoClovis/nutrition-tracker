@@ -1185,15 +1185,15 @@ O gate remoto do PR #203 passou integralmente: execução leve `34985381035` em 
 
 ## CAM-RED-3 — palco centralizado da câmera
 
-**Status:** em andamento — **Chat:** Trofia-UIUX.
+**Status:** concluído — **Chat:** Trofia-UIUX.
 
 **Data de início:** 15/09/2026.
 
-**Data de conclusão:** não concluído.
+**Data de conclusão:** 16/09/2026.
 
-**Tempo decorrido:** pendente de merge.
+**Tempo decorrido:** 22 h 40 min 53 s, do primeiro commit da fatia (`da9922d`, 15/09/2026 às 19:38:26 UTC) ao merge (`449ab9a`, 16/09/2026 às 18:19:19 UTC).
 
-**Minutos de CI:** pendente.
+**Minutos de CI:** 176 min 06 s no total — leve: 2 min 49 s em cinco execuções de `Documentation preflight`; pesado: 173 min 17 s em cinco execuções de `CI`. O total inclui os gates dos commits inicial, corretivo, documental, diagnóstico e final, inclusive o run pesado vermelho `35100318258`, sem descartar consumo intermediário.
 
 **Propósito:** tornar visível no aparelho a primeira parte do redesenho Proposta A, substituindo o preview embutido no card por um palco de captura centralizado e modal, sem alterar a base nativa comprovada pela CAM-RED-2 nem antecipar flash, análise em tela cheia ou resultado compartilhado.
 
@@ -1229,7 +1229,11 @@ Ao final, o tema escuro original foi restaurado, o app foi encerrado e o cliente
 
 Ao encerrar a prova, o app foi forçado a parar e a câmera deixou de ter cliente ativo. O Galaxy voltou ao estado anterior: Não Perturbar desligado, sincronização ativa, permanência acordada via USB desativada, rotação e economia de energia restauradas e timeout de tela em 30 segundos; os arquivos temporários remotos e todos os processos ADB foram encerrados antes de liberar a desconexão. Durante futuras provas que não dependam de notificações do aplicativo, o modo correto é Não Perturbar em `alarms`/somente alarmes, não o modo de prioridade, para impedir interferência visual de outros apps.
 
-**PRs/commits relacionados:** [PR draft #207](https://github.com/magnoClovis/nutrition-tracker/pull/207), commit inicial [`da9922d`](https://github.com/magnoClovis/nutrition-tracker/commit/da9922d), correção do recorte [`bb35e09`](https://github.com/magnoClovis/nutrition-tracker/commit/bb35e09), registro do bloqueio local [`9fcacd3`](https://github.com/magnoClovis/nutrition-tracker/commit/9fcacd3), instrumentação diagnóstica [`9ed3d95`](https://github.com/magnoClovis/nutrition-tracker/commit/9ed3d95), CI inicial leve [`35014899826`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35014899826) e pesado [`35014899866`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35014899866), CI corretivo leve [`35094659750`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35094659750) e pesado autenticado [`35094659731`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35094659731), CI diagnóstico leve [`35110531531`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35110531531) e pesado autenticado [`35110531673`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35110531673). A versão 18 da Play revelou o bloqueio pós-captura; a versão 19 não o reproduziu em seis ciclos, por isso a aprovação física final e a decisão sobre tratamento do risco intermitente permanecem pendentes.
+O gate final do estado documentado passou no CI pesado `35129175422` em 36 minutos, com 1.379 unitários sem skip, Worker 5/5, Functions sem skip, legado 103 aprovados com os oito skips documentados e Vite 111/111 sem skip; o preflight leve `35129175428` também passou. `profile-incomplete-existing-account` não reapareceu. A evidência visual mais recente consiste nos screenshots, árvores de UI e logs da versão 19, somados ao acompanhamento ao vivo pelo responsável; nenhum vídeo novo foi gravado nessa rodada, e os vídeos preservados pertencem a execuções anteriores.
+
+**Alinhamento:** ~95%. O escopo visual aprovado foi entregue integralmente: palco centralizado, backdrop restrito ao app, scroll bloqueado, fechamentos separados, transições, redução de movimento, temas e localização. O desvio em relação ao plano foi a investigação adicional provocada por um bloqueio pós-captura observado uma vez na versão 18. A versão diagnóstica 19 não reproduziu o problema em 6/6 ciclos e não forneceu evidência suficiente para uma alteração comportamental segura; por isso o incidente foi mantido explicitamente como intermitente, sem causa confirmada e sujeito a monitoramento. O impacto final foi **neutro** para o produto: não houve redução funcional nem visual, mas permanece um risco residual documentado em vez de uma alegação indevida de correção.
+
+**PRs/commits relacionados:** [PR #207](https://github.com/magnoClovis/nutrition-tracker/pull/207), merge [`449ab9a`](https://github.com/magnoClovis/nutrition-tracker/commit/449ab9ae65a256e8423531f8124c935b34f468bd), commit inicial [`da9922d`](https://github.com/magnoClovis/nutrition-tracker/commit/da9922d), correção do recorte [`bb35e09`](https://github.com/magnoClovis/nutrition-tracker/commit/bb35e09), registro do bloqueio local [`9fcacd3`](https://github.com/magnoClovis/nutrition-tracker/commit/9fcacd3), instrumentação diagnóstica [`9ed3d95`](https://github.com/magnoClovis/nutrition-tracker/commit/9ed3d95), documentação física final [`eff716e`](https://github.com/magnoClovis/nutrition-tracker/commit/eff716e), CI inicial leve [`35014899826`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35014899826) e pesado [`35014899866`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35014899866), CI corretivo leve [`35094659750`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35094659750) e pesado autenticado [`35094659731`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35094659731), CI diagnóstico leve [`35110531531`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35110531531) e pesado autenticado [`35110531673`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35110531673), CI final leve [`35129175428`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35129175428) e pesado autenticado [`35129175422`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35129175422).
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
