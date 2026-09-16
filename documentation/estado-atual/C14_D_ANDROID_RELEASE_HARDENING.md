@@ -2,7 +2,7 @@
 
 ## Estado
 
-- **Status:** em validação; implementação e suíte local concluídas, CI autenticado pendente.
+- **Status:** concluído e mesclado no PR #213.
 - **Início comprovado:** 16/09/2026.
 - **Responsável:** Trofia-Principal.
 - **Branch:** `codex/c14-d-android-release`.
@@ -49,7 +49,9 @@ Reduzir a exposição de dados locais associados à conta e tornar todo artefato
 - a configuração Firebase real foi usada temporariamente apenas para validar a compilação, com igualdade de SHA-256 conferida na cópia, e removida do worktree em seguida;
 - recursos Android compilados com sucesso em `:app:processDebugResources` (`106` tarefas); o manifesto release mesclado também passou no verificador;
 - testes focados: `11/11`; unitários completos: `1.386/1.386`; smoke local legado e Vite: `48/48` cada, com apenas os `63` skips autenticados esperados em cada execução; cutover: `60/60`;
-- CI autenticado real e métricas do PR permanecem pendentes antes do encerramento formal.
+- CI autenticado final: run `35109617209` verde em `31 min 39 s`, com 103 aprovações e 8 skips Vite-only esperados no legado e 111/111 aprovações sem skips no Vite;
+- o primeiro run pesado (`35104712056`) revelou somente um seletor de teste desatualizado no backup mobile; o fallback foi estabilizado no commit `cac5f46` e toda a matriz foi repetida;
+- PR #213 mesclado em `fbb8486`; tempo decorrido real de `1 h 19 min 42 s`; CI acumulado de `61 min 28 s` (`48 s` leves + `60 min 40 s` pesados).
 
 ## Limites
 

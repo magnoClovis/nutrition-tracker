@@ -43,7 +43,7 @@
 ## O que está em andamento agora
 
 - **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.
-- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2 e C14-C estão concluídas; C14-D está em andamento; C14-E a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
+- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C e C14-D estão concluídas; C14-E a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 - **[DOC-TRACKING-193] Concluído (12/09/2026) — Chat: Trofia-Principal.** O que se planeja fazer: registrar integralmente as sequências aprovadas e formalizar planejamento, entrega, alinhamento e métricas. O que foi feito: 100 entradas de fatias foram normalizadas no PR #193, com escopos incertos de D3–D7 explicitamente delegados ao chat UI/UX. Alinhamento: 100%.
@@ -1354,13 +1354,14 @@
 
 ### [C14-D] - Android e cadeia de release
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 16/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 16/09/2026.
 - **Propósito:** proteger dados locais e tornar o AAB fail-closed e verificável.
 - **O que se planeja fazer:** desligar Auto Backup, revisar FileProvider/cleartext e reforçar validação de google-services/manifesto/hash.
 - **Recursos/arquivos principais envolvidos:** AndroidManifest, `file_paths.xml`, Gradle, scripts/testes de release, AAB assinado e aparelho físico.
-- **O que foi feito:** implementação concluída localmente: backup e cleartext negados, compartilhamento limitado ao cache privado, configuração Firebase/manifesto/assinatura/versão/hash verificados de forma fail-closed; aguardando CI autenticado do PR para encerrar a fatia.
+- **O que foi feito:** o PR #213 negou backup, transferência de dados de conta e cleartext, limitou o compartilhamento ao cache privado e tornou configuração Firebase, manifesto, assinatura, versão e hash do AAB verificáveis de forma fail-closed; CI autenticado final verde no run 35109617209.
+- **Alinhamento:** 100%; o escopo Android aprovado foi entregue, sem alterar `versionCode` nem gerar AAB fora de autorização.
 
 ### [C14-E] - Auth, sessão e onboarding recuperável
 
