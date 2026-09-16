@@ -45,8 +45,8 @@ Fechar riscos de autenticação que podem manter uma sessão web além da inten�
 - Preflight documental do PR: verde no run `35120342282`.
 - A primeira matriz autenticada (`35120342305`) confirmou preflight, unitários, Worker e Functions, mas revelou uma incompatibilidade do fixture: a nova persistência web `SESSION` não pode ser transportada pelo `storageState` do Playwright para contextos novos. O setup autenticado passou a marcar explicitamente “Manter logado”, usando `LOCAL` apenas no ambiente de teste que precisa reutilizar o estado; a semântica padrão do produto permanece `SESSION`.
 - Suíte local completa após o ajuste do fixture: verde novamente — preflight, 1.396 unitários, 48/48 smoke legado, 48/48 smoke Vite e 60/60 cutover.
-- CI autenticado real final: pendente da repetição integral.
-- Política de senha do Firebase Console: pendente de confirmação manual antes do encerramento.
+- CI autenticado real final: run `35126370601` totalmente verde — 1.396 unitários, Worker verde, 74/74 Functions, legado com 103 aprovações e 8 skips Vite-only documentados, e Vite com 111/111 aprovações e zero skips.
+- Política de senha do Firebase Console: confirmada manualmente em 16/09/2026 com mínimo 12, máximo 4.096, sem composição forçada e modo **Notificar**. A escolha preserva login de contas antigas potencialmente não conformes; a migração futura para **Exigir a aplicação** está registrada como P11.
 
 ## Critérios de aceite
 
@@ -56,10 +56,11 @@ Fechar riscos de autenticação que podem manter uma sessão web além da inten�
 - falha de persistência no cadastro aparece ao usuário, mantém um estado recuperável e pode ser repetida sem novo `createUser`;
 - leitura indisponível ou perfil incompleto de conta antiga continua fora do modal de criação;
 - testes focados, suíte completa e CI autenticado real ficam verdes;
-- configuração manual do Firebase é confirmada antes de declarar C14-E concluída.
+- configuração manual do Firebase é confirmada com mínimo 12 e a decisão de compatibilidade fica explicitamente documentada.
 
 ## Limites
 
 - nenhuma regra de composição obrigatória será adicionada;
+- o modo Firebase **Exigir a aplicação** não será ativado sem transição explícita das contas antigas; essa decisão futura está em P11;
 - nenhuma senha, token, e-mail real ou dado de perfil será registrado em documentação ou logs;
 - mudanças de provedores de login, MFA e recuperação administrativa ficam fora desta fatia.
