@@ -94,6 +94,15 @@ async function clickByTutorialKeyOrText(page, tutorialKey, fallbackPattern) {
     return;
   }
 
+  if (tutorialKey === 'menu-settings') {
+    const settingsButton = page.getByRole('button', { name: '⚙', exact: true }).first();
+    if (await settingsButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await settingsButton.click();
+      await dismissTutorialIfVisible(page);
+      return;
+    }
+  }
+
   await clickFirstButtonMatching(page, fallbackPattern);
 }
 

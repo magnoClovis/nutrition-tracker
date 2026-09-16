@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 apply plugin: 'com.android.application'
 
 def keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -54,6 +56,66 @@ android {
     }
 }
 
+def expectedFirebaseProjectId = "nutrition-tracker-780b3"
+def expectedFirebaseProjectNumber = "128834310181"
+def expectedAndroidPackage = "com.hermegas.trofia"
+
+def findMergedReleaseManifest = {
+    def candidates = fileTree(layout.buildDirectory.get().asFile) {
+        include "intermediates/merged_manifest/release/**/AndroidManifest.xml"
+        include "intermediates/merged_manifests/release/**/AndroidManifest.xml"
+    }.files.sort { left, right -> left.lastModified() <=> right.lastModified() }
+    candidates ? candidates.last() : null
+}
+
+def androidReleaseSecurityVerifier = rootProject.file("../scripts/verify-android-release-security.js")
+
+def verifyReleaseSecurityConfig = tasks.register("verifyReleaseSecurityConfig", Exec) {
+    group = "verification"
+    description = "Verifies the merged release manifest and local Firebase Android configuration."
+    dependsOn "processReleaseMainManifest"
+    doFirst {
+        def mergedManifest = findMergedReleaseManifest()
+        if (mergedManifest == null) {
+            throw new GradleException("Trofia merged release AndroidManifest.xml was not produced.")
+        }
+        commandLine(
+            "node",
+            androidReleaseSecurityVerifier.absolutePath,
+            "--google-services", file("google-services.json").absolutePath,
+            "--merged-manifest", mergedManifest.absolutePath,
+            "--expected-version-code", android.defaultConfig.versionCode.toString(),
+            "--expected-version-name", android.defaultConfig.versionName
+        )
+    }
+}
+
+def verifyReleaseBundleSecurity = tasks.register("verifyReleaseBundleSecurity", Exec) {
+    group = "verification"
+    description = "Verifies the signed release AAB and prints its sanitized identity and SHA-256."
+    doFirst {
+        def mergedManifest = findMergedReleaseManifest()
+        def releaseBundle = layout.buildDirectory.file("outputs/bundle/release/app-release.aab").get().asFile
+        if (mergedManifest == null || !releaseBundle.isFile()) {
+            throw new GradleException("Trofia release manifest or signed AAB is missing after bundleRelease.")
+        }
+        commandLine(
+            "node",
+            androidReleaseSecurityVerifier.absolutePath,
+            "--google-services", file("google-services.json").absolutePath,
+            "--merged-manifest", mergedManifest.absolutePath,
+            "--expected-version-code", android.defaultConfig.versionCode.toString(),
+            "--expected-version-name", android.defaultConfig.versionName,
+            "--aab", releaseBundle.absolutePath
+        )
+    }
+}
+
+tasks.matching { it.name == "bundleRelease" }.configureEach {
+    dependsOn verifyReleaseSecurityConfig
+    finalizedBy verifyReleaseBundleSecurity
+}
+
 gradle.taskGraph.whenReady { taskGraph ->
     def releaseArtifactRequested = taskGraph.allTasks.any { task ->
         def taskName = task.name.toLowerCase(Locale.ROOT)
@@ -68,6 +130,32 @@ gradle.taskGraph.whenReady { taskGraph ->
                 "Trofia release Firebase Android configuration is missing: " +
                 "android/app/google-services.json. Copy the local production file into this " +
                 "worktree before building; release artifacts without it are forbidden."
+            )
+        }
+
+        def googleServicesConfig
+        try {
+            googleServicesConfig = new JsonSlurper().parse(googleServicesFile)
+        } catch (Exception error) {
+            throw new GradleException(
+                "Trofia release Firebase Android configuration is invalid JSON. " +
+                "Replace android/app/google-services.json with the production file from Firebase Console."
+            )
+        }
+        if (googleServicesConfig?.project_info?.project_id != expectedFirebaseProjectId ||
+            googleServicesConfig?.project_info?.project_number?.toString() != expectedFirebaseProjectNumber) {
+            throw new GradleException(
+                "Trofia release Firebase Android configuration targets the wrong Firebase project."
+            )
+        }
+        def androidClient = googleServicesConfig?.client?.find { client ->
+            client?.client_info?.android_client_info?.package_name == expectedAndroidPackage
+        }
+        if (androidClient == null || !androidClient?.client_info?.mobilesdk_app_id?.toString()?.trim() ||
+            !androidClient?.api_key?.any { key -> key?.current_key?.toString()?.trim() }) {
+            throw new GradleException(
+                "Trofia release Firebase Android configuration does not contain a complete " +
+                "com.hermegas.trofia client."
             )
         }
 

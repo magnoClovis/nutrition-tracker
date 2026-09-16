@@ -87,8 +87,10 @@ try {
     }
     & $nodeExe (Join-Path $PSScriptRoot "audit-i18n.js") | Out-Host
     Add-Ok "i18n audit passed"
+    & $nodeExe (Join-Path $PSScriptRoot "verify-android-release-security.js") | Out-Host
+    Add-Ok "Android release security configuration passed"
   } else {
-    Add-Warning "Node was not found; skipped JavaScript syntax and i18n checks"
+    Add-Warning "Node was not found; skipped JavaScript syntax, i18n, and Android release security checks"
   }
 
   $tracked = @()
