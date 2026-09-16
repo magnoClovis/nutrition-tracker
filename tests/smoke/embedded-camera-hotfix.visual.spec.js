@@ -8,7 +8,9 @@ test.describe('embedded camera release hotfix CSS contract', () => {
         document.documentElement.dataset.theme = themeName;
         document.body.innerHTML = `
           <div data-one-ui-root data-theme="${themeName}">
+            <div data-camera-obscured-content="root">Conteúdo do app atrás da câmera</div>
             <main data-app-main="adicionar" style="position:fixed;inset:7vh 12px;overflow-y:auto;animation:softIn 220ms ease-out both;backdrop-filter:blur(12px)">
+              <div data-camera-obscured-content="modal">Conteúdo do modal atrás da câmera</div>
               <div style="height:540px"></div>
               <section data-image-meal-screen="true" data-camera-native-active="true">
                 <div data-camera-stage-overlay="true">
@@ -71,6 +73,10 @@ test.describe('embedded camera release hotfix CSS contract', () => {
       expect(stageMetrics.openingAnimation).toContain('embeddedCameraOpen');
       await expect(page.locator('[data-app-main="adicionar"]')).toHaveCSS('animation-name', 'none');
       await expect(page.locator('[data-app-main="adicionar"]')).toHaveCSS('backdrop-filter', 'none');
+      await expect(page.locator('[data-camera-obscured-content="root"]')).toHaveCSS('visibility', 'hidden');
+      await expect(page.locator('[data-camera-obscured-content="modal"]')).toHaveCSS('visibility', 'hidden');
+      await expect(page.locator('[data-camera-stage-overlay="true"]')).toHaveCSS('visibility', 'visible');
+      await expect(page.locator('[data-camera-close="true"]')).toHaveCSS('visibility', 'visible');
 
       const closingAnimations = await page.evaluate(() => {
         const overlay = document.querySelector('[data-camera-stage-overlay="true"]');

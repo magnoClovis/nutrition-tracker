@@ -213,6 +213,20 @@ body:has([data-camera-native-active="true"]) [data-app-main="adicionar"] {
   background-image: none !important;
 }
 
+/* A transparent WebView still paints ordinary descendants over the native
+   CameraPreview surface. Hide the inactive app tree while the camera owns the
+   viewport, then opt the capture stage back in. `visibility` preserves layout
+   and therefore the measured native geometry without painting duplicate app
+   content through the transparent camera window. */
+body:has([data-camera-native-active="true"]) [data-one-ui-root] * {
+  visibility: hidden;
+}
+
+body:has([data-camera-native-active="true"]) [data-camera-stage-overlay="true"],
+body:has([data-camera-native-active="true"]) [data-camera-stage-overlay="true"] * {
+  visibility: visible;
+}
+
 /* The Add modal normally keeps a filled entrance animation and glass filter.
    Both establish a containing block for fixed descendants, so the full-screen
    camera stage temporarily neutralizes them while the native session owns the
