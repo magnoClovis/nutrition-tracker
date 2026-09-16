@@ -2,10 +2,14 @@
 
 ## Estado
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Início comprovado:** 16/09/2026.
+- **Conclusão:** 16/09/2026.
+- **Tempo decorrido:** 2 h 27 min 26 s, do primeiro commit ao merge.
+- **Minutos de CI:** 63 min 55 s no total — 1 min 12 s leves e 62 min 43 s pesados.
 - **Responsável:** Trofia-Principal.
 - **Branch:** `codex/c14-e-auth-session-onboarding`.
+- **Entrega:** PR #215, merge `b307d29`.
 
 ## Propósito
 
@@ -41,12 +45,13 @@ Fechar riscos de autenticação que podem manter uma sessão web além da inten�
 
 - Testes focados: 83/83 no primeiro conjunto e 33/33 após cobrir separação entre persistência e entrega da verificação.
 - Suíte local completa: preflight verde, 1.396 unitários, 48/48 smoke legado, 48/48 smoke Vite e 60/60 cutover.
-- PR draft: [#215](https://github.com/magnoClovis/nutrition-tracker/pull/215).
+- PR [#215](https://github.com/magnoClovis/nutrition-tracker/pull/215), mesclado em `b307d29`.
 - Preflight documental do PR: verde no run `35120342282`.
 - A primeira matriz autenticada (`35120342305`) confirmou preflight, unitários, Worker e Functions, mas revelou uma incompatibilidade do fixture: a nova persistência web `SESSION` não pode ser transportada pelo `storageState` do Playwright para contextos novos. O setup autenticado passou a marcar explicitamente “Manter logado”, usando `LOCAL` apenas no ambiente de teste que precisa reutilizar o estado; a semântica padrão do produto permanece `SESSION`.
 - Suíte local completa após o ajuste do fixture: verde novamente — preflight, 1.396 unitários, 48/48 smoke legado, 48/48 smoke Vite e 60/60 cutover.
 - CI autenticado real final: run `35126370601` totalmente verde — 1.396 unitários, Worker verde, 74/74 Functions, legado com 103 aprovações e 8 skips Vite-only documentados, e Vite com 111/111 aprovações e zero skips.
 - Política de senha do Firebase Console: confirmada manualmente em 16/09/2026 com mínimo 12, máximo 4.096, sem composição forçada e modo **Notificar**. A escolha preserva login de contas antigas potencialmente não conformes; a migração futura para **Exigir a aplicação** está registrada como P11.
+- **Alinhamento:** 100%; todo o escopo aprovado foi entregue. A escolha de **Notificar** formaliza uma transição compatível para contas antigas, sem reduzir a exigência de 12 caracteres aplicada pelo cliente a novos cadastros e trocas.
 
 ## Critérios de aceite
 
