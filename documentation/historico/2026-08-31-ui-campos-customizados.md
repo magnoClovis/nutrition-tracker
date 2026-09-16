@@ -1235,6 +1235,22 @@ O gate final do estado documentado passou no CI pesado `35129175422` em 36 minut
 
 **PRs/commits relacionados:** [PR #207](https://github.com/magnoClovis/nutrition-tracker/pull/207), merge [`449ab9a`](https://github.com/magnoClovis/nutrition-tracker/commit/449ab9ae65a256e8423531f8124c935b34f468bd), commit inicial [`da9922d`](https://github.com/magnoClovis/nutrition-tracker/commit/da9922d), correção do recorte [`bb35e09`](https://github.com/magnoClovis/nutrition-tracker/commit/bb35e09), registro do bloqueio local [`9fcacd3`](https://github.com/magnoClovis/nutrition-tracker/commit/9fcacd3), instrumentação diagnóstica [`9ed3d95`](https://github.com/magnoClovis/nutrition-tracker/commit/9ed3d95), documentação física final [`eff716e`](https://github.com/magnoClovis/nutrition-tracker/commit/eff716e), CI inicial leve [`35014899826`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35014899826) e pesado [`35014899866`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35014899866), CI corretivo leve [`35094659750`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35094659750) e pesado autenticado [`35094659731`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35094659731), CI diagnóstico leve [`35110531531`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35110531531) e pesado autenticado [`35110531673`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35110531673), CI final leve [`35129175428`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35129175428) e pesado autenticado [`35129175422`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35129175422).
 
+## Encerramento administrativo do PR documental obsoleto #170
+
+### [DOC-PR170-CLOSEOUT] - Fechamento sem merge do registro duplicado da S8
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 31/08/2026, data do único commit do PR original.
+- **Data de conclusão:** 16/09/2026.
+- **Tempo decorrido:** 15 dias 19 h 49 min 52 s, do commit `39abd3d` ao fechamento sem merge do PR.
+- **Minutos de CI:** 22 s leves, correspondentes ao `Documentation preflight` `33448649654`; nenhuma suíte pesada foi executada porque o PR alterava somente Markdown.
+- **Propósito:** encerrar com evidência um PR documental antigo que continuava aberto apesar de a S8 já estar concluída e documentada na `main`, evitando merge regressivo e removendo resíduos de branch/worktree.
+- **O que se planeja fazer:** auditar o conteúdo e a linha do tempo do PR #170, comparar sua branch com a `main`, confirmar ausência de trabalho exclusivo, fechar sem merge se estivesse superado e remover com segurança apenas o worktree e as branches correspondentes.
+- **Recursos/arquivos principais envolvidos:** GitHub PR #170 e sua timeline, `git merge-tree`, `git blame`, `documentation/estado-atual/RESUMO-STATUS.md`, este histórico, branch `codex/docs-s8-completion` e worktree `.codex-ui-s8-status`.
+- **O que foi feito:** a auditoria comprovou que o PR #170 continha somente o commit documental `39abd3d`, criado após o merge da S8 no PR #166 para mover a fatia a “concluída”, registrar o gate 93/93 e ainda manter S9 como planejada. Não havia comentário, revisão, check pendente ou alteração local no worktree; o PR apenas fora retirado do draft em 09/09 sem receber ação posterior. A `main` já possuía o registro equivalente ou mais completo por meio dos PRs #169, #172 e #196, inclusive S9 concluída, merge `e68bc20` e run `33446146673`. A simulação mostrava conflitos nos dois documentos e o texto antigo sobre S9 seria regressivo. O PR foi fechado sem merge com justificativa pública; o worktree limpo foi removido pelo Git e a branch local/remota apagada. Nenhum código ou estado funcional do produto mudou.
+- **Alinhamento:** 100%; a limpeza seguiu integralmente o plano auditado, preservou a documentação vigente e teve impacto positivo de higiene e rastreabilidade, sem perda de trabalho exclusivo.
+- **PRs/commits relacionados:** [PR #170 — fechado sem merge](https://github.com/magnoClovis/nutrition-tracker/pull/170), commit obsoleto `39abd3d`, preflight `33448649654`; conteúdo vigente rastreado nos PRs #169, #172 e #196. — **Chat:** Trofia-Principal.
+
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
 **Data (se determinável):** não determinado.
