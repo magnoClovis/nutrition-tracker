@@ -1286,3 +1286,24 @@ O gate final do estado documentado passou no CI pesado `35129175422` em 36 minut
 - `documentation/README.md`, `documentation/estado-atual/ROADMAP.md` e `documentation/estado-atual/BUG-INVENTORY.md`, consultados antes da redação para convenção, estados e códigos formais.
 - Datas dos protótipos, da auditoria S1–S9 e da auditoria de concorrentes são **não determinadas**, pois não existe commit/PR próprio que confirme o instante exato.
 - O PR #150 registra a implementação, o diagnóstico do stacking context residual, a correção final e o gate autenticado que concluiu S1–S9 na `main`.
+
+## Métricas retroativas
+
+| PR | Tempo decorrido | Minutos de CI | Chat-Origin |
+|---:|---:|---:|---|
+| [#126](https://github.com/magnoClovis/nutrition-tracker/pull/126) | 58 min | 19 min (0 leve + 19 pesado) | Trofia-UIUX |
+| [#130](https://github.com/magnoClovis/nutrition-tracker/pull/130) | 3 h 2 min | 14 min (0 leve + 14 pesado) | Trofia-UIUX |
+| [#133](https://github.com/magnoClovis/nutrition-tracker/pull/133) | 1 h 13 min | 25 min (0 leve + 25 pesado) | Trofia-UIUX |
+| [#136](https://github.com/magnoClovis/nutrition-tracker/pull/136) | 28 min | 24 min (0 leve + 24 pesado) | Trofia-UIUX |
+| [#138](https://github.com/magnoClovis/nutrition-tracker/pull/138) | 1 h 3 min | 19 min (0 leve + 19 pesado) | Trofia-UIUX |
+| [#141](https://github.com/magnoClovis/nutrition-tracker/pull/141) | 2 h 16 min | 18 min (0 leve + 18 pesado) | Trofia-UIUX |
+| [#144](https://github.com/magnoClovis/nutrition-tracker/pull/144) | 46 min | 36 min (0 leve + 36 pesado) | Trofia-UIUX |
+| [#146](https://github.com/magnoClovis/nutrition-tracker/pull/146) | 47 min | 46 min (0 leve + 46 pesado) | Trofia-UIUX |
+| [#148](https://github.com/magnoClovis/nutrition-tracker/pull/148) | 1 h 22 min | 27 min (0 leve + 27 pesado) | Trofia-UIUX |
+| [#150](https://github.com/magnoClovis/nutrition-tracker/pull/150) | 9 d 23 h 31 min | 27 min (0 leve + 27 pesado) | Trofia-UIUX |
+| [#166](https://github.com/magnoClovis/nutrition-tracker/pull/166) | 3 h 40 min | 31 min (1 leve + 30 pesado) | Trofia-UIUX |
+| [#172](https://github.com/magnoClovis/nutrition-tracker/pull/172) | 1 d 1 h 36 min | 32 min (1 leve + 31 pesado) | Trofia-UIUX |
+| [#185](https://github.com/magnoClovis/nutrition-tracker/pull/185) | 9 h 24 min | 45 min (1 leve + 44 pesado) | Trofia-UIUX |
+| [#187](https://github.com/magnoClovis/nutrition-tracker/pull/187) | 2 h 23 min | 44 min (1 leve + 43 pesado) | Trofia-UIUX |
+| [#190](https://github.com/magnoClovis/nutrition-tracker/pull/190) | 1 h 32 min | 62 min (1 leve + 61 pesado) | Trofia-UIUX |
+| [#192](https://github.com/magnoClovis/nutrition-tracker/pull/192) | 1 h 1 min | 33 min (1 leve + 32 pesado) | Trofia-UIUX |

@@ -48,6 +48,16 @@
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 - **[DOC-TRACKING-193] Concluído (12/09/2026) — Chat: Trofia-Principal.** O que se planeja fazer: registrar integralmente as sequências aprovadas e formalizar planejamento, entrega, alinhamento e métricas. O que foi feito: 100 entradas de fatias foram normalizadas no PR #193, com escopos incertos de D3–D7 explicitamente delegados ao chat UI/UX. Alinhamento: 100%.
 
+### [DOC-SYNC-LOCAL-20260916] - Reconciliação segura do checkout principal
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 16/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** eliminar a divergência entre a documentação local e a `origin/main` sem perder métricas retroativas nem arquivos locais sensíveis.
+- **O que se planeja fazer:** preservar hashes e backup externo, transplantar somente registros exclusivos sobre a main atual, publicar a reconciliação e atualizar o checkout principal por fast-forward com reaplicação seletiva.
+- **Recursos/arquivos principais envolvidos:** Git/worktrees, backup externo em AppData, nove históricos em `documentation/historico/`, `android/app/build.gradle`, `android/build.gradle`, `bug-inventory.txt`, keystore e `google-services.json`.
+- **O que foi feito:** auditoria confirmou a `main` local 49 commits atrás, separou snapshots regressivos de 240 linhas documentais exclusivas e criou uma reconciliação limpa sobre `origin/main`; publicação e sincronização final ainda estão em andamento.
+
 ### [DOC-FORMAT-198] - Padronização detalhada das entradas históricas
 
 - **Status:** concluído — **Chat:** Trofia-Principal.

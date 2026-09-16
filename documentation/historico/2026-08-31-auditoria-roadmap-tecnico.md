@@ -167,3 +167,9 @@ O projeto evoluiu significativamente depois desse retrato. O roadmap atual regis
 - [`documentation/estado-atual/ROADMAP.md`](../estado-atual/ROADMAP.md), correspondência formal com C16 e estado posterior das funcionalidades auditadas.
 - [`documentation/estado-atual/BUG-INVENTORY.md`](../estado-atual/BUG-INVENTORY.md), verificação de que este chat não deve reivindicar códigos de bugs apenas analisados.
 - Histórico Git local e `origin/main`, usados para confirmar a ausência dos dois artefatos originais e separar esta documentação histórica da implementação do produto.
+
+## Métricas retroativas
+
+| PR | Tempo decorrido | Minutos de CI | Chat-Origin |
+|---:|---:|---:|---|
+| [#159](https://github.com/magnoClovis/nutrition-tracker/pull/159) | 1 h 7 min | 1 min (1 leve + 0 pesado) | Trofia-Docs |

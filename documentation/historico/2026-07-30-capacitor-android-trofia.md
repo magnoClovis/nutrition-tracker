@@ -362,3 +362,18 @@ Os APKs citados eram artefatos locais de debug, ignorados pelo Git. Seus caminho
 - `documentation/README.md`, `documentation/estado-atual/ROADMAP.md` e `documentation/estado-atual/BUG-INVENTORY.md`, consultados em 31/08/2026.
 - Os APKs eram ignorados pelo Git. Seus hashes e tamanhos são confirmados pelos relatórios, mas os binários não fazem parte desta documentação.
 - A data exata de algumas mensagens intermediárias de teste físico não existe como evento Git separado; quando relevante, foi usada a data registrada no relatório, sem inferir horário.
+
+## Métricas retroativas
+
+| PR | Tempo decorrido | Minutos de CI | Chat-Origin |
+|---:|---:|---:|---|
+| [#69](https://github.com/magnoClovis/nutrition-tracker/pull/69) | 1 h 46 min | 36 min (0 leve + 36 pesado) | Trofia-Principal |
+| [#70](https://github.com/magnoClovis/nutrition-tracker/pull/70) | 1 h 6 min | 46 min (0 leve + 46 pesado) | Trofia-Principal |
+| [#71](https://github.com/magnoClovis/nutrition-tracker/pull/71) | 1 h 15 min | 33 min (0 leve + 33 pesado) | Trofia-Principal |
+| [#72](https://github.com/magnoClovis/nutrition-tracker/pull/72) | 2 h 19 min | 33 min (0 leve + 33 pesado) | Trofia-Principal |
+| [#73](https://github.com/magnoClovis/nutrition-tracker/pull/73) | 10 h 13 min | 35 min (0 leve + 35 pesado) | Trofia-Principal |
+| [#74](https://github.com/magnoClovis/nutrition-tracker/pull/74) | 6 h 34 min | 43 min (0 leve + 43 pesado) | Trofia-Principal |
+| [#75](https://github.com/magnoClovis/nutrition-tracker/pull/75) | 5 h 21 min | 23 min (0 leve + 23 pesado) | Trofia-Principal |
+| [#76](https://github.com/magnoClovis/nutrition-tracker/pull/76) | 1 h 39 min | 25 min (0 leve + 25 pesado) | Trofia-Principal |
+| [#77](https://github.com/magnoClovis/nutrition-tracker/pull/77) | 10 min | 24 min (0 leve + 24 pesado) | Trofia-Principal |
+| [#78](https://github.com/magnoClovis/nutrition-tracker/pull/78) | 17 min | 23 min (0 leve + 23 pesado) | Trofia-Principal |
