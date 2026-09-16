@@ -41,7 +41,11 @@ Fechar riscos de autenticação que podem manter uma sessão web além da inten�
 
 - Testes focados: 83/83 no primeiro conjunto e 33/33 após cobrir separação entre persistência e entrega da verificação.
 - Suíte local completa: preflight verde, 1.396 unitários, 48/48 smoke legado, 48/48 smoke Vite e 60/60 cutover.
-- CI autenticado real: pendente do PR.
+- PR draft: [#215](https://github.com/magnoClovis/nutrition-tracker/pull/215).
+- Preflight documental do PR: verde no run `35120342282`.
+- A primeira matriz autenticada (`35120342305`) confirmou preflight, unitários, Worker e Functions, mas revelou uma incompatibilidade do fixture: a nova persistência web `SESSION` não pode ser transportada pelo `storageState` do Playwright para contextos novos. O setup autenticado passou a marcar explicitamente “Manter logado”, usando `LOCAL` apenas no ambiente de teste que precisa reutilizar o estado; a semântica padrão do produto permanece `SESSION`.
+- Suíte local completa após o ajuste do fixture: verde novamente — preflight, 1.396 unitários, 48/48 smoke legado, 48/48 smoke Vite e 60/60 cutover.
+- CI autenticado real final: pendente da repetição integral.
 - Política de senha do Firebase Console: pendente de confirmação manual antes do encerramento.
 
 ## Critérios de aceite

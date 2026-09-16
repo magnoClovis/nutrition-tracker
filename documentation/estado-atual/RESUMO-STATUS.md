@@ -1371,7 +1371,7 @@
 - **Propósito:** evitar cadastro parcialmente salvo e controlar credenciais/sessão com política explícita.
 - **O que se planeja fazer:** aplicar senha mínima 12, checkbox Manter logado (`LOCAL`/`SESSION`) e fluxo recuperável PT/EN/ES.
 - **Recursos/arquivos principais envolvidos:** `login-screen.js`, `profile-validation.js`, Firebase Auth modular, i18n, testes e Firebase Console.
-- **O que foi feito:** o cliente agora escolhe `SESSION` por padrão e `LOCAL` apenas com “Manter logado” na web, preserva sessão no Android, exige 12 caracteres em PT/EN/ES e retoma gravações iniciais falhas sem criar outra conta; suíte local completa verde, pendentes CI autenticado e política efetiva no Firebase Console.
+- **O que foi feito:** o cliente agora escolhe `SESSION` por padrão e `LOCAL` apenas com “Manter logado” na web, preserva sessão no Android, exige 12 caracteres em PT/EN/ES e retoma gravações iniciais falhas sem criar outra conta; o primeiro CI do PR #215 revelou que o fixture autenticado precisava optar por `LOCAL` para transportar o `storageState` entre contextos Playwright, ajuste validado pela suíte local completa sem mudar a persistência padrão do produto; pendem o novo CI autenticado e a política efetiva no Firebase Console.
 
 ### [C14-F1] - Worker, tiers e observabilidade
 

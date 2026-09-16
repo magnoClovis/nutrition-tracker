@@ -24,6 +24,12 @@ test('authenticate disposable test account', async ({ page }) => {
   await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(password);
+  // Authenticated projects reuse this setup in fresh browser contexts. Opt in
+  // to LOCAL persistence explicitly because Playwright storageState cannot
+  // carry browserSessionPersistence state from this setup tab to those contexts.
+  await page.getByRole('checkbox', {
+    name: /Manter logado|Keep me signed in|Mantener sesi[oó]n iniciada/i
+  }).check();
   await page.getByRole('button', { name: /Entrar|Sign in|Iniciar sesi[oó]n/i }).last().click();
 
   const appNavigation = page.locator('button').filter({
