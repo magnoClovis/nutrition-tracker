@@ -1,5 +1,6 @@
 import {
   browserLocalPersistence,
+  browserSessionPersistence,
   createUserWithEmailAndPassword,
   EmailAuthProvider,
   getAuth,
@@ -28,6 +29,7 @@ function createModularAuthClient({ localStorage, resetStorageCaches, userLifecyc
     auth: getAuth(getSharedFirebaseApp()),
     sdk: {
       browserLocalPersistence,
+      browserSessionPersistence,
       createUserWithEmailAndPassword,
       emailCredential: EmailAuthProvider.credential,
       reload,

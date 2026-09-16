@@ -113,7 +113,7 @@ function fixedDateConstructor() {
   return FixedDate;
 }
 
-function createFixture(createLoginScreen, { stored = {}, auth = {}, initialDark = true } = {}) {
+function createFixture(createLoginScreen, { stored = {}, session = {}, auth = {}, initialDark = true, native = false } = {}) {
   const values = new Map(Object.entries({ appLang: "en", ...stored }));
   const localWrites = [];
   const calls = [];
@@ -121,9 +121,9 @@ function createFixture(createLoginScreen, { stored = {}, auth = {}, initialDark 
   const pending = [];
   const loggedIn = [];
   const services = {
-    async signIn(email, password) { calls.push(["signIn", email, password]); },
+    async signIn(email, password, options) { calls.push(["signIn", email, password, options]); },
     async checkEmailVerified() { calls.push(["checkEmailVerified"]); return true; },
-    async signUp(email, password) { calls.push(["signUp", email, password]); },
+    async signUp(email, password, options) { calls.push(["signUp", email, password, options]); },
     async updateProfile(name) { calls.push(["updateProfile", name]); },
     async setValue(key, value) { calls.push(["setValue", key, value]); },
     async sendVerificationEmail() { calls.push(["sendVerificationEmail"]); },
@@ -138,6 +138,12 @@ function createFixture(createLoginScreen, { stored = {}, auth = {}, initialDark 
       localWrites.push([key, stringValue]);
     }
   };
+  const sessionValues = new Map(Object.entries(session));
+  const sessionStorage = {
+    getItem(key) { return sessionValues.has(key) ? sessionValues.get(key) : null; },
+    setItem(key, value) { sessionValues.set(key, String(value)); },
+    removeItem(key) { sessionValues.delete(key); },
+  };
   const { LoginScreen } = createLoginScreen({
     React,
     languageOptions: LANGUAGE_OPTIONS,
@@ -149,6 +155,8 @@ function createFixture(createLoginScreen, { stored = {}, auth = {}, initialDark 
     authService: services,
     readPreferredDarkMode() { calls.push(["readPreferredDarkMode"]); return initialDark; },
     localStorage,
+    sessionStorage,
+    isNativePlatform: () => native,
     documentElement,
     Date: fixedDateConstructor(),
     localToday
@@ -160,7 +168,7 @@ function createFixture(createLoginScreen, { stored = {}, auth = {}, initialDark 
       pending.push([email, name]);
     }
   });
-  return { harness, calls, pending, loggedIn, localWrites, values, documentElement };
+  return { harness, calls, pending, loggedIn, localWrites, values, sessionValues, documentElement };
 }
 
 function fillLogin(fixture, email = "person@example.com", password = "secret123") {
@@ -172,15 +180,18 @@ function fillLogin(fixture, email = "person@example.com", password = "secret123"
 
 function switchToRegistration(fixture) {
   fixture.harness.render();
-  findButton(fixture.harness.tree, "Create account", 0).props.onClick();
+  const labels = new Set(["Create account", "Criar conta", "Crear cuenta"]);
+  elementsByType(fixture.harness.tree, "button")
+    .find(button => labels.has(elementText(button)))
+    .props.onClick();
   fixture.harness.render();
 }
 
 function fillRegistration(fixture, overrides = {}) {
   const values = {
     email: "new@example.com",
-    password: "secret123",
-    password2: "secret123",
+    password: "secret123456",
+    password2: "secret123456",
     name: "New User",
     birthDate: "1990-02-28",
     gender: "female",
@@ -223,7 +234,7 @@ contractTest("logs in through the named services and reports an existing verifie
   await submit(fixture);
 
   assert.deepEqual(fixture.calls.filter(call => call[0] !== "readPreferredDarkMode"), [
-    ["signIn", "person@example.com", "secret123"],
+    ["signIn", "person@example.com", "secret123", {remember: false}],
     ["checkEmailVerified"],
     ["onLogin", false]
   ]);
@@ -269,6 +280,38 @@ contractTest("preserves the lack of a synchronous double-submit guard", async cr
   ]);
 
   assert.equal(fixture.calls.filter(call => call[0] === "signIn").length, 2);
+});
+
+contractTest("uses SESSION by default, LOCAL after opt-in, and always LOCAL on native", async createLoginScreen => {
+  const web = createFixture(createLoginScreen);
+  fillLogin(web);
+  const remember = findInput(web.harness.tree, props => props.type === "checkbox");
+  assert.ok(remember);
+  remember.props.onChange({target: {checked: true}});
+  web.harness.render();
+  await submit(web);
+  assert.deepEqual(web.calls.find(call => call[0] === "signIn")[3], {remember: true});
+
+  const native = createFixture(createLoginScreen, {native: true});
+  fillLogin(native);
+  assert.equal(findInput(native.harness.tree, props => props.type === "checkbox"), undefined);
+  await submit(native);
+  assert.deepEqual(native.calls.find(call => call[0] === "signIn")[3], {remember: true});
+});
+
+contractTest("requires twelve registration characters in every supported language", async createLoginScreen => {
+  for (const [language, message] of [
+    ["pt", /pelo menos 12 caracteres/],
+    ["en", /at least 12 characters/],
+    ["es", /al menos 12 caracteres/],
+  ]) {
+    const fixture = createFixture(createLoginScreen, {stored: {appLang: language}});
+    switchToRegistration(fixture);
+    fillRegistration(fixture, {password: "short123", password2: "short123"});
+    await submit(fixture);
+    assert.match(elementText(fixture.harness.tree), message);
+    assert.equal(fixture.calls.some(call => call[0] === "signUp"), false);
+  }
 });
 
 contractTest("registers with real profile validators and writes the exact persistence keys in order", async createLoginScreen => {
@@ -348,12 +391,13 @@ contractTest("reports an existing registration email without applying later writ
   assert.equal(fixture.calls.some(call => call[0] === "sendVerificationEmail"), false);
 });
 
-contractTest("continues registration without rollback when an initial profile write fails", async createLoginScreen => {
+contractTest("keeps a recoverable checkpoint and retries profile persistence without creating another account", async createLoginScreen => {
+  let birthFailures = 1;
   const fixture = createFixture(createLoginScreen, {
     auth: {
       async setValue(key, value) {
         fixture.calls.push(["setValue", key, value]);
-        if (key === "birthDate") throw new Error("WRITE_FAILED");
+        if (key === "birthDate" && birthFailures--) throw new Error("WRITE_FAILED");
       }
     }
   });
@@ -361,9 +405,29 @@ contractTest("continues registration without rollback when an initial profile wr
   fillRegistration(fixture);
   await submit(fixture);
 
-  assert.equal(fixture.calls.some(call => call[0] === "setValue" && call[1] === "gender"), true);
+  assert.match(elementText(fixture.harness.tree), /account was created, but the profile could not be saved/i);
+  assert.equal(fixture.calls.some(call => call[0] === "sendVerificationEmail"), false);
+  assert.equal(fixture.sessionValues.get("trofia:new-account-onboarding"), "true");
+  await submit(fixture);
+  assert.equal(fixture.calls.filter(call => call[0] === "signUp").length, 1);
   assert.equal(fixture.calls.some(call => call[0] === "sendVerificationEmail"), true);
   assert.deepEqual(fixture.pending, [["new@example.com", "New User"]]);
+});
+
+contractTest("distinguishes verification delivery failure from profile persistence failure", async createLoginScreen => {
+  const fixture = createFixture(createLoginScreen, {
+    auth: {
+      async sendVerificationEmail() { throw new Error("EMAIL_DELIVERY_FAILED"); }
+    }
+  });
+  switchToRegistration(fixture);
+  fillRegistration(fixture);
+  await submit(fixture);
+
+  const rendered = elementText(fixture.harness.tree);
+  assert.match(rendered, /EMAIL_DELIVERY_FAILED/);
+  assert.doesNotMatch(rendered, /profile could not be saved/i);
+  assert.equal(fixture.calls.filter(call => call[0] === "setValue").length, 5);
 });
 
 contractTest("sends password recovery for the trimmed email and preserves the neutral response", async createLoginScreen => {

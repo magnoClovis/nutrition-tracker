@@ -305,15 +305,16 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ### [C14-E] - Auth, sessão e onboarding recuperável
 
-- **Status:** não iniciado.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento.
+- **Data de início:** 16/09/2026.
+- **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; não iniciado.
+- **Minutos de CI:** 63 min 32 s acumulados até a implementação validada (49 s leves + 62 min 43 s pesados): primeira execução `35120342305`/`35120342282` e repetição verde `35126370601`/`35126370693`. O total definitivo, incluindo gates documentais posteriores, será consolidado após o merge.
 - **Propósito:** impedir contas parcialmente configuradas por falhas silenciosas, alinhar a senha mínima e dar ao usuário controle explícito sobre a persistência da sessão web.
 - **O que se planeja fazer:** aplicar senha mínima de 12 caracteres, sessão `SESSION`/`LOCAL` explícita e onboarding recuperável.
 - **Recursos/arquivos principais envolvidos:** `/login-screen.js`, runtime Firebase Auth modular, i18n PT/EN/ES, testes de onboarding/sessão e configuração manual da política de senha no Firebase Console.
-- **O que foi feito:** nenhuma implementação iniciada. Estão aprovados mínimo de 12 caracteres sem composição forçada e o checkbox “Manter logado”: desmarcado usa persistência `SESSION`; marcado usa `LOCAL`, sem janela de tolerância após fechar.
+- **O que foi feito:** a auditoria confirmou `browserLocalPersistence` forçada, mínimo local de 6 caracteres e falhas de perfil engolidas. A implementação passou a preservar a persistência restaurada pelo Firebase e a selecionar `SESSION` no login web sem opt-in, `LOCAL` com “Manter logado” e persistência local no Android. Cadastro e troca de senha agora exigem 12 caracteres com mensagens equivalentes em PT/EN/ES. O cadastro grava um marcador não sensível apenas na sessão, conserva um checkpoint com ID estável quando uma escrita inicial falha e permite repetir as gravações sem novo `createUser`; login normal remove esse marcador e conta antiga continua sem acesso ao modal exclusivo de criação. Falha ao enviar e-mail de verificação foi separada de falha de persistência, evitando mensagem enganosa. Os entrypoints UMD/Vite receberam as mesmas dependências, `app.js` e `nutrition-tracker.jsx` permanecem byte a byte sincronizados e o gate de perfil Vite consome o marcador somente para uma criação confirmada. A primeira matriz autenticada do PR #215 confirmou preflight, unitários, Worker e Functions, mas expôs uma incompatibilidade exclusiva do fixture: `browserSessionPersistence` não atravessa os novos contextos criados a partir do `storageState` do Playwright. O setup autenticado passou a marcar explicitamente “Manter logado”, optando por `LOCAL` somente para a conta descartável de CI; isso preserva a semântica `SESSION` padrão do produto e permite que a matriz exercite os fluxos autenticados reais. A repetição local completa após o ajuste ficou verde com preflight, 1.396 unitários, 48/48 smoke legado, 48/48 smoke Vite e 60/60 cutover. O run autenticado final `35126370601` também ficou integralmente verde: 1.396 unitários, Worker, 74 Functions, legado com 103 aprovações e 8 skips Vite-only documentados, e Vite 111/111 sem skips. Em 16/09/2026, o responsável configurou no Firebase Console mínimo 12, máximo 4.096, nenhuma composição obrigatória e modo **Notificar**. Essa escolha deliberada impede bloqueio imediato de contas antigas; o cliente já aplica 12 caracteres em cadastro/troca, e a futura migração do backend para **Exigir a aplicação** foi registrada como P11 antes do lançamento público.
+- **PRs/commits relacionados:** PR draft #215, commits `3e4b9ba` e `3b00fea`, runs `35120342282`, `35120342305`, `35126370601` e `35126370693`; configuração manual do Firebase confirmada pelo responsável. — **Chat:** Trofia-Principal.
 
 ### [C14-F1] - Worker, tiers e observabilidade
 

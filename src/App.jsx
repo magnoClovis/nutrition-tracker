@@ -140,6 +140,7 @@ const APP_VERSION_LABEL = window.APP_VERSION_LABEL || CURRENT_RELEASE.label;
 const MOST_RECENT_TUTORIAL_KEY = 'tutorial_most_recent_version_seen';
 const CURRENT_RELEASE_ID = CURRENT_RELEASE.id;
 const VISUAL_UPDATE_NOTICE_KEY = 'seenVisualUpdateNotice_0.8.1';
+const NEW_ACCOUNT_ONBOARDING_SESSION_KEY = 'trofia:new-account-onboarding';
 const tutorialSeenKey = type => `tutorialSeen_${type}`;
 const DARK_THEME_DEFAULT_MIGRATION_KEY = 'appThemeDefaultDarkV1';
 
@@ -474,6 +475,8 @@ const {
   },
   readPreferredDarkMode,
   localStorage,
+  sessionStorage,
+  isNativePlatform: () => androidAppRuntime.isAvailable(),
   documentElement: document.documentElement,
   Date,
   localToday,
@@ -851,6 +854,7 @@ export function App() {
     setShowReleaseNotice(false);
     setShowVisualUpdateNotice(false);
     profileCompletionAllowedRef.current = false;
+    sessionStorage.removeItem(NEW_ACCOUNT_ONBOARDING_SESSION_KEY);
     releaseAudienceRef.current = null;
   }
 
@@ -915,14 +919,14 @@ export function App() {
       });
       if (result.status === 'requires-completion') {
         setRequiredProfile(result.profile);
-        return true;
+        return result.status;
       }
       setRequiredProfile(null);
       if (result.status === 'incomplete-existing') {
         setProfileLoadError('profile-incomplete-existing-account');
         return false;
       }
-      return true;
+      return result.status;
     } catch (error) {
       setRequiredProfile(null);
       setProfileLoadError(profileReadErrorCode(error));
@@ -940,8 +944,10 @@ export function App() {
   }
 
   async function afterAuthenticated(isNew) {
+    const effectiveIsNew = isNew === true ||
+      sessionStorage.getItem(NEW_ACCOUNT_ONBOARDING_SESSION_KEY) === 'true';
     setAuthed(true);
-    profileCompletionAllowedRef.current = isNew === true;
+    profileCompletionAllowedRef.current = effectiveIsNew;
     try {
       await ensureAppCheckReady();
     } catch (error) {
@@ -957,11 +963,16 @@ export function App() {
     if (savedLang?.value !== normalizedSavedLang) {
       storage.set('language', normalizedSavedLang).catch(() => {});
     }
-    if (!await checkRequiredProfile({isNewAccount: isNew === true})) return;
-    await checkVisualUpdateNotice(isNew);
+    const profileStatus = await checkRequiredProfile({isNewAccount: effectiveIsNew});
+    if (!profileStatus) return;
+    if (profileStatus === 'complete') {
+      sessionStorage.removeItem(NEW_ACCOUNT_ONBOARDING_SESSION_KEY);
+      profileCompletionAllowedRef.current = false;
+    }
+    await checkVisualUpdateNotice(effectiveIsNew);
     const tutorialVersion = await storage.get(MOST_RECENT_TUTORIAL_KEY).catch(() => null);
     if (!hasSeenCurrentRelease(tutorialVersion)) {
-      releaseAudienceRef.current = isNew ? 'new' : 'existing';
+      releaseAudienceRef.current = effectiveIsNew ? 'new' : 'existing';
       setShowReleaseNotice(true);
       return;
     }
@@ -1109,6 +1120,7 @@ export function App() {
             profile={requiredProfile}
             onComplete={() => {
               profileCompletionAllowedRef.current = false;
+              sessionStorage.removeItem(NEW_ACCOUNT_ONBOARDING_SESSION_KEY);
               setRequiredProfile(null);
             }}
           />

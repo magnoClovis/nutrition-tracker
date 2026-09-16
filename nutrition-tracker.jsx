@@ -307,6 +307,8 @@ const {
   },
   readPreferredDarkMode,
   localStorage,
+  sessionStorage,
+  isNativePlatform: () => Boolean(window.Capacitor?.isNativePlatform?.()),
   documentElement: document.documentElement,
   Date,
   localToday

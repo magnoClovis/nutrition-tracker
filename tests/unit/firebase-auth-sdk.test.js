@@ -33,6 +33,7 @@ function fixture(createFirebaseAuthSdk, {currentUser = null, local = {}, userLif
   };
   const sdk = {
     browserLocalPersistence: {name: 'browserLocalPersistence'},
+    browserSessionPersistence: {name: 'browserSessionPersistence'},
     async setPersistence(receivedAuth, persistence) {
       calls.push(['setPersistence', receivedAuth, persistence]);
     },
@@ -70,13 +71,13 @@ function fixture(createFirebaseAuthSdk, {currentUser = null, local = {}, userLif
 }
 
 for (const [format, load] of implementations) {
-  test(`${format}: initializes SDK persistence once and discards legacy REST credentials`, async () => {
+  test(`${format}: initializes Auth once without overriding its restored persistence and discards legacy REST credentials`, async () => {
     const {createFirebaseAuthSdk} = await load();
     const f = fixture(createFirebaseAuthSdk, {
       local: {fb_refresh: 'legacy-refresh', fb_uid: 'legacy-uid', fb_email: 'kept@example.test'},
     });
     await Promise.all([f.client.initialize(), f.client.initialize()]);
-    assert.deepEqual(f.calls.map(call => call[0]), ['setPersistence', 'authStateReady']);
+    assert.deepEqual(f.calls.map(call => call[0]), ['authStateReady']);
     assert.deepEqual(f.localStorage.snapshot(), {fb_email: 'kept@example.test'});
     assert.equal(f.client.fbIsLoggedIn(), false);
   });
@@ -92,6 +93,18 @@ for (const [format, load] of implementations) {
     assert.equal(await f.client.fbRefreshToken(), 'signed-in:fresh');
     assert.equal(f.localStorage.getItem('fb_email'), 'person@example.test');
     assert.equal(f.cacheResets(), 1);
+  });
+
+  test(`${format}: applies SESSION by default choice and LOCAL only after explicit remember opt-in`, async () => {
+    const {createFirebaseAuthSdk} = await load();
+    const session = fixture(createFirebaseAuthSdk);
+    await session.client.fbSignIn('session@example.test', 'secret', {remember: false});
+    assert.equal(session.calls.find(call => call[0] === 'setPersistence')[2].name, 'browserSessionPersistence');
+    assert.ok(session.calls.findIndex(call => call[0] === 'setPersistence') < session.calls.findIndex(call => call[0] === 'signIn'));
+
+    const local = fixture(createFirebaseAuthSdk);
+    await local.client.fbSignIn('local@example.test', 'secret', {remember: true});
+    assert.equal(local.calls.find(call => call[0] === 'setPersistence')[2].name, 'browserLocalPersistence');
   });
 
   test(`${format}: supports account creation and current profile operations`, async () => {
@@ -130,6 +143,7 @@ for (const [format, load] of implementations) {
       auth: f.auth,
       sdk: {
         browserLocalPersistence: {},
+        browserSessionPersistence: {},
         setPersistence: async () => {},
         signInWithEmailAndPassword: async () => { throw sdkError; },
         createUserWithEmailAndPassword: async () => {},

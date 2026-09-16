@@ -37,9 +37,11 @@
    * @param {function(string): boolean} dependencies.isValidGender Gender validator from `profile-validation.js`.
    * @param {function(Object): Object} dependencies.ChoiceField Reusable Trofia list selector.
    * @param {function(Object): Object} dependencies.DateField Reusable Trofia civil-date selector.
-   * @param {{signIn: function(string,string): Promise<*>, checkEmailVerified: function(): Promise<boolean>, signUp: function(string,string): Promise<*>, updateProfile: function(string): Promise<*>, setValue: function(string,*): Promise<*>, sendVerificationEmail: function(): Promise<*>, sendPasswordResetEmail: function(string): Promise<*>}} dependencies.authService Named Firebase authentication and persistence operations.
+   * @param {{signIn: function(string,string,Object=): Promise<*>, checkEmailVerified: function(): Promise<boolean>, signUp: function(string,string,Object=): Promise<*>, updateProfile: function(string): Promise<*>, setValue: function(string,*): Promise<*>, sendVerificationEmail: function(): Promise<*>, sendPasswordResetEmail: function(string): Promise<*>}} dependencies.authService Named Firebase authentication and persistence operations.
    * @param {function(): boolean} dependencies.readPreferredDarkMode Existing theme initializer from app.js.
    * @param {{getItem: function(string): (string|null), setItem: function(string,string): void}} dependencies.localStorage Browser-local storage service.
+   * @param {{getItem: function(string): (string|null), setItem: function(string,string): void, removeItem: function(string): void}} dependencies.sessionStorage Browser-session storage used only for the non-sensitive onboarding marker.
+   * @param {function(): boolean} dependencies.isNativePlatform Native-runtime detector; installed apps always retain their Firebase session.
    * @param {{dataset: Object}} dependencies.documentElement Root document element whose theme dataset is written.
    * @param {function(new: Date, ...*): Date} dependencies.Date Native Date constructor supplied by the host.
    * @param {function(Date=): string} dependencies.localToday Shared local civil-date formatter.
@@ -56,6 +58,8 @@
     authService,
     readPreferredDarkMode,
     localStorage: localStorageService,
+    sessionStorage: sessionStorageService,
+    isNativePlatform,
     documentElement,
     Date: DateCtor,
     localToday
@@ -74,6 +78,10 @@
         typeof readPreferredDarkMode !== "function" ||
         !localStorageService || typeof localStorageService.getItem !== "function" ||
         typeof localStorageService.setItem !== "function" ||
+        !sessionStorageService || typeof sessionStorageService.getItem !== "function" ||
+        typeof sessionStorageService.setItem !== "function" ||
+        typeof sessionStorageService.removeItem !== "function" ||
+        typeof isNativePlatform !== "function" ||
         !documentElement || !documentElement.dataset || typeof DateCtor !== "function" ||
         typeof localToday !== "function") {
       throw new TypeError("LoginScreen requires React, ChoiceField, DateField, i18n, profile validation, Firebase, theme, storage, document, and Date services");
@@ -81,6 +89,8 @@
 
     const LANGUAGE_OPTIONS = languageOptions;
     const localStorage = localStorageService;
+    const sessionStorage = sessionStorageService;
+    const NEW_ACCOUNT_SESSION_KEY = 'trofia:new-account-onboarding';
     const document = { documentElement };
     const Date = DateCtor;
     const fbSignIn = authService.signIn;
@@ -110,6 +120,8 @@
       const [resetMessage, setResetMessage] = React.useState('');
       const [loading, setLoading] = React.useState(false);
       const [resetLoading, setResetLoading] = React.useState(false);
+      const [keepSignedIn, setKeepSignedIn] = React.useState(false);
+      const [registrationCheckpoint, setRegistrationCheckpoint] = React.useState(null);
       const [loginLang, setLoginLang] = React.useState(() => normalizeLanguage(localStorage.getItem('appLang') || 'pt'));
       const [regWeight, setRegWeight] = React.useState('');
       const [regHeight, setRegHeight] = React.useState('');
@@ -127,7 +139,7 @@
           title: 'Trofia', login: 'Entrar', register: 'Criar conta',
           subtitle: 'Acompanhe sua nutri\u00e7\u00e3o di\u00e1ria e alcance seus objetivos.',
           email: 'Email', password: 'Senha', confirm: 'Confirmar senha',
-          showPassword: 'Mostrar senha', hidePassword: 'Ocultar senha',
+          showPassword: 'Mostrar senha', hidePassword: 'Ocultar senha', keepSignedIn: 'Manter logado',
           loginBtn: 'Entrar', registerBtn: 'Criar conta', processing: 'Processando...',
           forgotPassword: 'Esqueci minha senha', resetSending: 'Enviando...',
           resetSent: 'Se existir uma conta com esse e-mail, enviaremos as instru\u00e7\u00f5es de recupera\u00e7\u00e3o.',
@@ -137,8 +149,9 @@
           male: 'Masculino', female: 'Feminino', errPrefix: 'Erro: ',
           errCredentials: 'Email ou senha incorretos.', errPassword: 'Senha incorreta.',
           errTooMany: 'Muitas tentativas. Tente novamente mais tarde.',
-          errExists: 'Este email j\u00e1 tem uma conta. Entre.', errWeak: 'A senha deve ter pelo menos 6 caracteres.',
-          errInvalid: 'Email inv\u00e1lido.', errMatch: 'As senhas n\u00e3o coincidem.', errShort: 'A senha deve ter pelo menos 6 caracteres.',
+          errExists: 'Este email j\u00e1 tem uma conta. Entre.', errWeak: 'A senha deve ter pelo menos 12 caracteres.',
+          errInvalid: 'Email inv\u00e1lido.', errMatch: 'As senhas n\u00e3o coincidem.', errShort: 'A senha deve ter pelo menos 12 caracteres.',
+          errOnboardingSave: 'A conta foi criada, mas n\u00e3o foi poss\u00edvel salvar o perfil. Verifique a conex\u00e3o e tente novamente.', retryRegistration: 'Tentar salvar novamente',
           errName: 'O nome \u00e9 obrigat\u00f3rio.', errBirth: 'A data de nascimento \u00e9 obrigat\u00f3ria e deve ser v\u00e1lida.',
           errGender: 'O g\u00eanero \u00e9 obrigat\u00f3rio.'
         },
@@ -146,7 +159,7 @@
           title: 'Trofia', login: 'Sign in', register: 'Create account',
           subtitle: 'Track your daily nutrition and reach your goals.',
           email: 'Email', password: 'Password', confirm: 'Confirm password',
-          showPassword: 'Show password', hidePassword: 'Hide password',
+          showPassword: 'Show password', hidePassword: 'Hide password', keepSignedIn: 'Keep me signed in',
           loginBtn: 'Sign in', registerBtn: 'Create account', processing: 'Processing...',
           forgotPassword: 'Forgot password?', resetSending: 'Sending...',
           resetSent: 'If an account exists for this email, password recovery instructions will be sent.',
@@ -156,15 +169,15 @@
           male: 'Male', female: 'Female', errPrefix: 'Error: ',
           errCredentials: 'Incorrect email or password.', errPassword: 'Incorrect password.',
           errTooMany: 'Too many attempts. Try again later.', errExists: 'This email already has an account. Sign in instead.',
-          errWeak: 'Password must be at least 6 characters.', errInvalid: 'Invalid email.', errMatch: "Passwords don't match.",
-          errShort: 'Password must be at least 6 characters.', errName: 'Name is required.',
+          errWeak: 'Password must be at least 12 characters.', errInvalid: 'Invalid email.', errMatch: "Passwords don't match.",
+          errShort: 'Password must be at least 12 characters.', errOnboardingSave: 'Your account was created, but the profile could not be saved. Check your connection and try again.', retryRegistration: 'Try saving again', errName: 'Name is required.',
           errBirth: 'Date of birth is required and must be valid.', errGender: 'Gender is required.'
         },
         es: {
           title: 'Trofia', login: 'Iniciar sesi\u00f3n', register: 'Crear cuenta',
           subtitle: 'Registra tu nutrici\u00f3n diaria y avanza hacia tus objetivos.',
           email: 'Email', password: 'Contrase\u00f1a', confirm: 'Confirmar contrase\u00f1a',
-          showPassword: 'Mostrar contrase\u00f1a', hidePassword: 'Ocultar contrase\u00f1a',
+          showPassword: 'Mostrar contrase\u00f1a', hidePassword: 'Ocultar contrase\u00f1a', keepSignedIn: 'Mantener la sesi\u00f3n iniciada',
           loginBtn: 'Entrar', registerBtn: 'Crear cuenta', processing: 'Procesando...',
           forgotPassword: 'Olvid\u00e9 mi contrase\u00f1a', resetSending: 'Enviando...',
           resetSent: 'Si existe una cuenta con este email, enviaremos las instrucciones de recuperaci\u00f3n.',
@@ -174,8 +187,8 @@
           male: 'Masculino', female: 'Femenino', errPrefix: 'Error: ',
           errCredentials: 'Email o contrase\u00f1a incorrectos.', errPassword: 'Contrase\u00f1a incorrecta.',
           errTooMany: 'Demasiados intentos. Int\u00e9ntalo m\u00e1s tarde.', errExists: 'Este email ya tiene una cuenta. Inicia sesi\u00f3n.',
-          errWeak: 'La contrase\u00f1a debe tener al menos 6 caracteres.', errInvalid: 'Email inv\u00e1lido.', errMatch: 'Las contrase\u00f1as no coinciden.',
-          errShort: 'La contrase\u00f1a debe tener al menos 6 caracteres.', errName: 'El nombre es obligatorio.',
+          errWeak: 'La contrase\u00f1a debe tener al menos 12 caracteres.', errInvalid: 'Email inv\u00e1lido.', errMatch: 'Las contrase\u00f1as no coinciden.',
+          errShort: 'La contrase\u00f1a debe tener al menos 12 caracteres.', errOnboardingSave: 'La cuenta se cre\u00f3, pero no se pudo guardar el perfil. Comprueba la conexi\u00f3n e int\u00e9ntalo de nuevo.', retryRegistration: 'Intentar guardar de nuevo', errName: 'El nombre es obligatorio.',
           errBirth: 'La fecha de nacimiento es obligatoria y debe ser v\u00e1lida.', errGender: 'El g\u00e9nero es obligatorio.'
         }
       };
@@ -216,11 +229,13 @@
         setError('');
         setResetMessage('');
         if (mode === 'register' && password !== password2) { setError(S.errMatch); return; }
-        if (mode === 'register' && password.length < 6) { setError(S.errShort); return; }
+        if (mode === 'register' && !registrationCheckpoint && password.length < 12) { setError(S.errShort); return; }
         setLoading(true);
+        let registrationStage = null;
         try {
           if (mode === 'login') {
-            await fbSignIn(email, password);
+            sessionStorage.removeItem(NEW_ACCOUNT_SESSION_KEY);
+            await fbSignIn(email, password, {remember: isNativePlatform() || keepSignedIn});
             const verified = await fbCheckEmailVerified();
             if (!verified) { onPendingVerification(email); return; }
             onLogin(false);
@@ -228,28 +243,45 @@
             if (!regName.trim()) { setError(S.errName); setLoading(false); return; }
             if (!isValidBirthDate(regBirthDate)) { setError(S.errBirth); setLoading(false); return; }
             if (!isValidGender(regGender)) { setError(S.errGender); setLoading(false); return; }
-            await fbSignUp(email, password);
-            localStorage.setItem('fb_email', email);
-            await fbUpdateProfile(regName.trim()).catch(()=>{});
-            const today = localToday(new Date());
-            if (regWeight || regHeight) {
-              const entry = {
-                id: Date.now().toString(),
-                date: today,
-                weight: regWeight ? parseFloat(regWeight) : null,
-                height: regHeight ? parseFloat(regHeight) : null
-              };
-              await fbSet('weightHistory', JSON.stringify([entry])).catch(()=>{});
+            const checkpoint = registrationCheckpoint || {
+              email: String(email || '').trim(),
+              name: regName.trim(),
+              birthDate: regBirthDate,
+              gender: regGender,
+              weight: regWeight,
+              height: regHeight,
+              language: normalizedLoginLang,
+              entryId: Date.now().toString(),
+              today: localToday(new Date())
+            };
+            if (!registrationCheckpoint) {
+              await fbSignUp(checkpoint.email, password, {remember: isNativePlatform()});
+              sessionStorage.setItem(NEW_ACCOUNT_SESSION_KEY, 'true');
+              setRegistrationCheckpoint(checkpoint);
             }
-            await fbSet('userName', regName.trim()).catch(()=>{});
-            await fbSet('birthDate', regBirthDate).catch(()=>{});
-            await fbSet('gender', regGender).catch(()=>{});
-            await fbSet('language', normalizedLoginLang).catch(()=>{});
+            registrationStage = 'profile';
+            localStorage.setItem('fb_email', checkpoint.email);
+            await fbUpdateProfile(checkpoint.name);
+            if (checkpoint.weight || checkpoint.height) {
+              const entry = {
+                id: checkpoint.entryId,
+                date: checkpoint.today,
+                weight: checkpoint.weight ? parseFloat(checkpoint.weight) : null,
+                height: checkpoint.height ? parseFloat(checkpoint.height) : null
+              };
+              await fbSet('weightHistory', JSON.stringify([entry]));
+            }
+            await fbSet('userName', checkpoint.name);
+            await fbSet('birthDate', checkpoint.birthDate);
+            await fbSet('gender', checkpoint.gender);
+            await fbSet('language', checkpoint.language);
+            registrationStage = 'verification';
             await fbSendVerificationEmail();
-            onPendingVerification(email, regName.trim());
+            setRegistrationCheckpoint(null);
+            onPendingVerification(checkpoint.email, checkpoint.name);
           }
         } catch(err) {
-          setError(friendlyError(err.message));
+          setError(registrationStage === 'profile' ? S.errOnboardingSave : friendlyError(err.message));
         }
         setLoading(false);
       }
@@ -276,6 +308,7 @@
       }
 
       function switchMode(m) {
+        if (registrationCheckpoint) return;
         setMode(m);
         setError('');
         setResetMessage('');
@@ -286,15 +319,15 @@
       }
 
       const inp = {width:'100%',background:'var(--input)',border:'1px solid var(--border2)',color:'var(--text)',padding:'12px 14px',borderRadius:8,fontSize:15,fontFamily:'inherit',boxSizing:'border-box',outline:'none',marginBottom:12};
-      function renderPasswordInput({value, onChange, placeholder, visible, onToggle, autoComplete, marginBottom, testId}) {
+      function renderPasswordInput({value, onChange, placeholder, visible, onToggle, autoComplete, marginBottom, testId, disabled = false}) {
         const visibilityLabel = visible ? S.hidePassword : S.showPassword;
         return React.createElement('div', {style:{position:'relative',marginBottom}},
           React.createElement('input', {
-            type:visible?'text':'password', value, onChange, placeholder, required:true,
+            type:visible?'text':'password', value, onChange, placeholder, required:true, disabled,
             style:{...inp,marginBottom:0,paddingRight:48}, autoComplete
           }),
           React.createElement('button', {
-            type:'button', onClick:onToggle, 'aria-label':visibilityLabel, title:visibilityLabel,
+            type:'button', onClick:onToggle, disabled, 'aria-label':visibilityLabel, title:visibilityLabel,
             'aria-pressed':visible, 'data-testid':testId,
             style:{position:'absolute',right:3,top:3,bottom:3,width:40,display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',color:'var(--muted)',borderRadius:6,cursor:'pointer',padding:0}
           }, React.createElement('svg', {
@@ -330,33 +363,37 @@
             mode === 'login' && React.createElement('p', {style:{fontSize:13,color:'var(--muted)',margin:0,lineHeight:1.5}}, S.subtitle)
           ),
           React.createElement('div', {style:{display:'flex',marginBottom:28,borderBottom:'2px solid var(--border2)'}},
-            React.createElement('button', {onClick:()=>switchMode('login'), style:tabStyle(mode==='login')}, S.tabLogin),
-            React.createElement('button', {onClick:()=>switchMode('register'), style:tabStyle(mode==='register')}, S.tabRegister)
+            React.createElement('button', {onClick:()=>switchMode('login'), disabled:Boolean(registrationCheckpoint), style:tabStyle(mode==='login')}, S.tabLogin),
+            React.createElement('button', {onClick:()=>switchMode('register'), disabled:Boolean(registrationCheckpoint), style:tabStyle(mode==='register')}, S.tabRegister)
           ),
           React.createElement('form', {onSubmit:handleSubmit},
-            React.createElement('input', {type:'email',value:email,onChange:e=>setEmail(e.target.value),placeholder:S.email,required:true,style:inp,autoComplete:'email'}),
-            renderPasswordInput({value:password,onChange:e=>setPassword(e.target.value),placeholder:S.password,visible:passwordVisible,onToggle:()=>setPasswordVisible(visible=>!visible),autoComplete:mode==='login'?'current-password':'new-password',marginBottom:mode==='register'?12:error?8:20,testId:'password-visibility'}),
+            React.createElement('input', {type:'email',value:email,onChange:e=>setEmail(e.target.value),placeholder:S.email,required:true,disabled:Boolean(registrationCheckpoint),style:inp,autoComplete:'email'}),
+            renderPasswordInput({value:password,onChange:e=>setPassword(e.target.value),placeholder:S.password,visible:passwordVisible,onToggle:()=>setPasswordVisible(visible=>!visible),autoComplete:mode==='login'?'current-password':'new-password',marginBottom:mode==='register'?12:error?8:10,testId:'password-visibility',disabled:Boolean(registrationCheckpoint)}),
+            mode === 'login' && !isNativePlatform() && React.createElement('label', {style:{display:'flex',alignItems:'center',gap:8,color:'var(--text3)',fontSize:12,margin:'0 2px 12px',cursor:'pointer'}},
+              React.createElement('input', {type:'checkbox',checked:keepSignedIn,onChange:e=>setKeepSignedIn(Boolean(e.target.checked)),'aria-label':S.keepSignedIn}),
+              S.keepSignedIn
+            ),
             mode === 'login' && React.createElement('button', {type:'button',onClick:handlePasswordReset,disabled:resetLoading || loading,style:{width:'100%',background:'none',border:'none',color:'var(--btn-info-text)',cursor:(resetLoading||loading)?'default':'pointer',fontSize:12,fontFamily:'inherit',textAlign:'right',padding:'0 2px 14px',opacity:(resetLoading||loading)?0.65:1}}, resetLoading ? S.resetSending : S.forgotPassword),
-            mode === 'register' && renderPasswordInput({value:password2,onChange:e=>setPassword2(e.target.value),placeholder:S.confirm,visible:password2Visible,onToggle:()=>setPassword2Visible(visible=>!visible),autoComplete:'new-password',marginBottom:12,testId:'password-confirmation-visibility'}),
-            mode === 'register' && React.createElement('input', {type:'text',value:regName,onChange:e=>setRegName(e.target.value),placeholder:S.name,style:{...inp,marginBottom:12},autoComplete:'name'}),
+            mode === 'register' && renderPasswordInput({value:password2,onChange:e=>setPassword2(e.target.value),placeholder:S.confirm,visible:password2Visible,onToggle:()=>setPassword2Visible(visible=>!visible),autoComplete:'new-password',marginBottom:12,testId:'password-confirmation-visibility',disabled:Boolean(registrationCheckpoint)}),
+            mode === 'register' && React.createElement('input', {type:'text',value:regName,onChange:e=>setRegName(e.target.value),placeholder:S.name,disabled:Boolean(registrationCheckpoint),style:{...inp,marginBottom:12},autoComplete:'name'}),
             mode === 'register' && React.createElement(DateField, {
-              id:'registration-birth-date',label:S.birthTitle,value:regBirthDate,onChange:setRegBirthDate,
+              id:'registration-birth-date',label:S.birthTitle,value:regBirthDate,onChange:setRegBirthDate,disabled:Boolean(registrationCheckpoint),
               min:'1900-01-01',max:localToday(new Date()),locale:dateLocale,
               initialViewYear:new Date().getFullYear()-18,strings:dateCopy,style:{marginBottom:12}
             }),
             mode === 'register' && React.createElement(ChoiceField, {
               id:'registration-gender', label:S.genderPlaceholder, value:regGender,
-              onChange:setRegGender, placeholder:S.choose, closeLabel:S.close, required:true,
+              onChange:setRegGender, placeholder:S.choose, closeLabel:S.close, required:true,disabled:Boolean(registrationCheckpoint),
               options:[{value:'male',label:S.male},{value:'female',label:S.female}],
               style:{marginBottom:12}
             }),
             mode === 'register' && React.createElement('div', {style:{display:'flex',gap:8,marginBottom:error?8:20}},
-              React.createElement('input', {type:'number',value:regWeight,onChange:e=>setRegWeight(e.target.value),placeholder:S.weightPlaceholder,min:30,max:300,step:0.1,style:{...inp,marginBottom:0,flex:1}}),
-              React.createElement('input', {type:'number',value:regHeight,onChange:e=>setRegHeight(e.target.value),placeholder:S.heightPlaceholder,min:100,max:250,style:{...inp,marginBottom:0,flex:1}})
+              React.createElement('input', {type:'number',value:regWeight,onChange:e=>setRegWeight(e.target.value),placeholder:S.weightPlaceholder,min:30,max:300,step:0.1,disabled:Boolean(registrationCheckpoint),style:{...inp,marginBottom:0,flex:1}}),
+              React.createElement('input', {type:'number',value:regHeight,onChange:e=>setRegHeight(e.target.value),placeholder:S.heightPlaceholder,min:100,max:250,disabled:Boolean(registrationCheckpoint),style:{...inp,marginBottom:0,flex:1}})
             ),
             error && React.createElement('div', {style:{color:'#c87e7e',fontSize:12,marginBottom:16,padding:'8px 12px',background:'rgba(200,80,80,0.1)',borderRadius:6,border:'1px solid rgba(200,80,80,0.2)'}}, error),
             resetMessage && React.createElement('div', {style:{color:'var(--btn-ok-text)',fontSize:12,marginBottom:16,padding:'8px 12px',background:'rgba(80,160,80,0.1)',borderRadius:6,border:'1px solid var(--btn-ok-border)',lineHeight:1.4}}, resetMessage),
-            React.createElement('button', {type:'submit',disabled:loading,style:{width:'100%',background:loading?'var(--btn-inactive)':mode==='login'?'var(--btn-ok)':'var(--btn-info)',border:'1px solid ' + (mode==='login'?'var(--btn-ok-border)':'var(--btn-info-border)'),color:loading?'var(--muted)':mode==='login'?'var(--btn-ok-text)':'var(--btn-info-text)',padding:'13px',borderRadius:8,fontSize:12,letterSpacing:1,textTransform:'uppercase',cursor:loading?'default':'pointer',fontFamily:'inherit',transition:'all 0.2s'}}, loading ? S.processing : mode==='login' ? S.loginBtn : S.registerBtn)
+            React.createElement('button', {type:'submit',disabled:loading,style:{width:'100%',background:loading?'var(--btn-inactive)':mode==='login'?'var(--btn-ok)':'var(--btn-info)',border:'1px solid ' + (mode==='login'?'var(--btn-ok-border)':'var(--btn-info-border)'),color:loading?'var(--muted)':mode==='login'?'var(--btn-ok-text)':'var(--btn-info-text)',padding:'13px',borderRadius:8,fontSize:12,letterSpacing:1,textTransform:'uppercase',cursor:loading?'default':'pointer',fontFamily:'inherit',transition:'all 0.2s'}}, loading ? S.processing : mode==='login' ? S.loginBtn : registrationCheckpoint ? S.retryRegistration : S.registerBtn)
           )
         )
       );

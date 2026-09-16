@@ -53,8 +53,8 @@ async function installRequiredProfileFixture(page) {
 async function createAccountUntilRequiredProfile(page) {
   await page.getByRole('button', {name: /Criar conta|Create account/i}).first().click();
   await page.locator('input[type="email"]').fill('new-profile@example.test');
-  await page.locator('input[autocomplete="new-password"]').nth(0).fill('secret123');
-  await page.locator('input[autocomplete="new-password"]').nth(1).fill('secret123');
+  await page.locator('input[autocomplete="new-password"]').nth(0).fill('secret123456');
+  await page.locator('input[autocomplete="new-password"]').nth(1).fill('secret123456');
   await page.locator('input[autocomplete="name"]').fill('New Profile');
   await setDateFieldValue(page, '#registration-birth-date-trigger', '1990-06-15');
   await page.locator('#registration-gender-trigger').click();
