@@ -5133,6 +5133,7 @@
             onCapture: () => imageMealFlowRef.current?.captureFromCamera(),
             onCameraSurface: surface => imageMealFlowRef.current?.startEmbeddedCamera(surface),
             onEmbeddedCapture: () => imageMealFlowRef.current?.captureEmbeddedCamera(),
+            onCameraHandoffTrace: stage => imageMealFlowRef.current?.traceCameraHandoff(stage),
             onEmbeddedPhotoPainted: () => imageMealFlowRef.current?.confirmEmbeddedPhotoPainted(),
             onEmbeddedPhotoPaintFailed: () => imageMealFlowRef.current?.rejectEmbeddedPhotoPaint(),
             onCancelCamera: () => imageMealFlowRef.current?.cancelEmbeddedCamera(),

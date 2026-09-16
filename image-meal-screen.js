@@ -32,6 +32,7 @@
       onCapture,
       onCameraSurface,
       onEmbeddedCapture,
+      onCameraHandoffTrace,
       onEmbeddedPhotoPainted,
       onEmbeddedPhotoPaintFailed,
       onCancelCamera,
@@ -121,11 +122,18 @@
 
       function confirmFrozenPhotoAfterPaint(event) {
         if (phase !== "camera-frozen" || typeof onEmbeddedPhotoPainted !== "function") return;
+        onCameraHandoffTrace?.("frozen-photo-load");
         const view = event?.currentTarget?.ownerDocument?.defaultView;
         const requestFrame = typeof view?.requestAnimationFrame === "function"
           ? callback => view.requestAnimationFrame(callback)
           : callback => setTimeout(callback, 0);
-        requestFrame(() => requestFrame(() => onEmbeddedPhotoPainted()));
+        requestFrame(() => {
+          onCameraHandoffTrace?.("frozen-photo-frame-1");
+          requestFrame(() => {
+            onCameraHandoffTrace?.("frozen-photo-frame-2");
+            onEmbeddedPhotoPainted();
+          });
+        });
       }
 
       function closeCameraWithMotion(event, callback = onCancelCamera) {

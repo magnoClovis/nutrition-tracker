@@ -174,6 +174,7 @@ contractTest('offers localized permission recovery through Android settings and 
 
 contractTest('keeps the native layer active until two frames after the frozen photo loads', ImageMealScreen => {
   const calls = [];
+  const trace = [];
   const frames = [];
   const view = ImageMealScreen(baseProps({
     phase: 'camera-frozen',
@@ -183,6 +184,7 @@ contractTest('keeps the native layer active until two frames after the frozen ph
   }, {
     onEmbeddedPhotoPainted: () => calls.push('painted'),
     onEmbeddedPhotoPaintFailed: () => calls.push('failed'),
+    onCameraHandoffTrace: stage => trace.push(stage),
   }));
   assert.equal(view.props['data-camera-native-active'], 'true');
   assert.equal(view.props['data-camera-geometry-locked'], 'true');
@@ -199,10 +201,13 @@ contractTest('keeps the native layer active until two frames after the frozen ph
     },
   });
   assert.deepEqual(calls, []);
+  assert.deepEqual(trace, ['frozen-photo-load']);
   frames.shift()();
   assert.deepEqual(calls, []);
+  assert.deepEqual(trace, ['frozen-photo-load', 'frozen-photo-frame-1']);
   frames.shift()();
   assert.deepEqual(calls, ['painted']);
+  assert.deepEqual(trace, ['frozen-photo-load', 'frozen-photo-frame-1', 'frozen-photo-frame-2']);
   image.props.onError();
   assert.deepEqual(calls, ['painted', 'failed']);
 });

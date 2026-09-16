@@ -309,6 +309,7 @@ const imageMealFeature = Object.freeze({
     validateMealEstimate: MealEstimate.validateMealEstimate,
     onReview,
     onConfirm,
+    onCameraHandoffTrace: stage => console.info(`[Trofia camera handoff] ${stage}`),
     createAbortController: () => new AbortController(),
     ImageMealClientError: ImageMealClient.ImageMealClientError,
     MealEstimateValidationError: MealEstimate.MealEstimateValidationError,

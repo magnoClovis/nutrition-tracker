@@ -71,6 +71,7 @@
     createAbortController,
     ImageMealClientError,
     MealEstimateValidationError,
+    onCameraHandoffTrace,
     frozenPhotoPaintTimeoutMs = DEFAULT_FROZEN_PHOTO_PAINT_TIMEOUT_MS,
     setTimer = setTimeout,
     clearTimer = clearTimeout
@@ -90,6 +91,15 @@
     let frozenPhotoPaintTimer = null;
     let frozenPhotoStopPending = false;
     const listeners = new Set();
+
+    function traceCameraHandoff(stage) {
+      if (typeof onCameraHandoffTrace !== "function") return;
+      try {
+        onCameraHandoffTrace(stage);
+      } catch (_) {
+        // Diagnostics must never influence the camera state machine.
+      }
+    }
 
     function snapshot() {
       return {
@@ -196,8 +206,11 @@
       const currentOperation = ++operationId;
       patch({ phase: "camera-capturing", error: null });
       try {
+        traceCameraHandoff("native-capture-start");
         const base64 = await embeddedCameraPreview.capture();
+        traceCameraHandoff("native-capture-resolved");
         const photo = await preprocessEmbeddedCapture(base64);
+        traceCameraHandoff("preprocess-resolved");
         if (currentOperation !== operationId) {
           disposePhoto(photo);
           return snapshot();
@@ -214,8 +227,10 @@
         });
         clearFrozenPhotoPaintTimer();
         frozenPhotoPaintTimer = setTimer(() => {
+          traceCameraHandoff("frozen-photo-paint-timeout");
           void rejectEmbeddedPhotoPaint("frozen-photo-paint-timeout");
         }, frozenPhotoPaintTimeoutMs);
+        traceCameraHandoff("frozen-state-emitted");
         return frozen;
       } catch (error) {
         clearFrozenPhotoPaintTimer();
@@ -230,17 +245,23 @@
 
     async function confirmEmbeddedPhotoPainted() {
       if (state.phase !== "camera-frozen" || frozenPhotoStopPending) return snapshot();
+      traceCameraHandoff("paint-confirmed");
       const currentOperation = operationId;
       frozenPhotoStopPending = true;
       clearFrozenPhotoPaintTimer();
       try {
+        traceCameraHandoff("native-stop-start");
         await embeddedCameraPreview.stop();
+        traceCameraHandoff("native-stop-resolved");
         if (currentOperation !== operationId || state.phase !== "camera-frozen") return snapshot();
         if (cameraPreviousPhoto && cameraPreviousPhoto !== state.photo) disposePhoto(cameraPreviousPhoto);
         cameraPreviousPhoto = null;
         frozenPhotoStopPending = false;
-        return patch({ phase: "photo", error: null });
+        const next = patch({ phase: "photo", error: null });
+        traceCameraHandoff("photo-state-emitted");
+        return next;
       } catch (error) {
+        traceCameraHandoff("native-stop-failed");
         if (currentOperation !== operationId) return snapshot();
         if (cameraPreviousPhoto && cameraPreviousPhoto !== state.photo) disposePhoto(cameraPreviousPhoto);
         cameraPreviousPhoto = null;
@@ -419,6 +440,7 @@
       captureFromCamera: openCamera,
       startEmbeddedCamera,
       captureEmbeddedCamera,
+      traceCameraHandoff,
       confirmEmbeddedPhotoPainted,
       rejectEmbeddedPhotoPaint,
       cancelEmbeddedCamera,
