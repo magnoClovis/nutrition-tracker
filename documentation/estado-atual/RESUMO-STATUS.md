@@ -1139,7 +1139,7 @@
 - **Propósito:** implementar a composição centralizada da Proposta A sem voltar ao card embutido antigo.
 - **O que se planeja fazer:** extrair o palco de captura, aplicar backdrop escurecido/desfoque somente ao app, bloquear scroll, separar o X da câmera do X do reconhecimento e animar expansão/contração com movimento reduzido; código de barras permanece fora do escopo.
 - **Recursos/arquivos principais envolvidos:** novo componente de captura UMD/ESM, `image-meal-screen.js`, `image-meal-flow.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `i18n.js` e testes visuais legado/Vite.
-- **O que foi feito:** o PR draft #207 implementa o palco centralizado e, após a primeira prova release no Galaxy revelar conteúdo antigo pintado no recorte transparente, recebeu uma correção focada que oculta somente a árvore inativa sem alterar a geometria nativa; a repetição física no APK corrigido permanece pendente.
+- **O que foi feito:** o PR draft #207 implementa o palco centralizado e corrige a pintura do conteúdo antigo no recorte nativo; o APK release corrigido não alcançou o fluxo autenticado porque a assinatura local não produz token Play Integrity, portanto a repetição física visual permanece pendente de distribuição pela faixa interna da Play.
 
 ### [CAM-RED-4] - Flash visual e funcional
 
