@@ -263,15 +263,17 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ### [C14-C5] - Enforcement obrigatório no Worker
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 15/09/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** pendente; validações ainda não concluídas.
+- **Data de conclusão:** 15/09/2026.
+- **Tempo decorrido:** 41 min 38 s.
+- **Minutos de CI:** 71 min 12 s no total (1 min 22 s leves + 69 min 50 s pesados). O total reúne os gates leves dos PR/merge e da prova `observe`/`enforce`, além das matrizes autenticadas pré e pós-merge; no run final `35024176167`, legado terminou com 103 testes aprovados e 8 skips Vite-only documentados, e Vite com 111 aprovados e zero skips.
 - **Propósito:** rejeitar chamadas de IA sem atestação válida somente após os gates Web, CI e Android reais.
 - **O que se planeja fazer:** registrar a versão `observe`, ativar `APP_CHECK_MODE = "enforce"`, exigir `401 app-check-required` sem token, repetir via ADB os três fluxos legítimos no AAB versionCode 16 e reverter imediatamente ao primeiro erro inesperado do cliente real.
 - **Recursos/arquivos principais envolvidos:** Worker, Wrangler, versão de rollback `observe`, Firebase App Check, CI, Pages, AAB versionCode 16, Galaxy SM-S938B e documentação de rollout.
-- **O que foi feito:** a execução começou em worktree isolada da `origin/main`. Foi preparada a mudança mínima de `APP_CHECK_MODE` para `enforce` sem deploy, juntamente com uma sonda operacional que cria e remove uma conta descartável, envia corpo inválido sem App Check e exige a resposta exata de cada modo antes/depois da publicação, sem alcançar rate limiter ou Gemini. O dry-run do Wrangler 4.115.0 produziu o bundle com `APP_CHECK_MODE = "enforce"` sem publicar. A consulta somente leitura confirmou que o deployment ativo em `observe` serve 100% pela versão `632877f3-e51f-4226-92fa-0b139e51e459`, preservada como alvo de rollback. Como a sonda local encontrou o bloqueio F06 de `workers.dev`, foi preparado um gate leve no GitHub Actions: baseline `observe` no PR e verificação manual `enforce` pós-deploy, sem comandos de publicação. Os 35 testes focados, os 1.380 unitários, 48 smokes públicos legado, 48 Vite e os 60 cenários cutover passaram; os 63 skips de cada smoke local foram exclusivamente os autenticados documentados, reservados ao CI com credenciais. CI, deploy e matriz ADB ainda são gates pendentes; nenhum comando foi executado no Galaxy.
+- **O que foi feito:** a execução começou em worktree isolada da `origin/main`. Foi preparada a mudança mínima de `APP_CHECK_MODE` para `enforce`, juntamente com uma sonda operacional que cria e remove uma conta descartável, envia corpo inválido sem App Check e exige a resposta exata de cada modo sem alcançar rate limiter ou Gemini. O dry-run do Wrangler 4.115.0 produziu o bundle correto e a consulta somente leitura registrou a versão `observe` `632877f3-e51f-4226-92fa-0b139e51e459` como alvo de rollback. Como o ambiente local encontrou o bloqueio F06 de `workers.dev`, o gate versionado rodou externamente: o baseline `observe` passou no PR e, depois do merge `f799a93`, o Worker `cf6f8d82-566c-483f-9fb0-2a587dda0dab` foi publicado em `enforce`; o run `35024249874` comprovou a recusa exata `401 app-check-required` sem token. A prova legítima reutilizou o AAB versionCode 16 instalado pela Play (`installerPackageName=com.android.vending`) no Galaxy SM-S938B. Com conta descartável, Descrever prato retornou estimativa estruturada, Reconhecer por foto retornou estimativa estruturada e Avaliar refeição exibiu a nota local com explicação da IA; nenhuma refeição foi confirmada ou persistida. A combinação da recusa negativa obrigatória com o sucesso dos três fluxos prova que a ponte Play Integrity foi aceita pelo Worker em produção. Nenhum critério de rollback ocorreu. Ao final, a conta foi desconectada, o app finalizado, 38 artefatos temporários e a mídia sintética removidos do aparelho, DND desligado, sincronização ativa, timeout restaurado para 30 segundos, `stay_on_while_plugged_in` restaurado a `0` e todos os processos ADB encerrados. Apesar dessas confirmações, a rotação automática ficou ativada e não foi incluída na comparação final; o usuário a restaurou manualmente. O runbook foi corrigido imediatamente para tornar `accelerometer_rotation` e orientação itens obrigatórios do preflight e do fechamento.
+- **Alinhamento:** ~95%. O rollout de segurança e toda a matriz funcional seguiram o plano e tiveram impacto positivo, mas a higiene final do aparelho divergiu: a rotação automática não foi capturada nem restaurada, com impacto operacional negativo e limitado. A falha não afetou dados nem a validade do App Check, e gerou uma prevenção permanente verificável no runbook.
+- **PRs/commits relacionados:** PR #210, commit `9205ad7`, merge `f799a93`, runs `35020147509`, `35020147544`, `35020147546`, `35024176081`, `35024176167` e `35024249874`; Worker `cf6f8d82-566c-483f-9fb0-2a587dda0dab`.
 
 ### [C14-C-PROFILE-GATE] - Corrida entre App Check, cache e perfil obrigatório
 
@@ -436,7 +438,7 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - Versão nomeada preparada no código: `0.11.0-beta`.
 - C22, C23, C28, C20 e C19: concluídos segundo o roadmap.
 - C08: implementação A–F concluída e mesclada no PR #167.
-- C14-A, C14-B1 e C14-B2: concluídas; C14-C: em andamento, com fases C1–C4 concluídas no Pages e no AAB Play versionCode 16; falta somente C14-C5, enforcement obrigatório e sua validação pós-deploy.
+- C14-A, C14-B1, C14-B2 e C14-C: concluídas; a C14-C encerrou as cinco fases com enforcement obrigatório ativo no Worker e validação negativa/legítima em produção.
 - Próximos gates de lançamento público no roadmap: conclusão de C14, C16 e C25.
 
 ## Fontes consultadas e limitações
