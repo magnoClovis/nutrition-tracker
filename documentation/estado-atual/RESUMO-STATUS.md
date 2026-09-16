@@ -1139,7 +1139,7 @@
 - **Propósito:** implementar a composição centralizada da Proposta A sem voltar ao card embutido antigo.
 - **O que se planeja fazer:** extrair o palco de captura, aplicar backdrop escurecido/desfoque somente ao app, bloquear scroll, separar o X da câmera do X do reconhecimento e animar expansão/contração com movimento reduzido; código de barras permanece fora do escopo.
 - **Recursos/arquivos principais envolvidos:** novo componente de captura UMD/ESM, `image-meal-screen.js`, `image-meal-flow.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `i18n.js` e testes visuais legado/Vite.
-- **O que foi feito:** o PR draft #207 implementa o palco centralizado e corrige a pintura do conteúdo antigo no recorte nativo; na versão 18 distribuída pela faixa interna da Play, abertura, preview, controles e X dedicado passaram, mas a captura ficou presa no quadro congelado e manteve a câmera nativa ativa, bloqueando a conclusão até correção aprovada e nova prova física.
+- **O que foi feito:** o PR draft #207 implementa o palco centralizado e corrige a pintura do recorte; após um bloqueio pós-captura na versão 18, a versão diagnóstica 19 da Play concluiu 6/6 capturas, inclusive reabertura e temas escuro/claro, sem reproduzir a falha intermitente, que permanece sem causa confirmada.
 
 ### [CAM-RED-4] - Flash visual e funcional
 
