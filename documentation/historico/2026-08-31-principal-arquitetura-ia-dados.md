@@ -427,6 +427,30 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Alinhamento:** 100%. A integração cobriu ambos os fluxos e a persistência conforme o escopo aprovado, sem criar exceção específica para foto; impacto positivo para consistência de UX e dados.
 - **PRs/commits relacionados:** PR #188, branch `codex/photo-estimate-proportional-integration`, commit de implementação `4755c66`.
 
+### [C29-A] - Contrato seguro de reclassificação por IA
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** 0 min; não iniciado.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** permitir que um usuário peça nova classificação para somente um alimento reconhecido incorretamente por foto, preservando o restante da estimativa e os limites de privacidade e segurança já consolidados em C08, C24 e C14-C.
+- **O que se planeja fazer:** definir um contrato estruturado de reclassificação que receba a imagem ainda transitória, o contexto mínimo do item atual e uma descrição curta do erro; tratar essa descrição como entrada não confiável; exigir Firebase Auth e App Check antes da transmissão; validar a resposta fail-closed; aplicar limites de payload, timeout e rate limits de imagem/globais; ignorar respostas tardias; e não registrar nem persistir imagem, correção textual, prompt ou resposta bruta.
+- **Recursos/arquivos principais envolvidos:** Worker multimodal, `worker/src/ai-worker.js`, validação Firebase Auth/App Check, Durable Object/rate limiter, contratos estruturados de estimativa C24/C08, `image-meal-client.js`, Gemini e testes unitários/de integração do Worker e do cliente.
+- **PRs/commits relacionados:** nenhum; planejamento aprovado em 16/09/2026, com implementação deliberadamente posterior ao grupo A do roadmap.
+
+### [C29-B] - Integração da reclassificação no editor compartilhado
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** 0 min; não iniciado.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** inserir a correção assistida no fluxo de revisão C24 sem substituir silenciosamente dados, alterar outros alimentos ou impedir a edição manual final pelo usuário.
+- **O que se planeja fazer:** adicionar a ação “Classificado incorretamente” a cada item reconhecido por foto; coletar uma descrição breve e limitada; informar que somente o item escolhido será substituído; manter os demais itens e suas edições byte a byte inalterados; preservar o estado atual em falha/cancelamento; permitir editar, excluir ou confirmar o novo resultado; e cobrir PT/EN/ES, acessibilidade, loading, cancelamento, retry, timeout, quota, sessão, resposta inválida e smoke legado/Vite. A implementação também deve confirmar se a política e o Data Safety existentes continuam suficientes antes da exposição.
+- **Recursos/arquivos principais envolvidos:** `image-meal-screen.js`, `image-meal-flow.js`, `meal-estimate-editor.js`, composições legado/Vite, i18n, estados de erro C24, testes unitários/smoke e documentos trilíngues de privacidade/Data Safety.
+- **PRs/commits relacionados:** nenhum; planejamento aprovado em 16/09/2026, posicionado antes de N03 para que a futura leitura de rótulos possa reutilizar o padrão corretivo.
+
 - **Reload/troca de idioma após C14-A:** o chat Trofia-UI/UX relatou, sem reprodução estável, uma queda para login em espanhol e um `SearchableChoiceField` preso em `#loading`. Três tentativas isoladas passaram. No PR #175, a tentativa 2 do CI chegou ao mesmo teste, mas o job foi cancelado exatamente pelo teto global de 30 minutos depois de apenas 5,6 segundos da espera de 15 segundos; isso não comprova o travamento. O teto do CI foi ajustado para 45 minutos e ficou registrado investigar, em pausa natural do C14, consumidores de reload/bootstrap que ainda possam presumir o contrato antigo de leitura silenciosa, sem atribuir causalidade à C14-A até existir evidência.
 - **F06 / PR #143:** documentação reconciliada e mesclada em 01/09/2026 no merge `7662899`; a causa de rede específica por usuário/ISP e a futura migração para domínio próprio permanecem registradas fora do C08.
 - **PR #101:** draft antigo de leituras do Firestore, fechado sem merge em 01/09/2026 por ter sido substituído pelo C28, especialmente PRs #113–#117.
@@ -434,11 +458,12 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ## Estado ao encerrar esta cronologia
 
-- Base atual verificada: `origin/main` no merge `caeb515`, em 15/09/2026.
+- Base atual verificada: `origin/main` no merge `6d72791`, em 16/09/2026.
 - Versão nomeada preparada no código: `0.11.0-beta`.
 - C22, C23, C28, C20 e C19: concluídos segundo o roadmap.
 - C08: implementação A–F concluída e mesclada no PR #167.
 - C14-A, C14-B1, C14-B2 e C14-C: concluídas; a C14-C encerrou as cinco fases com enforcement obrigatório ativo no Worker e validação negativa/legítima em produção.
+- C29: planejamento pós-lançamento aprovado em duas fatias não iniciadas, após C21 e antes de N03; não interrompe C14-D–H, C16 ou C25.
 - Próximos gates de lançamento público no roadmap: conclusão de C14, C16 e C25.
 
 ## Fontes consultadas e limitações

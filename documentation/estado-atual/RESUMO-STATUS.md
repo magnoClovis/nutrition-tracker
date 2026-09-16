@@ -43,7 +43,7 @@
 ## O que está em andamento agora
 
 - **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.
-- **C14 — revisão geral de segurança:** C14-A, C14-B1 e C14-B2 estão concluídas; C14-C está em andamento; C14-D a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
+- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2 e C14-C estão concluídas; C14-D a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 - **[DOC-TRACKING-193] Concluído (12/09/2026) — Chat: Trofia-Principal.** O que se planeja fazer: registrar integralmente as sequências aprovadas e formalizar planejamento, entrega, alinhamento e métricas. O que foi feito: 100 entradas de fatias foram normalizadas no PR #193, com escopos incertos de D3–D7 explicitamente delegados ao chat UI/UX. Alinhamento: 100%.
@@ -69,7 +69,7 @@
 
 ### Backlog pós-lançamento
 
-- C26 notificações, N01 voz, C21 porções fracionadas, N03 leitura de rótulos, N09 jejum, C17 e-mails, C13 feedback nativo, C10 relatórios, N07 compartilhamento profissional, N02 banco nutricional, N05 recalibração dinâmica, C15 limpeza ampla do legado, C27 widgets, N04 receitas, N06 planejamento alimentar, C12 iOS, C18 integrações de saúde e N08 exercícios/hábitos.
+- C26 notificações, N01 voz, C21 porções fracionadas, C29 reclassificação assistida por foto, N03 leitura de rótulos, N09 jejum, C17 e-mails, C13 feedback nativo, C10 relatórios, N07 compartilhamento profissional, N02 banco nutricional, N05 recalibração dinâmica, C15 limpeza ampla do legado, C27 widgets, N04 receitas, N06 planejamento alimentar, C12 iOS, C18 integrações de saúde e N08 exercícios/hábitos.
 - Partes deliberadamente adiadas: C26-C (push/backend) e C27-B (widget funcional com escrita direta).
 - Revisão externa por nutricionista e eventual comparação/troca do modelo Gemini permanecem decisões futuras registradas em `PENDENCIAS.md`.
 
@@ -815,6 +815,24 @@
 - **Recursos/arquivos principais envolvidos:** `meal-estimate-editor.js`, `app.js`, `nutrition-tracker.jsx`, `src/App.jsx` e testes dos builders/persistência.
 - **O que foi feito:** O PR #188 integrou quantidade, gramas e oito nutrientes aos fluxos de foto/texto e persistência.
 - **Alinhamento:** 100%.
+
+### [C29-A] - Contrato seguro de reclassificação por IA
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** permitir reavaliar somente um alimento classificado incorretamente, sem ampliar a coleta nem enfraquecer os contratos de IA já protegidos.
+- **O que se planeja fazer:** definir requisição e resposta estruturadas, sanitizar e limitar a correção textual, exigir Auth/App Check, aplicar limites/rate limits, validar fail-closed e manter imagem, correção, prompt e resposta bruta estritamente transitórios.
+- **Recursos/arquivos principais envolvidos:** Worker multimodal, `worker/src/ai-worker.js`, validação Firebase Auth/App Check, Durable Object/rate limiter, contratos de estimativa C24/C08, `image-meal-client.js` e testes do Worker/cliente.
+
+### [C29-B] - Integração da reclassificação no editor compartilhado
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** oferecer correção assistida dentro da revisão por foto sem alterar outros alimentos nem retirar do usuário o controle final da estimativa.
+- **O que se planeja fazer:** adicionar “Classificado incorretamente”, coletar descrição breve, substituir apenas o item escolhido após resposta válida, preservar os demais itens/edições e cobrir revisão, cancelamento, retry, erros, acessibilidade e PT/EN/ES.
+- **Recursos/arquivos principais envolvidos:** `image-meal-screen.js`, `image-meal-flow.js`, `meal-estimate-editor.js`, composições legado/Vite, i18n, testes unitários/smoke e revisão de política/Data Safety.
 
 ### UI/UX — sequências aprovadas compartilhadas
 
