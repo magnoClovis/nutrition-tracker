@@ -530,6 +530,20 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Alinhamento:** 100%. A reconciliação cobriu todas as lacunas comprovadas da frente principal e acrescentou uma barreira operacional permanente. Não foram inferidos nem alterados escopos pertencentes a UI/UX ou Trofia-Bugs; impacto final positivo.
 - **PRs/commits relacionados:** PR #208, commits `ba8eb8d` e `7afe844`, merge `1a3d75f`; run documental `35015749125`.
 
+## [INC-FIRESTORE-PERSIST-20260917] - Falso incidente de persistência causado por data UTC no teste
+
+- **Status:** em andamento.
+- **Data de início:** 17/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 67 min 30 s (24 s leve + 67 min 6 s pesado, somando a tentativa inicial e o rerun integral do job autenticado).
+- **Propósito:** determinar por que quatro fluxos autenticados centrais aparentaram deixar de persistir ou reler entradas do Diário poucos minutos depois de uma execução verde, bloqueando o gate do UI/UX e inicialmente sugerindo regressão externa de rules, App Check ou estado compartilhado.
+- **O que se planeja fazer:** reproduzir os quatro casos em worktree limpa da `origin/main`, confrontar o estado visível do Diário com a data consultada pelo teste, verificar a fronteira de data usada pelo app e distinguir falha real de escrita/leitura de erro determinístico do harness antes de tocar em produção.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/authenticated-flows.spec.js`, `tests/unit/authenticated-daily-date.test.js`, `date-utils.js`, `DateUtils.localToday()`, `DateUtils.addCivilDays()`, Playwright legado/Vite, conta autenticada descartável, artefatos Playwright do worktree UI/UX e worktree isolada `codex/firestore-persistence-incident-20260917`.
+- **O que foi feito:** o relatório do UI/UX registrou 95 casos aprovados, 8 skips esperados e 8 falhas em quatro cenários desktop/mobile, embora a execução anterior na mesma base tivesse 103 aprovações e 8 skips. A frente Principal reproduziu exatamente as oito falhas em checkout limpo de `d99f465`. As capturas mostraram que cada entrada nova estava visível no Diário, eliminando a hipótese de rejeição silenciosa de escrita. A causa era temporal: os quatro testes derivavam “hoje” ou “ontem” com `Date.toISOString()` (UTC), enquanto o app usa a data civil local. Entre 00:00 e 02:00 em Madrid, o teste limpava e relia um dia diferente daquele em que a interface gravava. A correção centralizou o cálculo de teste em `DateUtils.localToday()` e `DateUtils.addCivilDays()`, adicionou um contrato unitário que proíbe a regressão UTC nesse arquivo e preservou código runtime, rules e App Check sem alteração. O recorte autenticado passou 9/9 (setup e quatro cenários em desktop/mobile); a validação ampla passou 1.401/1.401 unitários, 103 smokes legado com 8 skips esperados, 111/111 smokes Vite e 60/60 cenários cutover. Uma primeira tentativa Vite sem a site key pública local falhou no bootstrap de App Check; repetida com as mesmas variáveis públicas do CI, ficou integralmente verde, confirmando que não era regressão do hotfix. No CI do PR #222, a tentativa inicial do job pesado encontrou apenas uma flakiness visual alheia no `SearchableChoiceField`; os fluxos de persistência passaram. O rerun integral `35161997173` terminou verde em 34 min 15 s, confirmando preflight, unitários, Worker, Functions e Playwright autenticado.
+- **Alinhamento:** 100%. O diagnóstico começou tratando rules/App Check como hipóteses, mas a evidência deslocou corretamente a correção para o relógio do próprio teste. O desvio foi positivo: evitou um rollback ou alteração de produção indevida e restaurou um gate confiável sem tocar nos dados dos usuários.
+- **PRs/commits relacionados:** base `d99f465`; PR #222; commit `891131d`; runs `35161997106` (leve) e `35161997173` (pesado, rerun verde). — **Chat:** Trofia-Principal.
+
 ## [DOC-SYNC-LOCAL-20260916] - Reconciliação segura do checkout principal
 
 - **Status:** concluído.

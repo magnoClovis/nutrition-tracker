@@ -42,6 +42,15 @@
 
 ## O que está em andamento agora
 
+### [INC-FIRESTORE-PERSIST-20260917] - Data civil incorreta nos smokes autenticados do Diário
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 17/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** impedir que os gates autenticados confundam uma diferença UTC/data local com falha de persistência do Firestore.
+- **O que se planeja fazer:** reproduzir os oito casos em `origin/main`, distinguir escrita real de leitura do teste e alinhar todos os cenários afetados ao domínio de data civil local do app.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/authenticated-flows.spec.js`, `tests/unit/authenticated-daily-date.test.js`, `DateUtils.localToday()`, `DateUtils.addCivilDays()`, Playwright legado/Vite, Firebase e documentação.
+- **O que foi feito:** a base limpa `d99f465` reproduziu as oito falhas; os registros apareciam no Diário, mas o teste consultava outra data porque usava `toISOString()` entre meia-noite e 02h em Madrid. A correção usa os helpers civis canônicos, inclui proteção unitária e deixou verdes os quatro fluxos em desktop/mobile, 1.401 unitários, 103 smokes legado com 8 skips esperados, 111 smokes Vite, 60 cenários cutover e o CI autenticado `35161997173` após rerun de uma flakiness visual alheia.
 - **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.
 - **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D e C14-E estão concluídas; C14-F1 a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.

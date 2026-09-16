@@ -129,6 +129,13 @@ test.describe('authenticated critical data flows', () => {
     }, [date, log]);
   }
 
+  async function readLocalCivilDate(page, dayOffset = 0) {
+    return page.evaluate(offset => {
+      const today = window.DateUtils.localToday();
+      return window.DateUtils.addCivilDays(today, offset);
+    }, dayOffset);
+  }
+
   async function replacePantry(page, foods) {
     const previous = await readStorage(page, 'pantry_v2');
     await replaceStorage(page, 'pantry_v2', JSON.stringify(foods));
@@ -264,11 +271,7 @@ test.describe('authenticated critical data flows', () => {
       fiber100: 3,
       salt100: 0.4
     };
-    const yesterday = await page.evaluate(() => {
-      const date = new Date();
-      date.setDate(date.getDate() - 1);
-      return date.toISOString().split('T')[0];
-    });
+    const yesterday = await readLocalCivilDate(page, -1);
     const previousLog = await readDailyLog(page, yesterday);
     await replaceDailyLog(page, yesterday, {});
     const previousPantry = await replacePantry(page, [fixture]);
@@ -307,7 +310,7 @@ test.describe('authenticated critical data flows', () => {
     const errors = await openApp(page);
     await setAppLanguage(page, 'pt');
 
-    const today = await page.evaluate(() => new Date().toISOString().split('T')[0]);
+    const today = await readLocalCivilDate(page);
     const previousLog = await readDailyLog(page, today);
     const fixture = {
       id: `review-food-${Date.now()}`,
@@ -432,7 +435,7 @@ test.describe('authenticated critical data flows', () => {
     await interceptOptionalExternalApis(page, { aiDelayMs: 300 });
     const errors = await openApp(page);
 
-    const today = await page.evaluate(() => new Date().toISOString().split('T')[0]);
+    const today = await readLocalCivilDate(page);
     const previousLog = await readDailyLog(page, today);
     const previousLanguage = await readStorage(page, 'language');
     const fixture = {
@@ -557,7 +560,7 @@ test.describe('authenticated critical data flows', () => {
     const errors = await openApp(page);
     await setAppLanguage(page, 'pt');
 
-    const today = await page.evaluate(() => new Date().toISOString().split('T')[0]);
+    const today = await readLocalCivilDate(page);
     const previousLog = await readDailyLog(page, today);
     const fixture = {
       id: `ga-food-${Date.now()}`,
