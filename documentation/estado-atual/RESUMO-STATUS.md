@@ -1227,8 +1227,8 @@
 - **Data de início:** não determinado.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** converter o resultado aprovado em componente reutilizável sem perder validação ou edição nutricional.
-- **O que se planeja fazer:** criar um sheet controlado de aproximadamente 68% com foto acima, porção, macros, nutrientes secundários, ingredientes editáveis, refeição e CTA fixo, integrando primeiro o resultado da foto e cobrindo confiança/dados incompletos/listas extensas.
-- **Recursos/arquivos principais envolvidos:** novo `meal-result-sheet.js` UMD/ESM, `meal-estimate-editor.js`, `meal-estimate.js`, `image-meal-screen.js`, ChoiceField, NumericField, `one-ui.css` e testes.
+- **O que se planeja fazer:** criar um sheet com encaixes em aproximadamente 68% e na altura total útil, expansível/recolhível por arraste e por alternativa acessível, coordenar gesto e rolagem interna, manter foto acima no estado inicial, CTA/refeição alcançáveis e edição de porção/ingredientes com recálculo proporcional imediato de kcal e nutrientes, cobrindo confiança, dados incompletos e listas extensas.
+- **Recursos/arquivos principais envolvidos:** novo `meal-result-sheet.js` UMD/ESM, controlador de sheet/gestos e safe areas, `meal-estimate-editor.js`, `meal-estimate.js`, `image-meal-screen.js`, ChoiceField, NumericField, `one-ui.css`, ARIA/teclado e testes.
 
 ### [CAM-RED-8] - Busca manual com o mesmo resultado
 
