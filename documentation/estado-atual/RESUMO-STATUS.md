@@ -50,13 +50,14 @@
 
 ### [DOC-SYNC-LOCAL-20260916] - Reconciliação segura do checkout principal
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 16/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 16/09/2026.
 - **Propósito:** eliminar a divergência entre a documentação local e a `origin/main` sem perder métricas retroativas nem arquivos locais sensíveis.
 - **O que se planeja fazer:** preservar hashes e backup externo, transplantar somente registros exclusivos sobre a main atual, publicar a reconciliação e atualizar o checkout principal por fast-forward com reaplicação seletiva.
 - **Recursos/arquivos principais envolvidos:** Git/worktrees, backup externo em AppData, nove históricos em `documentation/historico/`, `android/app/build.gradle`, `android/build.gradle`, `bug-inventory.txt`, keystore e `google-services.json`.
-- **O que foi feito:** auditoria confirmou a `main` local 49 commits atrás, separou snapshots regressivos de 240 linhas documentais exclusivas e criou uma reconciliação limpa sobre `origin/main`; publicação e sincronização final ainda estão em andamento.
+- **O que foi feito:** o PR #219 preservou 240 linhas exclusivas sem regressão; a `main` local avançou 49 commits até `f62d745`, os três ajustes locais foram reaplicados seletivamente e os hashes sensíveis permaneceram idênticos.
+- **Alinhamento:** 100% — backup, reconciliação, merge, sincronização seletiva e verificação final seguiram o plano aprovado.
 
 ### [DOC-FORMAT-198] - Padronização detalhada das entradas históricas
 
