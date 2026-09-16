@@ -213,6 +213,32 @@ body:has([data-camera-native-active="true"]) [data-app-main="adicionar"] {
   background-image: none !important;
 }
 
+/* A transparent WebView still paints ordinary descendants over the native
+   CameraPreview surface. Hide the inactive app tree while the camera owns the
+   viewport, then opt the capture stage back in. `visibility` preserves layout
+   and therefore the measured native geometry without painting duplicate app
+   content through the transparent camera window. */
+body:has([data-camera-native-active="true"]) [data-one-ui-root] * {
+  visibility: hidden;
+}
+
+body:has([data-camera-native-active="true"]) [data-camera-stage-overlay="true"],
+body:has([data-camera-native-active="true"]) [data-camera-stage-overlay="true"] * {
+  visibility: visible;
+}
+
+/* The Add modal normally keeps a filled entrance animation and glass filter.
+   Both establish a containing block for fixed descendants, so the full-screen
+   camera stage temporarily neutralizes them while the native session owns the
+   viewport. */
+body:has([data-camera-native-active="true"]) [data-app-main="adicionar"] {
+  animation: none !important;
+  transform: none !important;
+  filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
 body:has([data-camera-geometry-ready="true"]) [data-app-main="adicionar"],
 body:has([data-camera-geometry-locked="true"]) [data-app-main="adicionar"] {
   overflow: hidden !important;
@@ -321,6 +347,8 @@ body:has([data-camera-native-active="true"]) {
 
 [data-image-meal-screen="true"] :is(
   [data-camera-cancel="true"],
+  [data-camera-close="true"],
+  [data-camera-recognition-close="true"],
   [data-camera-shutter="true"],
   [data-camera-open-settings="true"],
   [data-image-meal-open-camera="true"],
@@ -426,6 +454,155 @@ body:has([data-camera-native-active="true"]) {
 
 @media (prefers-reduced-motion: reduce) {
   [data-embedded-camera="true"] { animation: none; }
+}
+
+/* CAM-RED-3: a fixed capture stage surrounds the native toBack surface with
+   four independent glass panes. This keeps blur off the live camera itself. */
+[data-camera-stage-overlay="true"] {
+  --camera-stage-width: min(680px, calc(100vw - 32px));
+  --camera-stage-height: min(64dvh, 720px);
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr var(--camera-stage-width) 1fr;
+  grid-template-rows: 1fr var(--camera-stage-height) 132px 1fr;
+  gap: 0;
+  isolation: isolate;
+  overflow: hidden;
+  animation: cameraStageBackdropIn var(--dur-base) ease-out both;
+}
+
+[data-camera-backdrop-pane] {
+  z-index: 0;
+  background: color-mix(in srgb, #06100d 72%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(82%);
+  backdrop-filter: blur(18px) saturate(82%);
+}
+[data-camera-backdrop-pane="top"] { grid-area: 1 / 1 / 2 / 4; }
+[data-camera-backdrop-pane="left"] { grid-area: 2 / 1 / 4 / 2; }
+[data-camera-backdrop-pane="right"] { grid-area: 2 / 3 / 4 / 4; }
+[data-camera-backdrop-pane="bottom"] { grid-area: 3 / 2 / 5 / 3; }
+
+[data-camera-stage-viewport="true"] {
+  grid-area: 2 / 2;
+  min-height: 0;
+  border-radius: 38px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.24), 0 24px 70px rgba(0,0,0,.32);
+}
+
+[data-camera-stage-overlay="true"] [data-camera-close="true"] {
+  position: absolute;
+  z-index: 5;
+  top: 18px;
+  right: 18px;
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(15,22,19,.68) !important;
+  color: #fff !important;
+  font-size: 26px;
+  line-height: 1;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+[data-camera-stage-overlay="true"] [data-camera-recognition-close="true"] {
+  position: absolute;
+  z-index: 5;
+  top: 18px;
+  left: 18px;
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(15,22,19,.68) !important;
+  color: #fff !important;
+  font-size: 26px;
+  line-height: 1;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+[data-camera-frame-label="true"] {
+  position: absolute;
+  z-index: 4;
+  bottom: 18px;
+  left: 50%;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(15,22,19,.68);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  transform: translateX(-50%);
+}
+
+[data-camera-stage-overlay="true"] [data-camera-controls="true"] {
+  grid-area: 3 / 2;
+  position: relative;
+  inset: auto;
+  z-index: 3;
+  align-self: stretch;
+  justify-content: center;
+  gap: clamp(24px, 8vw, 64px);
+  padding: 18px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+[data-camera-stage-overlay="true"] [data-camera-controls="true"] button { flex: 0 0 auto; }
+[data-camera-stage-overlay="true"] [data-camera-shutter="true"] {
+  width: 76px;
+  min-width: 76px;
+  height: 76px;
+  padding: 0 !important;
+  border: 5px solid rgba(255,255,255,.95) !important;
+  border-radius: 50% !important;
+  background: #fff !important;
+  box-shadow: inset 0 0 0 7px rgba(20,30,26,.72), 0 8px 24px rgba(0,0,0,.26);
+}
+
+[data-camera-stage-overlay="true"][data-image-meal-state="camera-capturing"] [data-camera-stage-viewport="true"] {
+  animation: cameraStageCapture var(--dur-base) ease-in-out both;
+}
+[data-camera-stage-overlay="true"][data-camera-stage-closing="true"] {
+  pointer-events: none;
+  animation: cameraStageBackdropOut 220ms ease-in both;
+}
+[data-camera-stage-overlay="true"][data-camera-stage-closing="true"] [data-camera-stage-viewport="true"] {
+  animation: cameraStageClose 220ms ease-in both;
+}
+[data-camera-stage-overlay="true"][data-image-meal-state="camera-frozen"] [data-camera-stage-viewport="true"] {
+  transform: scale(.965);
+}
+
+@keyframes cameraStageBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cameraStageBackdropOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes cameraStageCapture { from { transform: scale(1); } to { transform: scale(.965); } }
+@keyframes cameraStageClose { from { transform: scale(1); } to { transform: scale(.965); } }
+
+@media (max-width: 640px) {
+  [data-camera-stage-overlay="true"] {
+    --camera-stage-width: calc(100vw - 24px);
+    --camera-stage-height: min(66dvh, calc(100dvh - 176px));
+    grid-template-rows: 1fr var(--camera-stage-height) 116px 1fr;
+  }
+  [data-camera-stage-viewport="true"] { border-radius: 32px; }
+  [data-camera-stage-overlay="true"] [data-camera-close="true"] { top: 12px; right: 12px; }
+  [data-camera-stage-overlay="true"] [data-camera-recognition-close="true"] { top: 12px; left: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-camera-stage-overlay="true"],
+  [data-camera-stage-overlay="true"] [data-camera-stage-viewport="true"] { animation: none !important; }
 }
 
 /* Native-semantic multiple selection. Circular marks are reserved for radio

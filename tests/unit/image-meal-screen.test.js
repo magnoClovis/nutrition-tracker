@@ -127,7 +127,9 @@ contractTest('renders the embedded camera as an accessible HTML overlay in every
     );
     assert.match(textContent(view), new RegExp(expectedStatus));
     const shutter = elements(view, 'button').find(button => button.props['data-camera-shutter'] === 'true');
-    const cancel = elements(view, 'button').find(button => button.props['data-camera-cancel'] === 'true');
+    const cancel = elements(view, 'button').find(button => button.props['data-camera-close'] === 'true');
+    const overlay = elements(view, 'div').find(node => node.props['data-camera-stage-overlay'] === 'true');
+    const viewport = elements(view, 'div').find(node => node.props['data-camera-stage-viewport'] === 'true');
     const visibleIndicator = elements(view, 'div').find(node => node.props['data-camera-active-indicator'] === 'true');
     const announcement = elements(view, 'p').find(node => node.props['data-image-meal-announcement'] === 'true');
     assert.equal(shutter.props.disabled, shutterDisabled);
@@ -135,6 +137,9 @@ contractTest('renders the embedded camera as an accessible HTML overlay in every
     assert.equal(announcement.props.role, 'status');
     assert.equal(announcement.props['aria-live'], 'polite');
     assert.equal(announcement.props['aria-atomic'], 'true');
+    assert.ok(overlay);
+    assert.equal(viewport.props['data-embedded-camera'], 'true');
+    assert.equal(cancel.props['aria-label'], 'Fechar câmera');
     assert.match(textContent(announcement), new RegExp(expectedStatus));
     if (!shutterDisabled) shutter.props.onClick();
     cancel.props.onClick();
@@ -169,6 +174,7 @@ contractTest('offers localized permission recovery through Android settings and 
 
 contractTest('keeps the native layer active until two frames after the frozen photo loads', ImageMealScreen => {
   const calls = [];
+  const trace = [];
   const frames = [];
   const view = ImageMealScreen(baseProps({
     phase: 'camera-frozen',
@@ -178,6 +184,7 @@ contractTest('keeps the native layer active until two frames after the frozen ph
   }, {
     onEmbeddedPhotoPainted: () => calls.push('painted'),
     onEmbeddedPhotoPaintFailed: () => calls.push('failed'),
+    onCameraHandoffTrace: stage => trace.push(stage),
   }));
   assert.equal(view.props['data-camera-native-active'], 'true');
   assert.equal(view.props['data-camera-geometry-locked'], 'true');
@@ -194,10 +201,13 @@ contractTest('keeps the native layer active until two frames after the frozen ph
     },
   });
   assert.deepEqual(calls, []);
+  assert.deepEqual(trace, ['frozen-photo-load']);
   frames.shift()();
   assert.deepEqual(calls, []);
+  assert.deepEqual(trace, ['frozen-photo-load', 'frozen-photo-frame-1']);
   frames.shift()();
   assert.deepEqual(calls, ['painted']);
+  assert.deepEqual(trace, ['frozen-photo-load', 'frozen-photo-frame-1', 'frozen-photo-frame-2']);
   image.props.onError();
   assert.deepEqual(calls, ['painted', 'failed']);
 });
@@ -212,6 +222,48 @@ contractTest('keeps camera actions semantic and exposes stable focus targets', I
   const retake = elements(photo, 'button').find(button => button.props['data-image-meal-open-camera'] === 'true');
   assert.equal(analyze.props.type, 'button');
   assert.equal(retake.props.type, 'button');
+});
+
+contractTest('localizes the central camera stage and its two distinct close actions', ImageMealScreen => {
+  for (const [lang, stageLabel, cameraClose, recognitionClose] of [
+    ['pt', 'Câmera de refeição', 'Fechar câmera', 'Fechar reconhecimento'],
+    ['en', 'Meal camera', 'Close camera', 'Close recognition'],
+    ['es', 'Cámara de comida', 'Cerrar cámara', 'Cerrar reconocimiento'],
+  ]) {
+    const view = ImageMealScreen(baseProps({ phase: 'camera-active' }, { lang }));
+    const stage = elements(view, 'div').find(node => node.props['data-camera-stage-overlay'] === 'true');
+    const buttons = elements(view, 'button');
+    assert.equal(stage.props.role, 'dialog');
+    assert.equal(stage.props['aria-modal'], 'true');
+    assert.equal(stage.props['aria-label'], stageLabel);
+    assert.ok(buttons.find(button => button.props['aria-label'] === cameraClose));
+    assert.ok(buttons.find(button => button.props['aria-label'] === recognitionClose));
+  }
+});
+
+contractTest('contracts before closing and bypasses motion when reduced motion is requested', ImageMealScreen => {
+  let cancelled = 0;
+  let scheduled;
+  const overlay = { dataset: {} };
+  const view = ImageMealScreen(baseProps({ phase: 'camera-active' }, { onCancelCamera: () => { cancelled += 1; } }));
+  const close = elements(view, 'button').find(button => button.props['data-camera-close'] === 'true');
+  close.props.onClick({ currentTarget: {
+    closest: () => overlay,
+    ownerDocument: { defaultView: {
+      matchMedia: () => ({ matches: false }),
+      setTimeout: callback => { scheduled = callback; },
+    } },
+  } });
+  assert.equal(overlay.dataset.cameraStageClosing, 'true');
+  assert.equal(cancelled, 0);
+  scheduled();
+  assert.equal(cancelled, 1);
+
+  close.props.onClick({ currentTarget: {
+    closest: () => overlay,
+    ownerDocument: { defaultView: { matchMedia: () => ({ matches: true }) } },
+  } });
+  assert.equal(cancelled, 2);
 });
 
 contractTest('shows the captured-photo checkpoint before analysis', ImageMealScreen => {

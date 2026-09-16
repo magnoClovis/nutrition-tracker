@@ -2141,7 +2141,7 @@
         const previousPhase = imageMealPreviousPhaseRef.current;
         imageMealPreviousPhaseRef.current = phase;
         let selector = null;
-        if (phase === "camera-opening") selector = "[data-camera-cancel='true']";
+        if (phase === "camera-opening") selector = "[data-camera-close='true']";
         else if (phase === "error" && imageMealState.error === "permission-denied") {
           selector = "[data-camera-open-settings='true'], [data-image-meal-choose-gallery='true']";
         } else if (phase === "photo" && previousPhase === "camera-frozen") {
@@ -5133,6 +5133,7 @@
             onCapture: () => imageMealFlowRef.current?.captureFromCamera(),
             onCameraSurface: surface => imageMealFlowRef.current?.startEmbeddedCamera(surface),
             onEmbeddedCapture: () => imageMealFlowRef.current?.captureEmbeddedCamera(),
+            onCameraHandoffTrace: stage => imageMealFlowRef.current?.traceCameraHandoff(stage),
             onEmbeddedPhotoPainted: () => imageMealFlowRef.current?.confirmEmbeddedPhotoPainted(),
             onEmbeddedPhotoPaintFailed: () => imageMealFlowRef.current?.rejectEmbeddedPhotoPaint(),
             onCancelCamera: () => imageMealFlowRef.current?.cancelEmbeddedCamera(),

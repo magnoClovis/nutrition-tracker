@@ -1174,12 +1174,13 @@
 
 ### [CAM-RED-3] - Palco centralizado da câmera
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 15/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** implementar a composição centralizada da Proposta A sem voltar ao card embutido antigo.
 - **O que se planeja fazer:** extrair o palco de captura, aplicar backdrop escurecido/desfoque somente ao app, bloquear scroll, separar o X da câmera do X do reconhecimento e animar expansão/contração com movimento reduzido; código de barras permanece fora do escopo.
 - **Recursos/arquivos principais envolvidos:** novo componente de captura UMD/ESM, `image-meal-screen.js`, `image-meal-flow.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `i18n.js` e testes visuais legado/Vite.
+- **O que foi feito:** o PR draft #207 implementa o palco centralizado e corrige a pintura do recorte; após um bloqueio pós-captura na versão 18, a versão diagnóstica 19 da Play concluiu 6/6 capturas, inclusive reabertura e temas escuro/claro, sem reproduzir a falha intermitente, que permanece sem causa confirmada.
 
 ### [CAM-RED-4] - Flash visual e funcional
 

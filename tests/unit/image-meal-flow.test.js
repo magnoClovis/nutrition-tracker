@@ -81,6 +81,7 @@ function createFixture(module, overrides = {}) {
     },
     ImageMealClientError: ClientError,
     MealEstimateValidationError: MealEstimate.MealEstimateValidationError,
+    onCameraHandoffTrace: overrides.onCameraHandoffTrace,
     frozenPhotoPaintTimeoutMs: overrides.frozenPhotoPaintTimeoutMs,
     setTimer: overrides.setTimer,
     clearTimer: overrides.clearTimer,
@@ -140,7 +141,9 @@ contractTest('opens, captures, and cancels the bounded Android preview without i
 
 contractTest('keeps the native camera alive until the frozen photo paint is confirmed', async module => {
   const calls = [];
+  const trace = [];
   const fixture = createFixture(module, {
+    onCameraHandoffTrace: stage => trace.push(stage),
     embeddedCameraPreview: {
       isSupported: () => true,
       async start() { calls.push('start'); },
@@ -155,10 +158,26 @@ contractTest('keeps the native camera alive until the frozen photo paint is conf
   const frozen = await fixture.flow.captureEmbeddedCamera();
   assert.equal(frozen.phase, 'camera-frozen');
   assert.deepEqual(calls, ['start', 'flash-modes', 'capture']);
+  assert.deepEqual(trace, [
+    'native-capture-start',
+    'native-capture-resolved',
+    'preprocess-resolved',
+    'frozen-state-emitted',
+  ]);
 
   const painted = await fixture.flow.confirmEmbeddedPhotoPainted();
   assert.equal(painted.phase, 'photo');
   assert.deepEqual(calls, ['start', 'flash-modes', 'capture', 'stop']);
+  assert.deepEqual(trace, [
+    'native-capture-start',
+    'native-capture-resolved',
+    'preprocess-resolved',
+    'frozen-state-emitted',
+    'paint-confirmed',
+    'native-stop-start',
+    'native-stop-resolved',
+    'photo-state-emitted',
+  ]);
 });
 
 contractTest('restores the previous photo when frozen handoff is interrupted', async module => {
