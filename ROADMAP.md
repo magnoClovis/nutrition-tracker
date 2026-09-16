@@ -1,6 +1,6 @@
 # Roadmap consolidado do Trofia
 
-Estado reavaliado em 30/08/2026. Este documento reúne os itens C01–C28 e N01–N09 em uma única sequência de 37 posições. A ordem considera o estado real da `main`, dependências técnicas e recomendadas, segurança, conformidade, complexidade e participação externa necessária.
+Estado reavaliado em 16/09/2026. Este documento reúne os itens C01–C29 e N01–N09 em uma única sequência de 38 posições. A ordem considera o estado real da `main`, dependências técnicas e recomendadas, segurança, conformidade, complexidade e participação externa necessária.
 
 Os itens concluídos permanecem no início como registro histórico. C24 aparece entre os concluídos porque foi implementado fora da ordem anterior por decisão explícita do responsável. C22, C23 e C28 também estão concluídos e formam o checkpoint operacional `0.10.0-beta`.
 
@@ -29,10 +29,10 @@ As fases acrescentam uma camada de planejamento sobre a sequência. Elas não tr
 | Fase 0 — Fundação entregue | 1–10 | Registrar bases, gates e C24 já concluídos. | Nenhum PR novo; os itens permanecem como referência histórica. |
 | Fase 1 — Integridade e gate de lançamento | 11–16 | Registrar C22, C23 e C28 já entregues; concluir auditoria de segurança, documentação e o gate público. | C14 e C16 em escopos próprios; C25 encerra o grupo A. |
 | Fase 2 — Comunicação e motor nutricional Beta | 17–22 | Entregar notificações locais, voz e estabilizar score, avaliação, prompts e porções como recursos Beta pós-lançamento. | C26 em C26-A e C26-B; N01 próprio; C20/C19/C08 preservam sua ordem; C21 depende de C20. |
-| Fase 3 — Entradas e serviços | 23–28 | Reaproveitar C24 em rótulos e preparar comunicação, feedback, relatórios e compartilhamento. | N03 reaproveita a infraestrutura de imagem; N09 e C17 separados; C13 próprio; C10 pode exigir várias fatias; N07 somente após C10. |
-| Fase 4 — Dados e inteligência adaptativa | 29–30 | Ampliar a base nutricional e recalibrar metas com histórico confiável. | N02 em fonte/licença, normalização, cache e integração; N05 em cálculo, UX e validação longitudinal. |
-| Fase 5 — Arquitetura, widgets, receitas e planejamento | 31–34 | Consolidar manutenibilidade antes de novos domínios e componentes nativos mais acoplados. | C15 em vários PRs pequenos; C27 entrega apenas o widget de atalho; N04 e N06 permanecem faseados. |
-| Fase 6 — Plataformas, saúde e atividade | 35–37 | Expandir para iOS e integrações de saúde antes de ligar exercícios às metas. | C12 e C18 separados por plataforma; N08 somente após N05 e C18. |
+| Fase 3 — Entradas e serviços | 23–29 | Reaproveitar C24 em correção assistida e rótulos e preparar comunicação, feedback, relatórios e compartilhamento. | C29 em contrato seguro e integração no editor; N03 pode reutilizar seu padrão de correção; N09 e C17 separados; C13 próprio; C10 pode exigir várias fatias; N07 somente após C10. |
+| Fase 4 — Dados e inteligência adaptativa | 30–31 | Ampliar a base nutricional e recalibrar metas com histórico confiável. | N02 em fonte/licença, normalização, cache e integração; N05 em cálculo, UX e validação longitudinal. |
+| Fase 5 — Arquitetura, widgets, receitas e planejamento | 32–35 | Consolidar manutenibilidade antes de novos domínios e componentes nativos mais acoplados. | C15 em vários PRs pequenos; C27 entrega apenas o widget de atalho; N04 e N06 permanecem faseados. |
+| Fase 6 — Plataformas, saúde e atividade | 36–38 | Expandir para iOS e integrações de saúde antes de ligar exercícios às metas. | C12 e C18 separados por plataforma; N08 somente após N05 e C18. |
 
 > **Aviso de planejamento:** as fases e sugestões de PRs/fatias são apenas uma estrutura de planejamento. A divisão real continua sendo decidida item a item, durante a Tarefa 0 correspondente, considerando a auditoria do código, os riscos, as dependências e os critérios de validação.
 
@@ -62,21 +62,22 @@ As fases acrescentam uma camada de planejamento sobre a sequência. Elas não tr
 | 20 | C19 | Concluir avaliação de refeição e aceite UX | **Concluído** — PRs #137, #139, #140, #142 e C19-E | Avaliação opcional estabilizada nos fluxos manual e por foto; snapshots aceitos têm integridade conservadora, aparecem agrupados no Diário e foram validados em PT/EN/ES, desktop/mobile e legado/Vite. |
 | 21 | C08 | Revisar prompts e critérios nutricionais da IA | **Concluído** — PRs #147, #149, #151, #152, #165 e C08-F | As sete superfícies compartilham critérios canônicos, contratos versionados, validação fail-closed, minimização de dados e matriz final PT/EN/ES contra fixtures e Gemini real. |
 | 22 | C21 | Porções fracionadas no GA | Não iniciado — pós-lançamento | Depende de C20 e de passos unitários coerentes. |
-| 23 | N03 | Leitura de rótulo nutricional por foto | Não iniciado — pós-lançamento | Pode reutilizar captura, pré-processamento, Worker multimodal e revisão criados em C24. |
-| 24 | N09 | Jejum intermitente | Não iniciado — pós-lançamento | Sem dependência bloqueante; complexidade média. Futuramente informa C26 sobre lembretes a suprimir durante o jejum. |
-| 25 | C17 | E-mails automáticos por idioma | Parcial — pós-lançamento | Pode reutilizar preferências, idioma, consentimento e horários definidos em C26, embora notificações locais não dependam de e-mail. |
-| 26 | C13 | Feedback nativo com anexos | Não iniciado — pós-lançamento | C06 está concluído; permanece depois de C22 por envolver novos dados e anexos. |
-| 27 | C10 | Relatórios Python/HTTPS em produção | Parcial — pós-lançamento | Exige infraestrutura e operação documentadas; prepara N07. |
-| 28 | N07 | Compartilhamento profissional mínimo | Não iniciado — pós-lançamento | Depende de C10; C06 já está satisfeito. |
-| 29 | N02 | Banco nutricional mais profundo | Não iniciado — pós-lançamento | Exige fonte/licença, normalização, cache e integração; aprimorará C24 e N03 sem reabrir suas primeiras versões. |
-| 30 | N05 | Recalibração dinâmica do gasto calórico | Não iniciado — pós-lançamento | G01, C01 e C05 já estão concluídos; resta modelagem, UX e validação longitudinal. |
-| 31 | C15 | Refatoração, modularização e limpeza do legado | Parcial — pós-lançamento | C28 já estabilizou a arquitetura de dados, mas a limpeza é uma entrega de manutenibilidade extensa e não bloqueia um lançamento público seguro. Permanece antes de C27, N04, N06, C12, C18 e N08. |
-| 32 | C27 | Widgets de tela inicial | Não iniciado — pós-lançamento | O escopo atual entrega apenas a versão A, widget de atalho. A versão funcional depende da consolidação concluída em C15 e do contrato de reagendamento de C26. |
-| 33 | N04 | Sistema de receitas | Não iniciado — pós-lançamento | Depende de N02, C21 e da consolidação de C15. |
-| 34 | N06 | Planejamento alimentar e lista de compras | Não iniciado — pós-lançamento | Depende do sistema de receitas N04. |
-| 35 | C12 | Aplicativo iOS via Capacitor | Parcial — pós-lançamento | A base Capacitor está madura no Android; iOS permanece após C15 por exigir nova plataforma, assinatura e publicação. |
-| 36 | C18 | Health Connect, HealthKit e Samsung Health | Não iniciado — pós-lançamento | HealthKit depende de C12; integrações devem evitar fontes duplicadas. |
-| 37 | N08 | Exercícios, rotinas e hábitos | Não iniciado — pós-lançamento | Depende de N05 e C18 para não duplicar gasto vindo de atividade declarada, sensores e integrações. |
+| 23 | C29 | Reclassificação assistida de alimento reconhecido por foto | Não iniciado — pós-lançamento | Depende de C24 e C08 concluídos e do App Check obrigatório fechado em C14-C; cria um padrão de correção visual reutilizável por N03 sem reabrir C24. |
+| 24 | N03 | Leitura de rótulo nutricional por foto | Não iniciado — pós-lançamento | Pode reutilizar captura, pré-processamento, Worker multimodal e revisão criados em C24, além do padrão corretivo planejado em C29. |
+| 25 | N09 | Jejum intermitente | Não iniciado — pós-lançamento | Sem dependência bloqueante; complexidade média. Futuramente informa C26 sobre lembretes a suprimir durante o jejum. |
+| 26 | C17 | E-mails automáticos por idioma | Parcial — pós-lançamento | Pode reutilizar preferências, idioma, consentimento e horários definidos em C26, embora notificações locais não dependam de e-mail. |
+| 27 | C13 | Feedback nativo com anexos | Não iniciado — pós-lançamento | C06 está concluído; permanece depois de C22 por envolver novos dados e anexos. |
+| 28 | C10 | Relatórios Python/HTTPS em produção | Parcial — pós-lançamento | Exige infraestrutura e operação documentadas; prepara N07. |
+| 29 | N07 | Compartilhamento profissional mínimo | Não iniciado — pós-lançamento | Depende de C10; C06 já está satisfeito. |
+| 30 | N02 | Banco nutricional mais profundo | Não iniciado — pós-lançamento | Exige fonte/licença, normalização, cache e integração; aprimorará C24 e N03 sem reabrir suas primeiras versões. |
+| 31 | N05 | Recalibração dinâmica do gasto calórico | Não iniciado — pós-lançamento | G01, C01 e C05 já estão concluídos; resta modelagem, UX e validação longitudinal. |
+| 32 | C15 | Refatoração, modularização e limpeza do legado | Parcial — pós-lançamento | C28 já estabilizou a arquitetura de dados, mas a limpeza é uma entrega de manutenibilidade extensa e não bloqueia um lançamento público seguro. Permanece antes de C27, N04, N06, C12, C18 e N08. |
+| 33 | C27 | Widgets de tela inicial | Não iniciado — pós-lançamento | O escopo atual entrega apenas a versão A, widget de atalho. A versão funcional depende da consolidação concluída em C15 e do contrato de reagendamento de C26. |
+| 34 | N04 | Sistema de receitas | Não iniciado — pós-lançamento | Depende de N02, C21 e da consolidação de C15. |
+| 35 | N06 | Planejamento alimentar e lista de compras | Não iniciado — pós-lançamento | Depende do sistema de receitas N04. |
+| 36 | C12 | Aplicativo iOS via Capacitor | Parcial — pós-lançamento | A base Capacitor está madura no Android; iOS permanece após C15 por exigir nova plataforma, assinatura e publicação. |
+| 37 | C18 | Health Connect, HealthKit e Samsung Health | Não iniciado — pós-lançamento | HealthKit depende de C12; integrações devem evitar fontes duplicadas. |
+| 38 | N08 | Exercícios, rotinas e hábitos | Não iniciado — pós-lançamento | Depende de N05 e C18 para não duplicar gasto vindo de atividade declarada, sensores e integrações. |
 
 ## C23 — Fechamento concluído e compatibilidade preservada
 
@@ -150,11 +151,45 @@ A ação direta `+250 ml` sem abrir o app não faz parte do escopo atual. Ela fi
 
 A futura versão B exigirá módulo nativo Android, persistência compartilhada e sincronização segura; não deve ser tratada como simples extensão visual da versão A.
 
+## C29 — Reclassificação assistida de alimento reconhecido por foto
+
+C29 é uma evolução pós-lançamento do fluxo C24 e não altera o estado concluído daquela entrega. O trabalho só começa por autorização explícita depois dos gates do grupo A e reutiliza os critérios canônicos do C08, o editor compartilhado do C24 e o App Check obrigatório encerrado em C14-C.
+
+### C29-A — Contrato seguro de reclassificação
+
+- criar um contrato estruturado para reavaliar somente o alimento selecionado;
+- tratar a descrição curta do erro como entrada não confiável, com sanitização e limite explícito;
+- enviar apenas a imagem transitória, o contexto estritamente necessário do resultado atual e a correção do usuário;
+- exigir Firebase Auth e App Check antes de transmitir conteúdo ao Worker/Gemini;
+- validar a resposta de forma estrita, aplicar limites e rate limits de imagem e preservar a política de não registrar nem persistir imagem, correção textual, prompt ou resposta bruta;
+- falhar sem modificar a estimativa atual diante de timeout, cancelamento, resposta tardia, schema inválido, quota, sessão ou indisponibilidade.
+
+### C29-B — Integração no editor compartilhado
+
+- oferecer “Classificado incorretamente” em cada item durante a revisão por foto;
+- coletar uma descrição breve e informar claramente que a nova resposta substituirá apenas o item selecionado;
+- manter os demais alimentos e suas edições manuais inalterados;
+- permitir revisar, editar, excluir ou confirmar normalmente o novo resultado;
+- manter imagem e texto corretivo fora do Diário, backups e logs;
+- cobrir PT/EN/ES, acessibilidade, cancelamento/retry, respostas tardias e malformadas, Auth/App Check ausentes, limites e smoke legado/Vite;
+- revisar política e Data Safety antes da exposição; sem persistência nova, não se espera uma nova categoria de coleta, mas essa conclusão deve ser confirmada na implementação.
+
+### Critérios de aceite de C29
+
+1. Somente o item escolhido pode mudar após uma resposta válida; todos os demais permanecem inalterados.
+2. Nenhuma falha ou cancelamento pode apagar ou substituir silenciosamente a estimativa em revisão.
+3. A resposta reclassificada usa o mesmo contrato/editor de C24/C08 e continua totalmente editável antes do registro.
+4. Chamadas sem Auth ou App Check são rejeitadas antes de alcançar o provedor de IA.
+5. A reclassificação conta nos limites específicos de imagem e nos limites globais definidos para o Worker.
+6. Imagem, descrição corretiva e resposta bruta permanecem transitórias e não entram no armazenamento, backup ou observabilidade.
+7. A matriz final comprova os fluxos PT/EN/ES, web/Android aplicável e os estados de sucesso, retry, cancelamento, timeout, quota e resposta inválida.
+
 ## Decisões de ordenação
 
 - **Linha de lançamento público:** as posições 1–16 formam o grupo A; funcionalidades Beta e trabalhos de manutenibilidade pós-lançamento começam na posição 17, no grupo B.
 - **C28 antes de C15:** a arquitetura offline-first está concluída; C15 pode agora remover pontes e duplicações sem limpar código que ainda seria reescrito.
 - **C24 concluído fora de ordem:** C19 e N02 passam a ser melhorias futuras de critérios e cobertura nutricional, não condições para reabrir C24.
+- **C29 estende C24 sem reabri-lo:** a reclassificação assistida é uma evolução pós-lançamento, depende dos contratos C24/C08 e do App Check obrigatório concluído em C14-C e fica antes de N03 para que a leitura de rótulos possa reutilizar seu padrão corretivo.
 - **N03 antecipado por reutilização:** a infraestrutura difícil de imagem já existe em C24.
 - **C26 antes de C17:** notificações locais não dependem de e-mail, mas preferências de comunicação podem ser compartilhadas depois.
 - **C26-C não está implícito em C26-B:** push/backend só volta ao plano após validação do MVP local e nova aprovação.
@@ -167,6 +202,6 @@ A futura versão B exigirá módulo nativo Android, persistência compartilhada 
 ## Participação externa e itens a reavaliar
 
 - **Dependem de ação ou decisão do responsável:** C10 (infraestrutura HTTPS), C12 (conta, certificados e publicação Apple), C17 (domínio/provedor/consentimento), C18 (contas e configuração das plataformas), C26 (horários, textos, intensidade e opt-in) e qualquer fase que introduza custo, credenciais ou novos termos.
-- **Podem avançar tecnicamente após seus gates:** C08, C13–C16, C19–C23, C25–C27 e N01–N09, ressalvadas aprovações de UX, conteúdo, fornecedores e escopo.
+- **Podem avançar tecnicamente após seus gates:** C08, C13–C16, C19–C23, C25–C27, C29 e N01–N09, ressalvadas aprovações de UX, conteúdo, fornecedores e escopo.
 - **Decisões deliberadamente adiadas:** C26-C e C27 versão B permanecem visíveis neste documento e não devem ser iniciados por inferência durante as fases anteriores.
 - **Itens de valor a revalidar:** C12 pode continuar parcial sem decisão de publicação iOS; C17 deve avançar apenas com necessidade transacional clara; N08 deve evitar transformar o Trofia em uma plataforma fitness genérica.
