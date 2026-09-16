@@ -1207,12 +1207,13 @@
 
 ### [CAM-RED-4] - Flash visual e funcional
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 16/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
 - **Recursos/arquivos principais envolvidos:** `getSupportedFlashModes()`, `setFlashMode()`, serviço de preview, componente de captura, fluxo, CSS e validação física no Galaxy.
+- **O que foi feito:** branch isolada criada a partir da `origin/main`; auditoria inicial confirmou os modos `off`, `auto`, `on` e `torch` já comprovados no Galaxy e a consulta `getSupportedFlashModes()` existente, faltando integrar comando, estado visual e limpeza segura.
 
 ### Correção técnica do App Check e da paridade visual do cutover
 

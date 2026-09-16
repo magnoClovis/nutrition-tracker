@@ -1255,6 +1255,27 @@ O gate final do estado documentado passou no CI pesado `35129175422` em 36 minut
 
 - **Alinhamento:** 100%. O escopo aprovado foi entregue integralmente: App Check passou a alcançar todos os contextos manuais do cutover, a comparação PNG ganhou tolerância estrita e testada para antialiasing subpixel e diferenças acima do limite continuam falhando. A ocorrência intermitente externa de reload foi preservada e monitorada sem ser mascarada; ela não alterou a solução nem o resultado final.
 - **PRs/commits relacionados:** [PR #224](https://github.com/magnoClovis/nutrition-tracker/pull/224), commits [`ff8c587`](https://github.com/magnoClovis/nutrition-tracker/commit/ff8c587) e [`7c4b736`](https://github.com/magnoClovis/nutrition-tracker/commit/7c4b736), merge [`9f252d6`](https://github.com/magnoClovis/nutrition-tracker/commit/9f252d64247553812c6b9e8bc08ed16ca90c5675), primeiro CI leve verde [`35230168154`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35230168154), primeiro CI pesado vermelho pela ocorrência intermitente [`35230168161`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35230168161), rerun leve verde [`35235634192`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35235634192) e rerun pesado autenticado verde [`35235634115`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35235634115).
+## CAM-RED-4 — flash visual e funcional
+
+**Status:** em andamento — **Chat:** Trofia-UIUX.
+
+**Data de início:** 16/09/2026.
+
+**Data de conclusão:** não concluído.
+
+**Tempo decorrido:** pendente de merge.
+
+**Minutos de CI:** 0 min; testes ainda não iniciados.
+
+**Propósito:** transformar o controle de flash já aprovado no protótipo em uma função nativa real, evitando um botão meramente decorativo e preservando a segurança de ciclo de vida comprovada nas CAM-RED-2 e CAM-RED-3.
+
+**O que se planeja fazer:** reutilizar a consulta dos modos reais da câmera traseira; expor `setFlashMode()` no adaptador; apresentar o pill de flash OFF/ON aprovado apenas quando houver suporte; localizar estado, nome e anúncios em PT/EN/ES; serializar mudança de modo com captura e encerramento; e restaurar `off` em captura, cancelamento, Voltar, background, timeout ou desmontagem. A validação deverá provar no Galaxy o efeito luminoso real e a ausência de sessão/torch órfão, sem introduzir zoom, troca de câmera, código de barras ou mudanças na análise/resultado.
+
+**Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `src/composite/embedded-camera-preview-runtime.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `i18n.js`, APIs `getSupportedFlashModes()`/`setFlashMode()` do Camera Preview, testes unitários e visuais legado/Vite, CI autenticado e Galaxy físico.
+
+**O que foi feito:** branch isolada `codex/cam-red-4-flash` criada a partir do merge `d99f465` da `origin/main`. A auditoria inicial confirmou que o fluxo já consulta e normaliza modos suportados e que a prova física da CAM-RED-2 obteve `off`, `auto`, `on` e `torch` no Galaxy; o runtime ainda não possui comando de alteração, estado selecionado nem controle visual. Nenhum código funcional foi alterado nesta etapa inicial.
+
+**PRs/commits relacionados:** ainda não há PR; primeiro commit e runs pendentes. — **Chat-Origin:** Trofia-UIUX.
 
 ## Encerramento administrativo do PR documental obsoleto #170
 
