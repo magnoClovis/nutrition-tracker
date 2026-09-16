@@ -532,16 +532,17 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ## [DOC-SYNC-LOCAL-20260916] - Reconciliação segura do checkout principal
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 16/09/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** pendente de CI.
+- **Data de conclusão:** 16/09/2026.
+- **Tempo decorrido:** 1 min 25 s, do primeiro commit `a856617` ao merge `f62d745`.
+- **Minutos de CI:** 1 min (1 leve + 0 pesado; execução 39 s).
 - **Propósito:** corrigir a reincidência em que o checkout principal permaneceu desatualizado enquanto trabalho documental retroativo era acumulado diretamente sobre uma `main` local suja, impedindo que a pasta `documentation/` refletisse os merges remotos.
 - **O que se planeja fazer:** auditar a divergência sem alterar arquivos, criar backup externo com hashes, distinguir adições exclusivas de snapshots regressivos, transplantar somente o conteúdo válido sobre uma worktree da `origin/main`, publicar a reconciliação e atualizar o checkout principal por fast-forward, preservando seletivamente os ajustes locais autorizados.
 - **Recursos/arquivos principais envolvidos:** Git, `git worktree`, backup `C:\Users\clovi\AppData\Local\Trofia\safety-backups\main-sync-20260916`, nove arquivos em `documentation/historico/`, `documentation/estado-atual/RESUMO-STATUS.md`, `android/app/build.gradle`, `android/build.gradle`, `bug-inventory.txt`, `android/app/google-services.json` e `android/keystore.properties`.
-- **O que foi feito:** a auditoria comprovou que o checkout principal estava na `main` local `06ce74a`, 49 commits atrás de `origin/main` `9ec964e`, com 13 arquivos rastreados modificados. O trabalho exclusivo foi reduzido a 240 linhas de métricas e registros retroativos; estados antigos de C14 e CAM-RED foram deliberadamente descartados da reconciliação para não regredir a documentação vigente. Um backup externo de 21 arquivos, patch integral e hashes foi criado antes de qualquer mudança; a worktree limpa passou no preflight local com zero avisos. O merge, a reaplicação seletiva dos três arquivos locais e a verificação final permanecem pendentes.
-- **PRs/commits relacionados:** branch `codex/reconcile-retroactive-doc-metrics`; PR e merge pendentes. — **Chat:** Trofia-Principal.
+- **O que foi feito:** a auditoria comprovou que o checkout principal estava na `main` local `06ce74a`, 49 commits atrás de `origin/main` `9ec964e`, com 13 arquivos rastreados modificados. O trabalho exclusivo foi reduzido a 240 linhas de métricas e registros retroativos; estados antigos de C14 e CAM-RED foram deliberadamente excluídos da reconciliação para não regredir a documentação vigente. Um backup externo de 21 arquivos, patch integral e hashes foi criado antes de qualquer mudança. O PR #219 passou no preflight documental, foi mesclado em `f62d745` e a `main` principal recebeu o fast-forward completo. O stash restrito reaplicou somente `versionCode 13`, o redirecionamento externo de build e G01; a documentação ficou idêntica a `origin/main`, enquanto `google-services.json` e `keystore.properties` conservaram exatamente hash e tamanho.
+- **Alinhamento:** 100%. O plano aprovado foi executado sem conflito nem perda; a seleção manual impediu que snapshots antigos sobrescrevessem C14/CAM-RED atuais. O impacto foi positivo para integridade documental e para a segurança do checkout local.
+- **PRs/commits relacionados:** PR #219, commit `a856617`, merge `f62d745`, run leve `35139571971`. — **Chat:** Trofia-Principal.
 
 ## Métricas retroativas
 
