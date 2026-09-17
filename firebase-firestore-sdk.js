@@ -287,8 +287,8 @@
       });
     }
 
-    function userDocRef() {
-      return sdk.doc(currentFirestore(), "nutrition", String(getUid()));
+    function userDocRef(uid = getUid()) {
+      return sdk.doc(currentFirestore(), "nutrition", String(uid));
     }
 
     function dataCollectionRef() {
@@ -364,11 +364,10 @@
       }
     }
 
-    async function fetchRootFieldsFromServer() {
-      if (!getUid()) return {};
+    async function fetchRootFieldsFromServer(uid) {
       try {
         readMetrics.serverRequests++;
-        const snapshot = await sdk.getDocFromServer(userDocRef());
+        const snapshot = await sdk.getDocFromServer(userDocRef(uid));
         if (snapshot.exists()) readMetrics.serverDocuments++;
         const fields = snapshot.exists() ? {...(snapshot.data() || {})} : {};
         rootDocCache = fields;
@@ -376,7 +375,6 @@
         return fields;
       } catch (error) {
         console.warn("Firestore server-confirmed profile read failed", {
-          uid: getUid(),
           code: error?.code || "unknown"
         });
         const readError = new Error("Firestore server-confirmed profile read failed", {cause: error});
@@ -386,12 +384,17 @@
     }
 
     async function fbGetProfileFromServer3(keys) {
-      if (!getUid()) return {};
+      const uid = getUid();
+      if (!uid) {
+        const error = new Error("Authenticated profile read requires an active user session");
+        error.code = "firestore-profile-auth-unavailable";
+        throw error;
+      }
       const requested = Array.from(new Set((keys || []).map(String)));
       if (requested.some(key => !isProfileKey(key))) {
         throw new TypeError("Server-confirmed profile reads accept profile fields only");
       }
-      const fields = await fetchRootFieldsFromServer();
+      const fields = await fetchRootFieldsFromServer(uid);
       return Object.fromEntries(requested.map(key => {
         if (fields[key] === undefined || fields[key] === null) return [key, null];
         return [key, storageRecord(key, normalizeProfileValue(key, fields[key]))];

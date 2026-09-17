@@ -479,17 +479,30 @@ sobrescrever idioma local; retorno de verificação pendente deixa loading ativo
 Severidade: MÉDIO — aparência/idioma incoerentes ou formulário preso.
 Resolução necessária: ownership único de preferências e finally completo.
 Risco de corrigir: persistência local + Firestore hoje tem precedência histórica.
-Rastreio: backlog explícito de autenticação. Em 17/09/2026, o setup
-autenticado local da CAM-RED-4 permaneceu no login com a ação em
-“Processando...” por mais de 20 s, sem alcançar navegação, perfil obrigatório
-ou o erro `profile-incomplete-existing-account`; os casos da câmera não
-chegaram a executar. A ocorrência foi preservada sem repetição nem correção
-fora de escopo e ainda não confirma que D03 seja a causa raiz.
-O diagnóstico `INC-AUTH-BOOTSTRAP-20260917` do Chat Principal repetiu o login
-6/6 vezes sobre a `origin/main` `f494895`; três execuções instrumentadas
-concluíram navegação em aproximadamente 1,49 s, com Auth, verificação de e-mail
-e Firestore em HTTP 200, sem request pendente ou erro de página. A causa não
-foi reproduzida nem confirmada e nenhuma correção especulativa foi aplicada.
+Rastreio: backlog explícito de autenticação.
+Diagnóstico adicional (17/09/2026): a CAM-RED-4 registrou uma ocorrência em que
+o formulário permaneceu em “Processando...” por mais de 20 s antes de qualquer
+estado pós-login. A investigação isolada do Principal passou 6/6 vezes; nos três
+diagnósticos instrumentados, Auth, verificação de e-mail e Firestore responderam
+`200`, sem request pendente, e a navegação surgiu em ~1,49 s. O código confirma
+que sign-in e lookup de verificação ainda não têm deadline próprio, mas o artefato
+original não permite identificar qual operação externa ficou pendente. Portanto,
+a ocorrência segue intermitente e sem causa disparadora confirmada; não foi
+aplicada correção especulativa nem relaxado o gate.
+Recorrência física (17/09/2026): no AAB assinado versionCode 20 instalado pela
+Play, o login concluiu e o bootstrap exibiu `profile-incomplete-existing-account`
+antes da câmera. A prova em dispositivo torna insuficiente encerrar o caso apenas
+como flakiness local; a investigação INC-PROFILE-INCOMPLETE-PLAY-20260917 deve
+distinguir perfil realmente ausente de erro em Auth, App Check, Firestore, cache
+ou validação, sem retry/fallback silencioso e sem alterar a CAM-RED-4.
+Diagnóstico confirmado (17/09/2026): a conta descartável tinha documento completo
+e válido no servidor antes da tela de erro. `fbGetProfileFromServer3()` devolvia
+`{}` quando o UID autenticado ainda não estava disponível; o bootstrap interpretava
+esse retorno silencioso como perfil existente incompleto. A correção fail-closed
+passa a lançar `firestore-profile-auth-unavailable`, fixa o UID no início da leitura
+e não consulta Firestore/cache sem contexto autenticado. O evento upstream que
+tornou `auth.currentUser` transitoriamente indisponível não é recuperável no logcat
+sanitizado original; o defeito de classificação e sua correção têm teste determinístico.
 
 [D04] Logout chama fbSignOut duas vezes
 Localização: settings-panel.js:11-15.
