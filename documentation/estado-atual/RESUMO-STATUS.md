@@ -1213,7 +1213,7 @@
 - **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
 - **Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `getSupportedFlashModes()`/`setFlashMode()`, testes unitários/visuais, CI autenticado e Galaxy físico.
-- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; preflight, 91 testes focados e 1.410 unitários passaram, mas o smoke visual autenticado parou no setup com o login preso em “Processando...” por mais de 20 s antes de qualquer caso da câmera, ocorrência externa encaminhada ao Chat Principal e ainda sem causa confirmada.
+- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; preflight, 91 testes focados e 1.410 unitários passaram. O login preso antes dos casos da câmera não se repetiu em 6/6 tentativas na `origin/main` investigadas pelo Principal, permaneceu sem causa confirmada e sem correção funcional, liberando a retomada com parada obrigatória em qualquer recorrência.
 
 ### Correção técnica do App Check e da paridade visual do cutover
 
@@ -1467,7 +1467,7 @@
 - **Propósito:** monitorar uma possível inconsistência de restauração da sessão e do bootstrap após reload durante ciclos PT/EN/ES.
 - **O que se planeja fazer:** aguardar recorrência reproduzível e então isolar estado de autenticação, término do loading e consumidores do contrato de leitura, coordenando qualquer correção fora de UI com o chat principal.
 - **Recursos/arquivos principais envolvidos:** `tests/smoke/auth.setup.js`, `setAppLanguage`, `pantry-choice-field.visual.spec.js`, `searchable-choice-field.visual.spec.js`, Firebase Auth/App Check, Playwright e CI autenticado.
-- **O que foi feito:** além das ocorrências de reload dos runs `33488032008`/`33497924576` e do diagnóstico 3/3 limpo em `33502189291`, em 17/09/2026 o setup autenticado local da CAM-RED-4 permaneceu na tela pública com o botão “Processando...” desabilitado por mais de 20 s, sem alcançar navegação, perfil obrigatório ou `profile-incomplete-existing-account`; a execução foi interrompida sem repetição ou mudança de autenticação e segue sem causa confirmada, encaminhada ao Chat Principal.
+- **O que foi feito:** além das ocorrências de reload dos runs `33488032008`/`33497924576`, em 17/09/2026 o setup local da CAM-RED-4 ficou em “Processando...” por mais de 20 s; a investigação `INC-AUTH-BOOTSTRAP-20260917` do Principal executou 6/6 logins limpos, três instrumentados, sem request pendente ou erro, não confirmou relação com câmera/App Check e não aplicou correção especulativa. A ocorrência permanece intermitente e exige nova parada se reaparecer.
 
 ## Onde aprofundar
 

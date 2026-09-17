@@ -485,6 +485,11 @@ autenticado local da CAM-RED-4 permaneceu no login com a ação em
 ou o erro `profile-incomplete-existing-account`; os casos da câmera não
 chegaram a executar. A ocorrência foi preservada sem repetição nem correção
 fora de escopo e ainda não confirma que D03 seja a causa raiz.
+O diagnóstico `INC-AUTH-BOOTSTRAP-20260917` do Chat Principal repetiu o login
+6/6 vezes sobre a `origin/main` `f494895`; três execuções instrumentadas
+concluíram navegação em aproximadamente 1,49 s, com Auth, verificação de e-mail
+e Firestore em HTTP 200, sem request pendente ou erro de página. A causa não
+foi reproduzida nem confirmada e nenhuma correção especulativa foi aplicada.
 
 [D04] Logout chama fbSignOut duas vezes
 Localização: settings-panel.js:11-15.
