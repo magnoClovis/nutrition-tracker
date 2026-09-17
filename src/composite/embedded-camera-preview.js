@@ -118,6 +118,8 @@ export function createEmbeddedCameraPreview({
   let phase = 'idle';
   let operationId = 0;
   let pendingCapture = null;
+  let pendingFlashChange = null;
+  let currentFlashMode = 'off';
 
   function withTimeout(operation, code) {
     let timerId;
@@ -218,8 +220,12 @@ export function createEmbeddedCameraPreview({
     }
 
     const currentOperation = operationId;
-    phase = 'capturing';
     try {
+      if (pendingFlashChange) await pendingFlashChange;
+      if (currentOperation !== operationId || phase !== 'active') {
+        throw new EmbeddedCameraPreviewError('preview-capture-cancelled');
+      }
+      phase = 'capturing';
       const nativeCapture = withTimeout(cameraPreviewPlugin.capture({
         quality: 100,
         width: 1280,
@@ -250,6 +256,14 @@ export function createEmbeddedCameraPreview({
     phase = 'stopping';
     try {
       if (pendingCapture) await pendingCapture.catch(() => {});
+      if (pendingFlashChange) await pendingFlashChange.catch(() => {});
+      if (currentFlashMode !== 'off' && typeof cameraPreviewPlugin.setFlashMode === 'function') {
+        await withTimeout(
+          cameraPreviewPlugin.setFlashMode({ flashMode: 'off' }),
+          'preview-flash-mode-timeout',
+        ).catch(() => {});
+      }
+      currentFlashMode = 'off';
       await stopNative();
     } catch (cause) {
       if (cause instanceof EmbeddedCameraPreviewError) throw cause;
@@ -277,12 +291,45 @@ export function createEmbeddedCameraPreview({
     }
   }
 
+  async function setFlashMode(flashMode) {
+    if (phase !== 'active') {
+      throw new EmbeddedCameraPreviewError('preview-not-active');
+    }
+    if (!FLASH_MODE_VALUES.has(flashMode)) {
+      throw new EmbeddedCameraPreviewError('preview-flash-mode-invalid');
+    }
+    if (typeof cameraPreviewPlugin.setFlashMode !== 'function') {
+      throw new EmbeddedCameraPreviewError('preview-flash-mode-unsupported');
+    }
+    const currentOperation = operationId;
+    const nativeChange = withTimeout(
+      cameraPreviewPlugin.setFlashMode({ flashMode }),
+      'preview-flash-mode-timeout',
+    );
+    pendingFlashChange = nativeChange;
+    try {
+      await nativeChange;
+      currentFlashMode = flashMode;
+      if (currentOperation !== operationId || phase !== 'active') {
+        throw new EmbeddedCameraPreviewError('preview-flash-mode-cancelled');
+      }
+      return flashMode;
+    } catch (cause) {
+      if (cause instanceof EmbeddedCameraPreviewError) throw cause;
+      throw new EmbeddedCameraPreviewError('preview-flash-mode-failed', cause);
+    } finally {
+      if (pendingFlashChange === nativeChange) pendingFlashChange = null;
+    }
+  }
+
   return {
     start,
     capture,
     stop,
     getSupportedFlashModes,
+    setFlashMode,
     getPhase: () => phase,
+    getFlashMode: () => currentFlashMode,
     isSupported: () => isNativeAndroid(),
   };
 }

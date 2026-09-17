@@ -44,6 +44,7 @@ function baseProps(state, overrides = {}) {
     onCapture: () => {},
     onCameraSurface: () => {},
     onEmbeddedCapture: () => {},
+    onCameraFlashToggle: () => {},
     onEmbeddedPhotoPainted: () => {},
     onEmbeddedPhotoPaintFailed: () => {},
     onCancelCamera: () => {},
@@ -170,6 +171,40 @@ contractTest('offers localized permission recovery through Android settings and 
     gallery.props.onClick();
     assert.deepEqual(calls, ['settings', 'gallery']);
   }
+});
+
+contractTest('renders a localized accessible flash toggle only when the rear camera supports it', ImageMealScreen => {
+  for (const [lang, offLabel, onLabel] of [
+    ['pt', 'Flash desligado', 'Flash ligado'],
+    ['en', 'Flash off', 'Flash on'],
+    ['es', 'Flash apagado', 'Flash encendido'],
+  ]) {
+    let toggles = 0;
+    const offView = ImageMealScreen(baseProps({
+      phase: 'camera-active', cameraFlashModes: ['off', 'on', 'torch'], cameraFlashMode: 'off',
+    }, { lang, onCameraFlashToggle: () => { toggles += 1; } }));
+    const off = elements(offView, 'button').find(button => button.props['data-camera-flash'] === 'true');
+    assert.equal(off.props['aria-label'], offLabel);
+    assert.equal(off.props['aria-pressed'], false);
+    assert.equal(off.props.disabled, false);
+    assert.match(textContent(offView), new RegExp(`${offLabel}\\.`));
+    off.props.onClick();
+
+    const onView = ImageMealScreen(baseProps({
+      phase: 'camera-active', cameraFlashModes: ['off', 'on'], cameraFlashMode: 'on',
+    }, { lang }));
+    const on = elements(onView, 'button').find(button => button.props['data-camera-flash'] === 'true');
+    assert.equal(on.props['aria-label'], onLabel);
+    assert.equal(on.props['aria-pressed'], true);
+    assert.equal(on.props['data-camera-flash-state'], 'on');
+    assert.match(textContent(onView), new RegExp(`${onLabel}\\.`));
+    assert.equal(toggles, 1);
+  }
+
+  const unsupported = ImageMealScreen(baseProps({
+    phase: 'camera-active', cameraFlashModes: ['off'], cameraFlashMode: 'off',
+  }));
+  assert.equal(elements(unsupported, 'button').some(button => button.props['data-camera-flash'] === 'true'), false);
 });
 
 contractTest('keeps the native layer active until two frames after the frozen photo loads', ImageMealScreen => {

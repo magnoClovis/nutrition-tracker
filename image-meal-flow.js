@@ -33,7 +33,10 @@
       scope: undefined,
       notIdentifiableReason: null,
       cameraFlashModes: [],
-      cameraFlashProbe: "not-run"
+      cameraFlashProbe: "not-run",
+      cameraFlashMode: "off",
+      cameraFlashChanging: false,
+      cameraFlashError: null
     };
   }
 
@@ -192,12 +195,46 @@
         if (typeof console !== "undefined" && typeof console.info === "function") {
           console.info(`[CAM-RED-2] rear camera flash modes: ${cameraFlashModes.join(",") || "none"} (${cameraFlashProbe})`);
         }
-        return patch({ phase: "camera-active", error: null, cameraFlashModes, cameraFlashProbe });
+        return patch({
+          phase: "camera-active",
+          error: null,
+          cameraFlashModes,
+          cameraFlashProbe,
+          cameraFlashMode: "off",
+          cameraFlashChanging: false,
+          cameraFlashError: null
+        });
       } catch (error) {
         if (currentOperation !== operationId) return snapshot();
         const code = classifyError(error, ImageMealClientError, MealEstimateValidationError);
         cameraPreviousPhoto = null;
         return patch({ phase: "error", error: code, photo: state.photo });
+      }
+    }
+
+    async function toggleEmbeddedCameraFlash() {
+      if (state.phase !== "camera-active" || state.cameraFlashChanging ||
+          typeof embeddedCameraPreview?.setFlashMode !== "function") return snapshot();
+      const supportedModes = [...state.cameraFlashModes];
+      const enabledMode = supportedModes.includes("torch")
+        ? "torch"
+        : supportedModes.includes("on") ? "on" : null;
+      if (!enabledMode || !supportedModes.includes("off")) return snapshot();
+      const currentOperation = operationId;
+      const previousMode = state.cameraFlashMode;
+      const nextMode = previousMode === "off" ? enabledMode : "off";
+      patch({ cameraFlashChanging: true, cameraFlashError: null });
+      try {
+        await embeddedCameraPreview.setFlashMode(nextMode);
+        if (currentOperation !== operationId || state.phase !== "camera-active") return snapshot();
+        return patch({ cameraFlashMode: nextMode, cameraFlashChanging: false, cameraFlashError: null });
+      } catch (error) {
+        if (currentOperation !== operationId || state.phase !== "camera-active") return snapshot();
+        return patch({
+          cameraFlashMode: previousMode,
+          cameraFlashChanging: false,
+          cameraFlashError: error?.code || "preview-flash-mode-failed"
+        });
       }
     }
 
@@ -209,6 +246,9 @@
         traceCameraHandoff("native-capture-start");
         const base64 = await embeddedCameraPreview.capture();
         traceCameraHandoff("native-capture-resolved");
+        if (state.cameraFlashMode !== "off" && typeof embeddedCameraPreview.setFlashMode === "function") {
+          await embeddedCameraPreview.setFlashMode("off").catch(() => {});
+        }
         const photo = await preprocessEmbeddedCapture(base64);
         traceCameraHandoff("preprocess-resolved");
         if (currentOperation !== operationId) {
@@ -440,6 +480,7 @@
       captureFromCamera: openCamera,
       startEmbeddedCamera,
       captureEmbeddedCamera,
+      toggleEmbeddedCameraFlash,
       traceCameraHandoff,
       confirmEmbeddedPhotoPainted,
       rejectEmbeddedPhotoPaint,
