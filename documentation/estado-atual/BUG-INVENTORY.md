@@ -479,7 +479,12 @@ sobrescrever idioma local; retorno de verificação pendente deixa loading ativo
 Severidade: MÉDIO — aparência/idioma incoerentes ou formulário preso.
 Resolução necessária: ownership único de preferências e finally completo.
 Risco de corrigir: persistência local + Firestore hoje tem precedência histórica.
-Rastreio: backlog explícito de autenticação.
+Rastreio: backlog explícito de autenticação. Em 17/09/2026, o setup
+autenticado local da CAM-RED-4 permaneceu no login com a ação em
+“Processando...” por mais de 20 s, sem alcançar navegação, perfil obrigatório
+ou o erro `profile-incomplete-existing-account`; os casos da câmera não
+chegaram a executar. A ocorrência foi preservada sem repetição nem correção
+fora de escopo e ainda não confirma que D03 seja a causa raiz.
 
 [D04] Logout chama fbSignOut duas vezes
 Localização: settings-panel.js:11-15.

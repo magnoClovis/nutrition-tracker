@@ -1265,7 +1265,7 @@ O gate final do estado documentado passou no CI pesado `35129175422` em 36 minut
 
 **Tempo decorrido:** pendente de merge.
 
-**Minutos de CI:** 0 min; testes ainda não iniciados.
+**Minutos de CI:** 0 min; o CI próprio da CAM-RED-4 ainda não foi iniciado. O PR técnico separado #224 possui runs próprios e não é contabilizado nesta fatia.
 
 **Propósito:** transformar o controle de flash já aprovado no protótipo em uma função nativa real, evitando um botão meramente decorativo e preservando a segurança de ciclo de vida comprovada nas CAM-RED-2 e CAM-RED-3.
 
@@ -1273,9 +1273,15 @@ O gate final do estado documentado passou no CI pesado `35129175422` em 36 minut
 
 **Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `src/composite/embedded-camera-preview-runtime.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `i18n.js`, APIs `getSupportedFlashModes()`/`setFlashMode()` do Camera Preview, testes unitários e visuais legado/Vite, CI autenticado e Galaxy físico.
 
-**O que foi feito:** branch isolada `codex/cam-red-4-flash` criada a partir do merge `d99f465` da `origin/main`. A auditoria inicial confirmou que o fluxo já consulta e normaliza modos suportados e que a prova física da CAM-RED-2 obteve `off`, `auto`, `on` e `torch` no Galaxy; o runtime ainda não possui comando de alteração, estado selecionado nem controle visual. Nenhum código funcional foi alterado nesta etapa inicial.
+**O que foi feito:** branch isolada `codex/cam-red-4-flash` criada a partir do merge `d99f465` da `origin/main`. A auditoria inicial confirmou que o fluxo já consulta e normaliza modos suportados e que a prova física da CAM-RED-2 obteve `off`, `auto`, `on` e `torch` no Galaxy. A implementação acrescentou `setFlashMode()` ao adaptador nativo, serializou alterações de iluminação com captura e encerramento, priorizou `torch` com fallback para `on`, restaurou `off` antes do teardown e manteve o último estado realmente confirmado quando uma troca falha. O fluxo expõe estado transitório/erro não fatal; o palco apresenta o pill aprovado somente com suporte real, com SVG fino próprio, `aria-pressed`, `aria-busy`, alvo mínimo de 48 px, foco, claro/escuro e rótulos/anúncios PT/EN/ES. O controlador liga esse controle ao mesmo estado da câmera sem tocar em análise, resultado, Worker, Firestore ou autenticação.
 
-**PRs/commits relacionados:** ainda não há PR; primeiro commit e runs pendentes. — **Chat-Origin:** Trofia-UIUX.
+Os testes focados do adaptador, integração, fluxo e tela passaram em 91/91 casos. O preflight passou sem avisos e a suíte unitária completa da branch passou em 1.410/1.410, sem skip. Antes de executar o gate integral, a correção técnica separada do cutover foi isolada no PR draft #224: ela injeta App Check nos `BrowserContext` criados manualmente e limita a tolerância de PNG à margem aprovada de 20 pixels com delta máximo 5; o check leve está verde e o pesado ainda estava em andamento no momento deste registro.
+
+Na tentativa seguinte de executar a matriz visual focada autenticada do legado (`embedded-camera-hotfix.visual.spec.js`), o próprio projeto de setup falhou antes de qualquer uma das oito células da câmera. Depois do preenchimento e envio do login, a página permaneceu na tela pública com o botão “Processando...” desabilitado; durante mais de 20 segundos não apareceu navegação principal, modal de perfil obrigatório nem o texto `profile-incomplete-existing-account`. O Playwright encerrou o setup em 21,7 s com uma falha e marcou os oito testes visuais como não executados. A captura e o snapshot semântico foram preservados localmente em `test-results/auth.setup.js-authenticate-disposable-test-account-auth-setup/`, sem serem adicionados ao Git por conterem dados da conta de teste.
+
+Essa ocorrência acionou a regra transversal de parada criada após o run `34913949788`. Ela não comprova que a causa seja a mesma intermitência anterior: desta vez o fluxo não chegou a nenhum estado pós-login conhecido. A branch da CAM-RED-4 e a `origin/main` não apresentam diferença em `tests/smoke/auth.setup.js`, `tests/smoke/app-check-fixture.js`, `tests/smoke/app-check-global-setup.js` ou `tests/smoke/test-helpers.js`, e nenhum código de autenticação foi alterado ou contornado. Não houve segunda tentativa, aumento de timeout, clique forçado ou relaxamento de requisito. A investigação/correção da causa raiz foi encaminhada ao Chat Principal; esta frente permanece responsável por preservar a evidência e repetir o gate após o desbloqueio.
+
+**PRs/commits relacionados:** PR funcional da CAM-RED-4 ainda não criado; implementação e documentação permanecem locais. Correção técnica separada no [PR draft #224](https://github.com/magnoClovis/nutrition-tracker/pull/224), com run leve `35230168154` verde e run pesado autenticado `35230168161` ainda em andamento no momento deste registro. — **Chat-Origin:** Trofia-UIUX.
 
 ## Encerramento administrativo do PR documental obsoleto #170
 
