@@ -3,6 +3,7 @@ const { defineConfig, devices } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: './tests/smoke',
   testMatch: /cutover-visual-matrix\.spec\.js/,
+  globalSetup: require.resolve('./tests/smoke/app-check-global-setup.js'),
   timeout: 120000,
   fullyParallel: false,
   workers: 1,
@@ -16,7 +17,7 @@ module.exports = defineConfig({
     launchOptions: {
       args: ['--disable-gpu']
     },
-    trace: 'retain-on-failure',
+    trace: process.env.FIREBASE_APPCHECK_DEBUG_TOKEN ? 'off' : 'retain-on-failure',
     screenshot: 'only-on-failure'
   },
   webServer: [

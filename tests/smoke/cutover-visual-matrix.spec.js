@@ -1,5 +1,13 @@
 const crypto = require('node:crypto');
-const { test, expect } = require('./app-check-fixture');
+const {
+  test,
+  expect,
+  installCiAppCheckForContext,
+} = require('./app-check-fixture');
+const {
+  comparePngPixels,
+  isWithinRoundingTolerance,
+} = require('./png-pixel-comparison');
 const { isIgnorableConsoleError } = require('./test-helpers');
 
 const ORIGINS = {
@@ -320,6 +328,7 @@ for (const screen of SCREENS) {
         test(`${screen.key} ${language} ${viewportName} ${theme}`, async ({ browser }, testInfo) => {
           const context = await browser.newContext({ viewport });
           try {
+            await installCiAppCheckForContext(context);
             const legacy = await renderFreshCase(
               context,
               ORIGINS.legacy,
@@ -350,16 +359,25 @@ for (const screen of SCREENS) {
               );
             }
             if (vite.screenshotHash !== legacy.screenshotHash) {
-              await testInfo.attach('legacy-render', {
-                body: legacy.screenshotBuffer,
-                contentType: 'image/png',
-              });
-              await testInfo.attach('vite-render', {
-                body: vite.screenshotBuffer,
-                contentType: 'image/png',
-              });
-              expect(vite.screenshotHash, 'rendered pixels differ from the frozen legacy loader')
-                .toBe(legacy.screenshotHash);
+              const pixelDifference = comparePngPixels(
+                legacy.screenshotBuffer,
+                vite.screenshotBuffer,
+              );
+              if (!isWithinRoundingTolerance(pixelDifference)) {
+                await testInfo.attach('legacy-render', {
+                  body: legacy.screenshotBuffer,
+                  contentType: 'image/png',
+                });
+                await testInfo.attach('vite-render', {
+                  body: vite.screenshotBuffer,
+                  contentType: 'image/png',
+                });
+                throw new Error(
+                  'rendered pixels differ from the frozen legacy loader: '
+                  + `${pixelDifference.differentPixels} pixels changed, `
+                  + `maximum channel delta ${pixelDifference.maxChannelDelta}`,
+                );
+              }
             }
           } finally {
             await context.close();

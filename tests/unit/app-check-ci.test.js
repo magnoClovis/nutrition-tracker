@@ -67,9 +67,15 @@ test('wires the secret only into smoke CI and disables secret-bearing traces', (
   const root = path.resolve(__dirname, '..', '..');
   const workflow = fs.readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8');
   const config = fs.readFileSync(path.join(root, 'playwright.config.js'), 'utf8');
+  const cutoverConfig = fs.readFileSync(path.join(root, 'playwright.cutover.config.js'), 'utf8');
   assert.match(workflow, /FIREBASE_APPCHECK_DEBUG_TOKEN:\s*\$\{\{ secrets\.FIREBASE_APPCHECK_DEBUG_TOKEN \}\}/);
   assert.match(config, /globalSetup: require\.resolve\('\.\/tests\/smoke\/app-check-global-setup\.js'\)/);
   assert.match(config, /FIREBASE_APPCHECK_DEBUG_TOKEN \? 'off' : 'retain-on-failure'/);
+  assert.match(cutoverConfig, /globalSetup: require\.resolve\('\.\/tests\/smoke\/app-check-global-setup\.js'\)/);
+  assert.match(cutoverConfig, /FIREBASE_APPCHECK_DEBUG_TOKEN \? 'off' : 'retain-on-failure'/);
   const fixture = fs.readFileSync(path.join(root, 'tests/smoke/app-check-fixture.js'), 'utf8');
-  assert.match(fixture, /page\.route\(`\$\{FIRESTORE_ORIGIN\}\/\*\*`/);
+  assert.match(fixture, /target\.route\(`\$\{FIRESTORE_ORIGIN\}\/\*\*`/);
+  assert.match(fixture, /module\.exports = \{ expect, installCiAppCheckForContext, test \}/);
+  const cutover = fs.readFileSync(path.join(root, 'tests/smoke/cutover-visual-matrix.spec.js'), 'utf8');
+  assert.match(cutover, /await installCiAppCheckForContext\(context\)/);
 });
