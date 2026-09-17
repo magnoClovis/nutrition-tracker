@@ -480,6 +480,15 @@ Severidade: MÉDIO — aparência/idioma incoerentes ou formulário preso.
 Resolução necessária: ownership único de preferências e finally completo.
 Risco de corrigir: persistência local + Firestore hoje tem precedência histórica.
 Rastreio: backlog explícito de autenticação.
+Diagnóstico adicional (17/09/2026): a CAM-RED-4 registrou uma ocorrência em que
+o formulário permaneceu em “Processando...” por mais de 20 s antes de qualquer
+estado pós-login. A investigação isolada do Principal passou 6/6 vezes; nos três
+diagnósticos instrumentados, Auth, verificação de e-mail e Firestore responderam
+`200`, sem request pendente, e a navegação surgiu em ~1,49 s. O código confirma
+que sign-in e lookup de verificação ainda não têm deadline próprio, mas o artefato
+original não permite identificar qual operação externa ficou pendente. Portanto,
+a ocorrência segue intermitente e sem causa disparadora confirmada; não foi
+aplicada correção especulativa nem relaxado o gate.
 
 [D04] Logout chama fbSignOut duas vezes
 Localização: settings-panel.js:11-15.

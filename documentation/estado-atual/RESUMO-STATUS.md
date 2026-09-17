@@ -40,6 +40,17 @@
 - **O que foi feito:** o PR #222 comprovou que as refeições eram salvas corretamente, mas o teste procurava na data UTC anterior durante a virada do dia local; os quatro cenários agora usam a mesma data civil do app e possuem proteção unitária contra regressão. O merge `2ff02c9` preservou runtime, rules e App Check sem alteração.
 - **Alinhamento:** 100% — a investigação descartou com evidência uma regressão de produção e corrigiu somente a fonte incompatível de data do harness.
 
+### [INC-AUTH-BOOTSTRAP-20260917] - Login autenticado preso em “Processando...”
+
+- **Status:** concluído sem reprodução — **Chat:** Trofia-Principal.
+- **Data de início:** 17/09/2026.
+- **Data de conclusão:** 17/09/2026.
+- **Propósito:** determinar por que o bootstrap autenticado pode permanecer no formulário público sem publicar sucesso nem erro, bloqueando gates autenticados como a CAM-RED-4.
+- **O que se planeja fazer:** reproduzir 2–3 vezes em worktree limpa da `origin/main`, observar de forma sanitizada Auth, App Check, `afterAuthenticated`, leitura protegida de perfil e retirada do loading, e só corrigir se houver causa objetiva.
+- **Recursos/arquivos principais envolvidos:** `login-screen.js`, `src/App.jsx`, `src/leaf/authenticated-profile-gate.js`, adaptadores Firebase Auth/App Check, `tests/smoke/auth.setup.js`, Playwright autenticado e documentação relacionada a D03/`INV-RELOAD-SESSAO`.
+- **O que foi feito:** a worktree CAM-RED-4 foi preservada; seis logins isolados passaram, incluindo três diagnósticos com Auth, verificação de e-mail e Firestore em `200`, navegação em ~1,49 s, nenhuma request pendente e nenhum erro de página. O código confirma esperas sem deadline antes de `onLogin`, mas o artefato original não identifica qual request ficou pendente; a causa permanece intermitente e não confirmada, sem correção especulativa.
+- **Alinhamento:** 100% — a investigação cumpriu o protocolo aprovado para caso não reproduzível, preservou a evidência e não mascarou o gate; impacto neutro no produto e positivo na qualidade do diagnóstico.
+
 ### [BUG-SAVED-MEALS] - Comportamento de refeições salvas
 
 - **Status:** concluído — **Chat:** Trofia-Bugs.
