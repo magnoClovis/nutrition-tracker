@@ -489,6 +489,20 @@ que sign-in e lookup de verificação ainda não têm deadline próprio, mas o a
 original não permite identificar qual operação externa ficou pendente. Portanto,
 a ocorrência segue intermitente e sem causa disparadora confirmada; não foi
 aplicada correção especulativa nem relaxado o gate.
+Recorrência física (17/09/2026): no AAB assinado versionCode 20 instalado pela
+Play, o login concluiu e o bootstrap exibiu `profile-incomplete-existing-account`
+antes da câmera. A prova em dispositivo torna insuficiente encerrar o caso apenas
+como flakiness local; a investigação INC-PROFILE-INCOMPLETE-PLAY-20260917 deve
+distinguir perfil realmente ausente de erro em Auth, App Check, Firestore, cache
+ou validação, sem retry/fallback silencioso e sem alterar a CAM-RED-4.
+Diagnóstico confirmado (17/09/2026): a conta descartável tinha documento completo
+e válido no servidor antes da tela de erro. `fbGetProfileFromServer3()` devolvia
+`{}` quando o UID autenticado ainda não estava disponível; o bootstrap interpretava
+esse retorno silencioso como perfil existente incompleto. A correção fail-closed
+passa a lançar `firestore-profile-auth-unavailable`, fixa o UID no início da leitura
+e não consulta Firestore/cache sem contexto autenticado. O evento upstream que
+tornou `auth.currentUser` transitoriamente indisponível não é recuperável no logcat
+sanitizado original; o defeito de classificação e sua correção têm teste determinístico.
 
 [D04] Logout chama fbSignOut duas vezes
 Localização: settings-panel.js:11-15.

@@ -272,6 +272,20 @@ contractTest('server-confirmed profile failures propagate instead of becoming mi
   );
 });
 
+contractTest('server-confirmed profile reads fail closed when the authenticated UID is unavailable', async create => {
+  const backend = createBackend({root: {
+    birthDate: '1990-06-15', gender: 'female', activityLevel: 'moderate', goalType: 'maintenance',
+  }});
+  const {client} = create({uid: null, backend});
+
+  await assert.rejects(
+    client.fbGetProfileFromServer3(['birthDate', 'gender', 'activityLevel', 'goalType']),
+    error => error.code === 'firestore-profile-auth-unavailable' &&
+      /active user session/.test(error.message),
+  );
+  assert.equal(backend.calls.filter(call => call.operation === 'getDocFromServer').length, 0);
+});
+
 contractTest('commits multi-entry mutations atomically and reports every identity', async create => {
   const backend = createBackend({granular: {
     [`nutrition/${UID}/days/2026-08-29/water/old-water`]: {

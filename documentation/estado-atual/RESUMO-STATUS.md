@@ -51,6 +51,16 @@
 - **O que foi feito:** a worktree CAM-RED-4 foi preservada; seis logins isolados passaram, incluindo três diagnósticos com Auth, verificação de e-mail e Firestore em `200`, navegação em ~1,49 s, nenhuma request pendente e nenhum erro de página. O código confirma esperas sem deadline antes de `onLogin`, mas o artefato original não identifica qual request ficou pendente; a causa permanece intermitente e não confirmada, sem correção especulativa.
 - **Alinhamento:** 100% — a investigação cumpriu o protocolo aprovado para caso não reproduzível, preservou a evidência e não mascarou o gate; impacto neutro no produto e positivo na qualidade do diagnóstico.
 
+### [INC-PROFILE-INCOMPLETE-PLAY-20260917] - Perfil existente classificado como incompleto no AAB Play
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 17/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** identificar por que uma conta descartável com histórico alcançou `profile-incomplete-existing-account` no AAB real versionCode 20 distribuído pela Play, bloqueando a prova física CAM-RED-4.
+- **O que se planeja fazer:** preservar as evidências físicas, confirmar por leitura não destrutiva o perfil no servidor, localizar a etapa Auth/App Check/Firestore/validação/cache que produziu a classificação e implementar somente uma correção comprovada, sem fallback que transforme falha em ausência.
+- **Recursos/arquivos principais envolvidos:** AAB Play `com.hermegas.trofia` versionCode 20, Firebase Auth/App Check/Firestore, `src/App.jsx`, `src/leaf/authenticated-profile-gate.js`, camada modular de storage, conta descartável, Galaxy SM-S938B, testes unitários/autenticados e documentação D03.
+- **O que foi feito:** a conta foi confirmada por leitura remota não destrutiva como completa e válida; o documento já estava completo antes da tela de erro. Foi localizado e corrigido o caminho em que a leitura protegida devolvia `{}` quando o UID da sessão ainda não estava disponível, fazendo o bootstrap confundir falha transitória de autenticação com perfil incompleto. Agora esse estado falha explicitamente como sessão indisponível, sem consultar cache nem abrir cadastro; 1.404 unitários, 103 legado, 111 Vite e 60 cutover passaram, e o AAB/arquivos CAM-RED-4 permaneceram intocados.
+
 ### [BUG-SAVED-MEALS] - Comportamento de refeições salvas
 
 - **Status:** concluído — **Chat:** Trofia-Bugs.
