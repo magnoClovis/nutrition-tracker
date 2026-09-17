@@ -532,11 +532,11 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ## [INC-FIRESTORE-PERSIST-20260917] - Falso incidente de persistência causado por data UTC no teste
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 17/09/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 67 min 30 s (24 s leve + 67 min 6 s pesado, somando a tentativa inicial e o rerun integral do job autenticado).
+- **Data de conclusão:** 17/09/2026.
+- **Tempo decorrido:** 12 h 33 min 43 s, do primeiro commit ao merge `2ff02c9`.
+- **Minutos de CI:** 124 min 50 s (2 min 7 s leve + 122 min 43 s pesado; inclui a tentativa pesada inicial, o rerun verde, a validação do SHA final e o tempo efetivamente consumido por um run documental obsoleto cancelado após o merge).
 - **Propósito:** determinar por que quatro fluxos autenticados centrais aparentaram deixar de persistir ou reler entradas do Diário poucos minutos depois de uma execução verde, bloqueando o gate do UI/UX e inicialmente sugerindo regressão externa de rules, App Check ou estado compartilhado.
 - **O que se planeja fazer:** reproduzir os quatro casos em worktree limpa da `origin/main`, confrontar o estado visível do Diário com a data consultada pelo teste, verificar a fronteira de data usada pelo app e distinguir falha real de escrita/leitura de erro determinístico do harness antes de tocar em produção.
 - **Recursos/arquivos principais envolvidos:** `tests/smoke/authenticated-flows.spec.js`, `tests/unit/authenticated-daily-date.test.js`, `date-utils.js`, `DateUtils.localToday()`, `DateUtils.addCivilDays()`, Playwright legado/Vite, conta autenticada descartável, artefatos Playwright do worktree UI/UX e worktree isolada `codex/firestore-persistence-incident-20260917`.
@@ -550,12 +550,12 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
   5. **Migração dos quatro pontos vulneráveis:** o teste de refeição retroativa passou a pedir offset `-1`; avaliação local durante timeout da IA, avaliação contextual PT/EN/ES e sugestão do GA passaram a pedir offset `0`. Em todos eles, a mesma data civil agora alimenta `readDailyLog()`, `replaceDailyLog()` e a expectativa posterior, evitando limpar um dia e validar outro.
   6. **Barreira contra regressão:** `tests/unit/authenticated-daily-date.test.js` verifica a presença das chamadas a `window.DateUtils.localToday()` e `window.DateUtils.addCivilDays()` e recusa os dois padrões antigos de UTC no arquivo autenticado. O `Date.UTC(...).toISOString()` que permanece na fixture de backup é deliberado: gera uma chave histórica inativa e determinística, não representa “hoje” nem participa desses fluxos.
   7. **Escopo mínimo e proteção de produção:** nenhum código runtime, documento Firestore, rule, configuração de App Check ou dado de usuário foi alterado. Rules e App Check permaneceram hipóteses até a evidência descartá-los; por isso não houve rollback nem relaxamento indevido de segurança.
-  8. **Validação em camadas:** além do recorte autenticado 9/9, foram executadas as suítes unitária, legado, Vite e cutover. O SHA final do PR também passou no sanity `35167062834` e no CI autenticado completo `35167062837`, incluindo preflight, Worker, Functions e Playwright.
+  8. **Validação em camadas:** além do recorte autenticado 9/9, foram executadas as suítes unitária, legado, Vite e cutover. O SHA funcional final passou no sanity `35167062834` e no CI autenticado completo `35167062837`, incluindo preflight, Worker, Functions e Playwright. Os commits exclusivamente documentais posteriores passaram nos preflights leves; o run pesado obsoleto `35216383795`, iniciado para um SHA intermediário, foi cancelado após o merge para não consumir CI sem valor adicional.
 - **Exemplo concreto do erro antigo:** às `00:30` de 17/09 em Madrid, o relógio UTC ainda podia representar `22:30` de 16/09. A interface usava a chave civil local de 17/09 e mostrava a nova refeição corretamente; o teste calculava 16/09 com `toISOString()` e chamava `readDailyLog()` para a chave do dia anterior, recebendo `{}`. O dado não havia desaparecido: a consulta automatizada apontava para outro documento diário.
 - **Comportamento depois da correção:** “hoje” é sempre a data civil local retornada pelo próprio `DateUtils` da aplicação; “ontem” é sempre `addCivilDays(hoje, -1)`. A mesma chave é usada para preparar a fixture, gravar pela interface, reler no polling e restaurar o estado anterior, em qualquer horário e fuso.
 - **O que a correção não faz:** não cria uma janela de duas horas, não consulta simultaneamente o dia atual e o anterior, não aceita dados com atraso, não adiciona fallback por UTC e não muda a semântica do Diário. Ela simplesmente remove do teste a fonte de data incompatível com a já utilizada pelo produto.
 - **Alinhamento:** 100%. O diagnóstico começou tratando rules/App Check como hipóteses, mas a evidência deslocou corretamente a correção para o relógio do próprio teste. O desvio foi positivo: evitou um rollback ou alteração de produção indevida e restaurou um gate confiável sem tocar nos dados dos usuários.
-- **PRs/commits relacionados:** base `d99f465`; PR #222; commit `891131d`; runs `35161997106` (leve) e `35161997173` (pesado, rerun verde). — **Chat:** Trofia-Principal.
+- **PRs/commits relacionados:** base `d99f465`; PR #222; commits `68e5f51`, `0a09eec`, `d394857` e `e73a84f`; merge `2ff02c9`; runs funcionais `35161997173` e `35167062837`; preflights documentais `35161997106`, `35167062834`, `35216383806`, `35217465988` e `35217958625`. — **Chat:** Trofia-Principal.
 
 ## [DOC-SYNC-LOCAL-20260916] - Reconciliação segura do checkout principal
 

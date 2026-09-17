@@ -29,6 +29,17 @@
 - **[Câmera embutida — C3] Concluído (12/09/2026) — Chat: Trofia-UIUX.** O PR #190 integrou o preview traseiro ao fluxo real C24 com `toBack:true`, viewport medido, máscaras arredondadas Glass UI, controles HTML acessíveis acima da câmera, PT/EN/ES, abertura/contração e `prefers-reduced-motion`. A prova física no Galaxy validou transparência localizada, cliques sobre o preview, recorte sem vazamento, cancelamento e captura Base64; merge `c6a4e4f`.
 - **[Câmera embutida — C4b] Concluído (12/09/2026) — Chat: Trofia-UIUX.** O que se planeja fazer: concluir acessibilidade, recuperação de permissão e acabamento resiliente sem ampliar funções fotográficas. O que foi feito: o PR #194 entregou foco persistente e restaurado, anúncios PT/EN/ES sem duplicidade, abertura real das Configurações, fonte 200%, contraste/alvos de 48 px e descarte temporário; Galaxy físico, gate local e CI autenticado `34710539851` ficaram verdes, com merge `050182d`, encerrando toda a sequência CAM-C1–C4b. Alinhamento: 100%, sem zoom, flash, troca de câmera, gestos ou edição.
 
+### [INC-FIRESTORE-PERSIST-20260917] - Data civil incorreta nos smokes autenticados do Diário
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 17/09/2026.
+- **Data de conclusão:** 17/09/2026.
+- **Propósito:** impedir que os gates autenticados confundam uma diferença UTC/data local com falha de persistência do Firestore.
+- **O que se planeja fazer:** reproduzir os oito casos em `origin/main`, distinguir escrita real de leitura do teste e alinhar todos os cenários afetados ao domínio de data civil local do app.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/authenticated-flows.spec.js`, `tests/unit/authenticated-daily-date.test.js`, `DateUtils.localToday()`, `DateUtils.addCivilDays()`, Playwright legado/Vite, Firebase e documentação.
+- **O que foi feito:** o PR #222 comprovou que as refeições eram salvas corretamente, mas o teste procurava na data UTC anterior durante a virada do dia local; os quatro cenários agora usam a mesma data civil do app e possuem proteção unitária contra regressão. O merge `2ff02c9` preservou runtime, rules e App Check sem alteração.
+- **Alinhamento:** 100% — a investigação descartou com evidência uma regressão de produção e corrigiu somente a fonte incompatível de data do harness.
+
 ### [BUG-SAVED-MEALS] - Comportamento de refeições salvas
 
 - **Status:** concluído — **Chat:** Trofia-Bugs.
@@ -42,15 +53,6 @@
 
 ## O que está em andamento agora
 
-### [INC-FIRESTORE-PERSIST-20260917] - Data civil incorreta nos smokes autenticados do Diário
-
-- **Status:** em andamento — **Chat:** Trofia-Principal.
-- **Data de início:** 17/09/2026.
-- **Data de conclusão:** não concluído.
-- **Propósito:** impedir que os gates autenticados confundam uma diferença UTC/data local com falha de persistência do Firestore.
-- **O que se planeja fazer:** reproduzir os oito casos em `origin/main`, distinguir escrita real de leitura do teste e alinhar todos os cenários afetados ao domínio de data civil local do app.
-- **Recursos/arquivos principais envolvidos:** `tests/smoke/authenticated-flows.spec.js`, `tests/unit/authenticated-daily-date.test.js`, `DateUtils.localToday()`, `DateUtils.addCivilDays()`, Playwright legado/Vite, Firebase e documentação.
-- **O que foi feito:** a base limpa `d99f465` reproduziu as oito falhas; os registros apareciam no Diário, mas o teste consultava outra data porque usava `toISOString()` entre meia-noite e 02h em Madrid. A correção usa os helpers civis canônicos, inclui proteção unitária e deixou verdes os quatro fluxos em desktop/mobile, 1.401 unitários, 103 smokes legado com 8 skips esperados, 111 smokes Vite, 60 cenários cutover e o CI autenticado `35161997173` após rerun de uma flakiness visual alheia.
 - **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.
 - **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D e C14-E estão concluídas; C14-F1 a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
