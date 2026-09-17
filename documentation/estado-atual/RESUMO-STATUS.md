@@ -1213,7 +1213,7 @@
 - **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
 - **Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `getSupportedFlashModes()`/`setFlashMode()`, testes unitários/visuais, CI autenticado e Galaxy físico.
-- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; preflight, 91 testes focados, 1.410 unitários e o recorte visual legado 9/9 passaram. O login preso não se repetiu em 6/6 tentativas do Principal; a primeira tentativa Vite retomada alcançou erro recuperável por variável pública ausente no build local, sem evidência de regressão do produto, e deve ser repetida com o ambiente completo.
+- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; preflight, 91 testes focados, 1.410 unitários e os recortes visuais legado/Vite 9/9 passaram. O login preso não se repetiu nas 6/6 tentativas do Principal nem na retomada; a falha inicial do Vite foi isolada à variável pública ausente no build local e a repetição autorizada com ambiente completo passou.
 
 ### Correção técnica do App Check e da paridade visual do cutover
 
