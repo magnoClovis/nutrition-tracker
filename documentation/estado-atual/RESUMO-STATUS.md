@@ -1214,6 +1214,16 @@
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
 - **Recursos/arquivos principais envolvidos:** `getSupportedFlashModes()`, `setFlashMode()`, serviço de preview, componente de captura, fluxo, CSS e validação física no Galaxy.
 
+### Correção técnica do App Check e da paridade visual do cutover
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 16/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** tornar a matriz de cutover confiável em contextos Playwright criados manualmente e distinguir regressão visual de antialiasing subpixel determinístico.
+- **O que se planeja fazer:** instalar o token de App Check em cada contexto do cutover, comparar PNGs decodificados com tolerância estrita aprovada e provar por testes negativos que diferenças maiores continuam falhando.
+- **Recursos/arquivos principais envolvidos:** `playwright.cutover.config.js`, `tests/smoke/app-check-fixture.js`, `tests/smoke/cutover-visual-matrix.spec.js`, novo comparador PNG, `pngjs` e testes unitários.
+- **O que foi feito:** a fixture foi generalizada para contextos manuais, a comparação passou a aceitar no máximo 20 pixels com delta de canal até 5 e o gate local passou integralmente; no primeiro CI, legado fechou 103/111 com 8 skips esperados e o Vite 110/111 porque `#loading` permaneceu após um reload de idioma, mas o mesmo caso passou 3/3 isolado sem alteração e será monitorado na repetição canônica.
+
 ### [CAM-RED-5] - Análise honesta em tela cheia
 
 - **Status:** não iniciado — **Chat:** Trofia-UIUX.
