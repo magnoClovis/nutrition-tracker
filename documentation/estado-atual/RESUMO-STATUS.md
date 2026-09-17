@@ -1213,7 +1213,7 @@
 - **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
 - **Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `getSupportedFlashModes()`/`setFlashMode()`, testes unitários/visuais, CI autenticado e Galaxy físico.
-- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; após três divergências transitórias de idioma passarem 3/3 isoladamente, o gate local canônico fechou 1.412 unitários, legado 103 + 8 skips esperados, Vite 111/111 e cutover 60/60, sem recorrência do login preso.
+- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; gates local e CI autenticado do PR draft #227 ficaram verdes, mas a build Play versionCode 20 reproduziu `profile-incomplete-existing-account` após o login e bloqueou corretamente a prova física antes da câmera, sem retry ou contorno.
 
 ### Correção técnica do App Check e da paridade visual do cutover
 

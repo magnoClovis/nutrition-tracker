@@ -1265,7 +1265,7 @@ O gate final do estado documentado passou no CI pesado `35129175422` em 36 minut
 
 **Tempo decorrido:** pendente de merge.
 
-**Minutos de CI:** 0 min; o CI próprio da CAM-RED-4 ainda não foi iniciado. O PR técnico separado #224 possui runs próprios e não é contabilizado nesta fatia.
+**Minutos de CI:** 38m12s acumulados até o bloqueio físico — leve: 0m45s; pesado: 37m27s. O PR técnico separado #224 possui runs próprios e não é contabilizado nesta fatia; novos runs eventualmente necessários antes do merge deverão ser somados ao fechamento.
 
 **Propósito:** transformar o controle de flash já aprovado no protótipo em uma função nativa real, evitando um botão meramente decorativo e preservando a segurança de ciclo de vida comprovada nas CAM-RED-2 e CAM-RED-3.
 
@@ -1291,7 +1291,15 @@ O primeiro gate local integral confirmou o preflight e 1.412/1.412 unitários, m
 
 Para distinguir regressão de ocorrência transitória, os três casos exatos foram executados no legado desktop com `--repeat-each=3`: as nove repetições funcionais, além do setup autenticado, passaram em 1,8 min. Uma única repetição canônica integral então passou sem modificação adicional: preflight verde, 1.412/1.412 unitários, legado com 103 aprovações e somente os 8 skips documentados, Vite 111/111 sem skip e cutover 60/60. O login não voltou a permanecer em “Processando...”, `profile-incomplete-existing-account` não reapareceu e as três divergências de idioma também não se repetiram. Os artefatos da primeira execução foram preservados fora do Git em `C:\Users\clovi\AppData\Local\Temp\trofia-cam-red-4-full-gate-legacy-20260917`; a ocorrência permanece classificada como intermitente e monitorável, não como defeito corrigido pela CAM-RED-4.
 
-**PRs/commits relacionados:** PR funcional da CAM-RED-4 ainda não criado; implementação permanece local. Registros preparatórios versionados nos commits `0c00746`, `f7f2e55`, `2c48cd3`, `c9cd0dd` e `0fdc28e`; investigação externa no PR documental draft #225, `INC-AUTH-BOOTSTRAP-20260917`; correção técnica separada no [PR #224](https://github.com/magnoClovis/nutrition-tracker/pull/224), mesclado em `9f252d6`. — **Chat-Origin:** Trofia-UIUX.
+O commit funcional `5bc3313` foi publicado no PR draft #227. O CI autenticado próprio ficou verde nos runs leve `35252508909` (45 s) e pesado `35252508927` (37m27s): 1.412/1.412 unitários sem skip, Worker com 36 testes Node e 5 de runtime, Functions sem skip, legado com 103 aprovações e somente os 8 skips estruturais documentados e Vite 111/111. O `SMOKE_OUTCOME` foi `success`; nem o login preso em “Processando...” nem `profile-incomplete-existing-account` reapareceram no CI.
+
+Para a prova física, foi gerado um AAB assinado e verificado de forma fail-closed com pacote `com.hermegas.trofia`, `versionName 0.11.0-beta`, `versionCode 20`, configuração Firebase completa e SHA-256 `9B4988983718DF1EA132C978F9F51565F7C121F7EBA07D96F43DC87146DCB59D`. O artefato foi distribuído pela faixa interna e o Galaxy confirmou `installerPackageName=com.android.vending`, portanto a execução não usou APK local, harness nem emulador.
+
+Essa prova física foi interrompida antes de abrir a câmera pelo critério transversal já aprovado. O login com a conta descartável concluiu, mas o bootstrap exibiu a tela recuperável espanhola “No se pudo cargar tu perfil”, com detalhe técnico exato `profile-incomplete-existing-account`, em vez da navegação principal. Não houve toque em “Intentar de nuevo”, segunda tentativa, aumento de timeout, clique forçado ou aceitação de outra tela como sucesso. Screenshot, árvore acessível e logcat filtrado/sanitizado foram preservados fora do Git em `C:\Users\clovi\AppData\Local\Temp\trofia-cam-red-4-galaxy`; o log filtrado confirmou a inicialização do Firebase, mas não trouxe informação suficiente para atribuir a falha a App Check, Firestore ou rede. A validação de efeito luminoso, restauração para `off` e ausência de torch/sessão órfã permanece **não executada** e a CAM-RED-4 continua em andamento.
+
+Ao encerrar a tentativa, o app foi finalizado e os arquivos temporários no aparelho foram removidos. Não Perturbe voltou a `0`, sincronização ficou ativa, `stay_on_while_plugged_in` voltou a `0`, economia de energia e rotação permaneceram nos valores originais e o timeout da tela foi restaurado para 30 segundos por último. O servidor e todos os processos ADB foram encerrados antes de liberar a desconexão.
+
+**PRs/commits relacionados:** [PR draft #227](https://github.com/magnoClovis/nutrition-tracker/pull/227), commit funcional `5bc3313`, CI leve [`35252508909`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35252508909) e pesado [`35252508927`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35252508927); registros preparatórios nos commits `0c00746`, `f7f2e55`, `2c48cd3`, `c9cd0dd` e `0fdc28e`; investigação externa no PR documental draft #225, `INC-AUTH-BOOTSTRAP-20260917`; correção técnica separada no [PR #224](https://github.com/magnoClovis/nutrition-tracker/pull/224), mesclado em `9f252d6`. — **Chat-Origin:** Trofia-UIUX.
 
 ## Encerramento administrativo do PR documental obsoleto #170
 
