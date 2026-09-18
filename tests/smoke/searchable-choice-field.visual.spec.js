@@ -192,6 +192,10 @@ test.describe('authenticated SearchableChoiceField visual contract', () => {
       await expect(page.locator('[aria-selected="true"] [data-searchable-choice-field-selection] svg'))
         .toHaveAttribute('stroke-width', '1.45');
       await page.keyboard.press('Escape');
+      await page.locator('[data-tutorial="pantry-meal-templates"]')
+        .getByRole('button', { name: /^(Cancelar|Cancel)$/i })
+        .click();
+      await expect(page.locator('#saved-meal-ingredient-visual-template-trigger')).toHaveCount(0);
 
       const supplementTrigger = await openDiarySupplement(page);
       const supplementSheet = page.locator('[data-searchable-choice-field-sheet="true"]');
