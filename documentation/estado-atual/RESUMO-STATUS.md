@@ -61,15 +61,24 @@
 - **Recursos/arquivos principais envolvidos:** AAB Play `com.hermegas.trofia` versionCode 20, Firebase Auth/App Check/Firestore, `src/App.jsx`, `src/leaf/authenticated-profile-gate.js`, camada modular de storage, conta descartável, Galaxy SM-S938B, testes unitários/autenticados e documentação D03.
 - **O que foi feito:** a conta foi confirmada por leitura remota não destrutiva como completa e válida; o documento já estava completo antes da tela de erro. Foi localizado e corrigido o caminho em que a leitura protegida devolvia `{}` quando o UID da sessão ainda não estava disponível, fazendo o bootstrap confundir falha transitória de autenticação com perfil incompleto. Agora esse estado falha explicitamente como sessão indisponível, sem consultar cache nem abrir cadastro; 1.404 unitários, 103 legado, 111 Vite e 60 cutover passaram, e o AAB/arquivos CAM-RED-4 permaneceram intocados.
 
-### [INC-AUTH-CLEANUP-LANG-20260918] - Cleanup autenticado e propagação de idioma no gate CAM-RED-4
+### [INC-AUTH-CLEANUP-LANG-F1] - Diagnóstico e infraestrutura do lease autenticado
 
 - **Status:** em andamento — **Chat:** Trofia-Principal.
 - **Data de início:** 18/09/2026.
 - **Data de conclusão:** não concluído.
-- **Propósito:** distinguir se os timeouts de restauração do Diário e a abertura da avaliação no idioma anterior são defeitos do runtime, do Firestore ou de sincronização do harness autenticado.
-- **O que se planeja fazer:** preservar as evidências da UI/UX, reproduzir sobre `origin/main` limpa com marcos sanitizados, identificar a operação que consome o orçamento do teste e corrigir somente a causa comprovada, sem aumentar timeout, adicionar retry ou tocar na câmera/flash.
-- **Recursos/arquivos principais envolvidos:** `tests/smoke/app-check-global-setup.js`, `tests/smoke/authenticated-suite-coordinator.js`, `tests/unit/authenticated-suite-coordinator.test.js`, Playwright autenticado, GitHub Actions, conta descartável e artefatos CAM-RED-4 preservados em `AppData/Local/Temp`.
-- **O que foi feito:** os horários dos artefatos comprovaram que o gate local (`22:40:32Z–23:04:25Z`) colidiu com o CI autenticado `35281945540` (`22:25:25Z–23:03:02Z`) na mesma conta; ambos alteravam idioma, despensa e Diário. A proteção agora serializa worktrees locais por lock atômico, rejeita execução local enquanto houver CI autenticado ativo/na fila e libera/reclama locks com segurança; sem concorrência, o caso mobile passou 6/6, o gate focado passou novamente e a suíte integral fechou verde com 1.409 unitários, 103 legado + 8 skips estruturais, 111 Vite e 60 cutover. Runtime, Firestore, rules e câmera não foram alterados.
+- **Propósito:** confirmar a origem dos timeouts de restauração e do idioma anterior no gate CAM-RED-4 e instalar a base segura para coordenar toda suíte que usa a conta descartável compartilhada.
+- **O que se planeja fazer:** preservar as evidências, reproduzir sobre `origin/main` limpa, distinguir produto de interferência externa, serializar worktrees locais, adicionar o workflow remoto que compartilhará o grupo de concorrência do CI e documentar a operação sem aumentar timeout, adicionar retry ou tocar na câmera/flash.
+- **Recursos/arquivos principais envolvidos:** `.github/workflows/authenticated-local-lease.yml`, `tests/smoke/app-check-global-setup.js`, `tests/smoke/authenticated-suite-coordinator.js`, `tests/unit/authenticated-suite-coordinator.test.js`, `tests/unit/github-workflows.test.js`, `tests/smoke/README.md`, Playwright, GitHub Actions e conta descartável.
+- **O que foi feito:** os horários dos artefatos comprovaram que o gate local colidiu com o CI `35281945540` na mesma conta. O draft #231 agora contém lock local, recusa diante de CI já ativo, workflow manual de lease no mesmo grupo remoto, testes e guia operacional; o novo HEAD passou 1.410 unitários, 103 legado + 8 skips estruturais, 111 Vite e 60 cutover. Falta somente o CI remoto deste HEAD antes do merge da F1.
+
+### [INC-AUTH-CLEANUP-LANG-F2] - Ativação e prova real do lease distribuído
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** eliminar também a janela em que um CI poderia começar depois da verificação local inicial e voltar a disputar a mesma conta descartável.
+- **O que se planeja fazer:** depois que o workflow de lease existir na `main`, adquirir o mesmo grupo `nutrition-authenticated-suite` antes do login local, liberar no teardown, falhar fechado em erro/timeout e comprovar numa disputa controlada que um CI novo permanece enfileirado até a liberação.
+- **Recursos/arquivos principais envolvidos:** workflow de lease já publicado na `main`, `gh` autenticado, coordenador do Playwright, grupo de concorrência do GitHub Actions, testes unitários/integração e guia operacional.
 
 ### [BUG-SAVED-MEALS] - Comportamento de refeições salvas
 
