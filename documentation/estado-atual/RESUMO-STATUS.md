@@ -74,13 +74,14 @@
 
 ### [INC-AUTH-CLEANUP-LANG-F2] - Ativação e prova real do lease distribuído
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 19/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 19/09/2026.
 - **Propósito:** eliminar também a janela em que um CI poderia começar depois da verificação local inicial e voltar a disputar a mesma conta descartável.
 - **O que se planeja fazer:** depois que o workflow de lease existir na `main`, adquirir o mesmo grupo `nutrition-authenticated-suite` antes do login local, liberar no teardown, falhar fechado em erro/timeout e comprovar numa disputa controlada que um CI novo permanece enfileirado até a liberação.
 - **Recursos/arquivos principais envolvidos:** workflow de lease já publicado na `main`, `gh` autenticado, coordenador do Playwright, grupo de concorrência do GitHub Actions, testes unitários/integração e guia operacional.
-- **O que foi feito:** a F2 foi iniciada sobre `d206df3`; o coordenador despacha o workflow com UUID opaco, aguarda posse real do grupo antes do login, cancela e confirma o encerramento no teardown e falha fechado em erro de `gh`/API. Passaram 18/18 focados, 1.416 unitários, 103 legado + 8 skips estruturais, 111 Vite e 60 cutover; os leases reais de cada matriz foram encerrados e o lock local liberado. O primeiro CI do PR passou integralmente nos runs `35447128772`/`35447128752`; resta a prova controlada lease→CI e o CI final.
+- **O que foi feito:** o PR #233/merge `d56480e` ativou aquisição/liberação fail-closed do lease remoto antes de qualquer login local. A prova controlada manteve o CI `35448749636` enfileirado enquanto o lease `35448711416` possuía o grupo e o iniciou automaticamente 2 s após a liberação; suíte local e gates remotos passaram integralmente.
+- **Alinhamento:** 100%; aquisição, exclusão mútua nos dois sentidos, liberação, falha fechada e prova real foram entregues como planejado.
 
 ### [BUG-SAVED-MEALS] - Comportamento de refeições salvas
 
