@@ -66,16 +66,51 @@ test('installs the SDK debug provider and builds protected legacy REST headers',
 test('wires the secret only into smoke CI and disables secret-bearing traces', () => {
   const root = path.resolve(__dirname, '..', '..');
   const workflow = fs.readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8');
+  const pagesWorkflow = fs.readFileSync(path.join(root, '.github/workflows/pages.yml'), 'utf8');
   const config = fs.readFileSync(path.join(root, 'playwright.config.js'), 'utf8');
   const cutoverConfig = fs.readFileSync(path.join(root, 'playwright.cutover.config.js'), 'utf8');
+  const pagesConfig = fs.readFileSync(path.join(root, 'playwright.pages.config.js'), 'utf8');
   assert.match(workflow, /FIREBASE_APPCHECK_DEBUG_TOKEN:\s*\$\{\{ secrets\.FIREBASE_APPCHECK_DEBUG_TOKEN \}\}/);
+  assert.match(pagesWorkflow, /FIREBASE_APPCHECK_DEBUG_TOKEN:\s*\$\{\{ secrets\.FIREBASE_APPCHECK_DEBUG_TOKEN \}\}/);
   assert.match(config, /globalSetup: require\.resolve\('\.\/tests\/smoke\/app-check-global-setup\.js'\)/);
   assert.match(config, /FIREBASE_APPCHECK_DEBUG_TOKEN \? 'off' : 'retain-on-failure'/);
   assert.match(cutoverConfig, /globalSetup: require\.resolve\('\.\/tests\/smoke\/app-check-global-setup\.js'\)/);
   assert.match(cutoverConfig, /FIREBASE_APPCHECK_DEBUG_TOKEN \? 'off' : 'retain-on-failure'/);
+  assert.match(pagesConfig, /FIREBASE_APPCHECK_DEBUG_TOKEN \? 'off' : 'retain-on-failure'/);
   const fixture = fs.readFileSync(path.join(root, 'tests/smoke/app-check-fixture.js'), 'utf8');
   assert.match(fixture, /target\.route\(`\$\{FIRESTORE_ORIGIN\}\/\*\*`/);
-  assert.match(fixture, /module\.exports = \{ expect, installCiAppCheckForContext, test \}/);
+  assert.match(fixture, /module\.exports = \{ expect, installCiAppCheckForContext, installCiAppCheckForTarget, test \}/);
   const cutover = fs.readFileSync(path.join(root, 'tests/smoke/cutover-visual-matrix.spec.js'), 'utf8');
   assert.match(cutover, /await installCiAppCheckForContext\(context\)/);
+});
+
+test('installs the debug provider for Pages without granting Firestore headers', async () => {
+  const { installCiAppCheckForTarget } = require('../smoke/app-check-fixture');
+  const calls = [];
+  const target = {
+    async addInitScript(fn, value) { calls.push(['script', fn, value]); },
+    async route() { calls.push(['route']); },
+  };
+
+  await installCiAppCheckForTarget(target, {
+    credentialsAvailable: false,
+    env: { FIREBASE_APPCHECK_DEBUG_TOKEN: 'pages-debug-secret' },
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], 'script');
+  assert.equal(calls[0][2], 'pages-debug-secret');
+});
+
+test('keeps authenticated Firestore setup fail-closed when its exchanged token is absent', async () => {
+  const { installCiAppCheckForTarget } = require('../smoke/app-check-fixture');
+  const target = {
+    async addInitScript() {},
+    async route() { throw new Error('route must not be installed'); },
+  };
+
+  await assert.rejects(installCiAppCheckForTarget(target, {
+    credentialsAvailable: true,
+    env: { FIREBASE_APPCHECK_DEBUG_TOKEN: 'registered-debug-secret' },
+  }), /app-check-ci-token-unavailable/);
 });

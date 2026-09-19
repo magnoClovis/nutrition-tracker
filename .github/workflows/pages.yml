@@ -79,6 +79,10 @@ jobs:
       contents: read
     env:
       PAGES_BASE_URL: ${{ needs.deploy.outputs.page_url }}
+      # The production bundle requires App Check before its protected profile
+      # gate. This registered debug provider exists only in the ephemeral
+      # Playwright browser and is never embedded in the Pages artifact.
+      FIREBASE_APPCHECK_DEBUG_TOKEN: ${{ secrets.FIREBASE_APPCHECK_DEBUG_TOKEN }}
 
     steps:
       - name: Checkout repository
