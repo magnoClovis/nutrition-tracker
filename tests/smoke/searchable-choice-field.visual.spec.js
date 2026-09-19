@@ -159,6 +159,8 @@ test.describe('authenticated SearchableChoiceField visual contract', () => {
       const search = sheet.getByRole('combobox');
       await expect(results.getByRole('option')).toHaveCount(14);
       await expect(page.locator('[data-tutorial="pantry-meal-templates"] select:visible')).toHaveCount(0);
+      await expect(search).toBeFocused();
+      await expect(search).toBeInViewport();
 
       const ingredientStyles = await readVisualStyles(page);
       expect(ingredientStyles.sheetRadius).toBe('24px');

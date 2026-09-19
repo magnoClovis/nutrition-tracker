@@ -14,9 +14,10 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
-  function createSearchableChoiceField({ React }) {
-    if (!React || typeof React.createElement !== "function") {
-      throw new TypeError("SearchableChoiceField requires a React runtime");
+  function createSearchableChoiceField({ React, createPortal, documentObject }) {
+    if (!React || typeof React.createElement !== "function"
+      || typeof createPortal !== "function" || !documentObject?.body) {
+      throw new TypeError("SearchableChoiceField requires React, createPortal, and document.body");
     }
 
     function normalizeText(value) {
@@ -284,7 +285,7 @@
         "data-searchable-choice-field-chevron": "true"
       }, React.createElement(ChevronIcon))), name ? React.createElement("input", {
         type: "hidden", name, value: selectedOption ? selectedOption.value : "", required
-      }) : null, open ? React.createElement("div", {
+      }) : null, open ? createPortal(React.createElement("div", {
         "data-searchable-choice-field-overlay": "true",
         onMouseDown: event => {
           if (event.target === event.currentTarget) closeField();
@@ -366,7 +367,7 @@
             setQuery("");
             requestAnimationFrame(() => inputRef.current?.focus());
           }
-        }, clearSearchLabel) : null)))) : null);
+        }, clearSearchLabel) : null)))), documentObject.body) : null);
     }
 
     return { SearchableChoiceField, normalizeOptions, filterOptions, initialsFor };
