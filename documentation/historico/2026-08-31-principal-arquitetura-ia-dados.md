@@ -575,7 +575,7 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ## [INC-PROFILE-INCOMPLETE-PLAY-20260917] - Perfil existente classificado como incompleto no AAB Play
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 17/09/2026.
 - **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
@@ -596,9 +596,9 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 - **Status:** em andamento.
 - **Data de início:** 18/09/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 82 min 35 s até esta etapa (1 min 52 s leves nos runs `35343456559`/`35352760266`/`35360391261` + 80 min 43 s pesados nos runs `35343456506`/`35352760430`/`35360391365`).
+- **Data de conclusão:** 19/09/2026.
+- **Tempo decorrido:** 24 h 25 min 2 s, do primeiro commit `d7da546` ao merge `763beec`.
+- **Minutos de CI:** 2 h 15 min 16 s no total (2 min 44 s leves nos runs `35343456559`/`35352760266`/`35360391261`/`35363788668`/`35441456096` + 2 h 12 min 32 s pesados nos runs `35343456506`/`35352760430`/`35360391365`/`35363788662`/`35441455961`).
 - **Propósito:** explicar por que o gate legado autenticado da CAM-RED-4 pode (a) abrir a avaliação contextual com o idioma anterior depois de uma troca PT→EN e (b) terminar com o cleanup do Diário aparentemente preso, distinguindo defeito de runtime, Firestore ou sincronização do harness antes de qualquer correção.
 - **O que se planeja fazer:** preservar os dois conjuntos de artefatos sanitizados fornecidos pela UI/UX; revisar os contratos de idioma e restauração; reproduzir desktop e mobile sobre `origin/main`; identificar a causa comprovada; serializar worktrees locais; adicionar à `main` um workflow de lease com o mesmo grupo de concorrência do CI para permitir a eliminação posterior da corrida nos dois sentidos; documentar a operação e repetir recorte, suíte completa e CI. Não aumentar timeout, adicionar retry automático, relaxar expectativas nem alterar a câmera/flash.
 - **Recursos/arquivos principais envolvidos:** `.github/workflows/authenticated-local-lease.yml`, `tests/smoke/app-check-global-setup.js`, `tests/smoke/authenticated-suite-coordinator.js`, `tests/unit/authenticated-suite-coordinator.test.js`, `tests/unit/github-workflows.test.js`, `tests/smoke/README.md`, `.github/workflows/ci.yml`, Playwright, GitHub Actions, conta descartável e evidências sanitizadas preservadas em `AppData/Local/Temp`.
@@ -619,8 +619,9 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Correção do comportamento real:** o contrato do componente passou a exigir `createPortal` e `document.body`, e o overlay aberto agora é renderizado fora de qualquer cartão transformador nos entrypoints legado e Vite. O teste mantém a comparação rígida da posição antes/depois da rolagem interna e acrescenta as pré-condições de que o combobox recebeu foco e está no viewport. Um teste unitário comprova que o overlay aberto é entregue ao portal correto; não houve aumento de timeout, retry nem relaxamento de tolerância.
 - **Validação focada após o portal:** os unitários do componente/entrypoint passaram 19/19. Cinco repetições completas por viewport passaram: 5/5 do contrato de rolagem no desktop, 5/5 no mobile, além de 5/5 ciclos PT/EN/ES em cada viewport, totalizando 21/21 com o setup autenticado. A suíte completa e um novo CI do HEAD continuam obrigatórios antes do merge.
 - **Revalidação integral após a correção real:** `npm test` passou com preflight sem alertas, 1.412/1.412 unitários sem skips, 103/103 smokes legado com somente os 8 skips estruturais esperados, 111/111 smokes Vite e 60/60 células do cutover. Backup, refeição retroativa, avaliação contextual PT/EN/ES, GA, cache/offline e o seletor portalizado passaram em desktop e mobile. Resta publicar este HEAD e obter o CI autenticado real totalmente verde antes do merge.
-- **Alinhamento:** não aplicável enquanto a investigação está em andamento.
-- **PRs/commits relacionados:** bloqueio originado no PR UI/UX #227, sobre o hotfix do PR #229/merge `1e9ef55`; draft #231, commits `d7da546`, `e450ef4`, `e61b458` e `ad8df0f`; runs `35343456506`, `35343456559`, `35352760266`, `35352760430`, `35360391261`, `35360391365`, `35363788668` e `35363788662`. — **Chat:** Trofia-Principal.
+- **Gate remoto definitivo e merge:** o preflight `35441456096` passou em 24 s. O CI autenticado `35441455961` passou integralmente em 38 min 59 s, incluindo preflight, 1.412 unitários, Worker, Functions e toda a matriz Playwright; o upload de diagnósticos foi corretamente pulado por não haver falha. O PR #231 foi retirado do draft e mesclado em `763beec`, tornando o workflow de lease disponível na `main` para a F2.
+- **Alinhamento:** o escopo principal foi entregue integralmente, mas a execução expandiu-se para corrigir duas falhas independentes reveladas pelos gates: o editor de fixture deixado aberto e o overlay do `SearchableChoiceField` fora do viewport desktop. O desvio não é bem representado por percentual; teve impacto positivo porque preservou asserções estritas, não mascarou falhas como flakiness e deixou a base funcionalmente mais segura sem tocar câmera/flash.
+- **PRs/commits relacionados:** bloqueio originado no PR UI/UX #227, sobre o hotfix do PR #229/merge `1e9ef55`; PR #231, commits `d7da546`, `e450ef4`, `e61b458`, `ad8df0f` e `fb7f46b`, merge `763beec`; runs `35343456506`, `35343456559`, `35352760266`, `35352760430`, `35360391261`, `35360391365`, `35363788668`, `35363788662`, `35441456096` e `35441455961`. — **Chat:** Trofia-Principal.
 
 ### [INC-AUTH-CLEANUP-LANG-F2] - Ativação e prova real do lease distribuído
 
