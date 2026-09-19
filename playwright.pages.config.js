@@ -18,7 +18,9 @@ module.exports = defineConfig({
   ],
   use: {
     baseURL,
-    trace: 'retain-on-failure',
+    // The registered App Check debug secret is installed before page scripts
+    // in Pages CI. Never retain a trace that could capture it.
+    trace: process.env.FIREBASE_APPCHECK_DEBUG_TOKEN ? 'off' : 'retain-on-failure',
     screenshot: 'only-on-failure'
   },
   projects: [
