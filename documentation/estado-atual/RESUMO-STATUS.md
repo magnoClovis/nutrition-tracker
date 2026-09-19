@@ -1234,7 +1234,7 @@
 - **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
 - **Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `getSupportedFlashModes()`/`setFlashMode()`, testes unitários/visuais, CI autenticado e Galaxy físico.
-- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; após a build Play versionCode 20 bloquear a prova física com `profile-incomplete-existing-account`, a branch incorporou explicitamente a `origin/main` `1e9ef55`, que corrige de forma fail-closed o retorno vazio causado por UID momentaneamente indisponível, e aguarda novo gate, AAB Play com versionCode maior que 20 e liberação prévia do Principal no mesmo artefato antes da prova de câmera.
+- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; a branch incorporou a `origin/main` `1e9ef55` e o hotfix de perfil passou nos testes, mas o novo gate parou por recorrência intermitente fora da câmera no smoke de avaliação contextual (idioma ainda anterior e cleanup de escrita diária pendente), portanto AAB e prova física continuam bloqueados sem contorno.
 
 ### Correção técnica do App Check e da paridade visual do cutover
 
