@@ -53,13 +53,35 @@
 
 ### [INC-PROFILE-INCOMPLETE-PLAY-20260917] - Perfil existente classificado como incompleto no AAB Play
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 17/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 19/09/2026.
 - **Propósito:** identificar por que uma conta descartável com histórico alcançou `profile-incomplete-existing-account` no AAB real versionCode 20 distribuído pela Play, bloqueando a prova física CAM-RED-4.
 - **O que se planeja fazer:** preservar as evidências físicas, confirmar por leitura não destrutiva o perfil no servidor, localizar a etapa Auth/App Check/Firestore/validação/cache que produziu a classificação e implementar somente uma correção comprovada, sem fallback que transforme falha em ausência.
 - **Recursos/arquivos principais envolvidos:** AAB Play `com.hermegas.trofia` versionCode 20, Firebase Auth/App Check/Firestore, `src/App.jsx`, `src/leaf/authenticated-profile-gate.js`, camada modular de storage, conta descartável, Galaxy SM-S938B, testes unitários/autenticados e documentação D03.
 - **O que foi feito:** a conta foi confirmada por leitura remota não destrutiva como completa e válida; o documento já estava completo antes da tela de erro. Foi localizado e corrigido o caminho em que a leitura protegida devolvia `{}` quando o UID da sessão ainda não estava disponível, fazendo o bootstrap confundir falha transitória de autenticação com perfil incompleto. Agora esse estado falha explicitamente como sessão indisponível, sem consultar cache nem abrir cadastro; 1.404 unitários, 103 legado, 111 Vite e 60 cutover passaram, e o AAB/arquivos CAM-RED-4 permaneceram intocados.
+
+### [INC-AUTH-CLEANUP-LANG-F1] - Diagnóstico e infraestrutura do lease autenticado
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 18/09/2026.
+- **Data de conclusão:** 19/09/2026.
+- **Propósito:** confirmar a origem dos timeouts de restauração e do idioma anterior no gate CAM-RED-4 e instalar a base segura para coordenar toda suíte que usa a conta descartável compartilhada.
+- **O que se planeja fazer:** preservar as evidências, reproduzir sobre `origin/main` limpa, distinguir produto de interferência externa, serializar worktrees locais, adicionar o workflow remoto que compartilhará o grupo de concorrência do CI e documentar a operação sem aumentar timeout, adicionar retry ou tocar na câmera/flash.
+- **Recursos/arquivos principais envolvidos:** `.github/workflows/authenticated-local-lease.yml`, `tests/smoke/app-check-global-setup.js`, `tests/smoke/authenticated-suite-coordinator.js`, `tests/unit/authenticated-suite-coordinator.test.js`, `tests/unit/github-workflows.test.js`, `tests/smoke/README.md`, Playwright, GitHub Actions e conta descartável.
+- **O que foi feito:** os horários dos artefatos comprovaram que o gate local colidiu com o CI `35281945540` na mesma conta. O PR #231/merge `763beec` adicionou lock local, recusa diante de CI já ativo, workflow manual no mesmo grupo remoto, testes e guia operacional. Seus gates também encontraram e corrigiram duas fragilidades independentes: o editor de fixture permanecia aberto antes da navegação e o overlay pesquisável ficava preso ao cartão com `backdrop-filter`; o roteiro agora fecha o editor e o seletor é portalizado em `document.body`. O gate final passou 1.412 unitários, 103 legado + 8 skips estruturais, 111 Vite e 60 cutover no run autenticado `35441455961`; a aquisição automática permanece reservada à F2.
+- **Alinhamento:** escopo ampliado com impacto positivo: a coordenação planejada foi entregue integralmente e o próprio gate revelou duas falhas independentes, corrigidas sem relaxar testes nem alterar câmera/flash.
+
+### [INC-AUTH-CLEANUP-LANG-F2] - Ativação e prova real do lease distribuído
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 19/09/2026.
+- **Data de conclusão:** 19/09/2026.
+- **Propósito:** eliminar também a janela em que um CI poderia começar depois da verificação local inicial e voltar a disputar a mesma conta descartável.
+- **O que se planeja fazer:** depois que o workflow de lease existir na `main`, adquirir o mesmo grupo `nutrition-authenticated-suite` antes do login local, liberar no teardown, falhar fechado em erro/timeout e comprovar numa disputa controlada que um CI novo permanece enfileirado até a liberação.
+- **Recursos/arquivos principais envolvidos:** workflow de lease já publicado na `main`, `gh` autenticado, coordenador do Playwright, grupo de concorrência do GitHub Actions, testes unitários/integração e guia operacional.
+- **O que foi feito:** o PR #233/merge `d56480e` ativou aquisição/liberação fail-closed do lease remoto antes de qualquer login local. A prova controlada manteve o CI `35448749636` enfileirado enquanto o lease `35448711416` possuía o grupo e o iniciou automaticamente 2 s após a liberação; suíte local e gates remotos passaram integralmente.
+- **Alinhamento:** 100%; aquisição, exclusão mútua nos dois sentidos, liberação, falha fechada e prova real foram entregues como planejado.
 
 ### [BUG-SAVED-MEALS] - Comportamento de refeições salvas
 

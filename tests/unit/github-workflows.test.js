@@ -10,6 +10,10 @@ const documentationPreflight = fs.readFileSync(
   path.join(root, '.github', 'workflows', 'documentation-preflight.yml'),
   'utf8'
 );
+const authenticatedLocalLease = fs.readFileSync(
+  path.join(root, '.github', 'workflows', 'authenticated-local-lease.yml'),
+  'utf8'
+);
 
 const documentationOnlyPatterns = ['documentation/**', '*.md', '*.txt'];
 
@@ -30,6 +34,17 @@ test('runs authenticated verification only in CI for each SHA', () => {
   assert.match(ci, /cancel-in-progress:\s*false/);
   assert.doesNotMatch(pages, /NUTRITION_TEST_(?:EMAIL|PASSWORD)/);
   assert.doesNotMatch(pages, /test:smoke|Full Windows verification|pull_request:/);
+});
+
+test('reserves the authenticated CI concurrency group for a bounded local lease', () => {
+  assert.match(authenticatedLocalLease, /name:\s*Authenticated local lease/);
+  assert.match(authenticatedLocalLease, /workflow_dispatch:/);
+  assert.match(authenticatedLocalLease, /lease_id:[\s\S]*required:\s*true[\s\S]*type:\s*string/);
+  assert.match(authenticatedLocalLease, /permissions:[\s\S]*contents:\s*read/);
+  assert.match(authenticatedLocalLease, /group:\s*nutrition-authenticated-suite/);
+  assert.match(authenticatedLocalLease, /cancel-in-progress:\s*false/);
+  assert.match(authenticatedLocalLease, /timeout-minutes:\s*60/);
+  assert.doesNotMatch(authenticatedLocalLease, /secrets\.|NUTRITION_TEST_|FIREBASE_APPCHECK/);
 });
 
 test('deploys Pages only after successful main CI and checks out its exact SHA', () => {

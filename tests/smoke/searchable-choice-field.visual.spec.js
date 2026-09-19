@@ -159,6 +159,8 @@ test.describe('authenticated SearchableChoiceField visual contract', () => {
       const search = sheet.getByRole('combobox');
       await expect(results.getByRole('option')).toHaveCount(14);
       await expect(page.locator('[data-tutorial="pantry-meal-templates"] select:visible')).toHaveCount(0);
+      await expect(search).toBeFocused();
+      await expect(search).toBeInViewport();
 
       const ingredientStyles = await readVisualStyles(page);
       expect(ingredientStyles.sheetRadius).toBe('24px');
@@ -192,6 +194,10 @@ test.describe('authenticated SearchableChoiceField visual contract', () => {
       await expect(page.locator('[aria-selected="true"] [data-searchable-choice-field-selection] svg'))
         .toHaveAttribute('stroke-width', '1.45');
       await page.keyboard.press('Escape');
+      await page.locator('[data-tutorial="pantry-meal-templates"]')
+        .getByRole('button', { name: /^(Cancelar|Cancel)$/i })
+        .click();
+      await expect(page.locator('#saved-meal-ingredient-visual-template-trigger')).toHaveCount(0);
 
       const supplementTrigger = await openDiarySupplement(page);
       const supplementSheet = page.locator('[data-searchable-choice-field-sheet="true"]');
