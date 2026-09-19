@@ -85,13 +85,14 @@
 
 ### [INC-PAGES-APPCHECK-20260919] - Compatibilidade do smoke Pages com App Check
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 19/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 19/09/2026.
 - **Propósito:** restaurar a verificação determinística do Pages sem enfraquecer o App Check exigido pelo bootstrap real.
 - **O que se planeja fazer:** instalar o debug provider registrado apenas no navegador efêmero do job Pages, manter o token fora do artefato publicado e preservar o fail-closed dos testes autenticados que acessam Firestore.
 - **Recursos/arquivos principais envolvidos:** `.github/workflows/pages.yml`, `tests/smoke/app-check-fixture.js`, Playwright Pages, Firebase App Check debug provider, unitários e documentação.
-- **O que foi feito:** o deploy pós-merge `35452419932` publicou o site, mas sua verificação falhou duas vezes porque o smoke simulado não instalava App Check antes do gate de perfil. O harness agora instala o debug provider registrado no navegador efêmero sem abrir acesso Firestore quando não há credenciais; o segredo não entra no artefato e traces ficam desativados nesse modo. Teste direto no Pages passou 4/4 e a suíte local completa passou 1.418 unitários, 103 legado + 8 skips estruturais, 111 Vite e 60 cutover. No primeiro CI do PR #235, preflight, unitários, Worker, Functions, legado e 110/111 Vite passaram; o único GA desktop apareceu na interface, mas não foi relido em 30 s, falha externa ao escopo ainda em validação antes do merge.
+- **O que foi feito:** o PR #235/merge `53e8fd9` separou o modo Pages sem credenciais do modo autenticado fail-closed, manteve o segredo apenas no navegador efêmero e desativou traces nesse contexto. Após uma falha isolada de releitura GA no primeiro CI, o gate integral repetido e o CI pós-merge passaram; o Pages `35462394508` concluiu build, deploy e 4/4 smokes publicados.
+- **Alinhamento:** 100%; o harness voltou a validar o produto real sem enfraquecer App Check, publicar segredo ou modificar runtime/persistência.
 
 ### [BUG-SAVED-MEALS] - Comportamento de refeições salvas
 
