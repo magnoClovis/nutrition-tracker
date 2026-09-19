@@ -47,3 +47,19 @@ test('C3 preserves a localized transparent viewport, HTML controls, theme tokens
   assert.match(css, /data-camera-backdrop-pane[\s\S]*backdrop-filter:\s*blur/);
   assert.match(css, /data-camera-stage-viewport[\s\S]*grid-area:\s*2 \/ 2/);
 });
+
+test('CAM-RED-4 wires the native flash command to the localized accessible control', () => {
+  const controller = read('nutrition-tracker-controller.js');
+  const flow = read('image-meal-flow.js');
+  const screen = read('image-meal-screen.js');
+  const preview = read('src/composite/embedded-camera-preview.js');
+  const css = read('one-ui.css');
+  assert.match(controller, /onCameraFlashToggle:[\s\S]*toggleEmbeddedCameraFlash/);
+  assert.match(flow, /toggleEmbeddedCameraFlash[\s\S]*supportedModes\.includes\("torch"\)/);
+  assert.match(flow, /native-capture-resolved[\s\S]*setFlashMode\("off"\)/);
+  assert.match(screen, /Flash encendido/);
+  assert.match(screen, /data-camera-flash[\s\S]*aria-pressed/);
+  assert.match(preview, /setFlashMode\(\{ flashMode \}\)/);
+  assert.match(preview, /currentFlashMode !== 'off'[\s\S]*flashMode: 'off'/);
+  assert.match(css, /data-camera-flash-state="on"[\s\S]*#ffc86d/);
+});

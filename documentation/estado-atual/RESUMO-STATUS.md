@@ -1261,12 +1261,13 @@
 
 ### [CAM-RED-4] - Flash visual e funcional
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 16/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
-- **Recursos/arquivos principais envolvidos:** `getSupportedFlashModes()`, `setFlashMode()`, serviço de preview, componente de captura, fluxo, CSS e validação física no Galaxy.
+- **Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `getSupportedFlashModes()`/`setFlashMode()`, testes unitários/visuais, CI autenticado e Galaxy físico.
+- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; depois das correções externas de data civil, perfil e exclusão mútua das suítes, a branch incorporou a `origin/main` até `53e8fd9` e o gate local passou com 1.428 unitários, legado 103 + 8 skips estruturais, Vite 111/111 e cutover 60/60. O AAB e a prova física continuam pendentes do CI remoto desta revisão.
 
 ### Correção técnica do App Check e da paridade visual do cutover
 
@@ -1519,8 +1520,8 @@
 - **Data de conclusão:** não concluído.
 - **Propósito:** monitorar uma possível inconsistência de restauração da sessão e do bootstrap após reload durante ciclos PT/EN/ES.
 - **O que se planeja fazer:** aguardar recorrência reproduzível e então isolar estado de autenticação, término do loading e consumidores do contrato de leitura, coordenando qualquer correção fora de UI com o chat principal.
-- **Recursos/arquivos principais envolvidos:** `setAppLanguage`, `pantry-choice-field.visual.spec.js`, `searchable-choice-field.visual.spec.js`, Firebase Auth/App Check e CI autenticado.
-- **O que foi feito:** os runs `33488032008` e `33497924576` registraram ocorrências diferentes após reload, mas o diagnóstico isolado `33502189291` passou em 3/3 repetições PT/EN/ES sem erro de leitura, console ou requisição pendente; permanece intermitente, sem causa confirmada e sem correção aplicada.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/auth.setup.js`, `setAppLanguage`, `pantry-choice-field.visual.spec.js`, `searchable-choice-field.visual.spec.js`, Firebase Auth/App Check, Playwright e CI autenticado.
+- **O que foi feito:** além das ocorrências de reload dos runs `33488032008`/`33497924576`, em 17/09/2026 o setup local da CAM-RED-4 ficou em “Processando...” por mais de 20 s; a investigação `INC-AUTH-BOOTSTRAP-20260917` do Principal executou 6/6 logins limpos, três instrumentados, sem request pendente ou erro, não confirmou relação com câmera/App Check e não aplicou correção especulativa. A ocorrência permanece intermitente e exige nova parada se reaparecer.
 
 ## Onde aprofundar
 

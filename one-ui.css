@@ -349,6 +349,7 @@ body:has([data-camera-native-active="true"]) {
   [data-camera-cancel="true"],
   [data-camera-close="true"],
   [data-camera-recognition-close="true"],
+  [data-camera-flash="true"],
   [data-camera-shutter="true"],
   [data-camera-open-settings="true"],
   [data-image-meal-open-camera="true"],
@@ -487,9 +488,41 @@ body:has([data-camera-native-active="true"]) {
 [data-camera-stage-viewport="true"] {
   grid-area: 2 / 2;
   min-height: 0;
+  position: relative;
   border-radius: 38px;
   box-shadow: 0 0 0 1px rgba(255,255,255,.24), 0 24px 70px rgba(0,0,0,.32);
 }
+
+[data-camera-stage-overlay="true"] [data-camera-flash="true"] {
+  position: absolute;
+  z-index: 6;
+  top: 18px;
+  left: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px !important;
+  padding: 0 16px !important;
+  border: 1px solid rgba(255,255,255,.28) !important;
+  border-radius: 999px !important;
+  color: rgba(255,255,255,.94) !important;
+  background: rgba(16,22,20,.62) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,.2);
+  backdrop-filter: blur(16px) saturate(135%);
+}
+
+[data-camera-stage-overlay="true"] [data-camera-flash-state="on"] {
+  color: #352100 !important;
+  background: #ffc86d !important;
+  border-color: rgba(255,232,185,.92) !important;
+}
+
+[data-camera-stage-overlay="true"] [data-camera-flash="true"] svg {
+  flex: 0 0 auto;
+  color: #ff9f43;
+}
+
+[data-camera-stage-overlay="true"] [data-camera-flash-state="on"] svg { color: #e96f3c; }
 
 [data-camera-stage-overlay="true"] [data-camera-close="true"] {
   position: absolute;
@@ -596,6 +629,10 @@ body:has([data-camera-native-active="true"]) {
     grid-template-rows: 1fr var(--camera-stage-height) 116px 1fr;
   }
   [data-camera-stage-viewport="true"] { border-radius: 32px; }
+  [data-camera-stage-overlay="true"] [data-camera-flash="true"] {
+    top: 12px;
+    left: 12px;
+  }
   [data-camera-stage-overlay="true"] [data-camera-close="true"] { top: 12px; right: 12px; }
   [data-camera-stage-overlay="true"] [data-camera-recognition-close="true"] { top: 12px; left: 12px; }
 }
