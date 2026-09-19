@@ -83,6 +83,16 @@
 - **O que foi feito:** o PR #233/merge `d56480e` ativou aquisição/liberação fail-closed do lease remoto antes de qualquer login local. A prova controlada manteve o CI `35448749636` enfileirado enquanto o lease `35448711416` possuía o grupo e o iniciou automaticamente 2 s após a liberação; suíte local e gates remotos passaram integralmente.
 - **Alinhamento:** 100%; aquisição, exclusão mútua nos dois sentidos, liberação, falha fechada e prova real foram entregues como planejado.
 
+### [INC-PAGES-APPCHECK-20260919] - Compatibilidade do smoke Pages com App Check
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 19/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** restaurar a verificação determinística do Pages sem enfraquecer o App Check exigido pelo bootstrap real.
+- **O que se planeja fazer:** instalar o debug provider registrado apenas no navegador efêmero do job Pages, manter o token fora do artefato publicado e preservar o fail-closed dos testes autenticados que acessam Firestore.
+- **Recursos/arquivos principais envolvidos:** `.github/workflows/pages.yml`, `tests/smoke/app-check-fixture.js`, Playwright Pages, Firebase App Check debug provider, unitários e documentação.
+- **O que foi feito:** o deploy pós-merge `35452419932` publicou o site, mas sua verificação falhou duas vezes porque o smoke simulado não instalava App Check antes do gate de perfil. O harness agora instala o debug provider registrado no navegador efêmero sem abrir acesso Firestore quando não há credenciais; o segredo não entra no artefato e traces ficam desativados nesse modo. Teste direto no Pages passou 4/4 e a suíte local completa passou 1.418 unitários, 103 legado + 8 skips estruturais, 111 Vite e 60 cutover.
+
 ### [BUG-SAVED-MEALS] - Comportamento de refeições salvas
 
 - **Status:** concluído — **Chat:** Trofia-Bugs.

@@ -645,6 +645,20 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Alinhamento:** 100%. A fatia entregou aquisição remota antes do login, liberação confirmada no teardown, falha fechada, timeout de recuperação e a disputa controlada exatamente como aprovada, sem relaxar timeout/teste nem alterar produto. Impacto positivo: eliminou a janela residual entre a consulta inicial e o começo do CI.
 - **PRs/commits relacionados:** infraestrutura do PR #231/merge `763beec`; PR #233, commits `0b0c110`/`328926b`, merge `d56480e`; leases `35443816641`, `35445123910`, `35445178417`, `35445281035`, `35445338291`, `35445914041`, `35446576483` e `35448711416`; runs `35447128772`, `35447128752`, `35448749624`, `35448749636`, `35450534290` e `35450534288`. — **Chat:** Trofia-Principal.
 
+### [INC-PAGES-APPCHECK-20260919] - Compatibilidade do smoke Pages com App Check
+
+- **Status:** em andamento.
+- **Data de início:** 19/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** em apuração.
+- **Propósito:** corrigir o gate de verificação do Pages que passou a falhar depois que o bootstrap autenticado começou a exigir um token App Check real antes da leitura protegida do perfil.
+- **O que se planeja fazer:** reproduzir e confirmar a falha; distinguir deploy quebrado de harness desatualizado; instalar o debug provider registrado somente no contexto Playwright do job de verificação; nunca embutir o segredo no artefato publicado; conservar a exigência de token trocado para suítes que usam credenciais/Firestore; cobrir os dois modos por testes unitários; e repetir suíte completa, CI e Pages real.
+- **Recursos/arquivos principais envolvidos:** `.github/workflows/pages.yml`, `tests/smoke/app-check-fixture.js`, `tests/unit/app-check-ci.test.js`, Playwright Pages, segredo `FIREBASE_APPCHECK_DEBUG_TOKEN`, Firebase App Check e GitHub Actions.
+- **O que foi feito:** o workflow pós-merge `35452419932` concluiu build e deploy com sucesso, mas os quatro casos desktop/mobile de `app-orchestration.spec.js` receberam `app-check-token-unavailable`. O teste usa login, storage e perfil simulados para validar a orquestração da UI; como `playwright.pages.config.js` não executa o setup autenticado e o fixture só instalava App Check quando havia e-mail/senha, o novo gate real abortava antes dos stubs de perfil. A repetição isolada do job produziu o mesmo resultado, descartando atraso de propagação. O fixture passou a instalar o debug provider registrado também no modo Pages sem credenciais, mas só cria a rota Firestore e exige token trocado no modo autenticado; assim o smoke de UI recebe App Check sem ganhar acesso indevido ao banco. O workflow injeta o segredo apenas no job efêmero de verificação, nunca no build/deploy, e o Playwright desativa traces quando esse segredo existe para impedir persistência acidental. Testes unitários cobrem separação dos dois modos e fail-closed autenticado; o teste direto contra o Pages passou 4/4 e a suíte local completa passou 1.418/1.418 unitários, 103 legado com 8 skips estruturais esperados, 111/111 Vite e 60/60 cutover.
+- **Alinhamento:** não aplicável enquanto a correção está em andamento.
+- **PRs/commits relacionados:** descoberta no run Pages `35452419932`, após o merge `d56480e`; correção em branch própria. — **Chat:** Trofia-Principal.
+
 ## [DOC-SYNC-LOCAL-20260916] - Reconciliação segura do checkout principal
 
 - **Status:** concluído.
