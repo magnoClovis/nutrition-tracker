@@ -625,11 +625,11 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ### [INC-AUTH-CLEANUP-LANG-F2] - Ativação e prova real do lease distribuído
 
-- **Status:** não iniciado.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento.
+- **Data de início:** 19/09/2026.
+- **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; não iniciado.
+- **Minutos de CI:** 30 min 35 s acumulados até o primeiro gate (21 s leves no run `35447128772` + 30 min 14 s pesados no run `35447128752`); total definitivo pendente dos gates da prova controlada.
 - **Propósito:** eliminar a janela residual em que um workflow `CI` poderia ser disparado depois que uma suíte local já consultou o GitHub e começou a usar a conta descartável.
 - **O que se planeja fazer:** partir da `main` contendo o workflow criado na F1; substituir a consulta pontual por um lease remoto real adquirido via `gh`; aguardar o workflow possuir `nutrition-authenticated-suite` antes do login; cancelar/liberar no teardown; falhar fechado se `gh`, GitHub, dispatch, aquisição ou liberação não puderem ser comprovados; manter timeout remoto para processo local morto; e executar uma prova controlada em que um CI disparado durante o lease permanece enfileirado até a liberação. Depois, repetir testes focados, suíte completa e CI autenticado.
 - **Recursos/arquivos principais envolvidos:** `.github/workflows/authenticated-local-lease.yml` já publicado na `main`, GitHub CLI autenticado, API/actions runs, `tests/smoke/authenticated-suite-coordinator.js`, setup/teardown Playwright, grupo `nutrition-authenticated-suite`, conta descartável, testes unitários e guia operacional.
@@ -639,6 +639,7 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Cobertura e primeiro ensaio remoto:** 18/18 testes focados comprovaram lock local, recuperação de lock obsoleto, recusa diante de CI, dispatch e espera `queued`→`in_progress`, cancelamento e confirmação, idempotência do teardown e liberação local em falha remota. O primeiro dispatch real criou o run `35443816641`, que permaneceu `pending` porque o CI legítimo da `main` `35443362435` já ocupava o grupo; a chamada local foi interrompida pelo limite da ferramenta e o run pendente foi cancelado explicitamente, sem login, Firestore ou Firebase. Esse resultado parcial confirmou a exclusão mútua no sentido CI→lease.
 - **Aquisição e liberação reais com o grupo livre:** depois do término verde do CI `35443362435`, o coordenador adquiriu o lease `35445123910`, confirmou `in_progress`, solicitou o cancelamento e só concluiu quando o run chegou a `completed/cancelled`. Duas tentativas iniciais da suíte foram interrompidas antes do login por configuração App Check incompleta em memória; os leases `35445178417` e `35445281035` foram igualmente encerrados, comprovando o teardown em erro sem usar a conta. A execução válida carregou o token somente do arquivo ignorado e o App ID/site key públicos das GitHub Variables, sem imprimir nem versionar valores.
 - **Suíte completa sob lease:** `npm test` passou com preflight sem alertas, 1.416/1.416 unitários sem skips, 103/103 smokes legado com somente 8 skips estruturais esperados, 111/111 smokes Vite e 60/60 células do cutover. Legado, Vite e cutover adquiriram respectivamente os leases `35445338291`, `35445914041` e `35446576483`; cada run permaneceu ativo durante sua matriz, terminou `completed/cancelled` no teardown e o arquivo `%LOCALAPPDATA%/Trofia/authenticated-smoke.lock` foi comprovadamente removido ao final. Os quatro fluxos críticos do incidente passaram em desktop e mobile. Resta a prova controlada no sentido lease→CI e o CI autenticado final do PR.
+- **Primeiro gate remoto do PR:** o preflight `35447128772` passou em 21 s e o CI autenticado `35447128752` passou integralmente em 30 min 14 s, cobrindo preflight, 1.416 unitários, Worker, Functions e toda a matriz Playwright. Não houve skip além dos 8 casos estruturais esperados do legado. Esse gate valida o código publicado; a comprovação lease→CI ainda será feita por um push documental controlado enquanto um lease real possuir o grupo.
 - **Alinhamento:** não aplicável enquanto a implementação está em andamento.
 - **PRs/commits relacionados:** depende da infraestrutura entregue pelo PR #231/merge `763beec`; início sobre `d206df3`. — **Chat:** Trofia-Principal.
 
