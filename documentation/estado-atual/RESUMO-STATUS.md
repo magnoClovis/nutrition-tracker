@@ -74,12 +74,13 @@
 
 ### [INC-AUTH-CLEANUP-LANG-F2] - Ativação e prova real do lease distribuído
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 19/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** eliminar também a janela em que um CI poderia começar depois da verificação local inicial e voltar a disputar a mesma conta descartável.
 - **O que se planeja fazer:** depois que o workflow de lease existir na `main`, adquirir o mesmo grupo `nutrition-authenticated-suite` antes do login local, liberar no teardown, falhar fechado em erro/timeout e comprovar numa disputa controlada que um CI novo permanece enfileirado até a liberação.
 - **Recursos/arquivos principais envolvidos:** workflow de lease já publicado na `main`, `gh` autenticado, coordenador do Playwright, grupo de concorrência do GitHub Actions, testes unitários/integração e guia operacional.
+- **O que foi feito:** a F2 foi iniciada sobre `d206df3`; o coordenador despacha o workflow com UUID opaco, aguarda posse real do grupo antes do login, cancela e confirma o encerramento no teardown e falha fechado em erro de `gh`/API. Passaram 18/18 focados, 1.416 unitários, 103 legado + 8 skips estruturais, 111 Vite e 60 cutover; os leases reais de cada matriz foram encerrados e o lock local liberado. Resta a prova controlada lease→CI e o CI final do PR.
 
 ### [BUG-SAVED-MEALS] - Comportamento de refeições salvas
 

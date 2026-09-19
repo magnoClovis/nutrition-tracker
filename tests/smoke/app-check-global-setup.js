@@ -15,7 +15,7 @@ module.exports = async function prepareAppCheckForAuthenticatedSmoke() {
     process.env.TROFIA_CI_APP_CHECK_TOKEN = await exchangeDebugToken(config);
     return releaseSuite;
   } catch (error) {
-    releaseSuite();
+    await releaseSuite();
     throw error;
   }
 };

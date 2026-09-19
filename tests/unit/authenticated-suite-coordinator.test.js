@@ -4,10 +4,12 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const {
+  acquireRemoteLease,
   acquireLocalLock,
   assertNoActiveGithubCi,
   coordinateAuthenticatedSuite,
   lockFilePath,
+  releaseRemoteLease,
   releaseLocalLock,
 } = require('../smoke/authenticated-suite-coordinator');
 
@@ -78,6 +80,103 @@ test('trusts GitHub concurrency inside Actions and returns a local release handl
     fetchRequest() { throw new Error('must not fetch from CI'); },
   });
   assert.equal(fs.existsSync(lockFilePath(env)), true);
-  release();
+  await release();
   assert.equal(fs.existsSync(lockFilePath(env)), false);
+});
+
+test('dispatches a remote lease and waits until it owns the concurrency group', async () => {
+  const calls = [];
+  let listCount = 0;
+  const lease = await acquireRemoteLease({
+    randomUUID: () => '11111111-1111-4111-8111-111111111111',
+    now: (() => { let value = 0; return () => value++; })(),
+    waitTimeoutMs: 20,
+    pollIntervalMs: 0,
+    async sleep() {},
+    async executeGhCommand(args) {
+      calls.push(args);
+      if (args[0] === 'workflow') return '';
+      listCount += 1;
+      return JSON.stringify([{
+        databaseId: 42,
+        displayTitle: 'Authenticated local lease 11111111-1111-4111-8111-111111111111',
+        status: listCount === 1 ? 'queued' : 'in_progress',
+        conclusion: '',
+      }]);
+    },
+  });
+  assert.equal(lease.runId, 42);
+  assert.equal(calls[0].includes('lease_id=11111111-1111-4111-8111-111111111111'), true);
+  assert.equal(listCount, 2);
+});
+
+test('cancels the remote lease and waits for confirmed completion', async () => {
+  const calls = [];
+  let viewCount = 0;
+  await releaseRemoteLease({runId: 42}, {
+    now: (() => { let value = 0; return () => value++; })(),
+    waitTimeoutMs: 20,
+    pollIntervalMs: 0,
+    async sleep() {},
+    async executeGhCommand(args) {
+      calls.push(args);
+      if (args[1] === 'cancel') return '';
+      viewCount += 1;
+      return JSON.stringify({
+        status: viewCount === 1 ? 'in_progress' : 'completed',
+        conclusion: viewCount === 1 ? '' : 'cancelled',
+      });
+    },
+  });
+  assert.deepEqual(calls[0].slice(0, 3), ['run', 'cancel', '42']);
+  assert.equal(viewCount, 2);
+});
+
+test('releases the local lock when remote dispatch fails closed', async () => {
+  const env = makeTempEnv();
+  await assert.rejects(coordinateAuthenticatedSuite({
+    env,
+    async fetchRequest() {
+      return {ok: true, async json() { return {workflow_runs: []}; }};
+    },
+    async executeGhCommand() {
+      throw new Error('gh unavailable');
+    },
+  }), /authenticated-smoke-remote-lease-dispatch-failed/);
+  assert.equal(fs.existsSync(lockFilePath(env)), false);
+});
+
+test('keeps the local lock through the remote lease and releases both exactly once', async () => {
+  const env = makeTempEnv();
+  const calls = [];
+  const release = await coordinateAuthenticatedSuite({
+    env,
+    randomUUID: () => '22222222-2222-4222-8222-222222222222',
+    now: (() => { let value = 0; return () => value++; })(),
+    waitTimeoutMs: 20,
+    pollIntervalMs: 0,
+    async sleep() {},
+    async fetchRequest() {
+      return {ok: true, async json() { return {workflow_runs: []}; }};
+    },
+    async executeGhCommand(args) {
+      calls.push(args);
+      if (args[0] === 'workflow') return '';
+      if (args[1] === 'list') {
+        return JSON.stringify([{
+          databaseId: 77,
+          displayTitle: 'Authenticated local lease 22222222-2222-4222-8222-222222222222',
+          status: 'in_progress',
+          conclusion: '',
+        }]);
+      }
+      if (args[1] === 'cancel') return '';
+      return JSON.stringify({status: 'completed', conclusion: 'cancelled'});
+    },
+  });
+  assert.equal(fs.existsSync(lockFilePath(env)), true);
+  await release();
+  await release();
+  assert.equal(fs.existsSync(lockFilePath(env)), false);
+  assert.equal(calls.filter(args => args[1] === 'cancel').length, 1);
 });

@@ -69,12 +69,16 @@ always intercepted; the tests never send real requests to those services.
 The authenticated suites mutate language, pantry fixtures, and diary data in
 one shared disposable account. They must never run concurrently.
 
-The global authenticated setup currently provides two fail-closed guards:
+The global authenticated setup provides three fail-closed guards:
 
 - an atomic `%LOCALAPPDATA%\Trofia\authenticated-smoke.lock` serializes local
   worktrees; a dead-process or older-than-two-hours lock can be reclaimed;
 - before login, a local run refuses to start while the GitHub Actions workflow
   `CI` is queued or running. Only public run IDs appear in the error.
+- after that fast guard, a local run dispatches `Authenticated local lease`,
+  waits until it owns the shared `nutrition-authenticated-suite` concurrency
+  group, and only then logs in. Teardown cancels the lease and waits for its
+  completion before releasing the local lock.
 
 Typical guard messages are:
 
@@ -87,12 +91,12 @@ Do not delete a live lock or bypass these errors. Wait for the other run to
 finish. GitHub Actions already serializes its own authenticated runs through
 the `nutrition-authenticated-suite` concurrency group.
 
-The manual workflow `.github/workflows/authenticated-local-lease.yml` reserves
-that same group and has a 60-minute safety timeout. It is infrastructure for the
-next rollout step; until the local coordinator is switched to acquire it, do
-not trigger a new CI after a local authenticated suite has started. This
-remaining direction of the race is recorded explicitly rather than presented
-as already solved.
+The workflow `.github/workflows/authenticated-local-lease.yml` reserves that
+same group and has a 60-minute safety timeout if a local process dies before
+teardown. Acquisition, listing, cancellation or confirmation failures stop the
+local suite before it can use the shared account. The workflow receives only an
+opaque UUID and does not receive Firebase credentials, App Check tokens or user
+data.
 
 The test runner starts the app locally at `http://127.0.0.1:8765/index.html`.
 That local server is implemented in Node at `tests/smoke/serve-static.js`, so

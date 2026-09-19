@@ -1,10 +1,16 @@
 const crypto = require('node:crypto');
+const childProcess = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const util = require('node:util');
 
 const DEFAULT_REPOSITORY = 'magnoClovis/nutrition-tracker';
 const LOCK_MAX_AGE_MS = 2 * 60 * 60 * 1000;
+const REMOTE_LEASE_WORKFLOW = 'authenticated-local-lease.yml';
+const REMOTE_LEASE_WAIT_MS = 2 * 60 * 1000;
+const REMOTE_LEASE_POLL_MS = 1000;
+const execFile = util.promisify(childProcess.execFile);
 
 function lockFilePath(env = process.env) {
   const base = String(env.LOCALAPPDATA || '').trim()
@@ -114,11 +120,158 @@ async function assertNoActiveGithubCi({
   }
 }
 
+async function executeGh(args) {
+  const result = await execFile('gh', args, {
+    windowsHide: true,
+    timeout: 30_000,
+    maxBuffer: 1024 * 1024,
+  });
+  return String(result?.stdout || '');
+}
+
+function wait(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+async function listRemoteLeaseRuns({
+  executeGhCommand = executeGh,
+  repository = DEFAULT_REPOSITORY,
+} = {}) {
+  let output;
+  try {
+    output = await executeGhCommand([
+      'run', 'list',
+      '--repo', repository,
+      '--workflow', REMOTE_LEASE_WORKFLOW,
+      '--event', 'workflow_dispatch',
+      '--limit', '30',
+      '--json', 'databaseId,displayTitle,status,conclusion',
+    ]);
+  } catch (_) {
+    throw new Error('authenticated-smoke-remote-lease-list-failed');
+  }
+  try {
+    const parsed = JSON.parse(output);
+    if (!Array.isArray(parsed)) throw new Error('invalid-list');
+    return parsed;
+  } catch (_) {
+    throw new Error('authenticated-smoke-remote-lease-list-invalid');
+  }
+}
+
+async function releaseRemoteLease(lease, {
+  executeGhCommand = executeGh,
+  repository = DEFAULT_REPOSITORY,
+  sleep = wait,
+  now = Date.now,
+  waitTimeoutMs = REMOTE_LEASE_WAIT_MS,
+  pollIntervalMs = REMOTE_LEASE_POLL_MS,
+} = {}) {
+  if (!lease?.runId) return;
+  try {
+    await executeGhCommand(['run', 'cancel', String(lease.runId), '--repo', repository]);
+  } catch (_) {
+    throw new Error(`authenticated-smoke-remote-lease-cancel-failed:${lease.runId}`);
+  }
+
+  const deadline = Number(now()) + waitTimeoutMs;
+  while (Number(now()) <= deadline) {
+    let output;
+    try {
+      output = await executeGhCommand([
+        'run', 'view', String(lease.runId),
+        '--repo', repository,
+        '--json', 'status,conclusion',
+      ]);
+    } catch (_) {
+      throw new Error(`authenticated-smoke-remote-lease-view-failed:${lease.runId}`);
+    }
+    let state;
+    try {
+      state = JSON.parse(output);
+    } catch (_) {
+      throw new Error(`authenticated-smoke-remote-lease-view-invalid:${lease.runId}`);
+    }
+    if (state?.status === 'completed') return;
+    await sleep(pollIntervalMs);
+  }
+  throw new Error(`authenticated-smoke-remote-lease-release-timeout:${lease.runId}`);
+}
+
+async function acquireRemoteLease({
+  executeGhCommand = executeGh,
+  repository = DEFAULT_REPOSITORY,
+  randomUUID = crypto.randomUUID,
+  sleep = wait,
+  now = Date.now,
+  waitTimeoutMs = REMOTE_LEASE_WAIT_MS,
+  pollIntervalMs = REMOTE_LEASE_POLL_MS,
+} = {}) {
+  const leaseId = randomUUID();
+  const title = `Authenticated local lease ${leaseId}`;
+  try {
+    await executeGhCommand([
+      'workflow', 'run', REMOTE_LEASE_WORKFLOW,
+      '--repo', repository,
+      '--ref', 'main',
+      '-f', `lease_id=${leaseId}`,
+    ]);
+  } catch (_) {
+    throw new Error('authenticated-smoke-remote-lease-dispatch-failed');
+  }
+
+  const deadline = Number(now()) + waitTimeoutMs;
+  let run = null;
+  try {
+    while (Number(now()) <= deadline) {
+      const runs = await listRemoteLeaseRuns({executeGhCommand, repository});
+      run = runs.find(candidate => candidate?.displayTitle === title) || null;
+      if (run?.status === 'in_progress') {
+        return Object.freeze({runId: Number(run.databaseId)});
+      }
+      if (run?.status === 'completed') {
+        throw new Error(`authenticated-smoke-remote-lease-failed:${run.databaseId}`);
+      }
+      await sleep(pollIntervalMs);
+    }
+    throw new Error('authenticated-smoke-remote-lease-acquire-timeout');
+  } catch (error) {
+    if (run?.databaseId && run?.status !== 'completed') {
+      try {
+        await releaseRemoteLease({runId: Number(run.databaseId)}, {
+          executeGhCommand,
+          repository,
+          sleep,
+          now,
+          waitTimeoutMs,
+          pollIntervalMs,
+        });
+      } catch (_) {
+        throw new Error(`authenticated-smoke-remote-lease-cleanup-failed:${run.databaseId}`);
+      }
+    }
+    throw error;
+  }
+}
+
 async function coordinateAuthenticatedSuite(options = {}) {
   const lock = acquireLocalLock(options);
+  let remoteLease = null;
   try {
     await assertNoActiveGithubCi(options);
-    return () => releaseLocalLock(lock, options.fsImpl || fs);
+    if (String((options.env || process.env).GITHUB_ACTIONS || '').toLowerCase() !== 'true') {
+      remoteLease = await acquireRemoteLease(options);
+    }
+    let released = false;
+    return async () => {
+      if (released) return;
+      released = true;
+      try {
+        await releaseRemoteLease(remoteLease, options);
+      } finally {
+        releaseLocalLock(lock, options.fsImpl || fs);
+      }
+    };
   } catch (error) {
     releaseLocalLock(lock, options.fsImpl || fs);
     throw error;
@@ -128,10 +281,15 @@ async function coordinateAuthenticatedSuite(options = {}) {
 module.exports = {
   DEFAULT_REPOSITORY,
   LOCK_MAX_AGE_MS,
+  REMOTE_LEASE_POLL_MS,
+  REMOTE_LEASE_WAIT_MS,
+  REMOTE_LEASE_WORKFLOW,
+  acquireRemoteLease,
   acquireLocalLock,
   assertNoActiveGithubCi,
   coordinateAuthenticatedSuite,
   existingLockIsStale,
   lockFilePath,
+  releaseRemoteLease,
   releaseLocalLock,
 };
