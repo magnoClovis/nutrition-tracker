@@ -10,7 +10,11 @@ const implementations = [
 implementations.forEach(([format, load]) => {
   test(`${format}: exposes searchable option normalization and accent-insensitive filtering`, async () => {
     const { createSearchableChoiceField } = await load();
-    const { SearchableChoiceField, normalizeOptions, filterOptions, initialsFor } = createSearchableChoiceField({ React });
+    const { SearchableChoiceField, normalizeOptions, filterOptions, initialsFor } = createSearchableChoiceField({
+      React,
+      createPortal: node => node,
+      documentObject: { body: {} },
+    });
     const options = normalizeOptions([
       { value: 1, label: "Vitamina D3", description: "Dose padrão · 1 cáps", mark: "D3" },
       { value: "omega", label: "Ômega 3", description: "Dose padrão · 2 cáps" },
@@ -30,8 +34,44 @@ implementations.forEach(([format, load]) => {
     assert.equal(initialsFor("Whey"), "WH");
   });
 
-  test(`${format}: rejects a missing React dependency`, async () => {
+  test(`${format}: portals the open sheet outside transformed content blocks`, async () => {
     const { createSearchableChoiceField } = await load();
-    assert.throws(() => createSearchableChoiceField({ React: null }), /requires a React runtime/);
+    let stateIndex = 0;
+    let portalCall;
+    const StaticReact = Object.assign({}, React, {
+      useId: () => 'portal-test',
+      useState(initialValue) {
+        const index = stateIndex++;
+        return [index === 0 ? true : (typeof initialValue === 'function' ? initialValue() : initialValue), () => {}];
+      },
+      useRef: initialValue => ({ current: initialValue }),
+      useEffect: () => {},
+    });
+    const body = {};
+    const { SearchableChoiceField } = createSearchableChoiceField({
+      React: StaticReact,
+      createPortal(node, target) {
+        portalCall = { node, target };
+        return node;
+      },
+      documentObject: { body },
+    });
+
+    SearchableChoiceField({ label: 'Ingredient', value: '', options: [] });
+
+    assert.equal(portalCall.target, body);
+    assert.equal(portalCall.node.props['data-searchable-choice-field-overlay'], 'true');
+  });
+
+  test(`${format}: rejects missing runtime dependencies`, async () => {
+    const { createSearchableChoiceField } = await load();
+    assert.throws(
+      () => createSearchableChoiceField({ React: null, createPortal() {}, documentObject: { body: {} } }),
+      /requires React, createPortal, and document.body/,
+    );
+    assert.throws(
+      () => createSearchableChoiceField({ React }),
+      /requires React, createPortal, and document.body/,
+    );
   });
 });

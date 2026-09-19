@@ -64,6 +64,36 @@ Firebase Auth and Firestore are the only real remote integrations used by the
 authenticated suite. The managed AI Worker, Open Food Facts, and the advanced-report server are
 always intercepted; the tests never send real requests to those services.
 
+### Shared-account coordination
+
+The authenticated suites mutate language, pantry fixtures, and diary data in
+one shared disposable account. They must never run concurrently.
+
+The global authenticated setup currently provides two fail-closed guards:
+
+- an atomic `%LOCALAPPDATA%\Trofia\authenticated-smoke.lock` serializes local
+  worktrees; a dead-process or older-than-two-hours lock can be reclaimed;
+- before login, a local run refuses to start while the GitHub Actions workflow
+  `CI` is queued or running. Only public run IDs appear in the error.
+
+Typical guard messages are:
+
+```text
+authenticated-smoke-local-run-active
+authenticated-smoke-github-ci-active:<public-run-id>
+```
+
+Do not delete a live lock or bypass these errors. Wait for the other run to
+finish. GitHub Actions already serializes its own authenticated runs through
+the `nutrition-authenticated-suite` concurrency group.
+
+The manual workflow `.github/workflows/authenticated-local-lease.yml` reserves
+that same group and has a 60-minute safety timeout. It is infrastructure for the
+next rollout step; until the local coordinator is switched to acquire it, do
+not trigger a new CI after a local authenticated suite has started. This
+remaining direction of the race is recorded explicitly rather than presented
+as already solved.
+
 The test runner starts the app locally at `http://127.0.0.1:8765/index.html`.
 That local server is implemented in Node at `tests/smoke/serve-static.js`, so
 Python is not required for the smoke suite.

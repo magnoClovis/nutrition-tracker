@@ -61,6 +61,25 @@
 - **Recursos/arquivos principais envolvidos:** AAB Play `com.hermegas.trofia` versionCode 20, Firebase Auth/App Check/Firestore, `src/App.jsx`, `src/leaf/authenticated-profile-gate.js`, camada modular de storage, conta descartável, Galaxy SM-S938B, testes unitários/autenticados e documentação D03.
 - **O que foi feito:** a conta foi confirmada por leitura remota não destrutiva como completa e válida; o documento já estava completo antes da tela de erro. Foi localizado e corrigido o caminho em que a leitura protegida devolvia `{}` quando o UID da sessão ainda não estava disponível, fazendo o bootstrap confundir falha transitória de autenticação com perfil incompleto. Agora esse estado falha explicitamente como sessão indisponível, sem consultar cache nem abrir cadastro; 1.404 unitários, 103 legado, 111 Vite e 60 cutover passaram, e o AAB/arquivos CAM-RED-4 permaneceram intocados.
 
+### [INC-AUTH-CLEANUP-LANG-F1] - Diagnóstico e infraestrutura do lease autenticado
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 18/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** confirmar a origem dos timeouts de restauração e do idioma anterior no gate CAM-RED-4 e instalar a base segura para coordenar toda suíte que usa a conta descartável compartilhada.
+- **O que se planeja fazer:** preservar as evidências, reproduzir sobre `origin/main` limpa, distinguir produto de interferência externa, serializar worktrees locais, adicionar o workflow remoto que compartilhará o grupo de concorrência do CI e documentar a operação sem aumentar timeout, adicionar retry ou tocar na câmera/flash.
+- **Recursos/arquivos principais envolvidos:** `.github/workflows/authenticated-local-lease.yml`, `tests/smoke/app-check-global-setup.js`, `tests/smoke/authenticated-suite-coordinator.js`, `tests/unit/authenticated-suite-coordinator.test.js`, `tests/unit/github-workflows.test.js`, `tests/smoke/README.md`, Playwright, GitHub Actions e conta descartável.
+- **O que foi feito:** os horários dos artefatos comprovaram que o gate local colidiu com o CI `35281945540` na mesma conta. O draft #231 contém lock local, recusa diante de CI já ativo, workflow manual de lease no mesmo grupo remoto, testes e guia operacional. O gate final também revelou dois problemas independentes no teste visual: o editor de fixture permanecia aberto antes da navegação e o seletor pesquisável ficava preso ao cartão com `backdrop-filter`, deixando a busca fora da tela no desktop. O roteiro agora fecha o editor, e o overlay é portalizado em `document.body`; 5/5 repetições desktop, 5/5 mobile e os ciclos trilíngues passaram. A revalidação integral passou 1.412 unitários, 103 legado + 8 skips estruturais, 111 Vite e 60 cutover; resta o novo CI autenticado antes do merge. A aquisição automática permanece reservada à F2.
+
+### [INC-AUTH-CLEANUP-LANG-F2] - Ativação e prova real do lease distribuído
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** eliminar também a janela em que um CI poderia começar depois da verificação local inicial e voltar a disputar a mesma conta descartável.
+- **O que se planeja fazer:** depois que o workflow de lease existir na `main`, adquirir o mesmo grupo `nutrition-authenticated-suite` antes do login local, liberar no teardown, falhar fechado em erro/timeout e comprovar numa disputa controlada que um CI novo permanece enfileirado até a liberação.
+- **Recursos/arquivos principais envolvidos:** workflow de lease já publicado na `main`, `gh` autenticado, coordenador do Playwright, grupo de concorrência do GitHub Actions, testes unitários/integração e guia operacional.
+
 ### [BUG-SAVED-MEALS] - Comportamento de refeições salvas
 
 - **Status:** concluído — **Chat:** Trofia-Bugs.

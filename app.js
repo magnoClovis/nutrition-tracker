@@ -278,7 +278,11 @@ const {
 
 const {
   SearchableChoiceField
-} = window.SearchableChoiceFieldModule.createSearchableChoiceField({ React });
+} = window.SearchableChoiceFieldModule.createSearchableChoiceField({
+  React,
+  createPortal: ReactDOM.createPortal.bind(ReactDOM),
+  documentObject: document
+});
 
 const {
   TemporalField,

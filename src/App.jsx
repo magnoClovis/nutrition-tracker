@@ -252,7 +252,11 @@ const {
 
 const {
   SearchableChoiceField,
-} = SearchableChoiceFieldModule.createSearchableChoiceField({ React });
+} = SearchableChoiceFieldModule.createSearchableChoiceField({
+  React,
+  createPortal,
+  documentObject: document,
+});
 
 const {
   CheckboxField,
