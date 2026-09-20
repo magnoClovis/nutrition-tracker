@@ -80,7 +80,7 @@
 - **Propósito:** obter uma única evidência física capaz de identificar o campo e a transformação que divergem na build real protegida por Play Integrity.
 - **O que se planeja fazer:** gerar AAB assinado com versionCode novo e versionName `0.11.0-beta`, distribuir pela faixa interna, executar uma única submissão com conta descartável e capturar apenas os códigos sanitizados; aplicar integralmente o protocolo permanente do Galaxy.
 - **Recursos/arquivos principais envolvidos:** AAB release, Play Console/faixa interna, Play Integrity, Galaxy SM-S938B, ADB/logcat sanitizado e conta descartável local.
-- **O que foi feito:** a etapa foi iniciada em worktree isolada da `origin/main` no merge `3aba36d`; o próximo AAB usará versionCode 22 e versionName `0.11.0-beta`, sem alterar a versão nominal nem tocar no PR #227 da UI/UX.
+- **O que foi feito:** a etapa foi iniciada em worktree isolada da `origin/main` no merge `3aba36d`; o AAB diagnóstico versionCode 22/versionName `0.11.0-beta` foi gerado e verificado com assinatura, Firebase, manifesto e SHA-256 `E3E48768B929D43F7857E3025C17208A37FE67B7CD388D28D46639A85D2A9B4F`, sem tocar no PR #227 da UI/UX; aguardam upload pela faixa interna e a prova física única.
 
 ### [INC-PROFILE-V21-D3] - Correção causal e encerramento do incidente
 
