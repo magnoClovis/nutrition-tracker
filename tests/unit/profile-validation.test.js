@@ -161,3 +161,49 @@ contractTest("uses the explicit server-confirmed reader for the authentication g
     "manualCalorieAdjustment",
   ]]);
 });
+
+contractTest("reports only sanitized field kinds and validity for an incomplete profile", async (_createApi, createProfileValidation) => {
+  const records = {
+    birthDate: {value: "sensitive-birth-date"},
+    gender: {value: "female"},
+    activityLevel: {value: "moderate"},
+    goalType: {value: "maintenance"},
+    goalKg: null,
+    goalWeeks: null,
+    manualCalorieAdjustment: {value: "-300"},
+  };
+  Object.defineProperty(records, "__profileReadDiagnostics", {
+    enumerable: false,
+    value: Object.freeze({
+      source: "firestore-server",
+      documentExists: true,
+      rawKinds: Object.freeze({birthDate: "string"}),
+      normalizedKinds: Object.freeze({birthDate: "string"}),
+    }),
+  });
+  const api = createProfileValidation({
+    storage: {
+      async get() { return null; },
+      async getProfileFromServer() { return records; },
+    },
+    activityLevels: ACTIVITY_LEVELS,
+  });
+
+  const profile = await api.getRequiredProfileData({serverConfirmed: true});
+  const diagnostic = api.inspectRequiredProfileData(profile);
+  const serialized = JSON.stringify(diagnostic);
+
+  assert.equal(diagnostic.validation.birthDate, false);
+  assert.equal(diagnostic.validation.gender, true);
+  assert.equal(
+    diagnostic.code,
+    "profile-incomplete-existing-account-rsuuuuuu-nsuuuuuu-psssssss-v01111",
+  );
+  assert.equal(diagnostic.stages.source.rawKinds.birthDate, "string");
+  assert.equal(diagnostic.stages.profileKinds.birthDate, "string");
+  assert.match(diagnostic.code, /^[A-Za-z0-9_./-]{1,100}$/);
+  assert.doesNotMatch(serialized, /sensitive-birth-date|-300|female|moderate|maintenance/);
+  assert.deepEqual(Object.keys(profile), [
+    "birthDate", "gender", "activityLevel", "goalType", "goalKg", "goalWeeks", "manualAdjustment",
+  ]);
+});

@@ -200,6 +200,14 @@
     return parsed !== undefined && parsed !== null ? {value: storageValue(parsed)} : null;
   }
 
+  function diagnosticValueKind(value) {
+    if (value === undefined) return "missing";
+    if (value === null) return "null";
+    if (Array.isArray(value)) return "array";
+    if (value instanceof Date) return "date";
+    return typeof value;
+  }
+
   function createFirebaseFirestoreSdk({
     firestore,
     getUid,
@@ -370,6 +378,12 @@
         const snapshot = await sdk.getDocFromServer(userDocRef(uid));
         if (snapshot.exists()) readMetrics.serverDocuments++;
         const fields = snapshot.exists() ? {...(snapshot.data() || {})} : {};
+        Object.defineProperty(fields, "__serverDocumentExists", {
+          configurable: false,
+          enumerable: false,
+          writable: false,
+          value: snapshot.exists(),
+        });
         rootDocCache = fields;
         rootDocLoaded = true;
         return fields;
@@ -395,10 +409,31 @@
         throw new TypeError("Server-confirmed profile reads accept profile fields only");
       }
       const fields = await fetchRootFieldsFromServer(uid);
-      return Object.fromEntries(requested.map(key => {
-        if (fields[key] === undefined || fields[key] === null) return [key, null];
-        return [key, storageRecord(key, normalizeProfileValue(key, fields[key]))];
+      const rawKinds = {};
+      const normalizedKinds = {};
+      const records = Object.fromEntries(requested.map(key => {
+        const rawValue = fields[key];
+        rawKinds[key] = diagnosticValueKind(rawValue);
+        if (rawValue === undefined || rawValue === null) {
+          normalizedKinds[key] = rawKinds[key];
+          return [key, null];
+        }
+        const normalized = normalizeProfileValue(key, rawValue);
+        normalizedKinds[key] = diagnosticValueKind(normalized);
+        return [key, storageRecord(key, normalized)];
       }));
+      Object.defineProperty(records, "__profileReadDiagnostics", {
+        configurable: false,
+        enumerable: false,
+        writable: false,
+        value: Object.freeze({
+          source: "firestore-server",
+          documentExists: fields.__serverDocumentExists === true,
+          rawKinds: Object.freeze(rawKinds),
+          normalizedKinds: Object.freeze(normalizedKinds),
+        }),
+      });
+      return records;
     }
 
     async function loadRootFields() {

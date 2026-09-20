@@ -514,6 +514,10 @@ validador. O PR #229 continua correto para UID ausente, mas não encerra este ca
 Resolução ainda necessária: instrumentar apenas presença/tipo/validade booleana nas
 três fronteiras da leitura, sem valores/UID/tokens, identificar o campo ou transição
 que diverge e repetir uma única prova AAB Play antes de liberar a CAM-RED-4.
+Plano aprovado (20/09/2026): D1 adiciona observabilidade sanitizada e sua cobertura;
+D2 executa uma única prova em AAB Play para localizar a divergência; D3 aplica e
+valida somente a correção causal comprovada. O plano proíbe retry automático,
+consulta duplicada, fallback de cache e relaxamento da validação obrigatória.
 
 [D04] Logout chama fbSignOut duas vezes
 Localização: settings-panel.js:11-15.

@@ -453,6 +453,7 @@ const {
   isValidGoalProfile,
   getRequiredProfileData,
   hasRequiredProfileData,
+  inspectRequiredProfileData,
 } = ProfileValidation.createProfileValidation({
   storage,
   activityLevels: ACTIVITY_LEVELS,
@@ -920,6 +921,7 @@ export function App() {
         getAppCheckToken: ensureAppCheckReady,
         readServerProfile: () => getRequiredProfileData({serverConfirmed: true}),
         hasRequiredProfileData,
+        inspectRequiredProfileData,
       });
       if (result.status === 'requires-completion') {
         setRequiredProfile(result.profile);
@@ -927,7 +929,10 @@ export function App() {
       }
       setRequiredProfile(null);
       if (result.status === 'incomplete-existing') {
-        setProfileLoadError('profile-incomplete-existing-account');
+        if (result.diagnostic) {
+          console.warn('Authenticated profile gate rejected a server-confirmed profile', result.diagnostic);
+        }
+        setProfileLoadError(result.diagnostic?.code || 'profile-incomplete-existing-account');
         return false;
       }
       return result.status;
