@@ -1249,12 +1249,13 @@
 
 ### [CAM-INC-2] - Validação do hotfix pela Play Store
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 14/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** impedir que diferenças entre build local e distribuição escondam novamente uma falha crítica.
 - **O que se planeja fazer:** publicar AAB assinado no canal interno, instalar pela Play e validar fisicamente no Galaxy.
 - **Recursos/arquivos principais envolvidos:** Gradle signing, AAB, Google Play Console e Galaxy físico.
+- **O que foi feito:** o PR draft #200 preparou um AAB versionCode 14 com assinatura/Firebase verificados, mas a prova final não foi executada; a validação definitiva foi incorporada ao AAB versionCode 23 ou superior da CAM-RED-4, que deverá comprovar na mesma instalação Play o hotfix, o bootstrap monitorado e o flash real.
 
 ### [CAM-RED-1] - Protótipo do redesenho centralizado
 
@@ -1271,13 +1272,14 @@
 
 ### [CAM-RED-2] - Prova técnica do redesenho no Android
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 15/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 15/09/2026.
 - **Propósito:** comprovar a continuidade entre preview nativo, fotografia congelada e análise antes da integração visual definitiva.
 - **O que se planeja fazer:** introduzir e provar no fluxo real um estado de congelamento que exiba a foto antes de `stop()`, encerre a câmera logo após a primeira pintura confirmada, preserve cancelamento/background/timeouts e levante os modos reais de flash no Galaxy.
 - **Recursos/arquivos principais envolvidos:** `image-meal-flow.js`, `src/composite/embedded-camera-preview.js`, `image-meal-screen.js`, `scripts/patch-camera-preview-android.js`, Camera Preview 8.0.1 com `toBack:true`, testes unitários e Galaxy físico em build release da Play.
-- **O que foi feito:** no PR #203, a fotografia congelada antes de `stop()` e os modos `off/auto/on/torch` foram comprovados; os dois crashes nativos foram corrigidos de forma fail-closed e deixaram de ocorrer em três repetições físicas diretas por cenário no Galaxy com a versão 16 instalada pela Play, preservando captura sem quadro preto, permissão negada, cancelamento e orientação; aguarda revisão/merge para conclusão formal.
+- **O que foi feito:** o PR #203 foi mesclado após comprovar a fotografia congelada antes de `stop()`, os modos `off/auto/on/torch` e a eliminação dos dois crashes em três repetições físicas diretas por cenário no Galaxy com a versão 16 instalada pela Play, preservando captura sem quadro preto, permissão negada, cancelamento e orientação.
+- **Alinhamento:** 100%.
 
 ### [CAM-RED-3] - Palco centralizado da câmera
 
@@ -1298,7 +1300,7 @@
 - **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
 - **Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `getSupportedFlashModes()`/`setFlashMode()`, testes unitários/visuais, CI autenticado e Galaxy físico.
-- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; depois das correções externas de data civil, perfil e exclusão mútua das suítes, a branch incorporou a `origin/main` até `53e8fd9`, passou no gate local e nos CIs `35464423717`/`35464423719`, e produziu o AAB assinado versionCode 21, SHA-256 `6FEB0F26BD604F05D339C4784F56B505675C2630679742BFB77153E5BFBCEF85`. Publicação interna e prova física sequencial Principal→UIUX permanecem pendentes.
+- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; a branch incorporou a `origin/main` `2cd5338` com D1/D2, passou em 91 testes focados, 16 células visuais, 1.431 unitários, smokes públicos legado/Vite e cutover 60/60. CI autenticado, AAB versionCode 23+ e prova física Play permanecem pendentes.
 
 ### Correção técnica do App Check e da paridade visual do cutover
 
