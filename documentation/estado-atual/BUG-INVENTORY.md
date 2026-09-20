@@ -503,6 +503,17 @@ passa a lançar `firestore-profile-auth-unavailable`, fixa o UID no início da l
 e não consulta Firestore/cache sem contexto autenticado. O evento upstream que
 tornou `auth.currentUser` transitoriamente indisponível não é recuperável no logcat
 sanitizado original; o defeito de classificação e sua correção têm teste determinístico.
+Recorrência física (20/09/2026): o AAB Play versionCode 21, que contém o hotfix
+anterior, voltou a exibir `profile-incomplete-existing-account` em uma única
+submissão real. O documento da conta descartável foi relido administrativamente
+logo depois e continua completo: 26 campos, todos os obrigatórios presentes e
+`hasRequiredProfileData=true` pelos mesmos validadores. Não havia CI autenticado
+concorrente. Auth concluiu, App Check e `getDocFromServer()` não lançaram erro;
+portanto, há uma segunda origem entre o snapshot e o objeto normalizado entregue ao
+validador. O PR #229 continua correto para UID ausente, mas não encerra este caso.
+Resolução ainda necessária: instrumentar apenas presença/tipo/validade booleana nas
+três fronteiras da leitura, sem valores/UID/tokens, identificar o campo ou transição
+que diverge e repetir uma única prova AAB Play antes de liberar a CAM-RED-4.
 
 [D04] Logout chama fbSignOut duas vezes
 Localização: settings-panel.js:11-15.

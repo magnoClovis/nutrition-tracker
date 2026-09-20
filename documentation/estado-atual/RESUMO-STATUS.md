@@ -53,13 +53,13 @@
 
 ### [INC-PROFILE-INCOMPLETE-PLAY-20260917] - Perfil existente classificado como incompleto no AAB Play
 
-- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
 - **Data de início:** 17/09/2026.
 - **Data de conclusão:** não concluído.
 - **Propósito:** identificar por que uma conta descartável com histórico alcançou `profile-incomplete-existing-account` no AAB real versionCode 20 distribuído pela Play, bloqueando a prova física CAM-RED-4.
 - **O que se planeja fazer:** preservar as evidências físicas, confirmar por leitura não destrutiva o perfil no servidor, localizar a etapa Auth/App Check/Firestore/validação/cache que produziu a classificação e implementar somente uma correção comprovada, sem fallback que transforme falha em ausência.
-- **Recursos/arquivos principais envolvidos:** AAB Play `com.hermegas.trofia` versionCode 20, Firebase Auth/App Check/Firestore, `src/App.jsx`, `src/leaf/authenticated-profile-gate.js`, camada modular de storage, conta descartável, Galaxy SM-S938B, testes unitários/autenticados e documentação D03.
-- **O que foi feito:** a conta foi confirmada por leitura remota não destrutiva como completa e válida; o PR #229/merge `1e9ef55` corrigiu o retorno vazio quando o UID ainda não estava disponível, passando a falhar explicitamente como sessão indisponível sem abrir cadastro. Gates locais, CI e a primeira incorporação automatizada pelo UIUX passaram; falta validar o hotfix em novo AAB distribuído pela Play durante a retomada da CAM-RED-4.
+- **Recursos/arquivos principais envolvidos:** AABs Play `com.hermegas.trofia` versionCode 20 e 21, Firebase Auth/App Check/Firestore, `src/App.jsx`, `src/leaf/authenticated-profile-gate.js`, `firebase-firestore-sdk.js`, `profile-validation.js`, conta descartável, Galaxy SM-S938B, testes unitários/autenticados e documentação D03.
+- **O que foi feito:** a conta foi confirmada por leitura remota não destrutiva como completa e válida; o PR #229/merge `1e9ef55` corrigiu o retorno vazio quando o UID ainda não estava disponível. A prova Play versionCode 21 de 20/09, já contendo esse hotfix, voltou a exibir `profile-incomplete-existing-account` numa única submissão real. Não havia CI autenticado concorrente; Auth concluiu, App Check e a leitura de servidor não lançaram erro, mas o objeto entregue ao validador foi classificado como incompleto embora uma leitura administrativa imediata confirmasse 26 campos e todos os obrigatórios válidos. A instalação permanece bloqueada para a prova da CAM-RED-4 até instrumentar essa fronteira e corrigir a causa restante.
 
 ### [INC-AUTH-CLEANUP-LANG-F1] - Diagnóstico e infraestrutura do lease autenticado
 
