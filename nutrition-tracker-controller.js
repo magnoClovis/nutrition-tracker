@@ -1035,6 +1035,7 @@
       const [imageMealState, setImageMealState] = useState(null);
       const imageMealFlowRef = useRef(null);
       const imageMealUnsubscribeRef = useRef(null);
+      const imageMealClosePromiseRef = useRef(null);
       const imageMealRegistrationRef = useRef(null);
       const imageMealPreviousPhaseRef = useRef(null);
       function openTab(nextTab, opts = {}) {
@@ -2054,15 +2055,27 @@
         meal: staged.meal,
         mealTimeControl
       };
-      function closeImageMealMode() {
+      async function closeImageMealMode() {
+        if (imageMealClosePromiseRef.current) return imageMealClosePromiseRef.current;
         const unsubscribe = imageMealUnsubscribeRef.current;
         const flow = imageMealFlowRef.current;
         imageMealUnsubscribeRef.current = null;
         imageMealFlowRef.current = null;
         if (typeof unsubscribe === "function") unsubscribe();
-        if (flow && typeof flow.destroy === "function") flow.destroy();
-        setImageMealState(null);
-        setImageMealOpen(false);
+        const closing = (async () => {
+          try {
+            if (flow && typeof flow.destroy === "function") await flow.destroy();
+          } finally {
+            setImageMealState(null);
+            setImageMealOpen(false);
+          }
+        })();
+        imageMealClosePromiseRef.current = closing;
+        try {
+          await closing;
+        } finally {
+          if (imageMealClosePromiseRef.current === closing) imageMealClosePromiseRef.current = null;
+        }
       }
       function openImageMealMode() {
         if (!imageMealFeature || typeof imageMealFeature.createFlow !== "function" ||

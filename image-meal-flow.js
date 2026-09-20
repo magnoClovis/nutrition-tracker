@@ -468,6 +468,18 @@
       return emit(initialState());
     }
 
+    async function destroy() {
+      operationId += 1;
+      abortActive();
+      clearFrozenPhotoPaintTimer();
+      frozenPhotoStopPending = false;
+      await embeddedCameraPreview?.stop?.().catch(() => {});
+      if (cameraPreviousPhoto && cameraPreviousPhoto !== state.photo) disposePhoto(cameraPreviousPhoto);
+      cameraPreviousPhoto = null;
+      disposePhoto(state.photo);
+      return emit(initialState());
+    }
+
     function subscribe(listener) {
       if (typeof listener !== "function") throw new TypeError("ImageMealFlow listener must be a function");
       listeners.add(listener);
@@ -493,7 +505,7 @@
       review,
       confirm,
       discard,
-      destroy: discard
+      destroy
     };
   }
 

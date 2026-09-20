@@ -388,9 +388,10 @@ contractTest('disposes a late preprocessed capture after the flow is destroyed',
   await fixture.flow.captureFromCamera();
   await fixture.flow.startEmbeddedCamera({});
   const capture = fixture.flow.captureEmbeddedCamera();
-  fixture.flow.destroy();
+  const destroying = fixture.flow.destroy();
   pendingCapture.resolve('late-jpeg');
   await capture;
+  await destroying;
   const latePhoto = fixture.photos.find(photo => photo.name === 'embedded-late-jpeg');
   assert.equal(latePhoto.disposed, true);
   assert.equal(fixture.flow.getState().phase, 'empty');
@@ -410,9 +411,31 @@ contractTest('destroy disposes the retained photo while an embedded camera sessi
   const retained = fixture.flow.getState().photo;
   await fixture.flow.captureFromCamera();
   await fixture.flow.startEmbeddedCamera({});
-  fixture.flow.destroy();
+  await fixture.flow.destroy();
   assert.equal(retained.disposed, true);
   assert.equal(fixture.flow.getState().photo, null);
+});
+
+contractTest('destroy invalidates callbacks immediately but waits for native stop before clearing state', async module => {
+  const stopping = deferred();
+  const calls = [];
+  const fixture = createFixture(module, {
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() { calls.push('start'); },
+      async getSupportedFlashModes() { return ['off', 'torch']; },
+      async capture() { return 'unused'; },
+      stop() { calls.push('stop'); return stopping.promise; },
+    },
+  });
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  const destroying = fixture.flow.destroy();
+  assert.deepEqual(calls, ['start', 'stop']);
+  assert.equal(fixture.flow.getState().phase, 'camera-active');
+  stopping.resolve();
+  const state = await destroying;
+  assert.equal(state.phase, 'empty');
 });
 
 contractTest('processes a photo into an editable normalized result with stable item ids', async module => {

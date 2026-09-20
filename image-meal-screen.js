@@ -234,14 +234,6 @@
         React.createElement("span", { "data-camera-corner": "bottom-left" }),
         React.createElement("span", { "data-camera-corner": "bottom-right" }),
         React.createElement("div", { "data-camera-focus-frame": "true" })),
-        React.createElement("div", {
-          "aria-hidden": "true",
-          "data-camera-active-indicator": "true"
-        }, cameraReady
-          ? text("Câmera ativa", "Camera active", "Cámara activa")
-          : phase === "camera-capturing"
-            ? text("Capturando...", "Capturing...", "Capturando...")
-            : text("Abrindo câmera...", "Opening camera...", "Abriendo cámara...")),
         cameraFlashAvailable && action(React.createElement(React.Fragment, null,
           React.createElement("svg", {
             "aria-hidden": "true",
@@ -251,11 +243,7 @@
             focusable: "false"
           }, React.createElement("path", {
             d: "M13.5 2.75 6.75 12h4.6l-.85 9.25L17.25 11h-4.6l.85-8.25Z",
-            fill: "none",
-            stroke: "currentColor",
-            strokeWidth: "1.6",
-            strokeLinecap: "round",
-            strokeLinejoin: "round"
+            fill: "currentColor"
           })),
           React.createElement("span", null, cameraFlashLabel)), onCameraFlashToggle, false, {
           allowWhileBusy: true,

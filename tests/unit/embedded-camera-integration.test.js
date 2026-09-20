@@ -33,7 +33,7 @@ test('C3 preserves a localized transparent viewport, HTML controls, theme tokens
   assert.match(css, /@keyframes embeddedCameraOpen/);
   assert.match(css, /@keyframes embeddedCameraCapture/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\[data-embedded-camera="true"\]\s*\{\s*animation:\s*none/);
-  assert.match(css, /\[data-camera-corner\][\s\S]*var\(--surface-block\)/);
+  assert.match(css, /\[data-camera-corner\][\s\S]*--camera-stage-radius/);
   assert.match(css, /\[data-camera-shutter="true"\][\s\S]*var\(--accent-action-fill\)/);
   assert.match(css, /body:has\(\[data-camera-native-active="true"\]\)[\s\S]*overflow:\s*hidden/);
   assert.match(css, /body:has\(\[data-camera-geometry-locked="true"\]\) \[data-app-main="adicionar"\][\s\S]*overflow:\s*hidden/);
@@ -46,6 +46,8 @@ test('C3 preserves a localized transparent viewport, HTML controls, theme tokens
   assert.match(css, /data-camera-stage-overlay[\s\S]*position:\s*fixed/);
   assert.match(css, /data-camera-backdrop-pane[\s\S]*backdrop-filter:\s*blur/);
   assert.match(css, /data-camera-stage-viewport[\s\S]*grid-area:\s*2 \/ 2/);
+  assert.match(css, /data-camera-flash="true"[\s\S]*height:\s*52px/);
+  assert.match(css, /data-camera-close="true"[\s\S]*width:\s*52px[\s\S]*height:\s*52px/);
 });
 
 test('CAM-RED-4 wires the native flash command to the localized accessible control', () => {

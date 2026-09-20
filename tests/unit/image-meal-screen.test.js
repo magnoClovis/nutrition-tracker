@@ -131,10 +131,9 @@ contractTest('renders the embedded camera as an accessible HTML overlay in every
     const cancel = elements(view, 'button').find(button => button.props['data-camera-close'] === 'true');
     const overlay = elements(view, 'div').find(node => node.props['data-camera-stage-overlay'] === 'true');
     const viewport = elements(view, 'div').find(node => node.props['data-camera-stage-viewport'] === 'true');
-    const visibleIndicator = elements(view, 'div').find(node => node.props['data-camera-active-indicator'] === 'true');
     const announcement = elements(view, 'p').find(node => node.props['data-image-meal-announcement'] === 'true');
     assert.equal(shutter.props.disabled, shutterDisabled);
-    assert.equal(visibleIndicator.props['aria-hidden'], 'true');
+    assert.equal(elements(view, 'div').some(node => node.props['data-camera-active-indicator'] === 'true'), false);
     assert.equal(announcement.props.role, 'status');
     assert.equal(announcement.props['aria-live'], 'polite');
     assert.equal(announcement.props['aria-atomic'], 'true');
@@ -146,6 +145,19 @@ contractTest('renders the embedded camera as an accessible HTML overlay in every
     cancel.props.onClick();
     assert.deepEqual(calls, shutterDisabled ? ['cancel'] : ['capture', 'cancel']);
   }
+});
+
+contractTest('uses a filled flash glyph without restoring the removed visual camera-status pill', ImageMealScreen => {
+  const view = ImageMealScreen(baseProps({
+    phase: 'camera-active', cameraFlashModes: ['off', 'torch'], cameraFlashMode: 'off',
+  }));
+  const flash = elements(view, 'button').find(button => button.props['data-camera-flash'] === 'true');
+  const path = elements(flash, 'path')[0];
+  assert.equal(path.props.fill, 'currentColor');
+  assert.equal(path.props.stroke, undefined);
+  assert.equal(elements(view, 'div').some(node => node.props['data-camera-active-indicator'] === 'true'), false);
+  const announcement = elements(view, 'p').find(node => node.props['data-image-meal-announcement'] === 'true');
+  assert.match(textContent(announcement), /Câmera ativa\. Pronta para capturar\./);
 });
 
 contractTest('offers localized permission recovery through Android settings and gallery', ImageMealScreen => {

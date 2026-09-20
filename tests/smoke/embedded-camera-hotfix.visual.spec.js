@@ -18,8 +18,10 @@ test.describe('embedded camera release hotfix CSS contract', () => {
                   <div data-camera-backdrop-pane="right"></div><div data-camera-backdrop-pane="bottom"></div>
                   <div data-camera-stage-viewport="true" data-embedded-camera="true">
                     <div data-embedded-camera-surface="true"></div>
+                    <span data-camera-corner="top-left"></span><span data-camera-corner="top-right"></span>
+                    <span data-camera-corner="bottom-left"></span><span data-camera-corner="bottom-right"></span>
                     <button data-camera-flash="true" data-camera-flash-state="off" aria-pressed="false">
-                      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M13.5 2.75 6.75 12h4.6l-.85 9.25L17.25 11h-4.6l.85-8.25Z"></path></svg>
+                      <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M13.5 2.75 6.75 12h4.6l-.85 9.25L17.25 11h-4.6l.85-8.25Z"></path></svg>
                       <span>Flash off</span>
                     </button>
                     <button data-camera-close="true">Fechar câmera</button>
@@ -84,20 +86,33 @@ test.describe('embedded camera release hotfix CSS contract', () => {
 
       const flashMetrics = await page.locator('[data-camera-flash="true"]').evaluate(element => {
         const viewport = document.querySelector('[data-camera-stage-viewport="true"]');
+        const close = document.querySelector('[data-camera-close="true"]');
+        const corner = document.querySelector('[data-camera-corner="top-left"]');
         const buttonRect = element.getBoundingClientRect();
+        const closeRect = close.getBoundingClientRect();
         const viewportRect = viewport.getBoundingClientRect();
         const offStyle = getComputedStyle(element);
+        const cornerStyle = getComputedStyle(corner);
         const off = {
           minHeight: parseFloat(offStyle.minHeight),
+          height: buttonRect.height,
+          closeHeight: closeRect.height,
           borderRadius: parseFloat(offStyle.borderRadius),
           background: offStyle.backgroundColor,
+          glyphFill: getComputedStyle(element.querySelector('path')).fill,
+          cornerWidth: parseFloat(cornerStyle.width),
+          cornerBackground: cornerStyle.backgroundImage,
           withinLeft: buttonRect.left >= viewportRect.left,
           withinTop: buttonRect.top >= viewportRect.top,
         };
         return off;
       });
       expect(flashMetrics.minHeight).toBeGreaterThanOrEqual(48);
+      expect(Math.abs(flashMetrics.height - flashMetrics.closeHeight)).toBeLessThanOrEqual(0.5);
       expect(flashMetrics.borderRadius).toBeGreaterThanOrEqual(24);
+      expect(flashMetrics.glyphFill).not.toBe('none');
+      expect(flashMetrics.cornerWidth).toBeGreaterThanOrEqual(32);
+      expect(flashMetrics.cornerBackground).toContain('radial-gradient');
       expect(flashMetrics.withinLeft).toBe(true);
       expect(flashMetrics.withinTop).toBe(true);
       await page.locator('[data-camera-flash="true"]').evaluate(element => {
