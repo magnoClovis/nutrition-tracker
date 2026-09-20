@@ -1300,7 +1300,7 @@
 - **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
 - **Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `getSupportedFlashModes()`/`setFlashMode()`, testes unitários/visuais, CI autenticado e Galaxy físico.
-- **O que foi feito:** comando e estado nativos de flash foram implementados e validados parcialmente no AAB Play v23; após o D19, o fechamento global passou a aguardar e deduplicar o teardown nativo antes de desmontar a UI, o indicador visual redundante foi removido mantendo `aria-live`, o raio virou sólido, pill/X foram alinhados em 52 px e máscaras responsivas recortam os cantos do preview. O gate local corrigido passou em 1.435 unitários, legado 103 + 8 skips estruturais, Vite 111 e cutover 60; nova prova Play claro/escuro ainda é obrigatória.
+- **O que foi feito:** comando e estado nativos de flash foram implementados; após o D19, o fechamento global passou a aguardar/deduplicar o teardown, o indicador visual redundante foi removido mantendo `aria-live`, o raio virou sólido, pill/X foram alinhados e máscaras recortam o preview. Gate local e CI `35543490098`/`35543490132` ficaram verdes; AAB Play v24 assinado, fail-closed e SHA-256 `1006C3A0…8292F` aguarda upload e prova física claro/escuro.
 
 ### Correção técnica do App Check e da paridade visual do cutover
 
