@@ -63,13 +63,14 @@
 
 ### [INC-PROFILE-V21-D1] - Observabilidade sanitizada da leitura de perfil
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 20/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 20/09/2026.
 - **Propósito:** localizar, sem expor dados pessoais, em qual fronteira um perfil completo do Firestore se torna inválido no cliente Android.
 - **O que se planeja fazer:** registrar somente presença, tipo e validade booleana dos campos obrigatórios após o snapshot, após a normalização e antes da decisão do gate; cobrir ausência de vazamento e contratos fail-closed em testes.
 - **Recursos/arquivos principais envolvidos:** `firebase-firestore-sdk.js`, `profile-validation.js`, `src/leaf/authenticated-profile-gate.js`, `src/App.jsx`, tela recuperável de perfil, unitários UMD/ESM e documentação.
-- **O que foi feito:** o PR documental #238 registrou a recorrência da build Play 21 e foi mesclado em `7315c8d`; a D1 agora transporta metadados não enumeráveis limitados a existência/tipos, produz um código sanitizado de tipos e validades somente no erro de perfil incompleto e possui regressões que provam ausência de valores pessoais e preservação do contrato público; testes focados, preflight e suíte local completa estão verdes, restando o CI autenticado como gate.
+- **O que foi feito:** o PR #239/merge `ef30eec` transporta metadados não enumeráveis limitados a existência/tipos, produz um código sanitizado de tipos e validades somente no erro de perfil incompleto e prova ausência de valores pessoais e preservação do contrato público; suíte local e CI autenticado `35522846863` ficaram integralmente verdes.
+- **Alinhamento:** 100% — a instrumentação aprovada foi entregue sem retry, leitura duplicada, fallback de cache nem flexibilização do gate.
 
 ### [INC-PROFILE-V21-D2] - Prova diagnóstica no AAB distribuído pela Play
 
