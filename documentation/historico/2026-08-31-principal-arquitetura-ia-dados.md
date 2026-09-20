@@ -616,8 +616,8 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Status:** concluído.
 - **Data de início:** 20/09/2026.
 - **Data de conclusão:** 20/09/2026.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 1 min 18 s no total, todo leve (jobs dos preflights documentais `35527470068`, `35527955402` e `35528365221`); 0 min pesado, pois o PR contém somente documentação e preparação operacional já coberta pelos gates da D1.
+- **Tempo decorrido:** 57 min 41 s, do primeiro commit `0bd1890` ao merge `890934d`.
+- **Minutos de CI:** 1 min 44 s no total (1 min 44 s leve nos jobs dos runs `35527470068`, `35527955402`, `35528365221` e `35529818595`; 0 min pesado, pois o PR contém somente documentação e preparação operacional já coberta pelos gates da D1).
 - **Propósito:** observar a divergência exclusivamente na combinação em que ela se reproduziu: bundle assinado, instalado pela faixa interna da Play e protegido por Play Integrity no Galaxy físico.
 - **O que se planeja fazer:** após D1 verde e mesclada, gerar um único AAB com versionCode novo e versionName `0.11.0-beta`, conferir commit/hash/assinatura/configuração Firebase de forma fail-closed, instalar pela Play e executar uma única submissão da conta descartável. Serão capturados apenas o código sanitizado e os marcos temporais; a primeira divergência encerra o teste. Todas as configurações do aparelho serão capturadas antes, restauradas ao final e ADB/processos auxiliares encerrados antes de liberar o Galaxy.
 - **Recursos/arquivos principais envolvidos:** Android release/AAB, Play Console/faixa interna, Play Integrity, Galaxy SM-S938B, ADB/logcat, conta descartável local e guia `documentation/operacao/TESTE-FISICO-GALAXY.md`.
@@ -627,7 +627,7 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
   A autenticação real concluiu: o app carregou o perfil existente pela leitura protegida e abriu a navegação principal. Não apareceu cadastro obrigatório, `profile-incomplete-existing-account` nem `firestore-profile-auth-unavailable`; portanto, o caminho D1 de diagnóstico de perfil inválido não precisou emitir código. Como a instalação veio da Play e a leitura protegida do Firestore concluiu com enforcement ativo, a prova confirma operacionalmente a cadeia Firebase/App Check/Play Integrity necessária a esse bootstrap, sem capturar token. Não houve retry, leitura dupla, edição de perfil nem persistência de dado de teste. Ao final, a conta descartável saiu pelo menu do app, a tela de login foi confirmada, o Trofia foi finalizado, XMLs temporários foram apagados, timeout/DND/sincronização/rotação/orientação voltaram exatamente a `30000/0/1/0/0`, e `adb`/`scrcpy` foram encerrados antes de liberar o telefone.
 - **Alinhamento:** 100%. A entrega executou exatamente a prova única aprovada, com artefato Play verificável, conta descartável, captura sanitizada e restauração integral. A divergência não reapareceu; isso é positivo para retomar a validação monitorada da CAM-RED-4, mas não prova que uma falha intermitente foi eliminada. Por não haver código causal emitido nem transformação divergente observada, iniciar D3 agora seria especulativo e contrário ao escopo aprovado.
-- **PRs/commits relacionados:** PR #239/merge `ef30eec`; PR documental #240/merge `3aba36d`; PR operacional D2 #241, commits `0bd1890`, `c2b3055` e `7b50e86`; runs `35527470068`, `35527955402` e `35528365221`.
+- **PRs/commits relacionados:** PR #239/merge `ef30eec`; PR documental #240/merge `3aba36d`; PR operacional D2 #241, commits `0bd1890`, `c2b3055`, `7b50e86` e `bc41a1c`, merge `890934d`; runs `35527470068`, `35527955402`, `35528365221` e `35529818595`.
 
 ### [INC-PROFILE-V21-D3] - Correção causal e encerramento do incidente
 
