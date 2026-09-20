@@ -72,3 +72,22 @@ test('reload of an existing account stays out of the creation-only modal', async
   serverProfile = {complete: true};
   assert.equal((await runAfterReload()).status, 'complete');
 });
+
+test('returns a sanitized diagnostic only for an incomplete existing account', async () => {
+  const {resolveAuthenticatedProfileGate} = await loadGate();
+  const diagnostic = Object.freeze({
+    code: 'profile-incomplete-existing-account-rsssszzn-nsssszzn-psssszzs-v01111',
+    validation: Object.freeze({birthDate: false, gender: true}),
+  });
+  const result = await resolveAuthenticatedProfileGate({
+    isNewAccount: false,
+    getAppCheckToken: async () => 'token',
+    readServerProfile: async () => ({birthDate: ''}),
+    hasRequiredProfileData: () => false,
+    inspectRequiredProfileData: () => diagnostic,
+  });
+
+  assert.equal(result.status, 'incomplete-existing');
+  assert.equal(result.profile, null);
+  assert.equal(result.diagnostic, diagnostic);
+});

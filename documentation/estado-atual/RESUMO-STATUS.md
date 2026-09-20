@@ -61,6 +61,34 @@
 - **Recursos/arquivos principais envolvidos:** AABs Play `com.hermegas.trofia` versionCode 20 e 21, Firebase Auth/App Check/Firestore, `src/App.jsx`, `src/leaf/authenticated-profile-gate.js`, `firebase-firestore-sdk.js`, `profile-validation.js`, conta descartável, Galaxy SM-S938B, testes unitários/autenticados e documentação D03.
 - **O que foi feito:** a conta foi confirmada por leitura remota não destrutiva como completa e válida; o PR #229/merge `1e9ef55` corrigiu o retorno vazio quando o UID ainda não estava disponível. A prova Play versionCode 21 de 20/09, já contendo esse hotfix, voltou a exibir `profile-incomplete-existing-account` numa única submissão real. Não havia CI autenticado concorrente; Auth concluiu, App Check e a leitura de servidor não lançaram erro, mas o objeto entregue ao validador foi classificado como incompleto embora uma leitura administrativa imediata confirmasse 26 campos e todos os obrigatórios válidos. A instalação permanece bloqueada para a prova da CAM-RED-4 até instrumentar essa fronteira e corrigir a causa restante.
 
+### [INC-PROFILE-V21-D1] - Observabilidade sanitizada da leitura de perfil
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 20/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** localizar, sem expor dados pessoais, em qual fronteira um perfil completo do Firestore se torna inválido no cliente Android.
+- **O que se planeja fazer:** registrar somente presença, tipo e validade booleana dos campos obrigatórios após o snapshot, após a normalização e antes da decisão do gate; cobrir ausência de vazamento e contratos fail-closed em testes.
+- **Recursos/arquivos principais envolvidos:** `firebase-firestore-sdk.js`, `profile-validation.js`, `src/leaf/authenticated-profile-gate.js`, `src/App.jsx`, tela recuperável de perfil, unitários UMD/ESM e documentação.
+- **O que foi feito:** o PR documental #238 registrou a recorrência da build Play 21 e foi mesclado em `7315c8d`; a D1 agora transporta metadados não enumeráveis limitados a existência/tipos, produz um código sanitizado de tipos e validades somente no erro de perfil incompleto e possui regressões que provam ausência de valores pessoais e preservação do contrato público; testes focados, preflight e suíte local completa estão verdes, restando o CI autenticado como gate.
+
+### [INC-PROFILE-V21-D2] - Prova diagnóstica no AAB distribuído pela Play
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** obter uma única evidência física capaz de identificar o campo e a transformação que divergem na build real protegida por Play Integrity.
+- **O que se planeja fazer:** gerar AAB assinado com versionCode novo e versionName `0.11.0-beta`, distribuir pela faixa interna, executar uma única submissão com conta descartável e capturar apenas os códigos sanitizados; aplicar integralmente o protocolo permanente do Galaxy.
+- **Recursos/arquivos principais envolvidos:** AAB release, Play Console/faixa interna, Play Integrity, Galaxy SM-S938B, ADB/logcat sanitizado e conta descartável local.
+
+### [INC-PROFILE-V21-D3] - Correção causal e encerramento do incidente
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** corrigir a causa exata comprovada pela prova Play sem retry automático, leitura dupla, fallback de cache ou relaxamento do perfil obrigatório.
+- **O que se planeja fazer:** implementar a menor correção causal, adicionar regressão determinística, executar teste focado, suíte completa e CI autenticado, repetir a validação Play e só então liberar a CAM-RED-4.
+- **Recursos/arquivos principais envolvidos:** módulo identificado na D2, testes unitários/autenticados, Firebase Auth/App Check/Firestore, AAB Play, documentação e comunicação de desbloqueio da UI/UX.
+
 ### [INC-AUTH-CLEANUP-LANG-F1] - Diagnóstico e infraestrutura do lease autenticado
 
 - **Status:** concluído — **Chat:** Trofia-Principal.

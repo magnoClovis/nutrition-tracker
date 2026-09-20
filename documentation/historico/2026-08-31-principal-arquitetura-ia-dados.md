@@ -597,6 +597,43 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Estado e próximo diagnóstico obrigatório:** o incidente foi reaberto e a instalação versionCode 21 não está liberada para a prova física de câmera/flash da CAM-RED-4. O próximo passo deve instrumentar de forma temporária e sanitizada somente presença/tipo/validade booleana dos campos entre `getDocFromServer()`, `getRequiredProfileData()` e `hasRequiredProfileData()`, sem valores ou identificadores; então repetir uma única prova Play. Não serão adicionados retry automático, consulta dupla, fallback de cache ou relaxamento da validação sem causa comprovada.
 - **PRs/commits relacionados:** PR UI/UX #227, commits `5bc3313`, `2655978` e `ddebe472`; PR #229, commits `c6c6707` e `91aa477`, merge `1e9ef55`, runs `35267419513`, `35267419620`, `35271507153` e `35271507208`; AAB Play versionCode 21 SHA-256 `6FEB0F26BD604F05D339C4784F56B505675C2630679742BFB77153E5BFBCEF85`; PR obsoleto #230 fechado sem merge. — **Chat:** Trofia-Principal.
 
+### [INC-PROFILE-V21-D1] - Observabilidade sanitizada da leitura de perfil
+
+- **Status:** em andamento.
+- **Data de início:** 20/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** pendente.
+- **Propósito:** transformar a fronteira ainda opaca entre o snapshot confirmado do Firestore e `hasRequiredProfileData()` em evidência diagnóstica suficiente para localizar a segunda origem de `profile-incomplete-existing-account`, sem registrar valores de perfil ou identificadores.
+- **O que se planeja fazer:** criar um diagnóstico determinístico composto somente por estados de presença, tipo e validade booleana dos campos obrigatórios; capturá-lo depois de `snapshot.data()`, depois da conversão em registros do storage e imediatamente antes da decisão do gate; tornar o código sanitizado visível na tela recuperável/logcat; provar em unitários UMD/ESM que valores, e-mail, UID, tokens, headers e dados nutricionais nunca são incluídos. A instrumentação não pode adicionar retry, leitura duplicada, cache fallback, timeout maior nem flexibilizar a validação.
+- **Recursos/arquivos principais envolvidos:** `firebase-firestore-sdk.js`, `profile-validation.js`, `src/leaf/authenticated-profile-gate.js`, `src/App.jsx`, `required-profile-modal.js`, `tests/unit/firebase-firestore-sdk.test.js`, `tests/unit/profile-validation.test.js`, `tests/unit/authenticated-profile-gate.test.js`, preflight e documentação.
+- **O que foi feito:** o PR documental #238, commit `a0dfa6c`, merge `7315c8d`, consolidou a recorrência física versionCode 21 antes do código; levou exatamente 18 min 44 s do primeiro commit ao merge e seu único CI leve, run `35519515970`, consumiu 26 s, sem CI pesado. Na implementação D1, `fbGetProfileFromServer3()` passou a transportar, em propriedades não enumeráveis, somente a existência do documento confirmada por `snapshot.exists()` e os tipos observados antes/depois da normalização; `inspectRequiredProfileData()` converte esses estados em um código curto composto apenas por códigos de tipo e cinco resultados booleanos de validação. O gate anexa esse diagnóstico exclusivamente ao resultado `incomplete-existing`, e a tela recuperável/logcat o expõe sem valor de campo, e-mail, UID, token, header ou dado nutricional. Testes com sentinelas secretas provam que o diagnóstico serializado não contém os valores e que as chaves públicas enumeráveis do perfil não mudaram. Os testes focados passaram 96/96 e o preflight passou sem avisos. A suíte local completa final passou com 1.421/1.421 unitários, 48 smokes legado e 48 Vite; em cada matriz, 63 casos autenticados foram pulados porque as credenciais foram deliberadamente removidas deste worktree, e o CI seguro permanece responsável por executá-los. O cutover passou 60/60. A branch e os arquivos funcionais da CAM-RED-4 permanecem intocados; o CI autenticado é o único gate técnico restante antes do merge.
+- **PRs/commits relacionados:** PR documental #238, commit `a0dfa6c`, merge `7315c8d`, run `35519515970`; PR técnico pendente.
+
+### [INC-PROFILE-V21-D2] - Prova diagnóstica no AAB distribuído pela Play
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** observar a divergência exclusivamente na combinação em que ela se reproduziu: bundle assinado, instalado pela faixa interna da Play e protegido por Play Integrity no Galaxy físico.
+- **O que se planeja fazer:** após D1 verde e mesclada, gerar um único AAB com versionCode novo e versionName `0.11.0-beta`, conferir commit/hash/assinatura/configuração Firebase de forma fail-closed, instalar pela Play e executar uma única submissão da conta descartável. Serão capturados apenas o código sanitizado e os marcos temporais; a primeira divergência encerra o teste. Todas as configurações do aparelho serão capturadas antes, restauradas ao final e ADB/processos auxiliares encerrados antes de liberar o Galaxy.
+- **Recursos/arquivos principais envolvidos:** Android release/AAB, Play Console/faixa interna, Play Integrity, Galaxy SM-S938B, ADB/logcat, conta descartável local e guia `documentation/operacao/TESTE-FISICO-GALAXY.md`.
+- **PRs/commits relacionados:** não iniciado.
+
+### [INC-PROFILE-V21-D3] - Correção causal e encerramento do incidente
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** eliminar a transformação ou condição exata identificada na D2 e restabelecer um bootstrap confiável para perfis antigos completos.
+- **O que se planeja fazer:** implementar somente a correção sustentada pela evidência física, criar reprodução determinística, executar testes focados, `npm test` completo e CI autenticado real, repetir a prova no AAB Play e atualizar resumo, histórico e inventário. O incidente só será fechado depois de login, leitura protegida e entrada na navegação principal sem erro; só então a instalação será liberada para a CAM-RED-4.
+- **Recursos/arquivos principais envolvidos:** módulo causal a identificar na D2, testes de regressão, Firebase Auth/App Check/Firestore, CI autenticado, AAB Play, Galaxy e documentação.
+- **PRs/commits relacionados:** não iniciado.
+
 ### [INC-AUTH-CLEANUP-LANG-F1] - Diagnóstico e infraestrutura do lease autenticado
 
 - **Status:** em andamento.

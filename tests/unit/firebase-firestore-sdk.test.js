@@ -261,6 +261,21 @@ contractTest('profile gate bypasses an incomplete cache and requires the server 
   assert.equal(backend.calls.filter(call => call.operation === 'getDocFromServer').length, 1);
   assert.equal(backend.calls.filter(call => call.operation === 'getDoc').length, 0);
   assert.equal(backend.calls.filter(call => call.operation === 'getDocFromCache').length, 0);
+  assert.deepEqual(records.__profileReadDiagnostics, {
+    source: 'firestore-server',
+    documentExists: true,
+    rawKinds: {
+      birthDate: 'string', gender: 'string', activityLevel: 'string', goalType: 'string',
+      goalKg: 'missing', goalWeeks: 'missing',
+    },
+    normalizedKinds: {
+      birthDate: 'string', gender: 'string', activityLevel: 'string', goalType: 'string',
+      goalKg: 'missing', goalWeeks: 'missing',
+    },
+  });
+  assert.deepEqual(Object.keys(records).sort(), [
+    'activityLevel', 'birthDate', 'gender', 'goalKg', 'goalType', 'goalWeeks',
+  ]);
 });
 
 contractTest('server-confirmed profile failures propagate instead of becoming missing fields', async create => {
