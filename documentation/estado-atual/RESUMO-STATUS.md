@@ -74,12 +74,13 @@
 
 ### [INC-PROFILE-V21-D2] - Prova diagnóstica no AAB distribuído pela Play
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 20/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** obter uma única evidência física capaz de identificar o campo e a transformação que divergem na build real protegida por Play Integrity.
 - **O que se planeja fazer:** gerar AAB assinado com versionCode novo e versionName `0.11.0-beta`, distribuir pela faixa interna, executar uma única submissão com conta descartável e capturar apenas os códigos sanitizados; aplicar integralmente o protocolo permanente do Galaxy.
 - **Recursos/arquivos principais envolvidos:** AAB release, Play Console/faixa interna, Play Integrity, Galaxy SM-S938B, ADB/logcat sanitizado e conta descartável local.
+- **O que foi feito:** a etapa foi iniciada em worktree isolada da `origin/main` no merge `3aba36d`; o próximo AAB usará versionCode 22 e versionName `0.11.0-beta`, sem alterar a versão nominal nem tocar no PR #227 da UI/UX.
 
 ### [INC-PROFILE-V21-D3] - Correção causal e encerramento do incidente
 

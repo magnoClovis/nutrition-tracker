@@ -613,15 +613,16 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ### [INC-PROFILE-V21-D2] - Prova diagnóstica no AAB distribuído pela Play
 
-- **Status:** não iniciado.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento.
+- **Data de início:** 20/09/2026.
+- **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; não iniciado.
+- **Minutos de CI:** 0 min; etapa operacional ainda sem PR próprio.
 - **Propósito:** observar a divergência exclusivamente na combinação em que ela se reproduziu: bundle assinado, instalado pela faixa interna da Play e protegido por Play Integrity no Galaxy físico.
 - **O que se planeja fazer:** após D1 verde e mesclada, gerar um único AAB com versionCode novo e versionName `0.11.0-beta`, conferir commit/hash/assinatura/configuração Firebase de forma fail-closed, instalar pela Play e executar uma única submissão da conta descartável. Serão capturados apenas o código sanitizado e os marcos temporais; a primeira divergência encerra o teste. Todas as configurações do aparelho serão capturadas antes, restauradas ao final e ADB/processos auxiliares encerrados antes de liberar o Galaxy.
 - **Recursos/arquivos principais envolvidos:** Android release/AAB, Play Console/faixa interna, Play Integrity, Galaxy SM-S938B, ADB/logcat, conta descartável local e guia `documentation/operacao/TESTE-FISICO-GALAXY.md`.
-- **PRs/commits relacionados:** não iniciado.
+- **O que foi feito:** a D1 foi encerrada pelos merges `ef30eec` e `3aba36d`, deixando disponível no bundle o código sanitizado que diferencia existência do documento, tipos brutos, tipos normalizados, tipos entregues ao validador e cinco resultados booleanos, sem valores pessoais. A D2 começou em um único worktree criado diretamente da `origin/main` `3aba36d`; como o versionCode 21 já foi distribuído e reproduziu o incidente, o próximo candidato será versionCode 22, mantendo versionName `0.11.0-beta`. Antes da compilação serão copiados somente os arquivos locais ignorados indispensáveis, conferidos de forma fail-closed e removidos do worktree após produzir o artefato verificável.
+- **PRs/commits relacionados:** PR #239/merge `ef30eec`; PR documental #240/merge `3aba36d`; PR operacional D2 pendente.
 
 ### [INC-PROFILE-V21-D3] - Correção causal e encerramento do incidente
 
