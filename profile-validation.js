@@ -81,6 +81,30 @@
       return Number(profile.goalKg) > 0 && Number(profile.goalWeeks) > 0;
     }
 
+    function diagnosticValueKind(value) {
+      if (value === undefined) return 'missing';
+      if (value === null) return 'null';
+      if (Array.isArray(value)) return 'array';
+      return typeof value;
+    }
+
+    function attachProfileReadDiagnostics(profile, records) {
+      const recordKinds = {};
+      Object.keys(profile).forEach(key => {
+        recordKinds[key] = diagnosticValueKind(profile[key]);
+      });
+      Object.defineProperty(profile, '__profileReadDiagnostics', {
+        configurable: false,
+        enumerable: false,
+        writable: false,
+        value: Object.freeze({
+          source: records?.__profileReadDiagnostics || null,
+          profileKinds: Object.freeze(recordKinds),
+        }),
+      });
+      return profile;
+    }
+
     /**
      * Reads the persisted fields used by the required-profile gate.
      *
@@ -104,7 +128,7 @@
         : Object.fromEntries(await Promise.all(keys.map(async key => [key, await storage.get(key)])));
       const [birthDate, gender, activityLevel, goalType, goalKg, goalWeeks, manualAdjustment] =
         keys.map(key => records[key]);
-      return {
+      return attachProfileReadDiagnostics({
         birthDate: birthDate && birthDate.value ? birthDate.value : '',
         gender: gender && gender.value ? gender.value : '',
         activityLevel: activityLevel && activityLevel.value ? activityLevel.value : '',
@@ -112,7 +136,7 @@
         goalKg: goalKg && goalKg.value ? goalKg.value : '',
         goalWeeks: goalWeeks && goalWeeks.value ? goalWeeks.value : '',
         manualAdjustment: manualAdjustment && manualAdjustment.value ? manualAdjustment.value : ''
-      };
+      }, records);
     }
 
     /**
@@ -125,13 +149,40 @@
       return !!profile && isValidBirthDate(profile.birthDate) && isValidGender(profile.gender) && isValidGoalProfile(profile);
     }
 
+    function inspectRequiredProfileData(profile) {
+      const diagnosticKeys = [
+        'birthDate', 'gender', 'activityLevel', 'goalType', 'goalKg', 'goalWeeks', 'manualAdjustment'
+      ];
+      const kindCode = kind => ({
+        string: 's', number: 'n', boolean: 'b', object: 'o', array: 'a',
+        date: 'd', null: 'z', missing: 'x',
+      })[kind] || 'u';
+      const signature = kinds => diagnosticKeys.map(key => kindCode(kinds?.[key])).join('');
+      const validation = Object.freeze({
+        birthDate: !!profile && isValidBirthDate(profile.birthDate),
+        gender: !!profile && isValidGender(profile.gender),
+        activityLevel: !!profile && isValidActivityLevel(profile.activityLevel),
+        goalType: !!profile && ['maintenance', 'loss', 'gain'].includes(profile.goalType),
+        goalProfile: !!profile && isValidGoalProfile(profile),
+      });
+      const bit = value => value ? '1' : '0';
+      const stages = profile?.__profileReadDiagnostics || null;
+      const source = stages?.source || null;
+      return Object.freeze({
+        code: `profile-incomplete-existing-account-r${signature(source?.rawKinds)}-n${signature(source?.normalizedKinds)}-p${signature(stages?.profileKinds)}-v${bit(validation.birthDate)}${bit(validation.gender)}${bit(validation.activityLevel)}${bit(validation.goalType)}${bit(validation.goalProfile)}`,
+        validation,
+        stages,
+      });
+    }
+
     return {
       isValidBirthDate,
       isValidGender,
       isValidActivityLevel,
       isValidGoalProfile,
       getRequiredProfileData,
-      hasRequiredProfileData
+      hasRequiredProfileData,
+      inspectRequiredProfileData,
     };
   }
 

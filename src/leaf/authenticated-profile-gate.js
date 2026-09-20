@@ -8,6 +8,7 @@ async function resolveAuthenticatedProfileGate({
   getAppCheckToken,
   readServerProfile,
   hasRequiredProfileData,
+  inspectRequiredProfileData,
 }) {
   if (typeof getAppCheckToken !== 'function' || typeof readServerProfile !== 'function' ||
       typeof hasRequiredProfileData !== 'function') {
@@ -22,7 +23,10 @@ async function resolveAuthenticatedProfileGate({
   if (isNewAccount === true) {
     return Object.freeze({status: 'requires-completion', profile});
   }
-  return Object.freeze({status: 'incomplete-existing', profile: null});
+  const diagnostic = typeof inspectRequiredProfileData === 'function'
+    ? inspectRequiredProfileData(profile)
+    : null;
+  return Object.freeze({status: 'incomplete-existing', profile: null, diagnostic});
 }
 
 export { resolveAuthenticatedProfileGate };

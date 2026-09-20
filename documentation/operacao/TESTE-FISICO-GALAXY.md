@@ -16,6 +16,7 @@ Se qualquer estado inicial não puder ser lido ou preservado, interromper antes 
 ## Durante a validação
 
 - Dirigir a sequência por ADB sempre que possível; solicitar participação manual apenas quando houver julgamento humano indispensável.
+- Em formulários com teclado aberto, não usar `KEYCODE_BACK` apenas para ocultar o IME antes de um toque por coordenada: no Android esse mesmo evento pode enviar a atividade ao plano de fundo. Preferir a ação IME do campo ou redescobrir os limites acessíveis depois que o teclado fechar; confirmar pelo logcat se houve submissão antes de contabilizar uma tentativa.
 - Monitorar PID, encerramentos, erros fatais, App Check, Firestore e transporte de IA sem capturar conteúdo sensível.
 - Usar somente fotos aprovadas e sem rostos/dados pessoais; criar cópia sanitizada quando necessário.
 - Evitar persistir refeições ou alterações fora do objetivo do teste. Se houver persistência necessária, registrar exatamente o dado descartável criado para removê-lo ao final.
