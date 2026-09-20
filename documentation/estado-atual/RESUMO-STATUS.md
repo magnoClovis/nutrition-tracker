@@ -1266,7 +1266,7 @@
 - **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
 - **Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `getSupportedFlashModes()`/`setFlashMode()`, testes unitários/visuais, CI autenticado e Galaxy físico.
-- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; depois das correções externas de data civil, perfil e exclusão mútua das suítes, a branch incorporou a `origin/main` até `53e8fd9` e o gate local passou com 1.428 unitários, legado 103 + 8 skips estruturais, Vite 111/111 e cutover 60/60. O AAB e a prova física continuam pendentes do CI remoto desta revisão.
+- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; depois das correções externas de data civil, perfil e exclusão mútua das suítes, a branch incorporou a `origin/main` até `53e8fd9`, passou no gate local e nos CIs `35464423717`/`35464423719`, e produziu o AAB assinado versionCode 21, SHA-256 `6FEB0F26BD604F05D339C4784F56B505675C2630679742BFB77153E5BFBCEF85`. Publicação interna e prova física sequencial Principal→UIUX permanecem pendentes.
 
 ### Correção técnica do App Check e da paridade visual do cutover
 
