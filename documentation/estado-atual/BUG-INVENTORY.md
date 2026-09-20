@@ -518,6 +518,12 @@ Plano aprovado (20/09/2026): D1 adiciona observabilidade sanitizada e sua cobert
 D2 executa uma única prova em AAB Play para localizar a divergência; D3 aplica e
 valida somente a correção causal comprovada. O plano proíbe retry automático,
 consulta duplicada, fallback de cache e relaxamento da validação obrigatória.
+Prova D2 (20/09/2026): o AAB Play versionCode 22 concluiu uma única autenticação
+com conta descartável, leu o perfil protegido e abriu a navegação principal sem
+`profile-incomplete-existing-account` nem `firestore-profile-auth-unavailable`.
+O resultado permite repetir o gate CAM-RED-4 com o mesmo critério de parada, mas
+não encerra por inferência uma condição intermitente nem justifica correção D3 sem
+novo código diagnóstico causal.
 
 [D04] Logout chama fbSignOut duas vezes
 Localização: settings-panel.js:11-15.

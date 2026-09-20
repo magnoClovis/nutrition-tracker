@@ -53,13 +53,13 @@
 
 ### [INC-PROFILE-INCOMPLETE-PLAY-20260917] - Perfil existente classificado como incompleto no AAB Play
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** em monitoramento após prova Play limpa — **Chat:** Trofia-Principal.
 - **Data de início:** 17/09/2026.
 - **Data de conclusão:** não concluído.
 - **Propósito:** identificar por que uma conta descartável com histórico alcançou `profile-incomplete-existing-account` no AAB real versionCode 20 distribuído pela Play, bloqueando a prova física CAM-RED-4.
 - **O que se planeja fazer:** preservar as evidências físicas, confirmar por leitura não destrutiva o perfil no servidor, localizar a etapa Auth/App Check/Firestore/validação/cache que produziu a classificação e implementar somente uma correção comprovada, sem fallback que transforme falha em ausência.
 - **Recursos/arquivos principais envolvidos:** AABs Play `com.hermegas.trofia` versionCode 20 e 21, Firebase Auth/App Check/Firestore, `src/App.jsx`, `src/leaf/authenticated-profile-gate.js`, `firebase-firestore-sdk.js`, `profile-validation.js`, conta descartável, Galaxy SM-S938B, testes unitários/autenticados e documentação D03.
-- **O que foi feito:** a conta foi confirmada por leitura remota não destrutiva como completa e válida; o PR #229/merge `1e9ef55` corrigiu o retorno vazio quando o UID ainda não estava disponível. A prova Play versionCode 21 de 20/09, já contendo esse hotfix, voltou a exibir `profile-incomplete-existing-account` numa única submissão real. Não havia CI autenticado concorrente; Auth concluiu, App Check e a leitura de servidor não lançaram erro, mas o objeto entregue ao validador foi classificado como incompleto embora uma leitura administrativa imediata confirmasse 26 campos e todos os obrigatórios válidos. A instalação permanece bloqueada para a prova da CAM-RED-4 até instrumentar essa fronteira e corrigir a causa restante.
+- **O que foi feito:** a conta foi confirmada por leitura remota não destrutiva como completa e válida; o PR #229/merge `1e9ef55` corrigiu o retorno vazio quando o UID ainda não estava disponível. A prova Play versionCode 21 de 20/09 voltou a exibir `profile-incomplete-existing-account`, motivando a instrumentação sanitizada D1. Na D2, o AAB diagnóstico versionCode 22 instalado pela Play concluiu uma única autenticação real, leu o perfil protegido e abriu a navegação principal sem `profile-incomplete-existing-account` nem `firestore-profile-auth-unavailable`. A passagem limpa conclui a prova planejada e permite repetir o gate da CAM-RED-4 com monitoramento, mas não demonstra que a intermitência deixou de existir nem justifica uma correção D3 especulativa.
 
 ### [INC-PROFILE-V21-D1] - Observabilidade sanitizada da leitura de perfil
 
@@ -74,17 +74,18 @@
 
 ### [INC-PROFILE-V21-D2] - Prova diagnóstica no AAB distribuído pela Play
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 20/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 20/09/2026.
 - **Propósito:** obter uma única evidência física capaz de identificar o campo e a transformação que divergem na build real protegida por Play Integrity.
 - **O que se planeja fazer:** gerar AAB assinado com versionCode novo e versionName `0.11.0-beta`, distribuir pela faixa interna, executar uma única submissão com conta descartável e capturar apenas os códigos sanitizados; aplicar integralmente o protocolo permanente do Galaxy.
 - **Recursos/arquivos principais envolvidos:** AAB release, Play Console/faixa interna, Play Integrity, Galaxy SM-S938B, ADB/logcat sanitizado e conta descartável local.
-- **O que foi feito:** a etapa foi iniciada em worktree isolada da `origin/main` no merge `3aba36d`; o AAB diagnóstico versionCode 22/versionName `0.11.0-beta` foi gerado e verificado com assinatura, Firebase, manifesto e SHA-256 `E3E48768B929D43F7857E3025C17208A37FE67B7CD388D28D46639A85D2A9B4F`, sem tocar no PR #227 da UI/UX; aguardam upload pela faixa interna e a prova física única.
+- **O que foi feito:** o AAB diagnóstico versionCode 22/versionName `0.11.0-beta`, SHA-256 `E3E48768B929D43F7857E3025C17208A37FE67B7CD388D28D46639A85D2A9B4F`, foi instalado pela Play no Galaxy físico. Uma única autenticação com conta descartável concluiu o bootstrap, confirmou o perfil protegido e abriu a navegação sem os dois erros monitorados; não houve retry. A sessão foi encerrada e tela, DND, sincronização, rotação e processos ADB foram restaurados/fechados.
+- **Alinhamento:** 100% — a prova única aprovada foi executada exatamente uma vez; como a falha não reapareceu, o resultado permite retomar o gate monitorado, mas não é tratado como prova de eliminação da intermitência.
 
 ### [INC-PROFILE-V21-D3] - Correção causal e encerramento do incidente
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Status:** não iniciado, condicionado a nova recorrência com diagnóstico causal — **Chat:** Trofia-Principal.
 - **Data de início:** não iniciado.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** corrigir a causa exata comprovada pela prova Play sem retry automático, leitura dupla, fallback de cache ou relaxamento do perfil obrigatório.
