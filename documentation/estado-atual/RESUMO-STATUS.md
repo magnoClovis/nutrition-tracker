@@ -1255,7 +1255,7 @@
 - **Propósito:** impedir que diferenças entre build local e distribuição escondam novamente uma falha crítica.
 - **O que se planeja fazer:** publicar AAB assinado no canal interno, instalar pela Play e validar fisicamente no Galaxy.
 - **Recursos/arquivos principais envolvidos:** Gradle signing, AAB, Google Play Console e Galaxy físico.
-- **O que foi feito:** o PR draft #200 preparou um AAB versionCode 14 sem concluir a prova; ele foi fechado como obsoleto e substituído pelo AAB versionCode 23 da CAM-RED-4, gerado da base `a7d2920` com Firebase/assinatura fail-closed e SHA-256 `A1DBD0A362AEB75FD3994A5208793F3AF0FDE71B81B261EDD098204834AAC835`; a instalação e a prova física pela Play permanecem pendentes.
+- **O que foi feito:** o PR draft #200 preparou um AAB versionCode 14 sem concluir a prova; ele foi fechado como obsoleto e substituído pelo AAB versionCode 23 da CAM-RED-4, gerado da base `a7d2920` com Firebase/assinatura fail-closed e SHA-256 `A1DBD0A362AEB75FD3994A5208793F3AF0FDE71B81B261EDD098204834AAC835`. A instalação real pela Play foi confirmada e o preview/captura ficaram visíveis, mas a prova não pode encerrar o incidente porque o fechamento global do reconhecimento durante câmera/flash ativos deixou o overlay congelado e inacessível; tema claro e matriz restante aguardam correção e nova prova Play.
 
 ### [CAM-RED-1] - Protótipo do redesenho centralizado
 
@@ -1300,7 +1300,7 @@
 - **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
 - **Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `getSupportedFlashModes()`/`setFlashMode()`, testes unitários/visuais, CI autenticado e Galaxy físico.
-- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; a branch incorporou a `origin/main` `2cd5338` com D1/D2, passou em 91 testes focados, 16 células visuais, 1.431 unitários, smokes públicos legado/Vite, cutover 60/60 e CI autenticado integral (`35532248281`/`35532248273`). O AAB assinado versionCode 23 foi verificado e está pronto para a faixa interna; resta a instalação e prova física Play.
+- **O que foi feito:** comando, estado e pill acessível PT/EN/ES foram implementados com preferência por `torch`, fallback `on` e restauração segura; a branch incorporou a `origin/main` `2cd5338`, passou nos gates locais e no CI autenticado (`35532248281`/`35532248273`) e gerou o AAB Play versionCode 23. Na prova física, bootstrap, preview, iluminação real, captura, reset do flash, X da câmera, Voltar e background passaram no tema escuro; porém o X de fechar todo o reconhecimento com câmera/flash ativos deixou a fotografia congelada em um overlay sem controles, bloqueando a matriz antes do tema claro e mantendo a fatia aberta.
 
 ### Correção técnica do App Check e da paridade visual do cutover
 
