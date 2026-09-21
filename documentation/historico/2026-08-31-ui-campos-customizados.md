@@ -1373,6 +1373,28 @@ O PR #227 foi retirado do draft e mesclado na `main` em `95a08bdd468e0976fec0953
 
 **PRs/commits relacionados:** [PR #227](https://github.com/magnoClovis/nutrition-tracker/pull/227), merge [`95a08bd`](https://github.com/magnoClovis/nutrition-tracker/commit/95a08bdd468e0976fec0953cdf391f5f911ae36a), commits funcionais `5bc3313` e `19b8c16`, registro do D19 `714e4f3`, HEADs de AAB `ddebe47` (v21), `a7d2920` (v23) e `19b8c16` (v24), merges de atualização da `main` `a33734f`, `725672e`, `3eed516` e `00f111e`, CIs leves [`35252508909`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35252508909)/[`35464423717`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35464423717)/[`35532248281`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35532248281)/[`35534745154`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35534745154)/[`35539767469`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35539767469)/[`35543490098`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35543490098)/[`35545599534`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35545599534)/[`35639282316`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35639282316)/[`35639629569`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35639629569) e pesados [`35252508927`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35252508927)/[`35464423719`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35464423719)/[`35532248273`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35532248273)/[`35534745097`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35534745097)/[`35539767485`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35539767485)/[`35543490132`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35543490132)/[`35545599514`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35545599514)/[`35639282410`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35639282410); leases do gate local retomado [`35462461612`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35462461612), [`35463114620`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35463114620) e [`35463856714`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35463856714); contenção esperada com os CIs [`35458919766`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35458919766) e [`35460807918`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/35460807918); investigação externa no PR documental #225, `INC-AUTH-BOOTSTRAP-20260917`; correção de perfil no [PR #229](https://github.com/magnoClovis/nutrition-tracker/pull/229), mesclado em `1e9ef55`; correção técnica separada no [PR #224](https://github.com/magnoClovis/nutrition-tracker/pull/224), mesclado em `9f252d6`. — **Chat-Origin:** Trofia-UIUX.
 
+## CAM-RED-5 — análise honesta em tela cheia
+
+**Status:** em andamento — **Chat:** Trofia-UIUX.
+
+**Data de início:** 21/09/2026.
+
+**Data de conclusão:** não concluído.
+
+**Tempo decorrido:** pendente de merge.
+
+**Minutos de CI:** 0m00s até o início da implementação; os runs reais serão acumulados sem estimativa.
+
+**Propósito:** substituir o processamento inline por uma transição contínua e honesta sobre a fotografia capturada, mantendo a imagem como contexto visual enquanto a IA trabalha e eliminando a sensação de salto entre câmera, carregamento e resultado. A fatia também absorve, por decisão explícita, o único acabamento visual adiado da CAM-RED-4: tornar opacas as áreas externas aos quatro arcos do preview nativo.
+
+**O que se planeja fazer:** primeiro corrigir as quatro máscaras para que nenhum pixel do preview `toBack:true` vaze fora dos cantos arredondados e cobrir isso em estilos computados/testes visuais. Depois, após a fotografia congelada ser pintada e a câmera nativa parar, promover essa mesma foto para uma tela de análise sem blur na imagem; aplicar somente um overlay escuro translúcido; bloquear o scroll; mostrar progresso indeterminado e textos secundários alternados que não inventem fases do Worker; manter Cancelar fixo e alcançável; iniciar a análise automaticamente; e preservar claro/escuro, PT/EN/ES, safe areas, fonte ampliada, foco, leitor de tela e `prefers-reduced-motion`. Timeout, diferenciação de rede versus Worker/Gemini e retry permanecem reservados à CAM-RED-6.
+
+**Recursos/arquivos principais envolvidos:** `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `i18n.js`, `src/composite/embedded-camera-preview.js`, novo componente UMD/ESM de análise se a auditoria confirmar a extração, Camera Preview `toBack:true`, Blob/Object URL da fotografia congelada, safe areas, Node.js Test Runner, Playwright legado/Vite, CI autenticado e Galaxy físico por instalação Play quando a validação nativa/visual for necessária.
+
+**O que foi feito:** a worktree `.codex-ui-cam-red-5` e a branch `codex/cam-red-5-analysis` foram criadas diretamente da `origin/main` `d20ffbc`, que já contém o fechamento funcional e documental da CAM-RED-4. Antes de alterar runtime, o plano aprovado foi reconciliado com a limitação física registrada no AAB v24 e com a decisão de manter a câmera desligada assim que a fotografia congelada estiver visível; iniciou-se a auditoria da composição atual, da máquina de estados e dos testes que protegem esse handoff.
+
+**PRs/commits relacionados:** ainda não há PR ou commit funcional da CAM-RED-5. — **Chat-Origin:** Trofia-UIUX.
+
 ## Encerramento administrativo do PR documental obsoleto #170
 
 ### [DOC-PR170-CLOSEOUT] - Fechamento sem merge do registro duplicado da S8

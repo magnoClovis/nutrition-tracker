@@ -1317,12 +1317,13 @@
 
 ### [CAM-RED-5] - Análise honesta em tela cheia
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 21/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** substituir o processamento inline pela análise contínua sobre a fotografia capturada.
 - **O que se planeja fazer:** primeiro tornar completamente opacas e validar fisicamente as quatro máscaras dos cantos do preview; depois ocupar a tela com a foto sem blur, aplicar overlay translúcido, progresso indeterminado e Cancelar fixo, iniciar a análise automaticamente e usar textos honestos sem simular fases que o Worker não informa.
 - **Recursos/arquivos principais envolvidos:** novo componente de análise UMD/ESM, `image-meal-screen.js`, `image-meal-flow.js`, `one-ui.css`, `i18n.js`, máscaras do preview nativo, safe areas, testes visuais e Galaxy físico.
+- **O que foi feito:** branch isolada criada da `origin/main` `d20ffbc`; iniciou-se a auditoria do palco atual e do handoff entre fotografia congelada, encerramento nativo e análise, preservando como primeiro requisito a correção opaca dos quatro cantos.
 
 ### [CAM-RED-6] - Timeout, classificação de falhas e retry
 
