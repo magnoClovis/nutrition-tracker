@@ -10,10 +10,11 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
-  function createImageMealScreen({ React, pickLang, MealEstimateEditor }) {
+  function createImageMealScreen({ React, pickLang, MealEstimateEditor, ImageMealAnalysisScreen }) {
     if (!React || typeof React.createElement !== "function" ||
-        typeof pickLang !== "function" || typeof MealEstimateEditor !== "function") {
-      throw new TypeError("ImageMealScreen requires React, pickLang, and MealEstimateEditor");
+        typeof pickLang !== "function" || typeof MealEstimateEditor !== "function" ||
+        typeof ImageMealAnalysisScreen !== "function") {
+      throw new TypeError("ImageMealScreen requires React, pickLang, MealEstimateEditor, and ImageMealAnalysisScreen");
     }
 
     const buttonStyle = {
@@ -322,26 +323,11 @@
             }),
             action(text("Descartar", "Discard", "Descartar"), onDiscard, false)));
       } else if (phase === "processing") {
-        content = React.createElement("div", { "data-image-meal-state": "processing" },
-          photo,
-          React.createElement("div", {
-            role: "status",
-            "aria-live": "polite",
-            style: { textAlign: "center", padding: 18 }
-          },
-          React.createElement("div", {
-            "aria-hidden": "true",
-            style: { fontSize: 28, animation: "pulse 1.2s ease-in-out infinite" }
-          }, "✦"),
-          React.createElement("p", { style: { color: "var(--text2)" } }, text(
-            "Analisando prato, alimentos e quantidades...",
-            "Analyzing dish, foods, and quantities...",
-            "Analizando plato, alimentos y cantidades..."
-          )),
-          action(text("Cancelar análise", "Cancel analysis", "Cancelar análisis"), onCancelProcessing, false, {
-            allowWhileBusy: true,
-            props: { "data-image-meal-cancel": "true" }
-          })));
+        content = React.createElement(ImageMealAnalysisScreen, {
+          photoUrl: state.photo?.previewUrl,
+          lang,
+          onCancel: onCancelProcessing
+        });
       } else if (phase === "result" || phase === "confirming") {
         const estimate = state.estimate;
         content = React.createElement("div", { "data-image-meal-state": phase },

@@ -180,6 +180,34 @@ contractTest('keeps the native camera alive until the frozen photo paint is conf
   ]);
 });
 
+contractTest('starts honest analysis only after the frozen frame painted and native stop resolved', async module => {
+  const analysis = deferred();
+  const calls = [];
+  const trace = [];
+  const fixture = createFixture(module, {
+    analyzeImageMeal: () => analysis.promise,
+    onCameraHandoffTrace: stage => trace.push(stage),
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() { calls.push('start'); },
+      async capture() { calls.push('capture'); return 'continuous'; },
+      async stop() { calls.push('stop'); },
+    },
+  });
+
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  await fixture.flow.captureEmbeddedCamera();
+  const handoff = fixture.flow.confirmEmbeddedPhotoPainted('pt');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(fixture.flow.getState().phase, 'processing');
+  assert.deepEqual(calls, ['start', 'capture', 'stop']);
+  assert.ok(trace.indexOf('native-stop-resolved') < trace.indexOf('analysis-started'));
+  analysis.resolve(remoteEstimate());
+  const result = await handoff;
+  assert.equal(result.phase, 'result');
+});
+
 contractTest('toggles the live flash with torch preference and restores off after capture', async module => {
   const calls = [];
   const fixture = createFixture(module, {

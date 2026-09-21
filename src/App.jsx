@@ -21,6 +21,7 @@ import * as DiaryScreenModule from './components/diary-screen.js';
 import * as GaResultCardModule from './components/ga-result-card.js';
 import * as GenericDialogModule from './components/generic-dialog.js';
 import * as ImageMealScreenModule from './components/image-meal-screen.js';
+import * as ImageMealAnalysisScreenModule from './components/image-meal-analysis-screen.js';
 import * as LoginScreenModule from './components/login-screen.js';
 import * as MealEstimateEditorModule from './components/meal-estimate-editor.js';
 import * as MealReviewModalModule from './components/meal-review-modal.js';
@@ -282,10 +283,16 @@ const { MealEstimateEditor } = MealEstimateEditorModule.createMealEstimateEditor
   ChoiceField,
 });
 
+const { ImageMealAnalysisScreen } = ImageMealAnalysisScreenModule.createImageMealAnalysisScreen({
+  React,
+  pickLang,
+});
+
 const { ImageMealScreen } = ImageMealScreenModule.createImageMealScreen({
   React,
   pickLang,
   MealEstimateEditor,
+  ImageMealAnalysisScreen,
 });
 
 const imageMealRegistration = ImageMealRegistration.createImageMealRegistration({
