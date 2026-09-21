@@ -725,17 +725,19 @@ flash, fechamento ou conteúdo do modal. O processo permaneceu vivo e não houve
 exceção fatal no logcat; o usuário fica preso numa interface sem ação disponível.
 Severidade: ALTO — bloqueia o fluxo e exige encerrar/reabrir o app, embora não
 tenha sido observada perda de dados nem crash nativo.
-Correção preparada: `destroy()` invalida callbacks e aguarda `stop()` antes de
+Correção concluída: `destroy()` invalida callbacks e aguarda `stop()` antes de
 descartar a foto/estado; `closeImageMealMode()` deduplica o fechamento, remove o
 listener e só desmonta a interface no `finally` posterior ao teardown. Regressões
 unitárias e o gate local completo passaram, sem retry ou timeout artificial.
 Causa confirmada em código: o fechamento global desmontava o estado enquanto
-`discard()` disparava o teardown nativo sem aguardar. A correção ainda exige a
-reprodução física exata no AAB Play antes de classificar o incidente como resolvido.
+`discard()` disparava o teardown nativo sem aguardar. A reprodução física exata
+passou no AAB Play versionCode 24, nos temas claro e escuro: fechar o reconhecimento
+com preview e flash ativos encerrou a sessão e retornou ao formulário sem palco,
+torch ou processo órfão. Incidente resolvido em 21/09/2026.
 Risco de corrigir: aguardar o teardown sem proteger reentrada ou falha nativa
 pode atrasar o fechamento ou deixar duas rotas de cleanup concorrentes.
-Rastreio: encontrado na prova Play da CAM-RED-4/CAM-INC-2 em 20/09/2026; correção
-automatizada preparada no PR draft #227, com nova matriz Play claro/escuro pendente.
+Rastreio: encontrado na prova Play da CAM-RED-4/CAM-INC-2 em 20/09/2026 e resolvido
+no PR #227/merge `95a08bd`, com matriz física Play v24 claro/escuro concluída.
 
 
 5. CÓDIGO MORTO, DESCONECTADO OU DÍVIDA DE LIMPEZA

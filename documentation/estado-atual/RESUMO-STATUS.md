@@ -1249,13 +1249,14 @@
 
 ### [CAM-INC-2] - Validação do hotfix pela Play Store
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 14/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 21/09/2026.
 - **Propósito:** impedir que diferenças entre build local e distribuição escondam novamente uma falha crítica.
 - **O que se planeja fazer:** publicar AAB assinado no canal interno, instalar pela Play e validar fisicamente no Galaxy.
 - **Recursos/arquivos principais envolvidos:** Gradle signing, AAB, Google Play Console e Galaxy físico.
-- **O que foi feito:** o PR draft #200 preparou um AAB versionCode 14 sem concluir a prova; ele foi fechado como obsoleto e substituído pelo AAB versionCode 23 da CAM-RED-4, gerado da base `a7d2920` com Firebase/assinatura fail-closed e SHA-256 `A1DBD0A362AEB75FD3994A5208793F3AF0FDE71B81B261EDD098204834AAC835`. A instalação real pela Play foi confirmada e o preview/captura ficaram visíveis, mas a prova não pode encerrar o incidente porque o fechamento global do reconhecimento durante câmera/flash ativos deixou o overlay congelado e inacessível; tema claro e matriz restante aguardam correção e nova prova Play.
+- **O que foi feito:** depois de o v23 revelar o bloqueio D19, o PR #227 corrigiu o teardown e o AAB v24 instalado pela faixa interna confirmou preview, captura, controles e fechamento global em claro/escuro, com App Check/Play Integrity e instalador `com.android.vending` reais.
+- **Alinhamento:** 100% — a validação exigida foi concluída no artefato efetivamente distribuído; os ciclos adicionais preservaram o critério original e tiveram impacto positivo.
 
 ### [CAM-RED-1] - Protótipo do redesenho centralizado
 
@@ -1294,13 +1295,14 @@
 
 ### [CAM-RED-4] - Flash visual e funcional
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 16/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 21/09/2026.
 - **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
 - **Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `getSupportedFlashModes()`/`setFlashMode()`, testes unitários/visuais, CI autenticado e Galaxy físico.
 - **O que foi feito:** comando e estado nativos de flash foram implementados; no AAB Play v24, flash real, captura, reset e fechamento global D19 passaram fisicamente em claro/escuro, assim como remoção do rótulo, raio preenchido e escala pill/X. A prova mostrou transparência residual fora das curvas; por decisão explícita, esse acabamento mínimo foi transferido para a CAM-RED-5 e não integra o merge desta fatia.
+- **Alinhamento:** ~95% — desvio neutro: todo o comportamento funcional e o acabamento aprovado do flash foram entregues; somente a opacidade externa dos cantos foi transferida explicitamente para a abertura da CAM-RED-5.
 
 ### Correção técnica do App Check e da paridade visual do cutover
 
