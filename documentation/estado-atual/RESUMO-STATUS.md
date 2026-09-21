@@ -1300,7 +1300,7 @@
 - **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
 - **Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `getSupportedFlashModes()`/`setFlashMode()`, testes unitários/visuais, CI autenticado e Galaxy físico.
-- **O que foi feito:** comando e estado nativos de flash foram implementados; após o D19, o fechamento global passou a aguardar/deduplicar o teardown, o indicador visual redundante foi removido mantendo `aria-live`, o raio virou sólido, pill/X foram alinhados e máscaras recortam o preview. Gate local e CI `35543490098`/`35543490132` ficaram verdes; AAB Play v24 assinado, fail-closed e SHA-256 `1006C3A0…8292F` aguarda upload e prova física claro/escuro.
+- **O que foi feito:** comando e estado nativos de flash foram implementados; no AAB Play v24, flash real, captura, reset e fechamento global D19 passaram fisicamente em claro/escuro, assim como remoção do rótulo, raio preenchido e escala pill/X. A prova mostrou transparência residual fora das curvas; por decisão explícita, esse acabamento mínimo foi transferido para a CAM-RED-5 e não integra o merge desta fatia.
 
 ### Correção técnica do App Check e da paridade visual do cutover
 
@@ -1319,8 +1319,8 @@
 - **Data de início:** não determinado.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** substituir o processamento inline pela análise contínua sobre a fotografia capturada.
-- **O que se planeja fazer:** ocupar a tela com a foto sem blur, aplicar overlay translúcido, progresso indeterminado e Cancelar fixo, iniciar a análise automaticamente e usar textos honestos sem simular fases que o Worker não informa.
-- **Recursos/arquivos principais envolvidos:** novo componente de análise UMD/ESM, `image-meal-screen.js`, `image-meal-flow.js`, `one-ui.css`, `i18n.js`, safe areas e testes visuais.
+- **O que se planeja fazer:** primeiro tornar completamente opacas e validar fisicamente as quatro máscaras dos cantos do preview; depois ocupar a tela com a foto sem blur, aplicar overlay translúcido, progresso indeterminado e Cancelar fixo, iniciar a análise automaticamente e usar textos honestos sem simular fases que o Worker não informa.
+- **Recursos/arquivos principais envolvidos:** novo componente de análise UMD/ESM, `image-meal-screen.js`, `image-meal-flow.js`, `one-ui.css`, `i18n.js`, máscaras do preview nativo, safe areas, testes visuais e Galaxy físico.
 
 ### [CAM-RED-6] - Timeout, classificação de falhas e retry
 
