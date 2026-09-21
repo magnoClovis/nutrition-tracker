@@ -32,6 +32,7 @@
       onCapture,
       onCameraSurface,
       onEmbeddedCapture,
+      onCameraFlashToggle,
       onCameraHandoffTrace,
       onEmbeddedPhotoPainted,
       onEmbeddedPhotoPaintFailed,
@@ -52,10 +53,20 @@
       const liveCameraVisible = phase === "camera-opening" || phase === "camera-active" || phase === "camera-capturing";
       const cameraSessionOpen = liveCameraVisible || phase === "camera-frozen";
       const busy = phase === "capturing" || cameraSessionOpen || phase === "processing" || phase === "confirming";
+      const cameraFlashModes = Array.isArray(state.cameraFlashModes) ? state.cameraFlashModes : [];
+      const cameraFlashAvailable = cameraFlashModes.includes("off") &&
+        (cameraFlashModes.includes("torch") || cameraFlashModes.includes("on"));
+      const cameraFlashOn = state.cameraFlashMode && state.cameraFlashMode !== "off";
+      const cameraFlashLabel = cameraFlashOn
+        ? text("Flash ligado", "Flash on", "Flash encendido")
+        : text("Flash desligado", "Flash off", "Flash apagado");
+      const cameraFlashAnnouncement = state.cameraFlashError
+        ? text("Não foi possível alterar o flash.", "The flash could not be changed.", "No se pudo cambiar el flash.")
+        : cameraFlashAvailable ? `${cameraFlashLabel}.` : "";
       const phaseAnnouncements = {
         "camera-opening": text("Abrindo câmera.", "Opening camera.", "Abriendo cámara."),
-        "camera-active": text("Câmera ativa. Pronta para capturar.", "Camera active. Ready to capture.", "Cámara activa. Lista para capturar."),
-        "camera-capturing": text("Capturando foto.", "Capturing photo.", "Capturando foto."),
+        "camera-active": `${text("Câmera ativa. Pronta para capturar.", "Camera active. Ready to capture.", "Cámara activa. Lista para capturar.")} ${cameraFlashAnnouncement}`.trim(),
+        "camera-capturing": `${text("Capturando foto.", "Capturing photo.", "Capturando foto.")} ${cameraFlashAnnouncement}`.trim(),
         "camera-frozen": text("Foto capturada.", "Photo captured.", "Foto capturada."),
         photo: text("Foto capturada. Confira a imagem antes de analisar.", "Photo captured. Check the image before analyzing.", "Foto capturada. Comprueba la imagen antes de analizar.")
       };
@@ -223,14 +234,28 @@
         React.createElement("span", { "data-camera-corner": "bottom-left" }),
         React.createElement("span", { "data-camera-corner": "bottom-right" }),
         React.createElement("div", { "data-camera-focus-frame": "true" })),
-        React.createElement("div", {
-          "aria-hidden": "true",
-          "data-camera-active-indicator": "true"
-        }, cameraReady
-          ? text("Câmera ativa", "Camera active", "Cámara activa")
-          : phase === "camera-capturing"
-            ? text("Capturando...", "Capturing...", "Capturando...")
-            : text("Abrindo câmera...", "Opening camera...", "Abriendo cámara...")),
+        cameraFlashAvailable && action(React.createElement(React.Fragment, null,
+          React.createElement("svg", {
+            "aria-hidden": "true",
+            viewBox: "0 0 24 24",
+            width: "20",
+            height: "20",
+            focusable: "false"
+          }, React.createElement("path", {
+            d: "M13.5 2.75 6.75 12h4.6l-.85 9.25L17.25 11h-4.6l.85-8.25Z",
+            fill: "currentColor"
+          })),
+          React.createElement("span", null, cameraFlashLabel)), onCameraFlashToggle, false, {
+          allowWhileBusy: true,
+          props: {
+            "data-camera-flash": "true",
+            "data-camera-flash-state": cameraFlashOn ? "on" : "off",
+            "aria-label": cameraFlashLabel,
+            "aria-pressed": cameraFlashOn,
+            "aria-busy": state.cameraFlashChanging ? "true" : undefined,
+            disabled: !cameraReady || Boolean(state.cameraFlashChanging)
+          }
+        }),
         action("×", closeCameraWithMotion, false, {
           allowWhileBusy: true,
           props: {

@@ -18,7 +18,7 @@ function createPermissionPlugin(overrides = {}, calls = {}) {
 }
 
 function createFixture(module, overrides = {}) {
-  const calls = { start: [], capture: [], stop: 0, flashModes: 0 };
+  const calls = { start: [], capture: [], stop: 0, flashModes: 0, flashModeChanges: [] };
   const plugin = {
     async start(options) {
       calls.start.push(options);
@@ -37,6 +37,10 @@ function createFixture(module, overrides = {}) {
       calls.flashModes += 1;
       if (overrides.flashModesError) throw overrides.flashModesError;
       return { result: overrides.flashModes || ['off', 'on', 'auto', 'unknown', 'on'] };
+    },
+    async setFlashMode(options) {
+      calls.flashModeChanges.push(options);
+      if (overrides.setFlashModeError) throw overrides.setFlashModeError;
     },
   };
   return {
@@ -184,6 +188,28 @@ test('reports normalized rear-camera flash modes only while the preview is activ
   await fixture.preview.start(fixture.surface);
   assert.deepEqual(await fixture.preview.getSupportedFlashModes(), ['off', 'on', 'auto']);
   assert.equal(fixture.calls.flashModes, 1);
+});
+
+test('sets only supported flash values while active and resets an enabled light before stop', async () => {
+  const module = await loadModule();
+  const fixture = createFixture(module);
+  await assert.rejects(
+    fixture.preview.setFlashMode('torch'),
+    error => error.code === 'preview-not-active',
+  );
+  await fixture.preview.start(fixture.surface);
+  await assert.rejects(
+    fixture.preview.setFlashMode('bright'),
+    error => error.code === 'preview-flash-mode-invalid',
+  );
+  assert.equal(await fixture.preview.setFlashMode('torch'), 'torch');
+  assert.equal(fixture.preview.getFlashMode(), 'torch');
+  await fixture.preview.stop();
+  assert.deepEqual(fixture.calls.flashModeChanges, [
+    { flashMode: 'torch' },
+    { flashMode: 'off' },
+  ]);
+  assert.equal(fixture.preview.getFlashMode(), 'off');
 });
 
 test('stops idempotently and restores idle even when native stop fails', async () => {

@@ -180,6 +180,85 @@ contractTest('keeps the native camera alive until the frozen photo paint is conf
   ]);
 });
 
+contractTest('toggles the live flash with torch preference and restores off after capture', async module => {
+  const calls = [];
+  const fixture = createFixture(module, {
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() { calls.push(['start']); },
+      async getSupportedFlashModes() { return ['off', 'on', 'torch']; },
+      async setFlashMode(mode) { calls.push(['flash', mode]); },
+      async capture() { calls.push(['capture']); return 'flash-jpeg'; },
+      async stop() { calls.push(['stop']); },
+    },
+  });
+
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  assert.equal(fixture.flow.getState().cameraFlashMode, 'off');
+  assert.equal((await fixture.flow.toggleEmbeddedCameraFlash()).cameraFlashMode, 'torch');
+  assert.equal((await fixture.flow.toggleEmbeddedCameraFlash()).cameraFlashMode, 'off');
+  await fixture.flow.toggleEmbeddedCameraFlash();
+  const frozen = await fixture.flow.captureEmbeddedCamera();
+  assert.equal(frozen.phase, 'camera-frozen');
+  assert.equal(frozen.cameraFlashMode, 'off');
+  assert.deepEqual(calls, [
+    ['start'],
+    ['flash', 'torch'],
+    ['flash', 'off'],
+    ['flash', 'torch'],
+    ['capture'],
+    ['flash', 'off'],
+  ]);
+});
+
+contractTest('keeps the camera usable and exposes a nonfatal state when flash switching fails', async module => {
+  const fixture = createFixture(module, {
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() {},
+      async getSupportedFlashModes() { return ['off', 'on']; },
+      async setFlashMode() { throw Object.assign(new Error('native flash failed'), { code: 'preview-flash-mode-failed' }); },
+      async capture() { return 'fallback-jpeg'; },
+      async stop() {},
+    },
+  });
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  const failed = await fixture.flow.toggleEmbeddedCameraFlash();
+  assert.equal(failed.phase, 'camera-active');
+  assert.equal(failed.cameraFlashMode, 'off');
+  assert.equal(failed.cameraFlashChanging, false);
+  assert.equal(failed.cameraFlashError, 'preview-flash-mode-failed');
+});
+
+contractTest('keeps the last confirmed flash state when switching it off fails', async module => {
+  let flashChanges = 0;
+  const fixture = createFixture(module, {
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() {},
+      async getSupportedFlashModes() { return ['off', 'torch']; },
+      async setFlashMode() {
+        flashChanges += 1;
+        if (flashChanges === 2) {
+          throw Object.assign(new Error('native flash failed'), { code: 'preview-flash-mode-failed' });
+        }
+      },
+      async capture() { return 'fallback-jpeg'; },
+      async stop() {},
+    },
+  });
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  assert.equal((await fixture.flow.toggleEmbeddedCameraFlash()).cameraFlashMode, 'torch');
+  const failed = await fixture.flow.toggleEmbeddedCameraFlash();
+  assert.equal(failed.phase, 'camera-active');
+  assert.equal(failed.cameraFlashMode, 'torch');
+  assert.equal(failed.cameraFlashChanging, false);
+  assert.equal(failed.cameraFlashError, 'preview-flash-mode-failed');
+});
+
 contractTest('restores the previous photo when frozen handoff is interrupted', async module => {
   const calls = [];
   const fixture = createFixture(module, {
@@ -309,9 +388,10 @@ contractTest('disposes a late preprocessed capture after the flow is destroyed',
   await fixture.flow.captureFromCamera();
   await fixture.flow.startEmbeddedCamera({});
   const capture = fixture.flow.captureEmbeddedCamera();
-  fixture.flow.destroy();
+  const destroying = fixture.flow.destroy();
   pendingCapture.resolve('late-jpeg');
   await capture;
+  await destroying;
   const latePhoto = fixture.photos.find(photo => photo.name === 'embedded-late-jpeg');
   assert.equal(latePhoto.disposed, true);
   assert.equal(fixture.flow.getState().phase, 'empty');
@@ -331,9 +411,31 @@ contractTest('destroy disposes the retained photo while an embedded camera sessi
   const retained = fixture.flow.getState().photo;
   await fixture.flow.captureFromCamera();
   await fixture.flow.startEmbeddedCamera({});
-  fixture.flow.destroy();
+  await fixture.flow.destroy();
   assert.equal(retained.disposed, true);
   assert.equal(fixture.flow.getState().photo, null);
+});
+
+contractTest('destroy invalidates callbacks immediately but waits for native stop before clearing state', async module => {
+  const stopping = deferred();
+  const calls = [];
+  const fixture = createFixture(module, {
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() { calls.push('start'); },
+      async getSupportedFlashModes() { return ['off', 'torch']; },
+      async capture() { return 'unused'; },
+      stop() { calls.push('stop'); return stopping.promise; },
+    },
+  });
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  const destroying = fixture.flow.destroy();
+  assert.deepEqual(calls, ['start', 'stop']);
+  assert.equal(fixture.flow.getState().phase, 'camera-active');
+  stopping.resolve();
+  const state = await destroying;
+  assert.equal(state.phase, 'empty');
 });
 
 contractTest('processes a photo into an editable normalized result with stable item ids', async module => {

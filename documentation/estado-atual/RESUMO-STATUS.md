@@ -1249,12 +1249,13 @@
 
 ### [CAM-INC-2] - Validação do hotfix pela Play Store
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 14/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** impedir que diferenças entre build local e distribuição escondam novamente uma falha crítica.
 - **O que se planeja fazer:** publicar AAB assinado no canal interno, instalar pela Play e validar fisicamente no Galaxy.
 - **Recursos/arquivos principais envolvidos:** Gradle signing, AAB, Google Play Console e Galaxy físico.
+- **O que foi feito:** o PR draft #200 preparou um AAB versionCode 14 sem concluir a prova; ele foi fechado como obsoleto e substituído pelo AAB versionCode 23 da CAM-RED-4, gerado da base `a7d2920` com Firebase/assinatura fail-closed e SHA-256 `A1DBD0A362AEB75FD3994A5208793F3AF0FDE71B81B261EDD098204834AAC835`. A instalação real pela Play foi confirmada e o preview/captura ficaram visíveis, mas a prova não pode encerrar o incidente porque o fechamento global do reconhecimento durante câmera/flash ativos deixou o overlay congelado e inacessível; tema claro e matriz restante aguardam correção e nova prova Play.
 
 ### [CAM-RED-1] - Protótipo do redesenho centralizado
 
@@ -1271,13 +1272,14 @@
 
 ### [CAM-RED-2] - Prova técnica do redesenho no Android
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 15/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 15/09/2026.
 - **Propósito:** comprovar a continuidade entre preview nativo, fotografia congelada e análise antes da integração visual definitiva.
 - **O que se planeja fazer:** introduzir e provar no fluxo real um estado de congelamento que exiba a foto antes de `stop()`, encerre a câmera logo após a primeira pintura confirmada, preserve cancelamento/background/timeouts e levante os modos reais de flash no Galaxy.
 - **Recursos/arquivos principais envolvidos:** `image-meal-flow.js`, `src/composite/embedded-camera-preview.js`, `image-meal-screen.js`, `scripts/patch-camera-preview-android.js`, Camera Preview 8.0.1 com `toBack:true`, testes unitários e Galaxy físico em build release da Play.
-- **O que foi feito:** no PR #203, a fotografia congelada antes de `stop()` e os modos `off/auto/on/torch` foram comprovados; os dois crashes nativos foram corrigidos de forma fail-closed e deixaram de ocorrer em três repetições físicas diretas por cenário no Galaxy com a versão 16 instalada pela Play, preservando captura sem quadro preto, permissão negada, cancelamento e orientação; aguarda revisão/merge para conclusão formal.
+- **O que foi feito:** o PR #203 foi mesclado após comprovar a fotografia congelada antes de `stop()`, os modos `off/auto/on/torch` e a eliminação dos dois crashes em três repetições físicas diretas por cenário no Galaxy com a versão 16 instalada pela Play, preservando captura sem quadro preto, permissão negada, cancelamento e orientação.
+- **Alinhamento:** 100%.
 
 ### [CAM-RED-3] - Palco centralizado da câmera
 
@@ -1292,12 +1294,13 @@
 
 ### [CAM-RED-4] - Flash visual e funcional
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 16/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** entregar a aparência aprovada somente junto do controle real de iluminação, sem botão decorativo.
 - **O que se planeja fazer:** detectar modos suportados, ligar/desligar pelo plugin, localizar e anunciar o estado e restaurar `off` em captura, cancelamento, Voltar, background, timeout e desmontagem.
-- **Recursos/arquivos principais envolvidos:** `getSupportedFlashModes()`, `setFlashMode()`, serviço de preview, componente de captura, fluxo, CSS e validação física no Galaxy.
+- **Recursos/arquivos principais envolvidos:** `src/composite/embedded-camera-preview.js`, `image-meal-flow.js`, `image-meal-screen.js`, `nutrition-tracker-controller.js`, `one-ui.css`, `getSupportedFlashModes()`/`setFlashMode()`, testes unitários/visuais, CI autenticado e Galaxy físico.
+- **O que foi feito:** comando e estado nativos de flash foram implementados; no AAB Play v24, flash real, captura, reset e fechamento global D19 passaram fisicamente em claro/escuro, assim como remoção do rótulo, raio preenchido e escala pill/X. A prova mostrou transparência residual fora das curvas; por decisão explícita, esse acabamento mínimo foi transferido para a CAM-RED-5 e não integra o merge desta fatia.
 
 ### Correção técnica do App Check e da paridade visual do cutover
 
@@ -1316,8 +1319,8 @@
 - **Data de início:** não determinado.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** substituir o processamento inline pela análise contínua sobre a fotografia capturada.
-- **O que se planeja fazer:** ocupar a tela com a foto sem blur, aplicar overlay translúcido, progresso indeterminado e Cancelar fixo, iniciar a análise automaticamente e usar textos honestos sem simular fases que o Worker não informa.
-- **Recursos/arquivos principais envolvidos:** novo componente de análise UMD/ESM, `image-meal-screen.js`, `image-meal-flow.js`, `one-ui.css`, `i18n.js`, safe areas e testes visuais.
+- **O que se planeja fazer:** primeiro tornar completamente opacas e validar fisicamente as quatro máscaras dos cantos do preview; depois ocupar a tela com a foto sem blur, aplicar overlay translúcido, progresso indeterminado e Cancelar fixo, iniciar a análise automaticamente e usar textos honestos sem simular fases que o Worker não informa.
+- **Recursos/arquivos principais envolvidos:** novo componente de análise UMD/ESM, `image-meal-screen.js`, `image-meal-flow.js`, `one-ui.css`, `i18n.js`, máscaras do preview nativo, safe areas, testes visuais e Galaxy físico.
 
 ### [CAM-RED-6] - Timeout, classificação de falhas e retry
 
@@ -1550,8 +1553,8 @@
 - **Data de conclusão:** não concluído.
 - **Propósito:** monitorar uma possível inconsistência de restauração da sessão e do bootstrap após reload durante ciclos PT/EN/ES.
 - **O que se planeja fazer:** aguardar recorrência reproduzível e então isolar estado de autenticação, término do loading e consumidores do contrato de leitura, coordenando qualquer correção fora de UI com o chat principal.
-- **Recursos/arquivos principais envolvidos:** `setAppLanguage`, `pantry-choice-field.visual.spec.js`, `searchable-choice-field.visual.spec.js`, Firebase Auth/App Check e CI autenticado.
-- **O que foi feito:** os runs `33488032008` e `33497924576` registraram ocorrências diferentes após reload, mas o diagnóstico isolado `33502189291` passou em 3/3 repetições PT/EN/ES sem erro de leitura, console ou requisição pendente; permanece intermitente, sem causa confirmada e sem correção aplicada.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/auth.setup.js`, `setAppLanguage`, `pantry-choice-field.visual.spec.js`, `searchable-choice-field.visual.spec.js`, Firebase Auth/App Check, Playwright e CI autenticado.
+- **O que foi feito:** além das ocorrências de reload dos runs `33488032008`/`33497924576`, em 17/09/2026 o setup local da CAM-RED-4 ficou em “Processando...” por mais de 20 s; a investigação `INC-AUTH-BOOTSTRAP-20260917` do Principal executou 6/6 logins limpos, três instrumentados, sem request pendente ou erro, não confirmou relação com câmera/App Check e não aplicou correção especulativa. A ocorrência permanece intermitente e exige nova parada se reaparecer.
 
 ## Onde aprofundar
 

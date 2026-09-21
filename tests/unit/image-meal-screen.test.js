@@ -44,6 +44,7 @@ function baseProps(state, overrides = {}) {
     onCapture: () => {},
     onCameraSurface: () => {},
     onEmbeddedCapture: () => {},
+    onCameraFlashToggle: () => {},
     onEmbeddedPhotoPainted: () => {},
     onEmbeddedPhotoPaintFailed: () => {},
     onCancelCamera: () => {},
@@ -130,10 +131,9 @@ contractTest('renders the embedded camera as an accessible HTML overlay in every
     const cancel = elements(view, 'button').find(button => button.props['data-camera-close'] === 'true');
     const overlay = elements(view, 'div').find(node => node.props['data-camera-stage-overlay'] === 'true');
     const viewport = elements(view, 'div').find(node => node.props['data-camera-stage-viewport'] === 'true');
-    const visibleIndicator = elements(view, 'div').find(node => node.props['data-camera-active-indicator'] === 'true');
     const announcement = elements(view, 'p').find(node => node.props['data-image-meal-announcement'] === 'true');
     assert.equal(shutter.props.disabled, shutterDisabled);
-    assert.equal(visibleIndicator.props['aria-hidden'], 'true');
+    assert.equal(elements(view, 'div').some(node => node.props['data-camera-active-indicator'] === 'true'), false);
     assert.equal(announcement.props.role, 'status');
     assert.equal(announcement.props['aria-live'], 'polite');
     assert.equal(announcement.props['aria-atomic'], 'true');
@@ -145,6 +145,19 @@ contractTest('renders the embedded camera as an accessible HTML overlay in every
     cancel.props.onClick();
     assert.deepEqual(calls, shutterDisabled ? ['cancel'] : ['capture', 'cancel']);
   }
+});
+
+contractTest('uses a filled flash glyph without restoring the removed visual camera-status pill', ImageMealScreen => {
+  const view = ImageMealScreen(baseProps({
+    phase: 'camera-active', cameraFlashModes: ['off', 'torch'], cameraFlashMode: 'off',
+  }));
+  const flash = elements(view, 'button').find(button => button.props['data-camera-flash'] === 'true');
+  const path = elements(flash, 'path')[0];
+  assert.equal(path.props.fill, 'currentColor');
+  assert.equal(path.props.stroke, undefined);
+  assert.equal(elements(view, 'div').some(node => node.props['data-camera-active-indicator'] === 'true'), false);
+  const announcement = elements(view, 'p').find(node => node.props['data-image-meal-announcement'] === 'true');
+  assert.match(textContent(announcement), /Câmera ativa\. Pronta para capturar\./);
 });
 
 contractTest('offers localized permission recovery through Android settings and gallery', ImageMealScreen => {
@@ -170,6 +183,40 @@ contractTest('offers localized permission recovery through Android settings and 
     gallery.props.onClick();
     assert.deepEqual(calls, ['settings', 'gallery']);
   }
+});
+
+contractTest('renders a localized accessible flash toggle only when the rear camera supports it', ImageMealScreen => {
+  for (const [lang, offLabel, onLabel] of [
+    ['pt', 'Flash desligado', 'Flash ligado'],
+    ['en', 'Flash off', 'Flash on'],
+    ['es', 'Flash apagado', 'Flash encendido'],
+  ]) {
+    let toggles = 0;
+    const offView = ImageMealScreen(baseProps({
+      phase: 'camera-active', cameraFlashModes: ['off', 'on', 'torch'], cameraFlashMode: 'off',
+    }, { lang, onCameraFlashToggle: () => { toggles += 1; } }));
+    const off = elements(offView, 'button').find(button => button.props['data-camera-flash'] === 'true');
+    assert.equal(off.props['aria-label'], offLabel);
+    assert.equal(off.props['aria-pressed'], false);
+    assert.equal(off.props.disabled, false);
+    assert.match(textContent(offView), new RegExp(`${offLabel}\\.`));
+    off.props.onClick();
+
+    const onView = ImageMealScreen(baseProps({
+      phase: 'camera-active', cameraFlashModes: ['off', 'on'], cameraFlashMode: 'on',
+    }, { lang }));
+    const on = elements(onView, 'button').find(button => button.props['data-camera-flash'] === 'true');
+    assert.equal(on.props['aria-label'], onLabel);
+    assert.equal(on.props['aria-pressed'], true);
+    assert.equal(on.props['data-camera-flash-state'], 'on');
+    assert.match(textContent(onView), new RegExp(`${onLabel}\\.`));
+    assert.equal(toggles, 1);
+  }
+
+  const unsupported = ImageMealScreen(baseProps({
+    phase: 'camera-active', cameraFlashModes: ['off'], cameraFlashMode: 'off',
+  }));
+  assert.equal(elements(unsupported, 'button').some(button => button.props['data-camera-flash'] === 'true'), false);
 });
 
 contractTest('keeps the native layer active until two frames after the frozen photo loads', ImageMealScreen => {

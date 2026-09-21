@@ -45,7 +45,7 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
 
   assert.equal((source.match(/\buseState\s*\(/g) || []).length, 157);
   assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 42);
-  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 27);
+  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 28);
 });
 
 contractTest("routes browser dialog decisions through the injected generic service", createNutritionTrackerController => {
@@ -711,7 +711,10 @@ contractTest("wires the image flow into Add navigation without changing its pers
   assert.match(openBlock, /saveImageMealRegistration/);
   assert.match(openBlock, /resolveMealRegistrationTime/);
   assert.match(openBlock, /setImageMealOpen\(true\)/);
-  assert.match(closeBlock, /flow\.destroy\(\)/);
+  assert.match(closeBlock, /function closeImageMealMode/);
+  assert.match(closeBlock, /imageMealClosePromiseRef\.current/);
+  assert.match(closeBlock, /await flow\.destroy\(\)/);
+  assert.ok(closeBlock.indexOf("await flow.destroy()") < closeBlock.indexOf("setImageMealOpen(false)"));
   assert.match(source, /mode === "image"/);
   assert.match(source, /data-image-meal-registration-options/);
   assert.match(source, /imageMealFeature\.ImageMealScreen/);

@@ -714,6 +714,29 @@ por isso a limpeza é limitada à chave importada, em variantes simples e
 namespaced do usuário autenticado. Aguarda nova validação física do ciclo
 exportar/importar.
 
+[D19] Fechar todo o reconhecimento com câmera ativa pode deixar overlay congelado
+Localização: `image-meal-screen.js` (`data-camera-recognition-close` e
+`closeCameraWithMotion`), `nutrition-tracker-controller.js`
+(`closeImageMealMode`) e `image-meal-flow.js` (`discard`/`destroy`).
+Descrição/impacto: no AAB versionCode 23 instalado pela faixa interna da Play no
+Galaxy SM-S938B, tocar em “Fechar reconhecimento” com câmera e flash ativos
+congelou/escureceu a fotografia e deixou o palco fixo sozinho, sem obturador,
+flash, fechamento ou conteúdo do modal. O processo permaneceu vivo e não houve
+exceção fatal no logcat; o usuário fica preso numa interface sem ação disponível.
+Severidade: ALTO — bloqueia o fluxo e exige encerrar/reabrir o app, embora não
+tenha sido observada perda de dados nem crash nativo.
+Correção preparada: `destroy()` invalida callbacks e aguarda `stop()` antes de
+descartar a foto/estado; `closeImageMealMode()` deduplica o fechamento, remove o
+listener e só desmonta a interface no `finally` posterior ao teardown. Regressões
+unitárias e o gate local completo passaram, sem retry ou timeout artificial.
+Causa confirmada em código: o fechamento global desmontava o estado enquanto
+`discard()` disparava o teardown nativo sem aguardar. A correção ainda exige a
+reprodução física exata no AAB Play antes de classificar o incidente como resolvido.
+Risco de corrigir: aguardar o teardown sem proteger reentrada ou falha nativa
+pode atrasar o fechamento ou deixar duas rotas de cleanup concorrentes.
+Rastreio: encontrado na prova Play da CAM-RED-4/CAM-INC-2 em 20/09/2026; correção
+automatizada preparada no PR draft #227, com nova matriz Play claro/escuro pendente.
+
 
 5. CÓDIGO MORTO, DESCONECTADO OU DÍVIDA DE LIMPEZA
 ==================================================
