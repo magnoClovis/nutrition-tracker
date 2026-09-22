@@ -1425,9 +1425,9 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 - **Recursos/arquivos principais envolvidos:** `image-meal-client.js`, `image-meal-flow.js`, `image-meal-analysis-screen.js` e wrapper ESM, `image-meal-screen.js`, `i18n.js`, `AbortController`, timers, estados acessíveis, Node.js Test Runner, Playwright legado/Vite, CI autenticado e protótipo visual externo ao runtime; `worker/`, Functions, Auth e Firestore permanecem fora do escopo.
 
-- **O que foi feito:** a worktree `.codex-ui-cam-red-6` e a branch `codex/cam-red-6-errors` foram criadas diretamente da `origin/main` `c8c4fac`, já contendo os fechamentos funcional e documental da CAM-RED-5. A implementação permanece intencionalmente não iniciada: a fatia está na etapa obrigatória de protótipo e aprovação dos estados de erro.
+- **O que foi feito:** a worktree `.codex-ui-cam-red-6` e a branch `codex/cam-red-6-errors` foram criadas diretamente da `origin/main` `c8c4fac`, já contendo os fechamentos funcional e documental da CAM-RED-5. Foi produzido o protótipo interativo externo `cam-red-6-error-states.html`, sem alteração de runtime, com seis classes visuais: timeout, ausência de rede, Worker/IA indisponível, resposta inválida, sessão expirada e quota. A composição mantém a fotografia capturada visível sob scrim, informa que nada foi registrado, oferece retry somente quando acionável e demonstra que a nova tentativa reutiliza a mesma foto sem religar a câmera. Os estados podem ser revisados em PT/EN/ES e claro/escuro; movimento reduzido elimina a animação dos pontos. O fragmento foi renderizado pelo empacotador da ferramenta, permaneceu abaixo de 1 MB e teve o JavaScript validado por compilação. A implementação permanece intencionalmente não iniciada até a aprovação visual.
 
-- **PRs/commits relacionados:** commit documental inicial e PR ainda pendentes. — **Chat-Origin:** Trofia-UIUX.
+- **PRs/commits relacionados:** PR draft #246; commit documental inicial `8d400d0`; implementação funcional ainda não iniciada. — **Chat-Origin:** Trofia-UIUX.
 
 ## Encerramento administrativo do PR documental obsoleto #170
 

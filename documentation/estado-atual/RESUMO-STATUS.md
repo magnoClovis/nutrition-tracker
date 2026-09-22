@@ -1334,7 +1334,7 @@
 - **Propósito:** eliminar o carregamento infinito e permitir que o usuário saiba quando repetir ou abandonar a análise.
 - **O que se planeja fazer:** impor timeout inicialmente configurável em 45 s, separar falha de transporte, timeout, Worker/IA indisponível, resposta inválida, sessão e quota, preservar a foto no retry e ignorar respostas tardias; começa por protótipo focado dos erros.
 - **Recursos/arquivos principais envolvidos:** `image-meal-client.js`, `image-meal-flow.js`, componente de análise, `i18n.js`, AbortController/timers e testes unitários/smoke; nenhuma alteração em `worker/`.
-- **O que foi feito:** fatia iniciada a partir da `origin/main` `c8c4fac`; o primeiro passo permanece restrito ao protótipo aprovado dos estados de timeout, rede, Worker/IA, resposta inválida, sessão e quota, sem alteração de runtime antes da revisão visual.
+- **O que foi feito:** fatia iniciada a partir da `origin/main` `c8c4fac`; foi preparado um protótipo interativo PT/EN/ES e claro/escuro para timeout, rede, Worker/IA, resposta inválida, sessão e quota, com foto preservada e retry sem religar a câmera; nenhum runtime foi alterado e a revisão visual permanece pendente.
 
 ### [CAM-RED-7] - Resultado compartilhado e integração da foto
 
