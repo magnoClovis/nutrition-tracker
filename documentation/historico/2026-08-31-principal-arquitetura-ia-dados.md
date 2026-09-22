@@ -724,7 +724,7 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ## [CAM-RED-6-AUTH-CONTRACT] - Contrato de reautenticação da câmera após sessão expirada
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 22/09/2026.
 - **Data de conclusão:** 22/09/2026.
 - **Tempo decorrido:** 1 h 25 min 12 s, do primeiro commit `6494d66` ao merge `d613d91`.
