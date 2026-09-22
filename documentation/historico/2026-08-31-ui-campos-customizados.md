@@ -1407,6 +1407,28 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 - **PRs/commits relacionados:** PR #244; commits `7eb804c`, `3b999f2`, `cc7111d` e `ca05e28`; merge `087647f`; runs leves `35664628270`, `35721750835` e `35723302606`; runs pesados `35664628284`, `35721750783` (cancelado após substituição do HEAD) e `35723302697`. — **Chat-Origin:** Trofia-UIUX.
 
+### [CAM-RED-6] - Timeout, classificação de falhas e retry
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+
+- **Data de início:** 22/09/2026.
+
+- **Data de conclusão:** não concluído.
+
+- **Tempo decorrido:** pendente de merge.
+
+- **Minutos de CI:** 0 min; implementação não iniciada.
+
+- **Propósito:** impedir que o reconhecimento por foto permaneça em carregamento infinito e transformar falhas tecnicamente diferentes em orientações acionáveis, sem apagar a fotografia já capturada nem induzir o usuário a repetir operações inúteis.
+
+- **O que se planeja fazer:** começar por um protótipo visual dos estados de timeout, ausência de rede, indisponibilidade do Worker/IA, resposta inválida, sessão inválida e quota; após aprovação, introduzir deadline inicialmente configurável em 45 s, abortar a solicitação vencida, classificar falhas sem tocar em `worker/`, preservar a mesma fotografia no retry, ignorar respostas tardias e oferecer ações adequadas a cada classe em PT/EN/ES, claro/escuro, fonte ampliada e movimento reduzido.
+
+- **Recursos/arquivos principais envolvidos:** `image-meal-client.js`, `image-meal-flow.js`, `image-meal-analysis-screen.js` e wrapper ESM, `image-meal-screen.js`, `i18n.js`, `AbortController`, timers, estados acessíveis, Node.js Test Runner, Playwright legado/Vite, CI autenticado e protótipo visual externo ao runtime; `worker/`, Functions, Auth e Firestore permanecem fora do escopo.
+
+- **O que foi feito:** a worktree `.codex-ui-cam-red-6` e a branch `codex/cam-red-6-errors` foram criadas diretamente da `origin/main` `c8c4fac`, já contendo os fechamentos funcional e documental da CAM-RED-5. A implementação permanece intencionalmente não iniciada: a fatia está na etapa obrigatória de protótipo e aprovação dos estados de erro.
+
+- **PRs/commits relacionados:** commit documental inicial e PR ainda pendentes. — **Chat-Origin:** Trofia-UIUX.
+
 ## Encerramento administrativo do PR documental obsoleto #170
 
 ### [DOC-PR170-CLOSEOUT] - Fechamento sem merge do registro duplicado da S8

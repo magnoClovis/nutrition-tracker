@@ -1055,9 +1055,9 @@
 
 ### [I1] - Carregamento animado
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** transformar a espera inicial em uma transição deliberada e coerente com a identidade do Trofia.
 - **O que se planeja fazer:** prototipar e implementar logo pulsando/expandindo, mínimo de 800–1000 ms, claro/escuro e alternativa estática em reduced-motion.
 - **Recursos/arquivos principais envolvidos:** bootstrap/loading do app, logo Trofia, CSS de animação, temporização JS e Playwright visual.
@@ -1334,6 +1334,7 @@
 - **Propósito:** eliminar o carregamento infinito e permitir que o usuário saiba quando repetir ou abandonar a análise.
 - **O que se planeja fazer:** impor timeout inicialmente configurável em 45 s, separar falha de transporte, timeout, Worker/IA indisponível, resposta inválida, sessão e quota, preservar a foto no retry e ignorar respostas tardias; começa por protótipo focado dos erros.
 - **Recursos/arquivos principais envolvidos:** `image-meal-client.js`, `image-meal-flow.js`, componente de análise, `i18n.js`, AbortController/timers e testes unitários/smoke; nenhuma alteração em `worker/`.
+- **O que foi feito:** fatia iniciada a partir da `origin/main` `c8c4fac`; o primeiro passo permanece restrito ao protótipo aprovado dos estados de timeout, rede, Worker/IA, resposta inválida, sessão e quota, sem alteração de runtime antes da revisão visual.
 
 ### [CAM-RED-7] - Resultado compartilhado e integração da foto
 
