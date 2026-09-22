@@ -850,10 +850,7 @@ export function App() {
     });
   }
 
-  async function handleLogout() {
-    try {
-      await Promise.resolve(fbSignOut());
-    } catch (_) {}
+  function resetToAuthentication() {
     setAuthed(false);
     setChecking(false);
     setProfileChecking(false);
@@ -868,6 +865,34 @@ export function App() {
     profileCompletionAllowedRef.current = false;
     sessionStorage.removeItem(NEW_ACCOUNT_ONBOARDING_SESSION_KEY);
     releaseAudienceRef.current = null;
+  }
+
+  async function handleLogout() {
+    try {
+      await Promise.resolve(fbSignOut());
+    } catch (_) {
+      // The explicit logout remains fail-safe: always expose the login screen.
+    } finally {
+      resetToAuthentication();
+    }
+  }
+
+  async function requestReauthenticationAfterSessionExpired() {
+    let signOutFailed = false;
+    try {
+      await Promise.resolve(fbSignOut());
+    } catch (_) {
+      signOutFailed = true;
+    } finally {
+      // Recovery is the real login UI even when the remote sign-out request fails.
+      resetToAuthentication();
+    }
+    if (signOutFailed) {
+      throw Object.assign(
+        new Error('Unable to complete the authentication transition'),
+        { code: 'reauthentication-transition-failed' },
+      );
+    }
   }
 
   React.useEffect(() => registerBackHandler({
@@ -1145,6 +1170,7 @@ export function App() {
           <NutritionTracker
             onOpenSettings={() => setShowSettings(true)}
             onLogout={handleLogout}
+            onRequestReauthenticationAfterSessionExpired={requestReauthenticationAfterSessionExpired}
             onStartTutorial={(type = 'main') => {
               setTutorialType(type);
               setShowTutorial(true);

@@ -45,7 +45,7 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
 
   assert.equal((source.match(/\buseState\s*\(/g) || []).length, 157);
   assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 42);
-  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 28);
+  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 29);
 });
 
 contractTest("routes browser dialog decisions through the injected generic service", createNutritionTrackerController => {
@@ -719,6 +719,64 @@ contractTest("wires the image flow into Add navigation without changing its pers
   assert.match(source, /data-image-meal-registration-options/);
   assert.match(source, /imageMealFeature\.ImageMealScreen/);
   assert.match(source, /onReview: \(\) => imageMealFlowRef\.current\?\.review\(\)/);
+  assert.match(source, /onRequestReauthentication: requestReauthenticationAfterSessionExpired/);
+});
+
+implementations.forEach(([format, load]) => {
+  test(`${format}: destroys the temporary image flow before starting authentication and coalesces concurrent requests`, async () => {
+    const { requestSessionExpiredReauthentication } = await load();
+    const pendingRef = { current: null };
+    const events = [];
+    let releaseDestroy;
+    const destroyGate = new Promise(resolve => { releaseDestroy = resolve; });
+    const dependencies = {
+      pendingRef,
+      async destroyRecognitionFlow() {
+        events.push('destroy:start');
+        await destroyGate;
+        events.push('destroy:done');
+      },
+      async transitionToAuthentication() {
+        events.push('auth');
+      },
+    };
+
+    const first = requestSessionExpiredReauthentication(dependencies);
+    const concurrent = requestSessionExpiredReauthentication(dependencies);
+    assert.equal(concurrent, first);
+    assert.deepEqual(events, ['destroy:start']);
+
+    releaseDestroy();
+    await first;
+    assert.deepEqual(events, ['destroy:start', 'destroy:done', 'auth']);
+    assert.equal(pendingRef.current, null);
+  });
+
+  test(`${format}: exposes an authentication-transition failure and permits an explicit retry`, async () => {
+    const { requestSessionExpiredReauthentication } = await load();
+    const pendingRef = { current: null };
+    const events = [];
+    let fail = true;
+    const dependencies = {
+      pendingRef,
+      async destroyRecognitionFlow() { events.push('destroy'); },
+      async transitionToAuthentication() {
+        events.push('auth');
+        if (fail) throw Object.assign(new Error('unavailable'), { code: 'reauthentication-transition-failed' });
+      },
+    };
+
+    await assert.rejects(
+      requestSessionExpiredReauthentication(dependencies),
+      error => error.code === 'reauthentication-transition-failed',
+    );
+    assert.deepEqual(events, ['destroy', 'auth']);
+    assert.equal(pendingRef.current, null);
+
+    fail = false;
+    await requestSessionExpiredReauthentication(dependencies);
+    assert.deepEqual(events, ['destroy', 'auth', 'destroy', 'auth']);
+  });
 });
 
 test("ESM exports the exact UMD controller factory reference", async () => {
@@ -726,6 +784,7 @@ test("ESM exports the exact UMD controller factory reference", async () => {
   const esm = await import("../../src/controller/nutrition-tracker-controller.js");
 
   assert.equal(esm.createNutritionTrackerController, umd.createNutritionTrackerController);
+  assert.equal(esm.requestSessionExpiredReauthentication, umd.requestSessionExpiredReauthentication);
 });
 
 contractTest("keeps every render-scoped factory argument and current-render closure in its original block", createNutritionTrackerController => {
