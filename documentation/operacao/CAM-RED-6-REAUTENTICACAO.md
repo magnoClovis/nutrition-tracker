@@ -51,7 +51,11 @@ Os testes UMD e ESM comprovam:
 
 Em 22/09/2026, a implementação passou 76/76 testes focados e o `npm test` agregado completo: preflight limpo, 1.444/1.444 unitários, 107 casos autenticados legado com 8 skips estruturais esperados, 115/115 casos Vite e 60/60 casos da matriz cutover. A integração visual do botão pela frente Trofia-UIUX permanece separada: ela deve consumir este contrato, sem duplicar fechamento, sign-out ou lógica Firebase.
 
-O PR draft #247 também passou no sanity rápido `35778325088` e no CI autenticado real `35778325073`, incluindo Worker, Functions e as matrizes Playwright completas.
+O PR #247 passou nos runs `35778325088`, `35778325073`, `35782960415` e `35782960402`, incluindo Worker, Functions e as matrizes Playwright completas, e foi mesclado em `d613d91` em 22/09/2026.
+
+## Fechamento
+
+O contrato do Trofia-Principal está concluído e disponível na `main`. A frente Trofia-UIUX pode incorporar `d613d91` (ou uma `origin/main` posterior) e conectar exclusivamente a ação visual “Entrar novamente” à prop `onRequestReauthentication`; a integração visual e seus testes permanecem sob a CAM-RED-6.
 
 ## Integração esperada pela UI/UX
 
