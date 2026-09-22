@@ -1317,13 +1317,14 @@
 
 ### [CAM-RED-5] - Análise honesta em tela cheia
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 21/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 22/09/2026.
 - **Propósito:** substituir o processamento inline pela análise contínua sobre a fotografia capturada.
 - **O que se planeja fazer:** primeiro tornar completamente opacas e validar fisicamente as quatro máscaras dos cantos do preview; depois ocupar a tela com a foto sem blur, aplicar overlay translúcido, progresso indeterminado e Cancelar fixo, iniciar a análise automaticamente e usar textos honestos sem simular fases que o Worker não informa.
 - **Recursos/arquivos principais envolvidos:** novo componente de análise UMD/ESM, `image-meal-screen.js`, `image-meal-flow.js`, `one-ui.css`, `i18n.js`, máscaras do preview nativo, safe areas, testes visuais e Galaxy físico.
-- **O que foi feito:** branch isolada criada da `origin/main` `d20ffbc`; a máscara externa dos quatro cantos foi tornada opaca, um componente UMD/ESM de análise em tela cheia foi integrado após pintura da foto e resolução de `stop()`, o gate local fechou 1.440/1.440 unitários, legado/Vite sem falhas e cutover 60/60, o CI autenticado passou com 115/115 e a prova Play v25 confirmou transição sem quadro preto, análise/cancelamento e liberação da câmera em claro/escuro; permanece somente o fechamento documental e merge. A demora percebida entre obturador e foto foi registrada para medição de desempenho separada, sem enfraquecer a serialização nativa já validada.
+- **O que foi feito:** o PR #244/merge `087647f` tornou opacas as máscaras dos cantos, adicionou análise UMD/ESM em tela cheia somente após pintura da foto e `stop()`, passou em 1.440/1.440 unitários, matrizes legado/Vite, cutover 60/60, CI autenticado 115/115 e prova Play v25 claro/escuro com cancelamento e liberação da câmera; a latência percebida do obturador foi atribuída explicitamente à CAM-RED-9.
+- **Alinhamento:** 100% — escopo visual, continuidade segura, acessibilidade e acabamento transferido da CAM-RED-4 foram entregues integralmente; a medição de latência é requisito adicional posterior, com impacto neutro nesta fatia.
 
 ### [CAM-RED-6] - Timeout, classificação de falhas e retry
 

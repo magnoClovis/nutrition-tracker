@@ -1375,15 +1375,15 @@ O PR #227 foi retirado do draft e mesclado na `main` em `95a08bdd468e0976fec0953
 
 ### [CAM-RED-5] - Análise honesta em tela cheia
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 
 - **Data de início:** 21/09/2026.
 
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 22/09/2026.
 
-- **Tempo decorrido:** pendente de merge.
+- **Tempo decorrido:** 14 h 25 min 1 s.
 
-- **Minutos de CI:** 30 min 19 s até aqui — 24 s no run leve `35664628270` e 29 min 55 s no run pesado autenticado `35664628284`.
+- **Minutos de CI:** 84 min 28 s — 1 min 13 s leves; 83 min 15 s pesados, incluindo 18 min 54 s do run obsoleto cancelado.
 
 - **Propósito:** substituir o processamento inline por uma transição contínua e honesta sobre a fotografia capturada, mantendo a imagem como contexto visual enquanto a IA trabalha e eliminando a sensação de salto entre câmera, carregamento e resultado. A fatia também absorve, por decisão explícita, o único acabamento visual adiado da CAM-RED-4: tornar opacas as áreas externas aos quatro arcos do preview nativo.
 
@@ -1399,9 +1399,13 @@ O acabamento transferido da CAM-RED-4 também foi aplicado: a cor externa do gra
 
 O gate autenticado real do PR #244 também ficou verde: o run leve `35664628270` terminou em 24 s e o pesado `35664628284` em 29 min 55 s, totalizando 30 min 19 s, com 115/115 casos Playwright autenticados e sem recorrência de `profile-incomplete-existing-account`. O AAB assinado `versionCode 25`, `versionName 0.11.0-beta`, commit `3b999f2b63466ba755564705e115b741426d06fd`, SHA-256 `A887B9A24EF22FE6B2A53881670E052F4FA6523C37DCDDE69576F92E6FE099D3`, foi instalado pela faixa interna da Play. No Galaxy físico, a captura mostrou a fotografia congelada sem quadro preto, tornou opacos os quatro cantos externos, apresentou a análise em tela cheia nos temas escuro e claro e encerrou o cliente nativo antes de aguardar a IA. O botão Cancelar permaneceu fixo e alcançável; como a resposta de análise terminava rapidamente durante a sessão assistida, o responsável concluiu depois a interação manual e confirmou que o cancelamento e o restante do fluxo funcionaram corretamente. Não houve crash, overlay preso, câmera órfã nem resultado tardio após o cancelamento.
 
+Depois dos registros da prova física, o run leve `35721750835` consumiu 25 s e o run pesado `35721750783` consumiu 18 min 54 s antes de ser cancelado porque um novo commit exclusivamente documental substituiu seu HEAD; o cancelamento não foi usado como evidência de aprovação. O HEAD final `ca05e28` passou no preflight leve `35723302606` em 24 s e no gate pesado `35723302697` em 34 min 26 s. Somados aos runs funcionais iniciais, os consumos reais foram 1 min 13 s leves e 83 min 15 s pesados, total de 84 min 28 s. O PR foi retirado do draft e mesclado em `087647f` somente após o HEAD final ficar integralmente verde.
+
 Durante essa prova foi percebida uma demora entre o toque no obturador e a fotografia efetivamente ser registrada. A captura conclui e a transição preserva as garantias da CAM-RED-2, portanto isso não bloqueia a correção funcional desta fatia. Por decisão posterior, a medição específica dos marcos toque, retorno de `takePicture()`, primeira pintura da foto, `stop()` resolvido e início da análise, junto do feedback visual imediato e da redução apenas de atrasos comprovadamente evitáveis, foi incorporada ao escopo aprovado da CAM-RED-9. Nenhuma redução da serialização nativa foi aplicada sem medir o custo, pois essa ordem é a proteção que eliminou as corridas e crashes de captura/teardown.
 
-- **PRs/commits relacionados:** PR #244; commit documental inicial `7eb804c`; commit funcional `3b999f2`; runs `35664628270` e `35664628284`; merge ainda pendente. — **Chat-Origin:** Trofia-UIUX.
+- **Alinhamento:** 100%. A CAM-RED-5 entregou integralmente a continuidade aprovada entre fotografia congelada e análise em tela cheia, os textos honestos, o cancelamento recuperável, os requisitos visuais/acessíveis e o acabamento opaco herdado da CAM-RED-4. A demora percebida do obturador não fazia parte do escopo original e foi corretamente atribuída à CAM-RED-9 para medição antes de qualquer otimização; o impacto sobre esta entrega é neutro, pois nenhuma garantia anticrash foi removida nem houve redução funcional.
+
+- **PRs/commits relacionados:** PR #244; commits `7eb804c`, `3b999f2`, `cc7111d` e `ca05e28`; merge `087647f`; runs leves `35664628270`, `35721750835` e `35723302606`; runs pesados `35664628284`, `35721750783` (cancelado após substituição do HEAD) e `35723302697`. — **Chat-Origin:** Trofia-UIUX.
 
 ## Encerramento administrativo do PR documental obsoleto #170
 
