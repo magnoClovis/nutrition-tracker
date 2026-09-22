@@ -51,6 +51,8 @@ Os testes UMD e ESM comprovam:
 
 Em 22/09/2026, a implementação passou 76/76 testes focados e o `npm test` agregado completo: preflight limpo, 1.444/1.444 unitários, 107 casos autenticados legado com 8 skips estruturais esperados, 115/115 casos Vite e 60/60 casos da matriz cutover. A integração visual do botão pela frente Trofia-UIUX permanece separada: ela deve consumir este contrato, sem duplicar fechamento, sign-out ou lógica Firebase.
 
+O PR draft #247 também passou no sanity rápido `35778325088` e no CI autenticado real `35778325073`, incluindo Worker, Functions e as matrizes Playwright completas.
+
 ## Integração esperada pela UI/UX
 
 A frente Trofia-UIUX deve apenas consumir `onRequestReauthentication` no botão “Entrar novamente”, aguardar sua promise e representar o estado pendente/erro conforme o visual já aprovado. Não deve chamar `closeImageMealMode()`, Firebase Auth ou qualquer API protegida diretamente.
