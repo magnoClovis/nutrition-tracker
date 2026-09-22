@@ -71,6 +71,12 @@ test('preserves the authentication and profile gates without legacy normalizatio
   assert.match(appSource, /sessionStorage\.getItem\(NEW_ACCOUNT_ONBOARDING_SESSION_KEY\)/);
   assert.match(appSource, /sessionStorage\.removeItem\(NEW_ACCOUNT_ONBOARDING_SESSION_KEY\)/);
   assert.match(appSource, /profile-incomplete-existing-account/);
+  assert.match(appSource, /function requestReauthenticationAfterSessionExpired\(\)/);
+  assert.match(appSource, /finally \{\s*\/\/ Recovery is the real login UI[\s\S]*?resetToAuthentication\(\)/);
+  assert.match(appSource, /onRequestReauthenticationAfterSessionExpired=\{requestReauthenticationAfterSessionExpired\}/);
+  for (const source of [legacyAppSource, legacyMirrorSource]) {
+    assert.match(source, /onRequestReauthenticationAfterSessionExpired:\s*requestReauthenticationAfterSessionExpired/);
+  }
 });
 
 test('installs exactly the fifteen ESM namespaces still resolved by the controller', () => {

@@ -319,7 +319,7 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ### [C14-F1] - Worker, tiers e observabilidade
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 19/09/2026.
 - **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
@@ -721,6 +721,20 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **O que foi feito:** a auditoria comprovou que o checkout principal estava na `main` local `06ce74a`, 49 commits atrás de `origin/main` `9ec964e`, com 13 arquivos rastreados modificados. O trabalho exclusivo foi reduzido a 240 linhas de métricas e registros retroativos; estados antigos de C14 e CAM-RED foram deliberadamente excluídos da reconciliação para não regredir a documentação vigente. Um backup externo de 21 arquivos, patch integral e hashes foi criado antes de qualquer mudança. O PR #219 passou no preflight documental, foi mesclado em `f62d745` e a `main` principal recebeu o fast-forward completo. O stash restrito reaplicou somente `versionCode 13`, o redirecionamento externo de build e G01; a documentação ficou idêntica a `origin/main`, enquanto `google-services.json` e `keystore.properties` conservaram exatamente hash e tamanho.
 - **Alinhamento:** 100%. O plano aprovado foi executado sem conflito nem perda; a seleção manual impediu que snapshots antigos sobrescrevessem C14/CAM-RED atuais. O impacto foi positivo para integridade documental e para a segurança do checkout local.
 - **PRs/commits relacionados:** PR #219, commit `a856617`, merge `f62d745`, run leve `35139571971`. — **Chat:** Trofia-Principal.
+
+## [CAM-RED-6-AUTH-CONTRACT] - Contrato de reautenticação da câmera após sessão expirada
+
+- **Status:** concluído.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** 22/09/2026.
+- **Tempo decorrido:** 1 h 25 min 12 s, do primeiro commit `6494d66` ao merge `d613d91`.
+- **Minutos de CI:** 75 min 52 s no total (50 s leve + 75 min 02 s pesado; runs leves de 25 s e 25 s, runs pesados de 39 min 59 s e 35 min 03 s).
+- **Propósito:** fornecer à CAM-RED-6 uma fronteira pública mínima e auditável para a ação “Entrar novamente”, sem permitir que a camada visual simule reautenticação apenas fechando a câmera nem assuma responsabilidades de Firebase Auth.
+- **O que se planeja fazer:** o controlador deve aceitar o gesto explícito do usuário, bloquear chamadas concorrentes, aguardar `closeImageMealMode()` destruir a máquina de estados e revogar a fotografia temporária, e somente então chamar o shell de autenticação. O shell deve tentar o sign-out real e, mesmo se essa operação falhar, limpar o estado autenticado local em `finally`, deixando a tela de login como recuperação segura. A promise pública deve resolver ou rejeitar de forma observável, sem retry, persistência da imagem, alteração de Worker/Firestore/App Check ou emissão de dados sensíveis. Testes devem comprovar a ordem destruição → Auth, a unicidade durante chamadas concorrentes e o comportamento de falha.
+- **Recursos/arquivos principais envolvidos:** `nutrition-tracker-controller.js`, wrapper ESM `src/controller/nutrition-tracker-controller.js`, `src/App.jsx`, `app.js`, `nutrition-tracker.jsx`, contrato de props do `ImageMealScreen`, `tests/unit/nutrition-tracker-controller.test.js` e documentação operacional da CAM-RED-6.
+- **O que foi feito:** foi criada a fronteira pública `requestSessionExpiredReauthentication()`, exposta pelo controlador UMD/ESM e entregue ao `ImageMealScreen` como `onRequestReauthentication`. Ela mantém uma única promise pendente para bloquear transições concorrentes, aguarda integralmente `closeImageMealMode()`/`flow.destroy()` antes de chamar o shell e limpa o bloqueio tanto em sucesso quanto em falha. Nos três entrypoints, o shell tenta o sign-out remoto, mas restaura em `finally` a tela real de login e o estado local não autenticado; se o sign-out falhar, rejeita com o código sanitizado `reauthentication-transition-failed`, sem reter a imagem nem simular sucesso. A cobertura UMD/ESM comprova ordem, coalescência, liberação após falha e nova tentativa apenas explícita; testes de fonte comprovam paridade entre Vite e legado. O `npm test` agregado concluiu com preflight limpo, 1.444/1.444 unitários, 107 casos autenticados legado com 8 skips estruturais esperados, 115/115 Vite e 60/60 cutover. O primeiro cutover isolado foi interrompido a pedido do usuário após 19 casos verdes para reinício do computador; a repetição integral após o reinício concluiu 60/60, e o cutover do gate agregado repetiu 60/60, ambos com exit code 0. O primeiro SHA do PR passou nos runs `35778325088` e `35778325073`; o commit documental final passou novamente nos runs `35782960415` e `35782960402`. Os jobs pesados confirmaram preflight, 1.444 unitários, 36 testes Node + 5 runtime do Worker, 74/74 Functions e matrizes Playwright legado/Vite completas. O PR #247 foi mesclado em `d613d91` sem mudança de Worker, Firestore, App Check ou câmera.
+- **Alinhamento:** 100%. O contrato mínimo aprovado, a ordem de descarte antes de Auth, a coalescência, a falha recuperável, a paridade Vite/legado e a documentação operacional foram entregues integralmente. O impacto foi positivo: a UIUX recebeu uma fronteira segura sem assumir lógica de autenticação nem ampliar o escopo da CAM-RED-6.
+- **PRs/commits relacionados:** PR #247; commits `6494d66`, `9fca9f0` e merge `d613d91`; runs `35778325088`, `35778325073`, `35782960415` e `35782960402`. — **Chat:** Trofia-Principal.
 
 ## Métricas retroativas
 
