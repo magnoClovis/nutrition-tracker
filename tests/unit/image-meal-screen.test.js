@@ -4,8 +4,14 @@ const React = require('../../vendor/react.production.min.js');
 const { createI18n } = require('../../i18n.js');
 
 const implementations = [
-  ['UMD', () => Promise.resolve(require('../../image-meal-screen.js'))],
-  ['ESM', () => import('../../src/components/image-meal-screen.js')],
+  ['UMD', async () => ({
+    screen: require('../../image-meal-screen.js'),
+    analysis: require('../../image-meal-analysis-screen.js'),
+  })],
+  ['ESM', async () => ({
+    screen: await import('../../src/components/image-meal-screen.js'),
+    analysis: await import('../../src/components/image-meal-analysis-screen.js'),
+  })],
 ];
 const { pickLang } = createI18n();
 
@@ -70,10 +76,16 @@ function estimate() {
 function contractTest(name, callback) {
   implementations.forEach(([format, load]) => {
     test(`${format}: ${name}`, async () => {
-      const module = await load();
+      const modules = await load();
       function Editor() { return React.createElement('div', null, 'EDITOR'); }
-      const { ImageMealScreen } = module.createImageMealScreen({ React, pickLang, MealEstimateEditor: Editor });
-      return callback(ImageMealScreen, Editor);
+      const { ImageMealAnalysisScreen } = modules.analysis.createImageMealAnalysisScreen({ React, pickLang });
+      const { ImageMealScreen } = modules.screen.createImageMealScreen({
+        React,
+        pickLang,
+        MealEstimateEditor: Editor,
+        ImageMealAnalysisScreen,
+      });
+      return callback(ImageMealScreen, Editor, ImageMealAnalysisScreen);
     });
   });
 }
@@ -94,17 +106,15 @@ contractTest('renders the no-photo state in PT/EN/ES and delegates both sources'
   }
 });
 
-contractTest('shows a captured photo and cancellable processing indicator', ImageMealScreen => {
+contractTest('delegates processing to the full-screen analysis state', (ImageMealScreen, _Editor, ImageMealAnalysisScreen) => {
   let cancelled = 0;
   const view = ImageMealScreen(baseProps({
     phase: 'processing',
     photo: { previewUrl: 'blob:meal' },
   }, { onCancelProcessing: () => { cancelled += 1; } }));
-  assert.equal(elements(view, 'img')[0].props.src, 'blob:meal');
-  assert.match(textContent(view), /Analisando prato/);
-  const cancel = elements(view, 'button').find(button => button.props['data-image-meal-cancel'] === 'true');
-  assert.equal(cancel.props.disabled, false);
-  cancel.props.onClick();
+  const analysis = elements(view, ImageMealAnalysisScreen)[0];
+  assert.equal(analysis.props.photoUrl, 'blob:meal');
+  analysis.props.onCancel();
   assert.equal(cancelled, 1);
   const close = elements(view, 'button').find(button => button.props['aria-label'] === 'Fechar');
   assert.equal(close.props.disabled, true);

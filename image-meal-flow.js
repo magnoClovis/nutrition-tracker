@@ -283,7 +283,7 @@
       }
     }
 
-    async function confirmEmbeddedPhotoPainted() {
+    async function confirmEmbeddedPhotoPainted(language) {
       if (state.phase !== "camera-frozen" || frozenPhotoStopPending) return snapshot();
       traceCameraHandoff("paint-confirmed");
       const currentOperation = operationId;
@@ -297,9 +297,13 @@
         if (cameraPreviousPhoto && cameraPreviousPhoto !== state.photo) disposePhoto(cameraPreviousPhoto);
         cameraPreviousPhoto = null;
         frozenPhotoStopPending = false;
-        const next = patch({ phase: "photo", error: null });
-        traceCameraHandoff("photo-state-emitted");
-        return next;
+        if (!language) {
+          const next = patch({ phase: "photo", error: null });
+          traceCameraHandoff("photo-state-emitted");
+          return next;
+        }
+        traceCameraHandoff("analysis-started");
+        return process(language);
       } catch (error) {
         traceCameraHandoff("native-stop-failed");
         if (currentOperation !== operationId) return snapshot();

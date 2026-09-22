@@ -1317,12 +1317,13 @@
 
 ### [CAM-RED-5] - Análise honesta em tela cheia
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 21/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** substituir o processamento inline pela análise contínua sobre a fotografia capturada.
 - **O que se planeja fazer:** primeiro tornar completamente opacas e validar fisicamente as quatro máscaras dos cantos do preview; depois ocupar a tela com a foto sem blur, aplicar overlay translúcido, progresso indeterminado e Cancelar fixo, iniciar a análise automaticamente e usar textos honestos sem simular fases que o Worker não informa.
 - **Recursos/arquivos principais envolvidos:** novo componente de análise UMD/ESM, `image-meal-screen.js`, `image-meal-flow.js`, `one-ui.css`, `i18n.js`, máscaras do preview nativo, safe areas, testes visuais e Galaxy físico.
+- **O que foi feito:** branch isolada criada da `origin/main` `d20ffbc`; a máscara externa dos quatro cantos foi tornada opaca, um componente UMD/ESM de análise em tela cheia foi integrado após pintura da foto e resolução de `stop()`, o gate local fechou 1.440/1.440 unitários, legado/Vite sem falhas e cutover 60/60, o CI autenticado passou com 115/115 e a prova Play v25 confirmou transição sem quadro preto, análise/cancelamento e liberação da câmera em claro/escuro; permanece somente o fechamento documental e merge. A demora percebida entre obturador e foto foi registrada para medição de desempenho separada, sem enfraquecer a serialização nativa já validada.
 
 ### [CAM-RED-6] - Timeout, classificação de falhas e retry
 
@@ -1357,8 +1358,8 @@
 - **Data de início:** não determinado.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** preservar integralmente CAM-C4a/C4b e os contratos nutricionais após a mudança estrutural.
-- **O que se planeja fazer:** revalidar permissão/Configurações/galeria, TalkBack, foco, 200%, contraste, 48 px, PT/EN/ES, reduced-motion, lifecycle, descarte temporário, baixa confiança, dados parciais, nomes/listas longos e zero ingredientes.
-- **Recursos/arquivos principais envolvidos:** componentes CAM-RED, ARIA/TalkBack, CSS responsivo, Playwright legado/Vite, Capacitor e Galaxy físico.
+- **O que se planeja fazer:** revalidar permissão/Configurações/galeria, TalkBack, foco, 200%, contraste, 48 px, PT/EN/ES, reduced-motion, lifecycle, descarte temporário, baixa confiança, dados parciais, nomes/listas longos e zero ingredientes; medir toque no obturador → retorno nativo → primeira pintura → `stop()` → análise, dar feedback visual imediato e reduzir somente atrasos comprovadamente evitáveis sem enfraquecer a serialização anticrash.
+- **Recursos/arquivos principais envolvidos:** componentes CAM-RED, `embedded-camera-preview.js`, trace do fluxo de captura, Camera Preview/Capacitor, ARIA/TalkBack, CSS responsivo, Playwright legado/Vite e Galaxy físico.
 
 ### [CAM-RED-10] - Validação final do redesenho pela Play Store
 

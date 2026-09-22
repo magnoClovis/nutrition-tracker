@@ -2157,8 +2157,8 @@
         if (phase === "camera-opening") selector = "[data-camera-close='true']";
         else if (phase === "error" && imageMealState.error === "permission-denied") {
           selector = "[data-camera-open-settings='true'], [data-image-meal-choose-gallery='true']";
-        } else if (phase === "photo" && previousPhase === "camera-frozen") {
-          selector = "[data-image-meal-analyze='true']";
+        } else if (phase === "processing" && previousPhase === "camera-frozen") {
+          selector = "[data-image-meal-cancel='true']";
         } else if ((phase === "empty" || phase === "photo") && previousPhase?.startsWith("camera-")) {
           selector = "[data-image-meal-open-camera='true']";
         }
@@ -5143,17 +5143,23 @@
             lang,
             isMobileView,
             onClose: closeImageMealMode,
-            onCapture: () => imageMealFlowRef.current?.captureFromCamera(),
+            onCapture: async () => {
+              const next = await imageMealFlowRef.current?.captureFromCamera();
+              if (next?.phase === "photo") await imageMealFlowRef.current?.process(lang);
+            },
             onCameraSurface: surface => imageMealFlowRef.current?.startEmbeddedCamera(surface),
             onEmbeddedCapture: () => imageMealFlowRef.current?.captureEmbeddedCamera(),
             onCameraFlashToggle: () => imageMealFlowRef.current?.toggleEmbeddedCameraFlash(),
             onCameraHandoffTrace: stage => imageMealFlowRef.current?.traceCameraHandoff(stage),
-            onEmbeddedPhotoPainted: () => imageMealFlowRef.current?.confirmEmbeddedPhotoPainted(),
+            onEmbeddedPhotoPainted: () => imageMealFlowRef.current?.confirmEmbeddedPhotoPainted(lang),
             onEmbeddedPhotoPaintFailed: () => imageMealFlowRef.current?.rejectEmbeddedPhotoPaint(),
             onCancelCamera: () => imageMealFlowRef.current?.cancelEmbeddedCamera(),
             canOpenCameraSettings: Boolean(imageMealFeature.canOpenCameraSettings?.()),
             onOpenCameraSettings: () => imageMealFeature.openCameraSettings?.(),
-            onChoose: () => imageMealFlowRef.current?.chooseFromGallery(),
+            onChoose: async () => {
+              const next = await imageMealFlowRef.current?.chooseFromGallery();
+              if (next?.phase === "photo") await imageMealFlowRef.current?.process(lang);
+            },
             onProcess: () => imageMealFlowRef.current?.process(lang),
             onCancelProcessing: () => imageMealFlowRef.current?.cancelProcessing(),
             onDiscard: () => imageMealFlowRef.current?.discard(),

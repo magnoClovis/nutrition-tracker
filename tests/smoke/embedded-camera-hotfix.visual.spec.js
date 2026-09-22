@@ -113,6 +113,8 @@ test.describe('embedded camera release hotfix CSS contract', () => {
       expect(flashMetrics.glyphFill).not.toBe('none');
       expect(flashMetrics.cornerWidth).toBeGreaterThanOrEqual(32);
       expect(flashMetrics.cornerBackground).toContain('radial-gradient');
+      expect(flashMetrics.cornerBackground).toContain('rgb(6, 16, 13)');
+      expect(flashMetrics.cornerBackground).not.toContain('rgba(6, 16, 13, 0.94)');
       expect(flashMetrics.withinLeft).toBe(true);
       expect(flashMetrics.withinTop).toBe(true);
       await page.locator('[data-camera-flash="true"]').evaluate(element => {
@@ -208,6 +210,79 @@ test.describe('embedded camera release hotfix CSS contract', () => {
         zIndex: '2',
         bodyBackground: 'rgba(0, 0, 0, 0)',
       });
+    });
+
+    test(`${theme} analysis keeps the photo full-screen and unblurred with a fixed cancel action`, async ({ page }) => {
+      await page.goto('index.html', { waitUntil: 'domcontentloaded' });
+      await page.evaluate((themeName) => {
+        document.documentElement.dataset.theme = themeName;
+        document.documentElement.style.fontSize = '32px';
+        document.body.innerHTML = `
+          <div data-one-ui-root data-theme="${themeName}">
+            <main data-app-main="adicionar" style="height:200vh">
+              <div data-image-meal-analysis="true" role="dialog" aria-modal="true">
+                <img data-image-meal-analysis-photo="true" aria-hidden="true"
+                  src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='800'%3E%3Crect width='400' height='800' fill='%23547149'/%3E%3C/svg%3E">
+                <div data-image-meal-analysis-scrim="true"></div>
+                <div data-image-meal-analysis-content="true">
+                  <div data-image-meal-analysis-status="true" role="status" aria-live="polite">
+                    <div data-image-meal-analysis-progress="true"><span></span><span></span><span></span></div>
+                    <h2>Analisando a refeição</h2>
+                    <p>Identificando o que está no prato</p>
+                  </div>
+                  <button data-image-meal-cancel="true">Cancelar</button>
+                </div>
+              </div>
+            </main>
+          </div>`;
+      }, theme);
+
+      await page.locator('[data-image-meal-analysis="true"]').evaluate(element => (
+        Promise.all(element.getAnimations().map(animation => animation.finished))
+      ));
+
+      const metrics = await page.evaluate(() => {
+        const analysis = document.querySelector('[data-image-meal-analysis="true"]');
+        const photo = document.querySelector('[data-image-meal-analysis-photo="true"]');
+        const scrim = document.querySelector('[data-image-meal-analysis-scrim="true"]');
+        const cancel = document.querySelector('[data-image-meal-cancel="true"]');
+        const analysisRect = analysis.getBoundingClientRect();
+        const cancelRect = cancel.getBoundingClientRect();
+        return {
+          position: getComputedStyle(analysis).position,
+          widthDelta: Math.abs(analysisRect.width - innerWidth),
+          heightDelta: Math.abs(analysisRect.height - innerHeight),
+          photoFilter: getComputedStyle(photo).filter,
+          photoObjectFit: getComputedStyle(photo).objectFit,
+          scrimBackdropFilter: getComputedStyle(scrim).backdropFilter,
+          bodyOverflow: getComputedStyle(document.body).overflow,
+          cancelHeight: cancelRect.height,
+          cancelTop: cancelRect.top,
+          cancelBottom: cancelRect.bottom,
+          viewportHeight: innerHeight,
+          cancelPosition: getComputedStyle(cancel).position,
+          cancelVisibility: getComputedStyle(cancel).visibility,
+          cancelInViewport: cancelRect.top >= 0 && cancelRect.bottom <= innerHeight,
+          scrollWidth: document.documentElement.scrollWidth,
+          viewportWidth: document.documentElement.clientWidth,
+        };
+      });
+      expect(metrics, JSON.stringify(metrics)).toMatchObject({
+        position: 'fixed',
+        photoFilter: 'none',
+        photoObjectFit: 'cover',
+        scrimBackdropFilter: 'none',
+        bodyOverflow: 'hidden',
+        cancelInViewport: true,
+      });
+      expect(metrics.widthDelta).toBeLessThanOrEqual(0.5);
+      expect(metrics.heightDelta).toBeLessThanOrEqual(0.5);
+      expect(metrics.cancelHeight).toBeGreaterThanOrEqual(48);
+      expect(metrics.scrollWidth).toBe(metrics.viewportWidth);
+
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await expect(page.locator('[data-image-meal-analysis="true"]')).toHaveCSS('animation-name', 'none');
+      await expect(page.locator('[data-image-meal-analysis-progress="true"] span').first()).toHaveCSS('animation-name', 'none');
     });
   }
 });

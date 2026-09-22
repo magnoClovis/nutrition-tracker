@@ -272,7 +272,7 @@ body:has([data-camera-native-active="true"]) {
   background: radial-gradient(
     circle at var(--camera-corner-origin),
     transparent 0 calc(var(--camera-stage-radius) - 1px),
-    rgba(6, 16, 13, .94) var(--camera-stage-radius)
+    rgb(6, 16, 13) var(--camera-stage-radius)
   );
 }
 
@@ -629,6 +629,151 @@ body:has([data-camera-native-active="true"]) {
 @media (prefers-reduced-motion: reduce) {
   [data-camera-stage-overlay="true"],
   [data-camera-stage-overlay="true"] [data-camera-stage-viewport="true"] { animation: none !important; }
+}
+
+/* CAM-RED-5: the captured photo becomes the continuous full-screen analysis
+   canvas. The image itself is never blurred; only an opaque-color scrim is
+   layered over it so the status remains legible in either app theme. */
+body:has([data-image-meal-analysis="true"]) {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+/* The registration modal's entrance animation/filter would otherwise become
+   the containing block for this fixed child and size it to the scrollable
+   modal instead of the physical viewport. */
+body:has([data-image-meal-analysis="true"]) [data-app-main="adicionar"] {
+  animation: none !important;
+  transform: none !important;
+  filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+[data-image-meal-analysis="true"] {
+  position: fixed;
+  z-index: 1250;
+  inset: 0;
+  overflow: hidden;
+  color: #fff;
+  background: #111;
+  animation: imageMealAnalysisIn var(--dur-base) ease-out both;
+}
+
+[data-image-meal-analysis-photo="true"],
+[data-image-meal-analysis-scrim="true"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+[data-image-meal-analysis-photo="true"] {
+  object-fit: cover;
+  object-position: center;
+}
+
+[data-image-meal-analysis-scrim="true"] {
+  background: rgba(9, 12, 11, .68);
+}
+
+[data-image-meal-analysis-content="true"] {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  box-sizing: border-box;
+}
+
+[data-image-meal-analysis-status="true"] {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% - max(48px, env(safe-area-inset-left) + env(safe-area-inset-right)));
+  max-width: min(560px, 100%);
+  text-align: center;
+  text-wrap: balance;
+  transform: translate(-50%, -50%);
+}
+
+[data-image-meal-analysis-status="true"] h2 {
+  margin: 18px 0 8px;
+  color: #fff;
+  font-size: clamp(1.5rem, 4.8vw, 2.2rem);
+  line-height: 1.15;
+}
+
+[data-image-meal-analysis-status="true"] p {
+  min-height: 1.5em;
+  margin: 0;
+  color: rgba(255, 255, 255, .76);
+  font-size: clamp(1rem, 3.4vw, 1.2rem);
+  line-height: 1.5;
+}
+
+[data-image-meal-analysis-progress="true"] {
+  display: inline-flex;
+  gap: 9px;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-image-meal-analysis-progress="true"] span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.42);
+  animation: imageMealAnalysisDot 1.35s ease-in-out infinite;
+}
+
+[data-image-meal-analysis-progress="true"] span:nth-child(2) { animation-delay: 150ms; }
+[data-image-meal-analysis-progress="true"] span:nth-child(3) { animation-delay: 300ms; }
+
+[data-image-meal-analysis="true"] [data-image-meal-cancel="true"] {
+  position: absolute;
+  right: max(24px, env(safe-area-inset-right));
+  bottom: max(28px, env(safe-area-inset-bottom));
+  left: max(24px, env(safe-area-inset-left));
+  width: max-content;
+  min-width: 132px;
+  min-height: 52px;
+  padding: 12px 24px;
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: var(--radius-pill);
+  background: rgba(22, 27, 25, .72);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  margin-inline: auto;
+}
+
+[data-image-meal-analysis="true"] [data-image-meal-cancel="true"]:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 7px var(--accent-water-fill);
+}
+
+@keyframes imageMealAnalysisIn {
+  from { opacity: 0; transform: scale(.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes imageMealAnalysisDot {
+  0%, 70%, 100% { background: rgba(255,255,255,.38); transform: scale(.8); }
+  35% { background: var(--accent-action-fill); transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-image-meal-analysis="true"],
+  [data-image-meal-analysis-progress="true"] span {
+    animation: none !important;
+  }
+  [data-image-meal-analysis-progress="true"] span:first-child {
+    background: var(--accent-action-fill);
+    transform: none;
+  }
 }
 
 /* Native-semantic multiple selection. Circular marks are reserved for radio
