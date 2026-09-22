@@ -722,6 +722,19 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Alinhamento:** 100%. O plano aprovado foi executado sem conflito nem perda; a seleção manual impediu que snapshots antigos sobrescrevessem C14/CAM-RED atuais. O impacto foi positivo para integridade documental e para a segurança do checkout local.
 - **PRs/commits relacionados:** PR #219, commit `a856617`, merge `f62d745`, run leve `35139571971`. — **Chat:** Trofia-Principal.
 
+## [CAM-RED-6-AUTH-CONTRACT] - Contrato de reautenticação da câmera após sessão expirada
+
+- **Status:** em andamento.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 41 min (1 leve + 40 pesado; execuções de 25 s e 39 min 59 s).
+- **Propósito:** fornecer à CAM-RED-6 uma fronteira pública mínima e auditável para a ação “Entrar novamente”, sem permitir que a camada visual simule reautenticação apenas fechando a câmera nem assuma responsabilidades de Firebase Auth.
+- **O que se planeja fazer:** o controlador deve aceitar o gesto explícito do usuário, bloquear chamadas concorrentes, aguardar `closeImageMealMode()` destruir a máquina de estados e revogar a fotografia temporária, e somente então chamar o shell de autenticação. O shell deve tentar o sign-out real e, mesmo se essa operação falhar, limpar o estado autenticado local em `finally`, deixando a tela de login como recuperação segura. A promise pública deve resolver ou rejeitar de forma observável, sem retry, persistência da imagem, alteração de Worker/Firestore/App Check ou emissão de dados sensíveis. Testes devem comprovar a ordem destruição → Auth, a unicidade durante chamadas concorrentes e o comportamento de falha.
+- **Recursos/arquivos principais envolvidos:** `nutrition-tracker-controller.js`, wrapper ESM `src/controller/nutrition-tracker-controller.js`, `src/App.jsx`, `app.js`, `nutrition-tracker.jsx`, contrato de props do `ImageMealScreen`, `tests/unit/nutrition-tracker-controller.test.js` e documentação operacional da CAM-RED-6.
+- **O que foi feito:** foi criada a fronteira pública `requestSessionExpiredReauthentication()`, exposta pelo controlador UMD/ESM e entregue ao `ImageMealScreen` como `onRequestReauthentication`. Ela mantém uma única promise pendente para bloquear transições concorrentes, aguarda integralmente `closeImageMealMode()`/`flow.destroy()` antes de chamar o shell e limpa o bloqueio tanto em sucesso quanto em falha. Nos três entrypoints, o shell tenta o sign-out remoto, mas restaura em `finally` a tela real de login e o estado local não autenticado; se o sign-out falhar, rejeita com o código sanitizado `reauthentication-transition-failed`, sem reter a imagem nem simular sucesso. A cobertura UMD/ESM comprova ordem, coalescência, liberação após falha e nova tentativa apenas explícita; testes de fonte comprovam paridade entre Vite e legado. O `npm test` agregado concluiu com preflight limpo, 1.444/1.444 unitários, 107 casos autenticados legado com 8 skips estruturais esperados, 115/115 Vite e 60/60 cutover. O primeiro cutover isolado foi interrompido a pedido do usuário após 19 casos verdes para reinício do computador; a repetição integral após o reinício concluiu 60/60, e o cutover do gate agregado repetiu 60/60, ambos com exit code 0. No PR draft #247, o sanity rápido `35778325088` terminou em 25 s e o CI autenticado `35778325073` terminou em 39 min 59 s, ambos verdes; o job pesado confirmou preflight, 1.444 unitários, 36 testes Node + 5 runtime do Worker, Functions sem skip e matrizes Playwright legado/Vite completas.
+- **PRs/commits relacionados:** PR #247; commit `6494d66`; runs `35778325088` e `35778325073`. — **Chat:** Trofia-Principal.
+
 ## Métricas retroativas
 
 | PR | Tempo decorrido | Minutos de CI | Chat-Origin |

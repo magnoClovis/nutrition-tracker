@@ -220,6 +220,33 @@
    * @param {Object} dependencies.constants Stable application constants and gates.
    * @returns {Object} Controller component API and pure registration helpers.
    */
+  function requestSessionExpiredReauthentication({
+    pendingRef,
+    destroyRecognitionFlow,
+    transitionToAuthentication
+  }) {
+    if (!pendingRef || typeof pendingRef !== "object" ||
+        typeof destroyRecognitionFlow !== "function" ||
+        typeof transitionToAuthentication !== "function") {
+      return Promise.reject(Object.assign(
+        new Error("Session-expired reauthentication is unavailable"),
+        { code: "reauthentication-transition-unavailable" }
+      ));
+    }
+    if (pendingRef.current) return pendingRef.current;
+
+    const request = (async () => {
+      await destroyRecognitionFlow();
+      await transitionToAuthentication();
+    })();
+    pendingRef.current = request;
+    const clear = () => {
+      if (pendingRef.current === request) pendingRef.current = null;
+    };
+    void request.then(clear, clear);
+    return request;
+  }
+
   function createNutritionTrackerController({
     React,
     services,
@@ -809,6 +836,7 @@
     function NutritionTracker({
       onOpenSettings,
       onLogout,
+      onRequestReauthenticationAfterSessionExpired,
       onStartTutorial,
       onOpenPrivacy,
       onOpenBackup,
@@ -825,6 +853,7 @@
       const [menuOpen, setMenuOpen] = useState(false);
       const [headerLanguageMenuOpen, setHeaderLanguageMenuOpen] = useState(false);
       const [aiStatusModal, setAIStatusModal] = useState(null);
+      const imageMealReauthenticationPromiseRef = useRef(null);
       const text = createTextGetter(lang, STRINGS);
       const dialog = dialogService &&
         typeof dialogService.alert === "function" &&
@@ -2076,6 +2105,21 @@
         } finally {
           if (imageMealClosePromiseRef.current === closing) imageMealClosePromiseRef.current = null;
         }
+      }
+      function requestReauthenticationAfterSessionExpired() {
+        return requestSessionExpiredReauthentication({
+          pendingRef: imageMealReauthenticationPromiseRef,
+          destroyRecognitionFlow: closeImageMealMode,
+          transitionToAuthentication: () => {
+            if (typeof onRequestReauthenticationAfterSessionExpired !== "function") {
+              throw Object.assign(
+                new Error("Authentication transition is unavailable"),
+                { code: "reauthentication-transition-unavailable" }
+              );
+            }
+            return onRequestReauthenticationAfterSessionExpired();
+          }
+        });
       }
       function openImageMealMode() {
         if (!imageMealFeature || typeof imageMealFeature.createFlow !== "function" ||
@@ -5143,6 +5187,7 @@
             lang,
             isMobileView,
             onClose: closeImageMealMode,
+            onRequestReauthentication: requestReauthenticationAfterSessionExpired,
             onCapture: async () => {
               const next = await imageMealFlowRef.current?.captureFromCamera();
               if (next?.phase === "photo") await imageMealFlowRef.current?.process(lang);
@@ -6674,5 +6719,5 @@
     };
   }
 
-  return { createNutritionTrackerController };
+  return { createNutritionTrackerController, requestSessionExpiredReauthentication };
 });

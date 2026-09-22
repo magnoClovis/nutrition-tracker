@@ -29,6 +29,16 @@
 - **[Câmera embutida — C3] Concluído (12/09/2026) — Chat: Trofia-UIUX.** O PR #190 integrou o preview traseiro ao fluxo real C24 com `toBack:true`, viewport medido, máscaras arredondadas Glass UI, controles HTML acessíveis acima da câmera, PT/EN/ES, abertura/contração e `prefers-reduced-motion`. A prova física no Galaxy validou transparência localizada, cliques sobre o preview, recorte sem vazamento, cancelamento e captura Base64; merge `c6a4e4f`.
 - **[Câmera embutida — C4b] Concluído (12/09/2026) — Chat: Trofia-UIUX.** O que se planeja fazer: concluir acessibilidade, recuperação de permissão e acabamento resiliente sem ampliar funções fotográficas. O que foi feito: o PR #194 entregou foco persistente e restaurado, anúncios PT/EN/ES sem duplicidade, abertura real das Configurações, fonte 200%, contraste/alvos de 48 px e descarte temporário; Galaxy físico, gate local e CI autenticado `34710539851` ficaram verdes, com merge `050182d`, encerrando toda a sequência CAM-C1–C4b. Alinhamento: 100%, sem zoom, flash, troca de câmera, gestos ou edição.
 
+### [CAM-RED-6-AUTH-CONTRACT] - Reautenticação segura após sessão expirada na câmera
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** permitir que a ação explícita “Entrar novamente” da CAM-RED-6 descarte integralmente a fotografia temporária antes de encaminhar o usuário ao fluxo real de autenticação.
+- **O que se planeja fazer:** publicar um callback assíncrono de chamada única que coordene, nesta ordem, destruição do fluxo/Blob/URL da foto e transição para Auth; impedir cliques concorrentes; manter falha recuperável; e provar a ordem sem registrar credenciais, UID ou tokens.
+- **Recursos/arquivos principais envolvidos:** `nutrition-tracker-controller.js`, `src/controller/nutrition-tracker-controller.js`, `src/App.jsx`, entrypoints legados `app.js`/`nutrition-tracker.jsx`, `ImageMealScreen`, testes unitários do controlador e documentação do contrato.
+- **O que foi feito:** o controlador e os entrypoints Vite/legado agora expõem uma `Promise<void>` que coalesce cliques, destrói primeiro o fluxo e a fotografia temporária e só depois solicita a autenticação real; falhas são observáveis e recuperáveis. O `npm test` completo passou com preflight, 1.444/1.444 unitários, 107 casos legado com 8 skips estruturais, 115/115 Vite e 60/60 cutover; o PR draft #247 teve sanity rápido e CI autenticado integral verdes nos runs `35778325088` e `35778325073`.
+
 ### [INC-FIRESTORE-PERSIST-20260917] - Data civil incorreta nos smokes autenticados do Diário
 
 - **Status:** em andamento — **Chat:** Trofia-Principal.

@@ -617,10 +617,7 @@ function App() {
       .catch(()=>{});
   }
   function toggleDark() { setDarkMode(d => { const next = !d; localStorage.setItem('appDarkMode', String(next)); return next; }); }
-  async function handleLogout() {
-    try {
-      await Promise.resolve(fbSignOut());
-    } catch (_) {}
+  function resetToAuthentication() {
     setAuthed(false);
     setChecking(false);
     setProfileChecking(false);
@@ -633,6 +630,31 @@ function App() {
     setShowReleaseNotice(false);
     setShowVisualUpdateNotice(false);
     releaseAudienceRef.current = null;
+  }
+  async function handleLogout() {
+    try {
+      await Promise.resolve(fbSignOut());
+    } catch (_) {
+      // The explicit logout remains fail-safe: always expose the login screen.
+    } finally {
+      resetToAuthentication();
+    }
+  }
+  async function requestReauthenticationAfterSessionExpired() {
+    let signOutFailed = false;
+    try {
+      await Promise.resolve(fbSignOut());
+    } catch (_) {
+      signOutFailed = true;
+    } finally {
+      resetToAuthentication();
+    }
+    if (signOutFailed) {
+      throw Object.assign(
+        new Error('Unable to complete the authentication transition'),
+        { code: 'reauthentication-transition-failed' }
+      );
+    }
   }
   async function checkRequiredProfile() {
     setProfileChecking(true);
@@ -774,6 +796,7 @@ function App() {
       !requiredProfile && !profileLoadError && React.createElement(NutritionTracker, {
         onOpenSettings: () => setShowSettings(true),
         onLogout: handleLogout,
+        onRequestReauthenticationAfterSessionExpired: requestReauthenticationAfterSessionExpired,
         onStartTutorial: (type = 'main') => { setTutorialType(type); setShowTutorial(true); },
         onOpenPrivacy: () => setShowPrivacy(true),
         onOpenBackup: () => setShowBackup(true),
