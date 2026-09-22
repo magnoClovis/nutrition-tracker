@@ -1358,8 +1358,8 @@
 - **Data de início:** não determinado.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** preservar integralmente CAM-C4a/C4b e os contratos nutricionais após a mudança estrutural.
-- **O que se planeja fazer:** revalidar permissão/Configurações/galeria, TalkBack, foco, 200%, contraste, 48 px, PT/EN/ES, reduced-motion, lifecycle, descarte temporário, baixa confiança, dados parciais, nomes/listas longos e zero ingredientes.
-- **Recursos/arquivos principais envolvidos:** componentes CAM-RED, ARIA/TalkBack, CSS responsivo, Playwright legado/Vite, Capacitor e Galaxy físico.
+- **O que se planeja fazer:** revalidar permissão/Configurações/galeria, TalkBack, foco, 200%, contraste, 48 px, PT/EN/ES, reduced-motion, lifecycle, descarte temporário, baixa confiança, dados parciais, nomes/listas longos e zero ingredientes; medir toque no obturador → retorno nativo → primeira pintura → `stop()` → análise, dar feedback visual imediato e reduzir somente atrasos comprovadamente evitáveis sem enfraquecer a serialização anticrash.
+- **Recursos/arquivos principais envolvidos:** componentes CAM-RED, `embedded-camera-preview.js`, trace do fluxo de captura, Camera Preview/Capacitor, ARIA/TalkBack, CSS responsivo, Playwright legado/Vite e Galaxy físico.
 
 ### [CAM-RED-10] - Validação final do redesenho pela Play Store
 
