@@ -40,6 +40,17 @@
 - **O que foi feito:** o PR #247, mesclado em `d613d91`, publicou para Vite e legado uma `Promise<void>` que coalesce cliques, destrói primeiro o fluxo e a fotografia temporária e só depois solicita a autenticação real; falhas são observáveis e recuperáveis. O `npm test` completo e os dois SHAs do PR ficaram verdes em preflight, unitários, Worker, Functions e Playwright autenticado.
 - **Alinhamento:** 100% — o contrato aprovado foi entregue sem ampliar o escopo da UIUX nem alterar Worker, Firestore, App Check ou persistência da fotografia.
 
+### [INV-VITE-APPCHECK-CONFIG-20260923] - Bootstrap Vite da CAM-RED-6 sem configuração Web completa
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 23/09/2026.
+- **Data de conclusão:** 23/09/2026.
+- **Propósito:** distinguir uma falha funcional de App Check de uma configuração local incompleta antes de liberar o gate autenticado da CAM-RED-6.
+- **O que se planeja fazer:** preservar o worktree da UIUX, confirmar o contrato fail-closed, repetir o `auth-setup` com credenciais descartáveis e as quatro entradas exigidas e só propor código se o erro persistir com a configuração completa.
+- **Recursos/arquivos principais envolvidos:** `src/firebase/app-check-client.js`, `tests/smoke/app-check-global-setup.js`, `tests/smoke/app-check-fixture.js`, `tests/smoke/app-check-ci.js`, `playwright.vite.config.js`, variáveis locais ignoradas pelo Git e Firebase App Check debug provider.
+- **O que foi feito:** o artefato da UIUX confirmou `app-check-initialization-failed`; a auditoria encontrou `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` ausente no processo local. Com site key e App ID públicos, debug token registrado e credenciais descartáveis presentes no mesmo processo, o build Vite passou e o login/bootstrap protegido concluiu 3/3 vezes; 34 testes focados de App Check também passaram. Nenhum runtime, câmera, Worker, Firestore, rules ou Auth foi alterado.
+- **Alinhamento:** 100% — a causa de configuração foi comprovada e o gate foi liberado sem retry, relaxamento de teste ou correção especulativa de produto.
+
 ### [INC-FIRESTORE-PERSIST-20260917] - Data civil incorreta nos smokes autenticados do Diário
 
 - **Status:** em andamento — **Chat:** Trofia-Principal.

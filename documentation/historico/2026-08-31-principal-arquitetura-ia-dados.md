@@ -736,6 +736,24 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Alinhamento:** 100%. O contrato mínimo aprovado, a ordem de descarte antes de Auth, a coalescência, a falha recuperável, a paridade Vite/legado e a documentação operacional foram entregues integralmente. O impacto foi positivo: a UIUX recebeu uma fronteira segura sem assumir lógica de autenticação nem ampliar o escopo da CAM-RED-6.
 - **PRs/commits relacionados:** PR #247; commits `6494d66`, `9fca9f0` e merge `d613d91`; runs `35778325088`, `35778325073`, `35782960415` e `35782960402`. — **Chat:** Trofia-Principal.
 
+### [INV-VITE-APPCHECK-CONFIG-20260923] - Bootstrap Vite da CAM-RED-6 sem configuração Web completa
+
+- **Status:** concluído.
+- **Data de início:** 23/09/2026.
+- **Data de conclusão:** 23/09/2026.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min (investigação e reprodução locais; nenhum CI remoto foi necessário).
+- **Propósito:** determinar se o bloqueio `app-check-initialization-failed` observado no início do smoke Vite da CAM-RED-6 era uma regressão do produto ou uma lacuna no ambiente local, sem tocar no worktree, na câmera ou na implementação funcional preservada pela UIUX.
+- **O que se planeja fazer:** ler somente as evidências sanitizadas da UIUX, confrontar as variáveis presentes com o contrato de inicialização do App Check Web e com o workflow oficial, repetir o `auth-setup` sobre uma worktree limpa da `origin/main` usando a conta descartável e a configuração completa no mesmo processo e somente propor mudança funcional se o erro persistisse.
+- **Recursos/arquivos principais envolvidos:** `src/firebase/app-check-client.js`, `app-check-client.js`, `tests/smoke/app-check-global-setup.js`, `tests/smoke/app-check-fixture.js`, `tests/smoke/app-check-ci.js`, `tests/smoke/auth.setup.js`, `playwright.vite.config.js`, `.github/workflows/ci.yml`, Firebase App Check debug provider, reCAPTCHA Enterprise e arquivos locais ignorados `.env.local`/`tests/test-user.local.json`.
+- **O que foi feito:** a árvore acessível preservada pela UIUX mostrava o erro sanitizado `app-check-initialization-failed`. A inspeção das variáveis por nome, sem ler nem publicar valores, comprovou que o processo possuía `FIREBASE_APPCHECK_DEBUG_TOKEN`, mas não `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY`; a configuração oficial do CI, por contraste, injeta a site key e o App ID. No runtime Web, `readRequiredWebConfig()` é executado antes da obtenção de token e rejeita uma site key ausente com `app-check-web-not-configured`; a fronteira comum sanitiza essa causa para `app-check-initialization-failed`, exatamente o texto observado. Portanto, o debug token registrado não substitui a configuração estática do provider: ele precisa ser instalado antes dos scripts da página, enquanto a site key precisa estar presente no momento em que o Vite constrói o bundle.
+
+  A reprodução controlada copiou apenas os dois arquivos locais já ignorados pelo Git para uma worktree própria, obteve as duas configurações públicas do repositório sem imprimi-las e as manteve somente no ambiente do processo. O build Vite passou pela allowlist de 14 arquivos. Em seguida, o `auth-setup` foi executado três vezes em série com credenciais descartáveis, debug token registrado, App ID e site key presentes: 3/3 concluíram login, inicialização App Check, leitura protegida do perfil e navegação, em 59,6 s totais, sem `app-check-initialization-failed`. Os 34 testes focados de `app-check-client` e `app-check-ci` também passaram sem skips. Não foi aplicada qualquer mudança a runtime, Auth, Firestore, rules, Worker, câmera ou CAM-RED-6.
+
+  Para repetir o gate, a UIUX deve garantir que `FIREBASE_APPCHECK_DEBUG_TOKEN`, `VITE_FIREBASE_WEB_APP_ID` e `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` estejam definidos no mesmo processo que executa `npm run test:smoke:vite`; as credenciais continuam em `tests/test-user.local.json`. A site key e o App ID são configuração pública do build, mas o debug token é segredo registrado e nunca deve ser impresso, persistido em artefato, trace ou commit. A ausência de qualquer uma dessas entradas deve continuar falhando de forma explícita; não se recomenda retry, timeout maior ou fallback.
+- **Alinhamento:** 100%. A investigação reproduziu o cenário corrigido exatamente dentro dos limites aprovados, confirmou uma causa integralmente ambiental e liberou o gate sem modificar o produto. O impacto foi positivo: evitou uma correção especulativa em autenticação/App Check e forneceu à UIUX uma instrução operacional verificável.
+- **PRs/commits relacionados:** bloqueio reportado no draft PR #246 da UIUX; worktree de diagnóstico `codex/investigate-vite-appcheck-bootstrap`; PR documental pendente. — **Chat:** Trofia-Principal.
+
 ## Métricas retroativas
 
 | PR | Tempo decorrido | Minutos de CI | Chat-Origin |
