@@ -132,6 +132,52 @@ test('cancels the remote lease and waits for confirmed completion', async () => 
   assert.equal(viewCount, 2);
 });
 
+test('retries an idempotent remote cancellation after a transient CLI failure', async () => {
+  const calls = [];
+  let cancelCount = 0;
+  let viewCount = 0;
+  await releaseRemoteLease({runId: 42}, {
+    now: (() => { let value = 0; return () => value++; })(),
+    waitTimeoutMs: 20,
+    pollIntervalMs: 0,
+    async sleep() {},
+    async executeGhCommand(args) {
+      calls.push(args);
+      if (args[1] === 'cancel') {
+        cancelCount += 1;
+        if (cancelCount === 1) throw new Error('transient GitHub failure');
+        return '';
+      }
+      viewCount += 1;
+      return JSON.stringify({
+        status: cancelCount >= 2 ? 'completed' : 'in_progress',
+        conclusion: cancelCount >= 2 ? 'cancelled' : '',
+      });
+    },
+  });
+  assert.equal(cancelCount, 2);
+  assert.equal(viewCount, 2);
+  assert.equal(calls.filter(args => args[1] === 'cancel').length, 2);
+});
+
+test('accepts an already completed lease when cancellation reports failure', async () => {
+  let cancelCount = 0;
+  await releaseRemoteLease({runId: 42}, {
+    now: (() => { let value = 0; return () => value++; })(),
+    waitTimeoutMs: 20,
+    pollIntervalMs: 0,
+    async sleep() {},
+    async executeGhCommand(args) {
+      if (args[1] === 'cancel') {
+        cancelCount += 1;
+        throw new Error('already completed');
+      }
+      return JSON.stringify({status: 'completed', conclusion: 'cancelled'});
+    },
+  });
+  assert.equal(cancelCount, 1);
+});
+
 test('releases the local lock when remote dispatch fails closed', async () => {
   const env = makeTempEnv();
   await assert.rejects(coordinateAuthenticatedSuite({
