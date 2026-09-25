@@ -1409,15 +1409,15 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 ### [CAM-RED-6] - Timeout, classificação de falhas e retry
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 
 - **Data de início:** 22/09/2026.
 
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 25/09/2026.
 
-- **Tempo decorrido:** pendente de merge.
+- **Tempo decorrido:** 3 dias 8 h 39 min 23 s.
 
-- **Minutos de CI:** 31 min 27 s — 23 s leves e 31 min 4 s pesados.
+- **Minutos de CI:** 74 min 34 s — 48 s leves e 73 min 46 s pesados.
 
 - **Propósito:** impedir que o reconhecimento por foto permaneça em carregamento infinito e transformar falhas tecnicamente diferentes em orientações acionáveis, sem apagar a fotografia já capturada nem induzir o usuário a repetir operações inúteis.
 
@@ -1437,9 +1437,13 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
   Na matriz visual final, o único desvio encontrado era do próprio roteiro: o tema era gravado depois do bootstrap e a migração única `appThemeDefaultDarkV1` podia restabelecer o escuro, fazendo o caso claro comparar o estilo errado. A fixture passou a preparar, antes da navegação, tanto o marcador da migração quanto `appDarkMode`, sem alterar o CSS ou o requisito visual. O recorte Vite repetido passou 17/17. Em seguida, o gate local integral ficou verde com 1.457/1.457 unitários, 111 casos legados aprovados mais 8 skips estruturais documentados, 119/119 no Vite e 60/60 no cutover. Não houve aumento de timeout, retry automático de login, `force:true`, aceitação de `#loading` nem relaxamento de expectativa visual.
 
-  O commit funcional `df723d7` foi enviado ao PR draft #246 e repetiu o gate no CI autenticado real sem falhas: o check leve `36177906677` concluiu em 23 s e o gate pesado `36177906630` em 31 min 4 s, totalizando 31 min 27 s de CI. O PR permanece draft e a fatia continua formalmente em andamento até aprovação e merge; por isso a data de conclusão e o tempo decorrido seguem corretamente pendentes de merge.
+  O commit funcional `df723d7` foi enviado ao PR draft #246 e repetiu o gate no CI autenticado real sem falhas: o check leve `36177906677` concluiu em 23 s e o gate pesado `36177906630` em 31 min 4 s. O commit documental pré-merge `ef4d7c6` também passou integralmente, com o check leve `36184104553` em 25 s e o pesado `36184104556` em 42 min 42 s. Os dois HEADs somaram 74 min 34 s de CI, divididos em 48 s leves e 73 min 46 s pesados.
 
-- **PRs/commits relacionados:** PR draft #246; commits documentais `8d400d0` e `4f1d030`; commit funcional `df723d7`; contrato de autenticação PR #247/merge `d613d91`; correção externa de bootstrap/lease PR #251/merge `d6bc04f`; base documental incorporada `9ca27ffd`; CI leve `36177906677` e pesado `36177906630`. — **Chat-Origin:** Trofia-UIUX.
+  Após aprovação explícita, o PR #246 foi retirado do draft e mesclado na `main` em `3b8bac03750903913b1a3d3c609412f4ac039ac3`. O tempo real entre o primeiro commit da fatia (`8d400d0`, 22/09/2026 12:39:36 UTC) e o merge (25/09/2026 21:18:59 UTC) foi de 3 dias 8 h 39 min 23 s. A worktree funcional `.codex-ui-cam-red-6` estava limpa e sem processos vinculados e foi removida imediatamente após a confirmação do merge.
+
+- **Alinhamento:** 100%. O plano aprovado foi entregue integralmente: as seis classes de falha possuem tratamento e ações coerentes, o timeout impede carregamento infinito, retry preserva somente a foto temporária da sessão, respostas tardias são descartadas e a reautenticação usa exclusivamente o contrato seguro do controlador. Os incidentes de App Check local, bootstrap Auth e lease eram externos à câmera e foram corrigidos pela frente responsável antes da retomada; o ajuste final da fixture apenas estabilizou a seleção do tema já exigido. O impacto desses achados foi positivo para o projeto, pois fortaleceu o gate sem ampliar o escopo funcional nem mascarar falhas.
+
+- **PRs/commits relacionados:** [PR #246](https://github.com/magnoClovis/nutrition-tracker/pull/246), merge `3b8bac0`; commits `8d400d0`, `4f1d030`, `df723d7` e `ef4d7c6`; contrato de autenticação PR #247/merge `d613d91`; correção externa de bootstrap/lease PR #251/merge `d6bc04f`; base documental incorporada `9ca27ffd`; CIs leves `36177906677`/`36184104553` e pesados `36177906630`/`36184104556`. — **Chat-Origin:** Trofia-UIUX.
 
 ## Encerramento administrativo do PR documental obsoleto #170
 
