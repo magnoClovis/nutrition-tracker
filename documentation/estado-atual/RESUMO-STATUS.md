@@ -40,6 +40,28 @@
 - **O que foi feito:** o PR #247, mesclado em `d613d91`, publicou para Vite e legado uma `Promise<void>` que coalesce cliques, destrói primeiro o fluxo e a fotografia temporária e só depois solicita a autenticação real; falhas são observáveis e recuperáveis. O `npm test` completo e os dois SHAs do PR ficaram verdes em preflight, unitários, Worker, Functions e Playwright autenticado.
 - **Alinhamento:** 100% — o contrato aprovado foi entregue sem ampliar o escopo da UIUX nem alterar Worker, Firestore, App Check ou persistência da fotografia.
 
+### [INV-VITE-APPCHECK-CONFIG-20260923] - Bootstrap Vite da CAM-RED-6 sem configuração Web completa
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 23/09/2026.
+- **Data de conclusão:** 23/09/2026.
+- **Propósito:** distinguir uma falha funcional de App Check de uma configuração local incompleta antes de liberar o gate autenticado da CAM-RED-6.
+- **O que se planeja fazer:** preservar o worktree da UIUX, confirmar o contrato fail-closed, repetir o `auth-setup` com credenciais descartáveis e as quatro entradas exigidas e só propor código se o erro persistir com a configuração completa.
+- **Recursos/arquivos principais envolvidos:** `src/firebase/app-check-client.js`, `tests/smoke/app-check-global-setup.js`, `tests/smoke/app-check-fixture.js`, `tests/smoke/app-check-ci.js`, `playwright.vite.config.js`, variáveis locais ignoradas pelo Git e Firebase App Check debug provider.
+- **O que foi feito:** o artefato da UIUX confirmou `app-check-initialization-failed`; a auditoria encontrou `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` ausente no processo local. Com site key e App ID públicos, debug token registrado e credenciais descartáveis presentes no mesmo processo, o build Vite passou e o login/bootstrap protegido concluiu 3/3 vezes; 34 testes focados de App Check também passaram. O diagnóstico foi incorporado e mesclado no PR #251, sem alterar câmera, Worker, Firestore, rules ou Auth.
+- **Alinhamento:** 100% — a causa de configuração foi comprovada e o gate foi liberado sem retry, relaxamento de teste ou correção especulativa de produto.
+
+### [INC-VITE-AUTH-LEASE-20260925] - Restauração Auth destrutiva e lease residual no gate Vite
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 25/09/2026.
+- **Data de conclusão:** 25/09/2026.
+- **Propósito:** impedir que uma restauração modular lenta seja convertida em logout pelo bootstrap e garantir que uma falha transitória do GitHub não deixe o lease autenticado ativo por uma hora.
+- **O que se planeja fazer:** preservar a CAM-RED-6, confrontar screenshots/cronologia com Auth, App Check e lease, remover a corrida destrutiva somente do Vite, tornar o cancelamento remoto idempotente e validar recorte, suíte completa e CI autenticado antes de liberar a UIUX.
+- **Recursos/arquivos principais envolvidos:** `src/App.jsx`, `tests/smoke/authenticated-suite-coordinator.js`, `tests/unit/app-entry.test.js`, `tests/unit/authenticated-suite-coordinator.test.js`, Playwright Vite mobile, Firebase Auth modular, GitHub Actions e workflow `authenticated-local-lease.yml`.
+- **O que foi feito:** os artefatos mostraram contextos alternando entre “Entrando...” e a tela pública; o código confirmou um timer de 8 s que chamava `fbSignOut()` concorrente a `authStateReady()`. O lease `36024006073` não foi liberado no teardown e só terminou pelo timeout de 60 min. O timer destrutivo foi removido somente do bootstrap modular, e a liberação do lease passou a consultar o estado e repetir idempotentemente um cancelamento transitório. Passaram 24 testes determinísticos, recortes 9/9 e 25/25, a suíte local integral (1.446 unitários; legado 107 + 8 skips estruturais; Vite 115/115; cutover 60/60) e os runs `36142057000`/`36142056828`; o PR #251 foi mesclado em `d6bc04f`.
+- **Alinhamento:** 100% — as duas causas objetivas foram corrigidas sem alterar câmera, Worker, Firestore ou rules e sem relaxar o gate autenticado.
+
 ### [INC-FIRESTORE-PERSIST-20260917] - Data civil incorreta nos smokes autenticados do Diário
 
 - **Status:** em andamento — **Chat:** Trofia-Principal.

@@ -1031,14 +1031,12 @@ export function App() {
       setChecking(false);
       return () => { active = false; };
     }
-    const timeout = setTimeout(() => {
-      Promise.resolve().then(() => fbSignOut()).catch(() => {});
-      setAuthed(false);
-      setChecking(false);
-    }, 8000);
+    // authStateReady() is the source of truth for persisted modular sessions.
+    // Never race it with a timer that signs the user out: under a temporarily
+    // slow IndexedDB/network restore, that timer can destroy a valid session
+    // while this same bootstrap is still reading it.
     Promise.resolve().then(() => initializeFirebase())
       .then(() => {
-        clearTimeout(timeout);
         if (!active || !fbIsLoggedIn()) {
           if (active) setChecking(false);
           return null;
@@ -1076,7 +1074,6 @@ export function App() {
         await checkRequiredProfile({isNewAccount: false});
       })
       .catch(error => {
-        clearTimeout(timeout);
         if (fbIsLoggedIn()) {
           setAuthed(true);
           setRequiredProfile(null);
@@ -1089,7 +1086,6 @@ export function App() {
       });
     return () => {
       active = false;
-      clearTimeout(timeout);
     };
   }, []);
 
