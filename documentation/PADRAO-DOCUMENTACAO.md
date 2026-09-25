@@ -93,6 +93,20 @@ Confirmar todos os itens:
 
 Se qualquer item aplicável estiver ausente, a fatia permanece aberta documentalmente, mesmo com testes verdes e código mesclado.
 
+## Monitoramento de validações demoradas
+
+Testes, gates, builds, deploys, CI e etapas automáticas de validação física devem usar monitoramento passivo:
+
+1. iniciar a operação e registrar o identificador necessário para consultá-la;
+2. estimar a primeira verificação pela duração média real daquele processo; sem histórico confiável, usar uma janela conservadora;
+3. criar automação/heartbeat silenciosa, sem polling frequente nem sleep longo;
+4. se ainda estiver saudável e em execução, estimar o restante e reagendar;
+5. notificar somente em conclusão, falha, mudança material ou intervenção necessária;
+6. preservar logs/artefatos e parar ações dependentes diante de falha;
+7. excluir a automação depois que o resultado terminal for processado.
+
+Monitoramento ativo exige motivo técnico concreto — operação interativa, risco de perder evidência ou pedido explícito — documentado antes da espera. A automação não substitui as métricas reais de CI nem autoriza declarar uma fatia concluída antes dos gates aplicáveis.
+
 ## Limites entre frentes
 
 - Cada chat mantém seu próprio arquivo em `documentation/historico/`.

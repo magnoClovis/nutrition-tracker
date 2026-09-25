@@ -60,9 +60,11 @@ Confiança alta da estimativa não corrige um nutriente ausente. Cobertura alta 
 
 Feedback e padrões recebem metas já calculadas, data/período, tipo de dia, totais, cobertura e alimentos necessários à análise. Não devem receber nome, data de nascimento/idade, sexo, altura, peso ou IMC.
 
-O Worker continua sem persistir ou registrar prompts, fotos, respostas e dados nutricionais. Segredos permanecem fora do cliente e do repositório.
+O Worker continua sem persistir ou registrar prompts, fotos, respostas e dados nutricionais. Segredos permanecem fora do cliente e do repositório. Identificadores Firebase não chegam ao Durable Object: antes do rate limiter, o UID é transformado por HMAC-SHA-256 com segredo exclusivo do ambiente. Os metadados pseudonimizados de limitação continuam sujeitos ao teto de 24 horas já publicado.
 
-Além do Firebase ID token, os clientes de IA enviam um token Firebase App Check no cabeçalho `X-Firebase-AppCheck`. O Worker valida assinatura RS256, `kid`, emissor, audiência, expiração e o identificador do app contra a lista explícita dos apps Web e Android do Trofia. O rollout permanece em modo de observação até Pages, CI e um AAB distribuído pela Play serem validados; somente depois disso o modo obrigatório pode ser publicado.
+Além do Firebase ID token, os clientes de IA enviam um token Firebase App Check no cabeçalho `X-Firebase-AppCheck`. O Worker valida assinatura RS256, `kid`, emissor, audiência, expiração e o identificador do app contra a lista explícita dos apps Web e Android do Trofia. O enforcement obrigatório foi publicado somente depois de Pages, CI e um AAB distribuído pela Play serem validados.
+
+As métricas operacionais aceitam exclusivamente endpoint conhecido, status HTTP, classe de resultado, latência limitada, estado sanitizado de App Check e tier validado. Nunca incluem UID, pseudônimo, prompt, foto, token, cabeçalho, resposta ou dado nutricional. Workers Logs mantém a janela nativa curta do plano Cloudflare; agregados diários sem identificador são removidos automaticamente do Durable Object em no máximo 30 dias.
 
 ## Fronteira de transporte aprovada
 
@@ -95,7 +97,7 @@ Feedback diário/semanal, padrões alimentares e explicação da avaliação con
 
 ## Modelo e histórico
 
-O C08 mantém `gemini-3.5-flash-lite` e os limites operacionais atuais. Comparação ou troca de modelo é uma decisão futura separada.
+O C08 mantém `gemini-3.5-flash-lite` e os limites operacionais atuais. A fronteira do Worker encerra a chamada ao provedor após 40 segundos, rejeita respostas acima de 128 KB e preserva o teto de 1.200 tokens. Comparação ou troca de modelo é uma decisão futura separada.
 
 Cada contrato identifica sua versão. Alterar critérios de modo incompatível exige nova versão; não é permitido reinterpretar silenciosamente resultados ou snapshots salvos por versões anteriores.
 

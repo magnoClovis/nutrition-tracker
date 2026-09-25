@@ -78,7 +78,9 @@ Cada frente escreve em um arquivo próprio:
 - `compliance/`: políticas PT/EN/ES e referência do Google Play Data Safety.
 - `operacao/`: guias históricos de smoke test convertidos para Markdown.
 - `operacao/REFERENCIAS-TECNICAS.md`: índice de fontes técnicas que permanecem na raiz ou nas pastas de testes.
+- `operacao/MONITORAMENTO-PASSIVO.md`: regra para acompanhar testes, CI, builds e deploys por heartbeat silencioso, sem polling contínuo.
 - `operacao/TESTE-FISICO-GALAXY.md`: checklist obrigatório de preparação, proteção de conta, restauração do aparelho e encerramento de ADB em validações físicas.
+- `estado-atual/C14_F1_WORKER_TIERS_OBSERVABILITY.md`: contrato de pseudonimização, tiers em observação, limites do Gemini e métricas sanitizadas do Worker.
 
 ## Base desta captura
 

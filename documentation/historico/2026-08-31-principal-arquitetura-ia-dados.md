@@ -319,14 +319,16 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ### [C14-F1] - Worker, tiers e observabilidade
 
-- **Status:** não iniciado.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento.
+- **Data de início:** 25/09/2026.
+- **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min até esta etapa; validação ainda não iniciada.
+- **Minutos de CI:** 0 min até esta etapa; CI remoto ainda não iniciado.
 - **Propósito:** preparar limites comerciais e monitoramento sem dados pessoais antes da distribuição pública.
 - **O que se planeja fazer:** modelar tiers com enforcement individual desligado durante os testes, pseudonimizar identificadores, limitar timeout/saída e manter métricas sanitizadas por 30 dias.
-- **Recursos/arquivos principais envolvidos:** `/worker/src/`, Durable Object, rate limiter, Cloudflare/Google Cloud Logging e Monitoring, contratos e testes.
+- **Recursos/arquivos principais envolvidos:** `worker/src/ai-worker.js`, `worker/src/rate-limiter.js`, `worker/wrangler.jsonc`, Durable Objects SQLite, Cloudflare Workers Logs/Analytics Engine, contratos de tiers e testes Node/runtime.
+- **O que foi feito:** em 25/09/2026, a fatia foi iniciada a partir da `origin/main` `a398315` em worktree isolado. A leitura do código confirmou quatro pontos que o trabalho precisava fechar: o Durable Object recebia e persistia o UID Firebase bruto; os limites individuais atuais eram barreiras antiabuso por minuto e não representavam tiers comerciais; a chamada ao Gemini não tinha deadline nem leitura limitada da resposta; e a observabilidade do Worker estava desativada. A implementação transforma o UID por HMAC-SHA-256 antes do Durable Object, apaga uma única vez as janelas antigas com UID bruto na migração v3 sem zerar o contador global diário, modela tiers arbitrários por claim verificada/configuração de servidor com enforcement comercial em `observe`, limita Gemini a 40 s/128 KB/1.200 tokens e aceita apenas métricas sanitizadas. A documentação oficial atual da Cloudflare confirmou que Workers Logs retém somente 3 dias no plano Free ou 7 dias no Paid, enquanto Analytics Engine retém três meses; para cumprir o teto aprovado sem fingir uma configuração inexistente, logs operacionais usam a janela nativa curta e o Durable Object guarda somente agregados diários sem identificador, removidos por alarme em no máximo 30 dias. Passaram o preflight, 1.454/1.454 unitários, 44/44 testes Node do Worker, 9/9 testes runtime do Durable Object, dry-run do Wrangler, 52/52 casos locais do smoke legado e 52/52 do Vite com 63 skips autenticados/visuais esperados por matriz sem credenciais locais, além do cutover 60/60; o CI autenticado remoto permanece como gate antes do deploy.
+- **PRs/commits relacionados:** implementação ainda sem commit/PR; base `a398315`. — **Chat:** Trofia-Principal.
 
 ### [C14-F2] - IAM, invocadores e dependências
 
