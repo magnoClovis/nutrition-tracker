@@ -243,13 +243,14 @@
 
 ### [DOC-ROADMAP-LAUNCH-C26-C30] - Notificações e cobrança no pré-lançamento
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 25/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 25/09/2026.
 - **Propósito:** alinhar o roadmap e os checkpoints à decisão de lançar o Trofia com lembretes locais e cobrança segura, preservando push e reclassificação por IA para depois.
 - **O que se planeja fazer:** promover C26-A/B ao grupo A, criar C30-A–E entre C14 e C16, manter C26-C/C29 no grupo B e sincronizar roadmap, versão, resumo e histórico sem iniciar código.
 - **Recursos/arquivos principais envolvidos:** `ROADMAP.md`, `VERSIONING.md`, cópias em `documentation/estado-atual/`, `RESUMO-STATUS.md` e histórico principal.
-- **O que foi feito:** proposta documental preparada e validada por preflight local; todas as fatias permanecem não iniciadas, as cópias controladas foram sincronizadas e duas contradições antigas de status (C14-F1 e INC-FIRESTORE-PERSIST) foram corrigidas por evidência.
+- **O que foi feito:** o PR #253 reorganizou as 39 posições, registrou C26-A/B e C30-A–E, sincronizou roadmap/versionamento/cópias e corrigiu por evidência as contradições de C14-F1 e INC-FIRESTORE-PERSIST; todas as fatias funcionais permanecem não iniciadas.
+- **Alinhamento:** 100%; a mudança foi exclusivamente documental e preservou C26-C/C29 no pós-lançamento conforme aprovado.
 
 ### Frente principal — sequências aprovadas e ainda não iniciadas
 
