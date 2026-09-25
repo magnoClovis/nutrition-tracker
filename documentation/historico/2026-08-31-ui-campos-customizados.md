@@ -1417,7 +1417,7 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 - **Tempo decorrido:** pendente de merge.
 
-- **Minutos de CI:** 0 min; CI ainda não iniciado.
+- **Minutos de CI:** 31 min 27 s — 23 s leves e 31 min 4 s pesados.
 
 - **Propósito:** impedir que o reconhecimento por foto permaneça em carregamento infinito e transformar falhas tecnicamente diferentes em orientações acionáveis, sem apagar a fotografia já capturada nem induzir o usuário a repetir operações inúteis.
 
@@ -1435,9 +1435,11 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
   O primeiro gate autenticado local falhou fechado em `app-check-initialization-failed` porque o processo do build Vite não possuía todas as entradas públicas e secretas exigidas. A investigação `INV-VITE-APPCHECK-CONFIG-20260923`, conduzida pelo Trofia-Principal, comprovou configuração local incompleta, não defeito da câmera: `FIREBASE_APPCHECK_DEBUG_TOKEN`, `VITE_FIREBASE_WEB_APP_ID` e `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` passaram a ser injetados no mesmo processo desde `build:vite` até Playwright, sem imprimir ou versionar segredos. Uma retomada posterior revelou duas falhas independentes da fatia — logout temporizado concorrente a `authStateReady()` no bootstrap modular e liberação não idempotente do lease autenticado — corrigidas pelo Principal no PR #251, merge `d6bc04f`, e documentadas na main `9ca27ffd`. A branch incorporou essa main por merge explícito, preservando integralmente a implementação da CAM-RED-6.
 
-  Na matriz visual final, o único desvio encontrado era do próprio roteiro: o tema era gravado depois do bootstrap e a migração única `appThemeDefaultDarkV1` podia restabelecer o escuro, fazendo o caso claro comparar o estilo errado. A fixture passou a preparar, antes da navegação, tanto o marcador da migração quanto `appDarkMode`, sem alterar o CSS ou o requisito visual. O recorte Vite repetido passou 17/17. Em seguida, o gate local integral ficou verde com 1.457/1.457 unitários, 111 casos legados aprovados mais 8 skips estruturais documentados, 119/119 no Vite e 60/60 no cutover. Não houve aumento de timeout, retry automático de login, `force:true`, aceitação de `#loading` nem relaxamento de expectativa visual. O commit funcional e o CI autenticado real permanecem pendentes neste registro pré-push.
+  Na matriz visual final, o único desvio encontrado era do próprio roteiro: o tema era gravado depois do bootstrap e a migração única `appThemeDefaultDarkV1` podia restabelecer o escuro, fazendo o caso claro comparar o estilo errado. A fixture passou a preparar, antes da navegação, tanto o marcador da migração quanto `appDarkMode`, sem alterar o CSS ou o requisito visual. O recorte Vite repetido passou 17/17. Em seguida, o gate local integral ficou verde com 1.457/1.457 unitários, 111 casos legados aprovados mais 8 skips estruturais documentados, 119/119 no Vite e 60/60 no cutover. Não houve aumento de timeout, retry automático de login, `force:true`, aceitação de `#loading` nem relaxamento de expectativa visual.
 
-- **PRs/commits relacionados:** PR draft #246; commits documentais `8d400d0` e `4f1d030`; contrato de autenticação PR #247/merge `d613d91`; correção externa de bootstrap/lease PR #251/merge `d6bc04f`; base documental incorporada `9ca27ffd`; alterações funcionais ainda não commitadas antes do push e do CI autenticado. — **Chat-Origin:** Trofia-UIUX.
+  O commit funcional `df723d7` foi enviado ao PR draft #246 e repetiu o gate no CI autenticado real sem falhas: o check leve `36177906677` concluiu em 23 s e o gate pesado `36177906630` em 31 min 4 s, totalizando 31 min 27 s de CI. O PR permanece draft e a fatia continua formalmente em andamento até aprovação e merge; por isso a data de conclusão e o tempo decorrido seguem corretamente pendentes de merge.
+
+- **PRs/commits relacionados:** PR draft #246; commits documentais `8d400d0` e `4f1d030`; commit funcional `df723d7`; contrato de autenticação PR #247/merge `d613d91`; correção externa de bootstrap/lease PR #251/merge `d6bc04f`; base documental incorporada `9ca27ffd`; CI leve `36177906677` e pesado `36177906630`. — **Chat-Origin:** Trofia-UIUX.
 
 ## Encerramento administrativo do PR documental obsoleto #170
 
