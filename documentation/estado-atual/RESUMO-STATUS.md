@@ -64,7 +64,7 @@
 
 ### [INC-FIRESTORE-PERSIST-20260917] - Data civil incorreta nos smokes autenticados do Diário
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 17/09/2026.
 - **Data de conclusão:** 17/09/2026.
 - **Propósito:** impedir que os gates autenticados confundam uma diferença UTC/data local com falha de persistência do Firestore.
@@ -204,12 +204,14 @@
 ### Indispensável antes do lançamento público
 
 - **C14:** revisão geral de segurança — em andamento; decisões de escopo aprovadas em 01/09/2026 e execução sequencial autorizada a partir da C14-B.
-- **C16:** documentação técnica e de manutenção — parcial; esta pasta ajuda, mas não equivale à conclusão integral do item.
-- **C25:** gate da versão pública — parcial e dependente de C14/C16.
+- **C26-A/B:** toast seguro e lembretes locais — não iniciados; promovidos ao pré-lançamento em 25/09/2026, sem incluir push/backend.
+- **C30:** assinaturas, cobranças e direitos de acesso — não iniciado; depende de C14 e antecede a documentação e o gate finais.
+- **C16:** documentação técnica e de manutenção — parcial; deve fechar depois de C14, C26-A/B e C30.
+- **C25:** gate da versão pública — parcial e dependente de C14, C26-A/B, C30 e C16.
 
 ### Backlog pós-lançamento
 
-- C26 notificações, N01 voz, C21 porções fracionadas, C29 reclassificação assistida por foto, N03 leitura de rótulos, N09 jejum, C17 e-mails, C13 feedback nativo, C10 relatórios, N07 compartilhamento profissional, N02 banco nutricional, N05 recalibração dinâmica, C15 limpeza ampla do legado, C27 widgets, N04 receitas, N06 planejamento alimentar, C12 iOS, C18 integrações de saúde e N08 exercícios/hábitos.
+- C26-C push/backend, N01 voz, C21 porções fracionadas, C29 reclassificação assistida por foto, N03 leitura de rótulos, N09 jejum, C17 e-mails, C13 feedback nativo, C10 relatórios, N07 compartilhamento profissional, N02 banco nutricional, N05 recalibração dinâmica, C15 limpeza ampla do legado, C27 widgets, N04 receitas, N06 planejamento alimentar, C12 iOS, C18 integrações de saúde e N08 exercícios/hábitos.
 - Partes deliberadamente adiadas: C26-C (push/backend) e C27-B (widget funcional com escrita direta).
 - Revisão externa por nutricionista e eventual comparação/troca do modelo Gemini permanecem decisões futuras registradas em `PENDENCIAS.md`.
 
@@ -238,6 +240,90 @@
 - O histórico detalhado da frente registra os mesmos três campos. Quando o alinhamento for inferior a 100%, deve explicar o desvio real e classificar o impacto como positivo, negativo ou neutro.
 - Toda entrada de fatia/PR em `documentation/historico/*.md` registra `Tempo decorrido` e `Minutos de CI` logo após a data de conclusão. Antes do merge, o tempo permanece literalmente `pendente de merge`; depois do merge, o mesmo valor é copiado para a descrição do PR.
 - Commits e descrições de PR novos terminam com `Chat-Origin: <nome do chat>`; neste arquivo, toda atualização identifica o chat responsável pelo item.
+
+### [DOC-ROADMAP-LAUNCH-C26-C30] - Notificações e cobrança no pré-lançamento
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 25/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** alinhar o roadmap e os checkpoints à decisão de lançar o Trofia com lembretes locais e cobrança segura, preservando push e reclassificação por IA para depois.
+- **O que se planeja fazer:** promover C26-A/B ao grupo A, criar C30-A–E entre C14 e C16, manter C26-C/C29 no grupo B e sincronizar roadmap, versão, resumo e histórico sem iniciar código.
+- **Recursos/arquivos principais envolvidos:** `ROADMAP.md`, `VERSIONING.md`, cópias em `documentation/estado-atual/`, `RESUMO-STATUS.md` e histórico principal.
+- **O que foi feito:** proposta documental preparada e validada por preflight local; todas as fatias permanecem não iniciadas, as cópias controladas foram sincronizadas e duas contradições antigas de status (C14-F1 e INC-FIRESTORE-PERSIST) foram corrigidas por evidência.
+
+### Frente principal — sequências aprovadas e ainda não iniciadas
+
+### [C26-A] - Toast interno seguro
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** tornar a conquista interna perceptível sem colidir com notch/barra de status e com feedback nativo adequado.
+- **O que se planeja fazer:** ajustar safe area e animação, revisar o som e adicionar vibração Android com fallback silencioso, preservando a fila e a web.
+- **Recursos/arquivos principais envolvidos:** toast de conquista, CSS de safe area, áudio, `@capacitor/haptics`, Android e testes PT/EN/ES.
+
+### [C26-B] - Lembretes locais
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** oferecer lembretes úteis de água e acompanhamento diário com o app fechado antes do lançamento público.
+- **O que se planeja fazer:** implementar consentimento, preferências, janela ativa/silenciosa, agendamento local contextual, cancelamento/reagendamento e navegação ao tocar.
+- **Recursos/arquivos principais envolvidos:** `@capacitor/local-notifications`, metas e registros locais, idioma/fuso, preferências, Android, Data Safety e testes físicos.
+
+### [C26-C] - Push e backend de notificações
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** manter rastreável a expansão futura para mensagens remotas sem ampliar o MVP local por inferência.
+- **O que se planeja fazer:** após validar C26-B e aprovar nova Tarefa 0, avaliar FCM, tokens por dispositivo, agendamento servidor, consentimento, retenção/exclusão e relação com C17.
+- **Recursos/arquivos principais envolvidos:** FCM, backend ainda não definido, tokens por dispositivo, política de privacidade, Data Safety e preferências de comunicação.
+
+### [C30-A] - Produto e contrato de planos
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** definir a oferta comercial antes de codificar cobrança ou direitos de acesso.
+- **O que se planeja fazer:** aprovar benefícios gratuitos/pagos, preços, periodicidade, teste/ofertas, tratamento dos testers e estados de entitlement sem hardcode comercial no cliente.
+- **Recursos/arquivos principais envolvidos:** ROADMAP, contrato de tiers C14-F1, catálogo Play, UX de planos, termos e decisões do responsável.
+
+### [C30-B] - Backend de entitlements
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** tornar o backend a fonte de verdade verificável dos benefícios pagos associados à conta Trofia.
+- **O que se planeja fazer:** verificar compras no servidor e manter estados idempotentes de compra/assinatura sem confiar no cliente nem armazenar dados de pagamento.
+- **Recursos/arquivos principais envolvidos:** Google Play Developer API, Functions/Cloud Run a definir na Tarefa 0, Firestore canônico, Auth, App Check, IAM e testes.
+
+### [C30-C] - Integração Android e restauração
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** permitir compra, restauração e gerenciamento transparentes pela Google Play no aplicativo Android.
+- **O que se planeja fazer:** integrar Play Billing, catálogo e estados recuperáveis; restaurar direitos entre reinstalação/aparelhos sem associar compra à conta errada.
+- **Recursos/arquivos principais envolvidos:** Google Play Billing, módulo nativo Android/Capacitor, Play Console, telas PT/EN/ES, lifecycle e testes com license testers.
+
+### [C30-D] - Ciclo de vida, reconciliação e segurança
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** manter direitos corretos diante de renovação, cancelamento, falha de pagamento, reembolso e eventos duplicados.
+- **O que se planeja fazer:** processar notificações em tempo real de forma idempotente, consultar o estado oficial, reconhecer compras verificadas e reconciliar divergências com observabilidade sanitizada.
+- **Recursos/arquivos principais envolvidos:** RTDN/Pub/Sub, Google Play Developer API, backend de entitlements, filas/retries, monitoramento e runbooks.
+
+### [C30-E] - Compliance, testes e rollout
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** provar a cobrança e os direitos no artefato distribuído antes de expor planos ao público.
+- **O que se planeja fazer:** atualizar política/termos/Data Safety, configurar produtos e testers, validar todos os ciclos principais, rollback e AAB Play interno antes do C25.
+- **Recursos/arquivos principais envolvidos:** políticas trilíngues, Play Console, license testers, Pages, AAB, Galaxy físico, CI, documentação operacional e C25.
 
 ### [DOC-RECONCILIACAO-C14] - Granularidade e gate documental da frente principal
 
