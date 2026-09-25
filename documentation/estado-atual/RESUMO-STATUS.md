@@ -1211,9 +1211,9 @@
 
 ### [I5] - Configurações em tela cheia
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** 25/09/2026.
 - **Propósito:** dar às preferências uma hierarquia própria e aproveitar melhor telas móveis e largas.
 - **O que se planeja fazer:** prototipar Configurações em tela cheia, coordenando a estrutura e os breakpoints com a fatia D7.
 - **Recursos/arquivos principais envolvidos:** tela de Configurações, SelectionControls, GenericDialog, shell desktop, `one-ui.css` e Playwright.
@@ -1454,7 +1454,8 @@
 - **Propósito:** eliminar o carregamento infinito e permitir que o usuário saiba quando repetir ou abandonar a análise.
 - **O que se planeja fazer:** impor timeout inicialmente configurável em 45 s, separar falha de transporte, timeout, Worker/IA indisponível, resposta inválida, sessão e quota, preservar a foto no retry e ignorar respostas tardias; começa por protótipo focado dos erros.
 - **Recursos/arquivos principais envolvidos:** `image-meal-client.js`, `image-meal-flow.js`, componente de análise, `i18n.js`, AbortController/timers e testes unitários/smoke; nenhuma alteração em `worker/`.
-- **O que foi feito:** protótipo aprovado e implementação cliente integrada ao contrato `onRequestReauthentication`: timeout de 45 s, rede separada de HTTP 5xx, aborto/resposta tardia segura, retry com a mesma foto e estados Glass UI PT/EN/ES estão cobertos; o gate local final e o CI autenticado real do PR #246 ficaram integralmente verdes, sem mudanças em Worker/Auth/Firestore.
+- **O que foi feito:** o PR #246/merge `3b8bac0` entregou timeout, classificação acionável, retry com a mesma foto, proteção contra resposta tardia e reautenticação pelo contrato público; gate local e dois HEADs de CI autenticado ficaram verdes, sem mudanças em Worker/Auth/Firestore.
+- **Alinhamento:** 100% — escopo aprovado integralmente entregue.
 
 ### [CAM-RED-7] - Resultado compartilhado e integração da foto
 
