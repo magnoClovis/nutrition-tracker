@@ -365,16 +365,17 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ### [DOC-ROADMAP-LAUNCH-C26-C30] - Notificações e cobrança no pré-lançamento
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 25/09/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** pendente; preflight documental ainda não executado.
+- **Data de conclusão:** 25/09/2026.
+- **Tempo decorrido:** 17 min 16 s, do primeiro commit `c4f54d5` ao merge `4b606c2`.
+- **Minutos de CI:** 24 s no total (24 s leve + 0 pesado), run documental `36182776289`.
 - **Propósito:** tornar a fonte canônica de planejamento coerente com a decisão de que notificações locais e monetização segura fazem parte do produto público inicial, sem confundir essa decisão com autorização para iniciar implementação.
 - **O que se planeja fazer:** mover somente C26-A/B ao grupo indispensável, criar C30-A–E depois de C14 e antes de C16/C25, manter C26-C e C29 no backlog pós-lançamento, renumerar as 39 posições e sincronizar roadmap, checkpoints de versão, resumo e histórico.
 - **Recursos/arquivos principais envolvidos:** `ROADMAP.md`, `VERSIONING.md`, `documentation/estado-atual/ROADMAP.md`, `documentation/estado-atual/VERSIONING.md`, `documentation/estado-atual/RESUMO-STATUS.md`, este histórico e preflight documental.
 - **O que foi feito:** a proposta documental foi preparada em branch isolada, com C26-A/B e C30-A–E registrados individualmente como não iniciados. O checkpoint `1.0.0-rc.1` passou a exigir C14, C26-A/B, C30 e C16; C25 continua liberando `1.0.0`. C26-C permanece deliberadamente adiado e C29 continua pós-lançamento. A revisão também corrigiu duas contradições documentais já reconhecidas: C14-F1 voltou de “concluído” para “não iniciado”, coerente com roadmap/resumo e ausência de entrega, e INC-FIRESTORE-PERSIST passou de “em andamento” para “concluído”, coerente com data, PR #222 e alinhamento de 100%. A numeração 1–39, as cinco fatias C30 em resumo/histórico, as cópias controladas e o preflight de release foram validados; o preflight passou com zero avisos. Nenhum código, infraestrutura, produto Play ou estado de produção foi alterado.
-- **PRs/commits relacionados:** PR ainda não aberto; branch `codex/roadmap-launch-notifications-billing`. — **Chat:** Trofia-Principal.
+- **Alinhamento:** 100%. A ordem, o escopo e os adiamentos aprovados foram registrados integralmente sem iniciar implementação; o impacto é positivo porque o candidato público agora possui gates explícitos de notificações locais e cobrança segura.
+- **PRs/commits relacionados:** PR #253, commit `c4f54d5`, merge `4b606c2` e run `36182776289`. — **Chat:** Trofia-Principal.
 
 ## Sequência pré-lançamento aprovada em 25/09/2026
 
