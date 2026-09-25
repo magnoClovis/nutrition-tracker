@@ -26,9 +26,9 @@ Todos os usuários veem o mesmo aviso de boas-vindas da versão atual.
 | `0.9.0-beta` | Estado atual | UX, C01, C05, C06, C07 e C24 | Pontual: foto, revisão de estimativas e fluxo Adicionar/Diário |
 | `0.10.0-beta` | A | C22 + C23 + C28 | Aviso; ajuda contextual na exclusão/sincronização |
 | `0.11.0-beta` | A | C20 + C19 + C08 | Pontual: score, revisão e critérios de avaliação |
-| `1.0.0-rc.1` | A | C14 + C16 concluídos; candidato entra no gate C25 | Sem tutorial extra |
+| `1.0.0-rc.1` | A | C14 + C26-A/B + C30 + C16 concluídos; candidato entra no gate C25 | Pontual: notificações e planos |
 | `1.0.0` | A | C25 concluído e liberação pública | Antigos: aviso; novos: tutorial completo |
-| `1.1.0` | B | C26 + N01 + C21 + C17 | Pontual: voz, porções e notificações |
+| `1.1.0` | B | N01 + C21 + C17 | Pontual: voz, porções e comunicações |
 | `1.2.0` | B | N03 + N02 + N05 + N09 | Pontual: rótulo, origem dos dados, recalibração e jejum |
 | `1.3.0` | B | C13 + C10 + N07 | Pontual: relatórios, compartilhamento e feedback |
 | `1.4.0` | B | C15 + C27 | Aviso com instruções do widget; sem alvo fora da WebView |
@@ -63,27 +63,27 @@ Todos os usuários veem o mesmo aviso de boas-vindas da versão atual.
 
 ### 1.0.0-rc.1
 
-**PT:** Esta versão candidata reúne os reforços finais de segurança, manutenção e confiabilidade para o lançamento público.
+**PT:** Esta versão candidata reúne os reforços finais de segurança e confiabilidade, lembretes locais e a base segura de planos e assinaturas para o lançamento público.
 
-**EN:** This release candidate brings together the final security, maintenance, and reliability improvements for the public launch.
+**EN:** This release candidate brings together final security and reliability improvements, local reminders, and a secure foundation for plans and subscriptions ahead of the public launch.
 
-**ES:** Esta versión candidata reúne las mejoras finales de seguridad, mantenimiento y fiabilidad para el lanzamiento público.
+**ES:** Esta versión candidata reúne las mejoras finales de seguridad y fiabilidad, recordatorios locales y una base segura de planes y suscripciones para el lanzamiento público.
 
 ### 1.0.0
 
-**PT:** O Trofia está oficialmente lançado: Diário, metas, IA, reconhecimento por foto, backup, privacidade e funcionamento offline em uma base estável.
+**PT:** O Trofia está oficialmente lançado: Diário, metas, IA, reconhecimento por foto, lembretes, planos, backup, privacidade e funcionamento offline em uma base estável.
 
-**EN:** Trofia is officially launched, bringing together the Diary, goals, AI, photo recognition, backups, privacy, and offline support on a stable foundation.
+**EN:** Trofia is officially launched, bringing together the Diary, goals, AI, photo recognition, reminders, plans, backups, privacy, and offline support on a stable foundation.
 
-**ES:** Trofia se lanza oficialmente con Diario, objetivos, IA, reconocimiento por foto, copias de seguridad, privacidad y funcionamiento sin conexión sobre una base estable.
+**ES:** Trofia se lanza oficialmente con Diario, objetivos, IA, reconocimiento por foto, recordatorios, planes, copias de seguridad, privacidad y funcionamiento sin conexión sobre una base estable.
 
 ### 1.1.0
 
-**PT:** Ficou mais rápido registrar e acompanhar sua rotina com voz, porções fracionadas, lembretes locais e comunicações no seu idioma.
+**PT:** Ficou mais rápido registrar e acompanhar sua rotina com voz, porções fracionadas e comunicações no seu idioma.
 
-**EN:** Logging and following your routine is now faster with voice input, fractional portions, local reminders, and communication in your language.
+**EN:** Logging and following your routine is now faster with voice input, fractional portions, and communication in your language.
 
-**ES:** Registrar y seguir tu rutina ahora es más rápido con voz, porciones fraccionadas, recordatorios locales y comunicaciones en tu idioma.
+**ES:** Registrar y seguir tu rutina ahora es más rápido con voz, porciones fraccionadas y comunicaciones en tu idioma.
 
 ### 1.2.0
 
