@@ -83,6 +83,7 @@ function createFixture(module, overrides = {}) {
     MealEstimateValidationError: MealEstimate.MealEstimateValidationError,
     onCameraHandoffTrace: overrides.onCameraHandoffTrace,
     frozenPhotoPaintTimeoutMs: overrides.frozenPhotoPaintTimeoutMs,
+    analysisTimeoutMs: overrides.analysisTimeoutMs,
     setTimer: overrides.setTimer,
     clearTimer: overrides.clearTimer,
   });
@@ -500,6 +501,84 @@ contractTest('cancels processing, keeps the photo, and ignores a late response',
   assert.equal(fixture.flow.getState().estimate, null);
 });
 
+contractTest('times out the whole analysis, aborts transport, and preserves the same photo for retry', async module => {
+  const firstAnalysis = deferred();
+  let timeoutCallback;
+  let analyses = 0;
+  const fixture = createFixture(module, {
+    analyzeImageMeal: () => {
+      analyses += 1;
+      return analyses === 1 ? firstAnalysis.promise : Promise.resolve(remoteEstimate());
+    },
+    analysisTimeoutMs: 45,
+    setTimer(callback) { timeoutCallback = callback; return 91; },
+    clearTimer() {},
+  });
+  await fixture.flow.captureFromCamera();
+  const retainedPhoto = fixture.flow.getState().photo;
+  const processing = fixture.flow.process('pt');
+  await new Promise(resolve => setImmediate(resolve));
+  timeoutCallback();
+  const timedOut = await processing;
+  assert.equal(timedOut.phase, 'error');
+  assert.equal(timedOut.error, 'analysis-timeout');
+  assert.equal(timedOut.photo, retainedPhoto);
+  assert.equal(retainedPhoto.disposed, false);
+  assert.equal(fixture.aborts.length, 1);
+
+  const retried = await fixture.flow.process('pt');
+  assert.equal(retried.phase, 'result');
+  assert.equal(retried.photo, retainedPhoto);
+  firstAnalysis.resolve(remoteEstimate({ dishName: 'late result' }));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(fixture.flow.getState().estimate.dishName, 'Rice bowl');
+});
+
+contractTest('does not let a cancelled analysis clear the deadline of an immediate retry', async module => {
+  const attempts = [deferred(), deferred()];
+  const timers = new Map();
+  let timerId = 0;
+  let analysisIndex = 0;
+  const fixture = createFixture(module, {
+    analyzeImageMeal: () => attempts[analysisIndex++].promise,
+    analysisTimeoutMs: 45,
+    setTimer(callback) {
+      timerId += 1;
+      timers.set(timerId, callback);
+      return timerId;
+    },
+    clearTimer(id) { timers.delete(id); },
+  });
+  await fixture.flow.captureFromCamera();
+  const first = fixture.flow.process('pt');
+  await new Promise(resolve => setImmediate(resolve));
+  fixture.flow.cancelProcessing();
+  const second = fixture.flow.process('pt');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual([...timers.keys()], [2]);
+
+  attempts[0].reject(Object.assign(new Error('cancelled'), { name: 'AbortError' }));
+  await first;
+  assert.deepEqual([...timers.keys()], [2]);
+  timers.get(2)();
+  const timedOut = await second;
+  assert.equal(timedOut.error, 'analysis-timeout');
+});
+
+contractTest('dismisses an actionable analysis error back to the preserved photo', async module => {
+  let fixture;
+  fixture = createFixture(module, {
+    analyzeImageMeal: async () => { throw new fixture.ClientError('network-unavailable'); },
+  });
+  await fixture.flow.captureFromCamera();
+  const retainedPhoto = fixture.flow.getState().photo;
+  assert.equal((await fixture.flow.process('pt')).error, 'network-unavailable');
+  const dismissed = fixture.flow.dismissAnalysisError();
+  assert.equal(dismissed.phase, 'photo');
+  assert.equal(dismissed.photo, retainedPhoto);
+  assert.equal(retainedPhoto.disposed, false);
+});
+
 contractTest('separates not-food and not-identifiable from transport errors', async module => {
   for (const status of ['not-food', 'not-identifiable']) {
     const fixture = createFixture(module, {
@@ -534,6 +613,7 @@ contractTest('maps every distinct capture and analysis failure with quota metada
     ['quota-reached', 'quota-reached'],
     ['session-expired', 'session-expired'],
     ['service-unavailable', 'service-unavailable'],
+    ['network-unavailable', 'network-unavailable'],
     ['invalid-response', 'invalid-response'],
   ];
   for (const [sourceCode, expected] of analysisCases) {

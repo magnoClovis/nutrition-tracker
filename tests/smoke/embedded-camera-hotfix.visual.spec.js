@@ -284,5 +284,89 @@ test.describe('embedded camera release hotfix CSS contract', () => {
       await expect(page.locator('[data-image-meal-analysis="true"]')).toHaveCSS('animation-name', 'none');
       await expect(page.locator('[data-image-meal-analysis-progress="true"] span').first()).toHaveCSS('animation-name', 'none');
     });
+
+    test(`${theme} CAM-RED-6 failures keep the photo, glass card, and actions reachable at 200% text`, async ({ page }) => {
+      await page.addInitScript(themeName => {
+        localStorage.setItem('appThemeDefaultDarkV1', '1');
+        localStorage.setItem('appDarkMode', String(themeName === 'dark'));
+      }, theme);
+      await page.goto('index.html', { waitUntil: 'domcontentloaded' });
+      await page.evaluate((themeName) => {
+        document.documentElement.dataset.theme = themeName;
+        document.documentElement.style.fontSize = '32px';
+        document.body.innerHTML = `
+          <div data-one-ui-root data-theme="${themeName}">
+            <main data-app-main="adicionar" style="height:200vh">
+              <div data-image-meal-analysis="true" data-image-meal-analysis-mode="error"
+                   data-image-meal-analysis-error="network-unavailable" role="dialog" aria-modal="true">
+                <img data-image-meal-analysis-photo="true" aria-hidden="true"
+                  src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='800'%3E%3Crect width='400' height='800' fill='%23547149'/%3E%3C/svg%3E">
+                <div data-image-meal-analysis-scrim="true"></div>
+                <div data-image-meal-analysis-content="true">
+                  <div data-image-meal-error-context="true">
+                    <span>Foto preservada enquanto esta tela estiver aberta</span>
+                    <button data-image-meal-error-close="true">×</button>
+                  </div>
+                  <div data-image-meal-error-card="true" data-image-meal-error-tone="danger" role="alert">
+                    <span data-image-meal-error-icon="true">!</span>
+                    <p data-image-meal-error-eyebrow="true">Sem conexão</p>
+                    <h2>Não foi possível acessar a internet</h2>
+                    <p data-image-meal-error-message="true">Confira sua conexão e tente novamente usando esta mesma foto.</p>
+                    <p data-image-meal-error-detail="true">A câmera permanece desligada.</p>
+                    <div data-image-meal-error-actions="true">
+                      <button data-image-meal-error-primary="true">Tentar novamente</button>
+                      <button data-image-meal-error-secondary="true">Voltar à foto</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </main>
+          </div>`;
+      }, theme);
+
+      const card = page.locator('[data-image-meal-error-card="true"]');
+      const primary = page.locator('[data-image-meal-error-primary="true"]');
+      await card.evaluate(element => { element.scrollTop = element.scrollHeight; });
+      await primary.scrollIntoViewIfNeeded();
+      const metrics = await page.evaluate(() => {
+        const analysis = document.querySelector('[data-image-meal-analysis="true"]');
+        const photo = document.querySelector('[data-image-meal-analysis-photo="true"]');
+        const card = document.querySelector('[data-image-meal-error-card="true"]');
+        const primary = document.querySelector('[data-image-meal-error-primary="true"]');
+        const secondary = document.querySelector('[data-image-meal-error-secondary="true"]');
+        const close = document.querySelector('[data-image-meal-error-close="true"]');
+        const cardRect = card.getBoundingClientRect();
+        return {
+          analysisPosition: getComputedStyle(analysis).position,
+          photoFilter: getComputedStyle(photo).filter,
+          cardBackground: getComputedStyle(card).backgroundColor,
+          cardTop: cardRect.top,
+          cardBottom: cardRect.bottom,
+          cardOverflowY: getComputedStyle(card).overflowY,
+          primaryHeight: primary.getBoundingClientRect().height,
+          secondaryHeight: secondary.getBoundingClientRect().height,
+          closeHeight: close.getBoundingClientRect().height,
+          bodyOverflow: getComputedStyle(document.body).overflow,
+          horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      });
+      expect(metrics.analysisPosition).toBe('fixed');
+      expect(metrics.photoFilter).toBe('none');
+      expect(metrics.cardTop).toBeGreaterThanOrEqual(0);
+      expect(metrics.cardBottom).toBeLessThanOrEqual(await page.evaluate(() => innerHeight));
+      expect(metrics.cardOverflowY).toBe('auto');
+      expect(metrics.primaryHeight).toBeGreaterThanOrEqual(48);
+      expect(metrics.secondaryHeight).toBeGreaterThanOrEqual(48);
+      expect(metrics.closeHeight).toBeGreaterThanOrEqual(48);
+      expect(metrics.bodyOverflow).toBe('hidden');
+      expect(metrics.horizontalOverflow).toBe(0);
+      await expect(primary).toBeInViewport();
+      await expect(page.locator('[data-image-meal-error-secondary="true"]')).toBeInViewport();
+      if (theme === 'dark') expect(metrics.cardBackground).toBe('rgba(20, 29, 25, 0.92)');
+      else expect(metrics.cardBackground).toBe('rgba(247, 251, 248, 0.94)');
+
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await expect(page.locator('[data-image-meal-analysis="true"]')).toHaveCSS('animation-name', 'none');
+    });
   }
 });

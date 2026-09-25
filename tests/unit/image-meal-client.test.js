@@ -177,7 +177,7 @@ contractTest('preserves deliberate cancellation and sanitizes other network fail
     } else {
       await assert.rejects(
         client.analyzeImageMeal({ image: { mimeType: 'image/jpeg', data: '/9j/' }, language: 'pt' }),
-        value => value.code === 'service-unavailable' && value.message !== 'private network detail',
+        value => value.code === 'network-unavailable' && value.message !== 'private network detail',
       );
     }
   }

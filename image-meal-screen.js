@@ -43,6 +43,8 @@
       onChoose,
       onProcess,
       onCancelProcessing,
+      onDismissError,
+      onRequestReauthentication,
       onDiscard,
       onEstimateChange,
       onReview,
@@ -102,6 +104,16 @@
           "A análise por imagem está temporariamente indisponível.",
           "Image analysis is temporarily unavailable.",
           "El análisis de imágenes no está disponible temporalmente."
+        ),
+        "network-unavailable": text(
+          "Não foi possível acessar a internet.",
+          "The internet could not be reached.",
+          "No se pudo acceder a internet."
+        ),
+        "analysis-timeout": text(
+          "A análise demorou demais.",
+          "The analysis took too long.",
+          "El análisis tardó demasiado."
         ),
         "invalid-response": text(
           "A resposta recebida não pôde ser validada. Tente analisar novamente.",
@@ -327,6 +339,25 @@
           photoUrl: state.photo?.previewUrl,
           lang,
           onCancel: onCancelProcessing
+        });
+      } else if (phase === "error" && state.photo && [
+        "analysis-timeout",
+        "network-unavailable",
+        "service-unavailable",
+        "invalid-response",
+        "session-expired",
+        "quota-reached"
+      ].includes(state.error)) {
+        content = React.createElement(ImageMealAnalysisScreen, {
+          photoUrl: state.photo.previewUrl,
+          lang,
+          error: state.error,
+          retryAfterSeconds: state.retryAfterSeconds,
+          onRetry: onProcess,
+          onBackToPhoto: onDismissError,
+          onChoosePhoto: onChoose,
+          onReauthenticate: onRequestReauthentication,
+          onClose
         });
       } else if (phase === "result" || phase === "confirming") {
         const estimate = state.estimate;

@@ -1097,27 +1097,27 @@
 
 ### [I2] - Registro progressivo por campo
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** reduzir a carga cognitiva do cadastro apresentando uma decisão clara por etapa.
 - **O que se planeja fazer:** reorganizar o onboarding em decisões progressivas reconstruídas na linguagem One UI 8/Glass UI.
 - **Recursos/arquivos principais envolvidos:** `login-screen.js`, `required-profile-modal.js`, ChoiceField/TemporalField, i18n e Playwright.
 
 ### [I3] - Política e migração de tema
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** tornar o claro o padrão visual comum sem retirar do usuário o controle posterior do tema.
 - **O que se planeja fazer:** migrar todos os usuários uma única vez para claro e depois respeitar escolha manual ou acompanhamento do dispositivo.
 - **Recursos/arquivos principais envolvidos:** preferências de tema, storage local, Configurações, tokens claro/escuro e testes de migração.
 
 ### [I4] - Ação principal e menu “o que criar”
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** tornar a ação principal mais encontrável e esclarecer as alternativas de criação antes da escolha.
 - **O que se planeja fazer:** avaliar FAB estendido e menu de criação com subtítulos, adaptando a hierarquia concorrente ao One UI 8/Glass UI.
 - **Recursos/arquivos principais envolvidos:** navegação/Diário, fluxo Adicionar, menu de criação, ícones SVG, CSS e Playwright.
@@ -1367,7 +1367,7 @@
 - **Propósito:** eliminar o carregamento infinito e permitir que o usuário saiba quando repetir ou abandonar a análise.
 - **O que se planeja fazer:** impor timeout inicialmente configurável em 45 s, separar falha de transporte, timeout, Worker/IA indisponível, resposta inválida, sessão e quota, preservar a foto no retry e ignorar respostas tardias; começa por protótipo focado dos erros.
 - **Recursos/arquivos principais envolvidos:** `image-meal-client.js`, `image-meal-flow.js`, componente de análise, `i18n.js`, AbortController/timers e testes unitários/smoke; nenhuma alteração em `worker/`.
-- **O que foi feito:** fatia iniciada a partir da `origin/main` `c8c4fac`; foi preparado um protótipo interativo PT/EN/ES e claro/escuro para timeout, rede, Worker/IA, resposta inválida, sessão e quota, com foto preservada e retry sem religar a câmera; nenhum runtime foi alterado e a revisão visual permanece pendente.
+- **O que foi feito:** protótipo aprovado e implementação cliente integrada ao contrato `onRequestReauthentication`: timeout de 45 s, rede separada de HTTP 5xx, aborto/resposta tardia segura, retry com a mesma foto e estados Glass UI PT/EN/ES estão cobertos; após incorporar as correções externas de bootstrap/lease, o gate local final passou em 1.457 unitários, legado 111 + 8 skips estruturais, Vite 119/119 e cutover 60/60, sem mudanças em Worker/Auth/Firestore.
 
 ### [CAM-RED-7] - Resultado compartilhado e integração da foto
 

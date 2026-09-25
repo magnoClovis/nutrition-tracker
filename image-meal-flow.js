@@ -21,6 +21,7 @@
     "invalid-photo"
   ]);
   const DEFAULT_FROZEN_PHOTO_PAINT_TIMEOUT_MS = 2500;
+  const DEFAULT_ANALYSIS_TIMEOUT_MS = 45000;
 
   function initialState() {
     return {
@@ -42,6 +43,7 @@
 
   function classifyError(error, ImageMealClientError, MealEstimateValidationError) {
     if (error && error.name === "AbortError") return "cancelled";
+    if (error && error.code === "analysis-timeout") return "analysis-timeout";
     if (error && error.code === "capture-cancelled") return "cancelled";
     if (error && error.code === "camera-permission-denied") return "permission-denied";
     if (error && [
@@ -76,6 +78,7 @@
     MealEstimateValidationError,
     onCameraHandoffTrace,
     frozenPhotoPaintTimeoutMs = DEFAULT_FROZEN_PHOTO_PAINT_TIMEOUT_MS,
+    analysisTimeoutMs = DEFAULT_ANALYSIS_TIMEOUT_MS,
     setTimer = setTimeout,
     clearTimer = clearTimeout
   }) {
@@ -92,6 +95,7 @@
     let activeAbortController = null;
     let cameraPreviousPhoto = null;
     let frozenPhotoPaintTimer = null;
+    let analysisTimer = null;
     let frozenPhotoStopPending = false;
     const listeners = new Set();
 
@@ -128,12 +132,17 @@
       if (frozenPhotoPaintTimer !== null) clearTimer(frozenPhotoPaintTimer);
       frozenPhotoPaintTimer = null;
     }
+    function clearAnalysisTimer() {
+      if (analysisTimer !== null) clearTimer(analysisTimer);
+      analysisTimer = null;
+    }
     function disposePhoto(photo) {
       if (photo && typeof photo.dispose === "function") photo.dispose();
     }
 
     async function acquire(source) {
       const currentOperation = ++operationId;
+      clearAnalysisTimer();
       abortActive();
       const previousPhoto = state.photo;
       patch({ phase: "capturing", error: null, validationErrors: [] });
@@ -371,13 +380,32 @@
         scope: undefined,
         notIdentifiableReason: null
       });
+      let operationTimer = null;
+      function clearOperationTimer() {
+        if (operationTimer === null) return;
+        clearTimer(operationTimer);
+        if (analysisTimer === operationTimer) analysisTimer = null;
+        operationTimer = null;
+      }
       try {
-        const image = await photo.toRequestImage();
-        const remoteEstimate = await analyzeImageMeal({
-          image,
-          language,
-          signal: controller.signal
+        const analysis = Promise.resolve().then(async () => {
+          const image = await photo.toRequestImage();
+          if (currentOperation !== operationId) return null;
+          return analyzeImageMeal({ image, language, signal: controller.signal });
         });
+        const deadline = new Promise((_, reject) => {
+          operationTimer = setTimer(() => {
+            if (analysisTimer === operationTimer) analysisTimer = null;
+            operationTimer = null;
+            const timeoutError = new Error("analysis-timeout");
+            timeoutError.code = "analysis-timeout";
+            reject(timeoutError);
+            controller.abort();
+          }, analysisTimeoutMs);
+          analysisTimer = operationTimer;
+        });
+        const remoteEstimate = await Promise.race([analysis, deadline]);
+        clearOperationTimer();
         if (currentOperation !== operationId) return snapshot();
         activeAbortController = null;
         const estimate = normalizeMealEstimate(remoteEstimate);
@@ -390,6 +418,7 @@
         }
         return patch({ phase: "result", estimate });
       } catch (error) {
+        clearOperationTimer();
         if (currentOperation !== operationId) return snapshot();
         activeAbortController = null;
         const code = classifyError(error, ImageMealClientError, MealEstimateValidationError);
@@ -406,8 +435,19 @@
     function cancelProcessing() {
       if (state.phase !== "processing") return snapshot();
       operationId += 1;
+      clearAnalysisTimer();
       abortActive();
       return patch({ phase: "photo", error: null });
+    }
+
+    function dismissAnalysisError() {
+      if (state.phase !== "error" || !state.photo) return snapshot();
+      return patch({
+        phase: "photo",
+        error: null,
+        retryAfterSeconds: undefined,
+        scope: undefined
+      });
     }
 
     function updateEstimate(estimate) {
@@ -463,6 +503,7 @@
     function discard() {
       operationId += 1;
       abortActive();
+      clearAnalysisTimer();
       clearFrozenPhotoPaintTimer();
       frozenPhotoStopPending = false;
       if (embeddedCameraPreview) embeddedCameraPreview.stop().catch(() => {});
@@ -475,6 +516,7 @@
     async function destroy() {
       operationId += 1;
       abortActive();
+      clearAnalysisTimer();
       clearFrozenPhotoPaintTimer();
       frozenPhotoStopPending = false;
       await embeddedCameraPreview?.stop?.().catch(() => {});
@@ -505,6 +547,7 @@
       chooseFromGallery: () => acquire("gallery"),
       process,
       cancelProcessing,
+      dismissAnalysisError,
       updateEstimate,
       review,
       confirm,
@@ -513,5 +556,10 @@
     };
   }
 
-  return { initialState, classifyError, createImageMealFlow };
+  return {
+    DEFAULT_ANALYSIS_TIMEOUT_MS,
+    initialState,
+    classifyError,
+    createImageMealFlow
+  };
 });

@@ -78,7 +78,12 @@
         });
       } catch (error) {
         if (error && error.name === "AbortError") throw error;
-        throw new ImageMealClientError("service-unavailable", undefined, undefined, error);
+        // A rejected fetch has no HTTP response and therefore cannot be
+        // attributed to the Worker or Gemini. Keep it distinct from a 5xx so
+        // the UI can suggest checking connectivity without inventing a
+        // backend diagnosis. The original error is retained only as a cause;
+        // no private browser/network detail is exposed to the user.
+        throw new ImageMealClientError("network-unavailable", undefined, undefined, error);
       }
 
       let data;
