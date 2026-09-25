@@ -37,6 +37,19 @@ O gate local pré-deploy de 15/09/2026 ficou verde: 35 testes focados, 1.380 uni
 
 Antes do AAB, o bootstrap autenticado precisava comprovar que inicialização do provedor não era confundida com token App Check válido, que dummy tokens eram rejeitados e que o perfil obrigatório era decidido somente por leitura confirmada no servidor. O PR #191 implementou esse gate; a validação real posterior confirmou que falha de atestação/rede abre erro recuperável, nunca o modal de criação, e que login/reload de conta existente não alcançam esse modal.
 
+## Configuração obrigatória dos gates Vite locais
+
+O debug provider não substitui a configuração Web usada para construir o bundle. Todo gate Vite autenticado deve receber, no mesmo processo:
+
+- `FIREBASE_APPCHECK_DEBUG_TOKEN`, segredo registrado usado pelo navegador efêmero e pela troca por token de curta duração;
+- `VITE_FIREBASE_WEB_APP_ID`, configuração pública do app Web;
+- `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY`, configuração pública exigida por `ReCaptchaEnterpriseProvider` durante a inicialização;
+- credenciais descartáveis em `tests/test-user.local.json` ou nas variáveis já suportadas pelo harness.
+
+As variáveis `VITE_*` precisam existir quando `npm run build:vite` é executado, porque são incorporadas ao bundle. O debug token precisa continuar fora de logs, traces, commits e artefatos; o fixture o instala antes dos scripts da página e o setup global troca o segredo registrado por um token de curta duração. Não executar o build num processo e o Playwright noutro sem reinjetar as entradas necessárias.
+
+Em 23/09/2026, o gate da CAM-RED-6 recebeu debug token e App ID, mas não recebeu a site key. O runtime recusou a configuração incompleta com a causa interna `app-check-web-not-configured`, exposta de forma sanitizada como `app-check-initialization-failed`. Uma reprodução sobre `origin/main` com a configuração completa passou 3/3 logins/bootstrap protegidos e 34/34 testes focados, confirmando que não havia regressão de câmera ou runtime. A ausência continua sendo erro fail-closed; não deve ser mascarada com retry, timeout adicional ou fallback.
+
 ## Evidência necessária para conclusão
 
 - suíte unitária completa e testes do Worker verdes;

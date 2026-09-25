@@ -54,7 +54,12 @@ test('preserves the authentication and profile gates without legacy normalizatio
   for (const source of [appSource, legacyAppSource, legacyMirrorSource]) {
     assert.doesNotMatch(source, /normalizeStorageAfterLogin|normalizeCurrentUserStorage|cleanupLegacyNutritionDocs/);
   }
-  assert.match(appSource, /const timeout = setTimeout\(\(\) => \{[\s\S]*?\}, 8000\);/);
+  assert.doesNotMatch(
+    appSource,
+    /setTimeout\(\(\) => \{[\s\S]*?fbSignOut\(\)[\s\S]*?\}, 8000\)/,
+    'a slow modular Auth restore must never be converted into a destructive sign-out',
+  );
+  assert.match(appSource, /initializeFirebase\(\)[\s\S]*?if \(!active \|\| !fbIsLoggedIn\(\)\)/);
   assert.match(appSource, /if \(checking \|\| profileChecking\) return null;/);
   assert.match(appSource, /if \(pendingEmail\) \{/);
   assert.match(appSource, /if \(!authed\) \{/);

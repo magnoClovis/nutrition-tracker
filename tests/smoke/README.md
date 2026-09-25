@@ -98,6 +98,27 @@ local suite before it can use the shared account. The workflow receives only an
 opaque UUID and does not receive Firebase credentials, App Check tokens or user
 data.
 
+Lease cancellation is idempotent. If the first `gh run cancel` call fails
+transiently, teardown reads the public run state: an already completed run is
+accepted, while a still-active run receives another cancellation request inside
+the existing bounded release window. The suite still fails closed if completion
+cannot be confirmed; do not manually delete the local lock while its owner
+process is alive.
+
+For authenticated Vite runs, define all three App Check inputs in the same
+process from `npm run build:vite` through Playwright:
+
+```text
+FIREBASE_APPCHECK_DEBUG_TOKEN
+VITE_FIREBASE_WEB_APP_ID
+VITE_RECAPTCHA_ENTERPRISE_SITE_KEY
+```
+
+The debug token is a registered secret and must never be printed, traced or
+committed. The `VITE_*` values must already exist when the bundle is built.
+Missing configuration remains a fail-closed error; do not replace it with a
+retry, larger timeout or forced UI action.
+
 The test runner starts the app locally at `http://127.0.0.1:8765/index.html`.
 That local server is implemented in Node at `tests/smoke/serve-static.js`, so
 Python is not required for the smoke suite.

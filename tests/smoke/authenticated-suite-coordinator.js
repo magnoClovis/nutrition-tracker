@@ -168,14 +168,19 @@ async function releaseRemoteLease(lease, {
   pollIntervalMs = REMOTE_LEASE_POLL_MS,
 } = {}) {
   if (!lease?.runId) return;
-  try {
-    await executeGhCommand(['run', 'cancel', String(lease.runId), '--repo', repository]);
-  } catch (_) {
-    throw new Error(`authenticated-smoke-remote-lease-cancel-failed:${lease.runId}`);
-  }
-
   const deadline = Number(now()) + waitTimeoutMs;
+  let cancellationRequested = false;
   while (Number(now()) <= deadline) {
+    if (!cancellationRequested) {
+      try {
+        await executeGhCommand(['run', 'cancel', String(lease.runId), '--repo', repository]);
+        cancellationRequested = true;
+      } catch (_) {
+        // Cancellation is idempotent from the coordinator's perspective. A
+        // transient CLI/API failure must not abandon an active lease for its
+        // full one-hour timeout; inspect the run, then retry while it is live.
+      }
+    }
     let output;
     try {
       output = await executeGhCommand([
