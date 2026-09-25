@@ -1445,6 +1445,28 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 - **PRs/commits relacionados:** [PR #246](https://github.com/magnoClovis/nutrition-tracker/pull/246), merge `3b8bac0`; commits `8d400d0`, `4f1d030`, `df723d7` e `ef4d7c6`; contrato de autenticação PR #247/merge `d613d91`; correção externa de bootstrap/lease PR #251/merge `d6bc04f`; base documental incorporada `9ca27ffd`; CIs leves `36177906677`/`36184104553` e pesados `36177906630`/`36184104556`. — **Chat-Origin:** Trofia-UIUX.
 
+### [CAM-RED-7] - Resultado compartilhado e integração da foto
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+
+- **Data de início:** 25/09/2026.
+
+- **Data de conclusão:** não concluído.
+
+- **Tempo decorrido:** pendente de merge.
+
+- **Minutos de CI:** 0 min; CI ainda não iniciado.
+
+- **Propósito:** transformar o resultado nutricional aprovado na Proposta A em um componente reutilizável e progressivo, mantendo a fotografia como contexto, permitindo consulta rápida no encaixe inicial e edição completa sem abandonar a tela nem perder as regras proporcionais já validadas.
+
+- **O que se planeja fazer:** criar um bottom sheet compartilhável que abra em aproximadamente 65–68% da tela, preserve a foto visível acima, possa expandir por arraste até a altura total útil e também ofereça alternativa acessível ao gesto; coordenar arraste com a rolagem interna de listas longas; manter CTA e seletor de refeição alcançáveis; reutilizar a edição de porção e ingredientes com recálculo proporcional imediato de kcal e nutrientes; cobrir confiança baixa/média, nutrientes incompletos, zero ou muitos ingredientes, nomes extensos, claro/escuro, PT/EN/ES, fonte ampliada, teclado/leitor de tela, safe areas e `prefers-reduced-motion`. A busca manual só adotará o mesmo componente na CAM-RED-8.
+
+- **Recursos/arquivos principais envolvidos:** novo `meal-result-sheet.js` em UMD/ESM, controlador de encaixes/gestos, `meal-estimate-editor.js`, `meal-estimate.js`, `image-meal-screen.js`, `image-meal-registration.js`, ChoiceField, NumericField, `one-ui.css`, ARIA, safe areas, Node.js Test Runner, Playwright legado/Vite e validação física no Galaxy para geometria e gestos.
+
+- **O que foi feito:** a worktree `.codex-ui-cam-red-7` e a branch `codex/cam-red-7-result-sheet` foram criadas diretamente da `origin/main` `d7712d9`, que contém os fechamentos funcional e documental da CAM-RED-6. O protótipo externo da Proposta A já havia sido revisado e aprovado na CAM-RED-1; por isso não existe nova decisão visual pendente antes da implementação. A auditoria técnica do editor proporcional e dos pontos de integração foi iniciada antes de qualquer alteração no runtime.
+
+- **PRs/commits relacionados:** ainda não determinado; implementação e PR ainda não iniciados. — **Chat-Origin:** Trofia-UIUX.
+
 ## Encerramento administrativo do PR documental obsoleto #170
 
 ### [DOC-PR170-CLOSEOUT] - Fechamento sem merge do registro duplicado da S8

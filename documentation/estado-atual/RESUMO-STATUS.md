@@ -1220,9 +1220,9 @@
 
 ### [I6] - Hierarquia visual da tela inicial
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 25/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** priorizar informações e ações da página inicial sem copiar a aparência dos aplicativos de referência.
 - **O que se planeja fazer:** reprojetar a organização da tela inicial com protótipo e aprovação específicos por ser a mudança mais subjetiva e ampla.
 - **Recursos/arquivos principais envolvidos:** Diário/home, cabeçalho, cards nutricionais, ações principais, estados vazios, `one-ui.css` e Playwright.
@@ -1465,6 +1465,7 @@
 - **Propósito:** converter o resultado aprovado em componente reutilizável sem perder validação ou edição nutricional.
 - **O que se planeja fazer:** criar um sheet com encaixes em aproximadamente 68% e na altura total útil, expansível/recolhível por arraste e por alternativa acessível, coordenar gesto e rolagem interna, manter foto acima no estado inicial, CTA/refeição alcançáveis e edição de porção/ingredientes com recálculo proporcional imediato de kcal e nutrientes, cobrindo confiança, dados incompletos e listas extensas.
 - **Recursos/arquivos principais envolvidos:** novo `meal-result-sheet.js` UMD/ESM, controlador de sheet/gestos e safe areas, `meal-estimate-editor.js`, `meal-estimate.js`, `image-meal-screen.js`, ChoiceField, NumericField, `one-ui.css`, ARIA/teclado e testes.
+- **O que foi feito:** worktree e branch isoladas foram abertas da `origin/main` `d7712d9`; a auditoria técnica do editor proporcional e dos pontos de integração foi iniciada antes de qualquer alteração de runtime.
 
 ### [CAM-RED-8] - Busca manual com o mesmo resultado
 
