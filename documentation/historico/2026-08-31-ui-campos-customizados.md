@@ -1407,6 +1407,40 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 - **PRs/commits relacionados:** PR #244; commits `7eb804c`, `3b999f2`, `cc7111d` e `ca05e28`; merge `087647f`; runs leves `35664628270`, `35721750835` e `35723302606`; runs pesados `35664628284`, `35721750783` (cancelado após substituição do HEAD) e `35723302697`. — **Chat-Origin:** Trofia-UIUX.
 
+### [CAM-RED-6] - Timeout, classificação de falhas e retry
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+
+- **Data de início:** 22/09/2026.
+
+- **Data de conclusão:** não concluído.
+
+- **Tempo decorrido:** pendente de merge.
+
+- **Minutos de CI:** 31 min 27 s — 23 s leves e 31 min 4 s pesados.
+
+- **Propósito:** impedir que o reconhecimento por foto permaneça em carregamento infinito e transformar falhas tecnicamente diferentes em orientações acionáveis, sem apagar a fotografia já capturada nem induzir o usuário a repetir operações inúteis.
+
+- **O que se planeja fazer:** começar por um protótipo visual dos estados de timeout, ausência de rede, indisponibilidade do Worker/IA, resposta inválida, sessão inválida e quota; após aprovação, introduzir deadline inicialmente configurável em 45 s, abortar a solicitação vencida, classificar falhas sem tocar em `worker/`, preservar a mesma fotografia no retry, ignorar respostas tardias e oferecer ações adequadas a cada classe em PT/EN/ES, claro/escuro, fonte ampliada e movimento reduzido.
+
+- **Recursos/arquivos principais envolvidos:** `image-meal-client.js`, `image-meal-flow.js`, `image-meal-analysis-screen.js` e wrapper ESM, `image-meal-screen.js`, `i18n.js`, `AbortController`, timers, estados acessíveis, Node.js Test Runner, Playwright legado/Vite, CI autenticado e protótipo visual externo ao runtime; `worker/`, Functions, Auth e Firestore permanecem fora do escopo.
+
+- **O que foi feito:** a worktree `.codex-ui-cam-red-6` e a branch `codex/cam-red-6-errors` foram criadas diretamente da `origin/main` `c8c4fac`, já contendo os fechamentos funcional e documental da CAM-RED-5. Foi produzido e aprovado o protótipo interativo externo `cam-red-6-error-states.html`, sem alteração de runtime, com seis classes visuais: timeout, ausência de rede, Worker/IA indisponível, resposta inválida, sessão expirada e quota. A composição mantém a fotografia capturada visível sob scrim, informa que nada foi registrado, oferece retry somente quando acionável e demonstra que a nova tentativa reutiliza a mesma foto sem religar a câmera. Os estados podem ser revisados em PT/EN/ES e claro/escuro; movimento reduzido elimina a animação dos pontos.
+
+  Após a aprovação, a implementação cliente foi iniciada sem tocar em `worker/`, Auth, Firestore, Functions ou rules. `image-meal-client.js` passou a separar rejeição de transporte sem resposta HTTP (`network-unavailable`) de indisponibilidade comprovada do serviço por resposta 5xx (`service-unavailable`). `image-meal-flow.js` recebeu deadline configurável inicialmente em 45 s envolvendo tanto a conversão local da foto quanto a requisição; o vencimento rejeita com `analysis-timeout`, aborta o transporte, preserva o mesmo `Blob` transitório, permite retry sem religar a câmera e mantém a proteção por `operationId` contra resultados tardios. Também foi criado o retorno explícito do erro para o checkpoint da foto, sem persistir a imagem fora do fluxo.
+
+  `image-meal-analysis-screen.js` foi ampliado para os seis estados Glass UI aprovados, com foto sem blur, scrim, card rolável, alvos mínimos de 48 px, foco visível, PT/EN/ES, claro/escuro, fonte ampliada e texto corrigido para esclarecer que a foto só permanece enquanto a tela estiver aberta. O teste focado inicial ficou verde em 99/99 casos unitários; a matriz visual focada passou 16/16 no legado e 16/16 no Vite, em desktop/mobile, claro/escuro e fonte raiz a 200%. A auditoria detectou uma dependência legítima entre frentes: o cliente já classificava `session-expired`, mas a ação aprovada “Entrar novamente” ainda não possuía callback público de recuperação no controlador da câmera.
+
+  O Trofia-Principal entregou esse contrato no PR #247, merge `d613d91`, e seu fechamento documental chegou à `origin/main` `5c34b7b`. A main foi incorporada por merge explícito, com as alterações locais preservadas por stash e reaplicadas sem conflito. A UIUX conectou o botão exclusivamente à prop pública `onRequestReauthentication`, aguarda sua `Promise<void>`, bloqueia fechar/voltar/repetir enquanto a transição está pendente e mostra somente mensagem sanitizada se a promise rejeitar; não chama `closeImageMealMode()`, Firebase Auth nem API protegida, e não duplica o descarte da foto. O contrato do Principal mantém a ordem fail-closed: destruir o fluxo e revogar Blob/URL antes de transicionar ao login real, com cliques concorrentes coalescidos. A integração ampliou o recorte focado para 180/180 testes verdes, incluindo os contratos UMD/ESM do controlador e entrypoints. Os outros cinco estados permanecem integralmente locais ao cliente e não exigem backend novo.
+
+  O primeiro gate autenticado local falhou fechado em `app-check-initialization-failed` porque o processo do build Vite não possuía todas as entradas públicas e secretas exigidas. A investigação `INV-VITE-APPCHECK-CONFIG-20260923`, conduzida pelo Trofia-Principal, comprovou configuração local incompleta, não defeito da câmera: `FIREBASE_APPCHECK_DEBUG_TOKEN`, `VITE_FIREBASE_WEB_APP_ID` e `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` passaram a ser injetados no mesmo processo desde `build:vite` até Playwright, sem imprimir ou versionar segredos. Uma retomada posterior revelou duas falhas independentes da fatia — logout temporizado concorrente a `authStateReady()` no bootstrap modular e liberação não idempotente do lease autenticado — corrigidas pelo Principal no PR #251, merge `d6bc04f`, e documentadas na main `9ca27ffd`. A branch incorporou essa main por merge explícito, preservando integralmente a implementação da CAM-RED-6.
+
+  Na matriz visual final, o único desvio encontrado era do próprio roteiro: o tema era gravado depois do bootstrap e a migração única `appThemeDefaultDarkV1` podia restabelecer o escuro, fazendo o caso claro comparar o estilo errado. A fixture passou a preparar, antes da navegação, tanto o marcador da migração quanto `appDarkMode`, sem alterar o CSS ou o requisito visual. O recorte Vite repetido passou 17/17. Em seguida, o gate local integral ficou verde com 1.457/1.457 unitários, 111 casos legados aprovados mais 8 skips estruturais documentados, 119/119 no Vite e 60/60 no cutover. Não houve aumento de timeout, retry automático de login, `force:true`, aceitação de `#loading` nem relaxamento de expectativa visual.
+
+  O commit funcional `df723d7` foi enviado ao PR draft #246 e repetiu o gate no CI autenticado real sem falhas: o check leve `36177906677` concluiu em 23 s e o gate pesado `36177906630` em 31 min 4 s, totalizando 31 min 27 s de CI. O PR permanece draft e a fatia continua formalmente em andamento até aprovação e merge; por isso a data de conclusão e o tempo decorrido seguem corretamente pendentes de merge.
+
+- **PRs/commits relacionados:** PR draft #246; commits documentais `8d400d0` e `4f1d030`; commit funcional `df723d7`; contrato de autenticação PR #247/merge `d613d91`; correção externa de bootstrap/lease PR #251/merge `d6bc04f`; base documental incorporada `9ca27ffd`; CI leve `36177906677` e pesado `36177906630`. — **Chat-Origin:** Trofia-UIUX.
+
 ## Encerramento administrativo do PR documental obsoleto #170
 
 ### [DOC-PR170-CLOSEOUT] - Fechamento sem merge do registro duplicado da S8

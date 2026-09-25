@@ -57,6 +57,8 @@ function baseProps(state, overrides = {}) {
     onChoose: () => {},
     onProcess: () => {},
     onCancelProcessing: () => {},
+    onDismissError: () => {},
+    onRequestReauthentication: () => {},
     onDiscard: () => {},
     onEstimateChange: () => {},
     onReview: () => {},
@@ -394,23 +396,36 @@ contractTest('distinguishes not-food from an unrecognizable meal', ImageMealScre
   assert.match(textContent(unclear), /reconhecer os alimentos com segurança/);
 });
 
-contractTest('renders every mapped error distinctly, including Retry-After quota detail', ImageMealScreen => {
-  const expectations = {
-    'permission-denied': /Permissão da câmera negada/,
-    'invalid-photo': /Não foi possível usar esta foto/,
-    'camera-unavailable': /Não foi possível abrir a câmera dentro do app/,
-    'quota-reached': /limite de análises por imagem foi atingido/,
-    'session-expired': /sessão expirou/,
-    'service-unavailable': /temporariamente indisponível/,
-    'invalid-response': /resposta recebida não pôde ser validada/,
-  };
-  for (const [error, pattern] of Object.entries(expectations)) {
+contractTest('delegates actionable analysis errors with their metadata and keeps capture errors inline', (ImageMealScreen, _Editor, ImageMealAnalysisScreen) => {
+  for (const error of [
+    'analysis-timeout', 'network-unavailable', 'quota-reached',
+    'session-expired', 'service-unavailable', 'invalid-response',
+  ]) {
     const view = ImageMealScreen(baseProps({
       phase: 'error', error, photo: { previewUrl: 'blob:error' }, retryAfterSeconds: 23,
     }));
-    assert.match(textContent(view), pattern);
-    if (error === 'quota-reached') assert.match(textContent(view), /23s/);
+    const analysis = elements(view, ImageMealAnalysisScreen)[0];
+    assert.equal(analysis.props.error, error);
+    assert.equal(analysis.props.photoUrl, 'blob:error');
+    assert.equal(analysis.props.retryAfterSeconds, 23);
   }
+  for (const [error, pattern] of Object.entries({
+    'permission-denied': /Permissão da câmera negada/,
+    'invalid-photo': /Não foi possível usar esta foto/,
+    'camera-unavailable': /Não foi possível abrir a câmera dentro do app/,
+  })) {
+    const view = ImageMealScreen(baseProps({ phase: 'error', error }));
+    assert.match(textContent(view), pattern);
+  }
+});
+
+contractTest('connects session recovery exclusively to the public reauthentication callback', (ImageMealScreen, _Editor, ImageMealAnalysisScreen) => {
+  const callback = async () => {};
+  const view = ImageMealScreen(baseProps({
+    phase: 'error', error: 'session-expired', photo: { previewUrl: 'blob:session' },
+  }, { onRequestReauthentication: callback }));
+  const analysis = elements(view, ImageMealAnalysisScreen)[0];
+  assert.equal(analysis.props.onReauthenticate, callback);
 });
 
 contractTest('renders successful confirmation and returns null without state', ImageMealScreen => {

@@ -5207,6 +5207,7 @@
             },
             onProcess: () => imageMealFlowRef.current?.process(lang),
             onCancelProcessing: () => imageMealFlowRef.current?.cancelProcessing(),
+            onDismissError: () => imageMealFlowRef.current?.dismissAnalysisError(),
             onDiscard: () => imageMealFlowRef.current?.discard(),
             onEstimateChange: estimate => imageMealFlowRef.current?.updateEstimate(estimate),
             onReview: () => imageMealFlowRef.current?.review(),

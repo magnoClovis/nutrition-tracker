@@ -1175,36 +1175,36 @@
 
 ### [I1] - Carregamento animado
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** transformar a espera inicial em uma transição deliberada e coerente com a identidade do Trofia.
 - **O que se planeja fazer:** prototipar e implementar logo pulsando/expandindo, mínimo de 800–1000 ms, claro/escuro e alternativa estática em reduced-motion.
 - **Recursos/arquivos principais envolvidos:** bootstrap/loading do app, logo Trofia, CSS de animação, temporização JS e Playwright visual.
 
 ### [I2] - Registro progressivo por campo
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** reduzir a carga cognitiva do cadastro apresentando uma decisão clara por etapa.
 - **O que se planeja fazer:** reorganizar o onboarding em decisões progressivas reconstruídas na linguagem One UI 8/Glass UI.
 - **Recursos/arquivos principais envolvidos:** `login-screen.js`, `required-profile-modal.js`, ChoiceField/TemporalField, i18n e Playwright.
 
 ### [I3] - Política e migração de tema
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** tornar o claro o padrão visual comum sem retirar do usuário o controle posterior do tema.
 - **O que se planeja fazer:** migrar todos os usuários uma única vez para claro e depois respeitar escolha manual ou acompanhamento do dispositivo.
 - **Recursos/arquivos principais envolvidos:** preferências de tema, storage local, Configurações, tokens claro/escuro e testes de migração.
 
 ### [I4] - Ação principal e menu “o que criar”
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** tornar a ação principal mais encontrável e esclarecer as alternativas de criação antes da escolha.
 - **O que se planeja fazer:** avaliar FAB estendido e menu de criação com subtítulos, adaptando a hierarquia concorrente ao One UI 8/Glass UI.
 - **Recursos/arquivos principais envolvidos:** navegação/Diário, fluxo Adicionar, menu de criação, ícones SVG, CSS e Playwright.
@@ -1454,6 +1454,7 @@
 - **Propósito:** eliminar o carregamento infinito e permitir que o usuário saiba quando repetir ou abandonar a análise.
 - **O que se planeja fazer:** impor timeout inicialmente configurável em 45 s, separar falha de transporte, timeout, Worker/IA indisponível, resposta inválida, sessão e quota, preservar a foto no retry e ignorar respostas tardias; começa por protótipo focado dos erros.
 - **Recursos/arquivos principais envolvidos:** `image-meal-client.js`, `image-meal-flow.js`, componente de análise, `i18n.js`, AbortController/timers e testes unitários/smoke; nenhuma alteração em `worker/`.
+- **O que foi feito:** protótipo aprovado e implementação cliente integrada ao contrato `onRequestReauthentication`: timeout de 45 s, rede separada de HTTP 5xx, aborto/resposta tardia segura, retry com a mesma foto e estados Glass UI PT/EN/ES estão cobertos; o gate local final e o CI autenticado real do PR #246 ficaram integralmente verdes, sem mudanças em Worker/Auth/Firestore.
 
 ### [CAM-RED-7] - Resultado compartilhado e integração da foto
 
