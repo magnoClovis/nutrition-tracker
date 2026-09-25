@@ -1640,6 +1640,18 @@
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** auditar IAM, contas de serviço, invocadores, Functions/Tasks e lockfiles antes de criar identidades mínimas.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM, Firebase Functions, Cloud Tasks, Artifact Registry, lockfiles e relatórios administrativos.
+- **O que foi feito:** inventário preparatório somente leitura `C14-F2-PRE` confirmou as três Functions na conta padrão com `roles/editor`, mapeou invocadores, fila, Scheduler, retenção de imagens e vulnerabilidades; nenhuma mutação da F2 foi iniciada.
+
+### [C14-F2-PRE] - Inventário preparatório de IAM e dependências
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** 26/09/2026.
+- **Propósito:** deixar uma baseline administrativa comprovada para a C14-F2 sem antecipar mudanças de privilégio ou dependência.
+- **O que se planeja fazer:** consultar IAM, invocadores, Scheduler, Cloud Tasks, Artifact Registry, auditorias npm e inventário de segredos somente em leitura.
+- **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase CLI, Wrangler, manifests/lockfiles e `C14_F2_PRE_INVENTARIO_IAM_DEPENDENCIAS.md`.
+- **O que foi feito:** confirmou `roles/editor` na identidade compartilhada das três Functions, retenção de imagens em 7 dias, zero vulnerabilidades de produção na raiz/Worker e sete moderadas nas Functions; a listagem de segredos do Worker ficou bloqueada por perfil Wrangler autenticado em outra conta.
+- **Alinhamento:** 100%; o inventário foi concluído sem alterar infraestrutura, e a lacuna Cloudflare ficou explicitamente registrada para o início da F2.
 
 ### [C14-G] - CSP e superfícies de debug
 

@@ -339,6 +339,20 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **O que se planeja fazer:** auditar IAM, contas de serviço, invocadores, Functions/Tasks e lockfiles antes de criar identidades mínimas ou alterar privilégios.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM, Firebase Functions, Cloud Tasks, Artifact Registry, lockfiles, relatórios administrativos e documentação de decisões.
 
+### [C14-F2-PRE] - Inventário preparatório de IAM, invocadores e dependências
+
+- **Status:** concluído.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** 26/09/2026.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min 22 s no total (22 s leves + 0 s pesados), run documental `36197001623`; preflight local também concluído sem avisos.
+- **Propósito:** produzir a baseline administrativa real exigida antes da C14-F2, sem antecipar criação de identidades, alteração de IAM, atualização de pacotes ou deploy.
+- **O que se planeja fazer:** consultar em modo somente leitura o estado implantado das Functions Gen2, políticas de invocação, identidade OIDC do Scheduler, fila Cloud Tasks, limpeza do Artifact Registry, dependências de produção/desenvolvimento e nomes/tipos dos segredos do Worker.
+- **Recursos/arquivos principais envolvidos:** Firebase CLI; APIs somente leitura de Cloud Run, Resource Manager, Cloud Scheduler, Cloud Tasks e Artifact Registry; Wrangler; `functions/src/`; `package.json`/lockfiles da raiz, Worker e Functions; `npm audit`; `documentation/estado-atual/C14_F2_PRE_INVENTARIO_IAM_DEPENDENCIAS.md`.
+- **O que foi feito:** a consulta comprovou que `requestAccountDeletion`, `processAccountDeletionTask` e `reconcileAccountDeletionJobs` compartilham `128834310181-compute@developer.gserviceaccount.com`, hoje com `roles/editor`. O callable mantém `allUsers` como invocador Cloud Run, mas exige Auth recente e App Check no runtime; o reconciliador é invocado pelo mesmo principal via OIDC do Scheduler; o serviço do processador e a fila não têm binding IAM próprio. A fila permanece `RUNNING` com 1 despacho/s, concorrência 2, 5 tentativas e backoff de 60–3.600 s por até 24 h. Os dois repositórios `gcf-artifacts` europeus têm exclusão efetiva após 7 dias. A auditoria de produção ficou em zero achados na raiz e no Worker e sete moderados nas Functions, concentrados na cadeia de `firebase-admin@14.2.0`; o registro npm oferece `14.5.0` como correção não major. Ferramentas de build também apresentam achados e saltos major, por isso ficaram separadas da correção de runtime. A tentativa de listar somente nomes/tipos dos segredos do Worker encontrou o Wrangler autenticado em outra conta, onde `trofia-ai-proxy` não existe; nenhuma credencial foi alterada e a lacuna foi marcada como primeiro gate da futura F2. O documento específico registra matriz preliminar de privilégio mínimo, ordem segura, critérios de aceitação e rollback obrigatório.
+- **Alinhamento:** 100%. O escopo aprovado era exclusivamente investigativo e foi concluído sem mutação; a impossibilidade de inventariar segredos na conta errada é uma limitação explicitamente preservada, com impacto neutro agora e gate obrigatório antes da implementação.
+- **PRs/commits relacionados:** PR/commit documental pendente; nenhuma alteração de produção.
+
 ### [C14-G] - Web, CSP e superfícies de debug
 
 - **Status:** não iniciado.

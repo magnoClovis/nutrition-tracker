@@ -72,6 +72,7 @@ Cada frente escreve em um arquivo próprio:
 - `C24_FATIA_7_VALIDACAO.md`: validação do reconhecimento por imagem.
 - `C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`: evidência sanitizada do inventário read-only que fundamenta as allowlists das rules.
 - `C14_C_APP_CHECK_WORKER_ROLLOUT.md`: estado, gates, evidências e rollback do rollout progressivo de App Check no Worker de IA.
+- `C14_F2_PRE_INVENTARIO_IAM_DEPENDENCIAS.md`: baseline somente leitura de IAM, invocadores, Functions/Tasks, retenção de artefatos e dependências para a futura C14-F2.
 
 ### Compliance e operação
 
