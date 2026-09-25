@@ -741,8 +741,8 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Status:** concluído.
 - **Data de início:** 23/09/2026.
 - **Data de conclusão:** 23/09/2026.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min (investigação e reprodução locais; nenhum CI remoto foi necessário).
+- **Tempo decorrido:** 2 d 1 h 12 min 34 s.
+- **Minutos de CI:** 36 min 15 s no total (37 s leve + 35 min 38 s pesado; runs `36142057000` e `36142056828`).
 - **Propósito:** determinar se o bloqueio `app-check-initialization-failed` observado no início do smoke Vite da CAM-RED-6 era uma regressão do produto ou uma lacuna no ambiente local, sem tocar no worktree, na câmera ou na implementação funcional preservada pela UIUX.
 - **O que se planeja fazer:** ler somente as evidências sanitizadas da UIUX, confrontar as variáveis presentes com o contrato de inicialização do App Check Web e com o workflow oficial, repetir o `auth-setup` sobre uma worktree limpa da `origin/main` usando a conta descartável e a configuração completa no mesmo processo e somente propor mudança funcional se o erro persistisse.
 - **Recursos/arquivos principais envolvidos:** `src/firebase/app-check-client.js`, `app-check-client.js`, `tests/smoke/app-check-global-setup.js`, `tests/smoke/app-check-fixture.js`, `tests/smoke/app-check-ci.js`, `tests/smoke/auth.setup.js`, `playwright.vite.config.js`, `.github/workflows/ci.yml`, Firebase App Check debug provider, reCAPTCHA Enterprise e arquivos locais ignorados `.env.local`/`tests/test-user.local.json`.
@@ -750,17 +750,17 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
   A reprodução controlada copiou apenas os dois arquivos locais já ignorados pelo Git para uma worktree própria, obteve as duas configurações públicas do repositório sem imprimi-las e as manteve somente no ambiente do processo. O build Vite passou pela allowlist de 14 arquivos. Em seguida, o `auth-setup` foi executado três vezes em série com credenciais descartáveis, debug token registrado, App ID e site key presentes: 3/3 concluíram login, inicialização App Check, leitura protegida do perfil e navegação, em 59,6 s totais, sem `app-check-initialization-failed`. Os 34 testes focados de `app-check-client` e `app-check-ci` também passaram sem skips. Não foi aplicada qualquer mudança a runtime, Auth, Firestore, rules, Worker, câmera ou CAM-RED-6.
 
-  Para repetir o gate, a UIUX deve garantir que `FIREBASE_APPCHECK_DEBUG_TOKEN`, `VITE_FIREBASE_WEB_APP_ID` e `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` estejam definidos no mesmo processo que executa `npm run test:smoke:vite`; as credenciais continuam em `tests/test-user.local.json`. A site key e o App ID são configuração pública do build, mas o debug token é segredo registrado e nunca deve ser impresso, persistido em artefato, trace ou commit. A ausência de qualquer uma dessas entradas deve continuar falhando de forma explícita; não se recomenda retry, timeout maior ou fallback.
+  Para repetir o gate, a UIUX deve garantir que `FIREBASE_APPCHECK_DEBUG_TOKEN`, `VITE_FIREBASE_WEB_APP_ID` e `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` estejam definidos no mesmo processo que executa `npm run test:smoke:vite`; as credenciais continuam em `tests/test-user.local.json`. A site key e o App ID são configuração pública do build, mas o debug token é segredo registrado e nunca deve ser impresso, persistido em artefato, trace ou commit. A ausência de qualquer uma dessas entradas deve continuar falhando de forma explícita; não se recomenda retry, timeout maior ou fallback. O diagnóstico foi incorporado ao PR #251; os runs `36142057000` e `36142056828` validaram a configuração completa antes do merge `d6bc04f`.
 - **Alinhamento:** 100%. A investigação reproduziu o cenário corrigido exatamente dentro dos limites aprovados, confirmou uma causa integralmente ambiental e liberou o gate sem modificar o produto. O impacto foi positivo: evitou uma correção especulativa em autenticação/App Check e forneceu à UIUX uma instrução operacional verificável.
-- **PRs/commits relacionados:** bloqueio reportado no draft PR #246 da UIUX; worktree de diagnóstico `codex/investigate-vite-appcheck-bootstrap`; PR documental pendente. — **Chat:** Trofia-Principal.
+- **PRs/commits relacionados:** bloqueio reportado no draft PR #246 da UIUX; PR documental #250 fechado como incorporado; PR #251; commits `d0b373b`, `68a843c` e merge `d6bc04f`; runs `36142057000` e `36142056828`. — **Chat:** Trofia-Principal.
 
 ### [INC-VITE-AUTH-LEASE-20260925] - Restauração Auth destrutiva e lease residual no gate Vite
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 25/09/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; validação remota ainda não iniciada.
+- **Data de conclusão:** 25/09/2026.
+- **Tempo decorrido:** 2 d 1 h 12 min 34 s.
+- **Minutos de CI:** 36 min 15 s no total (37 s leve + 35 min 38 s pesado; runs `36142057000` e `36142056828`).
 - **Propósito:** corrigir duas falhas independentes reveladas pelo gate integral da CAM-RED-6: a restauração intermitente da sessão Vite sendo destruída pelo próprio bootstrap e a liberação do lease remoto abandonada após uma única falha de cancelamento.
 - **O que se planeja fazer:** preservar integralmente o worktree e o PR #246 da UIUX; inspecionar os seis screenshots/árvores e a cronologia Playwright; consultar o run público do lease; repetir os casos sobre `origin/main` com App Check completo; implementar somente as correções causais; cobrir o comportamento com testes determinísticos; executar suíte completa e CI autenticado; e atualizar a operação sem registrar credenciais, UID ou tokens.
 - **Recursos/arquivos principais envolvidos:** artefatos locais do PR #246, run público `36024006073`, `src/App.jsx`, Firebase Auth modular/`authStateReady()`, `tests/smoke/authenticated-suite-coordinator.js`, workflow `authenticated-local-lease.yml`, testes unitários de entrada/coordenador, Playwright Vite mobile e `tests/smoke/README.md`.
@@ -771,8 +771,10 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
   A correção remove somente do bootstrap Vite modular o timer que transformava uma restauração lenta em logout; o SDK passa a concluir pela própria `authStateReady()` e o caminho de rejeição existente continua responsável por falhas reais. Não houve aumento de timeout, retry de login, fallback de perfil nem mudança em câmera, Worker, Firestore ou rules. No coordenador, cancelamento continua obrigatório e fail-closed, mas uma falha transitória passa a ser seguida por leitura do estado público: se o run já estiver concluído, a liberação é idempotentemente aceita; se permanecer ativo, o cancelamento é repetido dentro do prazo já existente. Os 24 testes focados passaram, incluindo primeira falha/segunda liberação e run já concluído.
 
   A validação local completa foi executada com credenciais descartáveis, debug token registrado e as duas configurações públicas do App Check presentes no mesmo processo, sem imprimir seus valores. O preflight passou; os unitários fecharam em 1.446/1.446; o legado autenticado em 107 aprovados + 8 skips estruturais esperados; o Vite autenticado em 115/115; e o cutover em 60/60. Os seis casos mobile citados pela UIUX passaram depois de toda a sequência autenticada anterior, sem `#loading`. As liberações remotas do legado, Vite e cutover também terminaram sem erro nem lease residual. Duas tentativas preliminares nem chegaram ao smoke: a primeira comprovou dependências ausentes do Worker no worktree, e as seguintes falharam fechadas porque o sandbox não podia criar o lock em `AppData` ou porque as configurações públicas ainda não estavam no processo; esses erros de preparação foram corrigidos sem alterar produto ou relaxar o gate.
-- **Alinhamento:** em andamento; até aqui o escopo permanece alinhado ao plano causal, com impacto positivo por separar runtime e infraestrutura sem relaxar o gate.
-- **PRs/commits relacionados:** bloqueio reportado no draft PR #246; lease residual `36024006073`; branch `codex/investigate-vite-loading`; PR do Principal pendente. — **Chat:** Trofia-Principal.
+
+  O CI autenticado real repetiu a validação no PR #251. O run leve `36142057000` terminou verde em 37 s. O pesado `36142056828` terminou verde em 35 min 38 s com preflight, 1.446 unitários, Worker, 74/74 Functions e `SMOKE_OUTCOME: success`; Playwright confirmou 107 casos legado + 8 skips estruturais esperados e 115/115 Vite. O merge `d6bc04f` tornou a correção parte da `main`.
+- **Alinhamento:** 100%. O diagnóstico separou a corrida de Auth da falha independente de liberação, corrigiu ambas sem retry de login, aumento de timeout ou fallback inseguro e preservou integralmente a CAM-RED-6. O impacto foi positivo: removeu um logout destrutivo real e impediu leases residuais sem reduzir o rigor do gate.
+- **PRs/commits relacionados:** bloqueio reportado no draft PR #246; lease residual `36024006073`; PR #251; commits `d0b373b`, `68a843c` e merge `d6bc04f`; runs `36142057000` e `36142056828`; PR #250 fechado como incorporado. — **Chat:** Trofia-Principal.
 
 ## Métricas retroativas
 
