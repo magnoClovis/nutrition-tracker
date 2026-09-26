@@ -1653,7 +1653,7 @@
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** reconfirmar IAM, contas de serviço, invocadores, Functions/Tasks, segredos por nome/tipo e lockfiles; propor redução de privilégios e correções de dependências sem aplicá-las antes de avaliar o inventário.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** a reconfirmação de 26/09 manteve as três Functions na conta padrão com `roles/editor`, confirmou invocadores, fila/Scheduler, limpeza de 7 dias e achados de dependência (0/0/7 em produção), e fechou a lacuna de segredos por nomes/tipos; consumidores fora das regiões Cloud Run auditadas ainda exigem verificação antes de revogar Editor.
+- **O que foi feito:** o PR #258 mesclado reconfirmou IAM e dependências; a atualização local isolada de `firebase-admin` 14.2.0→14.5.0 reduziu o audit de produção das Functions de sete para dois alertas moderados transitivos (`gaxios`/`uuid`), justificados como exceção temporária. Passaram 74/74 testes com emuladores e `npm test` completo no lockfile final (preflight, 1.465 unitários, smokes legado/Vite e cutover 60/60); o CI autenticado e o commit ainda estão pendentes, sem deploy ou alteração IAM.
 
 ### [C14-F2-PRE] - Inventário preparatório de IAM e dependências
 
