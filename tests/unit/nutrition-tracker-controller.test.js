@@ -679,18 +679,18 @@ contractTest("restores the captured tab, date, and scroll only after successful 
   });
 });
 
-contractTest("uses the reusable ChoiceField for the image meal category", createNutritionTrackerController => {
+contractTest("delegates the image meal category to the shared result sheet", createNutritionTrackerController => {
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
-  const start = source.indexOf("React.createElement(ChoiceField", source.indexOf("data-image-meal-registration-options"));
-  const end = source.indexOf("imageMealFeature.ImageMealScreen", start);
-  const fieldBlock = source.slice(start, end);
+  const start = source.indexOf("React.createElement(imageMealFeature.ImageMealScreen");
+  const end = source.indexOf("onClose: closeImageMealMode", start);
+  const screenBlock = source.slice(start, end);
 
   assert.ok(start >= 0);
-  assert.match(fieldBlock, /React\.createElement\(ChoiceField/);
-  assert.match(fieldBlock, /options: MEALS\.map/);
-  assert.match(fieldBlock, /onChange: value => setStaged/);
-  assert.doesNotMatch(fieldBlock, /React\.createElement\("select"/);
+  assert.match(screenBlock, /mealValue: staged\.meal/);
+  assert.match(screenBlock, /mealOptions: MEALS\.map/);
+  assert.match(screenBlock, /onMealChange: value => setStaged/);
+  assert.doesNotMatch(screenBlock, /React\.createElement\("select"/);
 });
 
 contractTest("wires the image flow into Add navigation without changing its persistence contract", createNutritionTrackerController => {
@@ -716,7 +716,7 @@ contractTest("wires the image flow into Add navigation without changing its pers
   assert.match(closeBlock, /await flow\.destroy\(\)/);
   assert.ok(closeBlock.indexOf("await flow.destroy()") < closeBlock.indexOf("setImageMealOpen(false)"));
   assert.match(source, /mode === "image"/);
-  assert.match(source, /data-image-meal-registration-options/);
+  assert.doesNotMatch(source, /data-image-meal-registration-options/);
   assert.match(source, /imageMealFeature\.ImageMealScreen/);
   assert.match(source, /onReview: \(\) => imageMealFlowRef\.current\?\.review\(\)/);
   assert.match(source, /onRequestReauthentication: requestReauthenticationAfterSessionExpired/);
