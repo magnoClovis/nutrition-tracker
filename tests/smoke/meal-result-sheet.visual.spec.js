@@ -11,8 +11,9 @@ function fixture(theme) {
     </article>`).join('');
   return `
     <div data-one-ui-root data-theme="${theme}">
-      <main data-app-main="adicionar" style="height:180vh">Conteúdo bloqueado</main>
-      <div data-meal-result-overlay="true" data-meal-result-snap="compact" role="dialog" aria-modal="true">
+      <main data-app-main="adicionar" style="position:fixed;inset:96px 12px 18px;overflow:hidden;transform:translateY(0);filter:brightness(1);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
+        <span>Conteúdo bloqueado</span>
+        <div data-meal-result-overlay="true" data-meal-result-snap="compact" role="dialog" aria-modal="true">
         <img data-meal-result-photo="true" alt="Foto analisada" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='800'%3E%3Crect width='400' height='800' fill='%23547149'/%3E%3C/svg%3E">
         <div data-meal-result-scrim="true"></div>
         <section data-meal-result-sheet="true">
@@ -40,7 +41,8 @@ function fixture(theme) {
             <button data-meal-result-confirm="true">Registrar refeição</button>
           </footer>
         </section>
-      </div>
+        </div>
+      </main>
     </div>`;
 }
 
@@ -58,7 +60,12 @@ test.describe('CAM-RED-7 progressive meal result sheet', () => {
       const photo = page.locator('[data-meal-result-photo="true"]');
       const footer = page.locator('[data-meal-result-footer="true"]');
       const compact = await sheet.boundingBox();
+      const overlayBox = await overlay.boundingBox();
       const viewport = page.viewportSize();
+      expect(overlayBox.x).toBeLessThanOrEqual(1);
+      expect(overlayBox.y).toBeLessThanOrEqual(1);
+      expect(Math.abs(overlayBox.width - viewport.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(overlayBox.height - viewport.height)).toBeLessThanOrEqual(1);
       expect(compact.y / viewport.height).toBeGreaterThanOrEqual(0.30);
       expect(compact.y / viewport.height).toBeLessThanOrEqual(0.34);
       expect(compact.height / viewport.height).toBeGreaterThanOrEqual(0.65);
@@ -99,4 +106,31 @@ test.describe('CAM-RED-7 progressive meal result sheet', () => {
     expect((await heading.boundingBox()).height).toBeGreaterThan(40);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize().width);
   });
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 850 }]) {
+    test(`keeps the nested numeric editor viewport-fixed at ${viewport.width}px`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('index.html', { waitUntil: 'domcontentloaded' });
+      await page.evaluate(markup => {
+        document.body.innerHTML = markup;
+        const sheet = document.querySelector('[data-meal-result-sheet="true"]');
+        sheet.insertAdjacentHTML('beforeend', `
+          <div data-temporal-field-overlay="true">
+            <section data-temporal-field-sheet="true" data-numeric-field-sheet="true" role="dialog">
+              <div data-temporal-field-handle="true"></div>
+              <h2 data-temporal-field-title="true">Informar quantidade</h2>
+              <div data-numeric-keypad-value="true">100</div>
+            </section>
+          </div>`);
+      }, fixture('dark'));
+
+      const editorOverlay = page.locator('[data-temporal-field-overlay="true"]');
+      const box = await editorOverlay.boundingBox();
+      expect(box.x).toBeLessThanOrEqual(1);
+      expect(box.y).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.width - viewport.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.height - viewport.height)).toBeLessThanOrEqual(1);
+      await expect(page.getByRole('heading', { name: 'Informar quantidade' })).toBeInViewport();
+    });
+  }
 });
