@@ -120,15 +120,15 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 
 ## [BUG-D01-AUDIT] - Revalidação do idioma na verificação de e-mail
 
-**Status:** em andamento.
+**Status:** concluído.
 
 **Data de início:** 26/09/2026.
 
-**Data de conclusão:** não concluído.
+**Data de conclusão:** 26/09/2026.
 
-**Tempo decorrido:** pendente de merge.
+**Tempo decorrido:** 21 min 10 s.
 
-**Minutos de CI:** 0 min; CI ainda não iniciado.
+**Minutos de CI:** 25 s (25 s leve + 0 s pesado).
 
 **Propósito:** reauditar D01 na `origin/main` atual para determinar por evidência se a tela de verificação de e-mail ainda apresentava português quando o idioma selecionado era espanhol, sem criar uma alteração funcional artificial para um defeito já resolvido.
 
@@ -138,7 +138,9 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 
 **O que foi feito:** a auditoria partiu da `origin/main` `0af7a14` em worktree isolada, preservando o checkout principal sujo e as worktrees C14-F2/CAM-RED-7. O defeito original foi confirmado historicamente no contrato binário `en`/“não-en”, mas já havia sido removido pelo PR [#83](https://github.com/magnoClovis/nutrition-tracker/pull/83), commit `f6f73c0` e merge `49813c8`, em 01/08/2026. O componente atual reduz variantes regionais ao prefixo, aceita `pt`, `en` e `es`, prioriza o `lang` recebido, usa `appLang` como fallback e reserva português para idioma desconhecido. A cópia espanhola cobre título com e sem nome, instruções, espera, sucesso/erro de reenvio, botão de reenvio e retorno ao login. O teste focado passou 10/10 em UMD/ESM e comprovou PT, EN, ES, precedência/fallback, polling de verificação, reenvio espanhol e cleanup. Nenhum arquivo funcional, Auth, App Check ou comportamento de sessão foi alterado; esta fatia é exclusivamente de reconciliação documental.
 
-**PRs/commits relacionados:** PR documental futuro em modo draft; correção histórica PR #83, commit `f6f73c0`, merge `49813c8`; base auditada `0af7a14`.
+**Alinhamento:** 100% — o plano previa confirmar o estado real antes de codar e evitar uma correção artificial; a auditoria comprovou que D01 já estava resolvido e limitou a entrega à reconciliação documental. O impacto do desvio entre o inventário antigo e o runtime atual foi positivo para a rastreabilidade, sem impacto funcional no produto.
+
+**PRs/commits relacionados:** PR documental [#267](https://github.com/magnoClovis/nutrition-tracker/pull/267), commit `7000da8`, merge `7c68229`, run leve `36251757027`; correção histórica PR #83, commit `f6f73c0`, merge `49813c8`; base auditada `0af7a14`.
 
 ## Métricas retroativas
 
@@ -147,3 +149,4 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 | [#181](https://github.com/magnoClovis/nutrition-tracker/pull/181) | 2 d 5 h 2 min | 29 min (1 leve + 28 pesado) | Trofia-Bugs |
 | [#199](https://github.com/magnoClovis/nutrition-tracker/pull/199) | 1 min 27 s | 1 min (1 leve + 0 pesado) | Trofia-Bugs |
 | [#264](https://github.com/magnoClovis/nutrition-tracker/pull/264) | 1 h 28 min 37 s | 1 h 10 min 23 s (46 s leve + 1 h 9 min 37 s pesado) | Trofia-Bugs |
+| [#267](https://github.com/magnoClovis/nutrition-tracker/pull/267) | 21 min 10 s | 25 s (25 s leve + 0 s pesado) | Trofia-Bugs |

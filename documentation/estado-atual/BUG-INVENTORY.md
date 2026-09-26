@@ -465,7 +465,7 @@ Risco de corrigir: encerrado sem alterar polling, reenvio, Auth ou sessão.
 Rastreio: resolvido pelo PR #83, commit `f6f73c0` e merge `49813c8` em
 01/08/2026. Reauditoria `BUG-D01-AUDIT` na `origin/main` `0af7a14` confirmou
 10/10 testes UMD/ESM verdes, incluindo PT/EN/ES e reenvio espanhol; reconciliação
-documental em andamento.
+documental concluída no PR #267, merge `7c68229`.
 
 [D02] Feedback nutricional espanhol usa descrição de atividade em inglês
 Localização: nutrition-feedback-ai.js:12-16;
