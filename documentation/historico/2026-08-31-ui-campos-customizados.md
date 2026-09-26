@@ -23,7 +23,33 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 | S8 — checkboxes e sliders | Mesclada na `main` pelo PR #166, com CI autenticado integralmente verde |
 | S9 — diálogo genérico | Implementada, validada e mesclada na `main` pelo PR #172 |
 | Fechamento S1–S9 | Concluído: todas as fatias S1–S9 integram a `main` |
-| Sequência I1–I7 | Planejada, sem implementação no app por esta frente |
+| Sequência I1–I7 | I1 com protótipo visual aprovado em 26/09/2026 e implementação pendente; I2–I7 permanecem planejadas |
+
+### [I1] - Protótipo aprovado do carregamento animado
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; esta etapa foi exclusivamente um protótipo HTML externo, sem alteração de runtime ou execução de CI.
+- **Propósito:** validar antes da implementação uma espera inicial que pareça deliberada e vinculada à identidade do Trofia, evitando tanto uma tela estática sem resposta quanto um spinner genérico desconectado do produto.
+- **O que se planeja fazer:** prototipar e, após aprovação específica, implementar a marca do Trofia pulsando e expandindo durante o bootstrap, com permanência visual mínima entre 800 e 1.000 ms, temas claro e escuro, textos localizados e uma alternativa sem pulsação/escala para usuários com `prefers-reduced-motion`.
+- **Recursos/arquivos principais envolvidos:** protótipo externo `C:\Users\clovi\.codex\visualizations\2026\08\24\01a03230-1014-72b3-a9e6-3906a00e02ea\i1-carregamento-animado.html`; futuros pontos de integração no bootstrap/loading do app; marca Trofia; CSS de animação; temporização JavaScript; i18n PT/EN/ES; e futura cobertura Playwright visual. Nenhum arquivo de runtime foi modificado nesta etapa.
+- **O que foi feito:** foi produzido e revisado um protótipo HTML interativo com alternância entre claro/escuro, PT/EN/ES e movimento normal/reduzido, além de controle para reproduzir novamente a sequência. A composição aprovada usa a marca como foco central, aura discreta, pulso/expansão progressivos e mensagens de carregamento sem simular uma fase técnica que o bootstrap não informe de verdade. A variante normal demonstra a permanência mínima pretendida para que a transição seja perceptível; a variante de movimento reduzido mantém estado e identidade visíveis sem depender de escala ou pulsação contínua. O responsável aprovou visualmente o protótipo em 26/09/2026. A aprovação encerra somente a decisão visual: I1 continua em andamento e nenhuma lógica de inicialização, splash nativa, câmera ou runtime foi alterada.
+- **PRs/commits relacionados:** não há PR ou commit funcional de I1 nesta etapa; o artefato aprovado é o protótipo externo citado acima. O registro documental será versionado separadamente antes da futura implementação. — **Chat-Origin:** Trofia-UIUX.
+
+### [D3] - Protótipo aprovado da responsividade de Alimentos no desktop
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; esta etapa foi exclusivamente um protótipo HTML externo, sem alteração de runtime ou execução de CI.
+- **Propósito:** definir antes do código como a tela Alimentos deve aproveitar telas largas sem continuar presa à largura de mobile, preservando legibilidade, prioridade das ações e coerência com o shell desktop D1 e com a linguagem visual aprovada para D2.
+- **O que se planeja fazer:** implementar, em fatia posterior e após os gates próprios, uma composição desktop responsiva para 1280, 1440 e 1920 px. O painel principal reunirá cabeçalho contextual, busca, leitura por código de barras, criação de alimento e biblioteca de alimentos salvos; trilhos laterais acomodarão ações contextuais e refeições salvas; em 1920 px, suplementos poderão ocupar uma terceira coluna dedicada. A fatia D3 não altera mobile. As decisões documentadas aqui formam uma referência de estilo para eventual adaptação móvel futura, que deverá receber escopo e aprovação próprios.
+- **Recursos/arquivos principais envolvidos:** protótipo externo `C:\Users\clovi\.codex\visualizations\2026\08\24\01a03230-1014-72b3-a9e6-3906a00e02ea\d3-alimentos-desktop.html`; futuros pontos de integração `pantry-screen.js`, `src/components/pantry-screen.js` e `one-ui.css`; shell desktop D1; componentes de busca, listas e ações; ícones SVG de traço; temas claro/escuro; estados vazio/preenchido; e futura matriz Playwright em 1280/1440/1920 px.
+- **O que foi feito:** foi produzido e aprovado em 26/09/2026 um protótipo HTML interativo que permite alternar largura, tema e densidade de conteúdo. A composição usa a navegação de largura total de D1 e distribui Alimentos em uma área principal dominante e trilhos auxiliares, evitando transformar o desktop em uma coluna móvel cercada por espaço vazio. O cabeçalho de contexto apresenta contagens da biblioteca; a barra de busca permanece a entrada dominante, acompanhada por ações de código de barras e novo alimento; os resultados usam linhas legíveis com ícone, nome, porção e macronutrientes; as ações de IA/base e as refeições salvas ficam visualmente próximas, mas fora do fluxo primário; e suplementos ganham coluna própria somente quando 1920 px oferece largura suficiente. Em 1280 px, informações de menor prioridade, como gordura na linha compacta, podem ser omitidas sem remover a ação nem os dados essenciais. Estados vazio e preenchido preservam a mesma grade para impedir saltos estruturais. A linguagem visual foi registrada para reuso consciente: superfícies Glass UI, bordas suaves, cantos arredondados, sombras contidas, espaçamento arejado, verde como ação principal, teal para dados nutricionais e uso restrito de âmbar/azul como diferenciação semântica; ícones permanecem simples, lineares e proporcionais aos alvos de toque. Esses princípios podem orientar uma futura versão mobile, mas as proporções, número de colunas e densidade não devem ser copiadas literalmente para telas pequenas. Nenhum código do app foi modificado e nenhuma implementação de D3 foi iniciada.
+- **PRs/commits relacionados:** não há PR ou commit funcional de D3 nesta etapa; o artefato aprovado é o protótipo externo citado acima. O registro documental será versionado separadamente antes da futura implementação. — **Chat-Origin:** Trofia-UIUX.
 
 ## ChoiceField reutilizável para tipo de refeição
 

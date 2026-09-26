@@ -9,6 +9,29 @@ experiência do usuário. Bugs técnicos continuam catalogados separadamente em
 Cada rodada deve receber uma seção datada, um título curto e uma tabela com o
 escopo, os principais arquivos afetados e a referência de implementação.
 
+## 2026-09-26 — D3: protótipo aprovado da tela Alimentos desktop
+
+Referência geral: protótipo HTML externo aprovado antes da implementação; nenhum arquivo de runtime foi alterado nesta etapa.
+
+| Item | Mudança aprovada | Arquivos principais | Referência |
+|---:|---|---|---|
+| 1 | A tela deixa de se comportar como uma coluna mobile centralizada e passa a usar a largura disponível em uma grade desktop: biblioteca no painel principal, ações/refeições salvas em trilho auxiliar e suplementos em terceira coluna somente em 1920 px. | Protótipo `d3-alimentos-desktop.html`; futuros `pantry-screen.js`, `src/components/pantry-screen.js`, `one-ui.css` | D3 — protótipo aprovado; runtime pendente |
+| 2 | O painel principal mantém busca como entrada dominante e posiciona código de barras e “Novo alimento” como ações complementares. Linhas da biblioteca exibem ícone, nome, porção e macronutrientes sem exigir abertura prévia. | Busca, biblioteca de alimentos, ícones SVG e shell D1 | D3 — protótipo aprovado |
+| 3 | A responsividade preserva prioridades: 1440 px usa duas áreas equilibradas; 1920 px abre a coluna de suplementos; 1280 px compacta o conjunto e pode ocultar gordura na linha, sem remover nome, porção, calorias ou ações. Estados vazio e preenchido mantêm a mesma grade. | Breakpoints 1280/1440/1920 px, estados vazio/preenchido | D3 — protótipo aprovado |
+| 4 | A linguagem visual segue D1/D2: Glass UI, superfícies arredondadas, sombra contida, espaçamento arejado, verde para ação principal, teal para nutrição e âmbar/azul apenas como diferenciação semântica. Ícones são lineares, simples e proporcionais. | Tokens visuais claro/escuro e iconografia | Referência futura para mobile; não copiar proporções desktop literalmente |
+| 5 | O protótipo cobre claro/escuro, vazio/preenchido e 1280/1440/1920 px. Uma eventual adaptação mobile deve reaproveitar hierarquia, tokens e estilo de ícones, mas receber composição, densidade e aprovação próprias; D3 não altera mobile. | `C:\Users\clovi\.codex\visualizations\2026\08\24\01a03230-1014-72b3-a9e6-3906a00e02ea\d3-alimentos-desktop.html` | Aprovado em 26/09/2026 |
+
+## 2026-09-26 — I1: protótipo aprovado do carregamento animado
+
+Referência geral: protótipo HTML externo aprovado antes da implementação; nenhum arquivo de runtime foi alterado nesta etapa.
+
+| Item | Mudança aprovada | Arquivos principais | Referência |
+|---:|---|---|---|
+| 1 | A espera inicial usa a marca Trofia como foco central, com aura discreta e pulso/expansão progressivos, substituindo a sensação de tela parada ou spinner genérico. | Protótipo `i1-carregamento-animado.html`; futuros bootstrap/loading e CSS | I1 — protótipo aprovado; runtime pendente |
+| 2 | A sequência demonstra permanência mínima pretendida de 800–1000 ms, reprodução controlada e mensagens localizadas honestas, sem inventar fases técnicas que o bootstrap não fornece. | Temporização futura, i18n PT/EN/ES e futura cobertura Playwright | I1 — protótipo aprovado |
+| 3 | Claro e escuro preservam contraste e identidade; `prefers-reduced-motion` mantém marca, estado e transição perceptíveis sem pulsação/escala contínua. | Tokens de tema e media query de movimento reduzido | I1 — protótipo aprovado |
+| 4 | O escopo aprovado se limita ao carregamento do app; não redefine loaders internos, splash nativa ou estados de câmera. | `C:\Users\clovi\.codex\visualizations\2026\08\24\01a03230-1014-72b3-a9e6-3906a00e02ea\i1-carregamento-animado.html` | Aprovado em 26/09/2026 |
+
 ## 2026-09-10 — D1: shell desktop, cabeçalho e navegação
 
 Referência geral: PR draft [#187](https://github.com/magnoClovis/nutrition-tracker/pull/187), commit [`80f9056`](https://github.com/magnoClovis/nutrition-tracker/commit/80f9056).
