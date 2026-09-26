@@ -1467,6 +1467,17 @@
 - **Recursos/arquivos principais envolvidos:** novo `meal-result-sheet.js` UMD/ESM, controlador de sheet/gestos e safe areas, `meal-estimate-editor.js`, `meal-estimate.js`, `image-meal-screen.js`, ChoiceField, NumericField, `one-ui.css`, ARIA/teclado e testes.
 - **O que foi feito:** worktree e branch isoladas foram abertas da `origin/main` `d7712d9`; a auditoria técnica do editor proporcional e dos pontos de integração foi iniciada antes de qualquer alteração de runtime.
 
+### [TEST-CAM-48PX] - Sincronização da medição dos alvos CAM-RED-6
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** 26/09/2026.
+- **Propósito:** impedir falso negativo visual ao medir o alvo de 48 px do botão de fechar durante a animação de entrada da análise.
+- **O que se planeja fazer:** aguardar a animação `scale(.985) → scale(1)` terminar antes da leitura geométrica, mantendo sem tolerância a exigência final de pelo menos 48 px.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/embedded-camera-hotfix.visual.spec.js`, Playwright mobile, estado CAM-RED-6 com fonte a 200% e temas claro/escuro.
+- **O que foi feito:** o PR #259/merge `39903c7` passou a aguardar a animação antes da geometria e ficou verde em 4/4 casos focados no legado, 4/4 no Vite, 1.457/1.457 unitários e CI real, sem alterar o PR #257 nem reduzir 48 px.
+- **Alinhamento:** 100% — corrida do roteiro eliminada com o requisito visual preservado.
+
 ### [CAM-RED-8] - Busca manual com o mesmo resultado
 
 - **Status:** não iniciado — **Chat:** Trofia-UIUX.
