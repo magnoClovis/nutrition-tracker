@@ -16,7 +16,7 @@
 - **Privacidade e compliance:** política trilíngue pública, instruções de exclusão e referência atual de Data Safety.
 - **Qualidade:** preflight, unitários, smoke legado/Vite, matriz visual e CI autenticado com App Check. G01, C05 e C07 estão fechados.
 - **Controles visuais S8:** `CheckboxField` e `SliderField` customizados foram integrados no PR #166 às superfícies ativas de sugestões de refeição e seleção de categorias de backup.
-- **Sequência visual S1–S9 concluída (10/09/2026):** seletores, campos numéricos, controles e diálogos nativos planejados foram substituídos por componentes One UI 8/Glass UI; rastreabilidade por fatia, PR e comportamento está na seção formal S1–S9 abaixo. I1–I7 permanecem planejadas e exigem protótipo aprovado antes de código. — Chat: Trofia-UIUX
+- **Sequência visual S1–S9 concluída (10/09/2026):** seletores, campos numéricos, controles e diálogos nativos planejados foram substituídos por componentes One UI 8/Glass UI; rastreabilidade por fatia, PR e comportamento está na seção formal S1–S9 abaixo. I1 possui protótipo aprovado e implementação pendente; I2–I7 permanecem planejadas e exigem protótipo aprovado antes de código. — Chat: Trofia-UIUX
 - **Incidente App Check/perfil encerrado:** o PR #173 impede release Android sem `google-services.json` e distingue falha de leitura de perfil realmente incompleto. Na build Play versionCode 12, a conta real concluiu login, leitura e alteração de perfil, sincronização e inicialização do App Check sem erro.
 - **[C14-C-PROFILE-GATE] Concluído (12/09/2026) — Chat: Trofia-Principal.** O PR #191 corrigiu a corrida de bootstrap: a primeira leitura protegida exige token App Check real, o gate usa confirmação do servidor, falhas exibem recuperação e o modal obrigatório ficou exclusivo da criação de conta. O Pages foi validado após o merge sem reabrir o modal no login normal; a fase Android/AAB e o enforcement do Worker continuam separados dentro da C14-C.
 - **Incidente C14-B2 em produção encerrado:** após dois rollbacks seguros para B1, o hotfix definitivo manteve envelope/nutrientes nas rules e transferiu apenas a validação profunda dos componentes ao leitor fail-closed C20/C19. O teste Admin SDK comprova que componente malformado é ocultado. As rules corrigidas foram republicadas em 02/09/2026; o run autenticado `33575611133` ficou totalmente verde antes do deploy (tentativa 2) e novamente contra produção (tentativa 3). Nenhum dado foi excluído. O PR #178 foi mesclado em 07/09/2026 no commit `80bc2ca`. — **Chat:** Trofia-Principal.
@@ -1181,6 +1181,7 @@
 - **Propósito:** transformar a espera inicial em uma transição deliberada e coerente com a identidade do Trofia.
 - **O que se planeja fazer:** prototipar e implementar logo pulsando/expandindo, mínimo de 800–1000 ms, claro/escuro e alternativa estática em reduced-motion.
 - **Recursos/arquivos principais envolvidos:** bootstrap/loading do app, logo Trofia, CSS de animação, temporização JS e Playwright visual.
+- **O que foi feito:** o protótipo HTML interativo foi aprovado em 26/09/2026 com temas claro/escuro, PT/EN/ES, reprodução manual e variante `prefers-reduced-motion`; nenhum código de runtime foi alterado.
 
 ### [I2] - Registro progressivo por campo
 
@@ -1258,12 +1259,13 @@
 
 ### [D3] - Responsividade de Alimentos
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** usar melhor o espaço desktop em listas, busca, ações e estados da despensa.
-- **O que se planeja fazer:** escopo detalhado pendente de confirmação após protótipo vazio/preenchido nas três larguras.
-- **Recursos/arquivos principais envolvidos:** tela de Alimentos, cards/listas, seletores, `one-ui.css` e Playwright visual.
+- **O que se planeja fazer:** implementar o protótipo aprovado em 1280/1440/1920 px com biblioteca de alimentos, busca e ações no painel principal, trilhos contextuais e terceira coluna de suplementos em 1920 px, sem alterar mobile nesta fatia.
+- **Recursos/arquivos principais envolvidos:** protótipo `d3-alimentos-desktop.html`, `pantry-screen.js`, `src/components/pantry-screen.js`, `one-ui.css`, shell D1, ícones SVG e Playwright visual.
+- **O que foi feito:** o protótipo claro/escuro, vazio/preenchido e nas três larguras foi aprovado em 26/09/2026; hierarquia, tokens, iconografia e prioridades responsivas foram preservados como referência para eventual adaptação mobile, sem mudança de runtime.
 
 ### [D4] - Responsividade de Métricas
 
