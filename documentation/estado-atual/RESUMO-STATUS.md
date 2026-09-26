@@ -172,7 +172,7 @@
 ## O que está em andamento agora
 
 - **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.
-- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D, C14-E e C14-F1 estão concluídas; C14-F2 a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
+- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D, C14-E e C14-F1 estão concluídas; C14-F2 está em andamento; C14-G e C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 - **[DOC-TRACKING-193] Concluído (12/09/2026) — Chat: Trofia-Principal.** O que se planeja fazer: registrar integralmente as sequências aprovadas e formalizar planejamento, entrega, alinhamento e métricas. O que foi feito: 100 entradas de fatias foram normalizadas no PR #193, com escopos incertos de D3–D7 explicitamente delegados ao chat UI/UX. Alinhamento: 100%.
@@ -1647,12 +1647,24 @@
 
 ### [C14-F2] - IAM, invocadores e dependências
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
-- **O que se planeja fazer:** auditar IAM, contas de serviço, invocadores, Functions/Tasks e lockfiles antes de criar identidades mínimas.
-- **Recursos/arquivos principais envolvidos:** Google Cloud IAM, Firebase Functions, Cloud Tasks, Artifact Registry, lockfiles e relatórios administrativos.
+- **O que se planeja fazer:** reconfirmar IAM, contas de serviço, invocadores, Functions/Tasks, segredos por nome/tipo e lockfiles; propor redução de privilégios e correções de dependências sem aplicá-las antes de avaliar o inventário.
+- **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/`, manifests/lockfiles e inventário administrativo.
+- **O que foi feito:** a reconfirmação de 26/09 manteve as três Functions na conta padrão com `roles/editor`, confirmou invocadores, fila/Scheduler, limpeza de 7 dias e achados de dependência (0/0/7 em produção), e fechou a lacuna de segredos por nomes/tipos; consumidores fora das regiões Cloud Run auditadas ainda exigem verificação antes de revogar Editor.
+
+### [C14-F2-PRE] - Inventário preparatório de IAM e dependências
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** 26/09/2026.
+- **Propósito:** deixar uma baseline administrativa comprovada para a C14-F2 sem antecipar mudanças de privilégio ou dependência.
+- **O que se planeja fazer:** consultar IAM, invocadores, Scheduler, Cloud Tasks, Artifact Registry, auditorias npm e inventário de segredos somente em leitura.
+- **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase CLI, Wrangler, manifests/lockfiles e `C14_F2_PRE_INVENTARIO_IAM_DEPENDENCIAS.md`.
+- **O que foi feito:** confirmou `roles/editor` na identidade compartilhada das três Functions, retenção de imagens em 7 dias, zero vulnerabilidades de produção na raiz/Worker e sete moderadas nas Functions; a listagem de segredos do Worker ficou bloqueada por perfil Wrangler autenticado em outra conta.
+- **Alinhamento:** 100%; o inventário foi concluído sem alterar infraestrutura, e a lacuna Cloudflare ficou explicitamente registrada para o início da F2.
 
 ### [C14-G] - CSP e superfícies de debug
 
