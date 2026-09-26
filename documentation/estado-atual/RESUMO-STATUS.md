@@ -1466,6 +1466,16 @@
 - **O que se planeja fazer:** criar um sheet com encaixes em aproximadamente 68% e na altura total útil, expansível/recolhível por arraste e por alternativa acessível, coordenar gesto e rolagem interna, manter foto acima no estado inicial, CTA/refeição alcançáveis e edição de porção/ingredientes com recálculo proporcional imediato de kcal e nutrientes, cobrindo confiança, dados incompletos e listas extensas.
 - **Recursos/arquivos principais envolvidos:** novo `meal-result-sheet.js` UMD/ESM, controlador de sheet/gestos e safe areas, `meal-estimate-editor.js`, `meal-estimate.js`, `image-meal-screen.js`, ChoiceField, NumericField, `one-ui.css`, ARIA/teclado e testes.
 
+### [TEST-CAM-48PX] - Sincronização da medição dos alvos CAM-RED-6
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** impedir falso negativo visual ao medir o alvo de 48 px do botão de fechar durante a animação de entrada da análise.
+- **O que se planeja fazer:** aguardar a animação `scale(.985) → scale(1)` terminar antes da leitura geométrica, mantendo sem tolerância a exigência final de pelo menos 48 px.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/embedded-camera-hotfix.visual.spec.js`, Playwright mobile, estado CAM-RED-6 com fonte a 200% e temas claro/escuro.
+- **O que foi feito:** a auditoria do CI `36194586909` confirmou a leitura durante a transformação ancestral; o roteiro agora aguarda a animação e passou em 4/4 casos focados no legado, 4/4 no Vite, 1.457/1.457 unitários e CI autenticado real verde no primeiro HEAD do PR #259, sem alterar o PR #257 nem reduzir 48 px.
+
 ### [CAM-RED-8] - Busca manual com o mesmo resultado
 
 - **Status:** não iniciado — **Chat:** Trofia-UIUX.
