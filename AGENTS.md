@@ -11,3 +11,9 @@ Antes de iniciar ou encerrar qualquer fatia, leia e cumpra [`documentation/PADRA
 - Todo commit e toda descrição de PR terminam com `Chat-Origin: <nome do chat>`.
 
 O checklist documental é gate obrigatório, com o mesmo peso dos testes e da validação funcional.
+
+## Monitoramento passivo obrigatório
+
+Testes demorados, gates completos, builds, deploys, CI e etapas automáticas de testes físicos devem ser acompanhados sem polling contínuo. Depois de iniciar a operação, use a duração histórica para programar uma automação/heartbeat silenciosa para a primeira verificação. Se ainda estiver saudável e em execução, reprograme uma nova janela conservadora; só notifique em conclusão, falha, mudança material ou necessidade de intervenção. Remova a automação depois de processar o resultado terminal.
+
+Não use loops de consulta, sleeps longos nem mantenha o turno bloqueado apenas aguardando. Monitoramento ativo só é aceitável quando a operação for interativa, houver risco concreto de perda de evidência ou o usuário o solicitar; nesse caso, explique antes por que o standby não é seguro.

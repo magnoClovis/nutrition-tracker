@@ -23,6 +23,13 @@ import {
   validatePantrySuggestionsRequest,
   validatePantrySuggestionsResponse
 } from "./pantry-suggestions.js";
+import {
+  pseudonymizeSubject,
+  persistSanitizedMetric,
+  resolveTierPolicy,
+  sanitizedRequestMetric,
+  writeSanitizedMetric
+} from "./ai-security.js";
 
 const COMPLETION_PATH = "/v1/ai/completion";
 const IMAGE_MEAL_PATH = "/v1/ai/image-meal";
@@ -49,6 +56,8 @@ const MAX_PROMPT_CHARACTERS = 40_000;
 const MAX_OUTPUT_TOKENS = 1_200;
 const MAX_REQUEST_BODY_BYTES = (MAX_PROMPT_CHARACTERS * 4) + 4_096;
 const MAX_IMAGE_REQUEST_BODY_BYTES = 2_200_000;
+const MAX_PROVIDER_RESPONSE_BYTES = 128_000;
+const PROVIDER_TIMEOUT_MS = 40_000;
 
 function corsHeaders(origin) {
   return {
@@ -80,6 +89,7 @@ function rateLimitScope(limit) {
   if (limit === "uid-image-minute") return "image-user";
   if (limit === "global-minute") return "global";
   if (limit === "global-day") return "daily";
+  if (limit === "tier-day") return "plan";
   return null;
 }
 
@@ -157,18 +167,24 @@ export function createAIWorker({
     allowedAppIds: FIREBASE_APP_CHECK_APP_IDS
   }),
   fetchRequest = globalThis.fetch,
-  now = () => Date.now()
+  now = () => Date.now(),
+  createProviderAbortSignal = timeoutMs => AbortSignal.timeout(timeoutMs),
+  recordMetric = writeSanitizedMetric,
+  persistMetric = persistSanitizedMetric
 } = {}) {
   if (typeof verifyFirebaseIdToken !== "function" ||
       typeof verifyFirebaseAppCheckToken !== "function" ||
       typeof fetchRequest !== "function" ||
-      typeof now !== "function") {
-    throw new TypeError("AI Worker requires Auth/App Check verification, fetch, and clock functions");
+      typeof now !== "function" ||
+      typeof createProviderAbortSignal !== "function" ||
+      typeof recordMetric !== "function" ||
+      typeof persistMetric !== "function") {
+    throw new TypeError("AI Worker requires Auth/App Check verification, fetch, clock, timeout, and metric functions");
   }
 
-  return {
-    async fetch(request, env) {
+  async function handleRequest(request, env, metricContext) {
       const url = new URL(request.url);
+      metricContext.endpoint = url.pathname;
       const isCompletion = url.pathname === COMPLETION_PATH;
       const isImageMeal = url.pathname === IMAGE_MEAL_PATH;
       const isFoodEstimate = url.pathname === FOOD_ESTIMATE_PATH;
@@ -222,6 +238,7 @@ export function createAIWorker({
         }
         return errorResponse(401, "invalid-authentication", origin);
       }
+      metricContext.authenticated = true;
 
       const appCheckMode = env?.APP_CHECK_MODE;
       if (appCheckMode !== "observe" && appCheckMode !== "enforce") {
@@ -234,6 +251,7 @@ export function createAIWorker({
       } catch (error) {
         appCheckError = error;
       }
+      metricContext.appCheck = appCheckError ? "invalid-observed" : "valid";
       if (appCheckMode === "enforce" && appCheckError) {
         if (appCheckError instanceof FirebaseAppCheckTokenError &&
             appCheckError.code === "key-unavailable") {
@@ -277,11 +295,18 @@ export function createAIWorker({
             typeof env.AI_RATE_LIMITER.getByName !== "function") {
           throw new TypeError("missing rate limiter binding");
         }
+        const tierPolicy = resolveTierPolicy(identity.claims, env);
+        const subjectId = await pseudonymizeSubject(
+          identity.uid,
+          env.RATE_LIMIT_PSEUDONYM_KEY
+        );
+        metricContext.tier = tierPolicy.tier;
         const limiter = env.AI_RATE_LIMITER.getByName("gemini-project-quota");
         rateLimitResult = await limiter.check(
-          identity.uid,
+          subjectId,
           now(),
-          isImageMeal ? "image" : "text"
+          isImageMeal ? "image" : "text",
+          tierPolicy
         );
         if (!rateLimitResult ||
             typeof rateLimitResult.allowed !== "boolean") {
@@ -311,6 +336,7 @@ export function createAIWorker({
 
       let providerResponse;
       let providerPayload;
+      const providerSignal = createProviderAbortSignal(PROVIDER_TIMEOUT_MS);
       try {
         const providerHeaders = {
           "Content-Type": "application/json",
@@ -324,6 +350,7 @@ export function createAIWorker({
           {
             method: "POST",
             headers: providerHeaders,
+            signal: providerSignal,
             body: JSON.stringify({
               ...(isImageMeal ? geminiImageMealInteractionRequest(body, GEMINI_MODEL, "medium") : isPantrySuggestions
                 ? geminiPantrySuggestionsInteractionRequest(body, GEMINI_MODEL)
@@ -345,8 +372,18 @@ export function createAIWorker({
             })
           }
         );
-        providerPayload = await providerResponse.json();
-      } catch (_) {
+        const rawProviderPayload = await readBoundedText(
+          providerResponse,
+          MAX_PROVIDER_RESPONSE_BYTES
+        );
+        providerPayload = JSON.parse(rawProviderPayload);
+      } catch (error) {
+        if (providerSignal?.aborted || error?.name === "TimeoutError") {
+          return errorResponse(504, "provider-timeout", origin);
+        }
+        if (error instanceof RangeError || error instanceof SyntaxError) {
+          return errorResponse(502, "invalid-provider-response", origin);
+        }
         return errorResponse(502, "provider-unavailable", origin);
       }
 
@@ -377,6 +414,43 @@ export function createAIWorker({
         return jsonResponse(200, isPantrySuggestions ? estimate : { estimate }, origin);
       }
       return jsonResponse(200, { text }, origin);
+  }
+
+  return {
+    async fetch(request, env, executionContext) {
+      const startedAt = now();
+      const metricContext = {
+        endpoint: "unknown",
+        appCheck: "not-checked",
+        tier: "unknown"
+      };
+      let response;
+      try {
+        response = await handleRequest(request, env, metricContext);
+        return response;
+      } finally {
+        try {
+          const metricTimestamp = now();
+          const metric = sanitizedRequestMetric({
+            endpoint: metricContext.endpoint,
+            status: response?.status ?? 500,
+            latencyMs: metricTimestamp - startedAt,
+            appCheck: metricContext.appCheck,
+            tier: metricContext.tier
+          });
+          recordMetric(metric);
+          const persistence = Promise.resolve(
+            persistMetric(env, metric, metricTimestamp)
+          ).catch(() => undefined);
+          if (executionContext?.waitUntil) {
+            executionContext.waitUntil(persistence);
+          } else {
+            await persistence;
+          }
+        } catch (_) {
+          // Telemetry must never alter the public request contract.
+        }
+      }
     }
   };
 }

@@ -124,6 +124,105 @@ describe("AIRateLimiter SQLite Durable Object", () => {
       .resolves.toEqual({ allowed: true });
   });
 
+  it("observes configurable tier quotas without denying testers", async () => {
+    const limiter = freshLimiter(`tier-observe-${sequence}`);
+    const windowStart = Date.now();
+    const policy = { mode: "observe", tier: "free", dailyRequests: 2 };
+
+    await expect(limiter.check("pseudonym-a", windowStart, "text", policy))
+      .resolves.toEqual({ allowed: true });
+    await expect(limiter.check("pseudonym-a", windowStart + 60_000, "text", policy))
+      .resolves.toEqual({ allowed: true });
+    await expect(limiter.check("pseudonym-a", windowStart + 120_000, "text", policy))
+      .resolves.toEqual({ allowed: true, observedLimit: "tier-day" });
+
+    await runInDurableObject(limiter, async (_instance, state) => {
+      expect([...state.storage.sql.exec(
+        "SELECT subject_id, tier, request_count FROM subject_daily_usage"
+      )]).toEqual([{ subject_id: "pseudonym-a", tier: "free", request_count: 3 }]);
+    });
+  });
+
+  it("enforces a configured tier quota only when the rollout mode is enforce", async () => {
+    const limiter = freshLimiter(`tier-enforce-${sequence}`);
+    const windowStart = Date.now();
+    const policy = { mode: "enforce", tier: "free", dailyRequests: 1 };
+
+    await expect(limiter.check("pseudonym-a", windowStart, "text", policy))
+      .resolves.toEqual({ allowed: true });
+    const denied = await limiter.check("pseudonym-a", windowStart + 60_000, "text", policy);
+    expect(denied.allowed).toBe(false);
+    expect(denied.limit).toBe("tier-day");
+    expect(denied.retryAfterSeconds).toBeGreaterThan(0);
+  });
+
+  it("aggregates only sanitized metrics and removes them after at most 30 days", async () => {
+    const limiter = freshLimiter(`metrics-retention-${sequence}`);
+    const currentTimestamp = Date.now();
+    const metric = {
+      event: "ai-request",
+      endpoint: "image-meal",
+      status: 200,
+      scope: "success",
+      latencyMs: 321,
+      appCheck: "valid",
+      tier: "testing"
+    };
+
+    await limiter.recordMetric(metric, currentTimestamp);
+    await limiter.recordMetric({ ...metric, latencyMs: 500 }, currentTimestamp + 1_000);
+    await runInDurableObject(limiter, async (_instance, state) => {
+      const rows = [...state.storage.sql.exec(
+        `SELECT endpoint, status, scope, app_check, tier, request_count,
+                latency_total_ms, latency_max_ms
+         FROM daily_metrics`
+      )];
+      expect(rows).toEqual([{
+        endpoint: "image-meal",
+        status: 200,
+        scope: "success",
+        app_check: "valid",
+        tier: "testing",
+        request_count: 2,
+        latency_total_ms: 821,
+        latency_max_ms: 500
+      }]);
+      state.storage.sql.exec(
+        "UPDATE daily_metrics SET day_start_ms = ?",
+        currentTimestamp - (31 * 24 * 60 * 60 * 1_000)
+      );
+    });
+
+    await expect(runDurableObjectAlarm(limiter)).resolves.toBe(true);
+    await runInDurableObject(limiter, async (_instance, state) => {
+      expect([...state.storage.sql.exec("SELECT * FROM daily_metrics")]).toEqual([]);
+    });
+  });
+
+  it("drops legacy raw identifiers once while preserving the global daily counter", async () => {
+    const limiter = freshLimiter(`pseudonym-migration-${sequence}`);
+    const timestamp = Date.now();
+    await limiter.check("legacy-raw-uid", timestamp, "image");
+
+    await runInDurableObject(limiter, async (instance, state) => {
+      state.storage.sql.exec(
+        "DELETE FROM _sql_schema_migrations WHERE version = 3"
+      );
+      const dailyBefore = [...state.storage.sql.exec(
+        "SELECT day_key, request_count FROM daily_usage"
+      )];
+      expect(dailyBefore).toHaveLength(1);
+      expect(instance.migrateLegacyIdentifiers()).toBe(true);
+      expect(instance.migrateLegacyIdentifiers()).toBe(false);
+      expect([...state.storage.sql.exec("SELECT * FROM recent_requests")]).toEqual([]);
+      expect([...state.storage.sql.exec("SELECT * FROM recent_image_requests")]).toEqual([]);
+      expect([...state.storage.sql.exec("SELECT * FROM subject_daily_usage")]).toEqual([]);
+      expect([...state.storage.sql.exec(
+        "SELECT day_key, request_count FROM daily_usage"
+      )]).toEqual(dailyBefore);
+    });
+  });
+
   it("removes metadata older than 24 hours by alarm without another request", async () => {
     const limiter = freshLimiter(`retention-alarm-${sequence}`);
     const currentTimestamp = Date.now();
@@ -180,9 +279,13 @@ describe("AIRateLimiter SQLite Durable Object", () => {
       const imageAfter = [...state.storage.sql.exec(
         "SELECT uid, timestamp_ms FROM recent_image_requests"
       )];
+      const subjectDailyAfter = [...state.storage.sql.exec(
+        "SELECT subject_id, day_key FROM subject_daily_usage"
+      )];
       expect(recentAfter).toEqual([]);
       expect(dailyAfter).toEqual([]);
       expect(imageAfter).toEqual([]);
+      expect(subjectDailyAfter).toEqual([]);
     });
   });
 });

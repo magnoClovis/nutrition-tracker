@@ -84,12 +84,12 @@ test('rejects unsupported expectations before creating an account', async () => 
   assert.equal(called, false);
 });
 
-test('keeps the production gate on observe for pull requests and explicit for dispatch', () => {
+test('keeps the production gate on enforce for pull requests and explicit for dispatch', () => {
   const workflow = fs.readFileSync(
     path.join(__dirname, '..', '..', '.github', 'workflows', 'c14-c5-app-check-gate.yml'),
     'utf8',
   );
-  assert.match(workflow, /github\.event_name == 'pull_request' && 'observe' \|\| inputs\.expected_mode/);
+  assert.match(workflow, /github\.event_name == 'pull_request' && 'enforce' \|\| inputs\.expected_mode/);
   assert.match(workflow, /node scripts\/verify-ai-worker-app-check-mode\.js "\$EXPECTED_MODE"/);
   assert.doesNotMatch(workflow, /wrangler\s+deploy|wrangler\s+rollback/i);
 });
