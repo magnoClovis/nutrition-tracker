@@ -1241,9 +1241,9 @@
 
 ### [I6] - Hierarquia visual da tela inicial
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 25/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** priorizar informações e ações da página inicial sem copiar a aparência dos aplicativos de referência.
 - **O que se planeja fazer:** reprojetar a organização da tela inicial com protótipo e aprovação específicos por ser a mudança mais subjetiva e ampla.
 - **Recursos/arquivos principais envolvidos:** Diário/home, cabeçalho, cards nutricionais, ações principais, estados vazios, `one-ui.css` e Playwright.
@@ -1480,12 +1480,13 @@
 
 ### [CAM-RED-7] - Resultado compartilhado e integração da foto
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 25/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** converter o resultado aprovado em componente reutilizável sem perder validação ou edição nutricional.
 - **O que se planeja fazer:** criar um sheet com encaixes em aproximadamente 68% e na altura total útil, expansível/recolhível por arraste e por alternativa acessível, coordenar gesto e rolagem interna, manter foto acima no estado inicial, CTA/refeição alcançáveis e edição de porção/ingredientes com recálculo proporcional imediato de kcal e nutrientes, cobrindo confiança, dados incompletos e listas extensas.
 - **Recursos/arquivos principais envolvidos:** novo `meal-result-sheet.js` UMD/ESM, controlador de sheet/gestos e safe areas, `meal-estimate-editor.js`, `meal-estimate.js`, `image-meal-screen.js`, ChoiceField, NumericField, `one-ui.css`, ARIA/teclado e testes.
+- **O que foi feito:** o PR draft #256 recebeu o novo `MealResultSheet` UMD/ESM e a integração do resultado por foto; encaixes de 68%/altura total, rodapé persistente, gesto com alternativa acessível, foto contextual, edição proporcional, ingredientes, temas e fonte 200% passaram nos recortes e no gate local integral, restando CI autenticado e prova física no Galaxy por AAB da faixa interna.
 
 ### [TEST-CAM-48PX] - Sincronização da medição dos alvos CAM-RED-6
 

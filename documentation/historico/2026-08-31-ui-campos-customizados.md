@@ -1445,6 +1445,28 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 - **PRs/commits relacionados:** [PR #246](https://github.com/magnoClovis/nutrition-tracker/pull/246), merge `3b8bac0`; commits `8d400d0`, `4f1d030`, `df723d7` e `ef4d7c6`; contrato de autenticação PR #247/merge `d613d91`; correção externa de bootstrap/lease PR #251/merge `d6bc04f`; base documental incorporada `9ca27ffd`; CIs leves `36177906677`/`36184104553` e pesados `36177906630`/`36184104556`. — **Chat-Origin:** Trofia-UIUX.
 
+### [CAM-RED-7] - Resultado compartilhado e integração da foto
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+
+- **Data de início:** 25/09/2026.
+
+- **Data de conclusão:** não concluído.
+
+- **Tempo decorrido:** pendente de merge.
+
+- **Minutos de CI:** 0 min; CI ainda não iniciado.
+
+- **Propósito:** transformar o resultado nutricional aprovado na Proposta A em um componente reutilizável e progressivo, mantendo a fotografia como contexto, permitindo consulta rápida no encaixe inicial e edição completa sem abandonar a tela nem perder as regras proporcionais já validadas.
+
+- **O que se planeja fazer:** criar um bottom sheet compartilhável que abra em aproximadamente 65–68% da tela, preserve a foto visível acima, possa expandir por arraste até a altura total útil e também ofereça alternativa acessível ao gesto; coordenar arraste com a rolagem interna de listas longas; manter CTA e seletor de refeição alcançáveis; reutilizar a edição de porção e ingredientes com recálculo proporcional imediato de kcal e nutrientes; cobrir confiança baixa/média, nutrientes incompletos, zero ou muitos ingredientes, nomes extensos, claro/escuro, PT/EN/ES, fonte ampliada, teclado/leitor de tela, safe areas e `prefers-reduced-motion`. A busca manual só adotará o mesmo componente na CAM-RED-8.
+
+- **Recursos/arquivos principais envolvidos:** novo `meal-result-sheet.js` em UMD/ESM, controlador de encaixes/gestos, `meal-estimate-editor.js`, `meal-estimate.js`, `image-meal-screen.js`, `image-meal-registration.js`, ChoiceField, NumericField, `one-ui.css`, ARIA, safe areas, Node.js Test Runner, Playwright legado/Vite e validação física no Galaxy para geometria e gestos.
+
+- **O que foi feito:** a worktree `.codex-ui-cam-red-7` e a branch `codex/cam-red-7-result-sheet` foram criadas diretamente da `origin/main` `d7712d9`, que contém os fechamentos funcional e documental da CAM-RED-6. O protótipo externo da Proposta A já havia sido revisado e aprovado na CAM-RED-1; por isso não existe nova decisão visual pendente antes da implementação. Foi criado o componente compartilhável `MealResultSheet` em UMD/ESM, conectado ao estado `result/confirming` do reconhecimento por foto e ao seletor real de refeição. O sheet abre com 68% da altura útil e a foto visível, expande até a safe area superior por gesto ou botão acessível, mantém rodapé/CTA fixos e bloqueia o scroll do app; a lista interna absorve listas longas sem competir com o puxador. A edição da porção total e do peso dos ingredientes reutiliza NumericField e `rescaleMealEstimateItem`, preservando o recálculo proporcional imediato. A implementação cobre confiança, nutrientes ausentes, zero ingredientes, nomes extensos, erro de confirmação, claro/escuro, fonte 200%, foco inicial/restaurado, contenção de Tab, alvos de 48 px e reduced-motion. A matriz visual detectou e corrigiu antes do gate dois defeitos reais: o painel de altura inteira apenas transladado deixava o rodapé fora da viewport no encaixe compacto, e o atributo de identidade das linhas não correspondia ao marcador booleano esperado pelo CSS, impedindo o layout/alvos de toque. Após as correções, os recortes focados ficaram verdes no legado e no Vite em desktop/mobile e nos dois temas. O gate local integral posterior passou sem mudança funcional adicional: preflight limpo, 1.465/1.465 unitários, legado com 117 aprovados e os 8 skips estruturais documentados, Vite 125/125 e cutover 60/60. A prova física permanece pendente e será executada somente com AAB distribuído pela faixa interna, pois o App Check/Play Integrity não permite tratar um APK local assinado pela chave de upload como equivalente à instalação assinada pela Play.
+
+- **PRs/commits relacionados:** [PR draft #256](https://github.com/magnoClovis/nutrition-tracker/pull/256); commit documental inicial `66a3737`; implementação funcional ainda não commitada; recortes focados: 118/118 unitários e 6/6 visuais em cada composição legado/Vite; gate local integral: preflight, 1.465/1.465 unitários, legado 117 aprovados + 8 skips estruturais, Vite 125/125 e cutover 60/60. — **Chat-Origin:** Trofia-UIUX.
+
 ### [TEST-CAM-48PX] - Sincronização da medição dos alvos CAM-RED-6
 
 - **Status:** concluído — **Chat:** Trofia-UIUX.

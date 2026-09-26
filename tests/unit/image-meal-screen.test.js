@@ -79,15 +79,15 @@ function contractTest(name, callback) {
   implementations.forEach(([format, load]) => {
     test(`${format}: ${name}`, async () => {
       const modules = await load();
-      function Editor() { return React.createElement('div', null, 'EDITOR'); }
+      function ResultSheet() { return React.createElement('div', null, 'RESULT SHEET'); }
       const { ImageMealAnalysisScreen } = modules.analysis.createImageMealAnalysisScreen({ React, pickLang });
       const { ImageMealScreen } = modules.screen.createImageMealScreen({
         React,
         pickLang,
-        MealEstimateEditor: Editor,
         ImageMealAnalysisScreen,
+        MealResultSheet: ResultSheet,
       });
-      return callback(ImageMealScreen, Editor, ImageMealAnalysisScreen);
+      return callback(ImageMealScreen, ImageMealAnalysisScreen, ResultSheet);
     });
   });
 }
@@ -108,7 +108,7 @@ contractTest('renders the no-photo state in PT/EN/ES and delegates both sources'
   }
 });
 
-contractTest('delegates processing to the full-screen analysis state', (ImageMealScreen, _Editor, ImageMealAnalysisScreen) => {
+contractTest('delegates processing to the full-screen analysis state', (ImageMealScreen, ImageMealAnalysisScreen) => {
   let cancelled = 0;
   const view = ImageMealScreen(baseProps({
     phase: 'processing',
@@ -345,44 +345,52 @@ contractTest('shows the captured-photo checkpoint before analysis', ImageMealScr
   assert.deepEqual(calls, ['process', 'retake', 'choose', 'discard']);
 });
 
-contractTest('renders identified result summary and wires the shared editable review', (ImageMealScreen, Editor) => {
+contractTest('delegates identified results to the progressive shared sheet', (ImageMealScreen, _Analysis, ResultSheet) => {
   const changes = [];
   let reviews = 0;
+  let confirmations = 0;
+  let mealChanges = 0;
   const currentEstimate = estimate();
   const view = ImageMealScreen(baseProps({
     phase: 'result',
     photo: { previewUrl: 'blob:meal' },
     estimate: currentEstimate,
+    error: 'confirmation-failed',
     validationErrors: [{ path: 'items.0.kcal', code: 'required-number' }],
   }, {
+    mealValue: 'Lunch',
+    mealOptions: [{ value: 'Lunch', label: 'Almoço' }],
+    onMealChange: () => { mealChanges += 1; },
     onEstimateChange: value => changes.push(value),
     onReview: () => { reviews += 1; },
+    onConfirm: () => { confirmations += 1; },
   }));
-  assert.match(textContent(view), /Arroz com frango/);
-  assert.match(textContent(view), /Confiança: medium · 1 alimentos/);
-  const editor = elements(view, Editor)[0];
-  assert.equal(editor.props.estimate, currentEstimate);
-  assert.deepEqual(editor.props.errors, [{ path: 'items.0.kcal', code: 'required-number' }]);
-  assert.equal(editor.props.disabled, false);
-  editor.props.onChange({ edited: true });
+  const sheet = elements(view, ResultSheet)[0];
+  assert.equal(sheet.props.estimate, currentEstimate);
+  assert.equal(sheet.props.photoUrl, 'blob:meal');
+  assert.equal(sheet.props.mealValue, 'Lunch');
+  assert.deepEqual(sheet.props.mealOptions, [{ value: 'Lunch', label: 'Almoço' }]);
+  assert.deepEqual(sheet.props.errors, [{ path: 'items.0.kcal', code: 'required-number' }]);
+  assert.match(sheet.props.errorMessage, /Não foi possível registrar/);
+  assert.equal(sheet.props.disabled, false);
+  sheet.props.onChange({ edited: true });
+  sheet.props.onMealChange('Dinner');
+  sheet.props.onConfirm();
+  sheet.props.onReview();
   assert.deepEqual(changes, [{ edited: true }]);
-  assert.match(textContent(view), /Confirmar refeição/);
-  const reviewButton = elements(view, 'button').find(button => textContent(button) === 'Avaliar refeição');
-  reviewButton.props.onClick();
   assert.equal(reviews, 1);
+  assert.equal(confirmations, 1);
+  assert.equal(mealChanges, 1);
 });
 
-contractTest('keeps confirmation busy and disables editing and competing actions', (ImageMealScreen, Editor) => {
+contractTest('keeps the shared result sheet busy during confirmation', (ImageMealScreen, _Analysis, ResultSheet) => {
   const view = ImageMealScreen(baseProps({
     phase: 'confirming',
     photo: { previewUrl: 'blob:meal' },
     estimate: estimate(),
     validationErrors: [],
   }));
-  assert.match(textContent(view), /Registrando/);
-  assert.equal(elements(view, Editor)[0].props.disabled, true);
-  elements(view, 'button').filter(button => button.props['aria-label'] !== 'Fechar')
-    .forEach(button => assert.equal(button.props.disabled, true));
+  assert.equal(elements(view, ResultSheet)[0].props.disabled, true);
 });
 
 contractTest('distinguishes not-food from an unrecognizable meal', ImageMealScreen => {
@@ -396,7 +404,7 @@ contractTest('distinguishes not-food from an unrecognizable meal', ImageMealScre
   assert.match(textContent(unclear), /reconhecer os alimentos com segurança/);
 });
 
-contractTest('delegates actionable analysis errors with their metadata and keeps capture errors inline', (ImageMealScreen, _Editor, ImageMealAnalysisScreen) => {
+contractTest('delegates actionable analysis errors with their metadata and keeps capture errors inline', (ImageMealScreen, ImageMealAnalysisScreen) => {
   for (const error of [
     'analysis-timeout', 'network-unavailable', 'quota-reached',
     'session-expired', 'service-unavailable', 'invalid-response',
@@ -419,7 +427,7 @@ contractTest('delegates actionable analysis errors with their metadata and keeps
   }
 });
 
-contractTest('connects session recovery exclusively to the public reauthentication callback', (ImageMealScreen, _Editor, ImageMealAnalysisScreen) => {
+contractTest('connects session recovery exclusively to the public reauthentication callback', (ImageMealScreen, ImageMealAnalysisScreen) => {
   const callback = async () => {};
   const view = ImageMealScreen(baseProps({
     phase: 'error', error: 'session-expired', photo: { previewUrl: 'blob:session' },
