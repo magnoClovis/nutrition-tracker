@@ -576,7 +576,8 @@ Risco de corrigir: formato exportado e nomes de arquivo são contratos existente
 Rastreio: correção fail-closed implementada na fatia `BUG-BACKUP-D08-D09`: o
 modal exige snapshot hidratado cuja data coincide com `TODAY` e `localToday()`
 no clique, usa `log`, tipo do dia e metas resolvidos especificamente para hoje e
-não cria arquivo quando a prova falha. Gates locais verdes; PR/CI pendentes.
+não cria arquivo quando a prova falha. Gates locais e CI verdes no PR draft
+#264; revisão pendente.
 
 [D09] Preview de backup lê category.existing, adapter fornece existingItems
 Localização: backup-modal.js:18-20;
@@ -589,8 +590,8 @@ Risco de corrigir: não mudar estratégia de merge subjacente junto com a corre�
 Rastreio: correção fail-closed implementada na fatia `BUG-BACKUP-D08-D09`: o
 preview consome somente `existingItems`, valida inteiros não negativos e
 `newItems + existingItems === total`, propaga falha de leitura do estado atual e
-não habilita importação após contrato inválido. Gates locais verdes; PR/CI
-pendentes.
+não habilita importação após contrato inválido. Gates locais e CI verdes no PR
+draft #264; revisão pendente.
 
 [D10] Pantry mantém resultados invisíveis, dose obrigatória oculta e controles órfãos
 Localização: pantry-screen.js:11-16;
