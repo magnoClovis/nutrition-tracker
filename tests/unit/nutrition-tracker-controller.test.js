@@ -529,6 +529,16 @@ contractTest("keeps autosaves suspended until backup import and rehydration fini
   assert.ok(source.indexOf("setLoaded(false)") < source.indexOf("restoreAccountBackupSafely({"));
 });
 
+contractTest("publishes only a hydrated TODAY snapshot for day export and removes the duplicate export bridge", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+
+  assert.match(source, /todaySnapshot:\s*\{[\s\S]*date:\s*TODAY[\s\S]*ready:\s*loaded[\s\S]*meals:\s*log[\s\S]*isTraining:\s*todayIsTraining[\s\S]*goals:\s*todayGoals/);
+  assert.match(source, /const todayIsTraining = trainingByDate\[TODAY\] \?\? true/);
+  assert.equal(source.includes("window._exportAndDownload"), false);
+  assert.equal(source.includes("function exportAndDownload"), false);
+});
+
 contractTest("applies the selected time at every final meal-registration path", createNutritionTrackerController => {
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();

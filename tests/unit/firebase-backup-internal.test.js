@@ -230,7 +230,7 @@ contractTest("accepts legacy-flat backups and preserves legacy-root-data collisi
   assert.equal(preview.categories[0].total, 3);
 });
 
-contractTest("preview returns existingItems and treats read failures as new data", async loadBackup => {
+contractTest("preview returns existingItems and fails closed when existing data cannot be read", async loadBackup => {
   const incoming = {pantry_v2: '[{"id":"existing"},{"id":"new"}]'};
   const existing = loadBackup({current: {pantry_v2: '[{"id":"existing"}]'}});
   const existingPreview = await existing.service.previewFullAccountBackupImport3(incoming);
@@ -248,10 +248,10 @@ contractTest("preview returns existingItems and treats read failures as new data
     current: {pantry_v2: '[{"id":"existing"}]'},
     failures: {currentRead: "pantry_v2"}
   });
-  const failedPreview = await failedRead.service.previewFullAccountBackupImport3(incoming);
-  assert.equal(failedPreview.categories[0].newItems, 2);
-  assert.equal(failedPreview.categories[0].existingItems, 0);
-  assert.equal(failedPreview.categories[0].newKeys, 1);
+  await assert.rejects(
+    failedRead.service.previewFullAccountBackupImport3(incoming),
+    /Could not read existing data while previewing backup import/
+  );
 });
 
 contractTest("preserves append merges, existing daily records, replace writes, and schema flags", async loadBackup => {

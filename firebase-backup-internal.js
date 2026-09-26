@@ -11,9 +11,9 @@
  * historical flat and versioned backups that contain a `legacy` section.
  *
  * Backup exports fail closed when any canonical read cannot be completed.
- * Preview read errors still look like new data, flat legacy backups remain
- * accepted, imports have no transaction/rollback, existing daily records are
- * kept by append, and meal keys are not normalized during import.
+ * Preview read errors fail closed, flat legacy backups remain accepted, imports
+ * have no transaction/rollback, existing daily records are kept by append, and
+ * meal keys are not normalized during import.
  *
  * @module FirebaseBackupInternal
  */
@@ -359,7 +359,12 @@
       for (let i = 0; i < entries.length; i += 20) {
         const batch = entries.slice(i, i + 20);
         const rows = await Promise.all(batch.map(async entry => {
-          const current = await readBackupValue(entry.targetKey).catch(() => null);
+          let current;
+          try {
+            current = await readBackupValue(entry.targetKey);
+          } catch (error) {
+            throw new Error("Could not read existing data while previewing backup import.", {cause: error});
+          }
           const currentValue = current && current.value !== undefined && current.value !== null ? current.value : null;
           const total = _backupItemCount3(entry.key, entry.value);
           const newItems = _backupNewItemCount3(entry.targetKey, entry.value, currentValue);
