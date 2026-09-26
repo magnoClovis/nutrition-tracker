@@ -94,15 +94,15 @@ Foram implementadas três correções complementares no fluxo de templates salvo
 
 ## [BUG-BACKUP-D08-D09] - Integridade fail-closed de exportação e preview de backup
 
-**Status:** em andamento.
+**Status:** concluído.
 
 **Data de início:** 26/09/2026.
 
-**Data de conclusão:** não concluído.
+**Data de conclusão:** 26/09/2026.
 
-**Tempo decorrido:** pendente de merge.
+**Tempo decorrido:** 1 h 28 min 37 s.
 
-**Minutos de CI:** 34 min 43 s (22 s leve + 34 min 21 s pesado) nos runs iniciais do commit técnico.
+**Minutos de CI:** 1 h 10 min 23 s (46 s leve + 1 h 9 min 37 s pesado).
 
 **Propósito:** corrigir conjuntamente D08 e D09 para que a exportação “Diário — hoje” prove que o snapshot pertence à data civil local atual e para que o preview de importação só permita continuidade quando o contrato real do adaptador e suas contagens forem integralmente válidos.
 
@@ -112,9 +112,11 @@ Foram implementadas três correções complementares no fluxo de templates salvo
 
 **O que foi feito:** Tarefa 0 aprovada como uma única fatia; o gate do PR #257 foi cumprido e uma worktree isolada com a branch `codex/bug-backup-d08-d09` foi criada sem alterar o checkout principal sujo ou as branches dos PRs #256/#258. Em D08, o controller passou a publicar um snapshot hidratado de `TODAY`, com `log`, tipo do dia e metas calculados especificamente para a data civil atual; o modal revalida `localToday()` no clique, usa exclusivamente esse snapshot e não cria arquivo se a data virou ou o contrato não estiver pronto. A implementação duplicada `_exportAndDownload` foi removida. Em D09, o modal passou a aceitar somente `existingItems`, exigir categorias únicas com contagens inteiras não negativas e coerência `newItems + existingItems === total`, limpar qualquer preview anterior antes da leitura e revalidá-lo antes da importação; o adaptador agora propaga falhas de leitura do estado existente em vez de convertê-las em ausência silenciosa. Os contratos de backups planos antigos, versionados, promoção de `legacy` e estratégias append/replace permaneceram inalterados.
 
-Na preparação dos gates, foi comprovado que a primeira falha da suíte completa vinha de uma junction de `node_modules` apontando para dependências incompletas do checkout principal; somente o vínculo da worktree foi removido e `npm ci` foi executado pelos lockfiles da raiz e de `worker/`, confirmando `@capacitor-community/camera-preview` e `jose`. Uma tentativa seguinte foi interrompida antes do smoke porque a porta 8765 e o lease pertenciam legitimamente à frente `.codex-ui-cam-red-7`; nenhum processo alheio foi encerrado e a execução aguardou passivamente a liberação. O gate local definitivo passou com 115/115 testes focados, preflight verde, 1475/1475 unitários, smoke autenticado legado com 111 aprovados e 8 skips intencionais de casos exclusivos do runtime Vite, smoke Vite 119/119 e cutover 60/60. Os relatórios confirmam zero falhas; nenhum skip foi causado por falta de credenciais. Antes do commit, a branch foi avançada por fast-forward até `origin/main` em `b9ae9ff`, incorporando os PRs #262 e #258 e preservando as entradas documentais das outras frentes. O PR draft #264 foi aberto no commit `d033663`; o CI pesado `36245598218` passou em 34 min 21 s com 1475/1475 unitários, Worker e Functions verdes, smoke legado com 111 aprovados e os mesmos 8 skips intencionais, e smoke Vite 119/119. O gate leve `36245598213` passou em 22 s. A fatia permanece em andamento e sem `Alinhamento` final até a revisão e o merge.
+Na preparação dos gates, foi comprovado que a primeira falha da suíte completa vinha de uma junction de `node_modules` apontando para dependências incompletas do checkout principal; somente o vínculo da worktree foi removido e `npm ci` foi executado pelos lockfiles da raiz e de `worker/`, confirmando `@capacitor-community/camera-preview` e `jose`. Uma tentativa seguinte foi interrompida antes do smoke porque a porta 8765 e o lease pertenciam legitimamente à frente `.codex-ui-cam-red-7`; nenhum processo alheio foi encerrado e a execução aguardou passivamente a liberação. O gate local definitivo passou com 115/115 testes focados, preflight verde, 1475/1475 unitários, smoke autenticado legado com 111 aprovados e 8 skips intencionais de casos exclusivos do runtime Vite, smoke Vite 119/119 e cutover 60/60. Os relatórios confirmam zero falhas; nenhum skip foi causado por falta de credenciais. Antes do commit, a branch foi avançada por fast-forward até `origin/main` em `b9ae9ff`, incorporando os PRs #262 e #258 e preservando as entradas documentais das outras frentes. O PR draft #264 foi aberto no commit `d033663`; os dois ciclos de CI passaram integralmente. Os gates pesados `36245598218` e `36247694731` somaram 1 h 9 min 37 s e confirmaram 1475/1475 unitários, Worker e Functions verdes, smoke legado com 111 aprovados e os mesmos 8 skips intencionais, e smoke Vite 119/119. Os gates leves `36245598213` e `36247694749` somaram 46 s. Após aprovação explícita, o PR foi mesclado em `d617840` às 17:02:06 CEST de 26/09/2026.
 
-**PRs/commits relacionados:** PR draft [#264](https://github.com/magnoClovis/nutrition-tracker/pull/264); commit técnico `d033663`; base reconciliada `b9ae9ff`; runs `36245598213` (leve) e `36245598218` (pesado); PRs de precedência #257, #261, #262 e #258.
+**Alinhamento:** 100% — a entrega correspondeu integralmente ao escopo aprovado para D08 e D09; backups planos antigos, backups versionados, promoção de `legacy` e estratégias append/replace foram preservados. Os incidentes de dependência e disputa legítima do lease não mudaram o produto nem o escopo e tiveram impacto final neutro.
+
+**PRs/commits relacionados:** PR [#264](https://github.com/magnoClovis/nutrition-tracker/pull/264); commits `d033663` e `11dcfaa`; merge `d617840`; base reconciliada `b9ae9ff`; runs leves `36245598213`/`36247694749` e pesados `36245598218`/`36247694731`; PRs de precedência #257, #261, #262 e #258.
 
 ## Métricas retroativas
 
@@ -122,3 +124,4 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 |---:|---:|---:|---|
 | [#181](https://github.com/magnoClovis/nutrition-tracker/pull/181) | 2 d 5 h 2 min | 29 min (1 leve + 28 pesado) | Trofia-Bugs |
 | [#199](https://github.com/magnoClovis/nutrition-tracker/pull/199) | 1 min 27 s | 1 min (1 leve + 0 pesado) | Trofia-Bugs |
+| [#264](https://github.com/magnoClovis/nutrition-tracker/pull/264) | 1 h 28 min 37 s | 1 h 10 min 23 s (46 s leve + 1 h 9 min 37 s pesado) | Trofia-Bugs |
