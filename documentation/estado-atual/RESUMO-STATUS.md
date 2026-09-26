@@ -180,6 +180,16 @@
 - **O que foi feito:** o PR #264 (merge `d617840`) passou a exportar somente snapshot hidratado de `TODAY`, falhar fechado em virada civil ou preview inconsistente, usar exclusivamente `existingItems` e bloquear importação sem contrato válido; gates locais e CI passaram integralmente.
 - **Alinhamento:** 100% — D08 e D09 foram entregues na fatia única aprovada, preservando retrocompatibilidade e estratégias append/replace.
 
+### [BUG-D01-AUDIT] - Revalidação do idioma na verificação de e-mail
+
+- **Status:** em andamento — **Chat:** Trofia-Bugs.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** confirmar na `origin/main` se a tela de verificação ainda envia usuários espanhóis para textos portugueses e evitar uma correção artificial.
+- **O que se planeja fazer:** auditar o contrato PT/EN/ES, verificar tela, polling e reenvio, executar regressão UMD/ESM e, se o bug já estiver corrigido, reconciliar somente a documentação com a evidência histórica.
+- **Recursos/arquivos principais envolvidos:** `verify-email-screen.js`, `src/components/verify-email-screen.js`, `nutrition-tracker.jsx`, `tests/unit/verify-email-screen.test.js`, PR #83 e documentação de inventário/estado/histórico.
+- **O que foi feito:** a auditoria confirmou que o PR #83 (`f6f73c0`, merge `49813c8`) já entregou cópia espanhola independente; a `origin/main` `0af7a14` passou em 10/10 testes focados UMD/ESM, sem mudança funcional nesta fatia.
+
 ## O que está em andamento agora
 
 - **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.
