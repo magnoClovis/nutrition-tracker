@@ -454,13 +454,18 @@ Rastreio: agrupado no backlog de metas históricas.
 ====================================================
 
 [D01] Verificação de e-mail trata espanhol como português
-Localização: verify-email-screen.js:9-15;
-tests/unit/verify-email-screen.test.js:109 (teste PT/EN/ES).
-Descrição/impacto: usuário espanhol vê textos portugueses nessa tela.
+Localização: verify-email-screen.js:66-68,126-196;
+tests/unit/verify-email-screen.test.js:140-210.
+Descrição/impacto original: usuário espanhol via textos portugueses nessa tela.
 Severidade: BAIXO/MÉDIO.
-Resolução necessária: normalizeLanguage/pickLang real com copy ES.
-Risco de corrigir: teste contratual atual congela a lógica binária en/não-en.
-Rastreio: “COMPATIBILITY CONTRACT” explícito.
+Resolução: seleção independente PT/EN/ES com cópia espanhola completa; `lang`
+tem precedência, `appLang` é fallback, variantes regionais são normalizadas pelo
+prefixo e idiomas desconhecidos caem em português.
+Risco de corrigir: encerrado sem alterar polling, reenvio, Auth ou sessão.
+Rastreio: resolvido pelo PR #83, commit `f6f73c0` e merge `49813c8` em
+01/08/2026. Reauditoria `BUG-D01-AUDIT` na `origin/main` `0af7a14` confirmou
+10/10 testes UMD/ESM verdes, incluindo PT/EN/ES e reenvio espanhol; reconciliação
+documental em andamento.
 
 [D02] Feedback nutricional espanhol usa descrição de atividade em inglês
 Localização: nutrition-feedback-ai.js:12-16;
@@ -573,7 +578,11 @@ Severidade: ALTO — backup semanticamente errado.
 Resolução necessária: snapshot deve carregar explicitamente activeDate e separar
 “hoje” de “dia visualizado”.
 Risco de corrigir: formato exportado e nomes de arquivo são contratos existentes.
-Rastreio: backlog explícito.
+Rastreio: correção fail-closed implementada na fatia `BUG-BACKUP-D08-D09`: o
+modal exige snapshot hidratado cuja data coincide com `TODAY` e `localToday()`
+no clique, usa `log`, tipo do dia e metas resolvidos especificamente para hoje e
+não cria arquivo quando a prova falha. Resolvido no PR #264, merge `d617840`,
+com gates locais e CI verdes.
 
 [D09] Preview de backup lê category.existing, adapter fornece existingItems
 Localização: backup-modal.js:18-20;
@@ -583,7 +592,11 @@ afetando decisão append/replace.
 Severidade: MÉDIO/ALTO em uma operação destrutiva.
 Resolução necessária: alinhar schema de preview e adicionar teste de apresentação.
 Risco de corrigir: não mudar estratégia de merge subjacente junto com a correção.
-Rastreio: bug de apresentação explicitamente anotado.
+Rastreio: correção fail-closed implementada na fatia `BUG-BACKUP-D08-D09`: o
+preview consome somente `existingItems`, valida inteiros não negativos e
+`newItems + existingItems === total`, propaga falha de leitura do estado atual e
+não habilita importação após contrato inválido. Resolvido no PR #264, merge
+`d617840`, com gates locais e CI verdes.
 
 [D10] Pantry mantém resultados invisíveis, dose obrigatória oculta e controles órfãos
 Localização: pantry-screen.js:11-16;

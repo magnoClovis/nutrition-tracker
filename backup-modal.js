@@ -16,10 +16,6 @@
  *
  * Known behaviors deliberately preserved for future backlog work:
  * - full exports may precede debounced persistence of the latest React state;
- * - “Diary — today” can use the currently viewed historical `activeLog` while
- *   retaining TODAY in the exported filename and payload;
- * - preview rendering reads `category.existing` although the adapter returns
- *   `existingItems`;
  * - closing during asynchronous operations does not cancel work, and imports
  *   have no cross-category transaction or rollback.
  *
@@ -149,7 +145,7 @@
         try {
           const backupContext = getBackupContext() || {};
           const d = backupContext.exportData || {};
-          const {activeLog, log, TODAY, isTraining, goals, goalHistory, trainingByDate,
+          const {log, TODAY, goalHistory, trainingByDate,
                  buildDayTotals, normalizeMealKeys, exportFile: contextExportFile, lang, notify,
                  weightHistory} = d;
           const activeExportFile = exportFile || contextExportFile;
@@ -174,20 +170,31 @@
             }
     
           } else if (key === 'today') {
-            if (!activeLog || !buildDayTotals) throw new Error(E('App ainda não está pronto', 'App not ready', 'La app aún no está lista'));
-            const ae = Object.values(activeLog||{}).flat();
-            const totDay = {
-              protein: Math.round(ae.reduce((s,e)=>s+(e.protein ?? 0),0)*10)/10,
-              kcal:    Math.round(ae.reduce((s,e)=>s+(e.kcal ?? 0),0)*10)/10,
-              carbs:   Math.round(ae.reduce((s,e)=>s+(e.carbs ?? 0),0)*10)/10,
-              fat:     Math.round(ae.reduce((s,e)=>s+(e.fat ?? 0),0)*10)/10,
-              fiber:   Math.round(ae.reduce((s,e)=>s+(e.fiber ?? 0),0)*10)/10,
-              salt:    Math.round(ae.reduce((s,e)=>s+(e.salt ?? 0),0)*10)/10
+            const civilToday = localToday();
+            const todaySnapshot = d.todaySnapshot;
+            const snapshotIsReady = todaySnapshot?.ready === true &&
+              todaySnapshot.date === TODAY && TODAY === civilToday &&
+              todaySnapshot.meals && typeof todaySnapshot.meals === 'object' && !Array.isArray(todaySnapshot.meals) &&
+              typeof todaySnapshot.isTraining === 'boolean' &&
+              todaySnapshot.goals && typeof todaySnapshot.goals === 'object' && !Array.isArray(todaySnapshot.goals) &&
+              typeof buildDayTotals === 'function';
+            if (!snapshotIsReady) {
+              throw new Error(E(
+                'Os dados de hoje ainda estão sendo atualizados após a mudança de data. Tente novamente.',
+                'Today’s data is still updating after the date changed. Try again.',
+                'Los datos de hoy todavía se están actualizando después del cambio de fecha. Inténtalo de nuevo.'
+              ));
+            }
+            const data = {
+              date: todaySnapshot.date,
+              isTraining: todaySnapshot.isTraining,
+              goals: todaySnapshot.goals,
+              meals: todaySnapshot.meals,
+              totals: buildDayTotals(todaySnapshot.meals)
             };
-            const data = {date:today, isTraining, goals, meals:activeLog, totals:totDay};
             const result = await exportRequest({
               content: JSON.stringify({exportedAt:new Date().toISOString(),type:'day',data},null,2),
-              filename: 'diario_'+today+'.json',
+              filename: 'diario_'+todaySnapshot.date+'.json',
               mimeType: 'application/json'
             });
             if (result?.cancelled) {
@@ -289,11 +296,39 @@
           reader.readAsText(file, 'utf-8');
         });
       }
+
+      function requireValidImportPreview(preview) {
+        const invalidPreview = () => new Error(L(
+          'Contrato inválido na pré-visualização de importação.',
+          'Invalid import preview contract.',
+          'Contrato inválido en la vista previa de importación.'
+        ));
+        if (!preview || preview.ok !== true || !Array.isArray(preview.categories)) {
+          throw invalidPreview();
+        }
+        const categoryIds = new Set();
+        preview.categories.forEach(category => {
+          if (!category || typeof category.id !== 'string' || !category.id || categoryIds.has(category.id)) {
+            throw invalidPreview();
+          }
+          categoryIds.add(category.id);
+          const counts = [category.total, category.newItems, category.existingItems];
+          if (counts.some(value => !Number.isSafeInteger(value) || value < 0) ||
+              category.newItems + category.existingItems !== category.total) {
+            throw invalidPreview();
+          }
+        });
+        return preview;
+      }
     
       async function doImport(e) {
         const file = e?.target?.files?.[0];
         setImportDone('');
         if (!file) return;
+        setPendingImportBackup(null);
+        setImportPreview(null);
+        setImportSelections({});
+        setImportingBackup(false);
     
         try {
           const rawBackup = await readBackupFile(file);
@@ -309,8 +344,9 @@
             throw new Error(message);
           }
     
+          const validatedPreview = requireValidImportPreview(preview);
           setPendingImportBackup(rawBackup);
-          setImportPreview(preview);
+          setImportPreview(validatedPreview);
           setImportSelections({});
         } catch (error) {
           setImportDone(L('Erro ao importar: ', 'Import error: ', 'Error al importar: ') + (error?.message || String(error)));
@@ -356,6 +392,13 @@
     
       async function confirmImportPreview() {
         if (!pendingImportBackup) return;
+        try {
+          requireValidImportPreview(importPreview);
+        } catch (error) {
+          closeImportPreview();
+          setImportDone(L('Erro ao importar: ', 'Import error: ', 'Error al importar: ') + (error?.message || String(error)));
+          return;
+        }
         const backupContext = getBackupContext() || {};
         const importFullAccountBackup = backupContext.importFullAccountBackup;
         const restoreFullAccountBackup = backupContext.restoreFullAccountBackup;
@@ -650,9 +693,9 @@
                       const strategy = importSelections[category.id] || '';
                       const label = backupCategoryLabels[category.id] || category.id;
                       const summary = L(
-                        `${category.total || 0} registros · ${category.newItems || 0} novos · ${category.existing || 0} existentes`,
-                        `${category.total || 0} records · ${category.newItems || 0} new · ${category.existing || 0} existing`,
-                        `${category.total || 0} registros · ${category.newItems || 0} nuevos · ${category.existing || 0} existentes`
+                        `${category.total} registros · ${category.newItems} novos · ${category.existingItems} existentes`,
+                        `${category.total} records · ${category.newItems} new · ${category.existingItems} existing`,
+                        `${category.total} registros · ${category.newItems} nuevos · ${category.existingItems} existentes`
                       );
     
                       return React.createElement('div', {key:category.id, style:{

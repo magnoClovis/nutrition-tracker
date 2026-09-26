@@ -1620,7 +1620,6 @@
       // Update function refs on every render (data refs set later, after activeLog is declared)
       window._exportFullBackup = exportFullBackup;
       window._importFullBackup = importFullBackup;
-      window._exportAndDownload = exportAndDownload;
       useEffect(() => {
         if (loaded && canPersistHydratedKey("mealTemplates", mealTemplates, hydratedStorageKeysRef.current)) scheduleSave("mealTemplates", mealTemplates);
       }, [mealTemplates, loaded]);
@@ -2922,6 +2921,23 @@
       const currentWeight = currentEntry?.weight || null;
       const profileHeight = profileData.height ? Number(profileData.height) : null;
       const currentHeight = profileHeight || currentEntry?.height || null;
+      const todayIsTraining = trainingByDate[TODAY] ?? true;
+      const todayGoalProfile = {
+        height: currentHeight,
+        birthDate: profileData.birthDate,
+        gender: profileData.gender,
+        prefs: nutritionPrefs,
+        referenceDate: TODAY
+      };
+      const todayBaseGoals = computeGoals(currentWeight, todayIsTraining, todayGoalProfile);
+      const todayGoalModel = buildDailyGoalModel({
+        baseGoals: todayBaseGoals,
+        customGoals,
+        nutritionPrefs,
+        viewWeight: currentWeight,
+        isTraining: todayIsTraining
+      });
+      const todayGoals = todayGoalModel.calculatedGoals;
       const bmrMeasurementContext = {
         profileData,
         currentHeight,
@@ -3061,7 +3077,14 @@
       window._exportData = {
         activeLog, log, TODAY, isTraining, goals, goalHistory, trainingByDate,
         buildDayTotals, normalizeMealKeys, exportFile, lang, notify,
-        weightHistory
+        weightHistory,
+        todaySnapshot: {
+          date: TODAY,
+          ready: loaded,
+          meals: log,
+          isTraining: todayIsTraining,
+          goals: todayGoals
+        }
       };
       function setActiveLog(newLog) {
         const previous = dailyLogSnapshotsRef.current.get(viewDate) || activeLog || {};
@@ -3814,80 +3837,6 @@
           e.target.value = "";
         }
       }
-      // Export specific data types and download as .json
-      async function exportAndDownload(type) {
-        const L = uiText;
-        const today = TODAY;
-        try {
-          let data = {};
-          let filename = '';
-
-          if (type === 'all') {
-            const backup = window.exportFullAccountBackup
-              ? await window.exportFullAccountBackup()
-              : await buildLegacyFullBackup();
-            filename = 'backup_completo_' + today + '.json';
-            await exportFile({
-              content: JSON.stringify(backup, null, 2),
-              filename,
-              mimeType: 'application/json'
-            });
-
-          } else if (type === 'pantry') {
-            const r = await storage.get('pantry_v2');
-            data = {pantry_v2: r?.value || '[]'};
-            filename = 'despensa_' + today + '.json';
-            await exportFile({
-              content: JSON.stringify({exportedAt:new Date().toISOString(),type:'pantry',data},null,2),
-              filename,
-              mimeType: 'application/json'
-            });
-
-          } else if (type === 'today') {
-            const entries = Object.values(activeLog).flat();
-            data = {date:today, isTraining, goals, meals:activeLog, totals:buildDayTotals(activeLog)};
-            filename = 'diario_' + today + '.json';
-            await exportFile({
-              content: JSON.stringify({exportedAt:new Date().toISOString(),type:'day',data},null,2),
-              filename,
-              mimeType: 'application/json'
-            });
-
-          } else if (type === 'week' || type === 'month') {
-            const days_n = type === 'week' ? 7 : 30;
-            const dates = Array.from({length: days_n}, (_, index) => addCivilDays(today, index - days_n + 1));
-            const loadedDays = await loadLogDays({dates, today: TODAY, todayLog: log});
-            const days = loadedDays.map(({date, log: dayLog}) => ({
-              date,
-              isTraining: trainingByDate[date] ?? true,
-              totals: buildDayTotals(dayLog),
-              meals: dayLog
-            }));
-            filename = (type==='week'?'semana':'mes') + '_' + today + '.json';
-            await exportFile({
-              content: JSON.stringify({exportedAt:new Date().toISOString(),type,days},null,2),
-              filename,
-              mimeType: 'application/json'
-            });
-
-          } else if (type === 'weight') {
-            const whr = await storage.get('weightHistory').catch(()=>null);
-            const whData = whr?.value ? JSON.parse(whr.value) : weightHistory;
-            data = {weightHistory: whData};
-            filename = 'peso_' + today + '.json';
-            await exportFile({
-              content: JSON.stringify({exportedAt:new Date().toISOString(),type:'weight',data},null,2),
-              filename,
-              mimeType: 'application/json'
-            });
-          }
-
-          notify(L('Arquivo baixado!', 'File downloaded!', 'Archivo descargado!'));
-        } catch(e) {
-          notify(L('Erro ao exportar: ', 'Export error: ', 'Error al exportar: ') + e.message);
-        }
-      }
-
       async function exportFullBackup(options = {}) {
         setBackupLoading(true);
         setBackupJson(null);

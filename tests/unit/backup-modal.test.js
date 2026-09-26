@@ -101,7 +101,8 @@ function createFixture(createBackupModal, {
   storageGet,
   exportFile,
   supportsNativeFileDestinations = false,
-  lang = "en"
+  lang = "en",
+  readLocalToday = () => "2026-07-16"
 } = {}) {
   const alerts = [];
   const errors = [];
@@ -127,7 +128,7 @@ function createFixture(createBackupModal, {
     FileReader: FakeFileReader,
     alertUser(message) { alerts.push(message); },
     reportError(...args) { errors.push(args); },
-    localToday,
+    localToday: readLocalToday,
     addCivilDays,
     CheckboxField
   });
@@ -149,19 +150,27 @@ function contractTest(name, callback) {
 }
 
 function exportData(marker, notifications = []) {
+  const todayMeals = { Breakfast: [{ name: marker, protein: 1, kcal: 2, carbs: 3, fat: 4, fiber: 5, salt: 0.1 }] };
   return {
-    activeLog: { Breakfast: [{ name: marker, protein: 1, kcal: 2, carbs: 3, fat: 4, fiber: 5, salt: 0.1 }] },
-    log: {},
+    activeLog: todayMeals,
+    log: todayMeals,
     TODAY: "2026-07-16",
     isTraining: true,
     goals: { protein: 100 },
     goalHistory: {},
     trainingByDate: {},
-    buildDayTotals() {},
+    buildDayTotals(meals) { return { items: Object.values(meals).flat().length }; },
     normalizeMealKeys(value) { return value; },
     lang: "en",
     notify(message) { notifications.push(message); },
-    weightHistory: []
+    weightHistory: [],
+    todaySnapshot: {
+      date: "2026-07-16",
+      ready: true,
+      meals: todayMeals,
+      isTraining: true,
+      goals: { protein: 100 }
+    }
   };
 }
 
@@ -188,6 +197,48 @@ contractTest("calls getBackupContext for every export action and uses the latest
   assert.equal(fixture.exports[1].content.includes("second-snapshot"), true);
   assert.equal(fixture.exports[0].mimeType, "application/json");
   assert.deepEqual(notifications, ["File downloaded!", "File downloaded!"]);
+});
+
+contractTest("exports the hydrated civil-today snapshot while a historical diary is open", async createBackupModal => {
+  const data = exportData("today-entry");
+  data.activeLog = { Dinner: [{ name: "historical-entry", protein: 9, kcal: 90 }] };
+  data.isTraining = false;
+  data.goals = { protein: 9 };
+  const fixture = createFixture(createBackupModal, {
+    getBackupContext() {
+      return { exportData: data };
+    }
+  });
+
+  const tree = fixture.harness.render();
+  await findButton(tree, "Diary - today").props.onClick();
+
+  assert.equal(fixture.exports.length, 1);
+  const exported = JSON.parse(fixture.exports[0].content);
+  assert.equal(exported.data.date, "2026-07-16");
+  assert.equal(exported.data.meals.Breakfast[0].name, "today-entry");
+  assert.equal(JSON.stringify(exported).includes("historical-entry"), false);
+  assert.equal(exported.data.isTraining, true);
+  assert.deepEqual(exported.data.goals, { protein: 100 });
+});
+
+contractTest("fails closed when the civil date changed before today's snapshot was rehydrated", async createBackupModal => {
+  const notifications = [];
+  const fixture = createFixture(createBackupModal, {
+    readLocalToday: () => "2026-07-17",
+    getBackupContext() {
+      return { exportData: exportData("stale-day", notifications) };
+    }
+  });
+
+  const tree = fixture.harness.render();
+  await findButton(tree, "Diary - today").props.onClick();
+
+  assert.equal(fixture.exports.length, 0);
+  assert.deepEqual(notifications, []);
+  assert.equal(fixture.alerts.length, 1);
+  assert.equal(fixture.alerts[0].title, "Could not export");
+  assert.match(fixture.alerts[0].message, /still updating after the date changed/);
 });
 
 contractTest("waits for export completion before announcing success", async createBackupModal => {
@@ -261,7 +312,7 @@ contractTest("does not announce success when Android document saving is cancelle
   assert.deepEqual(notifications, []);
 });
 
-contractTest("accepts the controller export bridge used by the frozen legacy composition", async createBackupModal => {
+contractTest("accepts the controller exportFile used by the frozen legacy composition", async createBackupModal => {
   const exports = [];
   const fixture = createFixture(createBackupModal, {
     exportFile: null,
@@ -353,7 +404,7 @@ contractTest("resolves current contexts and prefers the coordinated backup resto
   const checkbox = elementsByType(tree, CheckboxField)[0];
   assert.equal(checkbox.props.id, "backup-category-notes");
   assert.equal(checkbox.props.label, "Notes");
-  assert.equal(checkbox.props.description, "5 records · 1 new · 0 existing");
+  assert.equal(checkbox.props.description, "5 records · 1 new · 4 existing");
   checkbox.props.onChange(true);
   tree = fixture.harness.render();
   findButton(tree, "Replace").props.onClick();
@@ -373,6 +424,60 @@ contractTest("resolves current contexts and prefers the coordinated backup resto
   assert.deepEqual(applicationReloads, ["full-reload"]);
   tree = fixture.harness.render();
   assert.equal(elementText(tree).includes("Reloading the app..."), true);
+});
+
+contractTest("accepts a proven zero existingItems count", async createBackupModal => {
+  const fixture = createFixture(createBackupModal, {
+    getBackupContext() {
+      return {
+        async previewFullAccountBackupImport() {
+          return {ok: true, categories: [{id: "notes", total: 2, newItems: 2, existingItems: 0}]};
+        }
+      };
+    }
+  });
+
+  let tree = fixture.harness.render();
+  const input = elementsByType(tree, "input").find(element => element.props.type === "file");
+  await input.props.onChange({target: {files: [{content: "{}"}], value: "backup.json"}});
+  tree = fixture.harness.render();
+
+  const checkbox = elementsByType(tree, CheckboxField)[0];
+  assert.equal(checkbox.props.description, "2 records · 2 new · 0 existing");
+});
+
+contractTest("rejects malformed preview category contracts and never exposes import", async createBackupModal => {
+  const malformedCategories = [
+    {id: "notes", total: 1, newItems: 1},
+    {id: "notes", total: 1, newItems: 1, existingItems: -1},
+    {id: "notes", total: 3, newItems: 1, existingItems: 1}
+  ];
+
+  for (const category of malformedCategories) {
+    let importCalls = 0;
+    const fixture = createFixture(createBackupModal, {
+      getBackupContext() {
+        return {
+          async previewFullAccountBackupImport() {
+            return {ok: true, categories: [category]};
+          },
+          async importFullAccountBackup() {
+            importCalls += 1;
+          }
+        };
+      }
+    });
+
+    let tree = fixture.harness.render();
+    const input = elementsByType(tree, "input").find(element => element.props.type === "file");
+    await input.props.onChange({target: {files: [{content: "{}"}], value: "backup.json"}});
+    tree = fixture.harness.render();
+
+    assert.equal(elementsByType(tree, CheckboxField).length, 0);
+    assert.equal(findButton(tree, "Import selected"), undefined);
+    assert.equal(elementText(tree).includes("Import error: Invalid import preview contract."), true);
+    assert.equal(importCalls, 0);
+  }
 });
 
 contractTest("preserves empty-file behavior by previewing an empty object", async createBackupModal => {

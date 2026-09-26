@@ -92,9 +92,58 @@ Foram implementadas três correções complementares no fluxo de templates salvo
 
 **Alinhamento:** 100% — o formato e os campos solicitados foram entregues integralmente; a mudança permaneceu exclusivamente documental, com impacto positivo para a rastreabilidade do projeto.
 
+## [BUG-BACKUP-D08-D09] - Integridade fail-closed de exportação e preview de backup
+
+**Status:** concluído.
+
+**Data de início:** 26/09/2026.
+
+**Data de conclusão:** 26/09/2026.
+
+**Tempo decorrido:** 1 h 28 min 37 s.
+
+**Minutos de CI:** 1 h 10 min 23 s (46 s leve + 1 h 9 min 37 s pesado).
+
+**Propósito:** corrigir conjuntamente D08 e D09 para que a exportação “Diário — hoje” prove que o snapshot pertence à data civil local atual e para que o preview de importação só permita continuidade quando o contrato real do adaptador e suas contagens forem integralmente válidos.
+
+**O que se planeja fazer:** resolver o snapshot de `log`, tipo do dia e metas especificamente para `TODAY`, revalidar `localToday()` no clique e falhar sem arquivo em virada civil não reidratada; eliminar ou endurecer o bridge `_exportAndDownload`; consumir exclusivamente `existingItems`, validar tipos e `newItems + existingItems === total`, encerrar explicitamente falhas de leitura e impedir importação após preview inválido; preservar backups planos antigos, backups versionados suportados, promoção de `legacy`, append/replace e paridade UMD/ESM entre legado e Vite.
+
+**Recursos/arquivos principais envolvidos:** `backup-modal.js`, `firebase-backup-internal.js`, `nutrition-tracker-controller.js`, `tests/unit/backup-modal.test.js`, `tests/unit/firebase-backup-internal.test.js`, `tests/unit/nutrition-tracker-controller.test.js`, Playwright legado/Vite e matriz cutover, `documentation/estado-atual/BUG-INVENTORY.md`, `documentation/estado-atual/RESUMO-STATUS.md` e este histórico.
+
+**O que foi feito:** Tarefa 0 aprovada como uma única fatia; o gate do PR #257 foi cumprido e uma worktree isolada com a branch `codex/bug-backup-d08-d09` foi criada sem alterar o checkout principal sujo ou as branches dos PRs #256/#258. Em D08, o controller passou a publicar um snapshot hidratado de `TODAY`, com `log`, tipo do dia e metas calculados especificamente para a data civil atual; o modal revalida `localToday()` no clique, usa exclusivamente esse snapshot e não cria arquivo se a data virou ou o contrato não estiver pronto. A implementação duplicada `_exportAndDownload` foi removida. Em D09, o modal passou a aceitar somente `existingItems`, exigir categorias únicas com contagens inteiras não negativas e coerência `newItems + existingItems === total`, limpar qualquer preview anterior antes da leitura e revalidá-lo antes da importação; o adaptador agora propaga falhas de leitura do estado existente em vez de convertê-las em ausência silenciosa. Os contratos de backups planos antigos, versionados, promoção de `legacy` e estratégias append/replace permaneceram inalterados.
+
+Na preparação dos gates, foi comprovado que a primeira falha da suíte completa vinha de uma junction de `node_modules` apontando para dependências incompletas do checkout principal; somente o vínculo da worktree foi removido e `npm ci` foi executado pelos lockfiles da raiz e de `worker/`, confirmando `@capacitor-community/camera-preview` e `jose`. Uma tentativa seguinte foi interrompida antes do smoke porque a porta 8765 e o lease pertenciam legitimamente à frente `.codex-ui-cam-red-7`; nenhum processo alheio foi encerrado e a execução aguardou passivamente a liberação. O gate local definitivo passou com 115/115 testes focados, preflight verde, 1475/1475 unitários, smoke autenticado legado com 111 aprovados e 8 skips intencionais de casos exclusivos do runtime Vite, smoke Vite 119/119 e cutover 60/60. Os relatórios confirmam zero falhas; nenhum skip foi causado por falta de credenciais. Antes do commit, a branch foi avançada por fast-forward até `origin/main` em `b9ae9ff`, incorporando os PRs #262 e #258 e preservando as entradas documentais das outras frentes. O PR draft #264 foi aberto no commit `d033663`; os dois ciclos de CI passaram integralmente. Os gates pesados `36245598218` e `36247694731` somaram 1 h 9 min 37 s e confirmaram 1475/1475 unitários, Worker e Functions verdes, smoke legado com 111 aprovados e os mesmos 8 skips intencionais, e smoke Vite 119/119. Os gates leves `36245598213` e `36247694749` somaram 46 s. Após aprovação explícita, o PR foi mesclado em `d617840` às 17:02:06 CEST de 26/09/2026.
+
+**Alinhamento:** 100% — a entrega correspondeu integralmente ao escopo aprovado para D08 e D09; backups planos antigos, backups versionados, promoção de `legacy` e estratégias append/replace foram preservados. Os incidentes de dependência e disputa legítima do lease não mudaram o produto nem o escopo e tiveram impacto final neutro.
+
+**PRs/commits relacionados:** PR [#264](https://github.com/magnoClovis/nutrition-tracker/pull/264); commits `d033663` e `11dcfaa`; merge `d617840`; base reconciliada `b9ae9ff`; runs leves `36245598213`/`36247694749` e pesados `36245598218`/`36247694731`; PRs de precedência #257, #261, #262 e #258.
+
+## [BUG-D01-AUDIT] - Revalidação do idioma na verificação de e-mail
+
+**Status:** em andamento.
+
+**Data de início:** 26/09/2026.
+
+**Data de conclusão:** não concluído.
+
+**Tempo decorrido:** pendente de merge.
+
+**Minutos de CI:** 0 min; CI ainda não iniciado.
+
+**Propósito:** reauditar D01 na `origin/main` atual para determinar por evidência se a tela de verificação de e-mail ainda apresentava português quando o idioma selecionado era espanhol, sem criar uma alteração funcional artificial para um defeito já resolvido.
+
+**O que se planeja fazer:** inspecionar a composição da tela e a origem do idioma, confirmar o contrato PT/EN/ES para título, instruções, estado de espera, sucesso/erro de reenvio e retorno ao login, executar os testes UMD/ESM de verificação e reenvio, rastrear o commit/PR responsável e reconciliar inventário, resumo e histórico se a correção já existisse. Auth, App Check, polling, sessão e os demais bugs permaneceriam fora do escopo.
+
+**Recursos/arquivos principais envolvidos:** `verify-email-screen.js`, fachada `src/components/verify-email-screen.js`, composição em `nutrition-tracker.jsx`, `tests/unit/verify-email-screen.test.js`, histórico Git, PR #83, `documentation/estado-atual/BUG-INVENTORY.md`, `documentation/estado-atual/RESUMO-STATUS.md` e este histórico.
+
+**O que foi feito:** a auditoria partiu da `origin/main` `0af7a14` em worktree isolada, preservando o checkout principal sujo e as worktrees C14-F2/CAM-RED-7. O defeito original foi confirmado historicamente no contrato binário `en`/“não-en”, mas já havia sido removido pelo PR [#83](https://github.com/magnoClovis/nutrition-tracker/pull/83), commit `f6f73c0` e merge `49813c8`, em 01/08/2026. O componente atual reduz variantes regionais ao prefixo, aceita `pt`, `en` e `es`, prioriza o `lang` recebido, usa `appLang` como fallback e reserva português para idioma desconhecido. A cópia espanhola cobre título com e sem nome, instruções, espera, sucesso/erro de reenvio, botão de reenvio e retorno ao login. O teste focado passou 10/10 em UMD/ESM e comprovou PT, EN, ES, precedência/fallback, polling de verificação, reenvio espanhol e cleanup. Nenhum arquivo funcional, Auth, App Check ou comportamento de sessão foi alterado; esta fatia é exclusivamente de reconciliação documental.
+
+**PRs/commits relacionados:** PR documental futuro em modo draft; correção histórica PR #83, commit `f6f73c0`, merge `49813c8`; base auditada `0af7a14`.
+
 ## Métricas retroativas
 
 | PR | Tempo decorrido | Minutos de CI | Chat-Origin |
 |---:|---:|---:|---|
 | [#181](https://github.com/magnoClovis/nutrition-tracker/pull/181) | 2 d 5 h 2 min | 29 min (1 leve + 28 pesado) | Trofia-Bugs |
 | [#199](https://github.com/magnoClovis/nutrition-tracker/pull/199) | 1 min 27 s | 1 min (1 leve + 0 pesado) | Trofia-Bugs |
+| [#264](https://github.com/magnoClovis/nutrition-tracker/pull/264) | 1 h 28 min 37 s | 1 h 10 min 23 s (46 s leve + 1 h 9 min 37 s pesado) | Trofia-Bugs |
