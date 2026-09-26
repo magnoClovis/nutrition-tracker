@@ -1653,7 +1653,7 @@
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** reconfirmar IAM, contas de serviço, invocadores, Functions/Tasks, segredos por nome/tipo e lockfiles; propor redução de privilégios e correções de dependências sem aplicá-las antes de avaliar o inventário.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** a reconfirmação de 26/09 manteve as três Functions na conta padrão com `roles/editor`, confirmou invocadores, fila/Scheduler, limpeza de 7 dias e os mesmos achados de dependência (0/0/7 em produção); a lacuna de segredos do Worker foi fechada por nomes/tipos, sem alterar infraestrutura.
+- **O que foi feito:** a reconfirmação de 26/09 manteve as três Functions na conta padrão com `roles/editor`, confirmou invocadores, fila/Scheduler, limpeza de 7 dias e achados de dependência (0/0/7 em produção), e fechou a lacuna de segredos por nomes/tipos; consumidores fora das regiões Cloud Run auditadas ainda exigem verificação antes de revogar Editor.
 
 ### [C14-F2-PRE] - Inventário preparatório de IAM e dependências
 
