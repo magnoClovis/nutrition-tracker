@@ -1,5 +1,8 @@
 import { randomBytes } from "node:crypto";
 import FirebaseConfigInternal from "../firebase-config-internal.js";
+import AppCheckCI from "../tests/smoke/app-check-ci.js";
+
+const { exchangeDebugToken, readCiAppCheckConfig } = AppCheckCI;
 
 const { FB_KEY } = FirebaseConfigInternal.createFirebaseConfig();
 const AUTH_BASE = "https://identitytoolkit.googleapis.com/v1/accounts";
@@ -32,6 +35,7 @@ let idToken = "";
 let failed = false;
 
 try {
+  const appCheckToken = await exchangeDebugToken(readCiAppCheckConfig());
   const suffix = `${Date.now()}-${randomBytes(4).toString("hex")}`;
   const signup = await fetch(`${AUTH_BASE}:signUp?key=${FB_KEY}`, {
     method: "POST",
@@ -52,7 +56,8 @@ try {
     headers: {
       "Authorization": `Bearer ${idToken}`,
       "Content-Type": "application/json",
-      "Origin": "https://magnoclovis.github.io"
+      "Origin": "https://magnoclovis.github.io",
+      "X-Firebase-AppCheck": appCheckToken
     },
     body: JSON.stringify({
       contractVersion: CONTRACT_VERSION,

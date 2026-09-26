@@ -1,6 +1,6 @@
 # C14-F2 — inventário preparatório de IAM, invocadores e dependências
 
-> **Estado:** inventário somente leitura concluído em 26/09/2026. A implementação da C14-F2 ainda não começou. Nenhuma permissão, conta de serviço, política IAM, segredo, dependência, fila, Function ou Worker foi alterado por esta auditoria.
+> **Estado:** baseline preparatória concluída em 26/09/2026; a C14-F2 começou no mesmo dia pela reconfirmação somente leitura abaixo. Nenhuma permissão, conta de serviço, política IAM, segredo, dependência, fila, Function ou Worker foi alterado por esta auditoria.
 
 ## Objetivo
 
@@ -99,19 +99,38 @@ Versões publicadas consultadas como referência, não como atualização autom�
 | `@capacitor/cli` | 8.4.2 | 8.5.2 | validar build Android e patches locais |
 | `vite` | 7.3.6 | 8.3.1 | salto major; manter fora de correção automática |
 
-## Inventário de segredos do Worker — lacuna conhecida
+## Inventário de segredos do Worker — lacuna da baseline
 
 A tentativa de listar apenas nomes/tipos dos segredos falhou porque o perfil Wrangler autenticado localmente aponta para outra conta Cloudflare, na qual o Worker `trofia-ai-proxy` não existe. Nenhum login, token ou segredo foi modificado.
 
-Antes da implementação da C14-F2 será necessário selecionar/autenticar explicitamente a conta Cloudflare correta e repetir `wrangler secret list`. A saída permitida deve conter somente nomes e tipos; valores secretos nunca entram em terminal persistido, documentação ou chat.
+A lacuna foi resolvida na reconfirmação da C14-F2: o perfil `trofia`, autenticado na conta Cloudflare correta durante o rollout da F1, permitiu listar somente nomes/tipos. O Worker de produção tem `GEMINI_API_KEY` e `RATE_LIMIT_PSEUDONYM_KEY`, ambos `secret_text`; nenhum valor foi consultado, exibido ou alterado. O perfil padrão que aponta para outra conta permaneceu intacto.
+
+## Reconfirmação administrativa da C14-F2 — 26/09/2026
+
+Esta rodada usou exclusivamente consultas GET e `getIamPolicy` (POST somente leitura, como exige a API), `firebase functions:list`, `wrangler secret list` e `npm audit` contra a configuração atual. O token OAuth da sessão existente foi usado somente em memória para as APIs Google Cloud; os resultados abaixo omitem tokens, cabeçalhos, payloads de tarefas e dados de usuários.
+
+| Superfície | Resultado reconfirmado | Limite da evidência |
+|---|---|---|
+| Functions Gen2 | As três permanecem `ACTIVE`, em Node.js 22, usando `128834310181-compute@developer.gserviceaccount.com`; o projeto ainda concede `roles/editor` a essa identidade. | Não foi testada a troca de runtime identity nesta etapa. |
+| Cloud Run invokers | Callable: `roles/run.invoker` para `allUsers`; processador: nenhuma binding própria no serviço; reconciliador: `roles/run.invoker` para uma service account. | Política de invocação não substitui a autenticação e App Check exigidos no runtime; não se deve fechar o callable por reflexo. |
+| Fila Cloud Tasks | `RUNNING`, 1 despacho/s, concorrência 2, 5 tentativas, retry 24 h e backoff de 60–3.600 s; `getIamPolicy` retornou política vazia. | A primeira tentativa com GET devolveu 404 porque a API exige POST para esse método; a segunda com POST retornou 200 e nenhuma binding. |
+| Cloud Scheduler | Job `ENABLED`, a cada 60 minutos, com token OIDC da mesma conta padrão de Compute Engine. | Nenhum job foi disparado nesta auditoria. |
+| Artifact Registry | `gcf-artifacts` em Madrid e Bélgica expõe política `firebase-functions-cleanup` com ação `DELETE` e `olderThan=604800s` (7 dias). | Nenhuma imagem foi removida ou criada nesta auditoria. |
+| Worker Cloudflare | `GEMINI_API_KEY` e `RATE_LIMIT_PSEUDONYM_KEY` constam como `secret_text` no perfil correto. | Somente nomes/tipos; valores permanecem desconhecidos para esta auditoria. |
+| Dependências de produção | `npm audit --omit=dev`: raiz 0, Worker 0, Functions 7 moderadas; pacotes afetados: `firebase-admin`, `@google-cloud/storage`, `gaxios`, `qs`, `retry-request`, `teeny-request`, `uuid`. | Achados de registry podem mudar; repetir antes de atualizar lockfiles. |
+| Cadeia completa, inclusive dev/build | `npm audit`: raiz 3 altas; Worker 6 altas + 2 moderadas; Functions 2 altas + 16 moderadas. | Separadas do runtime publicado; não aplicar `npm audit fix` automaticamente. |
+
+O maior risco confirmado continua sendo `roles/editor` na identidade compartilhada. A decisão seguinte deve separar, por Function, permissões Firestore, enfileiramento, exclusão Auth e logging; medir invocação positiva/negativa e manter rollback antes de retirar a role ampla. A conta padrão pode ser usada por outros workloads do projeto: antes de remover `roles/editor`, é obrigatório inventariar todos os seus vínculos de runtime e simular o impacto da remoção, não apenas testar as três Functions. A autenticação de tarefas HTTP também pode exigir `iam.serviceAccounts.actAs`, identidade OIDC autorizada e binding `roles/run.invoker` no destino; isso deve ser comprovado para o contrato exato do Firebase, não presumido da matriz preliminar. As sete vulnerabilidades moderadas de produção das Functions justificam uma atualização pequena e isolada do Admin SDK, mas não uma atualização automática de todo o toolchain. Esta auditoria **não** autoriza nem executa essas mudanças.
+
+Referências oficiais para a decisão IAM futura: [conta padrão e remoção segura de Editor](https://docs.cloud.google.com/compute/docs/access/service-accounts), [Cloud Tasks HTTP com OIDC](https://docs.cloud.google.com/tasks/docs/creating-http-target-tasks), [permissão de enfileiramento](https://docs.cloud.google.com/iam/docs/roles-permissions/cloudtasks) e [invocação de Functions Gen2](https://docs.cloud.google.com/functions/docs/securing/managing-access-iam).
 
 ## Ordem recomendada para a futura C14-F2
 
-1. Reconfirmar todo o inventário contra produção e fechar a lacuna de segredos do Worker.
+1. Reconfirmar todo o inventário contra produção e fechar a lacuna de segredos do Worker — realizado em 26/09/2026, somente leitura; repetir imediatamente antes de qualquer mutação.
 2. Criar identidades dedicadas, inicialmente sem remover a identidade atual.
 3. Conceder permissões mínimas por recurso e configurar cada Function para sua identidade.
 4. Validar callable, tarefa duplicada, retry, reconciliador, exclusão completa e logs com conta descartável.
-5. Remover `roles/editor` da identidade antiga somente depois de provar que nenhuma Function ainda depende dela.
+5. Remover `roles/editor` da identidade antiga somente depois de inventariar todos os workloads que a utilizam, simular a revogação e provar que nenhum ainda depende dela.
 6. Atualizar dependências em grupos pequenos: produção das Functions primeiro; ferramentas depois, sem misturar saltos major não relacionados.
 7. Repetir suíte completa, emuladores, CI autenticado, deploy controlado e matriz destrutiva.
 8. Registrar política de rollback antes de cada mutação IAM/deploy.
@@ -126,4 +145,3 @@ Antes da implementação da C14-F2 será necessário selecionar/autenticar expli
 - inventário de segredos do Worker é concluído sem expor valores;
 - nenhum dado real é apagado durante a validação; testes destrutivos usam contas descartáveis;
 - documentação, runbook e rollback refletem o estado efetivamente implantado.
-

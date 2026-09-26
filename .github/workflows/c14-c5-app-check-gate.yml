@@ -43,5 +43,5 @@ jobs:
 
       - name: Verify current deployment without invoking Gemini
         env:
-          EXPECTED_MODE: ${{ github.event_name == 'pull_request' && 'observe' || inputs.expected_mode }}
+          EXPECTED_MODE: ${{ github.event_name == 'pull_request' && 'enforce' || inputs.expected_mode }}
         run: node scripts/verify-ai-worker-app-check-mode.js "$EXPECTED_MODE"

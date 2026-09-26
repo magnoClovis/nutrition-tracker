@@ -324,6 +324,10 @@ test.describe('embedded camera release hotfix CSS contract', () => {
           </div>`;
       }, theme);
 
+      await page.locator('[data-image-meal-analysis="true"]').evaluate(element => (
+        Promise.all(element.getAnimations().map(animation => animation.finished))
+      ));
+
       const card = page.locator('[data-image-meal-error-card="true"]');
       const primary = page.locator('[data-image-meal-error-primary="true"]');
       await card.evaluate(element => { element.scrollTop = element.scrollHeight; });

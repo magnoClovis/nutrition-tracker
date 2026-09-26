@@ -9,7 +9,11 @@
   "vars": {
     // C14-C5: deploy only with the approved rollback version recorded and the
     // Play-distributed Android client ready for the immediate post-deploy gate.
-    "APP_CHECK_MODE": "enforce"
+    "APP_CHECK_MODE": "enforce",
+    // Commercial tier limits are observed but never denied during the tester
+    // phase. C30 may add verified claim values and finite limits later.
+    "AI_TIER_MODE": "observe",
+    "AI_TIER_CONFIG": "{\"defaultTier\":\"testing\",\"tiers\":{\"testing\":{\"dailyRequests\":null}}}"
   },
   "durable_objects": {
     "bindings": [
@@ -27,6 +31,15 @@
   },
   "workers_dev": true,
   "observability": {
-    "enabled": false
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": false,
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1
+    }
   }
 }

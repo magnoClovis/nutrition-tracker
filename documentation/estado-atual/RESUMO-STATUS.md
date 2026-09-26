@@ -172,7 +172,7 @@
 ## O que está em andamento agora
 
 - **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.
-- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D e C14-E estão concluídas; C14-F1 a C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
+- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D, C14-E e C14-F1 estão concluídas; C14-F2 está em andamento; C14-G e C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 - **[DOC-TRACKING-193] Concluído (12/09/2026) — Chat: Trofia-Principal.** O que se planeja fazer: registrar integralmente as sequências aprovadas e formalizar planejamento, entrega, alinhamento e métricas. O que foi feito: 100 entradas de fatias foram normalizadas no PR #193, com escopos incertos de D3–D7 explicitamente delegados ao chat UI/UX. Alinhamento: 100%.
@@ -1466,6 +1466,17 @@
 - **O que se planeja fazer:** criar um sheet com encaixes em aproximadamente 68% e na altura total útil, expansível/recolhível por arraste e por alternativa acessível, coordenar gesto e rolagem interna, manter foto acima no estado inicial, CTA/refeição alcançáveis e edição de porção/ingredientes com recálculo proporcional imediato de kcal e nutrientes, cobrindo confiança, dados incompletos e listas extensas.
 - **Recursos/arquivos principais envolvidos:** novo `meal-result-sheet.js` UMD/ESM, controlador de sheet/gestos e safe areas, `meal-estimate-editor.js`, `meal-estimate.js`, `image-meal-screen.js`, ChoiceField, NumericField, `one-ui.css`, ARIA/teclado e testes.
 
+### [TEST-CAM-48PX] - Sincronização da medição dos alvos CAM-RED-6
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** 26/09/2026.
+- **Propósito:** impedir falso negativo visual ao medir o alvo de 48 px do botão de fechar durante a animação de entrada da análise.
+- **O que se planeja fazer:** aguardar a animação `scale(.985) → scale(1)` terminar antes da leitura geométrica, mantendo sem tolerância a exigência final de pelo menos 48 px.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/embedded-camera-hotfix.visual.spec.js`, Playwright mobile, estado CAM-RED-6 com fonte a 200% e temas claro/escuro.
+- **O que foi feito:** o PR #259/merge `39903c7` passou a aguardar a animação antes da geometria e ficou verde em 4/4 casos focados no legado, 4/4 no Vite, 1.457/1.457 unitários e CI real, sem alterar o PR #257 nem reduzir 48 px.
+- **Alinhamento:** 100% — corrida do roteiro eliminada com o requisito visual preservado.
+
 ### [CAM-RED-8] - Busca manual com o mesmo resultado
 
 - **Status:** não iniciado — **Chat:** Trofia-UIUX.
@@ -1625,22 +1636,24 @@
 
 ### [C14-F1] - Worker, tiers e observabilidade
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 25/09/2026.
+- **Data de conclusão:** 26/09/2026.
 - **Propósito:** preparar limites comerciais e monitoramento sem dados pessoais antes da distribuição pública.
 - **O que se planeja fazer:** modelar tiers com enforcement desligado, pseudonimização, timeouts/saída e métricas sanitizadas por 30 dias.
-- **Recursos/arquivos principais envolvidos:** Worker, Durable Object, rate limiter, Google Cloud Logging/Monitoring, contratos e testes.
+- **Recursos/arquivos principais envolvidos:** Worker, Durable Object, rate limiter, Cloudflare Workers Logs/Analytics Engine, contratos, testes e configuração Wrangler.
+- **O que foi feito:** o PR #257 (merge `6293899`) implementou HMAC, tiers em observação, limite Gemini de 40 s/128 KB e métricas sanitizadas por até 30 dias. Em 26/09, o segredo foi instalado sem exposição, a versão `179df5a8` chegou a 100% em produção, texto/imagem passaram com conta descartável e App Check, o smoke de despensa ficou verde e a métrica customizada sanitizada foi confirmada; a falha visual de câmera do primeiro CI segue em triagem separada.
+- **Alinhamento:** 100%; o rollout e os gates operacionais concluíram o escopo aprovado, mantendo enforcement comercial desligado.
 
 ### [C14-F2] - IAM, invocadores e dependências
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
-- **O que se planeja fazer:** auditar IAM, contas de serviço, invocadores, Functions/Tasks e lockfiles antes de criar identidades mínimas.
-- **Recursos/arquivos principais envolvidos:** Google Cloud IAM, Firebase Functions, Cloud Tasks, Artifact Registry, lockfiles e relatórios administrativos.
-- **O que foi feito:** inventário preparatório somente leitura `C14-F2-PRE` confirmou as três Functions na conta padrão com `roles/editor`, mapeou invocadores, fila, Scheduler, retenção de imagens e vulnerabilidades; nenhuma mutação da F2 foi iniciada.
+- **O que se planeja fazer:** reconfirmar IAM, contas de serviço, invocadores, Functions/Tasks, segredos por nome/tipo e lockfiles; propor redução de privilégios e correções de dependências sem aplicá-las antes de avaliar o inventário.
+- **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/`, manifests/lockfiles e inventário administrativo.
+- **O que foi feito:** a reconfirmação de 26/09 manteve as três Functions na conta padrão com `roles/editor`, confirmou invocadores, fila/Scheduler, limpeza de 7 dias e os mesmos achados de dependência (0/0/7 em produção); a lacuna de segredos do Worker foi fechada por nomes/tipos, sem alterar infraestrutura.
 
 ### [C14-F2-PRE] - Inventário preparatório de IAM e dependências
 

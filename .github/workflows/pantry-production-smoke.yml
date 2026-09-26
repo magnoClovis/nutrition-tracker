@@ -53,4 +53,7 @@ jobs:
 
       - name: Call production with a disposable account
         if: steps.runtime.outputs.changed == 'true'
+        env:
+          FIREBASE_APPCHECK_DEBUG_TOKEN: ${{ secrets.FIREBASE_APPCHECK_DEBUG_TOKEN }}
+          VITE_FIREBASE_WEB_APP_ID: ${{ vars.VITE_FIREBASE_WEB_APP_ID }}
         run: node scripts/smoke-pantry-production.mjs

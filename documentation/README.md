@@ -72,14 +72,16 @@ Cada frente escreve em um arquivo próprio:
 - `C24_FATIA_7_VALIDACAO.md`: validação do reconhecimento por imagem.
 - `C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`: evidência sanitizada do inventário read-only que fundamenta as allowlists das rules.
 - `C14_C_APP_CHECK_WORKER_ROLLOUT.md`: estado, gates, evidências e rollback do rollout progressivo de App Check no Worker de IA.
-- `C14_F2_PRE_INVENTARIO_IAM_DEPENDENCIAS.md`: baseline somente leitura de IAM, invocadores, Functions/Tasks, retenção de artefatos e dependências para a futura C14-F2.
+- `C14_F2_PRE_INVENTARIO_IAM_DEPENDENCIAS.md`: baseline e reconfirmação somente leitura de IAM, invocadores, Functions/Tasks, segredos por nome/tipo, retenção de artefatos e dependências da C14-F2 em andamento.
 
 ### Compliance e operação
 
 - `compliance/`: políticas PT/EN/ES e referência do Google Play Data Safety.
 - `operacao/`: guias históricos de smoke test convertidos para Markdown.
 - `operacao/REFERENCIAS-TECNICAS.md`: índice de fontes técnicas que permanecem na raiz ou nas pastas de testes.
+- `operacao/MONITORAMENTO-PASSIVO.md`: regra para acompanhar testes, CI, builds e deploys por heartbeat silencioso, sem polling contínuo.
 - `operacao/TESTE-FISICO-GALAXY.md`: checklist obrigatório de preparação, proteção de conta, restauração do aparelho e encerramento de ADB em validações físicas.
+- `estado-atual/C14_F1_WORKER_TIERS_OBSERVABILITY.md`: contrato de pseudonimização, tiers em observação, limites do Gemini e métricas sanitizadas do Worker.
 
 ## Base desta captura
 

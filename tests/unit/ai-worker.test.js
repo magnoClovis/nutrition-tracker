@@ -92,6 +92,20 @@ async function responseBody(response) {
   return JSON.parse(await response.text());
 }
 
+function assertRateLimitCheck(fixture, requestKind) {
+  assert.equal(fixture.rateLimiterChecks.length, 1);
+  const [subjectId, timestampMs, kind, policy] = fixture.rateLimiterChecks[0];
+  assert.match(subjectId, /^[A-Za-z0-9_-]{43}$/u);
+  assert.notEqual(subjectId, "firebase-user-1");
+  assert.equal(timestampMs, 123_456);
+  assert.equal(kind, requestKind);
+  assert.deepEqual(policy, {
+    mode: "observe",
+    tier: "testing",
+    dailyRequests: null
+  });
+}
+
 async function createFixture({
   verificationResult = { uid: "firebase-user-1" },
   verificationError,
@@ -108,7 +122,13 @@ async function createFixture({
   rateLimitResult = { allowed: true },
   rateLimitError,
   rateLimiterBinding = true,
-  now = 123_456
+  now = 123_456,
+  pseudonymKey = "test-only-pseudonym-key-with-32-characters",
+  tierMode = "observe",
+  tierConfig = JSON.stringify({
+    defaultTier: "testing",
+    tiers: { testing: { dailyRequests: null } }
+  })
 } = {}) {
   const module = await import("../../worker/src/ai-worker.js");
   const verifiedTokens = [];
@@ -116,6 +136,9 @@ async function createFixture({
   const providerRequests = [];
   const rateLimiterNames = [];
   const rateLimiterChecks = [];
+  const storedMetrics = [];
+  const metrics = [];
+  const providerSignal = new AbortController().signal;
   const worker = module.createAIWorker({
     verifyFirebaseIdToken: async token => {
       verifiedTokens.push(token);
@@ -132,20 +155,28 @@ async function createFixture({
       if (providerResponse instanceof Error) throw providerResponse;
       return providerResponse;
     },
-    now: () => now
+    now: () => now,
+    createProviderAbortSignal: () => providerSignal,
+    recordMetric: metric => metrics.push(metric)
   });
   const env = geminiApiKey === null
     ? { APP_CHECK_MODE: appCheckMode }
     : { GEMINI_API_KEY: geminiApiKey, APP_CHECK_MODE: appCheckMode };
+  env.RATE_LIMIT_PSEUDONYM_KEY = pseudonymKey;
+  env.AI_TIER_MODE = tierMode;
+  env.AI_TIER_CONFIG = tierConfig;
   if (rateLimiterBinding) {
     env.AI_RATE_LIMITER = {
       getByName(name) {
         rateLimiterNames.push(name);
         return {
-          async check(uid, timestampMs, requestKind) {
-            rateLimiterChecks.push([uid, timestampMs, requestKind]);
+          async check(uid, timestampMs, requestKind, tierPolicy) {
+            rateLimiterChecks.push([uid, timestampMs, requestKind, tierPolicy]);
             if (rateLimitError) throw rateLimitError;
             return rateLimitResult;
+          },
+          async recordMetric(metric, timestampMs) {
+            storedMetrics.push([metric, timestampMs]);
           }
         };
       }
@@ -159,7 +190,10 @@ async function createFixture({
     verifiedAppCheckTokens,
     providerRequests,
     rateLimiterNames,
-    rateLimiterChecks
+    rateLimiterChecks,
+    storedMetrics,
+    metrics,
+    providerSignal
   };
 }
 
@@ -249,8 +283,8 @@ test("sends the exact stable Gemini generateContent request", async () => {
   assert.deepEqual(await responseBody(response), { text: "Expected answer" });
   assert.deepEqual(fixture.verifiedTokens, ["firebase-id-token"]);
   assert.deepEqual(fixture.verifiedAppCheckTokens, ["firebase-app-check-token"]);
-  assert.deepEqual(fixture.rateLimiterNames, ["gemini-project-quota"]);
-  assert.deepEqual(fixture.rateLimiterChecks, [["firebase-user-1", 123_456, "text"]]);
+  assert.deepEqual(fixture.rateLimiterNames, ["gemini-project-quota", "gemini-project-quota"]);
+  assertRateLimitCheck(fixture, "text");
   assert.equal(fixture.providerRequests.length, 1);
   assert.equal(
     fixture.providerRequests[0][0],
@@ -262,6 +296,7 @@ test("sends the exact stable Gemini generateContent request", async () => {
       "Content-Type": "application/json",
       "x-goog-api-key": "test-only-gemini-key"
     },
+    signal: fixture.providerSignal,
     body: JSON.stringify({
       contents: [{
         role: "user",
@@ -273,6 +308,16 @@ test("sends the exact stable Gemini generateContent request", async () => {
       }
     })
   });
+  assert.deepEqual(fixture.metrics, [{
+    event: "ai-request",
+    endpoint: "completion",
+    status: 200,
+    scope: "success",
+    latencyMs: 0,
+    appCheck: "valid",
+    tier: "testing"
+  }]);
+  assert.deepEqual(fixture.storedMetrics, [[fixture.metrics[0], 123_456]]);
   assert.equal(response.headers.get("Access-Control-Allow-Origin"), WEB_ORIGIN);
   assert.equal(response.headers.get("Cache-Control"), "no-store");
 });
@@ -302,7 +347,7 @@ test("sends an inline JPEG through Interactions without storage and validates th
 
   assert.equal(response.status, 200);
   assert.deepEqual(await responseBody(response), { estimate });
-  assert.deepEqual(fixture.rateLimiterChecks, [["firebase-user-1", 123_456, "image"]]);
+  assertRateLimitCheck(fixture, "image");
   assert.equal(fixture.providerRequests[0][0],
     "https://generativelanguage.googleapis.com/v1beta/interactions");
   assert.equal(fixture.providerRequests[0][1].headers["Api-Revision"], "2026-05-20");
@@ -386,7 +431,7 @@ test("uses structured Interactions for food and dish estimates and returns only 
 
     assert.equal(response.status, 200);
     assert.deepEqual(await responseBody(response), { estimate: expected.estimate });
-    assert.deepEqual(fixture.rateLimiterChecks, [["firebase-user-1", 123_456, "text"]]);
+    assertRateLimitCheck(fixture, "text");
     assert.equal(fixture.providerRequests[0][0], "https://generativelanguage.googleapis.com/v1beta/interactions");
     assert.equal(fixture.providerRequests[0][1].headers["Api-Revision"], "2026-05-20");
     const providerBody = JSON.parse(fixture.providerRequests[0][1].body);
@@ -412,7 +457,7 @@ test("uses structured Interactions for pantry IDs and returns only a validated c
 
   assert.equal(response.status, 200);
   assert.deepEqual(await responseBody(response), providerResult);
-  assert.deepEqual(fixture.rateLimiterChecks, [["firebase-user-1", 123_456, "text"]]);
+  assertRateLimitCheck(fixture, "text");
   assert.equal(fixture.providerRequests[0][0], "https://generativelanguage.googleapis.com/v1beta/interactions");
   assert.equal(fixture.providerRequests[0][1].headers["Api-Revision"], "2026-05-20");
   const providerBody = JSON.parse(fixture.providerRequests[0][1].body);
@@ -750,7 +795,8 @@ test("returns 429 with public scope and Retry-After for every quota", async () =
   const cases = [
     ["uid-minute", "user"],
     ["global-minute", "global"],
-    ["global-day", "daily"]
+    ["global-day", "daily"],
+    ["tier-day", "plan"]
   ];
 
   for (const [limit, scope] of cases) {
@@ -851,4 +897,63 @@ test("returns sanitized provider failures without logging payloads", async () =>
     "utf8"
   );
   assert.doesNotMatch(pantrySuggestionsSource, /\bconsole\./);
+});
+
+test("bounds provider time and response size with sanitized failures", async () => {
+  const timeoutError = new Error("private timeout detail");
+  timeoutError.name = "TimeoutError";
+  const timedOut = await createFixture({ providerResponse: timeoutError });
+  const timeoutResponse = await timedOut.worker.fetch(request(), timedOut.env);
+  assert.equal(timeoutResponse.status, 504);
+  assert.deepEqual(await responseBody(timeoutResponse), {
+    error: { code: "provider-timeout" }
+  });
+  assert.equal(timedOut.providerRequests[0][1].signal, timedOut.providerSignal);
+
+  const oversized = await createFixture({
+    providerResponse: new Response("x".repeat(128_001), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    })
+  });
+  const oversizedResponse = await oversized.worker.fetch(request(), oversized.env);
+  assert.equal(oversizedResponse.status, 502);
+  assert.deepEqual(await responseBody(oversizedResponse), {
+    error: { code: "invalid-provider-response" }
+  });
+});
+
+test("fails closed before quota when pseudonymization or tier policy is unavailable", async () => {
+  for (const options of [
+    { pseudonymKey: "too-short" },
+    { tierMode: "disabled" },
+    { tierConfig: "{" }
+  ]) {
+    const fixture = await createFixture(options);
+    const response = await fixture.worker.fetch(request(), fixture.env);
+    assert.equal(response.status, 503);
+    assert.deepEqual(await responseBody(response), {
+      error: { code: "rate-limit-unavailable" }
+    });
+    assert.equal(fixture.rateLimiterChecks.length, 0);
+    assert.equal(fixture.providerRequests.length, 0);
+  }
+});
+
+test("telemetry failure never changes the public response", async () => {
+  const fixture = await createFixture();
+  const module = await import("../../worker/src/ai-worker.js");
+  const worker = module.createAIWorker({
+    verifyFirebaseIdToken: async () => ({ uid: "firebase-user-1", claims: {} }),
+    verifyFirebaseAppCheckToken: async () => ({ appId: "web" }),
+    fetchRequest: async () => new Response(JSON.stringify({
+      candidates: [{ content: { parts: [{ text: "ok" }] } }]
+    }), { status: 200 }),
+    now: () => 123_456,
+    createProviderAbortSignal: () => new AbortController().signal,
+    recordMetric: () => { throw new Error("telemetry unavailable"); }
+  });
+  const response = await worker.fetch(request(), fixture.env);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await responseBody(response), { text: "ok" });
 });
