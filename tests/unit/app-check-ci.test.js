@@ -67,11 +67,17 @@ test('wires the secret only into smoke CI and disables secret-bearing traces', (
   const root = path.resolve(__dirname, '..', '..');
   const workflow = fs.readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8');
   const pagesWorkflow = fs.readFileSync(path.join(root, '.github/workflows/pages.yml'), 'utf8');
+  const pantryWorkflow = fs.readFileSync(path.join(root, '.github/workflows/pantry-production-smoke.yml'), 'utf8');
+  const pantrySmoke = fs.readFileSync(path.join(root, 'scripts/smoke-pantry-production.mjs'), 'utf8');
   const config = fs.readFileSync(path.join(root, 'playwright.config.js'), 'utf8');
   const cutoverConfig = fs.readFileSync(path.join(root, 'playwright.cutover.config.js'), 'utf8');
   const pagesConfig = fs.readFileSync(path.join(root, 'playwright.pages.config.js'), 'utf8');
   assert.match(workflow, /FIREBASE_APPCHECK_DEBUG_TOKEN:\s*\$\{\{ secrets\.FIREBASE_APPCHECK_DEBUG_TOKEN \}\}/);
   assert.match(pagesWorkflow, /FIREBASE_APPCHECK_DEBUG_TOKEN:\s*\$\{\{ secrets\.FIREBASE_APPCHECK_DEBUG_TOKEN \}\}/);
+  assert.match(pantryWorkflow, /FIREBASE_APPCHECK_DEBUG_TOKEN:\s*\$\{\{ secrets\.FIREBASE_APPCHECK_DEBUG_TOKEN \}\}/);
+  assert.match(pantryWorkflow, /VITE_FIREBASE_WEB_APP_ID:\s*\$\{\{ vars\.VITE_FIREBASE_WEB_APP_ID \}\}/);
+  assert.match(pantrySmoke, /exchangeDebugToken\(readCiAppCheckConfig\(\)\)/);
+  assert.match(pantrySmoke, /"X-Firebase-AppCheck": appCheckToken/);
   assert.match(config, /globalSetup: require\.resolve\('\.\/tests\/smoke\/app-check-global-setup\.js'\)/);
   assert.match(config, /FIREBASE_APPCHECK_DEBUG_TOKEN \? 'off' : 'retain-on-failure'/);
   assert.match(cutoverConfig, /globalSetup: require\.resolve\('\.\/tests\/smoke\/app-check-global-setup\.js'\)/);

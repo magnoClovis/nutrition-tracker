@@ -67,3 +67,11 @@ Falha de pseudonimização, configuração de tier ou Durable Object é fail-clo
 - matriz cutover: 60/60.
 
 Os casos autenticados não são considerados validados pelos skips locais: o CI autenticado real continua sendo gate obrigatório do PR antes de qualquer deploy.
+
+### Correção dos gates pós-enforcement
+
+A primeira execução do PR #257 expôs dois contratos de CI desatualizados desde a conclusão da C14-C5. O verificador de modo ainda esperava `observe`, embora produção já opere corretamente em `enforce`; o smoke de despensa criava uma conta descartável, mas chamava o Worker sem token App Check e recebia o `401 app-check-required` esperado do serviço protegido.
+
+O gate de PR agora prova explicitamente o modo `enforce`. O smoke de despensa recebe o segredo debug somente pelo GitHub Actions, troca-o por um token App Check curto usando o app Web registrado e envia esse token no cabeçalho protegido. O valor não é impresso nem persistido. A correção é coberta por 11/11 testes focados e não relaxa enforcement, autenticação ou contrato de resposta. Em 26/09/2026, a suíte local `npm test` terminou com código de saída zero, incluindo cutover 60/60.
+
+O mesmo primeiro CI também registrou uma falha visual mobile no teste de câmera CAM-RED-6 (`closeHeight` 47,58 px ante mínimo de 48 px). Esse achado não foi atribuído ao Worker nem corrigido nesta fatia; o gate autenticado remoto permanece pendente de nova execução e de triagem desse caso pela frente UI/UX.
