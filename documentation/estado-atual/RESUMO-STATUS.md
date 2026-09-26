@@ -1465,7 +1465,7 @@
 - **Propósito:** converter o resultado aprovado em componente reutilizável sem perder validação ou edição nutricional.
 - **O que se planeja fazer:** criar um sheet com encaixes em aproximadamente 68% e na altura total útil, expansível/recolhível por arraste e por alternativa acessível, coordenar gesto e rolagem interna, manter foto acima no estado inicial, CTA/refeição alcançáveis e edição de porção/ingredientes com recálculo proporcional imediato de kcal e nutrientes, cobrindo confiança, dados incompletos e listas extensas.
 - **Recursos/arquivos principais envolvidos:** novo `meal-result-sheet.js` UMD/ESM, controlador de sheet/gestos e safe areas, `meal-estimate-editor.js`, `meal-estimate.js`, `image-meal-screen.js`, ChoiceField, NumericField, `one-ui.css`, ARIA/teclado e testes.
-- **O que foi feito:** o PR draft #256 recebeu o novo `MealResultSheet`; o AAB Play v26 revelou que `backdrop-filter` prendia foto/sheet ao modal e recortava o NumericField, falhas corrigidas e aprovadas no novo gate integral local, restando CI, novo AAB e repetição física.
+- **O que foi feito:** o PR draft #256 recebeu o novo `MealResultSheet`; após o AAB Play v26 revelar contenção incorreta de foto/sheet e recorte do NumericField, a correção passou nos gates, no CI e na repetição física do AAB Play v27 em claro/escuro, restando aprovação e merge.
 
 ### [TEST-CAM-48PX] - Sincronização da medição dos alvos CAM-RED-6
 
