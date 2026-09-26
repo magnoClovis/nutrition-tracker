@@ -1468,13 +1468,14 @@
 
 ### [TEST-CAM-48PX] - Sincronização da medição dos alvos CAM-RED-6
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 26/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 26/09/2026.
 - **Propósito:** impedir falso negativo visual ao medir o alvo de 48 px do botão de fechar durante a animação de entrada da análise.
 - **O que se planeja fazer:** aguardar a animação `scale(.985) → scale(1)` terminar antes da leitura geométrica, mantendo sem tolerância a exigência final de pelo menos 48 px.
 - **Recursos/arquivos principais envolvidos:** `tests/smoke/embedded-camera-hotfix.visual.spec.js`, Playwright mobile, estado CAM-RED-6 com fonte a 200% e temas claro/escuro.
-- **O que foi feito:** a auditoria do CI `36194586909` confirmou a leitura durante a transformação ancestral; o roteiro agora aguarda a animação e passou em 4/4 casos focados no legado, 4/4 no Vite, 1.457/1.457 unitários e CI autenticado real verde no primeiro HEAD do PR #259, sem alterar o PR #257 nem reduzir 48 px.
+- **O que foi feito:** o PR #259/merge `39903c7` passou a aguardar a animação antes da geometria e ficou verde em 4/4 casos focados no legado, 4/4 no Vite, 1.457/1.457 unitários e CI real, sem alterar o PR #257 nem reduzir 48 px.
+- **Alinhamento:** 100% — corrida do roteiro eliminada com o requisito visual preservado.
 
 ### [CAM-RED-8] - Busca manual com o mesmo resultado
 
