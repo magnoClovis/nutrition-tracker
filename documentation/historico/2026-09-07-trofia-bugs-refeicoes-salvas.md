@@ -118,6 +118,28 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 
 **PRs/commits relacionados:** PR [#264](https://github.com/magnoClovis/nutrition-tracker/pull/264); commits `d033663` e `11dcfaa`; merge `d617840`; base reconciliada `b9ae9ff`; runs leves `36245598213`/`36247694749` e pesados `36245598218`/`36247694731`; PRs de precedência #257, #261, #262 e #258.
 
+## [BUG-D01-AUDIT] - Revalidação do idioma na verificação de e-mail
+
+**Status:** em andamento.
+
+**Data de início:** 26/09/2026.
+
+**Data de conclusão:** não concluído.
+
+**Tempo decorrido:** pendente de merge.
+
+**Minutos de CI:** 0 min; CI ainda não iniciado.
+
+**Propósito:** reauditar D01 na `origin/main` atual para determinar por evidência se a tela de verificação de e-mail ainda apresentava português quando o idioma selecionado era espanhol, sem criar uma alteração funcional artificial para um defeito já resolvido.
+
+**O que se planeja fazer:** inspecionar a composição da tela e a origem do idioma, confirmar o contrato PT/EN/ES para título, instruções, estado de espera, sucesso/erro de reenvio e retorno ao login, executar os testes UMD/ESM de verificação e reenvio, rastrear o commit/PR responsável e reconciliar inventário, resumo e histórico se a correção já existisse. Auth, App Check, polling, sessão e os demais bugs permaneceriam fora do escopo.
+
+**Recursos/arquivos principais envolvidos:** `verify-email-screen.js`, fachada `src/components/verify-email-screen.js`, composição em `nutrition-tracker.jsx`, `tests/unit/verify-email-screen.test.js`, histórico Git, PR #83, `documentation/estado-atual/BUG-INVENTORY.md`, `documentation/estado-atual/RESUMO-STATUS.md` e este histórico.
+
+**O que foi feito:** a auditoria partiu da `origin/main` `0af7a14` em worktree isolada, preservando o checkout principal sujo e as worktrees C14-F2/CAM-RED-7. O defeito original foi confirmado historicamente no contrato binário `en`/“não-en”, mas já havia sido removido pelo PR [#83](https://github.com/magnoClovis/nutrition-tracker/pull/83), commit `f6f73c0` e merge `49813c8`, em 01/08/2026. O componente atual reduz variantes regionais ao prefixo, aceita `pt`, `en` e `es`, prioriza o `lang` recebido, usa `appLang` como fallback e reserva português para idioma desconhecido. A cópia espanhola cobre título com e sem nome, instruções, espera, sucesso/erro de reenvio, botão de reenvio e retorno ao login. O teste focado passou 10/10 em UMD/ESM e comprovou PT, EN, ES, precedência/fallback, polling de verificação, reenvio espanhol e cleanup. Nenhum arquivo funcional, Auth, App Check ou comportamento de sessão foi alterado; esta fatia é exclusivamente de reconciliação documental.
+
+**PRs/commits relacionados:** PR documental futuro em modo draft; correção histórica PR #83, commit `f6f73c0`, merge `49813c8`; base auditada `0af7a14`.
+
 ## Métricas retroativas
 
 | PR | Tempo decorrido | Minutos de CI | Chat-Origin |
