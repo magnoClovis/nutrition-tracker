@@ -1629,7 +1629,7 @@
 - **Propósito:** preparar limites comerciais e monitoramento sem dados pessoais antes da distribuição pública.
 - **O que se planeja fazer:** modelar tiers com enforcement desligado, pseudonimização, timeouts/saída e métricas sanitizadas por 30 dias.
 - **Recursos/arquivos principais envolvidos:** Worker, Durable Object, rate limiter, Cloudflare Workers Logs/Analytics Engine, contratos, testes e configuração Wrangler.
-- **O que foi feito:** a implementação pseudonimiza o UID por HMAC antes do Durable Object, mantém tiers comerciais em observação, limita o Gemini a 40 s/128 KB e registra métricas agregadas sanitizadas por até 30 dias; os dois gates pós-enforcement foram corrigidos e `npm test` local passou em 26/09, restando repetir o CI autenticado, triar uma falha visual de câmera do primeiro run e fazer o deploy controlado.
+- **O que foi feito:** a implementação pseudonimiza o UID por HMAC antes do Durable Object, mantém tiers comerciais em observação, limita o Gemini a 40 s/128 KB e registra métricas agregadas sanitizadas por até 30 dias; `npm test` local e o segundo CI autenticado passaram em 26/09, restando deploy controlado e revisão, enquanto a falha visual de câmera do primeiro run segue em triagem separada.
 
 ### [C14-F2] - IAM, invocadores e dependências
 
