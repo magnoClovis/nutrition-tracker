@@ -171,13 +171,14 @@
 
 ### [BUG-BACKUP-D08-D09] - Integridade fail-closed de exportação e preview de backup
 
-- **Status:** em andamento — **Chat:** Trofia-Bugs.
+- **Status:** concluído — **Chat:** Trofia-Bugs.
 - **Data de início:** 26/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 26/09/2026.
 - **Propósito:** impedir que “Diário — hoje” exporte uma data histórica e que o preview de importação apresente uma comparação não comprovada ou incompleta.
 - **O que se planeja fazer:** resolver D08 e D09 numa única fatia, fixando a exportação na data civil local atual, validando estritamente `existingItems` e a coerência das contagens, bloqueando importação após preview inválido e preservando backups antigos e estratégias append/replace.
 - **Recursos/arquivos principais envolvidos:** `backup-modal.js`, `firebase-backup-internal.js`, `nutrition-tracker-controller.js`, testes unitários UMD/ESM, smoke autenticado legado/Vite, matriz cutover e documentação de estado/histórico.
-- **O que foi feito:** o PR draft #264 já exporta somente snapshot hidratado de `TODAY`, falha fechada em virada civil ou preview inconsistente, usa exclusivamente `existingItems` e bloqueia importação sem contrato válido; gates locais e CI `36245598218`/`36245598213` passaram, e a fatia aguarda revisão.
+- **O que foi feito:** o PR #264 (merge `d617840`) passou a exportar somente snapshot hidratado de `TODAY`, falhar fechado em virada civil ou preview inconsistente, usar exclusivamente `existingItems` e bloquear importação sem contrato válido; gates locais e CI passaram integralmente.
+- **Alinhamento:** 100% — D08 e D09 foram entregues na fatia única aprovada, preservando retrocompatibilidade e estratégias append/replace.
 
 ## O que está em andamento agora
 
