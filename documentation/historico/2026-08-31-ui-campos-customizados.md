@@ -1455,7 +1455,7 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 - **Tempo decorrido:** pendente de merge.
 
-- **Minutos de CI:** 0 min; CI ainda não iniciado.
+- **Minutos de CI:** 35 min 16 s consumidos no primeiro HEAD — 26 s leves e 34 min 50 s pesados; HEAD documental final pendente.
 
 - **Propósito:** corrigir um falso negativo do contrato visual mobile da CAM-RED-6 sem reduzir o requisito acessível de 48 px e sem misturar a alteração com o PR #257 da frente Trofia-Principal. O CI `36194586909` mediu 47,57948303222656 px no botão de fechar do estado de erro escuro com fonte a 200%, embora o CSS declare `width`, `height` e `min-height` de 48 px.
 
@@ -1465,7 +1465,7 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 - **O que foi feito:** a auditoria somente leitura confrontou o log do job `108267404246`, o merge ref do PR #257 e o CSS efetivamente testado. Os botões primário e secundário passaram; somente o X foi capturado com 47,579 px. O ancestral ainda executava `scale(.985) → scale(1)`, cujo início reduz visualmente 48 px para 47,28 px, e o cenário de erro — diferentemente do cenário anterior do mesmo arquivo — não aguardava `element.getAnimations()` antes da geometria. Isso caracteriza corrida do roteiro, não dimensão final incorreta. O teste passou a aguardar a promise de todas as animações do container antes de ler a geometria, preservando literalmente as três expectativas `>= 48`. O recorte focado passou em 4/4 casos no legado e 4/4 no Vite, cobrindo desktop/mobile, claro/escuro e fonte a 200%; o preflight ficou verde e, após instalar as dependências ignoradas do Worker pelo lockfile, os unitários passaram em 1.457/1.457. A tentativa inicial dos unitários falhou somente por `worker/node_modules` ausente (`jose` não encontrado) e foi repetida limpa após `npm --prefix worker ci`. O setup autenticado local permaneceu fail-closed por ausência do segredo App Check neste ambiente; o gate integral será exigido no CI autenticado real. O PR #257 não foi modificado.
 
-- **PRs/commits relacionados:** CI `36194586909`, job `108267404246`; PR da correção ainda não aberto. — **Chat-Origin:** Trofia-UIUX.
+- **PRs/commits relacionados:** [PR #259](https://github.com/magnoClovis/nutrition-tracker/pull/259), commit funcional/documental inicial `1fe23e9`, preflight `36220875675` e gate pesado `36220875714`; CI originador do diagnóstico `36194586909`, job `108267404246`. — **Chat-Origin:** Trofia-UIUX.
 
 ## Encerramento administrativo do PR documental obsoleto #170
 
