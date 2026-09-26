@@ -1,6 +1,6 @@
 # C14-F1 — Worker, tiers e observabilidade
 
-Estado: em andamento desde 25/09/2026. Este documento descreve o contrato preparado antes do deploy; produção só muda depois de merge, configuração segura do novo segredo, deploy controlado e smoke real.
+Estado: em andamento desde 25/09/2026. O PR #257 foi mesclado em `6293899` em 26/09; o Worker de produção ainda não foi atualizado. Produção só muda depois de configuração segura do novo segredo, deploy controlado e smoke real.
 
 ## Objetivos de segurança
 
@@ -74,4 +74,4 @@ A primeira execução do PR #257 expôs dois contratos de CI desatualizados desd
 
 O gate de PR agora prova explicitamente o modo `enforce`. O smoke de despensa recebe o segredo debug somente pelo GitHub Actions, troca-o por um token App Check curto usando o app Web registrado e envia esse token no cabeçalho protegido. O valor não é impresso nem persistido. A correção é coberta por 11/11 testes focados e não relaxa enforcement, autenticação ou contrato de resposta. Em 26/09/2026, a suíte local `npm test` terminou com código de saída zero, incluindo cutover 60/60.
 
-O mesmo primeiro CI também registrou uma falha visual mobile no teste de câmera CAM-RED-6 (`closeHeight` 47,58 px ante mínimo de 48 px). Esse achado não foi atribuído ao Worker nem corrigido nesta fatia. A segunda execução remota no commit `e75d60d` passou integralmente: preflight documental, gate de App Check, smoke de despensa e CI autenticado, com 1.465 unitários, 44 testes Node do Worker, 74 testes de Functions, 111 casos de smoke legado (8 skips estruturais esperados) e 119 casos Vite. A falha visual não se repetiu, mas sua causa permanece para triagem da UI/UX; deploy controlado e revisão do PR ainda são gates da C14-F1.
+O mesmo primeiro CI também registrou uma falha visual mobile no teste de câmera CAM-RED-6 (`closeHeight` 47,58 px ante mínimo de 48 px). Esse achado não foi atribuído ao Worker nem corrigido nesta fatia. A segunda execução remota no commit `e75d60d` passou integralmente: preflight documental, gate de App Check, smoke de despensa e CI autenticado, com 1.465 unitários, 44 testes Node do Worker, 74 testes de Functions, 111 casos de smoke legado (8 skips estruturais esperados) e 119 casos Vite. A terceira execução, no commit documental `bce367f`, também passou os quatro checks. A falha visual não se repetiu, mas sua causa permanece para triagem da UI/UX; configuração segura do segredo HMAC, deploy controlado e smoke real ainda são gates da C14-F1.
