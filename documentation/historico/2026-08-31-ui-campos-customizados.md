@@ -692,15 +692,15 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 
 ### [D2] - Responsividade do Diário
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 
 - **Data de início:** 26/09/2026.
 
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 27/09/2026.
 
-- **Tempo decorrido:** pendente de merge.
+- **Tempo decorrido:** 5 h 09 min 07 s, do primeiro commit `c9cd072` ao merge `9d3eb03`.
 
-- **Minutos de CI:** 30 min 59 s no HEAD funcional `c9cd072` — pesado 30 min 35 s (`36286683625`) + leve/documental 24 s (`36286683646`).
+- **Minutos de CI:** 69 min 02 s — pesado 68 min 06 s (`36286683625`: 30 min 35 s; `36288512798`: 37 min 31 s) + leve/documental 56 s (`36286683646`: 24 s; `36288512800`: 32 s).
 
 - **Propósito:** corrigir a composição web do Diário em telas largas, onde cards nutricionais podiam se sobrepor ao conteúdo e a maior parte da experiência permanecia comprimida numa coluna com proporções de celular, desperdiçando a largura disponível. A fatia deve aproveitar o shell desktop corrigido pela D1 sem modificar a experiência mobile já existente.
 
@@ -708,9 +708,11 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 
 - **Recursos/arquivos principais envolvidos:** protótipo externo `C:\Users\clovi\.codex\visualizations\2026\08\24\01a03230-1014-72b3-a9e6-3906a00e02ea\d2-diario-desktop.html`; `diary-screen.js` e equivalente ESM; controlador e dados já existentes do Diário; `one-ui.css`; componentes de macros, água, refeições, notas, suplementos e sugestão; `CHANGELOG_DESIGN.md` e sua cópia em `documentation/estado-atual/`; testes unitários estruturais; Playwright visual legado/Vite em 1280/1440/1920, vazio/preenchido e claro/escuro.
 
-- **O que foi feito:** o protótipo interativo foi transposto para o runtime apenas nos breakpoints desktop. `diary-screen.js` passou a expor quatro resumos estáveis — calorias, proteína, carboidratos e água — com iconografia SVG linear, mantendo no mobile o resumo anterior de dois cards. `one-ui.css` ampliou o shell do Diário até 1680 px e organizou a experiência em coluna principal de refeições e trilho contextual para leitura do dia, hidratação, notas e suplementos; o seletor de data ocupa a largura útil e a ação global de adicionar refeição permanece prioritária. A navegação larga só é aplicada ao shell standalone, preservando fluxos embutidos, e a transição de `padding` foi removida porque causava deriva geométrica nos screenshots sem acrescentar valor perceptível. A cobertura adicionada valida 1280/1440/1920 px, temas claro/escuro e estados vazio/preenchido no legado e no Vite, além de provar que o mobile continua com a composição anterior. Os testes estruturais focados passaram em 50/50; os recortes visuais focados passaram em 7/7 no legado e 7/7 no Vite; o gate local integral terminou verde com preflight, 1.488/1.488 unitários, smoke autenticado legado/Vite e cutover 60/60. O lock autenticado e as portas dos servidores foram liberados ao final. No PR draft #270, o HEAD funcional `c9cd072` também passou no CI autenticado pesado `36286683625` e no preflight documental `36286683646`, sem relaxar requisitos.
+- **O que foi feito:** o protótipo interativo foi transposto para o runtime apenas nos breakpoints desktop. `diary-screen.js` passou a expor quatro resumos estáveis — calorias, proteína, carboidratos e água — com iconografia SVG linear, mantendo no mobile o resumo anterior de dois cards. `one-ui.css` ampliou o shell do Diário até 1680 px e organizou a experiência em coluna principal de refeições e trilho contextual para leitura do dia, hidratação, notas e suplementos; o seletor de data ocupa a largura útil e a ação global de adicionar refeição permanece prioritária. A navegação larga só é aplicada ao shell standalone, preservando fluxos embutidos, e a transição de `padding` foi removida porque causava deriva geométrica nos screenshots sem acrescentar valor perceptível. A cobertura adicionada valida 1280/1440/1920 px, temas claro/escuro e estados vazio/preenchido no legado e no Vite, além de provar que o mobile continua com a composição anterior. Os testes estruturais focados passaram em 50/50; os recortes visuais focados passaram em 7/7 no legado e 7/7 no Vite; o gate local integral terminou verde com preflight, 1.488/1.488 unitários, smoke autenticado legado/Vite e cutover 60/60. O lock autenticado e as portas dos servidores foram liberados ao final. Os dois HEADs do PR #270 passaram nos CIs pesados `36286683625` e `36288512798` e nos preflights documentais `36286683646` e `36288512800`, sem relaxar requisitos. O PR foi retirado do draft e mesclado na `main` em `9d3eb03`.
 
-- **PRs/commits relacionados:** [PR draft #270](https://github.com/magnoClovis/nutrition-tracker/pull/270); commit funcional [`c9cd072`](https://github.com/magnoClovis/nutrition-tracker/commit/c9cd0722b3a64099d727a373302728b3b5b7f882); [CI pesado `36286683625`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36286683625) e [preflight documental `36286683646`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36286683646), ambos verdes. — **Chat-Origin:** Trofia-UIUX.
+- **Alinhamento:** 100%. A entrega correspondeu integralmente ao protótipo e ao escopo aprovados: desktop responsivo nas três larguras e nos dois temas/estados, preservação explícita do mobile, iconografia e linguagem visual documentadas e cobertura legado/Vite. A remoção da transição de `padding` foi uma correção técnica interna para manter geometria determinística, sem desvio visual ou funcional do plano; impacto final neutro para o escopo e positivo para a estabilidade dos testes.
+
+- **PRs/commits relacionados:** [PR #270](https://github.com/magnoClovis/nutrition-tracker/pull/270), mesclado em [`9d3eb03`](https://github.com/magnoClovis/nutrition-tracker/commit/9d3eb03bdcd6aeecb8ce1680059297e914cbf22c); commit funcional [`c9cd072`](https://github.com/magnoClovis/nutrition-tracker/commit/c9cd0722b3a64099d727a373302728b3b5b7f882) e fechamento pré-merge [`588dcfe`](https://github.com/magnoClovis/nutrition-tracker/commit/588dcfe68befe92c4523900f4d15da8b878f5541); CI pesado [`36286683625`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36286683625) e [`36288512798`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36288512798), além dos preflights documentais [`36286683646`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36286683646) e [`36288512800`](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36288512800), todos verdes. — **Chat-Origin:** Trofia-UIUX.
 
 ## C07 - Cobertura visual autenticada dos componentes customizados
 
