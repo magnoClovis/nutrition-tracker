@@ -1243,8 +1243,9 @@
 - **Data de início:** 22/09/2026.
 - **Data de conclusão:** não concluído.
 - **Propósito:** tornar o claro o padrão visual comum sem retirar do usuário o controle posterior do tema.
-- **O que se planeja fazer:** migrar todos os usuários uma única vez para claro e depois respeitar escolha manual ou acompanhamento do dispositivo.
-- **Recursos/arquivos principais envolvidos:** preferências de tema, storage local, Configurações, tokens claro/escuro e testes de migração.
+- **O que se planeja fazer:** adotar claro como padrão global, migrar silenciosamente uma única vez os usuários existentes para claro e, depois dessa migração, respeitar normalmente as escolhas claro, escuro ou sistema.
+- **Recursos/arquivos principais envolvidos:** `documentation/estado-atual/I3-POLITICA-MIGRACAO-TEMA.md`, `app.js`, `nutrition-tracker.jsx`, `src/App.jsx`, `login-screen.js`, `localStorage`, Configurações, tokens claro/escuro e testes de migração.
+- **O que foi feito:** a política e a estratégia foram documentadas sem alteração de runtime: a migração local versionada substituirá uma única vez o antigo padrão escuro por claro em cada instalação, sem Firebase nem aviso, e escolhas posteriores voltarão a prevalecer; o protótipo com aviso ficou superado e deverá ser revisado.
 
 ### [I4] - Ação principal e menu “o que criar”
 

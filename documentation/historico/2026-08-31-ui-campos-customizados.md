@@ -1572,6 +1572,34 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 - **Alinhamento:** 100%; a limpeza seguiu integralmente o plano auditado, preservou a documentação vigente e teve impacto positivo de higiene e rastreabilidade, sem perda de trabalho exclusivo.
 - **PRs/commits relacionados:** [PR #170 — fechado sem merge](https://github.com/magnoClovis/nutrition-tracker/pull/170), commit obsoleto `39abd3d`, preflight `33448649654`; conteúdo vigente rastreado nos PRs #169, #172 e #196. — **Chat:** Trofia-Principal.
 
+### [I3] - Política e migração de tema
+
+- **Status:** em andamento.
+
+- **Data de início:** 22/09/2026.
+
+- **Data de conclusão:** não concluído.
+
+- **Tempo decorrido:** pendente de merge.
+
+- **Minutos de CI:** 0 min; implementação e CI não iniciados.
+
+- **Propósito:** estabelecer o tema claro como padrão coerente em todo o app e na web, inclusive no bootstrap público, e executar a transição dos usuários existentes sem manter indefinidamente lógica ou dados criados apenas para explicar uma mudança única.
+
+- **O que se planeja fazer:** aplicar claro por padrão em login, registro e demais telas públicas; manter alternância manual claro/escuro antes da autenticação; migrar silenciosamente e exatamente uma vez as contas existentes para claro, inclusive substituindo uma preferência escura anterior; e, depois dessa migração, respeitar normalmente as escolhas claro, escuro ou sistema. A implementação deverá ser idempotente, evitar flash indevido de tema e cobrir app/web sem criar marcador de aviso visto.
+
+- **Recursos/arquivos principais envolvidos:** `documentation/estado-atual/I3-POLITICA-MIGRACAO-TEMA.md`, protótipo externo `i3-politica-migracao-tema.html`, `app.js`, `nutrition-tracker.jsx`, `src/App.jsx`, `login-screen.js`, bootstrap público e autenticado, Configurações, `localStorage`, `prefers-color-scheme`, tokens claro/escuro, testes unitários e Playwright. Firebase, Firestore, Auth, App Check e rules permanecem fora do escopo aprovado.
+
+- **O que foi feito:** foi produzido um protótipo exploratório com uma proposta inicial de aviso único de migração, mas ele não chegou a ser aprovado. Na revisão textual, o responsável substituiu esse comportamento por uma política mais simples: tema claro como padrão global; novos usuários começam diretamente em claro; telas públicas mantêm controle manual claro/escuro; e usuários existentes têm a preferência anterior sobrescrita silenciosamente uma única vez para claro. Não haverá modal, banner, toast nem campo de “aviso visto”. Depois dessa migração, escolhas novas de claro, escuro ou sistema devem persistir e prevalecer normalmente na mesma instalação, inclusive após nova autenticação; a migração não pode voltar a sobrescrevê-las.
+
+  A auditoria do runtime confirmou que o estado atual é exclusivamente local: `appDarkMode` guarda um booleano no `localStorage`, `login-screen.js` lê e escreve essa mesma chave, e não existe preferência de tema vinculada à conta no Firestore. Também confirmou que `app.js`, `nutrition-tracker.jsx` e `src/App.jsx` contêm `appThemeDefaultDarkV1`, uma migração anterior que força escuro uma única vez. Por isso, “todos os usuários atuais” significa tecnicamente cada navegador/instalação na primeira abertura da versão I3; não existe dado remoto a atualizar em massa e a escolha não é sincronizada entre dispositivos.
+
+  A estratégia registrada substitui a migração escura por uma política local versionada. Antes da primeira pintura, uma instalação sem a versão I3 grava `light`, aplica `data-theme="light"` e só então grava a versão concluída. A ordem é fail-safe: se o storage falhar ou a execução for interrompida, a migração não é falsamente considerada concluída e pode tentar novamente. Em aberturas posteriores, a versão impede nova sobrescrita e o app respeita `light`, `dark` ou `system`; este último resolve por `prefers-color-scheme`. O marcador representa versão técnica, não visualização de aviso. `appThemeDefaultDarkV1` deixa de ter autoridade, evitando que o padrão antigo recoloque o produto em escuro. Uma instalação nova, reinstalada ou sem storage começa em claro pelo mesmo caminho.
+
+  O contrato, pseudocódigo, matriz de estados, limites e testes planejados foram consolidados no documento específico. Os nomes finais das chaves e o ponto exato do bootstrap permanecem decisões de implementação, mas não podem alterar a ordem, a idempotência ou a ausência de Firebase. Sincronização de tema entre dispositivos fica explicitamente fora da I3 e exigiria uma fatia futura com o Trofia-Principal. Nenhum arquivo de runtime, preferência, Firebase ou dado de usuário foi alterado por este registro.
+
+- **PRs/commits relacionados:** não determinados; esta entrada registra a decisão aprovada antes da implementação. — **Chat-Origin:** Trofia-UIUX.
+
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
 **Data (se determinável):** não determinado.
