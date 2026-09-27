@@ -118,6 +118,42 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 
 **PRs/commits relacionados:** PR [#264](https://github.com/magnoClovis/nutrition-tracker/pull/264); commits `d033663` e `11dcfaa`; merge `d617840`; base reconciliada `b9ae9ff`; runs leves `36245598213`/`36247694749` e pesados `36245598218`/`36247694731`; PRs de precedência #257, #261, #262 e #258.
 
+## [BUG-BACKUP-PREVIEW-VITE] - Coalescência das leituras diárias no preview Vite
+
+**Status:** concluído.
+
+**Data de início:** 26/09/2026.
+
+**Data de conclusão:** 27/09/2026.
+
+**Tempo decorrido:** 3 h 3 min 43 s.
+
+**Minutos de CI:** 83,13 min totais (leve: 0,75 min/45 s; pesado: 82,38 min/82 min 23 s).
+
+**Propósito:** reduzir as leituras Firestore redundantes por data durante o preview autenticado de um backup real no runtime Vite, mantendo a tarefa independente de D08/D09, D13 e do PR #265 e sem declarar artificialmente resolvida a intermitência observada no CI.
+
+**O que se planeja fazer:** preservar os artefatos e o diagnóstico já obtidos; compartilhar, exclusivamente dentro de cada chamada de preview, uma única Promise e um único resultado de `fbReadDailyStateCompatible3(date)` entre as chaves de refeições, água e suplementos da mesma data; manter datas distintas independentes; descartar o estado temporário após sucesso ou falha; preservar fail-closed, conteúdo, contagens, formatos, retrocompatibilidade e estratégias de importação; cobrir sucesso, falha, limpeza e nova leitura em preview posterior; medir antes/depois com a conta descartável e executar testes focados, `npm test` completo e CI autenticado real sem timeout maior nem retry.
+
+**Recursos/arquivos principais envolvidos:** `firebase-backup-internal.js`, `src/firebase/firebase-sdk-runtime.js`, testes unitários do runtime e do backup, `tests/smoke/backup-preview-diagnostic.spec.js`, `tests/smoke/authenticated-flows.spec.js`, Playwright Vite, screenshots/contextos/JSON do run #36257846855 e a conta descartável autenticada.
+
+**O que foi feito:** o CI do PR #265, run `36257846855`, job `108464899999`, falhou duas vezes no mesmo ponto de `tests/smoke/authenticated-flows.spec.js`: após `setInputFiles`, `getByRole('heading', {name: /Revisar importação/i})` não apareceu no limite existente de 20 segundos. Na tentativa 1, desktop passou em 63.128 s e mobile falhou em 78.197 s; na tentativa 2, desktop falhou em 78.680 s e mobile passou em 64.223 s. Os dois screenshots e snapshots de acessibilidade mostram somente a tela “Backup e restaurar”, sem modal e sem mensagem de erro, o que é compatível com o `await previewFullAccountBackupImport(rawBackup)` ainda pendente, não com rejeição tratada pelo `catch`.
+
+O código atual confirma uma amplificação específica do runtime Vite: `previewFullAccountBackupImport3` processa cada chave importável e chama `readBackupValue(targetKey)`; para cada `log_v2_DATA`, `waterIntake_DATA` e `suppLog_DATA`, `readBackupValue` chama novamente `fbReadDailyStateCompatible3(DATA)`. Essa leitura recompõe simultaneamente refeições, água e suplementos e cada categoria consulta migração/coleção, portanto as três chaves da mesma data repetem o mesmo estado completo. A execução diagnóstica anterior registrada no chat passou isoladamente em desktop/mobile e observou 1.775 requisições de servidor para um backup com 102 datas, mas o arquivo diagnóstico permaneceu não commitado e o snapshot físico arquivado não pôde ser restaurado; por isso esse número é indício forte, não artefato suficiente para declarar causalidade encerrada.
+
+O diagnóstico reconstruído foi executado sob o lease autenticado em 27/09/2026 sem importar dados: autenticação, desktop e mobile passaram (3/3). O desktop apresentou o preview em 2.626 ms e o mobile em 2.366 ms; cada viewport contabilizou 413 chaves importáveis, 298 chaves diárias, 103 datas, 1.793 requisições de servidor e 918 documentos. Isso confirma e quantifica a amplificação, mas não prova que ela seja a causa exclusiva do timeout intermitente. A implementação funcional foi aprovada em 27/09/2026 sobre a `origin/main` `3e2932a`, permanece sem commit/push/PR e deve manter explicitamente separadas as conclusões “leituras redundantes corrigidas e medidas” e “timeout intermitente resolvido”.
+
+A implementação adicionou ao serviço interno uma fábrica de leitor específica de preview, mantendo como padrão o leitor existente para não alterar legado, importação ou exportação. O runtime modular Vite fornece um leitor com `Map` privado de Promises por data: a primeira chave diária inicia `fbReadDailyStateCompatible3(date)` e refeições, água e suplementos da mesma data compartilham o resultado; chaves não diárias continuam em `fbGet3`. O mapa pertence somente à chamada de preview e fica inacessível ao término, inclusive em rejeição, de modo que um novo preview cria outro leitor e consulta o estado atual. Erros compartilhados continuam rejeitando o preview e são convertidos pelo serviço na falha explícita já existente, sem habilitar importação parcial.
+
+Os testes focados passaram 32/32 em UMD/ESM e no helper do runtime. Cobrem três chaves da mesma data com uma leitura completa, datas distintas, uma rejeição compartilhada, novo preview após sucesso e após falha, delegação de chave não diária, criação de leitor por operação e igualdade integral de conteúdo/contagens. A medição autenticada pós-correção passou 3/3 em execução terminal verde: desktop apresentou o modal em 1.082 ms e mobile em 1.328 ms; ambos mantiveram 413 chaves importáveis, 298 chaves diárias e 103 datas, mas caíram para 623 requests e 310 documentos. Frente à base de 1.793/918, a redução foi de 1.170 requests (-65,3%) e 608 documentos (-66,2%). Uma execução anterior obteve a mesma contagem e tempos de 1.068/1.091 ms, porém encerrou com timeout apenas na liberação do lease remoto; o run de lease `36310228970` depois ficou `completed/cancelled`, com lease e porta locais liberados.
+
+O primeiro `npm test` não alcançou os smokes porque `worker/node_modules/jose` não existia na worktree; `npm --prefix worker ci` instalou deterministicamente 87 pacotes pelo lockfile e a importação de `firebase-id-token.js` confirmou `jose`. Na repetição, preflight passou, 1.496/1.496 unitários passaram, a matriz de smoke legado percorreu 135 casos com apenas os skips Vite esperados, o smoke Vite passou 135/135 — incluindo round trip real de backup e o diagnóstico nos dois viewports — e o cutover passou 60/60. Nenhuma credencial, UID ou conteúdo nutricional foi registrado. Uma segunda execução integral anterior ao commit documental final repetiu todos esses resultados verdes; o timeout intermitente não é declarado resolvido somente pela redução de leituras.
+
+O commit `cb2e46e` abriu o PR draft #274 e o commit documental `60831fa` reconciliou as evidências antes da revisão. No primeiro ciclo, o gate leve #36316725199 passou em 23 s e o CI pesado #36316725209 em 40 min 51 s. No ciclo final, o gate leve #36323176142 passou em 22 s e o CI pesado #36323176182 em 41 min 32 s. Os dois ciclos confirmaram 1.496/1.496 unitários, Worker 44/44 no Node e 9/9 no runtime, Functions emulator verde e duas matrizes Playwright autenticadas de 135 testes por ciclo, sem skip por falta de credenciais. Os quatro gates somaram 83,13 min, divididos em 0,75 min/45 s de gates leves e 82,38 min/82 min 23 s de gates pesados. Após revisão e autorização explícita do usuário, o PR #274 foi retirado do draft e mesclado em `2d40a10` às 16:47:53 CEST de 27/09/2026; o tempo exato do primeiro commit ao merge foi 3 h 3 min 43 s. A worktree funcional estava limpa, sem processo ativo, e foi arquivada após o merge.
+
+**Alinhamento:** 100% — a entrega correspondeu ao escopo aprovado: coalescência restrita a um único preview, descarte do estado após sucesso ou falha, nova leitura em previews posteriores, propagação fail-closed e conteúdo/contagens preservados. A redução de leituras foi corrigida e medida sem timeout maior nem retry; coerentemente com o plano, os ciclos verdes não foram tratados como prova definitiva de resolução do timeout intermitente. O impacto final foi positivo para desempenho e estabilidade, sem alteração de dados persistidos ou contratos de backup.
+
+**PRs/commits relacionados:** PR [#274](https://github.com/magnoClovis/nutrition-tracker/pull/274), commits `cb2e46e`/`60831fa`, merge `2d40a10`, gates leves [#36316725199](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36316725199)/[#36323176142](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36323176142) e CIs pesados [#36316725209](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36316725209)/[#36323176182](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36323176182); run de origem [#36257846855](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36257846855), job `108464899999`, artefatos `playwright-failure-36257846855-1`/`-2`; lease local [#36310228970](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36310228970); PR de origem #265; correção D08/D09 anterior no PR #264.
+
 ## [BUG-D01-AUDIT] - Revalidação do idioma na verificação de e-mail
 
 **Status:** concluído.
@@ -144,15 +180,15 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 
 ## [BUG-D13] - Normalização das chaves históricas na leitura analítica
 
-**Status:** em andamento.
+**Status:** concluído.
 
 **Data de início:** 26/09/2026.
 
-**Data de conclusão:** não concluído.
+**Data de conclusão:** 27/09/2026.
 
-**Tempo decorrido:** pendente de merge.
+**Tempo decorrido:** 1 h 57 min 34 s.
 
-**Minutos de CI:** 35 min 26 s (23 s leve + 35 min 3 s pesado).
+**Minutos de CI:** 1 h 7 min (47 s leve + 1 h 6 min 13 s pesado).
 
 **Propósito:** verificar por evidência se logs com chaves de refeição históricas ou traduzidas deixam de participar das médias por refeição, da cobertura nutricional e do contexto enviado à IA e corrigir somente a leitura analítica comprovadamente afetada, sem tocar em documentos ou contas reais.
 
@@ -178,11 +214,15 @@ A terceira execução integral terminou verde: preflight sem avisos; 1.475/1.475
 
 O commit funcional `e373216` abriu o PR draft #271. Os dois gates remotos passaram no primeiro ciclo: o Documentation preflight `36295928604` em 23 s e o CI pesado `36295928606` em 35 min 3 s, totalizando 35 min 26 s. Sobre a base final, o CI executou 1.483/1.483 unitários, 44/44 testes do Worker, 74/74 testes de Functions, smoke legado com 121 aprovados e 8 skips estruturais e smoke Vite 129/129. A variável da conta descartável estava presente e mascarada no log; nenhuma suíte foi ignorada por falta de credenciais. A matriz cutover 60/60 permanece comprovada pelo gate local integral, pois não é uma etapa separada do workflow remoto atual.
 
+O commit documental `e896852` registrou a primeira rodada e iniciou o ciclo final. O Documentation preflight `36299451500` passou em 24 s e o CI pesado `36299451483` passou em 31 min 10 s, repetindo 1.483/1.483 unitários, Worker 44/44, Functions 74/74, legado 121 aprovados + 8 skips estruturais e Vite 129/129 com credenciais descartáveis presentes. Os dois ciclos somaram exatamente 1 h 7 min: 47 s leves e 1 h 6 min 13 s pesados. Após autorização explícita, o PR #271 foi mesclado em `adc4dcf` às 06:57:17 UTC de 27/09/2026, 1 h 57 min 34 s depois do primeiro commit `e373216` às 04:59:43 UTC. A descrição do PR recebeu os mesmos valores pós-merge.
+
 O contrato de leitura recomendado é manter `MEAL_KEYS` e as chaves persistidas intactos, aplicar a conversão posicional PT/EN/ES apenas à cópia em memória da janela que alimenta `aggregateMealAverages` e concatenar cada ocorrência armazenada sob o destino canônico. Não se recomenda deduplicação por `id`: além de não haver prova de que duas ocorrências em chaves diferentes sejam o mesmo lançamento, versões anteriores reutilizaram identificadores em contextos distintos. A consequência esperada é que médias históricas de contas com chaves EN/ES passem a refletir refeições antes omitidas; isso é mudança analítica intencional, não migração de dados. Para a IA, o contrato deve ser congelado por teste de equivalência PT/EN/ES e o runtime deve permanecer inalterado enquanto o prompt continuar independente da categoria.
 
 A complexidade estimada da correção é baixa a média. Recomenda-se uma única fatia funcional futura, restrita ao loader/normalização da média por refeição e aos testes UMD/ESM de loader/agregador, com regressão explícita no prompt de IA para provar ausência de mudança. Separar em dois PRs criaria uma segunda correção sem defeito efetivo em `eating-patterns-ai.js`; a alternativa segura é um PR único que corrija somente o caminho comprovadamente afetado e atualize a documentação do D13.
 
-**PRs/commits relacionados:** base auditada `7c682291d61868fec5958464975e7bd39d0b9986`; PR documental #268, commit `68bac91`, merge `0dcc32f`, run leve `36253079974`; base final reconciliada `c4612ef`; CI concorrente evitado `36288512798`; PR draft [#271](https://github.com/magnoClovis/nutrition-tracker/pull/271), commit funcional `e373216`, run leve `36295928604` e run pesado `36295928606`.
+**Alinhamento:** 100% — a fatia entregou exatamente a normalização somente em leitura aprovada, reutilizando o mapeamento PT/EN/ES e preservando documentos, chaves persistidas, IDs e `eating-patterns-ai.js`. Os bloqueios de lease e a falha visual intermitente foram tratados por evidência sem ampliar o escopo; o impacto final desses incidentes foi neutro para o projeto.
+
+**PRs/commits relacionados:** base auditada `7c682291d61868fec5958464975e7bd39d0b9986`; PR documental #268, commit `68bac91`, merge `0dcc32f`, run leve `36253079974`; base final reconciliada `c4612ef`; CI concorrente evitado `36288512798`; PR [#271](https://github.com/magnoClovis/nutrition-tracker/pull/271), commits `e373216`/`e896852`, merge `adc4dcf`, runs leves `36295928604`/`36299451500` e pesados `36295928606`/`36299451483`.
 
 ## Métricas retroativas
 
@@ -193,3 +233,4 @@ A complexidade estimada da correção é baixa a média. Recomenda-se uma única
 | [#264](https://github.com/magnoClovis/nutrition-tracker/pull/264) | 1 h 28 min 37 s | 1 h 10 min 23 s (46 s leve + 1 h 9 min 37 s pesado) | Trofia-Bugs |
 | [#267](https://github.com/magnoClovis/nutrition-tracker/pull/267) | 21 min 10 s | 25 s (25 s leve + 0 s pesado) | Trofia-Bugs |
 | [#268](https://github.com/magnoClovis/nutrition-tracker/pull/268) | 8 h 2 min 3 s | 24 s (24 s leve + 0 s pesado) | Trofia-Bugs |
+| [#271](https://github.com/magnoClovis/nutrition-tracker/pull/271) | 1 h 57 min 34 s | 1 h 7 min (47 s leve + 1 h 6 min 13 s pesado) | Trofia-Bugs |

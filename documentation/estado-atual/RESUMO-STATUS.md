@@ -180,6 +180,17 @@
 - **O que foi feito:** o PR #264 (merge `d617840`) passou a exportar somente snapshot hidratado de `TODAY`, falhar fechado em virada civil ou preview inconsistente, usar exclusivamente `existingItems` e bloquear importação sem contrato válido; gates locais e CI passaram integralmente.
 - **Alinhamento:** 100% — D08 e D09 foram entregues na fatia única aprovada, preservando retrocompatibilidade e estratégias append/replace.
 
+### [BUG-BACKUP-PREVIEW-VITE] - Coalescência das leituras diárias no preview Vite
+
+- **Status:** concluído — **Chat:** Trofia-Bugs.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** 27/09/2026.
+- **Propósito:** reduzir de modo fail-closed as leituras Firestore repetidas por data durante a pré-visualização de importação no Vite, sem mascarar nem declarar antecipadamente resolvido o timeout intermitente.
+- **O que se planeja fazer:** coalescer em uma única Promise, limitada a cada preview, as leituras de refeições, água e suplementos da mesma data; descartar o estado temporário após sucesso ou falha, preservar contratos/resultados e validar regressões, suíte completa e CI autenticado real sem timeout maior ou retry.
+- **Recursos/arquivos principais envolvidos:** `firebase-backup-internal.js`, `src/firebase/firebase-sdk-runtime.js`, testes unitários do runtime/backup, `tests/smoke/backup-preview-diagnostic.spec.js`, Playwright Vite e artefatos do run #36257846855.
+- **O que foi feito:** o PR #274 (merge `2d40a10`) passou a compartilhar uma Promise por data exclusivamente dentro de cada preview; testes focados, duas suítes completas e dois ciclos de CI autenticado passaram, e a conta descartável mediu queda de 1.793 para 623 requests (-65,3%).
+- **Alinhamento:** 100% — as leituras redundantes foram corrigidas e medidas no escopo aprovado, sem timeout maior, retry ou cache persistente; a evidência não foi extrapolada para declarar o timeout intermitente definitivamente resolvido.
+
 ### [BUG-D01-AUDIT] - Revalidação do idioma na verificação de e-mail
 
 - **Status:** concluído — **Chat:** Trofia-Bugs.
@@ -193,13 +204,14 @@
 
 ### [BUG-D13] - Normalização das chaves históricas na leitura analítica
 
-- **Status:** em andamento — **Chat:** Trofia-Bugs.
+- **Status:** concluído — **Chat:** Trofia-Bugs.
 - **Data de início:** 26/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 27/09/2026.
 - **Propósito:** incluir chaves históricas PT/EN/ES nas médias por refeição sem reescrever dados persistidos nem alterar o contexto atual enviado à IA.
 - **O que se planeja fazer:** normalizar somente a cópia lida por `loadMealAnalysisData`, reutilizando o mapeamento PT/EN/ES existente, sem deduplicar por ID nem alterar `eating-patterns-ai.js` em produção; cobrir canônico, EN, ES, misto, chave desconhecida, imutabilidade e paridade UMD/ESM.
 - **Recursos/arquivos principais envolvidos:** `history-loaders.js`, `week-aggregator.js`, fachada ESM correspondente, testes unitários UMD/ESM, `eating-patterns-ai.js` apenas como regressão sem mudança de produção, inventário e documentação da frente.
-- **O que foi feito:** `loadMealAnalysisData` passou a normalizar apenas a cópia em memória antes da agregação; a regressão UMD/ESM cobre canônico, EN, ES, misto, desconhecido e imutabilidade. O gate local passou com 1.475 unitários, legado 111+8, Vite 119/119 e cutover 60/60; o PR draft #271 (`e373216`) passou também no CI remoto sobre a base final, com 1.483 unitários, legado 121+8 e Vite 129/129, e aguarda revisão.
+- **O que foi feito:** o PR #271 (`e373216`/`e896852`, merge `adc4dcf`) normalizou somente a cópia em memória de `loadMealAnalysisData`; regressões UMD/ESM e gates locais/remotos cobriram PT/EN/ES, mistura, chave desconhecida, imutabilidade, legado, Vite e cutover sem regravar dados nem alterar a IA.
+- **Alinhamento:** 100% — a entrega permaneceu integralmente no contrato de leitura aprovado e preservou persistência, IDs e `eating-patterns-ai.js`.
 
 ## O que está em andamento agora
 
@@ -1231,8 +1243,9 @@
 - **Data de início:** 22/09/2026.
 - **Data de conclusão:** não concluído.
 - **Propósito:** tornar o claro o padrão visual comum sem retirar do usuário o controle posterior do tema.
-- **O que se planeja fazer:** migrar todos os usuários uma única vez para claro e depois respeitar escolha manual ou acompanhamento do dispositivo.
-- **Recursos/arquivos principais envolvidos:** preferências de tema, storage local, Configurações, tokens claro/escuro e testes de migração.
+- **O que se planeja fazer:** adotar claro como padrão global, migrar silenciosamente uma única vez os usuários existentes para claro e, depois dessa migração, respeitar normalmente as escolhas claro, escuro ou sistema.
+- **Recursos/arquivos principais envolvidos:** `documentation/estado-atual/I3-POLITICA-MIGRACAO-TEMA.md`, `app.js`, `nutrition-tracker.jsx`, `src/App.jsx`, `login-screen.js`, `localStorage`, Configurações, tokens claro/escuro e testes de migração.
+- **O que foi feito:** a política e a estratégia foram documentadas sem alteração de runtime: a migração local versionada substituirá uma única vez o antigo padrão escuro por claro em cada instalação, sem Firebase nem aviso, e escolhas posteriores voltarão a prevalecer; o protótipo com aviso ficou superado e deverá ser revisado.
 
 ### [I4] - Ação principal e menu “o que criar”
 
@@ -1283,13 +1296,14 @@
 
 ### [D2] - Responsividade do Diário
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 26/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 27/09/2026.
 - **Propósito:** eliminar a sobreposição dos cards de macros/água e a coluna móvel estreita em telas largas.
 - **O que se planeja fazer:** implementar o protótipo aprovado em 1280/1440/1920 px, com quatro resumos nutricionais, área principal e trilho contextual responsivos nos estados vazio/preenchido e claro/escuro, documentando ícones e linguagem visual para futura adaptação mobile sem alterar o mobile nesta fatia.
 - **Recursos/arquivos principais envolvidos:** `diary-screen.js`, controlador do Diário, cards de macros/água, `one-ui.css`, `CHANGELOG_DESIGN.md`, Node Test e Playwright visual legado/Vite.
-- **O que foi feito:** o protótipo aprovado foi implementado exclusivamente no desktop, com quatro resumos nutricionais, coluna principal de refeições, trilho contextual e cobertura visual legado/Vite em 1280/1440/1920 px, claro/escuro e vazio/preenchido; gate local e CI autenticado do PR #270 ficaram verdes, e a fatia aguarda aprovação de merge.
+- **O que foi feito:** o PR #270 implementou o protótipo exclusivamente no desktop, com quatro resumos nutricionais, coluna principal de refeições, trilho contextual e cobertura visual legado/Vite em 1280/1440/1920 px, claro/escuro e vazio/preenchido, sendo mesclado em `9d3eb03` após gates verdes.
+- **Alinhamento:** 100%.
 
 ### [D3] - Responsividade de Alimentos
 

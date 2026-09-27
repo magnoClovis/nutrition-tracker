@@ -598,6 +598,42 @@ preview consome somente `existingItems`, valida inteiros não negativos e
 não habilita importação após contrato inválido. Resolvido no PR #264, merge
 `d617840`, com gates locais e CI verdes.
 
+[BUG-BACKUP-PREVIEW-VITE] Preview Vite repete leituras completas da mesma data
+Localização: backup-modal.js:324-355; firebase-backup-internal.js:340-390;
+src/firebase/firebase-sdk-runtime.js:29-46; firebase-firestore-sdk.js:939-965;
+tests/smoke/authenticated-flows.spec.js:206-255.
+Descrição/impacto: no run #36257846855, o modal “Revisar importação” não surgiu
+em 20 segundos após `setInputFiles`: mobile falhou na tentativa 1 e desktop na
+tentativa 2, enquanto o viewport complementar passou. Os screenshots mostram a
+tela de backup intacta, sem modal nem erro renderizado.
+Severidade: MÉDIO — torna o gate autenticado intermitente e pode deixar o usuário
+sem feedback enquanto o preview aguarda leituras do estado existente.
+Causa comprovada no código e por instrumentação: cada chave diária chama
+`fbReadDailyStateCompatible3(date)`, que lê refeições, água e suplementos; um
+backup com as três chaves da mesma data repete o mesmo estado completo três
+vezes. O diagnóstico autenticado reproduzível mediu 1.793 requisições de
+servidor para 103 datas/298 chaves diárias tanto em desktop quanto em mobile. A
+relação causal exclusiva com o limite de 20 segundos continua não comprovada.
+Resolução concluída: o runtime Vite agora cria um leitor privado por preview,
+compartilha Promise/resultado entre as três chaves da mesma data e descarta o
+estado com a operação. Testes cobrem datas iguais/diferentes, erro compartilhado,
+limpeza após sucesso/falha, segunda leitura atualizada e resultado equivalente.
+A medição autenticada caiu de 1.793 para 623 requests (-65,3%) e de 918 para 310
+documentos (-66,2%), sem cache persistente, aumento de timeout ou retry. Os dois
+ciclos de CI remoto, #36316725209 e #36323176182, passaram integralmente; essa
+redução e os ciclos verdes não provam isoladamente que o timeout intermitente
+esteja definitivamente resolvido.
+Risco de corrigir: cache com vida maior que a operação pode comparar contra
+estado obsoleto; coalescência incorreta pode misturar usuários ou sobreviver a
+troca de sessão. A correção deve ser limitada à operação/in-flight e coberta por
+falha de leitura, limpeza e paridade de resultado.
+Rastreio: fatia funcional `BUG-BACKUP-PREVIEW-VITE` concluída, separada de D13 e
+do PR #265; run #36257846855, job #108464899999, artefatos Playwright das
+tentativas 1/2, diagnósticos locais Vite 3/3 verdes, duas execuções integrais de
+`npm test` verdes, commits `cb2e46e`/`60831fa` e PR #274 mesclado em `2d40a10`
+em 27/09/2026 após os runs verdes #36316725199/#36316725209 e
+#36323176142/#36323176182.
+
 [D10] Pantry mantém resultados invisíveis, dose obrigatória oculta e controles órfãos
 Localização: pantry-screen.js:11-16;
 tests/unit/pantry-screen.test.js:188-199,256.
@@ -667,7 +703,7 @@ Rastreio: Tarefa 0 na `origin/main` `7c68229`; fixture local em memória e 62/62
 testes UMD/ESM focados verdes. A fatia única `BUG-D13` foi aprovada para
 normalizar somente a cópia lida por `loadMealAnalysisData`, sem alteração de
 produção em `eating-patterns-ai.js`, regravação de documentos ou deduplicação
-por ID; implementação em andamento sobre a base final reconciliada `c4612ef`.
+por ID; implementação concluída sobre a base final reconciliada `c4612ef`.
 Implementação local: `loadMealAnalysisData` normaliza cada log parseado somente
 na cópia entregue a `aggregateMealAverages`; `loadEatingPatternDays` e
 `eating-patterns-ai.js` permanecem inalterados. Regressão UMD/ESM cobre chave
@@ -676,7 +712,9 @@ verde sobre a base reconciliada `c4612ef`: 1.475 unitários, legado 111 aprovado
 + 8 skips estruturais, Vite 119/119 e cutover 60/60. O PR draft #271, commit
 `e373216`, passou no CI remoto: 1.483 unitários da base final, Worker e Functions
 verdes, legado 121 aprovados + 8 skips estruturais e Vite 129/129; nenhuma etapa
-foi ignorada por ausência de credenciais. Revisão e merge ainda pendentes.
+foi ignorada por ausência de credenciais. O segundo ciclo remoto repetiu os
+mesmos totais e permaneceu verde; o PR #271 foi mesclado em `adc4dcf` em
+27/09/2026. D13 está resolvido sem migração ou regravação de documentos.
 
 [D14] Snapshots históricos têm formatos diferentes e metadados parcialmente atuais
 Localização: historical-goals-model.js:10-22;
