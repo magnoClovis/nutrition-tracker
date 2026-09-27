@@ -1556,7 +1556,9 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
   O gate local integral terminou verde na mesma árvore e sem alterações posteriores: preflight sem avisos, 1.497/1.497 unitários, smoke autenticado legado/Vite com 137/137 casos e cutover 60/60. A primeira tentativa de chegar ao cutover foi interrompida corretamente pelo coordenador ao detectar o CI remoto legítimo `36327219537`; nenhum requisito foi relaxado e os estágios já verdes não foram usados como substituto do cutover. Depois que esse run concluiu com sucesso e o lease ficou livre, somente o cutover pendente foi executado e passou integralmente. O processo próprio liberou o lock e encerrou; as portas 8080/9150 observadas depois pertenciam ao emulador de outra worktree (`.codex-c14-f2-inventory-docs`) e foram preservadas, sem encerrar processos de outra frente.
 
-- **PRs/commits relacionados:** PR e commit ainda não determinados. — **Chat-Origin:** Trofia-UIUX.
+  Antes do push, a branch incorporou explicitamente a `origin/main` `4537403` pelo merge local `82d6238`, preservando o commit funcional `0bb2b9a` e sem reescrever o histórico. Como a base atualizada adicionou cobertura e alterou a árvore efetivamente validada, o gate integral foi repetido por completo nessa base: preflight sem avisos, 1.505/1.505 unitários, smoke legado com 129 aprovados + 10 skips estruturais, Vite 139/139 e cutover 60/60. O processo terminou com código zero, liberou o lock autenticado e não deixou servidor próprio nas portas de teste; o emulador alheio em 8080/9150 continuou preservado. Este é o resultado local final que fundamenta a abertura do PR draft e substitui, sem apagar, a evidência cronológica do gate anterior.
+
+- **PRs/commits relacionados:** commit funcional `0bb2b9a`; merge explícito da base `82d6238` sobre `origin/main` `4537403`; PR ainda não determinado. — **Chat-Origin:** Trofia-UIUX.
 
 ### [TEST-CAM-48PX] - Sincronização da medição dos alvos CAM-RED-6
 
