@@ -290,6 +290,16 @@ const {
   NumericField
 } = window.TemporalFieldModule.createTemporalField({ React });
 
+const { MealResultSheet } = window.MealResultSheetModule.createMealResultSheet({
+  React,
+  pickLang,
+  ChoiceField,
+  NumericField,
+  createEmptyItem: mealEstimateDomain.createEmptyItem,
+  calculateTotals: mealEstimateDomain.calculateTotals,
+  rescaleMealEstimateItem: window.MealEstimate.rescaleMealEstimateItem
+});
+
 const {
   LoginScreen
 } = window.LoginScreenModule.createLoginScreen({
@@ -416,7 +426,19 @@ const {
 
 const {
   AddScreen
-} = window.AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField, MealEstimateEditor });
+} = window.AddScreenModule.createAddScreen({
+  React,
+  pickLang,
+  quickQtys,
+  divisor,
+  ChoiceField,
+  TemporalField,
+  NumericField,
+  MealEstimateEditor,
+  MealResultSheet,
+  createManualMealEstimate: window.ManualMealResult.createManualMealEstimate,
+  defaultManualQuantity: window.ManualMealResult.defaultManualQuantity
+});
 
 const {
   MetricsScreen

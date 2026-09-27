@@ -37,13 +37,26 @@
    * @param {function(Object): Object} dependencies.NumericField Controlled app-local numeric selector.
    * @returns {{AddScreen: function(Object): Object}} Add-screen API.
    */
-  function createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField, MealEstimateEditor }) {
+  function createAddScreen({
+    React,
+    pickLang,
+    quickQtys,
+    divisor,
+    ChoiceField,
+    TemporalField,
+    NumericField,
+    MealEstimateEditor,
+    MealResultSheet,
+    createManualMealEstimate,
+    defaultManualQuantity
+  }) {
     if (!React || typeof React.createElement !== "function"
       || typeof pickLang !== "function" || typeof quickQtys !== "function"
       || typeof divisor !== "function" || typeof ChoiceField !== "function"
       || typeof TemporalField !== "function" || typeof NumericField !== "function"
-      || typeof MealEstimateEditor !== "function") {
-      throw new TypeError("AddScreen requires React, fields, and MealEstimateEditor");
+      || typeof MealEstimateEditor !== "function" || typeof MealResultSheet !== "function"
+      || typeof createManualMealEstimate !== "function" || typeof defaultManualQuantity !== "function") {
+      throw new TypeError("AddScreen requires React, fields, meal editors, and the manual result adapter");
     }
 
     const inp = {
@@ -89,7 +102,6 @@
       textTransform: "uppercase",
       fontWeight: 650
     };
-    const proteinColor = "var(--protein)";
     const caloriesColor = "var(--calories)";
 
     /**
@@ -166,6 +178,11 @@
         addEntry,
         setAddEntry,
         selectedFood,
+        manualMealResult,
+        setManualMealResult,
+        confirmManualMealResult,
+        stageManualMealResult,
+        reviewManualMealResult,
         ALL_FIELDS,
         addToLog,
         addToStaged,
@@ -183,6 +200,17 @@
         legacyTransferPanel
       } = props;
       const uiText = (pt, en, es) => pickLang(lang, pt, en, es);
+
+      function openManualMealResult(food) {
+        const quantity = defaultManualQuantity(food);
+        setAddEntry(current => ({
+          ...current,
+          foodId: food.id,
+          foodSearch: food.name,
+          qty: String(quantity)
+        }));
+        setManualMealResult(createManualMealEstimate(food, quantity));
+      }
 
       function renderMealChoice({ id, value, onChange }) {
         return React.createElement(ChoiceField, {
@@ -642,7 +670,7 @@
     }
   }, /*#__PURE__*/React.createElement("label", {
     style: lbl
-  }, "Alimento"), /*#__PURE__*/React.createElement("input", {
+  }, uiText("Alimento", "Food", "Alimento")), /*#__PURE__*/React.createElement("input", {
     value: addEntry.foodSearch || "",
     onChange: e => setAddEntry(a => ({
       ...a,
@@ -663,40 +691,58 @@
         borderRadius: "0 0 6px 6px",
         marginTop: -3
       }
-    }, "Nenhum resultado.");
+    }, uiText("Nenhum resultado.", "No results.", "Sin resultados."));
     return /*#__PURE__*/React.createElement("div", {
       style: {
-        background: "var(--input)",
-        border: "1px solid var(--border2)",
-        borderTop: "none",
-        borderRadius: "0 0 6px 6px",
-        marginTop: -3,
-        maxHeight: 200,
+        background: "transparent",
+        border: 0,
+        borderRadius: 0,
+        marginTop: 8,
+        maxHeight: 360,
+        display: "grid",
+        gap: 8,
         overflowY: "auto"
       }
-    }, results.map(f => /*#__PURE__*/React.createElement("div", {
+    }, results.map(f => {
+      const defaultQuantity = defaultManualQuantity(f);
+      const defaultKcal = Number(f.kcal100) * defaultQuantity / divisor(f.unit);
+      return /*#__PURE__*/React.createElement("button", {
       key: f.id,
-      onClick: () => setAddEntry(a => ({
-        ...a,
-        foodId: f.id,
-        foodSearch: f.name
-      })),
+      type: "button",
+      onClick: () => openManualMealResult(f),
+      "aria-label": uiText(
+        `Abrir detalhes de ${f.name}`,
+        `Open details for ${f.name}`,
+        `Abrir detalles de ${f.name}`
+      ),
+      "data-manual-food-result": "true",
+      "data-manual-food-id": f.id,
       style: {
-        padding: "9px 12px",
+        width: "100%",
+        padding: "14px 16px",
+        minHeight: 72,
         cursor: "pointer",
-        borderBottom: "1px solid var(--border3)",
+        border: "1px solid var(--border3)",
+        borderRadius: 16,
         fontSize: 14,
+        fontFamily: "inherit",
+        textAlign: "left",
         color: addEntry.foodId === f.id ? "var(--btn-ok-text)" : "var(--text)",
-        background: addEntry.foodId === f.id ? "var(--btn-ok)" : "transparent"
+        background: addEntry.foodId === f.id ? "var(--btn-ok)" : "var(--surface-block)",
+        display: "grid",
+        gridTemplateColumns: "10px minmax(0, 1fr) auto",
+        alignItems: "center",
+        gap: 10
       }
     },
-    /*#__PURE__*/React.createElement("span", {style:{fontSize:14,fontWeight:500,color:"var(--text)"}}, f.name),
-    /*#__PURE__*/React.createElement("span", {style:{fontSize:12,color:proteinColor,marginLeft:8}},
-      f.protein100, f.unit==="un" ? "g" : "g", " prot"
-    ),
-    /*#__PURE__*/React.createElement("span", {style:{fontSize:12,color:caloriesColor,marginLeft:6}},
-      f.kcal100, f.unit==="un" ? " kcal/un" : " kcal/100"+f.unit
-    ))));
+    /*#__PURE__*/React.createElement("span", { style: { width: 9, height: 9, borderRadius: 999, background: "#5d9fd6" }, "aria-hidden": "true" }),
+    /*#__PURE__*/React.createElement("span", null,
+      /*#__PURE__*/React.createElement("strong", { style: { display: "block", fontSize: 14, fontWeight: 650, color: "var(--text)" } }, f.name),
+      /*#__PURE__*/React.createElement("span", { style: { display: "block", fontSize: 12, color: "var(--muted)", marginTop: 2 } }, defaultQuantity, " ", f.unit, " ", uiText("padrão", "default", "predeterminado"))),
+    /*#__PURE__*/React.createElement("span", { style: { textAlign: "right", color: caloriesColor, fontWeight: 650 } },
+      Number.isFinite(defaultKcal) ? Math.round(defaultKcal) : "—",
+      /*#__PURE__*/React.createElement("small", { style: { display: "block", color: "var(--muted)", fontWeight: 500 } }, "kcal")));
+    }));
   })(), !addEntry.foodSearch && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
@@ -801,7 +847,27 @@
       border: "1px solid var(--btn-info-border)",
       color: "var(--btn-info-text)"
     }
-  }, uiText('+ Adicionar à refeição', '+ Add to meal', '+ Agregar a la comida')), batchMode && /*#__PURE__*/React.createElement("div", {
+  }, uiText('+ Adicionar à refeição', '+ Add to meal', '+ Agregar a la comida')), manualMealResult && /*#__PURE__*/React.createElement(MealResultSheet, {
+    estimate: manualMealResult,
+    photoUrl: "",
+    lang,
+    disabled: mealRegistrationSaving,
+    errors: [],
+    mealValue: batchMode ? staged.meal : addEntry.meal,
+    mealOptions: MEALS.map(meal => ({ value: meal, label: mealLabel(meal) })),
+    onMealChange: value => batchMode
+      ? setStaged(current => ({ ...current, meal: value }))
+      : setAddEntry(current => ({ ...current, meal: value })),
+    onChange: setManualMealResult,
+    onConfirm: () => batchMode
+      ? stageManualMealResult(manualMealResult)
+      : confirmManualMealResult(manualMealResult, addEntry.meal),
+    confirmLabel: batchMode
+      ? uiText("Adicionar à refeição", "Add to meal", "Agregar a la comida")
+      : uiText("Registrar refeição", "Log meal", "Registrar comida"),
+    onReview: () => reviewManualMealResult(manualMealResult, batchMode ? staged.meal : addEntry.meal),
+    onDiscard: () => setManualMealResult(null)
+  }), batchMode && /*#__PURE__*/React.createElement("div", {
     "data-add-staged-meal": "true",
     style: {
       marginTop: 14

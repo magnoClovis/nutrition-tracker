@@ -1165,6 +1165,7 @@
         qty: "",
         meal: "Café da manhã"
       });
+      const [manualMealResult, setManualMealResult] = useState(null);
       const [batchMode, setBatchMode] = useState(true);
       const [staged, setStaged] = useState({
         meal: "Café da manhã",
@@ -3134,6 +3135,7 @@
         if (history[history.length - 1] === origin.tab) history.pop();
         pendingScrollRestoreRef.current = origin.scrollY;
         mealRegistrationOriginRef.current = null;
+        setManualMealResult(null);
         openTab(origin.tab, { skipTutorial: true, fromBack: true });
         return true;
       }
@@ -3325,6 +3327,40 @@
         }));
         notify(uiText(`${food.name} adicionado.`, `${food.name} added.`, `${food.name} añadido.`));
         await closeMealRegistration();
+      }
+      function resolveManualResultEntry(estimate) {
+        const item = Array.isArray(estimate?.items) ? estimate.items[0] : null;
+        const sourceFoodId = String(item?.sourceFoodId || "");
+        const quantity = Number(item?.estimatedGrams);
+        const food = pantry.find(candidate => String(candidate.id) === sourceFoodId);
+        if (!food || !Number.isFinite(quantity) || quantity <= 0) return null;
+        return { food, entry: buildEntry(food, quantity) };
+      }
+      async function confirmManualMealResult(estimate, meal) {
+        const resolved = resolveManualResultEntry(estimate);
+        if (!resolved || mealRegistrationSavingRef.current) return;
+        const [entry] = applySelectedMealTime([resolved.entry]);
+        const savedLog = await saveMealRegistration(meal, [entry]);
+        if (!savedLog) return;
+        setManualMealResult(null);
+        setAddEntry(current => ({ ...current, foodId: "", foodSearch: "", qty: "" }));
+        notify(uiText(`${resolved.food.name} adicionado.`, `${resolved.food.name} added.`, `${resolved.food.name} añadido.`));
+        await closeMealRegistration();
+      }
+      function stageManualMealResult(estimate) {
+        const resolved = resolveManualResultEntry(estimate);
+        if (!resolved) return;
+        setStaged(current => ({
+          ...current,
+          items: [...current.items, resolved.entry]
+        }));
+        setManualMealResult(null);
+        setAddEntry(current => ({ ...current, foodId: "", foodSearch: "", qty: "" }));
+      }
+      function reviewManualMealResult(estimate, meal) {
+        const resolved = resolveManualResultEntry(estimate);
+        if (!resolved) return;
+        openMealReview(meal, [resolved.entry], "manual");
       }
       function addToStaged() {
         if (!pantry.length) {
@@ -4137,6 +4173,10 @@
         if (mealReview.source === "described") {
           setDescribeResult(null);
           setMealDescription("");
+        }
+        if (mealReview.source === "manual") {
+          setManualMealResult(null);
+          setAddEntry(current => ({ ...current, foodId: "", foodSearch: "", qty: "" }));
         }
         closeMealReview();
         resetMealTimeControl();
@@ -5219,6 +5259,11 @@
         addEntry,
         setAddEntry,
         selectedFood,
+        manualMealResult,
+        setManualMealResult,
+        confirmManualMealResult,
+        stageManualMealResult,
+        reviewManualMealResult,
         ALL_FIELDS,
         addToLog,
         addToStaged,
