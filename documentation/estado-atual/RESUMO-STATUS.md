@@ -1219,9 +1219,9 @@
 
 ### [I1] - Carregamento animado
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 22/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 27/09/2026.
 - **Propósito:** transformar a espera inicial em uma transição deliberada e coerente com a identidade do Trofia.
 - **O que se planeja fazer:** prototipar e implementar logo pulsando/expandindo, mínimo de 800–1000 ms, claro/escuro e alternativa estática em reduced-motion.
 - **Recursos/arquivos principais envolvidos:** bootstrap/loading do app, logo Trofia, CSS de animação, temporização JS e Playwright visual.
@@ -1538,6 +1538,7 @@
 - **O que se planeja fazer:** modernizar resultados dos alimentos salvos e abrir o mesmo `MealResultSheet` com origem verificada, porção e nutrientes recalculados; busca textual em base aberta permanece fora do escopo.
 - **Recursos/arquivos principais envolvidos:** `add-screen.js`, adaptador de resultado manual, `meal-result-sheet.js`, `nutrition-tracker-controller.js`, NumericField, ChoiceField, `one-ui.css`, `i18n.js` e testes.
 - **O que foi feito:** adaptador UMD/ESM, lista modernizada e `MealResultSheet` compartilhado conectam alimento salvo, porção proporcional, avaliação, registro direto e montagem em lote; após incorporar a `origin/main` `4537403` sem reescrever o histórico, o gate local final ficou verde com preflight sem avisos, 1.505/1.505 unitários, smoke legado com 129 aprovados + 10 skips estruturais, Vite 139/139 e cutover 60/60; o primeiro HEAD funcional/documental do PR draft #277 também passou no CI autenticado real, leve e pesado.
+- **Alinhamento:** 100%. O resultado manual reutiliza o mesmo sheet aprovado, preserva procedência, edição proporcional, registro direto e montagem em lote, sem incluir busca em base aberta ou código de barras; impacto final positivo.
 
 ### [CAM-RED-9] - Robustez, acessibilidade e estados extremos
 
