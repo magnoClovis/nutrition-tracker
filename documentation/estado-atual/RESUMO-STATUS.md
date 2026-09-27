@@ -1705,7 +1705,7 @@
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** reconfirmar IAM, contas de serviço, invocadores, Functions/Tasks, segredos por nome/tipo e lockfiles; propor redução de privilégios e correções de dependências sem aplicá-las antes de avaliar o inventário.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** o PR #258 mesclado reconfirmou IAM; o draft #265 atualizou `firebase-admin` 14.2.0→14.5.0 e reduziu o audit de produção das Functions de sete para dois alertas moderados transitivos (`gaxios`/`uuid`). Após os PRs separados #274/#275 de backup, o reteste local passou 74/74 emuladores, 1.496/1.496 unitários, smokes com skips locais esperados e cutover 60/60; falta CI autenticado real no novo SHA. Sem merge, deploy ou alteração IAM.
+- **O que foi feito:** o PR #258 mesclado reconfirmou IAM; o draft #265 atualizou `firebase-admin` 14.2.0→14.5.0 e reduziu o audit de produção das Functions de sete para dois alertas moderados transitivos (`gaxios`/`uuid`). Após os PRs separados #274/#275 de backup, o reteste local passou 74/74 emuladores, 1.496/1.496 unitários, smokes com skips locais esperados e cutover 60/60; no SHA `97d1054`, o CI autenticado real passou com 1.496 unitários, 44 testes do Worker, 74 das Functions, 125 smokes legado + 10 skips estruturais e 135 Vite. Sem merge, deploy ou alteração IAM; a redução de `roles/editor` aguarda inventário completo dos consumidores da identidade padrão.
 
 ### [C14-F2-PRE] - Inventário preparatório de IAM e dependências
 
