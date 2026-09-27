@@ -1242,9 +1242,9 @@
 
 ### [I6] - Hierarquia visual da tela inicial
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 25/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** priorizar informações e ações da página inicial sem copiar a aparência dos aplicativos de referência.
 - **O que se planeja fazer:** reprojetar a organização da tela inicial com protótipo e aprovação específicos por ser a mudança mais subjetiva e ampla.
 - **Recursos/arquivos principais envolvidos:** Diário/home, cabeçalho, cards nutricionais, ações principais, estados vazios, `one-ui.css` e Playwright.
@@ -1481,12 +1481,13 @@
 
 ### [CAM-RED-7] - Resultado compartilhado e integração da foto
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 25/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** converter o resultado aprovado em componente reutilizável sem perder validação ou edição nutricional.
 - **O que se planeja fazer:** criar um sheet com encaixes em aproximadamente 68% e na altura total útil, expansível/recolhível por arraste e por alternativa acessível, coordenar gesto e rolagem interna, manter foto acima no estado inicial, CTA/refeição alcançáveis e edição de porção/ingredientes com recálculo proporcional imediato de kcal e nutrientes, cobrindo confiança, dados incompletos e listas extensas.
 - **Recursos/arquivos principais envolvidos:** novo `meal-result-sheet.js` UMD/ESM, controlador de sheet/gestos e safe areas, `meal-estimate-editor.js`, `meal-estimate.js`, `image-meal-screen.js`, ChoiceField, NumericField, `one-ui.css`, ARIA/teclado e testes.
+- **O que foi feito:** o PR draft #256 recebeu o novo `MealResultSheet`; após o AAB Play v26 revelar contenção incorreta de foto/sheet e recorte do NumericField, a correção passou nos gates, no CI e na repetição física do AAB Play v27 em claro/escuro, restando aprovação e merge.
 
 ### [TEST-CAM-48PX] - Sincronização da medição dos alvos CAM-RED-6
 

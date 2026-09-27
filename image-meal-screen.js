@@ -10,11 +10,11 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
-  function createImageMealScreen({ React, pickLang, MealEstimateEditor, ImageMealAnalysisScreen }) {
+  function createImageMealScreen({ React, pickLang, ImageMealAnalysisScreen, MealResultSheet }) {
     if (!React || typeof React.createElement !== "function" ||
-        typeof pickLang !== "function" || typeof MealEstimateEditor !== "function" ||
-        typeof ImageMealAnalysisScreen !== "function") {
-      throw new TypeError("ImageMealScreen requires React, pickLang, MealEstimateEditor, and ImageMealAnalysisScreen");
+        typeof pickLang !== "function" ||
+        typeof ImageMealAnalysisScreen !== "function" || typeof MealResultSheet !== "function") {
+      throw new TypeError("ImageMealScreen requires React, pickLang, ImageMealAnalysisScreen, and MealResultSheet");
     }
 
     const buttonStyle = {
@@ -48,7 +48,10 @@
       onDiscard,
       onEstimateChange,
       onReview,
-      onConfirm
+      onConfirm,
+      mealValue,
+      mealOptions,
+      onMealChange
     }) {
       if (!state) return null;
       const text = (pt, en, es) => pickLang(lang, pt, en, es);
@@ -360,37 +363,22 @@
           onClose
         });
       } else if (phase === "result" || phase === "confirming") {
-        const estimate = state.estimate;
-        content = React.createElement("div", { "data-image-meal-state": phase },
-          photo,
-          React.createElement("div", {
-            style: { margin: "14px 0", padding: 12, borderRadius: 9, background: "var(--ai-bg)", border: "1px solid var(--ai-border)" }
-          },
-          React.createElement("strong", { style: { color: "var(--ai-text)", fontSize: 16 } }, estimate?.dishName || ""),
-          React.createElement("div", { style: { color: "var(--muted)", fontSize: 12, marginTop: 4 } },
-            text("Confiança", "Confidence", "Confianza"), ": ", estimate?.overallConfidence || "low", " · ",
-            Array.isArray(estimate?.items) ? estimate.items.length : 0, " ",
-            text("alimentos", "foods", "alimentos"))),
-          state.error && React.createElement("div", { role: "alert", style: { color: "var(--danger, #c86e8e)", marginBottom: 10 } }, errorMessages[state.error]),
-          React.createElement(MealEstimateEditor, {
-            estimate,
-            lang,
-            isMobileView,
-            disabled: phase === "confirming",
-            errors: state.validationErrors,
-            onChange: onEstimateChange
-          }),
-          React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 } },
-            action(
-              phase === "confirming"
-                ? text("Registrando...", "Recording...", "Registrando...")
-                : text("Confirmar refeição", "Confirm meal", "Confirmar comida"),
-              onConfirm,
-              true
-            ),
-            action(text("Avaliar refeição", "Evaluate meal", "Evaluar comida"), onReview, false),
-            action(text("Analisar novamente", "Analyze again", "Analizar de nuevo"), onProcess, false),
-            action(text("Descartar foto", "Discard photo", "Descartar foto"), onDiscard, false)));
+        content = React.createElement(MealResultSheet, {
+          estimate: state.estimate,
+          photoUrl: state.photo?.previewUrl,
+          lang,
+          disabled: phase === "confirming",
+          errors: state.validationErrors,
+          errorMessage: state.error ? errorMessages[state.error] : "",
+          mealValue,
+          mealOptions,
+          onMealChange,
+          onChange: onEstimateChange,
+          onConfirm,
+          onReview,
+          onRetry: onProcess,
+          onDiscard
+        });
       } else if (phase === "not-identifiable") {
         const notFood = state.notIdentifiableReason === "not-food";
         content = React.createElement("div", { "data-image-meal-state": "not-identifiable" },
