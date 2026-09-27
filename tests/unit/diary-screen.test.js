@@ -715,6 +715,26 @@ contractTest("centers the Nutrients label and disclosure arrow as one group", Di
   assert.equal(textContent(button), "Nutrients▼");
 });
 
+contractTest("adds carbs and water summaries with line icons only on desktop", DiaryScreen => {
+  const desktop = DiaryScreen(baseProps({ section: "summary", isMobileView: false }));
+  const mobile = DiaryScreen(baseProps({ section: "summary", isMobileView: true }));
+  const metricKeys = view => findNodes(
+    view,
+    node => Boolean(node.props?.["data-metric-category"])
+  ).map(node => node.props["data-metric-category"]);
+  const iconKeys = view => findNodes(
+    view,
+    node => Boolean(node.props?.["data-metric-icon"])
+  ).map(node => node.props["data-metric-icon"]);
+
+  assert.deepEqual(metricKeys(desktop), ["kcal", "protein", "carbs", "water"]);
+  assert.deepEqual(iconKeys(desktop), ["kcal", "protein", "carbs", "water"]);
+  assert.deepEqual(metricKeys(mobile), ["protein", "kcal"]);
+  assert.deepEqual(iconKeys(mobile), []);
+  assert.match(textContent(desktop), /100gCarbs/);
+  assert.match(textContent(desktop), /500mlWater/);
+});
+
 contractTest("historical navigation remains callback-driven and keeps current supplements visible", DiaryScreen => {
   const dates = [];
   const view = DiaryScreen(baseProps({

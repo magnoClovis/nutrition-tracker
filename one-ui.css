@@ -2860,6 +2860,18 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
+[data-metric-category="carbs"] {
+  background: color-mix(in srgb, #a96ec8 18%, var(--surface-block)) !important;
+  color: #a96ec8;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+[data-metric-category="water"] {
+  background: var(--focus-water) !important;
+  color: var(--accent-water-text);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
 
 [data-diary-metrics] > .focus-block--no-transparency[data-metric-category="protein"] {
   background: var(--accent-protein-bg) !important;
@@ -2883,6 +2895,8 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
 }
 [data-metric-category="protein"] [data-metric-ring] span:first-of-type { color: var(--accent-protein-text) !important; }
 [data-metric-category="kcal"] [data-metric-ring] span:first-of-type { color: var(--accent-kcal-text) !important; }
+[data-metric-category="carbs"] [data-metric-ring] span:first-of-type { color: #a96ec8 !important; }
+[data-metric-category="water"] [data-metric-ring] span:first-of-type { color: var(--accent-water-text) !important; }
 
 [data-metric-ring] {
   position: static !important;
@@ -2921,6 +2935,10 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
   font-weight: 500 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
+}
+
+[data-metric-icon] {
+  flex: 0 0 auto;
 }
 
 [data-metric-progress] { margin-top: auto; }
@@ -3233,6 +3251,12 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
       max(calc(32px + var(--app-safe-right)), calc((100vw - 1080px) / 2))
       10px
       max(calc(32px + var(--app-safe-left)), calc((100vw - 1080px) / 2)) !important;
+    transition: box-shadow 240ms ease, background-color 240ms ease !important;
+  }
+
+  [data-one-ui-root]:has([data-app-nav-placement="standalone"]) [data-app-header] {
+    padding-right: max(calc(32px + var(--app-safe-right)), calc((100vw - 1680px) / 2)) !important;
+    padding-left: max(calc(32px + var(--app-safe-left)), calc((100vw - 1680px) / 2)) !important;
   }
 
   [data-app-header] > div:first-child > div:first-child > div:first-child {
@@ -3261,7 +3285,8 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
   }
 
   [data-app-nav-placement="standalone"] {
-    width: min(1080px, calc(100% - 64px));
+    max-width: 1680px;
+    width: calc(100% - 64px);
   }
 
   [data-app-nav] button {
@@ -3274,50 +3299,85 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
     padding: 24px 0 40px !important;
   }
 
+  [data-app-main="diario"] {
+    max-width: 1680px !important;
+  }
+
   [data-diary-metrics] {
-    position: absolute;
-    top: calc(100% + 24px);
-    left: max(32px, calc(50% - 540px));
-    width: 340px;
-    margin: 0 !important;
+    position: static;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+    max-width: none;
+    margin: 18px 0 0 !important;
     padding: 0 !important;
     background: transparent !important;
-    max-width: 340px;
-    z-index: 2;
+    z-index: auto;
     pointer-events: none;
   }
 
   [data-diary-metrics] > [data-metric-category] {
     padding: 16px !important;
+    min-height: 142px;
+  }
+
+  [data-metric-category] > div:nth-child(2) > div:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
   }
 
   [data-metric-ring] span:first-child { font-size: 32px !important; }
 
   [data-screen="diario"] {
     display: grid !important;
-    grid-template-columns: 340px minmax(0, 1fr);
-    gap: 16px 24px;
+    grid-template-columns: minmax(0, 1.7fr) minmax(280px, .76fr);
+    gap: 18px;
+    align-items: start;
   }
 
   [data-screen="diario"]::before {
-    content: "";
-    grid-column: 1;
-    grid-row: 1;
-    min-height: 216px;
+    content: none;
   }
 
   [data-screen="diario"] > [data-day-progress-summary] {
-    grid-column: 1;
-    grid-row: 2;
+    grid-column: 2;
   }
 
   [data-screen="diario"] > :not([data-diary-meal-card="true"]) {
-    grid-column: 1;
+    grid-column: 2;
     margin-bottom: 0 !important;
   }
 
   [data-screen="diario"] > [data-diary-meal-card="true"] {
+    grid-column: 1;
+  }
+
+  [data-screen="diario"] > [data-diary-content-stack="true"] {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(280px, .76fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  [data-diary-content-stack="true"] > [data-diary-date-primary="true"] {
+    grid-column: 1 / -1;
+  }
+
+  [data-diary-content-stack="true"] > :not([data-diary-date-primary="true"]):not([data-diary-meal-card="true"]):not([data-diary-global-add]) {
     grid-column: 2;
+  }
+
+  [data-diary-content-stack="true"] > [data-diary-meal-card="true"],
+  [data-diary-content-stack="true"] > [data-diary-global-add] {
+    grid-column: 1;
+  }
+
+  [data-screen="diario"] > [data-diary-global-add] {
+    grid-column: 1;
   }
 
   [data-diary-meal-card="true"] { padding: 16px !important; }

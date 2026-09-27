@@ -140,6 +140,29 @@
         { key: "zinc", labelKey: "zinc", unit: "mg" },
         { key: "vitc", labelKey: "vitC", unit: "mg" }
       ];
+      const desktopMetricIcon = key => {
+        const paths = {
+          kcal: ["M12 22c4.4 0 7-3.1 7-7.2 0-3-2-5.5-5.2-7.8.2 2.1-.8 3.6-1.8 4.5.2-3.6-1.5-6.3-5-9.5.3 3-1.8 5-1.8 8.6C5.2 18.9 8 22 12 22Z"],
+          protein: ["M7.5 7.5a3.5 3.5 0 0 1 5.8-2.6l5.8 5.8a3.5 3.5 0 0 1-5 5L8.4 10a3.5 3.5 0 0 1-.9-2.5Z", "m8.5 8.5-7 7", "m4 14 2 2", "m7 17 2 2"],
+          carbs: ["M12 22V8", "M8 6c2.2 0 4 1.8 4 4-2.2 0-4-1.8-4-4Z", "M16 5c-2.2 0-4 1.8-4 4 2.2 0 4-1.8 4-4Z", "M7 11c2.8 0 5 2.2 5 5-2.8 0-5-2.2-5-5Z", "M17 10c-2.8 0-5 2.2-5 5 2.8 0 5-2.2 5-5Z"],
+          water: ["M12 2.8S6.5 9 6.5 14a5.5 5.5 0 0 0 11 0C17.5 9 12 2.8 12 2.8Z", "M9.5 15.5c.6 1.2 1.5 1.8 2.8 2"]
+        };
+        return React.createElement("svg", {
+          "data-metric-icon": key,
+          viewBox: "0 0 24 24",
+          width: 20,
+          height: 20,
+          fill: "none",
+          stroke: "currentColor",
+          strokeWidth: 1.8,
+          strokeLinecap: "round",
+          strokeLinejoin: "round",
+          "aria-hidden": "true"
+        }, (paths[key] || []).map((path, index) => React.createElement("path", {
+          key: `${key}-${index}`,
+          d: path
+        })));
+      };
       const detailNumber = value => new Intl.NumberFormat(localeForLang(lang), {
         maximumFractionDigits: 2
       }).format(value);
@@ -756,19 +779,50 @@
       borderBottom: "1px solid var(--border)",
       order: 5
     }
-  }, [{
+  }, (isMobileView ? [{
+    key: "protein",
     label: text('protein'),
     val: tot.protein,
     goal: goals.protein,
     color: proteinColor,
     unit: "g"
   }, {
+    key: "kcal",
     label: text('calories'),
     val: tot.kcal,
     goal: goals.kcal,
     color: caloriesColor,
     unit: text('kcalUnit')
-  }].map(({
+  }] : [{
+    key: "kcal",
+    label: text('calories'),
+    val: tot.kcal,
+    goal: goals.kcal,
+    color: caloriesColor,
+    unit: text('kcalUnit')
+  }, {
+    key: "protein",
+    label: text('protein'),
+    val: tot.protein,
+    goal: goals.protein,
+    color: proteinColor,
+    unit: "g"
+  }, {
+    key: "carbs",
+    label: text('carbs'),
+    val: tot.carbs,
+    goal: goals.carbs,
+    color: "#a96ec8",
+    unit: "g"
+  }, {
+    key: "water",
+    label: text('water'),
+    val: totalWater,
+    goal: goals.water,
+    color: "var(--accent-water-fill)",
+    unit: "ml"
+  }]).map(({
+    key,
     label,
     val,
     goal,
@@ -776,7 +830,7 @@
     unit
   }) => /*#__PURE__*/React.createElement("div", {
     key: label,
-    "data-metric-category": label === text('protein') ? "protein" : "kcal",
+    "data-metric-category": key,
     className: "focus-block--no-transparency",
     style: {
       flex: 1,
@@ -829,7 +883,7 @@
       letterSpacing: 1,
       textTransform: "uppercase"
     }
-  }, label), /*#__PURE__*/React.createElement("div", {
+  }, isMobileView ? label : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", null, label), desktopMetricIcon(key))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 14,
       color: "var(--faint)"

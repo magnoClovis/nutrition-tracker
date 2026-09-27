@@ -40,10 +40,22 @@ test.describe('authenticated desktop shell and navigation geometry', () => {
       const navRect = navigation.getBoundingClientRect();
       const metricRect = metricButton ? metricButton.getBoundingClientRect() : null;
       const navStyle = getComputedStyle(navigation);
+      const headerStyle = getComputedStyle(header);
       const intersects = (a, b) => Boolean(a && b
         && a.left < b.right && a.right > b.left
         && a.top < b.bottom && a.bottom > b.top);
       return {
+        headerActiveTab: header.getAttribute('data-active-tab'),
+        headerPaddingLeft: headerStyle.paddingLeft,
+        headerPaddingRight: headerStyle.paddingRight,
+        navigationCount: document.querySelectorAll('[data-app-nav="true"]').length,
+        navigationParent: navigation.parentElement && navigation.parentElement.getAttribute('data-app-header') === 'true'
+          ? 'header'
+          : navigation.parentElement && navigation.parentElement.getAttribute('data-one-ui-root') === 'true'
+            ? 'root'
+            : navigation.parentElement && navigation.parentElement.tagName,
+        allNavigationPlacements: Array.from(document.querySelectorAll('[data-app-nav="true"]'))
+          .map(node => node.getAttribute('data-app-nav-placement')),
         placement: navigation.getAttribute('data-app-nav-placement'),
         navPosition: navStyle.position,
         navMarginTop: navStyle.marginTop,
@@ -73,7 +85,10 @@ test.describe('authenticated desktop shell and navigation geometry', () => {
     expect(geometry.statusOverlap).toBe(false);
     expect(geometry.metricOverlap).toBe(false);
     expect(geometry.navigation.top).toBeGreaterThanOrEqual(geometry.status.bottom);
-    expect(Math.abs(geometry.navigation.left - geometry.status.left)).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(geometry.navigation.left - geometry.status.left),
+      `desktop shell geometry: ${JSON.stringify(geometry)}`,
+    ).toBeLessThanOrEqual(1);
     expect(Math.abs(geometry.navigation.right - geometry.status.right)).toBeLessThanOrEqual(1);
     expect(Math.abs(geometry.navigation.width - geometry.status.width)).toBeLessThanOrEqual(1);
     expect(geometry.scrollWidth).toBe(geometry.viewportWidth);

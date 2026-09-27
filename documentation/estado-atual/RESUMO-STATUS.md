@@ -1283,12 +1283,13 @@
 
 ### [D2] - Responsividade do Diário
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** eliminar a sobreposição dos cards de macros/água e a coluna móvel estreita em telas largas.
-- **O que se planeja fazer:** prototipar vazio/preenchido em 1280/1440/1920 px e então redistribuir cards e conteúdo do Diário.
-- **Recursos/arquivos principais envolvidos:** Diário/controlador, cards de macros/água, `one-ui.css` e Playwright visual.
+- **O que se planeja fazer:** implementar o protótipo aprovado em 1280/1440/1920 px, com quatro resumos nutricionais, área principal e trilho contextual responsivos nos estados vazio/preenchido e claro/escuro, documentando ícones e linguagem visual para futura adaptação mobile sem alterar o mobile nesta fatia.
+- **Recursos/arquivos principais envolvidos:** `diary-screen.js`, controlador do Diário, cards de macros/água, `one-ui.css`, `CHANGELOG_DESIGN.md`, Node Test e Playwright visual legado/Vite.
+- **O que foi feito:** o protótipo aprovado foi implementado exclusivamente no desktop, com quatro resumos nutricionais, coluna principal de refeições, trilho contextual e cobertura visual legado/Vite em 1280/1440/1920 px, claro/escuro e vazio/preenchido; gate local e CI autenticado do PR #270 ficaram verdes, e a fatia aguarda aprovação de merge.
 
 ### [D3] - Responsividade de Alimentos
 
