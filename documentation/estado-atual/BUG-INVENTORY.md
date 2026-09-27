@@ -667,7 +667,7 @@ Rastreio: Tarefa 0 na `origin/main` `7c68229`; fixture local em memória e 62/62
 testes UMD/ESM focados verdes. A fatia única `BUG-D13` foi aprovada para
 normalizar somente a cópia lida por `loadMealAnalysisData`, sem alteração de
 produção em `eating-patterns-ai.js`, regravação de documentos ou deduplicação
-por ID; implementação em andamento sobre a base final reconciliada `c4612ef`.
+por ID; implementação concluída sobre a base final reconciliada `c4612ef`.
 Implementação local: `loadMealAnalysisData` normaliza cada log parseado somente
 na cópia entregue a `aggregateMealAverages`; `loadEatingPatternDays` e
 `eating-patterns-ai.js` permanecem inalterados. Regressão UMD/ESM cobre chave
@@ -676,7 +676,9 @@ verde sobre a base reconciliada `c4612ef`: 1.475 unitários, legado 111 aprovado
 + 8 skips estruturais, Vite 119/119 e cutover 60/60. O PR draft #271, commit
 `e373216`, passou no CI remoto: 1.483 unitários da base final, Worker e Functions
 verdes, legado 121 aprovados + 8 skips estruturais e Vite 129/129; nenhuma etapa
-foi ignorada por ausência de credenciais. Revisão e merge ainda pendentes.
+foi ignorada por ausência de credenciais. O segundo ciclo remoto repetiu os
+mesmos totais e permaneceu verde; o PR #271 foi mesclado em `adc4dcf` em
+27/09/2026. D13 está resolvido sem migração ou regravação de documentos.
 
 [D14] Snapshots históricos têm formatos diferentes e metadados parcialmente atuais
 Localização: historical-goals-model.js:10-22;
