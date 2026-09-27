@@ -120,15 +120,15 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 
 ## [BUG-BACKUP-PREVIEW-VITE] - Coalescência das leituras diárias no preview Vite
 
-**Status:** em andamento.
+**Status:** concluído.
 
 **Data de início:** 26/09/2026.
 
-**Data de conclusão:** não concluído.
+**Data de conclusão:** 27/09/2026.
 
-**Tempo decorrido:** pendente de merge.
+**Tempo decorrido:** 3 h 3 min 43 s.
 
-**Minutos de CI:** 41,23 min totais (leve: 0,38 min/23 s; pesado: 40,85 min/40 min 51 s).
+**Minutos de CI:** 83,13 min totais (leve: 0,75 min/45 s; pesado: 82,38 min/82 min 23 s).
 
 **Propósito:** reduzir as leituras Firestore redundantes por data durante o preview autenticado de um backup real no runtime Vite, mantendo a tarefa independente de D08/D09, D13 e do PR #265 e sem declarar artificialmente resolvida a intermitência observada no CI.
 
@@ -146,11 +146,13 @@ A implementação adicionou ao serviço interno uma fábrica de leitor específi
 
 Os testes focados passaram 32/32 em UMD/ESM e no helper do runtime. Cobrem três chaves da mesma data com uma leitura completa, datas distintas, uma rejeição compartilhada, novo preview após sucesso e após falha, delegação de chave não diária, criação de leitor por operação e igualdade integral de conteúdo/contagens. A medição autenticada pós-correção passou 3/3 em execução terminal verde: desktop apresentou o modal em 1.082 ms e mobile em 1.328 ms; ambos mantiveram 413 chaves importáveis, 298 chaves diárias e 103 datas, mas caíram para 623 requests e 310 documentos. Frente à base de 1.793/918, a redução foi de 1.170 requests (-65,3%) e 608 documentos (-66,2%). Uma execução anterior obteve a mesma contagem e tempos de 1.068/1.091 ms, porém encerrou com timeout apenas na liberação do lease remoto; o run de lease `36310228970` depois ficou `completed/cancelled`, com lease e porta locais liberados.
 
-O primeiro `npm test` não alcançou os smokes porque `worker/node_modules/jose` não existia na worktree; `npm --prefix worker ci` instalou deterministicamente 87 pacotes pelo lockfile e a importação de `firebase-id-token.js` confirmou `jose`. Na repetição, preflight passou, 1.496/1.496 unitários passaram, a matriz de smoke legado percorreu 135 casos com apenas os skips Vite esperados, o smoke Vite passou 135/135 — incluindo round trip real de backup e o diagnóstico nos dois viewports — e o cutover passou 60/60. Nenhuma credencial, UID ou conteúdo nutricional foi registrado. A fatia continua em andamento até commit, PR draft, CI remoto e revisão do usuário; o timeout intermitente não é declarado resolvido somente pela redução de leituras.
+O primeiro `npm test` não alcançou os smokes porque `worker/node_modules/jose` não existia na worktree; `npm --prefix worker ci` instalou deterministicamente 87 pacotes pelo lockfile e a importação de `firebase-id-token.js` confirmou `jose`. Na repetição, preflight passou, 1.496/1.496 unitários passaram, a matriz de smoke legado percorreu 135 casos com apenas os skips Vite esperados, o smoke Vite passou 135/135 — incluindo round trip real de backup e o diagnóstico nos dois viewports — e o cutover passou 60/60. Nenhuma credencial, UID ou conteúdo nutricional foi registrado. Uma segunda execução integral anterior ao commit documental final repetiu todos esses resultados verdes; o timeout intermitente não é declarado resolvido somente pela redução de leituras.
 
-O commit `cb2e46e` abriu o PR draft #274. O gate leve #36316725199 passou em 23 s; o CI pesado #36316725209 passou em 40 min 51 s, com 1.496/1.496 unitários, Worker 44/44 no Node e 9/9 no runtime, Functions emulator verde e duas matrizes Playwright autenticadas de 135 testes concluídas sem skip por falta de credenciais. O total contabilizado foi 41,23 min, dividido em 0,38 min/23 s de gate leve e 40,85 min/40 min 51 s de gate pesado. A fatia permanece em andamento e o PR permanece draft até a revisão do usuário; `Tempo decorrido` continua pendente de merge.
+O commit `cb2e46e` abriu o PR draft #274 e o commit documental `60831fa` reconciliou as evidências antes da revisão. No primeiro ciclo, o gate leve #36316725199 passou em 23 s e o CI pesado #36316725209 em 40 min 51 s. No ciclo final, o gate leve #36323176142 passou em 22 s e o CI pesado #36323176182 em 41 min 32 s. Os dois ciclos confirmaram 1.496/1.496 unitários, Worker 44/44 no Node e 9/9 no runtime, Functions emulator verde e duas matrizes Playwright autenticadas de 135 testes por ciclo, sem skip por falta de credenciais. Os quatro gates somaram 83,13 min, divididos em 0,75 min/45 s de gates leves e 82,38 min/82 min 23 s de gates pesados. Após revisão e autorização explícita do usuário, o PR #274 foi retirado do draft e mesclado em `2d40a10` às 16:47:53 CEST de 27/09/2026; o tempo exato do primeiro commit ao merge foi 3 h 3 min 43 s. A worktree funcional estava limpa, sem processo ativo, e foi arquivada após o merge.
 
-**PRs/commits relacionados:** PR [#274](https://github.com/magnoClovis/nutrition-tracker/pull/274), commit `cb2e46e`, gate leve [#36316725199](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36316725199) e CI pesado [#36316725209](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36316725209); run de origem [#36257846855](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36257846855), job `108464899999`, artefatos `playwright-failure-36257846855-1`/`-2`; lease local [#36310228970](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36310228970); PR de origem #265; correção D08/D09 anterior no PR #264.
+**Alinhamento:** 100% — a entrega correspondeu ao escopo aprovado: coalescência restrita a um único preview, descarte do estado após sucesso ou falha, nova leitura em previews posteriores, propagação fail-closed e conteúdo/contagens preservados. A redução de leituras foi corrigida e medida sem timeout maior nem retry; coerentemente com o plano, os ciclos verdes não foram tratados como prova definitiva de resolução do timeout intermitente. O impacto final foi positivo para desempenho e estabilidade, sem alteração de dados persistidos ou contratos de backup.
+
+**PRs/commits relacionados:** PR [#274](https://github.com/magnoClovis/nutrition-tracker/pull/274), commits `cb2e46e`/`60831fa`, merge `2d40a10`, gates leves [#36316725199](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36316725199)/[#36323176142](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36323176142) e CIs pesados [#36316725209](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36316725209)/[#36323176182](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36323176182); run de origem [#36257846855](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36257846855), job `108464899999`, artefatos `playwright-failure-36257846855-1`/`-2`; lease local [#36310228970](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36310228970); PR de origem #265; correção D08/D09 anterior no PR #264.
 
 ## [BUG-D01-AUDIT] - Revalidação do idioma na verificação de e-mail
 
