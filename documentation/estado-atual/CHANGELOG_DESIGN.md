@@ -43,6 +43,16 @@ Referência geral: protótipo HTML externo aprovado antes da implementação; ne
 | 2 | A sequência demonstra permanência mínima pretendida de 800–1000 ms, reprodução controlada e mensagens localizadas honestas, sem inventar fases técnicas que o bootstrap não fornece. | Temporização futura, i18n PT/EN/ES e futura cobertura Playwright | I1 — protótipo aprovado |
 | 3 | Claro e escuro preservam contraste e identidade; `prefers-reduced-motion` mantém marca, estado e transição perceptíveis sem pulsação/escala contínua. | Tokens de tema e media query de movimento reduzido | I1 — protótipo aprovado |
 | 4 | O escopo aprovado se limita ao carregamento do app; não redefine loaders internos, splash nativa ou estados de câmera. | `C:\Users\clovi\.codex\visualizations\2026\08\24\01a03230-1014-72b3-a9e6-3906a00e02ea\i1-carregamento-animado.html` | Aprovado em 26/09/2026 |
+## 2026-09-26 — D2: Diário responsivo em telas largas
+
+Referência visual aprovada: `C:\Users\clovi\.codex\visualizations\2026\08\24\01a03230-1014-72b3-a9e6-3906a00e02ea\d2-diario-desktop.html`. A implementação está em andamento; PR ainda não determinado.
+
+| Item | Mudança | Arquivos principais | Referência |
+|---:|---|---|---|
+| 1 | O resumo desktop passa a usar quatro cards proporcionais — calorias, proteína, carboidratos e água — com valor/meta, barra de progresso e ícone linear semântico. Os dois cards e a hierarquia existentes no mobile permanecem inalterados. | `diary-screen.js`, `one-ui.css` | D2 — em andamento |
+| 2 | Em 1280/1440/1920px, o Diário usa uma área principal ampla para refeições e um trilho contextual para água, estado do dia, notas, suplementos e ações, eliminando a coluna de celular e o posicionamento absoluto que causava sobreposição. | `one-ui.css` | D2 — em andamento |
+| 3 | A linguagem visual aprovada usa ícones lineares, raios de bloco/control já existentes, superfícies Glass UI discretas, cores nutricionais semânticas e espaçamento progressivo. Esse vocabulário fica documentado para futura adaptação mobile, fora do escopo desta fatia. | `CHANGELOG_DESIGN.md`, documentação de estado/histórico | D2 — em andamento |
+| 4 | A cobertura protege separação desktop/mobile, quatro cards sem interseção, ausência de overflow, estados vazio/preenchido, temas claro/escuro e larguras 1280/1440/1920 nos runtimes legado e Vite. | `tests/unit/desktop-diary-layout.test.js`, `tests/unit/diary-screen.test.js`, `tests/smoke/desktop-diary.visual.spec.js` | D2 — em andamento |
 
 ## 2026-09-10 — D1: shell desktop, cabeçalho e navegação
 
