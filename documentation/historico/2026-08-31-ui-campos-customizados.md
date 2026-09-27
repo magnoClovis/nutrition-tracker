@@ -1542,7 +1542,7 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 - **Tempo decorrido:** pendente de merge.
 
-- **Minutos de CI:** 0 min; CI remoto ainda não iniciado.
+- **Minutos de CI:** 44 min 29 s — 26 s leves e 44 min 03 s pesados.
 
 - **Propósito:** eliminar a diferença visual e comportamental entre a seleção de um alimento salvo e o resultado gerado por fotografia, reutilizando o mesmo editor progressivo sem perder a procedência verificada nem o recálculo proporcional dos nutrientes.
 
@@ -1558,7 +1558,9 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
   Antes do push, a branch incorporou explicitamente a `origin/main` `4537403` pelo merge local `82d6238`, preservando o commit funcional `0bb2b9a` e sem reescrever o histórico. Como a base atualizada adicionou cobertura e alterou a árvore efetivamente validada, o gate integral foi repetido por completo nessa base: preflight sem avisos, 1.505/1.505 unitários, smoke legado com 129 aprovados + 10 skips estruturais, Vite 139/139 e cutover 60/60. O processo terminou com código zero, liberou o lock autenticado e não deixou servidor próprio nas portas de teste; o emulador alheio em 8080/9150 continuou preservado. Este é o resultado local final que fundamenta a abertura do PR draft e substitui, sem apagar, a evidência cronológica do gate anterior.
 
-- **PRs/commits relacionados:** commit funcional `0bb2b9a`; merge explícito da base `82d6238` sobre `origin/main` `4537403`; PR ainda não determinado. — **Chat-Origin:** Trofia-UIUX.
+  O PR draft #277 foi aberto no HEAD `cc7fc86` e os dois checks autenticados reais terminaram verdes: o preflight documental `36336076113` consumiu 26 s e o gate pesado `36336076031` consumiu 44 min 03 s, totalizando 44 min 29 s de CI. O PR permanece em draft e a fatia continua em andamento até aprovação explícita e merge; nenhum resultado verde foi usado para antecipar a conclusão.
+
+- **PRs/commits relacionados:** [PR #277](https://github.com/magnoClovis/nutrition-tracker/pull/277); commit funcional `0bb2b9a`; merge explícito da base `82d6238` sobre `origin/main` `4537403`; documentação pré-merge `cc7fc86`; runs `36336076031` e `36336076113`. — **Chat-Origin:** Trofia-UIUX.
 
 ### [TEST-CAM-48PX] - Sincronização da medição dos alvos CAM-RED-6
 
