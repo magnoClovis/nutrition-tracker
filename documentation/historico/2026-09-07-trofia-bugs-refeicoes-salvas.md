@@ -128,7 +128,7 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 
 **Tempo decorrido:** pendente de merge.
 
-**Minutos de CI:** 0 min; PR e CI remoto ainda não iniciados.
+**Minutos de CI:** 41,23 min totais (leve: 0,38 min/23 s; pesado: 40,85 min/40 min 51 s).
 
 **Propósito:** reduzir as leituras Firestore redundantes por data durante o preview autenticado de um backup real no runtime Vite, mantendo a tarefa independente de D08/D09, D13 e do PR #265 e sem declarar artificialmente resolvida a intermitência observada no CI.
 
@@ -148,7 +148,9 @@ Os testes focados passaram 32/32 em UMD/ESM e no helper do runtime. Cobrem três
 
 O primeiro `npm test` não alcançou os smokes porque `worker/node_modules/jose` não existia na worktree; `npm --prefix worker ci` instalou deterministicamente 87 pacotes pelo lockfile e a importação de `firebase-id-token.js` confirmou `jose`. Na repetição, preflight passou, 1.496/1.496 unitários passaram, a matriz de smoke legado percorreu 135 casos com apenas os skips Vite esperados, o smoke Vite passou 135/135 — incluindo round trip real de backup e o diagnóstico nos dois viewports — e o cutover passou 60/60. Nenhuma credencial, UID ou conteúdo nutricional foi registrado. A fatia continua em andamento até commit, PR draft, CI remoto e revisão do usuário; o timeout intermitente não é declarado resolvido somente pela redução de leituras.
 
-**PRs/commits relacionados:** run [#36257846855](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36257846855), job `108464899999`, artefatos `playwright-failure-36257846855-1`/`-2`; lease local [#36310228970](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36310228970); PR de origem #265; correção D08/D09 anterior no PR #264. Nenhum PR próprio ainda.
+O commit `cb2e46e` abriu o PR draft #274. O gate leve #36316725199 passou em 23 s; o CI pesado #36316725209 passou em 40 min 51 s, com 1.496/1.496 unitários, Worker 44/44 no Node e 9/9 no runtime, Functions emulator verde e duas matrizes Playwright autenticadas de 135 testes concluídas sem skip por falta de credenciais. O total contabilizado foi 41,23 min, dividido em 0,38 min/23 s de gate leve e 40,85 min/40 min 51 s de gate pesado. A fatia permanece em andamento e o PR permanece draft até a revisão do usuário; `Tempo decorrido` continua pendente de merge.
+
+**PRs/commits relacionados:** PR [#274](https://github.com/magnoClovis/nutrition-tracker/pull/274), commit `cb2e46e`, gate leve [#36316725199](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36316725199) e CI pesado [#36316725209](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36316725209); run de origem [#36257846855](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36257846855), job `108464899999`, artefatos `playwright-failure-36257846855-1`/`-2`; lease local [#36310228970](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36310228970); PR de origem #265; correção D08/D09 anterior no PR #264.
 
 ## [BUG-D01-AUDIT] - Revalidação do idioma na verificação de e-mail
 

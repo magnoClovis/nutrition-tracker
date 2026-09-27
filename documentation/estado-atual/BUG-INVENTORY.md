@@ -620,16 +620,17 @@ estado com a operação. Testes cobrem datas iguais/diferentes, erro compartilha
 limpeza após sucesso/falha, segunda leitura atualizada e resultado equivalente.
 A medição autenticada caiu de 1.793 para 623 requests (-65,3%) e de 918 para 310
 documentos (-66,2%), sem cache persistente, aumento de timeout ou retry. O CI
-remoto ainda é necessário e essa redução não prova isoladamente que o timeout
-intermitente esteja resolvido.
+remoto #36316725209 passou integralmente; essa redução e um ciclo verde não
+provam isoladamente que o timeout intermitente esteja definitivamente resolvido.
 Risco de corrigir: cache com vida maior que a operação pode comparar contra
 estado obsoleto; coalescência incorreta pode misturar usuários ou sobreviver a
 troca de sessão. A correção deve ser limitada à operação/in-flight e coberta por
 falha de leitura, limpeza e paridade de resultado.
 Rastreio: fatia funcional `BUG-BACKUP-PREVIEW-VITE` em andamento, separada de
 D13 e do PR #265; run #36257846855, job #108464899999, artefatos Playwright das
-tentativas 1/2, diagnósticos locais Vite 3/3 verdes e `npm test` integral verde em
-27/09/2026; commit, PR draft e CI remoto ainda pendentes.
+tentativas 1/2, diagnósticos locais Vite 3/3 verdes, `npm test` integral verde,
+commit `cb2e46e`, PR draft #274 e runs verdes #36316725199/#36316725209 em
+27/09/2026; revisão do usuário ainda pendente.
 
 [D10] Pantry mantém resultados invisíveis, dose obrigatória oculta e controles órfãos
 Localização: pantry-screen.js:11-16;
