@@ -632,16 +632,51 @@ Risco de corrigir: altera metas, toasts e snapshots congelados.
 Rastreio: preservado em dois modelos.
 
 [D13] Análises ignoram chaves de refeição traduzidas/legadas
-Localização: week-aggregator.js:14-20; eating-patterns-ai.js:12-15;
-tests/unit/week-aggregator.test.js:155;
-tests/unit/eating-patterns-ai.test.js:128.
-Descrição/impacto: loadMealAnalysis/eating patterns não chamam normalizeMealKeys;
-refeições EN/ES ou antigas podem não entrar nas médias/prompts.
-Severidade: MÉDIO/ALTO para contas antigas.
-Resolução necessária: normalização somente na leitura analítica, sem reescrever
-schema silenciosamente.
-Risco de corrigir: MEAL_KEYS é schema persistido e a posição dos arrays é crítica.
-Rastreio: ausência deliberadamente documentada/testada.
+Localização: history-loaders.js:190-199,263-268; week-aggregator.js:172-195;
+eating-patterns-ai.js:240-296; nutrition-tracker-controller.js:989-1002;
+tests/unit/week-aggregator.test.js; tests/unit/eating-patterns-ai.test.js;
+tests/unit/history-loaders.test.js.
+Descrição/impacto: `loadMealAnalysisData` entrega logs crus e
+`aggregateMealAverages` consulta somente as oito `MEAL_KEYS` canônicas em PT;
+as chaves EN/ES persistidas por versões antigas deixam de contribuir para a
+contagem e para as médias por refeição. A auditoria de 26/09/2026 não confirmou
+o mesmo defeito no contexto efetivamente enviado pela análise de padrões: esse
+fluxo soma `Object.values(dayLog).flat()`, e fixtures equivalentes PT/EN/ES
+produziram as mesmas médias, cobertura e detalhes no prompt. O acumulador por
+refeição que filtra por `MEAL_KEYS` em `eating-patterns-ai.js` é preenchido, mas
+não é consumido pelo prompt atual.
+Formatos comprovadamente afetados: as oito chaves inglesas e as oito espanholas
+posicionalmente equivalentes a `MEAL_KEYS`, que eram usadas como chaves de
+persistência antes da estabilização do schema em português. Não foi encontrada
+evidência versionada de outro conjunto de aliases legados suportado.
+Severidade: MÉDIO para a média histórica por refeição; sem impacto comprovado
+nos totais/cobertura semanais nem nas médias, cobertura ou contexto atual da IA,
+pois ambos os cálculos gerais percorrem todas as listas do log.
+Resolução necessária: normalizar somente a leitura da janela analítica que
+alimenta `aggregateMealAverages`, reutilizando o mapeamento posicional PT/EN/ES
+já existente e sem reescrever documentos ou mudar chaves persistidas. O fluxo
+de IA deve receber teste de regressão que preserve a contribuição equivalente
+das três famílias de chaves; não há justificativa atual para correção funcional
+artificial em `eating-patterns-ai.js`.
+Risco de corrigir: `MEAL_KEYS` é schema persistido e a posição dos arrays é
+crítica. Concatenar chave canônica e alias preserva cada ocorrência armazenada,
+mas pode contar duas vezes conteúdo realmente duplicado; deduplicar por `id`
+também é inseguro devido ao histórico de IDs reutilizados. A mudança esperada
+nas médias de contas antigas é intencional e deve ser congelada por fixtures.
+Rastreio: Tarefa 0 na `origin/main` `7c68229`; fixture local em memória e 62/62
+testes UMD/ESM focados verdes. A fatia única `BUG-D13` foi aprovada para
+normalizar somente a cópia lida por `loadMealAnalysisData`, sem alteração de
+produção em `eating-patterns-ai.js`, regravação de documentos ou deduplicação
+por ID; implementação em andamento sobre a base final reconciliada `c4612ef`.
+Implementação local: `loadMealAnalysisData` normaliza cada log parseado somente
+na cópia entregue a `aggregateMealAverages`; `loadEatingPatternDays` e
+`eating-patterns-ai.js` permanecem inalterados. Regressão UMD/ESM cobre chave
+canônica, EN, ES, mistura, chave desconhecida e imutabilidade. Gate local final
+verde sobre a base reconciliada `c4612ef`: 1.475 unitários, legado 111 aprovados
++ 8 skips estruturais, Vite 119/119 e cutover 60/60. O PR draft #271, commit
+`e373216`, passou no CI remoto: 1.483 unitários da base final, Worker e Functions
+verdes, legado 121 aprovados + 8 skips estruturais e Vite 129/129; nenhuma etapa
+foi ignorada por ausência de credenciais. Revisão e merge ainda pendentes.
 
 [D14] Snapshots históricos têm formatos diferentes e metadados parcialmente atuais
 Localização: historical-goals-model.js:10-22;
