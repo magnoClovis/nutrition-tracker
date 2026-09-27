@@ -152,7 +152,7 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 
 **Tempo decorrido:** pendente de merge.
 
-**Minutos de CI:** 0 min; CI remoto ainda não iniciado. Os gates locais completos estão registrados abaixo, mas não são contabilizados como minutos de CI.
+**Minutos de CI:** 35 min 26 s (23 s leve + 35 min 3 s pesado).
 
 **Propósito:** verificar por evidência se logs com chaves de refeição históricas ou traduzidas deixam de participar das médias por refeição, da cobertura nutricional e do contexto enviado à IA e corrigir somente a leitura analítica comprovadamente afetada, sem tocar em documentos ou contas reais.
 
@@ -176,11 +176,13 @@ O teste focado passou 62/62. Na primeira tentativa integral, preflight, 1.475 un
 
 A terceira execução integral terminou verde: preflight sem avisos; 1.475/1.475 unitários; smoke legado com 111 aprovados e 8 skips estruturais esperados; smoke Vite 119/119; matriz cutover 60/60. Nenhum skip ocorreu por falta de credenciais, e a conta usada foi a descartável configurada localmente. Após o gate, a branch avançou por fast-forward de `0dcc32f` até a `origin/main` `c4612ef`, incorporando CAM-RED-7 e os registros de protótipos UI/UX; o stash D13 reaplicou sem conflito e preservou integralmente as entradas das outras frentes. O preflight e o foco UMD/ESM foram repetidos sobre essa base final e passaram, respectivamente, sem avisos e em 62/62 testes.
 
+O commit funcional `e373216` abriu o PR draft #271. Os dois gates remotos passaram no primeiro ciclo: o Documentation preflight `36295928604` em 23 s e o CI pesado `36295928606` em 35 min 3 s, totalizando 35 min 26 s. Sobre a base final, o CI executou 1.483/1.483 unitários, 44/44 testes do Worker, 74/74 testes de Functions, smoke legado com 121 aprovados e 8 skips estruturais e smoke Vite 129/129. A variável da conta descartável estava presente e mascarada no log; nenhuma suíte foi ignorada por falta de credenciais. A matriz cutover 60/60 permanece comprovada pelo gate local integral, pois não é uma etapa separada do workflow remoto atual.
+
 O contrato de leitura recomendado é manter `MEAL_KEYS` e as chaves persistidas intactos, aplicar a conversão posicional PT/EN/ES apenas à cópia em memória da janela que alimenta `aggregateMealAverages` e concatenar cada ocorrência armazenada sob o destino canônico. Não se recomenda deduplicação por `id`: além de não haver prova de que duas ocorrências em chaves diferentes sejam o mesmo lançamento, versões anteriores reutilizaram identificadores em contextos distintos. A consequência esperada é que médias históricas de contas com chaves EN/ES passem a refletir refeições antes omitidas; isso é mudança analítica intencional, não migração de dados. Para a IA, o contrato deve ser congelado por teste de equivalência PT/EN/ES e o runtime deve permanecer inalterado enquanto o prompt continuar independente da categoria.
 
 A complexidade estimada da correção é baixa a média. Recomenda-se uma única fatia funcional futura, restrita ao loader/normalização da média por refeição e aos testes UMD/ESM de loader/agregador, com regressão explícita no prompt de IA para provar ausência de mudança. Separar em dois PRs criaria uma segunda correção sem defeito efetivo em `eating-patterns-ai.js`; a alternativa segura é um PR único que corrija somente o caminho comprovadamente afetado e atualize a documentação do D13.
 
-**PRs/commits relacionados:** base auditada `7c682291d61868fec5958464975e7bd39d0b9986`; PR documental #268, commit `68bac91`, merge `0dcc32f`, run leve `36253079974`; base final reconciliada `c4612ef`; CI concorrente evitado `36288512798`; implementação ainda sem commit ou PR funcional.
+**PRs/commits relacionados:** base auditada `7c682291d61868fec5958464975e7bd39d0b9986`; PR documental #268, commit `68bac91`, merge `0dcc32f`, run leve `36253079974`; base final reconciliada `c4612ef`; CI concorrente evitado `36288512798`; PR draft [#271](https://github.com/magnoClovis/nutrition-tracker/pull/271), commit funcional `e373216`, run leve `36295928604` e run pesado `36295928606`.
 
 ## Métricas retroativas
 

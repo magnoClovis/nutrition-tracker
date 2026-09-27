@@ -673,7 +673,10 @@ na cópia entregue a `aggregateMealAverages`; `loadEatingPatternDays` e
 `eating-patterns-ai.js` permanecem inalterados. Regressão UMD/ESM cobre chave
 canônica, EN, ES, mistura, chave desconhecida e imutabilidade. Gate local final
 verde sobre a base reconciliada `c4612ef`: 1.475 unitários, legado 111 aprovados
-+ 8 skips estruturais, Vite 119/119 e cutover 60/60; CI remoto ainda pendente.
++ 8 skips estruturais, Vite 119/119 e cutover 60/60. O PR draft #271, commit
+`e373216`, passou no CI remoto: 1.483 unitários da base final, Worker e Functions
+verdes, legado 121 aprovados + 8 skips estruturais e Vite 129/129; nenhuma etapa
+foi ignorada por ausência de credenciais. Revisão e merge ainda pendentes.
 
 [D14] Snapshots históricos têm formatos diferentes e metadados parcialmente atuais
 Localização: historical-goals-model.js:10-22;

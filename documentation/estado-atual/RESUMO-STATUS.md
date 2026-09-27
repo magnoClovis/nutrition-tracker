@@ -199,7 +199,7 @@
 - **Propósito:** incluir chaves históricas PT/EN/ES nas médias por refeição sem reescrever dados persistidos nem alterar o contexto atual enviado à IA.
 - **O que se planeja fazer:** normalizar somente a cópia lida por `loadMealAnalysisData`, reutilizando o mapeamento PT/EN/ES existente, sem deduplicar por ID nem alterar `eating-patterns-ai.js` em produção; cobrir canônico, EN, ES, misto, chave desconhecida, imutabilidade e paridade UMD/ESM.
 - **Recursos/arquivos principais envolvidos:** `history-loaders.js`, `week-aggregator.js`, fachada ESM correspondente, testes unitários UMD/ESM, `eating-patterns-ai.js` apenas como regressão sem mudança de produção, inventário e documentação da frente.
-- **O que foi feito:** `loadMealAnalysisData` passou a normalizar apenas a cópia em memória antes da agregação; a regressão UMD/ESM cobre canônico, EN, ES, misto, desconhecido e imutabilidade. O gate local final passou com 1.475 unitários, legado 111+8, Vite 119/119 e cutover 60/60; a branch foi reconciliada até `c4612ef` preservando as outras frentes e aguarda CI remoto.
+- **O que foi feito:** `loadMealAnalysisData` passou a normalizar apenas a cópia em memória antes da agregação; a regressão UMD/ESM cobre canônico, EN, ES, misto, desconhecido e imutabilidade. O gate local passou com 1.475 unitários, legado 111+8, Vite 119/119 e cutover 60/60; o PR draft #271 (`e373216`) passou também no CI remoto sobre a base final, com 1.483 unitários, legado 121+8 e Vite 129/129, e aguarda revisão.
 
 ## O que está em andamento agora
 
