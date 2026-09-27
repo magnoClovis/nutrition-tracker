@@ -28,6 +28,7 @@ function loadBackup(createFirebaseBackup, {
   completeRestore,
   exportDailyData,
   readBackupValue,
+  createPreviewReadBackupValue,
   restoreDailyValue,
   missingData
 } = {}) {
@@ -75,6 +76,7 @@ function loadBackup(createFirebaseBackup, {
     completeRestore,
     exportDailyData,
     readBackupValue,
+    createPreviewReadBackupValue,
     restoreDailyValue
   });
 
@@ -252,6 +254,38 @@ contractTest("preview returns existingItems and fails closed when existing data 
     failedRead.service.previewFullAccountBackupImport3(incoming),
     /Could not read existing data while previewing backup import/
   );
+});
+
+contractTest("creates an isolated reader per preview without changing content or counts", async loadBackup => {
+  const incoming = {
+    "log_v2_2026-09-27": '{"Almoço":[{"id":"meal-new"}]}',
+    "waterIntake_2026-09-27": '[{"id":"water-new","ml":250}]',
+    "suppLog_2026-09-27": '[{"id":"supp-new"}]'
+  };
+  const current = {
+    "log_v2_2026-09-27": '{"Almoço":[{"id":"meal-old"}]}',
+    "waterIntake_2026-09-27": '[{"id":"water-old","ml":200}]',
+    "suppLog_2026-09-27": '[{"id":"supp-old"}]'
+  };
+  const baseline = loadBackup({current});
+  const readerCreations = [];
+  const isolated = loadBackup({
+    current,
+    createPreviewReadBackupValue() {
+      readerCreations.push("created");
+      return async key => Object.prototype.hasOwnProperty.call(current, key)
+        ? {value: current[key]}
+        : null;
+    }
+  });
+
+  const expected = await baseline.service.previewFullAccountBackupImport3(incoming);
+  const first = await isolated.service.previewFullAccountBackupImport3(incoming);
+  const second = await isolated.service.previewFullAccountBackupImport3(incoming);
+
+  assert.deepEqual(plain(first), plain(expected));
+  assert.deepEqual(plain(second), plain(expected));
+  assert.equal(readerCreations.length, 2);
 });
 
 contractTest("preserves append merges, existing daily records, replace writes, and schema flags", async loadBackup => {

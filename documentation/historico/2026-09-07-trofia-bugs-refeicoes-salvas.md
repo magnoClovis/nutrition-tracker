@@ -118,6 +118,38 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 
 **PRs/commits relacionados:** PR [#264](https://github.com/magnoClovis/nutrition-tracker/pull/264); commits `d033663` e `11dcfaa`; merge `d617840`; base reconciliada `b9ae9ff`; runs leves `36245598213`/`36247694749` e pesados `36245598218`/`36247694731`; PRs de precedência #257, #261, #262 e #258.
 
+## [BUG-BACKUP-PREVIEW-VITE] - Coalescência das leituras diárias no preview Vite
+
+**Status:** em andamento.
+
+**Data de início:** 26/09/2026.
+
+**Data de conclusão:** não concluído.
+
+**Tempo decorrido:** pendente de merge.
+
+**Minutos de CI:** 0 min; PR e CI remoto ainda não iniciados.
+
+**Propósito:** reduzir as leituras Firestore redundantes por data durante o preview autenticado de um backup real no runtime Vite, mantendo a tarefa independente de D08/D09, D13 e do PR #265 e sem declarar artificialmente resolvida a intermitência observada no CI.
+
+**O que se planeja fazer:** preservar os artefatos e o diagnóstico já obtidos; compartilhar, exclusivamente dentro de cada chamada de preview, uma única Promise e um único resultado de `fbReadDailyStateCompatible3(date)` entre as chaves de refeições, água e suplementos da mesma data; manter datas distintas independentes; descartar o estado temporário após sucesso ou falha; preservar fail-closed, conteúdo, contagens, formatos, retrocompatibilidade e estratégias de importação; cobrir sucesso, falha, limpeza e nova leitura em preview posterior; medir antes/depois com a conta descartável e executar testes focados, `npm test` completo e CI autenticado real sem timeout maior nem retry.
+
+**Recursos/arquivos principais envolvidos:** `firebase-backup-internal.js`, `src/firebase/firebase-sdk-runtime.js`, testes unitários do runtime e do backup, `tests/smoke/backup-preview-diagnostic.spec.js`, `tests/smoke/authenticated-flows.spec.js`, Playwright Vite, screenshots/contextos/JSON do run #36257846855 e a conta descartável autenticada.
+
+**O que foi feito:** o CI do PR #265, run `36257846855`, job `108464899999`, falhou duas vezes no mesmo ponto de `tests/smoke/authenticated-flows.spec.js`: após `setInputFiles`, `getByRole('heading', {name: /Revisar importação/i})` não apareceu no limite existente de 20 segundos. Na tentativa 1, desktop passou em 63.128 s e mobile falhou em 78.197 s; na tentativa 2, desktop falhou em 78.680 s e mobile passou em 64.223 s. Os dois screenshots e snapshots de acessibilidade mostram somente a tela “Backup e restaurar”, sem modal e sem mensagem de erro, o que é compatível com o `await previewFullAccountBackupImport(rawBackup)` ainda pendente, não com rejeição tratada pelo `catch`.
+
+O código atual confirma uma amplificação específica do runtime Vite: `previewFullAccountBackupImport3` processa cada chave importável e chama `readBackupValue(targetKey)`; para cada `log_v2_DATA`, `waterIntake_DATA` e `suppLog_DATA`, `readBackupValue` chama novamente `fbReadDailyStateCompatible3(DATA)`. Essa leitura recompõe simultaneamente refeições, água e suplementos e cada categoria consulta migração/coleção, portanto as três chaves da mesma data repetem o mesmo estado completo. A execução diagnóstica anterior registrada no chat passou isoladamente em desktop/mobile e observou 1.775 requisições de servidor para um backup com 102 datas, mas o arquivo diagnóstico permaneceu não commitado e o snapshot físico arquivado não pôde ser restaurado; por isso esse número é indício forte, não artefato suficiente para declarar causalidade encerrada.
+
+O diagnóstico reconstruído foi executado sob o lease autenticado em 27/09/2026 sem importar dados: autenticação, desktop e mobile passaram (3/3). O desktop apresentou o preview em 2.626 ms e o mobile em 2.366 ms; cada viewport contabilizou 413 chaves importáveis, 298 chaves diárias, 103 datas, 1.793 requisições de servidor e 918 documentos. Isso confirma e quantifica a amplificação, mas não prova que ela seja a causa exclusiva do timeout intermitente. A implementação funcional foi aprovada em 27/09/2026 sobre a `origin/main` `3e2932a`, permanece sem commit/push/PR e deve manter explicitamente separadas as conclusões “leituras redundantes corrigidas e medidas” e “timeout intermitente resolvido”.
+
+A implementação adicionou ao serviço interno uma fábrica de leitor específica de preview, mantendo como padrão o leitor existente para não alterar legado, importação ou exportação. O runtime modular Vite fornece um leitor com `Map` privado de Promises por data: a primeira chave diária inicia `fbReadDailyStateCompatible3(date)` e refeições, água e suplementos da mesma data compartilham o resultado; chaves não diárias continuam em `fbGet3`. O mapa pertence somente à chamada de preview e fica inacessível ao término, inclusive em rejeição, de modo que um novo preview cria outro leitor e consulta o estado atual. Erros compartilhados continuam rejeitando o preview e são convertidos pelo serviço na falha explícita já existente, sem habilitar importação parcial.
+
+Os testes focados passaram 32/32 em UMD/ESM e no helper do runtime. Cobrem três chaves da mesma data com uma leitura completa, datas distintas, uma rejeição compartilhada, novo preview após sucesso e após falha, delegação de chave não diária, criação de leitor por operação e igualdade integral de conteúdo/contagens. A medição autenticada pós-correção passou 3/3 em execução terminal verde: desktop apresentou o modal em 1.082 ms e mobile em 1.328 ms; ambos mantiveram 413 chaves importáveis, 298 chaves diárias e 103 datas, mas caíram para 623 requests e 310 documentos. Frente à base de 1.793/918, a redução foi de 1.170 requests (-65,3%) e 608 documentos (-66,2%). Uma execução anterior obteve a mesma contagem e tempos de 1.068/1.091 ms, porém encerrou com timeout apenas na liberação do lease remoto; o run de lease `36310228970` depois ficou `completed/cancelled`, com lease e porta locais liberados.
+
+O primeiro `npm test` não alcançou os smokes porque `worker/node_modules/jose` não existia na worktree; `npm --prefix worker ci` instalou deterministicamente 87 pacotes pelo lockfile e a importação de `firebase-id-token.js` confirmou `jose`. Na repetição, preflight passou, 1.496/1.496 unitários passaram, a matriz de smoke legado percorreu 135 casos com apenas os skips Vite esperados, o smoke Vite passou 135/135 — incluindo round trip real de backup e o diagnóstico nos dois viewports — e o cutover passou 60/60. Nenhuma credencial, UID ou conteúdo nutricional foi registrado. A fatia continua em andamento até commit, PR draft, CI remoto e revisão do usuário; o timeout intermitente não é declarado resolvido somente pela redução de leituras.
+
+**PRs/commits relacionados:** run [#36257846855](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36257846855), job `108464899999`, artefatos `playwright-failure-36257846855-1`/`-2`; lease local [#36310228970](https://github.com/magnoClovis/nutrition-tracker/actions/runs/36310228970); PR de origem #265; correção D08/D09 anterior no PR #264. Nenhum PR próprio ainda.
+
 ## [BUG-D01-AUDIT] - Revalidação do idioma na verificação de e-mail
 
 **Status:** concluído.

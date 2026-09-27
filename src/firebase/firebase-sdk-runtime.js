@@ -7,6 +7,40 @@ import {
   normalizedIdentity,
 } from './firebase-backup-merge-internal.js';
 
+const DAILY_BACKUP_KEY_PATTERN = /^(log_v2|waterIntake|suppLog)_(\d{4}-\d{2}-\d{2})$/;
+
+const dailyBackupDescriptor = key => {
+  const match = DAILY_BACKUP_KEY_PATTERN.exec(String(key));
+  if (!match) return null;
+  const mapping = {
+    log_v2: {kind: 'meal', stateKey: 'log'},
+    waterIntake: {kind: 'water', stateKey: 'waterIntake'},
+    suppLog: {kind: 'supplement', stateKey: 'supplementLog'},
+  };
+  return {...mapping[match[1]], date: match[2]};
+};
+
+const storedBackupValue = value => {
+  const empty = Array.isArray(value) ? value.length === 0 : Object.keys(value || {}).length === 0;
+  return empty ? null : {value: JSON.stringify(value)};
+};
+
+function createPreviewBackupValueReader({readStorageValue, readDailyState}) {
+  const dailyStatePromises = new Map();
+  return async key => {
+    const descriptor = dailyBackupDescriptor(key);
+    if (!descriptor) return readStorageValue(key);
+
+    let statePromise = dailyStatePromises.get(descriptor.date);
+    if (!statePromise) {
+      statePromise = Promise.resolve().then(() => readDailyState(descriptor.date));
+      dailyStatePromises.set(descriptor.date, statePromise);
+    }
+    const state = await statePromise;
+    return storedBackupValue(state[descriptor.stateKey]);
+  };
+}
+
 /**
  * Builds the active C28 SDK runtime with one account lifecycle shared by Auth,
  * Firestore, backup and account deletion.
@@ -26,23 +60,11 @@ function createModularFirebaseRuntime({
     resetStorageCaches: firestoreRuntime.client.resetStorageCaches,
     userLifecycle: firestoreRuntime.lifecycle,
   });
-  const dailyBackupDescriptor = key => {
-    const match = /^(log_v2|waterIntake|suppLog)_(\d{4}-\d{2}-\d{2})$/.exec(String(key));
-    if (!match) return null;
-    const mapping = {
-      log_v2: {kind: 'meal', stateKey: 'log'},
-      waterIntake: {kind: 'water', stateKey: 'waterIntake'},
-      suppLog: {kind: 'supplement', stateKey: 'supplementLog'},
-    };
-    return {...mapping[match[1]], date: match[2]};
-  };
   const readBackupValue = async key => {
     const descriptor = dailyBackupDescriptor(key);
     if (!descriptor) return firestoreRuntime.client.fbGet3(key);
     const state = await firestoreRuntime.client.fbReadDailyStateCompatible3(descriptor.date);
-    const value = state[descriptor.stateKey];
-    const empty = Array.isArray(value) ? value.length === 0 : Object.keys(value || {}).length === 0;
-    return empty ? null : {value: JSON.stringify(value)};
+    return storedBackupValue(state[descriptor.stateKey]);
   };
   const backup = createFirebaseBackup({
     getUid: authClient.getUid,
@@ -61,6 +83,10 @@ function createModularFirebaseRuntime({
     prepareExport: firestoreRuntime.lifecycle.prepareBackupExport,
     completeRestore: firestoreRuntime.lifecycle.completeBackupRestore,
     readBackupValue,
+    createPreviewReadBackupValue: () => createPreviewBackupValueReader({
+      readStorageValue: firestoreRuntime.client.fbGet3,
+      readDailyState: firestoreRuntime.client.fbReadDailyStateCompatible3,
+    }),
     exportDailyData: async () => {
       const data = {};
       const dates = await firestoreRuntime.client.fbListDailyDates3();
@@ -111,4 +137,4 @@ function createModularFirebaseRuntime({
   });
 }
 
-export { createModularFirebaseRuntime };
+export { createModularFirebaseRuntime, createPreviewBackupValueReader };
