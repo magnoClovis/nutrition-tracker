@@ -27,10 +27,10 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 
 ### [I1] - Protótipo aprovado do carregamento animado
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 22/09/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
+- **Data de conclusão:** 27/09/2026.
+- **Tempo decorrido:** 2 h 50 min 11 s.
 - **Minutos de CI:** 0 min; esta etapa foi exclusivamente um protótipo HTML externo, sem alteração de runtime ou execução de CI.
 - **Propósito:** validar antes da implementação uma espera inicial que pareça deliberada e vinculada à identidade do Trofia, evitando tanto uma tela estática sem resposta quanto um spinner genérico desconectado do produto.
 - **O que se planeja fazer:** prototipar e, após aprovação específica, implementar a marca do Trofia pulsando e expandindo durante o bootstrap, com permanência visual mínima entre 800 e 1.000 ms, temas claro e escuro, textos localizados e uma alternativa sem pulsação/escala para usuários com `prefers-reduced-motion`.
@@ -1560,7 +1560,11 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
   O PR draft #277 foi aberto no HEAD `cc7fc86` e os dois checks autenticados reais terminaram verdes: o preflight documental `36336076113` consumiu 26 s e o gate pesado `36336076031` consumiu 44 min 03 s, totalizando 44 min 29 s de CI. O PR permanece em draft e a fatia continua em andamento até aprovação explícita e merge; nenhum resultado verde foi usado para antecipar a conclusão.
 
-- **PRs/commits relacionados:** [PR #277](https://github.com/magnoClovis/nutrition-tracker/pull/277); commit funcional `0bb2b9a`; merge explícito da base `82d6238` sobre `origin/main` `4537403`; documentação pré-merge `cc7fc86`; runs `36336076031` e `36336076113`. — **Chat-Origin:** Trofia-UIUX.
+  Após aprovação explícita, o PR #277 foi retirado do draft e mesclado na `main` em `89f3c3b`, sem alteração funcional posterior. A duração comprovada entre o primeiro commit funcional `0bb2b9a` (27/09/2026 17:57:56 +02:00) e o merge (27/09/2026 20:48:07 +02:00) foi de 2 h 50 min 11 s. A worktree funcional foi confirmada limpa, sem processo próprio ou lock autenticado, e arquivada imediatamente após o merge.
+
+- **Alinhamento:** 100%. O escopo aprovado foi entregue sem desvio: busca manual e fotografia convergem no mesmo editor progressivo, com procedência correta, recálculo proporcional e fluxos de registro preservados. Busca em base aberta e código de barras permaneceram fora da sequência conforme decidido. O impacto final foi positivo.
+
+- **PRs/commits relacionados:** [PR #277](https://github.com/magnoClovis/nutrition-tracker/pull/277); commit funcional `0bb2b9a`; merge explícito da base `82d6238` sobre `origin/main` `4537403`; documentação pré-merge `cc7fc86`/`b3bc56d`; merge `89f3c3b`; runs `36336076031`, `36336076113` e `36340541098`. — **Chat-Origin:** Trofia-UIUX.
 
 ### [TEST-CAM-48PX] - Sincronização da medição dos alvos CAM-RED-6
 
