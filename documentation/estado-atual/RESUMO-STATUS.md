@@ -191,6 +191,16 @@
 - **O que foi feito:** o PR documental #267 (merge `7c68229`) registrou que o PR #83 (`f6f73c0`, merge `49813c8`) já entregara cópia espanhola independente; a `origin/main` `0af7a14` passou em 10/10 testes focados UMD/ESM, sem mudança funcional nesta fatia.
 - **Alinhamento:** 100% — a auditoria comprovou a ausência atual de D01 e reconciliou somente a documentação, como planejado.
 
+### [BUG-D13] - Normalização das chaves históricas na leitura analítica
+
+- **Status:** em andamento — **Chat:** Trofia-Bugs.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** incluir chaves históricas PT/EN/ES nas médias por refeição sem reescrever dados persistidos nem alterar o contexto atual enviado à IA.
+- **O que se planeja fazer:** normalizar somente a cópia lida por `loadMealAnalysisData`, reutilizando o mapeamento PT/EN/ES existente, sem deduplicar por ID nem alterar `eating-patterns-ai.js` em produção; cobrir canônico, EN, ES, misto, chave desconhecida, imutabilidade e paridade UMD/ESM.
+- **Recursos/arquivos principais envolvidos:** `history-loaders.js`, `week-aggregator.js`, fachada ESM correspondente, testes unitários UMD/ESM, `eating-patterns-ai.js` apenas como regressão sem mudança de produção, inventário e documentação da frente.
+- **O que foi feito:** `loadMealAnalysisData` passou a normalizar apenas a cópia em memória antes da agregação; a regressão UMD/ESM cobre canônico, EN, ES, misto, desconhecido e imutabilidade. O gate local final passou com 1.475 unitários, legado 111+8, Vite 119/119 e cutover 60/60; a branch foi reconciliada até `c4612ef` preservando as outras frentes e aguarda CI remoto.
+
 ## O que está em andamento agora
 
 - **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.

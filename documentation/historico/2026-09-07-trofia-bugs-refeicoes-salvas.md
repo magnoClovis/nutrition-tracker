@@ -142,6 +142,46 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 
 **PRs/commits relacionados:** PR documental [#267](https://github.com/magnoClovis/nutrition-tracker/pull/267), commit `7000da8`, merge `7c68229`, run leve `36251757027`; correção histórica PR #83, commit `f6f73c0`, merge `49813c8`; base auditada `0af7a14`.
 
+## [BUG-D13] - Normalização das chaves históricas na leitura analítica
+
+**Status:** em andamento.
+
+**Data de início:** 26/09/2026.
+
+**Data de conclusão:** não concluído.
+
+**Tempo decorrido:** pendente de merge.
+
+**Minutos de CI:** 0 min; CI remoto ainda não iniciado. Os gates locais completos estão registrados abaixo, mas não são contabilizados como minutos de CI.
+
+**Propósito:** verificar por evidência se logs com chaves de refeição históricas ou traduzidas deixam de participar das médias por refeição, da cobertura nutricional e do contexto enviado à IA e corrigir somente a leitura analítica comprovadamente afetada, sem tocar em documentos ou contas reais.
+
+**O que se planeja fazer:** partir da `origin/main` atualizada em worktree isolada; auditar agregadores, loaders, call sites e normalizador; depois da aprovação, normalizar exclusivamente a cópia lida por `loadMealAnalysisData`, reutilizando o mapeamento PT/EN/ES existente. A implementação não deve alterar `eating-patterns-ai.js` em produção, regravar documentos nem deduplicar por ID. A regressão deve cobrir chave canônica, EN, ES, log misto, chave desconhecida, imutabilidade e paridade UMD/ESM, seguida de teste focado, `npm test` completo e CI autenticado real.
+
+**Recursos/arquivos principais envolvidos:** `week-aggregator.js`, `eating-patterns-ai.js`, `history-loaders.js`, `nutrition-tracker-controller.js`, `i18n.js`, `tests/unit/week-aggregator.test.js`, `tests/unit/eating-patterns-ai.test.js`, `tests/unit/history-loaders.test.js`, `tests/unit/i18n.test.js`, histórico Git, `documentation/estado-atual/BUG-INVENTORY.md`, `documentation/estado-atual/RESUMO-STATUS.md` e este histórico.
+
+**O que foi feito:** a auditoria usou a `origin/main` `7c682291d61868fec5958464975e7bd39d0b9986` numa worktree isolada, sem alterar o checkout principal sujo ou as worktrees C14-F2/UIUX. O histórico Git demonstrou que versões anteriores usavam os rótulos localizados como chaves: oito valores PT, oito EN (`Breakfast`, `Pre-workout`, `Post-workout`, `Lunch`, `Afternoon snack`, `Dinner`, `Supper`, `Other`) e oito ES (`Desayuno`, `Pre-entreno`, `Post-entreno`, `Almuerzo`, `Merienda`, `Cena`, `Colación`, `Otro`). A implementação atual estabiliza as oito chaves portuguesas em `MEAL_KEYS`; `normalizeMealKeys` converte exatamente as listas EN/ES por posição e concatena aliases no destino canônico, mas `loadMealAnalysisData` e `loadEatingPatternDays` solicitam parsing sem essa normalização.
+
+Uma fixture local somente em memória deu a cada variante de café da manhã 10 g de proteína, 100 kcal e 10 g de carboidratos. Em `aggregateMealAverages`, a chave canônica `Café da manhã` produziu `count: 1`, médias 10/100/10, enquanto `Breakfast` e `Desayuno` produziram objeto vazio. Num log misto com as três chaves, somente a entrada canônica contribuiu. Isso confirma perda real na análise de médias por refeição e corresponde ao teste existente que deliberadamente congela aliases como ignorados.
+
+No outro caminho de `week-aggregator.js`, `aggregateWeekRows` já percorre `Object.values(dayLog).flat()`: fixtures PT, EN e ES produziram, cada uma, 10 g de proteína, 100 kcal, `hasData: true` e cobertura proteica completa de 1/1 item. Portanto, totais e cobertura da visão semanal não reproduzem o defeito; ele está restrito à agregação categorizada por refeição.
+
+Já em `generateEatingPatterns`, as mesmas fixtures PT, EN e ES produziram, sem diferença, média diária de 10 g de proteína, 100 kcal e 10 g de carboidratos, cobertura proteica 1/1 e o mesmo detalhe diário. O log misto somou as três ocorrências para 30 g/300 kcal/30 g. A causa é `Object.values(dayLog).flat()`, usado para médias, cobertura e detalhes do prompt. O filtro por `MEALS` existe somente no acumulador `acc`, hoje não consumido pelo prompt. Assim, a afirmação anterior de que chaves traduzidas eram omitidas do contexto atual da IA não se confirmou e não deve provocar correção artificial nesse módulo.
+
+Os quatro arquivos focados passaram em 62/62 testes UMD/ESM: agregador semanal, padrões alimentares, loaders históricos e i18n. Nenhum smoke autenticado, escrita de storage, importação, alteração funcional ou acesso a conta foi executado. O PR documental #268 foi mesclado em `0dcc32f`; a branch avançou por fast-forward até essa base e reaplicou automaticamente os registros D13, sem conflito e sem sobrescrever o fechamento D01. A implementação funcional foi então iniciada dentro do escopo aprovado.
+
+A implementação alterou somente `loadMealAnalysisData`: cada documento válido é parseado e entregue ao `normalizeMealKeys` já injetado antes de entrar em `dailyLogs`. A normalização acontece numa cópia em memória e mantém o contrato do normalizador existente: chaves canônicas permanecem canônicas; aliases EN/ES são concatenados no destino PT por posição; chave desconhecida permanece presente; nenhum documento é regravado e nenhum item é deduplicado por `id`. `loadEatingPatternDays` e `eating-patterns-ai.js` não foram alterados em produção. O teste do loader roda contra UMD e ESM e congela chave canônica, EN, ES, log misto, chave desconhecida e imutabilidade do valor armazenado.
+
+O teste focado passou 62/62. Na primeira tentativa integral, preflight, 1.475 unitários e o smoke legado (111 aprovados + 8 skips estruturais de casos Vite-only) passaram; antes de abrir o navegador Vite, o coordenador fail-closed detectou o CI D2 `36288512798` e encerrou a execução sem colisão de conta. Na repetição, os mesmos unitários passaram, mas o legado encontrou uma falha visual intermitente e fora do diff: `searchable-choice-field.visual.spec.js` tentou clicar na aba Diário fora do viewport depois de deixar o editor de refeição salva expandido. A reprodução isolada imediata, sem retry configurado nem aumento de timeout, passou 2/2 e confirmou que o arquivo funcional D13 não participava da falha.
+
+A terceira execução integral terminou verde: preflight sem avisos; 1.475/1.475 unitários; smoke legado com 111 aprovados e 8 skips estruturais esperados; smoke Vite 119/119; matriz cutover 60/60. Nenhum skip ocorreu por falta de credenciais, e a conta usada foi a descartável configurada localmente. Após o gate, a branch avançou por fast-forward de `0dcc32f` até a `origin/main` `c4612ef`, incorporando CAM-RED-7 e os registros de protótipos UI/UX; o stash D13 reaplicou sem conflito e preservou integralmente as entradas das outras frentes. O preflight e o foco UMD/ESM foram repetidos sobre essa base final e passaram, respectivamente, sem avisos e em 62/62 testes.
+
+O contrato de leitura recomendado é manter `MEAL_KEYS` e as chaves persistidas intactos, aplicar a conversão posicional PT/EN/ES apenas à cópia em memória da janela que alimenta `aggregateMealAverages` e concatenar cada ocorrência armazenada sob o destino canônico. Não se recomenda deduplicação por `id`: além de não haver prova de que duas ocorrências em chaves diferentes sejam o mesmo lançamento, versões anteriores reutilizaram identificadores em contextos distintos. A consequência esperada é que médias históricas de contas com chaves EN/ES passem a refletir refeições antes omitidas; isso é mudança analítica intencional, não migração de dados. Para a IA, o contrato deve ser congelado por teste de equivalência PT/EN/ES e o runtime deve permanecer inalterado enquanto o prompt continuar independente da categoria.
+
+A complexidade estimada da correção é baixa a média. Recomenda-se uma única fatia funcional futura, restrita ao loader/normalização da média por refeição e aos testes UMD/ESM de loader/agregador, com regressão explícita no prompt de IA para provar ausência de mudança. Separar em dois PRs criaria uma segunda correção sem defeito efetivo em `eating-patterns-ai.js`; a alternativa segura é um PR único que corrija somente o caminho comprovadamente afetado e atualize a documentação do D13.
+
+**PRs/commits relacionados:** base auditada `7c682291d61868fec5958464975e7bd39d0b9986`; PR documental #268, commit `68bac91`, merge `0dcc32f`, run leve `36253079974`; base final reconciliada `c4612ef`; CI concorrente evitado `36288512798`; implementação ainda sem commit ou PR funcional.
+
 ## Métricas retroativas
 
 | PR | Tempo decorrido | Minutos de CI | Chat-Origin |
@@ -150,3 +190,4 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 | [#199](https://github.com/magnoClovis/nutrition-tracker/pull/199) | 1 min 27 s | 1 min (1 leve + 0 pesado) | Trofia-Bugs |
 | [#264](https://github.com/magnoClovis/nutrition-tracker/pull/264) | 1 h 28 min 37 s | 1 h 10 min 23 s (46 s leve + 1 h 9 min 37 s pesado) | Trofia-Bugs |
 | [#267](https://github.com/magnoClovis/nutrition-tracker/pull/267) | 21 min 10 s | 25 s (25 s leve + 0 s pesado) | Trofia-Bugs |
+| [#268](https://github.com/magnoClovis/nutrition-tracker/pull/268) | 8 h 2 min 3 s | 24 s (24 s leve + 0 s pesado) | Trofia-Bugs |

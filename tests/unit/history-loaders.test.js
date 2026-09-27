@@ -10,6 +10,19 @@ const civilDates = createDateUtils({
   pickLang: (_lang, pt) => pt,
   localeForLang: () => "pt-BR"
 });
+const { MEAL_KEYS, STRINGS } = require("../../i18n.js").createI18n();
+
+function normalizeLocalizedMealKeys(rawLog) {
+  const normalized = {};
+  for (const [key, entries] of Object.entries(rawLog || {})) {
+    const enIndex = STRINGS.en.meals.indexOf(key);
+    const esIndex = STRINGS.es.meals.indexOf(key);
+    const translatedIndex = enIndex >= 0 ? enIndex : esIndex;
+    const canonicalKey = translatedIndex >= 0 ? MEAL_KEYS[translatedIndex] : key;
+    normalized[canonicalKey] = (normalized[canonicalKey] || []).concat(entries || []);
+  }
+  return normalized;
+}
 
 function deferred() {
   let resolve;
@@ -155,24 +168,32 @@ contractTest("loads weekly history in one grouped request from the supplied civi
   assert.strictEqual(aggregateInput.goalContext, goalContext);
 });
 
-contractTest("loads 30 meal-analysis days as one group without normalizing meal keys", async createHistoryLoaders => {
+contractTest("normalizes canonical, EN, ES, mixed, and unknown meal keys only in the analysis copy", async createHistoryLoaders => {
   const groupedReads = [];
-  let normalizeCalls = 0;
   let aggregateInput;
+  const storedLogs = [
+    { "Café da manhã": [{ id: "canonical", protein: 10 }] },
+    { Breakfast: [{ id: "english", protein: 20 }] },
+    { Desayuno: [{ id: "spanish", protein: 30 }] },
+    {
+      "Café da manhã": [{ id: "mixed-canonical", protein: 40 }],
+      Breakfast: [{ id: "mixed-english", protein: 50 }],
+      Desayuno: [{ id: "mixed-spanish", protein: 60 }],
+      "Legacy brunch": [{ id: "unknown", protein: 70 }]
+    }
+  ];
+  const storedSnapshot = structuredClone(storedLogs);
   const { loadMealAnalysisData } = createHistoryLoaders(baseDependencies({
     storage: {
       async getMany(keys) {
         groupedReads.push(keys);
-        return Object.fromEntries(keys.map(key => [
+        return Object.fromEntries(keys.map((key, index) => [
           key,
-          key.endsWith("07-21") ? { value: JSON.stringify({ Breakfast: [{ protein: 20 }] }) } : null
+          index < storedLogs.length ? { value: JSON.stringify(storedLogs[index]) } : null
         ]));
       }
     },
-    normalizeMealKeys(log) {
-      normalizeCalls++;
-      return log;
-    },
+    normalizeMealKeys: normalizeLocalizedMealKeys,
     aggregateMealAverages(snapshot) {
       aggregateInput = snapshot;
       return { done: true };
@@ -182,11 +203,22 @@ contractTest("loads 30 meal-analysis days as one group without normalizing meal 
   assert.deepEqual(await loadMealAnalysisData({ today: "2026-07-22", mealKeys: ["Café da manhã"] }), { done: true });
   assert.equal(groupedReads.length, 1);
   assert.equal(groupedReads[0].length, 30);
-  assert.equal(normalizeCalls, 0);
-  assert.deepEqual(aggregateInput, {
-    dailyLogs: [{ Breakfast: [{ protein: 20 }] }],
-    mealKeys: ["Café da manhã"]
-  });
+  assert.deepEqual(storedLogs, storedSnapshot);
+  assert.notStrictEqual(aggregateInput.dailyLogs[0], storedLogs[0]);
+  assert.deepEqual(aggregateInput.mealKeys, ["Café da manhã"]);
+  assert.deepEqual(aggregateInput.dailyLogs, [
+    { "Café da manhã": [{ id: "canonical", protein: 10 }] },
+    { "Café da manhã": [{ id: "english", protein: 20 }] },
+    { "Café da manhã": [{ id: "spanish", protein: 30 }] },
+    {
+      "Café da manhã": [
+        { id: "mixed-canonical", protein: 40 },
+        { id: "mixed-english", protein: 50 },
+        { id: "mixed-spanish", protein: 60 }
+      ],
+      "Legacy brunch": [{ id: "unknown", protein: 70 }]
+    }
+  ]);
 });
 
 contractTest("keeps invalid weekly and meal JSON as rejected promises", async createHistoryLoaders => {

@@ -180,7 +180,7 @@
     }
 
     /**
-     * Reads the prior 30 days sequentially and returns unnormalized per-meal averages.
+     * Reads the prior 30 days and returns per-meal averages from a normalized in-memory copy.
      *
      * @param {Object} input Loader input.
      * @param {string} input.today Current local civil date.
@@ -194,7 +194,7 @@
       dates.forEach(date => {
         const record = records["log_v2_" + date];
         if (!record) return;
-        dailyLogs.push(JSON.parse(record.value));
+        dailyLogs.push(normalizeMealKeys(JSON.parse(record.value) || {}));
       });
       return aggregateMealAverages({ dailyLogs, mealKeys });
     }
