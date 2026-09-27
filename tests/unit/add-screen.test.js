@@ -7,12 +7,14 @@ const implementations = [
   ["UMD", async () => ({
     ...require("../../add-screen.js"),
     ...require("../../choice-field.js"),
-    ...require("../../temporal-field.js")
+    ...require("../../temporal-field.js"),
+    ...require("../../manual-meal-result.js")
   })],
   ["ESM", async () => ({
     ...await import("../../src/components/add-screen.js"),
     ...await import("../../src/components/choice-field.js"),
-    ...await import("../../src/components/temporal-field.js")
+    ...await import("../../src/components/temporal-field.js"),
+    ...await import("../../src/components/manual-meal-result.js")
   })]
 ];
 
@@ -74,6 +76,10 @@ function MealEstimateEditor({ estimate, onChange }) {
     "data-shared-estimate-editor": "true",
     onClick: () => onChange({ ...estimate, dishName: "Edited plate" })
   }, estimate.dishName);
+}
+
+function MealResultSheet() {
+  return null;
 }
 
 function baseProps(overrides = {}) {
@@ -162,6 +168,11 @@ function baseProps(overrides = {}) {
     addEntry: { foodId: food.id, qty: "100", meal: "Café da manhã" },
     setAddEntry: noOp,
     selectedFood: food,
+    manualMealResult: null,
+    setManualMealResult: noOp,
+    confirmManualMealResult: noOp,
+    stageManualMealResult: noOp,
+    reviewManualMealResult: noOp,
     ALL_FIELDS: [
       { key: "protein100", label: "Protein", unit: "g" },
       { key: "kcal100", label: "Calories", unit: "kcal" },
@@ -188,10 +199,13 @@ function baseProps(overrides = {}) {
 function contractTest(name, callback) {
   implementations.forEach(([format, load]) => {
     test(`${format}: ${name}`, async () => {
-      const { createAddScreen, createChoiceField, createTemporalField } = await load();
+      const { createAddScreen, createChoiceField, createTemporalField, createManualMealEstimate, defaultManualQuantity } = await load();
       const { ChoiceField } = createChoiceField({ React });
       const { TemporalField, NumericField } = createTemporalField({ React });
-      const { AddScreen } = createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField, MealEstimateEditor });
+      const { AddScreen } = createAddScreen({
+        React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField,
+        MealEstimateEditor, MealResultSheet, createManualMealEstimate, defaultManualQuantity
+      });
       return callback(AddScreen);
     });
   });
@@ -455,6 +469,62 @@ contractTest("uses the reusable NumericField for the primary food quantity", Add
     foodId: "food-1",
     qty: "125.5"
   });
+});
+
+contractTest("opens the shared result sheet from a saved-food search result", AddScreen => {
+  let entryUpdater = null;
+  let openedEstimate = null;
+  const searchView = AddScreen(baseProps({
+    addEntry: { foodId: "", foodSearch: "Oat", qty: "", meal: "Café da manhã" },
+    selectedFood: null,
+    setAddEntry: updater => { entryUpdater = updater; },
+    setManualMealResult: estimate => { openedEstimate = estimate; }
+  }));
+  const result = findNodes(searchView, node => node.props?.["data-manual-food-result"] === "true")[0];
+
+  assert.ok(result);
+  assert.match(textContent(result), /Oats/);
+  assert.match(textContent(result), /100 g default/);
+  assert.match(textContent(result), /389kcal/);
+  result.props.onClick();
+  assert.equal(openedEstimate.resultSource, "saved-food");
+  assert.equal(openedEstimate.items[0].sourceFoodId, "food-1");
+  assert.deepEqual(entryUpdater({ foodId: "", foodSearch: "Oat", qty: "", meal: "Café da manhã" }), {
+    foodId: "food-1",
+    foodSearch: "Oats",
+    qty: "100",
+    meal: "Café da manhã"
+  });
+
+  let confirmed = null;
+  let staged = null;
+  let reviewed = null;
+  const resultView = AddScreen(baseProps({
+    manualMealResult: openedEstimate,
+    confirmManualMealResult: (estimate, meal) => { confirmed = { estimate, meal }; },
+    stageManualMealResult: estimate => { staged = estimate; },
+    reviewManualMealResult: (estimate, meal) => { reviewed = { estimate, meal }; }
+  }));
+  const sheet = findNodes(resultView, node => node.type === MealResultSheet)[0];
+  assert.ok(sheet);
+  assert.equal(sheet.props.mealValue, "Café da manhã");
+  sheet.props.onConfirm();
+  sheet.props.onReview();
+  assert.equal(staged, openedEstimate);
+  assert.equal(confirmed, null);
+  assert.equal(sheet.props.confirmLabel, "Add to meal");
+  assert.equal(reviewed.estimate, openedEstimate);
+
+  const directView = AddScreen(baseProps({
+    batchMode: false,
+    manualMealResult: openedEstimate,
+    confirmManualMealResult: (estimate, meal) => { confirmed = { estimate, meal }; }
+  }));
+  const directSheet = findNodes(directView, node => node.type === MealResultSheet)[0];
+  directSheet.props.onConfirm();
+  assert.equal(confirmed.estimate, openedEstimate);
+  assert.equal(confirmed.meal, "Café da manhã");
+  assert.equal(directSheet.props.confirmLabel, "Log meal");
 });
 
 contractTest("recent meals and header remain controlled sections", AddScreen => {

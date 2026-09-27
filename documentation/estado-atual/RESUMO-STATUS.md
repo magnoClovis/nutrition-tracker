@@ -1531,12 +1531,13 @@
 
 ### [CAM-RED-8] - Busca manual com o mesmo resultado
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 27/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** eliminar a duplicação visual e comportamental entre alimento pesquisado e estimativa por foto.
 - **O que se planeja fazer:** modernizar resultados dos alimentos salvos e abrir o mesmo `MealResultSheet` com origem verificada, porção e nutrientes recalculados; busca textual em base aberta permanece fora do escopo.
 - **Recursos/arquivos principais envolvidos:** `add-screen.js`, adaptador de resultado manual, `meal-result-sheet.js`, `nutrition-tracker-controller.js`, NumericField, ChoiceField, `one-ui.css`, `i18n.js` e testes.
+- **O que foi feito:** adaptador UMD/ESM, lista modernizada e `MealResultSheet` compartilhado conectam alimento salvo, porção proporcional, avaliação, registro direto e montagem em lote; após incorporar a `origin/main` `4537403` sem reescrever o histórico, o gate local final ficou verde com preflight sem avisos, 1.505/1.505 unitários, smoke legado com 129 aprovados + 10 skips estruturais, Vite 139/139 e cutover 60/60; o primeiro HEAD funcional/documental do PR draft #277 também passou no CI autenticado real, leve e pesado.
 
 ### [CAM-RED-9] - Robustez, acessibilidade e estados extremos
 
