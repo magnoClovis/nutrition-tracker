@@ -27,10 +27,10 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 
 ### [I1] - Protótipo aprovado do carregamento animado
 
-- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
 - **Data de início:** 22/09/2026.
-- **Data de conclusão:** 27/09/2026.
-- **Tempo decorrido:** 2 h 50 min 11 s.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
 - **Minutos de CI:** 0 min; esta etapa foi exclusivamente um protótipo HTML externo, sem alteração de runtime ou execução de CI.
 - **Propósito:** validar antes da implementação uma espera inicial que pareça deliberada e vinculada à identidade do Trofia, evitando tanto uma tela estática sem resposta quanto um spinner genérico desconectado do produto.
 - **O que se planeja fazer:** prototipar e, após aprovação específica, implementar a marca do Trofia pulsando e expandindo durante o bootstrap, com permanência visual mínima entre 800 e 1.000 ms, temas claro e escuro, textos localizados e uma alternativa sem pulsação/escala para usuários com `prefers-reduced-motion`.
@@ -1534,13 +1534,13 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 ### [CAM-RED-8] - Busca manual com o mesmo resultado
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 
 - **Data de início:** 27/09/2026.
 
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 27/09/2026.
 
-- **Tempo decorrido:** pendente de merge.
+- **Tempo decorrido:** 2 h 50 min 11 s.
 
 - **Minutos de CI:** 44 min 29 s — 26 s leves e 44 min 03 s pesados.
 
