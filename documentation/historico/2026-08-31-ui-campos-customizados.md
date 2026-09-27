@@ -23,7 +23,7 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 | S8 — checkboxes e sliders | Mesclada na `main` pelo PR #166, com CI autenticado integralmente verde |
 | S9 — diálogo genérico | Implementada, validada e mesclada na `main` pelo PR #172 |
 | Fechamento S1–S9 | Concluído: todas as fatias S1–S9 integram a `main` |
-| Sequência I1–I7 | I1 com protótipo visual aprovado em 26/09/2026 e implementação pendente; I2–I7 permanecem planejadas |
+| Sequência I1–I7 | I1 e I2 com protótipos visuais aprovados em 26/09/2026 e implementação pendente; I3–I7 permanecem planejadas |
 
 ### [I1] - Protótipo aprovado do carregamento animado
 
@@ -37,6 +37,19 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 - **Recursos/arquivos principais envolvidos:** protótipo externo `C:\Users\clovi\.codex\visualizations\2026\08\24\01a03230-1014-72b3-a9e6-3906a00e02ea\i1-carregamento-animado.html`; futuros pontos de integração no bootstrap/loading do app; marca Trofia; CSS de animação; temporização JavaScript; i18n PT/EN/ES; e futura cobertura Playwright visual. Nenhum arquivo de runtime foi modificado nesta etapa.
 - **O que foi feito:** foi produzido e revisado um protótipo HTML interativo com alternância entre claro/escuro, PT/EN/ES e movimento normal/reduzido, além de controle para reproduzir novamente a sequência. A composição aprovada usa a marca como foco central, aura discreta, pulso/expansão progressivos e mensagens de carregamento sem simular uma fase técnica que o bootstrap não informe de verdade. A variante normal demonstra a permanência mínima pretendida para que a transição seja perceptível; a variante de movimento reduzido mantém estado e identidade visíveis sem depender de escala ou pulsação contínua. O responsável aprovou visualmente o protótipo em 26/09/2026. A aprovação encerra somente a decisão visual: I1 continua em andamento e nenhuma lógica de inicialização, splash nativa, câmera ou runtime foi alterada.
 - **PRs/commits relacionados:** não há PR ou commit funcional de I1 nesta etapa; o artefato aprovado é o protótipo externo citado acima. O registro documental foi versionado no draft PR #263, a partir do commit `59ef675`, sem alteração de runtime. — **Chat-Origin:** Trofia-UIUX.
+
+### [I2] - Protótipo aprovado do registro progressivo por campo
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; esta etapa foi exclusivamente um protótipo HTML externo e sua revisão textual, sem alteração de runtime ou execução de CI funcional.
+- **Propósito:** reduzir a carga cognitiva do cadastro obrigatório ao apresentar uma decisão por vez, explicar por que cada dado é solicitado e permitir uma revisão clara antes de salvar o perfil nutricional.
+- **O que se planeja fazer:** substituir, em fatia funcional posterior, o formulário concentrado por sete etapas progressivas — nome, nascimento, opção usada pelo cálculo nutricional atual, peso/altura, atividade, objetivo e revisão — com avanço e retorno previsíveis, indicador de progresso, PT/EN/ES, temas claro/escuro, transições fluidas e dinâmicas e alternativa compatível com `prefers-reduced-motion`.
+- **Recursos/arquivos principais envolvidos:** protótipo externo `C:\Users\clovi\.codex\visualizations\2026\08\24\01a03230-1014-72b3-a9e6-3906a00e02ea\i2-registro-progressivo.html`; futuros pontos de integração `login-screen.js` e `required-profile-modal.js`; ChoiceField/TemporalField; validação de nome, data, peso, altura, atividade e objetivo; i18n PT/EN/ES; foco/teclado/leitor de tela; movimento reduzido; e futura matriz Playwright. Nenhum arquivo de runtime foi modificado nesta etapa.
+- **O que foi feito:** foi produzido e aprovado em 26/09/2026 um protótipo HTML interativo com sete passos, indicador numérico e barra de progresso, navegação Voltar/Continuar, revisão final e alternância de idioma e tema. A revisão textual confirmou que o núcleo necessário ao cálculo atual está coberto: identificação nominal, data de nascimento, opção binária hoje exigida pela fórmula vigente, peso e altura, rotina de atividade, objetivo de manter/perder/ganhar peso e, quando aplicável, magnitude e prazo pretendidos. O fluxo deve transicionar entre telas de forma fluida e perceptível, sem saltos abruptos, mantendo uma variante reduzida para quem solicita menos movimento. A comparação com referências como Foodvisor e Calz apontou perguntas adicionais possíveis — padrão alimentar, alergias/restrições, organização das refeições e contexto de rotina — mas elas não são indispensáveis ao cálculo inicial nem foram incorporadas silenciosamente ao escopo aprovado; qualquer inclusão futura exige decisão própria sobre finalidade, obrigatoriedade, privacidade e uso real desses dados. A aprovação encerra a decisão visual do protótipo, enquanto I2 permanece em andamento até implementação e validação do runtime.
+- **PRs/commits relacionados:** não há PR ou commit funcional de I2 nesta etapa; o artefato aprovado é o protótipo externo citado acima. O registro documental foi incluído no draft PR #263, sem alteração de runtime. — **Chat-Origin:** Trofia-UIUX.
 
 ### [D3] - Protótipo aprovado da responsividade de Alimentos no desktop
 

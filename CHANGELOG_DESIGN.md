@@ -7,6 +7,18 @@ experiência do usuário. Bugs técnicos continuam catalogados separadamente em
 Cada rodada deve receber uma seção datada, um título curto e uma tabela com o
 escopo, os principais arquivos afetados e a referência de implementação.
 
+## 2026-09-26 — I2: protótipo aprovado do registro progressivo
+
+Referência geral: protótipo HTML externo aprovado antes da implementação; nenhum arquivo de runtime foi alterado nesta etapa.
+
+| Item | Mudança aprovada | Arquivos principais | Referência |
+|---:|---|---|---|
+| 1 | O cadastro passa a apresentar uma decisão por tela, com indicador de progresso, Voltar/Continuar e revisão antes de salvar. | Protótipo `i2-registro-progressivo.html`; futuros `login-screen.js` e `required-profile-modal.js` | I2 — protótipo aprovado; runtime pendente |
+| 2 | As sete etapas cobrem nome, nascimento, opção usada pelo cálculo atual, peso/altura, atividade, objetivo com magnitude/prazo quando aplicável e revisão final. | ChoiceField/TemporalField, validação e cálculo nutricional existente | Núcleo essencial confirmado |
+| 3 | As transições devem ser fluidas e dinâmicas, sem aparecimento abrupto, mantendo alternativa compatível com `prefers-reduced-motion`. | CSS de transição, foco e futura cobertura Playwright | I2 — requisito aprovado |
+| 4 | PT/EN/ES e claro/escuro preservam a mesma ordem, explicações e hierarquia. Perguntas opcionais vistas em referências — padrão alimentar, restrições, refeições e rotina — exigem decisão futura sobre necessidade e privacidade; não entram implicitamente em I2. | i18n, privacidade e futuro contrato de perfil | Fora do núcleo aprovado |
+| 5 | O protótipo aprovado permanece como especificação visual anterior ao código. | `C:\Users\clovi\.codex\visualizations\2026\08\24\01a03230-1014-72b3-a9e6-3906a00e02ea\i2-registro-progressivo.html` | Aprovado em 26/09/2026 |
+
 ## 2026-09-26 — D3: protótipo aprovado da tela Alimentos desktop
 
 Referência geral: protótipo HTML externo aprovado antes da implementação; nenhum arquivo de runtime foi alterado nesta etapa.
