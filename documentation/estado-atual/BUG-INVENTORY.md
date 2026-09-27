@@ -598,6 +598,40 @@ preview consome somente `existingItems`, valida inteiros não negativos e
 não habilita importação após contrato inválido. Resolvido no PR #264, merge
 `d617840`, com gates locais e CI verdes.
 
+[BUG-BACKUP-PREVIEW-VITE] Preview Vite repete leituras completas da mesma data
+Localização: backup-modal.js:324-355; firebase-backup-internal.js:340-390;
+src/firebase/firebase-sdk-runtime.js:29-46; firebase-firestore-sdk.js:939-965;
+tests/smoke/authenticated-flows.spec.js:206-255.
+Descrição/impacto: no run #36257846855, o modal “Revisar importação” não surgiu
+em 20 segundos após `setInputFiles`: mobile falhou na tentativa 1 e desktop na
+tentativa 2, enquanto o viewport complementar passou. Os screenshots mostram a
+tela de backup intacta, sem modal nem erro renderizado.
+Severidade: MÉDIO — torna o gate autenticado intermitente e pode deixar o usuário
+sem feedback enquanto o preview aguarda leituras do estado existente.
+Causa comprovada no código e por instrumentação: cada chave diária chama
+`fbReadDailyStateCompatible3(date)`, que lê refeições, água e suplementos; um
+backup com as três chaves da mesma data repete o mesmo estado completo três
+vezes. O diagnóstico autenticado reproduzível mediu 1.793 requisições de
+servidor para 103 datas/298 chaves diárias tanto em desktop quanto em mobile. A
+relação causal exclusiva com o limite de 20 segundos continua não comprovada.
+Resolução em validação: o runtime Vite agora cria um leitor privado por preview,
+compartilha Promise/resultado entre as três chaves da mesma data e descarta o
+estado com a operação. Testes cobrem datas iguais/diferentes, erro compartilhado,
+limpeza após sucesso/falha, segunda leitura atualizada e resultado equivalente.
+A medição autenticada caiu de 1.793 para 623 requests (-65,3%) e de 918 para 310
+documentos (-66,2%), sem cache persistente, aumento de timeout ou retry. O CI
+remoto #36316725209 passou integralmente; essa redução e um ciclo verde não
+provam isoladamente que o timeout intermitente esteja definitivamente resolvido.
+Risco de corrigir: cache com vida maior que a operação pode comparar contra
+estado obsoleto; coalescência incorreta pode misturar usuários ou sobreviver a
+troca de sessão. A correção deve ser limitada à operação/in-flight e coberta por
+falha de leitura, limpeza e paridade de resultado.
+Rastreio: fatia funcional `BUG-BACKUP-PREVIEW-VITE` em andamento, separada de
+D13 e do PR #265; run #36257846855, job #108464899999, artefatos Playwright das
+tentativas 1/2, diagnósticos locais Vite 3/3 verdes, `npm test` integral verde,
+commit `cb2e46e`, PR draft #274 e runs verdes #36316725199/#36316725209 em
+27/09/2026; revisão do usuário ainda pendente.
+
 [D10] Pantry mantém resultados invisíveis, dose obrigatória oculta e controles órfãos
 Localização: pantry-screen.js:11-16;
 tests/unit/pantry-screen.test.js:188-199,256.

@@ -41,6 +41,7 @@
    * @param {Function} dependencies.normalizedIdentity Temporary facade-owned identity callback.
    * @param {Function} dependencies.mergeArrayValues Temporary facade-owned array merge callback.
    * @param {Function} dependencies.mergeObjectValues Temporary facade-owned object merge callback.
+   * @param {Function} dependencies.createPreviewReadBackupValue Creates an operation-scoped preview reader.
    * @returns {{exportFullAccountBackup3: Function, validateFullAccountBackup3: Function, previewFullAccountBackupImport3: Function, importFullAccountBackup3: Function}} Backup operations consumed by the public facade.
    */
   function createFirebaseBackup({
@@ -61,6 +62,7 @@
     completeRestore = async () => null,
     exportDailyData = async () => ({}),
     readBackupValue = fbGet3,
+    createPreviewReadBackupValue = () => readBackupValue,
     restoreDailyValue = null
   }) {
     const ACCOUNT_BACKUP_SCHEMA = "nutrition-tracker-account-backup";
@@ -340,6 +342,11 @@
     async function previewFullAccountBackupImport3(rawBackup) {
       if (!getUid()) throw new Error("No authenticated user");
 
+      const previewReadBackupValue = createPreviewReadBackupValue();
+      if (typeof previewReadBackupValue !== "function") {
+        throw new TypeError("Invalid backup preview reader");
+      }
+
       const validation = validateFullAccountBackup3(rawBackup);
       const flat = _normalizeBackupPayload3(rawBackup);
       const entries = _backupImportableEntries3(flat);
@@ -361,7 +368,7 @@
         const rows = await Promise.all(batch.map(async entry => {
           let current;
           try {
-            current = await readBackupValue(entry.targetKey);
+            current = await previewReadBackupValue(entry.targetKey);
           } catch (error) {
             throw new Error("Could not read existing data while previewing backup import.", {cause: error});
           }
