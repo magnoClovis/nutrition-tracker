@@ -144,15 +144,15 @@ Na preparação dos gates, foi comprovado que a primeira falha da suíte complet
 
 ## [BUG-D13] - Normalização das chaves históricas na leitura analítica
 
-**Status:** em andamento.
+**Status:** concluído.
 
 **Data de início:** 26/09/2026.
 
-**Data de conclusão:** não concluído.
+**Data de conclusão:** 27/09/2026.
 
-**Tempo decorrido:** pendente de merge.
+**Tempo decorrido:** 1 h 57 min 34 s.
 
-**Minutos de CI:** 35 min 26 s (23 s leve + 35 min 3 s pesado).
+**Minutos de CI:** 1 h 7 min (47 s leve + 1 h 6 min 13 s pesado).
 
 **Propósito:** verificar por evidência se logs com chaves de refeição históricas ou traduzidas deixam de participar das médias por refeição, da cobertura nutricional e do contexto enviado à IA e corrigir somente a leitura analítica comprovadamente afetada, sem tocar em documentos ou contas reais.
 
@@ -178,11 +178,15 @@ A terceira execução integral terminou verde: preflight sem avisos; 1.475/1.475
 
 O commit funcional `e373216` abriu o PR draft #271. Os dois gates remotos passaram no primeiro ciclo: o Documentation preflight `36295928604` em 23 s e o CI pesado `36295928606` em 35 min 3 s, totalizando 35 min 26 s. Sobre a base final, o CI executou 1.483/1.483 unitários, 44/44 testes do Worker, 74/74 testes de Functions, smoke legado com 121 aprovados e 8 skips estruturais e smoke Vite 129/129. A variável da conta descartável estava presente e mascarada no log; nenhuma suíte foi ignorada por falta de credenciais. A matriz cutover 60/60 permanece comprovada pelo gate local integral, pois não é uma etapa separada do workflow remoto atual.
 
+O commit documental `e896852` registrou a primeira rodada e iniciou o ciclo final. O Documentation preflight `36299451500` passou em 24 s e o CI pesado `36299451483` passou em 31 min 10 s, repetindo 1.483/1.483 unitários, Worker 44/44, Functions 74/74, legado 121 aprovados + 8 skips estruturais e Vite 129/129 com credenciais descartáveis presentes. Os dois ciclos somaram exatamente 1 h 7 min: 47 s leves e 1 h 6 min 13 s pesados. Após autorização explícita, o PR #271 foi mesclado em `adc4dcf` às 06:57:17 UTC de 27/09/2026, 1 h 57 min 34 s depois do primeiro commit `e373216` às 04:59:43 UTC. A descrição do PR recebeu os mesmos valores pós-merge.
+
 O contrato de leitura recomendado é manter `MEAL_KEYS` e as chaves persistidas intactos, aplicar a conversão posicional PT/EN/ES apenas à cópia em memória da janela que alimenta `aggregateMealAverages` e concatenar cada ocorrência armazenada sob o destino canônico. Não se recomenda deduplicação por `id`: além de não haver prova de que duas ocorrências em chaves diferentes sejam o mesmo lançamento, versões anteriores reutilizaram identificadores em contextos distintos. A consequência esperada é que médias históricas de contas com chaves EN/ES passem a refletir refeições antes omitidas; isso é mudança analítica intencional, não migração de dados. Para a IA, o contrato deve ser congelado por teste de equivalência PT/EN/ES e o runtime deve permanecer inalterado enquanto o prompt continuar independente da categoria.
 
 A complexidade estimada da correção é baixa a média. Recomenda-se uma única fatia funcional futura, restrita ao loader/normalização da média por refeição e aos testes UMD/ESM de loader/agregador, com regressão explícita no prompt de IA para provar ausência de mudança. Separar em dois PRs criaria uma segunda correção sem defeito efetivo em `eating-patterns-ai.js`; a alternativa segura é um PR único que corrija somente o caminho comprovadamente afetado e atualize a documentação do D13.
 
-**PRs/commits relacionados:** base auditada `7c682291d61868fec5958464975e7bd39d0b9986`; PR documental #268, commit `68bac91`, merge `0dcc32f`, run leve `36253079974`; base final reconciliada `c4612ef`; CI concorrente evitado `36288512798`; PR draft [#271](https://github.com/magnoClovis/nutrition-tracker/pull/271), commit funcional `e373216`, run leve `36295928604` e run pesado `36295928606`.
+**Alinhamento:** 100% — a fatia entregou exatamente a normalização somente em leitura aprovada, reutilizando o mapeamento PT/EN/ES e preservando documentos, chaves persistidas, IDs e `eating-patterns-ai.js`. Os bloqueios de lease e a falha visual intermitente foram tratados por evidência sem ampliar o escopo; o impacto final desses incidentes foi neutro para o projeto.
+
+**PRs/commits relacionados:** base auditada `7c682291d61868fec5958464975e7bd39d0b9986`; PR documental #268, commit `68bac91`, merge `0dcc32f`, run leve `36253079974`; base final reconciliada `c4612ef`; CI concorrente evitado `36288512798`; PR [#271](https://github.com/magnoClovis/nutrition-tracker/pull/271), commits `e373216`/`e896852`, merge `adc4dcf`, runs leves `36295928604`/`36299451500` e pesados `36295928606`/`36299451483`.
 
 ## Métricas retroativas
 
@@ -193,3 +197,4 @@ A complexidade estimada da correção é baixa a média. Recomenda-se uma única
 | [#264](https://github.com/magnoClovis/nutrition-tracker/pull/264) | 1 h 28 min 37 s | 1 h 10 min 23 s (46 s leve + 1 h 9 min 37 s pesado) | Trofia-Bugs |
 | [#267](https://github.com/magnoClovis/nutrition-tracker/pull/267) | 21 min 10 s | 25 s (25 s leve + 0 s pesado) | Trofia-Bugs |
 | [#268](https://github.com/magnoClovis/nutrition-tracker/pull/268) | 8 h 2 min 3 s | 24 s (24 s leve + 0 s pesado) | Trofia-Bugs |
+| [#271](https://github.com/magnoClovis/nutrition-tracker/pull/271) | 1 h 57 min 34 s | 1 h 7 min (47 s leve + 1 h 6 min 13 s pesado) | Trofia-Bugs |
