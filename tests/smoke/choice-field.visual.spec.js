@@ -136,12 +136,11 @@ test.describe('authenticated ChoiceField visual contract', () => {
       const usesFrozenLegacyLoader = await page.locator('script[src*="app.js"]').count() > 0;
       if (!usesFrozenLegacyLoader) {
         await page.locator('[data-add-mode="image"]').click();
-        const imageTrigger = page.locator('#image-meal-category-trigger');
-        await expect(imageTrigger).toBeVisible();
-        await imageTrigger.click();
-        await expect(page.getByRole('heading', { name: 'Categoria da refeição', exact: true })).toBeVisible();
-        await expect(page.getByRole('option', { name: 'Almoço', exact: true })).toBeVisible();
-        await page.locator('[data-choice-field-close]').click();
+        const imageScreen = page.locator('[data-image-meal-screen="true"]');
+        await expect(imageScreen.locator('[data-image-meal-state="empty"]')).toBeVisible();
+        // The image-flow ChoiceField now belongs exclusively to the approved
+        // CAM-RED-7 result footer, which has its own focused visual contract.
+        await expect(imageScreen.locator('#image-meal-category-trigger')).toHaveCount(0);
       }
 
       await page.locator('[data-add-close]').click();

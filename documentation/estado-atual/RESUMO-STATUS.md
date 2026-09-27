@@ -16,7 +16,7 @@
 - **Privacidade e compliance:** política trilíngue pública, instruções de exclusão e referência atual de Data Safety.
 - **Qualidade:** preflight, unitários, smoke legado/Vite, matriz visual e CI autenticado com App Check. G01, C05 e C07 estão fechados.
 - **Controles visuais S8:** `CheckboxField` e `SliderField` customizados foram integrados no PR #166 às superfícies ativas de sugestões de refeição e seleção de categorias de backup.
-- **Sequência visual S1–S9 concluída (10/09/2026):** seletores, campos numéricos, controles e diálogos nativos planejados foram substituídos por componentes One UI 8/Glass UI; rastreabilidade por fatia, PR e comportamento está na seção formal S1–S9 abaixo. I1–I7 permanecem planejadas e exigem protótipo aprovado antes de código. — Chat: Trofia-UIUX
+- **Sequência visual S1–S9 concluída (10/09/2026):** seletores, campos numéricos, controles e diálogos nativos planejados foram substituídos por componentes One UI 8/Glass UI; rastreabilidade por fatia, PR e comportamento está na seção formal S1–S9 abaixo. I1 possui protótipo aprovado e implementação pendente; I2–I7 permanecem planejadas e exigem protótipo aprovado antes de código. — Chat: Trofia-UIUX
 - **Incidente App Check/perfil encerrado:** o PR #173 impede release Android sem `google-services.json` e distingue falha de leitura de perfil realmente incompleto. Na build Play versionCode 12, a conta real concluiu login, leitura e alteração de perfil, sincronização e inicialização do App Check sem erro.
 - **[C14-C-PROFILE-GATE] Concluído (12/09/2026) — Chat: Trofia-Principal.** O PR #191 corrigiu a corrida de bootstrap: a primeira leitura protegida exige token App Check real, o gate usa confirmação do servidor, falhas exibem recuperação e o modal obrigatório ficou exclusivo da criação de conta. O Pages foi validado após o merge sem reabrir o modal no login normal; a fase Android/AAB e o enforcement do Worker continuam separados dentro da C14-C.
 - **Incidente C14-B2 em produção encerrado:** após dois rollbacks seguros para B1, o hotfix definitivo manteve envelope/nutrientes nas rules e transferiu apenas a validação profunda dos componentes ao leitor fail-closed C20/C19. O teste Admin SDK comprova que componente malformado é ocultado. As rules corrigidas foram republicadas em 02/09/2026; o run autenticado `33575611133` ficou totalmente verde antes do deploy (tentativa 2) e novamente contra produção (tentativa 3). Nenhum dado foi excluído. O PR #178 foi mesclado em 07/09/2026 no commit `80bc2ca`. — **Chat:** Trofia-Principal.
@@ -180,15 +180,38 @@
 - **O que foi feito:** o PR #264 (merge `d617840`) passou a exportar somente snapshot hidratado de `TODAY`, falhar fechado em virada civil ou preview inconsistente, usar exclusivamente `existingItems` e bloquear importação sem contrato válido; gates locais e CI passaram integralmente.
 - **Alinhamento:** 100% — D08 e D09 foram entregues na fatia única aprovada, preservando retrocompatibilidade e estratégias append/replace.
 
+### [BUG-BACKUP-PREVIEW-VITE] - Coalescência das leituras diárias no preview Vite
+
+- **Status:** concluído — **Chat:** Trofia-Bugs.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** 27/09/2026.
+- **Propósito:** reduzir de modo fail-closed as leituras Firestore repetidas por data durante a pré-visualização de importação no Vite, sem mascarar nem declarar antecipadamente resolvido o timeout intermitente.
+- **O que se planeja fazer:** coalescer em uma única Promise, limitada a cada preview, as leituras de refeições, água e suplementos da mesma data; descartar o estado temporário após sucesso ou falha, preservar contratos/resultados e validar regressões, suíte completa e CI autenticado real sem timeout maior ou retry.
+- **Recursos/arquivos principais envolvidos:** `firebase-backup-internal.js`, `src/firebase/firebase-sdk-runtime.js`, testes unitários do runtime/backup, `tests/smoke/backup-preview-diagnostic.spec.js`, Playwright Vite e artefatos do run #36257846855.
+- **O que foi feito:** o PR #274 (merge `2d40a10`) passou a compartilhar uma Promise por data exclusivamente dentro de cada preview; testes focados, duas suítes completas e dois ciclos de CI autenticado passaram, e a conta descartável mediu queda de 1.793 para 623 requests (-65,3%).
+- **Alinhamento:** 100% — as leituras redundantes foram corrigidas e medidas no escopo aprovado, sem timeout maior, retry ou cache persistente; a evidência não foi extrapolada para declarar o timeout intermitente definitivamente resolvido.
+
 ### [BUG-D01-AUDIT] - Revalidação do idioma na verificação de e-mail
 
-- **Status:** em andamento — **Chat:** Trofia-Bugs.
+- **Status:** concluído — **Chat:** Trofia-Bugs.
 - **Data de início:** 26/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 26/09/2026.
 - **Propósito:** confirmar na `origin/main` se a tela de verificação ainda envia usuários espanhóis para textos portugueses e evitar uma correção artificial.
 - **O que se planeja fazer:** auditar o contrato PT/EN/ES, verificar tela, polling e reenvio, executar regressão UMD/ESM e, se o bug já estiver corrigido, reconciliar somente a documentação com a evidência histórica.
 - **Recursos/arquivos principais envolvidos:** `verify-email-screen.js`, `src/components/verify-email-screen.js`, `nutrition-tracker.jsx`, `tests/unit/verify-email-screen.test.js`, PR #83 e documentação de inventário/estado/histórico.
-- **O que foi feito:** a auditoria confirmou que o PR #83 (`f6f73c0`, merge `49813c8`) já entregou cópia espanhola independente; a `origin/main` `0af7a14` passou em 10/10 testes focados UMD/ESM, sem mudança funcional nesta fatia.
+- **O que foi feito:** o PR documental #267 (merge `7c68229`) registrou que o PR #83 (`f6f73c0`, merge `49813c8`) já entregara cópia espanhola independente; a `origin/main` `0af7a14` passou em 10/10 testes focados UMD/ESM, sem mudança funcional nesta fatia.
+- **Alinhamento:** 100% — a auditoria comprovou a ausência atual de D01 e reconciliou somente a documentação, como planejado.
+
+### [BUG-D13] - Normalização das chaves históricas na leitura analítica
+
+- **Status:** concluído — **Chat:** Trofia-Bugs.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** 27/09/2026.
+- **Propósito:** incluir chaves históricas PT/EN/ES nas médias por refeição sem reescrever dados persistidos nem alterar o contexto atual enviado à IA.
+- **O que se planeja fazer:** normalizar somente a cópia lida por `loadMealAnalysisData`, reutilizando o mapeamento PT/EN/ES existente, sem deduplicar por ID nem alterar `eating-patterns-ai.js` em produção; cobrir canônico, EN, ES, misto, chave desconhecida, imutabilidade e paridade UMD/ESM.
+- **Recursos/arquivos principais envolvidos:** `history-loaders.js`, `week-aggregator.js`, fachada ESM correspondente, testes unitários UMD/ESM, `eating-patterns-ai.js` apenas como regressão sem mudança de produção, inventário e documentação da frente.
+- **O que foi feito:** o PR #271 (`e373216`/`e896852`, merge `adc4dcf`) normalizou somente a cópia em memória de `loadMealAnalysisData`; regressões UMD/ESM e gates locais/remotos cobriram PT/EN/ES, mistura, chave desconhecida, imutabilidade, legado, Vite e cutover sem regravar dados nem alterar a IA.
+- **Alinhamento:** 100% — a entrega permaneceu integralmente no contrato de leitura aprovado e preservou persistência, IDs e `eating-patterns-ai.js`.
 
 ## O que está em andamento agora
 
@@ -1202,6 +1225,7 @@
 - **Propósito:** transformar a espera inicial em uma transição deliberada e coerente com a identidade do Trofia.
 - **O que se planeja fazer:** prototipar e implementar logo pulsando/expandindo, mínimo de 800–1000 ms, claro/escuro e alternativa estática em reduced-motion.
 - **Recursos/arquivos principais envolvidos:** bootstrap/loading do app, logo Trofia, CSS de animação, temporização JS e Playwright visual.
+- **O que foi feito:** o protótipo HTML interativo foi aprovado em 26/09/2026 com temas claro/escuro, PT/EN/ES, reprodução manual e variante `prefers-reduced-motion`; nenhum código de runtime foi alterado.
 
 ### [I2] - Registro progressivo por campo
 
@@ -1209,8 +1233,9 @@
 - **Data de início:** 22/09/2026.
 - **Data de conclusão:** não concluído.
 - **Propósito:** reduzir a carga cognitiva do cadastro apresentando uma decisão clara por etapa.
-- **O que se planeja fazer:** reorganizar o onboarding em decisões progressivas reconstruídas na linguagem One UI 8/Glass UI.
-- **Recursos/arquivos principais envolvidos:** `login-screen.js`, `required-profile-modal.js`, ChoiceField/TemporalField, i18n e Playwright.
+- **O que se planeja fazer:** reorganizar o onboarding em sete decisões progressivas com transições fluidas, revisão final e linguagem One UI 8/Glass UI, preservando somente perguntas essenciais ao cálculo nutricional.
+- **Recursos/arquivos principais envolvidos:** protótipo `i2-registro-progressivo.html`, `login-screen.js`, `required-profile-modal.js`, ChoiceField/TemporalField, i18n e Playwright.
+- **O que foi feito:** o protótipo PT/EN/ES e claro/escuro foi aprovado em 26/09/2026 com nome, nascimento, opção de cálculo, medidas, atividade, objetivo e revisão; a implementação runtime permanece pendente.
 
 ### [I3] - Política e migração de tema
 
@@ -1241,9 +1266,9 @@
 
 ### [I6] - Hierarquia visual da tela inicial
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 25/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** priorizar informações e ações da página inicial sem copiar a aparência dos aplicativos de referência.
 - **O que se planeja fazer:** reprojetar a organização da tela inicial com protótipo e aprovação específicos por ser a mudança mais subjetiva e ampla.
 - **Recursos/arquivos principais envolvidos:** Diário/home, cabeçalho, cards nutricionais, ações principais, estados vazios, `one-ui.css` e Playwright.
@@ -1270,21 +1295,24 @@
 
 ### [D2] - Responsividade do Diário
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** 27/09/2026.
 - **Propósito:** eliminar a sobreposição dos cards de macros/água e a coluna móvel estreita em telas largas.
-- **O que se planeja fazer:** prototipar vazio/preenchido em 1280/1440/1920 px e então redistribuir cards e conteúdo do Diário.
-- **Recursos/arquivos principais envolvidos:** Diário/controlador, cards de macros/água, `one-ui.css` e Playwright visual.
+- **O que se planeja fazer:** implementar o protótipo aprovado em 1280/1440/1920 px, com quatro resumos nutricionais, área principal e trilho contextual responsivos nos estados vazio/preenchido e claro/escuro, documentando ícones e linguagem visual para futura adaptação mobile sem alterar o mobile nesta fatia.
+- **Recursos/arquivos principais envolvidos:** `diary-screen.js`, controlador do Diário, cards de macros/água, `one-ui.css`, `CHANGELOG_DESIGN.md`, Node Test e Playwright visual legado/Vite.
+- **O que foi feito:** o PR #270 implementou o protótipo exclusivamente no desktop, com quatro resumos nutricionais, coluna principal de refeições, trilho contextual e cobertura visual legado/Vite em 1280/1440/1920 px, claro/escuro e vazio/preenchido, sendo mesclado em `9d3eb03` após gates verdes.
+- **Alinhamento:** 100%.
 
 ### [D3] - Responsividade de Alimentos
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 26/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** usar melhor o espaço desktop em listas, busca, ações e estados da despensa.
-- **O que se planeja fazer:** escopo detalhado pendente de confirmação após protótipo vazio/preenchido nas três larguras.
-- **Recursos/arquivos principais envolvidos:** tela de Alimentos, cards/listas, seletores, `one-ui.css` e Playwright visual.
+- **O que se planeja fazer:** implementar o protótipo aprovado em 1280/1440/1920 px com biblioteca de alimentos, busca e ações no painel principal, trilhos contextuais e terceira coluna de suplementos em 1920 px, sem alterar mobile nesta fatia.
+- **Recursos/arquivos principais envolvidos:** protótipo `d3-alimentos-desktop.html`, `pantry-screen.js`, `src/components/pantry-screen.js`, `one-ui.css`, shell D1, ícones SVG e Playwright visual.
+- **O que foi feito:** o protótipo claro/escuro, vazio/preenchido e nas três larguras foi aprovado em 26/09/2026; hierarquia, tokens, iconografia e prioridades responsivas foram preservados como referência para eventual adaptação mobile, sem mudança de runtime.
 
 ### [D4] - Responsividade de Métricas
 
@@ -1480,12 +1508,14 @@
 
 ### [CAM-RED-7] - Resultado compartilhado e integração da foto
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 25/09/2026.
+- **Data de conclusão:** 27/09/2026.
 - **Propósito:** converter o resultado aprovado em componente reutilizável sem perder validação ou edição nutricional.
 - **O que se planeja fazer:** criar um sheet com encaixes em aproximadamente 68% e na altura total útil, expansível/recolhível por arraste e por alternativa acessível, coordenar gesto e rolagem interna, manter foto acima no estado inicial, CTA/refeição alcançáveis e edição de porção/ingredientes com recálculo proporcional imediato de kcal e nutrientes, cobrindo confiança, dados incompletos e listas extensas.
 - **Recursos/arquivos principais envolvidos:** novo `meal-result-sheet.js` UMD/ESM, controlador de sheet/gestos e safe areas, `meal-estimate-editor.js`, `meal-estimate.js`, `image-meal-screen.js`, ChoiceField, NumericField, `one-ui.css`, ARIA/teclado e testes.
+- **O que foi feito:** o PR #256 entregou o novo `MealResultSheet`; após o AAB Play v26 revelar contenção incorreta de foto/sheet e recorte do NumericField, a correção passou nos gates, no CI e na repetição física do AAB Play v27 em claro/escuro, sendo mesclada em `fc8d4d0`.
+- **Alinhamento:** 100% — escopo aprovado integralmente entregue.
 
 ### [TEST-CAM-48PX] - Sincronização da medição dos alvos CAM-RED-6
 
@@ -1674,7 +1704,7 @@
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** reconfirmar IAM, contas de serviço, invocadores, Functions/Tasks, segredos por nome/tipo e lockfiles; propor redução de privilégios e correções de dependências sem aplicá-las antes de avaliar o inventário.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** o PR #258 mesclado reconfirmou IAM e dependências; o draft #265, commit `1e3b442`, atualizou `firebase-admin` 14.2.0→14.5.0 e reduziu o audit de produção das Functions de sete para dois alertas moderados transitivos (`gaxios`/`uuid`), documentados como exceção temporária. Passaram 74/74 testes com emuladores, `npm test` completo e CI autenticado real `36249321278` (1.465 unitários, Worker, Functions, 111 smokes legados + 8 skips estruturais e 119 Vite); sem deploy ou alteração IAM.
+- **O que foi feito:** o PR #258 mesclado reconfirmou IAM; o draft #265 atualizou `firebase-admin` 14.2.0→14.5.0 e reduziu o audit de produção das Functions de sete para dois alertas moderados transitivos (`gaxios`/`uuid`). Após os PRs separados #274/#275 de backup, o reteste local passou 74/74 emuladores, 1.496/1.496 unitários, smokes com skips locais esperados e cutover 60/60; falta CI autenticado real no novo SHA. Sem merge, deploy ou alteração IAM.
 
 ### [C14-F2-PRE] - Inventário preparatório de IAM e dependências
 

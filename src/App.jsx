@@ -24,6 +24,7 @@ import * as ImageMealScreenModule from './components/image-meal-screen.js';
 import * as ImageMealAnalysisScreenModule from './components/image-meal-analysis-screen.js';
 import * as LoginScreenModule from './components/login-screen.js';
 import * as MealEstimateEditorModule from './components/meal-estimate-editor.js';
+import * as MealResultSheetModule from './components/meal-result-sheet.js';
 import * as MealReviewModalModule from './components/meal-review-modal.js';
 import * as MetricsScreenModule from './components/metrics-screen.js';
 import * as PantryScreenModule from './components/pantry-screen.js';
@@ -283,6 +284,16 @@ const { MealEstimateEditor } = MealEstimateEditorModule.createMealEstimateEditor
   ChoiceField,
 });
 
+const { MealResultSheet } = MealResultSheetModule.createMealResultSheet({
+  React,
+  pickLang,
+  ChoiceField,
+  NumericField,
+  createEmptyItem: mealEstimateDomain.createEmptyItem,
+  calculateTotals: mealEstimateDomain.calculateTotals,
+  rescaleMealEstimateItem: MealEstimate.rescaleMealEstimateItem,
+});
+
 const { ImageMealAnalysisScreen } = ImageMealAnalysisScreenModule.createImageMealAnalysisScreen({
   React,
   pickLang,
@@ -291,8 +302,8 @@ const { ImageMealAnalysisScreen } = ImageMealAnalysisScreenModule.createImageMea
 const { ImageMealScreen } = ImageMealScreenModule.createImageMealScreen({
   React,
   pickLang,
-  MealEstimateEditor,
   ImageMealAnalysisScreen,
+  MealResultSheet,
 });
 
 const imageMealRegistration = ImageMealRegistration.createImageMealRegistration({

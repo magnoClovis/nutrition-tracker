@@ -5120,21 +5120,13 @@
         return null;
       }
       const imageMealNode = imageMealOpen && imageMealState && imageMealFeature?.ImageMealScreen
-        ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-            "data-image-meal-registration-options": "true",
-            style: { marginBottom: 10 }
-          }, /*#__PURE__*/React.createElement(ChoiceField, {
-            id: "image-meal-category",
-            label: uiText("Categoria da refeição", "Meal category", "Categoría de la comida"),
-            value: staged.meal,
-            onChange: value => setStaged(current => ({ ...current, meal: value })),
-            options: MEALS.map(meal => ({ value: meal, label: mealLabel(meal) })),
-            helperText: uiText("Onde esta foto será registrada", "Where this photo will be logged", "Dónde se registrará esta foto"),
-            closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector")
-          })), /*#__PURE__*/React.createElement(imageMealFeature.ImageMealScreen, {
+        ? /*#__PURE__*/React.createElement(imageMealFeature.ImageMealScreen, {
             state: imageMealState,
             lang,
             isMobileView,
+            mealValue: staged.meal,
+            mealOptions: MEALS.map(meal => ({ value: meal, label: mealLabel(meal) })),
+            onMealChange: value => setStaged(current => ({ ...current, meal: value })),
             onClose: closeImageMealMode,
             onRequestReauthentication: requestReauthenticationAfterSessionExpired,
             onCapture: async () => {
@@ -5161,7 +5153,7 @@
             onEstimateChange: estimate => imageMealFlowRef.current?.updateEstimate(estimate),
             onReview: () => imageMealFlowRef.current?.review(),
             onConfirm: () => imageMealFlowRef.current?.confirm()
-          }))
+          })
         : null;
       const addScreenProps = {
         lang,
