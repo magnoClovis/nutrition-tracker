@@ -182,13 +182,14 @@
 
 ### [BUG-BACKUP-PREVIEW-VITE] - Coalescência das leituras diárias no preview Vite
 
-- **Status:** em andamento — **Chat:** Trofia-Bugs.
+- **Status:** concluído — **Chat:** Trofia-Bugs.
 - **Data de início:** 26/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 27/09/2026.
 - **Propósito:** reduzir de modo fail-closed as leituras Firestore repetidas por data durante a pré-visualização de importação no Vite, sem mascarar nem declarar antecipadamente resolvido o timeout intermitente.
 - **O que se planeja fazer:** coalescer em uma única Promise, limitada a cada preview, as leituras de refeições, água e suplementos da mesma data; descartar o estado temporário após sucesso ou falha, preservar contratos/resultados e validar regressões, suíte completa e CI autenticado real sem timeout maior ou retry.
 - **Recursos/arquivos principais envolvidos:** `firebase-backup-internal.js`, `src/firebase/firebase-sdk-runtime.js`, testes unitários do runtime/backup, `tests/smoke/backup-preview-diagnostic.spec.js`, Playwright Vite e artefatos do run #36257846855.
-- **O que foi feito:** o PR draft #274 (`cb2e46e`) compartilha uma Promise por data exclusivamente dentro de cada preview; regressões focadas, `npm test` e CI #36316725209 passaram, e a conta descartável mediu queda de 1.793 para 623 requests (-65,3%) sem demonstrar ainda que o timeout intermitente esteja definitivamente resolvido.
+- **O que foi feito:** o PR #274 (merge `2d40a10`) passou a compartilhar uma Promise por data exclusivamente dentro de cada preview; testes focados, duas suítes completas e dois ciclos de CI autenticado passaram, e a conta descartável mediu queda de 1.793 para 623 requests (-65,3%).
+- **Alinhamento:** 100% — as leituras redundantes foram corrigidas e medidas no escopo aprovado, sem timeout maior, retry ou cache persistente; a evidência não foi extrapolada para declarar o timeout intermitente definitivamente resolvido.
 
 ### [BUG-D01-AUDIT] - Revalidação do idioma na verificação de e-mail
 
