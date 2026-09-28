@@ -1224,8 +1224,8 @@
 - **Data de conclusão:** não concluído.
 - **Propósito:** transformar a espera inicial em uma transição deliberada e coerente com a identidade do Trofia.
 - **O que se planeja fazer:** prototipar e implementar logo pulsando/expandindo, mínimo de 800–1000 ms, claro/escuro e alternativa estática em reduced-motion.
-- **Recursos/arquivos principais envolvidos:** bootstrap/loading do app, logo Trofia, CSS de animação, temporização JS e Playwright visual.
-- **O que foi feito:** o protótipo HTML interativo foi aprovado em 26/09/2026 com temas claro/escuro, PT/EN/ES, reprodução manual e variante `prefers-reduced-motion`; nenhum código de runtime foi alterado.
+- **Recursos/arquivos principais envolvidos:** `index.html`, fixture legado, bootstrap/loading do app, marca Trofia, CSS de animação, temporização JavaScript e Playwright visual.
+- **O que foi feito:** o runtime agora apresenta a marca Trofia, aura e progresso honestamente indeterminado por no mínimo 900 ms, em PT/EN/ES, claro/escuro e com apresentação estática em movimento reduzido, preservando o erro inicial fail-closed; 8/8 unitários focados, 6/6 visuais legados e 6/6 visuais Vite passaram. O primeiro gate integral passou 1.513/1.513 unitários e todo o smoke legado, mas expôs no Vite mobile um smoke de backup que interagia durante o segundo reload sem aguardar o novo contrato de prontidão; a falha repetiu 3/3 sem espera e passou 3/3 após aguardar a remoção de `#loading`, confirmando correção somente no harness. O gate integral pós-correção ficou totalmente verde: preflight, 1.513/1.513 unitários, smoke legado com 135 aprovados e 10 skips estruturais, smoke Vite 145/145 e cutover 60/60; os dois HEADs autenticados do PR draft #280 também ficaram integralmente verdes nos runs `36358744468`, `36358744469`, `36363011969` e `36363011937`. A fatia permanece em andamento até aprovação e merge.
 
 ### [I2] - Registro progressivo por campo
 
