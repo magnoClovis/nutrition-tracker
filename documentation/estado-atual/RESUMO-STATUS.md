@@ -1306,6 +1306,16 @@
 - **O que foi feito:** o PR #270 implementou o protótipo exclusivamente no desktop, com quatro resumos nutricionais, coluna principal de refeições, trilho contextual e cobertura visual legado/Vite em 1280/1440/1920 px, claro/escuro e vazio/preenchido, sendo mesclado em `9d3eb03` após gates verdes.
 - **Alinhamento:** 100%.
 
+### [TEST-D2-FILLED-FIXTURE] - Fixture determinística do Diário preenchido
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 28/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** impedir que a matriz visual D2 dependa de refeições previamente existentes na conta descartável para validar o estado preenchido.
+- **O que se planeja fazer:** diagnosticar separadamente leitura, disponibilidade de dados e navegação nas 32 datas consultadas; se confirmada a dependência externa, preparar e verificar uma refeição controlada para o estado preenchido e restaurar o estado anterior no `finally`, preservando as asserções visuais vazio/preenchido sem alterar runtime, Auth ou Firestore.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/desktop-diary.visual.spec.js`, armazenamento diário compatível legado/Vite, conta descartável, Playwright desktop, artefato do run `36341945423` tentativa 2, gate local integral e CI autenticado real.
+- **O que foi feito:** o artefato remoto foi preservado e a prova sanitizada confirmou 32/32 leituras e 32/32 navegações corretas, descartando falha de persistência. A matriz antiga procurava qualquer refeição em até 31 dias e, no gate integral, alcançou 26/09/2026 com um marcador residual de “Refeição retroativa”; a configuração usa um único worker e execução não paralela, portanto não houve concorrência. O teste D2 agora reserva hoje−14 para o estado preenchido e hoje−15 para o vazio — 14/09/2026 e 13/09/2026 na prova de 28/09/2026 —, seleciona cada data diretamente pelo calendário, confirma no servidor em contexto novo, exige o marcador exato `D2 controlled visual meal` e restaura/reconfirma os snapshots no `finally`. O recorte conjunto legado mobile passou 3/3; o gate local completo passou com preflight, 1.513/1.513 unitários, legado 135 aprovados + 10 skips estruturais, Vite 145/145 e cutover 60/60; e o CI real do PR draft #282 passou integralmente nos runs `36465413429` e `36465413410`, sem alteração de runtime, Auth, Firestore ou layout D2. A fatia aguarda apenas aprovação de merge.
+
 ### [D3] - Responsividade de Alimentos
 
 - **Status:** em andamento — **Chat:** Trofia-UIUX.

@@ -98,6 +98,13 @@ local suite before it can use the shared account. The workflow receives only an
 opaque UUID and does not receive Firebase credentials, App Check tokens or user
 data.
 
+Tests that need filled and empty Diary states must not search for arbitrary
+pre-existing meals in the shared account. Reserve distinct historical civil
+dates that do not overlap other fixtures, snapshot both dates, write and verify
+the controlled state in fresh browser contexts before opening the visual
+context, navigate directly to the exact dates, assert the fixture-specific
+marker, and restore plus re-verify both snapshots in `finally`.
+
 Lease cancellation is idempotent. If the first `gh run cancel` call fails
 transiently, teardown reads the public run state: an already completed run is
 accepted, while a still-active run receives another cancellation request inside
