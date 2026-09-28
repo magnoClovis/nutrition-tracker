@@ -1305,6 +1305,16 @@
 - **O que foi feito:** o PR #270 implementou o protótipo exclusivamente no desktop, com quatro resumos nutricionais, coluna principal de refeições, trilho contextual e cobertura visual legado/Vite em 1280/1440/1920 px, claro/escuro e vazio/preenchido, sendo mesclado em `9d3eb03` após gates verdes.
 - **Alinhamento:** 100%.
 
+### [TEST-D2-FILLED-FIXTURE] - Fixture determinística do Diário preenchido
+
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 28/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** impedir que a matriz visual D2 dependa de refeições previamente existentes na conta descartável para validar o estado preenchido.
+- **O que se planeja fazer:** diagnosticar separadamente leitura, disponibilidade de dados e navegação nas 32 datas consultadas; se confirmada a dependência externa, preparar e verificar uma refeição controlada para o estado preenchido e restaurar o estado anterior no `finally`, preservando as asserções visuais vazio/preenchido sem alterar runtime, Auth ou Firestore.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/desktop-diary.visual.spec.js`, armazenamento diário compatível legado/Vite, conta descartável, Playwright desktop, artefato do run `36341945423` tentativa 2, gate local integral e CI autenticado real.
+- **O que foi feito:** o artefato remoto foi preservado e a auditoria confirmou que o roteiro navegou do dia corrente até 31 dias anteriores, terminou no Diário vazio e não registrou erro visível. A prova diagnóstica sanitizada passou: 32/32 leituras compatíveis e 32/32 avanços de data concluíram corretamente, com refeições atualmente presentes em parte da janela. A ocorrência original foi classificada como dependência de dados mutáveis da conta compartilhada, sem evidência de falha de leitura ou persistência. A correção determinística do teste está em implementação, sem alteração de runtime, Auth, Firestore ou layout D2.
+
 ### [D3] - Responsividade de Alimentos
 
 - **Status:** em andamento — **Chat:** Trofia-UIUX.
