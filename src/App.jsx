@@ -25,6 +25,7 @@ import * as ImageMealAnalysisScreenModule from './components/image-meal-analysis
 import * as LoginScreenModule from './components/login-screen.js';
 import * as MealEstimateEditorModule from './components/meal-estimate-editor.js';
 import * as MealResultSheetModule from './components/meal-result-sheet.js';
+import * as ManualMealResultModule from './components/manual-meal-result.js';
 import * as MealReviewModalModule from './components/meal-review-modal.js';
 import * as MetricsScreenModule from './components/metrics-screen.js';
 import * as PantryScreenModule from './components/pantry-screen.js';
@@ -620,7 +621,19 @@ const {
 
 const {
   AddScreen,
-} = AddScreenModule.createAddScreen({ React, pickLang, quickQtys, divisor, ChoiceField, TemporalField, NumericField, MealEstimateEditor });
+} = AddScreenModule.createAddScreen({
+  React,
+  pickLang,
+  quickQtys,
+  divisor,
+  ChoiceField,
+  TemporalField,
+  NumericField,
+  MealEstimateEditor,
+  MealResultSheet,
+  createManualMealEstimate: ManualMealResultModule.createManualMealEstimate,
+  defaultManualQuantity: ManualMealResultModule.defaultManualQuantity,
+});
 
 const {
   MetricsScreen,

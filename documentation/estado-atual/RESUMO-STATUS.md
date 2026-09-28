@@ -1219,13 +1219,14 @@
 
 ### [I1] - Carregamento animado
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 22/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 28/09/2026.
 - **Propósito:** transformar a espera inicial em uma transição deliberada e coerente com a identidade do Trofia.
 - **O que se planeja fazer:** prototipar e implementar logo pulsando/expandindo, mínimo de 800–1000 ms, claro/escuro e alternativa estática em reduced-motion.
-- **Recursos/arquivos principais envolvidos:** bootstrap/loading do app, logo Trofia, CSS de animação, temporização JS e Playwright visual.
-- **O que foi feito:** o protótipo HTML interativo foi aprovado em 26/09/2026 com temas claro/escuro, PT/EN/ES, reprodução manual e variante `prefers-reduced-motion`; nenhum código de runtime foi alterado.
+- **Recursos/arquivos principais envolvidos:** `index.html`, fixture legado, bootstrap/loading do app, marca Trofia, CSS de animação, temporização JavaScript e Playwright visual.
+- **O que foi feito:** o runtime agora apresenta a marca Trofia, aura e progresso honestamente indeterminado por no mínimo 900 ms, em PT/EN/ES, claro/escuro e com apresentação estática em movimento reduzido, preservando o erro inicial fail-closed; 8/8 unitários focados, 6/6 visuais legados e 6/6 visuais Vite passaram. O primeiro gate integral passou 1.513/1.513 unitários e todo o smoke legado, mas expôs no Vite mobile um smoke de backup que interagia durante o segundo reload sem aguardar o novo contrato de prontidão; a falha repetiu 3/3 sem espera e passou 3/3 após aguardar a remoção de `#loading`, confirmando correção somente no harness. O gate integral pós-correção ficou totalmente verde: preflight, 1.513/1.513 unitários, smoke legado com 135 aprovados e 10 skips estruturais, smoke Vite 145/145 e cutover 60/60; os dois HEADs autenticados do PR #280 também ficaram integralmente verdes nos runs `36358744468`, `36358744469`, `36363011969` e `36363011937`, e a implementação entrou na `main` pelo merge `b0e20f4`.
+- **Alinhamento:** 100%; a identidade, duração mínima, localização, temas, movimento reduzido e comportamento fail-closed aprovados foram entregues sem ampliar o escopo do bootstrap.
 
 ### [I2] - Registro progressivo por campo
 
@@ -1303,6 +1304,17 @@
 - **O que se planeja fazer:** implementar o protótipo aprovado em 1280/1440/1920 px, com quatro resumos nutricionais, área principal e trilho contextual responsivos nos estados vazio/preenchido e claro/escuro, documentando ícones e linguagem visual para futura adaptação mobile sem alterar o mobile nesta fatia.
 - **Recursos/arquivos principais envolvidos:** `diary-screen.js`, controlador do Diário, cards de macros/água, `one-ui.css`, `CHANGELOG_DESIGN.md`, Node Test e Playwright visual legado/Vite.
 - **O que foi feito:** o PR #270 implementou o protótipo exclusivamente no desktop, com quatro resumos nutricionais, coluna principal de refeições, trilho contextual e cobertura visual legado/Vite em 1280/1440/1920 px, claro/escuro e vazio/preenchido, sendo mesclado em `9d3eb03` após gates verdes.
+- **Alinhamento:** 100%.
+
+### [TEST-D2-FILLED-FIXTURE] - Fixture determinística do Diário preenchido
+
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 28/09/2026.
+- **Data de conclusão:** 28/09/2026.
+- **Propósito:** impedir que a matriz visual D2 dependa de refeições previamente existentes na conta descartável para validar o estado preenchido.
+- **O que se planeja fazer:** diagnosticar separadamente leitura, disponibilidade de dados e navegação nas 32 datas consultadas; se confirmada a dependência externa, preparar e verificar uma refeição controlada para o estado preenchido e restaurar o estado anterior no `finally`, preservando as asserções visuais vazio/preenchido sem alterar runtime, Auth ou Firestore.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/desktop-diary.visual.spec.js`, armazenamento diário compatível legado/Vite, conta descartável, Playwright desktop, artefato do run `36341945423` tentativa 2, gate local integral e CI autenticado real.
+- **O que foi feito:** o artefato remoto foi preservado e a prova sanitizada confirmou 32/32 leituras e 32/32 navegações corretas, descartando falha de persistência. A matriz antiga procurava qualquer refeição em até 31 dias e, no gate integral, alcançou 26/09/2026 com um marcador residual de “Refeição retroativa”; a configuração usa um único worker e execução não paralela, portanto não houve concorrência. O teste D2 agora reserva hoje−14 para o estado preenchido e hoje−15 para o vazio — 14/09/2026 e 13/09/2026 na prova de 28/09/2026 —, seleciona cada data diretamente pelo calendário, confirma no servidor em contexto novo, exige o marcador exato `D2 controlled visual meal` e restaura/reconfirma os snapshots no `finally`. O recorte conjunto legado mobile passou 3/3; o gate local completo passou com preflight, 1.513/1.513 unitários, legado 135 aprovados + 10 skips estruturais, Vite 145/145 e cutover 60/60; e o CI real passou integralmente nos runs `36465413429` e `36465413410`, sem alteração de runtime, Auth, Firestore ou layout D2. O PR #282 foi mesclado na `main` em `fdfab8a`.
 - **Alinhamento:** 100%.
 
 ### [D3] - Responsividade de Alimentos
@@ -1498,9 +1510,9 @@
 
 ### [CAM-RED-6] - Timeout, classificação de falhas e retry
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** 25/09/2026.
 - **Propósito:** eliminar o carregamento infinito e permitir que o usuário saiba quando repetir ou abandonar a análise.
 - **O que se planeja fazer:** impor timeout inicialmente configurável em 45 s, separar falha de transporte, timeout, Worker/IA indisponível, resposta inválida, sessão e quota, preservar a foto no retry e ignorar respostas tardias; começa por protótipo focado dos erros.
 - **Recursos/arquivos principais envolvidos:** `image-meal-client.js`, `image-meal-flow.js`, componente de análise, `i18n.js`, AbortController/timers e testes unitários/smoke; nenhuma alteração em `worker/`.
@@ -1531,12 +1543,14 @@
 
 ### [CAM-RED-8] - Busca manual com o mesmo resultado
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Data de início:** 27/09/2026.
+- **Data de conclusão:** 27/09/2026.
 - **Propósito:** eliminar a duplicação visual e comportamental entre alimento pesquisado e estimativa por foto.
 - **O que se planeja fazer:** modernizar resultados dos alimentos salvos e abrir o mesmo `MealResultSheet` com origem verificada, porção e nutrientes recalculados; busca textual em base aberta permanece fora do escopo.
 - **Recursos/arquivos principais envolvidos:** `add-screen.js`, adaptador de resultado manual, `meal-result-sheet.js`, `nutrition-tracker-controller.js`, NumericField, ChoiceField, `one-ui.css`, `i18n.js` e testes.
+- **O que foi feito:** adaptador UMD/ESM, lista modernizada e `MealResultSheet` compartilhado conectam alimento salvo, porção proporcional, avaliação, registro direto e montagem em lote; após incorporar a `origin/main` `4537403` sem reescrever o histórico, o gate local final ficou verde com preflight sem avisos, 1.505/1.505 unitários, smoke legado com 129 aprovados + 10 skips estruturais, Vite 139/139 e cutover 60/60; o primeiro HEAD funcional/documental do PR draft #277 também passou no CI autenticado real, leve e pesado.
+- **Alinhamento:** 100%. O resultado manual reutiliza o mesmo sheet aprovado, preserva procedência, edição proporcional, registro direto e montagem em lote, sem incluir busca em base aberta ou código de barras; impacto final positivo.
 
 ### [CAM-RED-9] - Robustez, acessibilidade e estados extremos
 
@@ -1705,7 +1719,7 @@
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** reconfirmar IAM, contas de serviço, invocadores, Functions/Tasks, segredos por nome/tipo e lockfiles; propor redução de privilégios e correções de dependências sem aplicá-las antes de avaliar o inventário.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** o PR #258 mesclado reconfirmou IAM; o draft #265 atualizou `firebase-admin` 14.2.0→14.5.0 e reduziu o audit de produção das Functions de sete para dois alertas moderados transitivos (`gaxios`/`uuid`). Após os PRs separados #274/#275 de backup, o reteste local passou 74/74 emuladores, 1.496/1.496 unitários, smokes com skips locais esperados e cutover 60/60; no SHA `97d1054`, o CI autenticado real passou com 1.496 unitários, 44 testes do Worker, 74 das Functions, 125 smokes legado + 10 skips estruturais e 135 Vite. Sem merge, deploy ou alteração IAM; a redução de `roles/editor` aguarda inventário completo dos consumidores da identidade padrão.
+- **O que foi feito:** o PR #258 mesclado reconfirmou IAM; o draft #265 atualizou `firebase-admin` 14.2.0→14.5.0 e reduziu o audit de produção das Functions de sete para dois alertas moderados transitivos (`gaxios`/`uuid`). O CI autenticado passou no SHA funcional `97d1054`, mas falhou no SHA documental `30418eb` por depender de dados preexistentes no teste D2; os PRs separados #282/#283 corrigiram essa fixture e o #284 ajustou suas métricas. A F2 integrou a `main` em `3f3557b`, repetiu `npm test` local com exit code 0 e aprovou os emuladores 74/74 sem skips após remover um processo órfão da própria worktree; novo CI autenticado ainda pendente. Sem merge, deploy ou alteração IAM; a redução de `roles/editor` aguarda inventário completo dos consumidores da identidade padrão.
 
 ### [C14-F2-PRE] - Inventário preparatório de IAM e dependências
 

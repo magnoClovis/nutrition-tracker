@@ -43,7 +43,7 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
 
-  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 157);
+  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 158);
   assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 42);
   assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 29);
 });
@@ -701,6 +701,18 @@ contractTest("delegates the image meal category to the shared result sheet", cre
   assert.match(screenBlock, /mealOptions: MEALS\.map/);
   assert.match(screenBlock, /onMealChange: value => setStaged/);
   assert.doesNotMatch(screenBlock, /React\.createElement\("select"/);
+});
+
+contractTest("routes the saved-food result through existing persistence and review contracts", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+
+  assert.match(source, /const \[manualMealResult, setManualMealResult\] = useState\(null\)/);
+  assert.match(source, /function resolveManualResultEntry\(estimate\)[\s\S]*?buildEntry\(food, quantity\)/);
+  assert.match(source, /async function confirmManualMealResult\(estimate, meal\)[\s\S]*?saveMealRegistration\(meal, \[entry\]\)/);
+  assert.match(source, /function stageManualMealResult\(estimate\)[\s\S]*?items: \[\.\.\.current\.items, resolved\.entry\]/);
+  assert.match(source, /function reviewManualMealResult\(estimate, meal\)[\s\S]*?openMealReview\(meal, \[resolved\.entry\], "manual"\)/);
+  assert.match(source, /mealReview\.source === "manual"[\s\S]*?setManualMealResult\(null\)/);
 });
 
 contractTest("wires the image flow into Add navigation without changing its persistence contract", createNutritionTrackerController => {

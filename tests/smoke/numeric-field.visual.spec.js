@@ -76,7 +76,9 @@ test.describe('authenticated NumericField visual contract', () => {
     ].join(', '));
     await foodSearch.fill(food.name);
     await addScreen.getByText(food.name, { exact: true }).last().click();
-    const trigger = page.locator('#meal-food-quantity-trigger');
+    const resultSheet = page.locator('[data-meal-result-overlay="true"][data-meal-result-source="saved-food"]');
+    await expect(resultSheet).toBeVisible();
+    const trigger = resultSheet.locator('#meal-result-total-grams-trigger');
     await expect(trigger).toBeVisible();
     await trigger.click();
     await expect(page.locator('[data-numeric-field-sheet="true"]')).toBeVisible();
@@ -102,10 +104,10 @@ test.describe('authenticated NumericField visual contract', () => {
       await setTheme(page, theme);
       const trigger = await openQuantityField(page);
       await expect(page.locator('[data-app-main="adicionar"] input[type="number"]:visible')).toHaveCount(0);
-      await expect(page.getByRole('heading', { name: 'Informar quantidade', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Quantidade total', exact: true })).toBeVisible();
 
       const styles = await page.evaluate(() => {
-        const triggerNode = document.querySelector('#meal-food-quantity-trigger');
+        const triggerNode = document.querySelector('#meal-result-total-grams-trigger');
         const sheetNode = document.querySelector('[data-numeric-field-sheet="true"]');
         const valueNode = document.querySelector('[data-numeric-keypad-value="true"]');
         const sheetStyle = getComputedStyle(sheetNode);
@@ -137,6 +139,9 @@ test.describe('authenticated NumericField visual contract', () => {
       await expect(keypadValue).toHaveAttribute('data-state', 'neutral');
       await expect(page.locator('[data-numeric-keypad-error="true"]')).toHaveCount(0);
 
+      for (let index = 0; index < 3; index += 1) {
+        await page.locator('[data-numeric-keypad-backspace="true"]').click();
+      }
       await page.locator('[data-numeric-keypad-confirm="true"]').click();
       await expect(keypadValue).toHaveAttribute('data-state', 'invalid');
       await expect(page.locator('[data-numeric-keypad-error="true"]')).toBeVisible();
@@ -173,6 +178,7 @@ test.describe('authenticated NumericField visual contract', () => {
       await expect(page.locator('[data-numeric-field-sheet="true"]')).toHaveCount(0);
       await expect(trigger).toContainText('125,5');
       await expect(trigger).toContainText('g');
+      await page.getByRole('button', { name: /Voltar à busca|Back to search|Volver a la búsqueda/i }).click();
       await page.locator('[data-add-close]').click();
     }
 
@@ -185,9 +191,9 @@ test.describe('authenticated NumericField visual contract', () => {
     await interceptOptionalExternalApis(page);
     const errors = await openApp(page);
     const languages = [
-      ['pt', 'Informar quantidade', 'Separador decimal'],
-      ['en', 'Enter quantity', 'Decimal separator'],
-      ['es', 'Indicar cantidad', 'Separador decimal'],
+      ['pt', 'Quantidade total', 'Separador decimal'],
+      ['en', 'Total amount', 'Decimal separator'],
+      ['es', 'Cantidad total', 'Separador decimal'],
     ];
 
     for (const [language, title, decimalLabel] of languages) {
@@ -196,6 +202,7 @@ test.describe('authenticated NumericField visual contract', () => {
       await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
       await expect(page.getByRole('button', { name: decimalLabel, exact: true })).toBeVisible();
       await page.getByRole('button', { name: /Cancelar|Cancel/ }).click();
+      await page.getByRole('button', { name: /Voltar à busca|Back to search|Volver a la búsqueda/i }).click();
       await page.locator('[data-add-close]').click();
     }
 

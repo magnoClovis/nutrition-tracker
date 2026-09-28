@@ -3453,6 +3453,21 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
 }
 
 /* CAM-RED-7 — progressive shared meal result sheet. */
+[data-manual-food-result="true"] {
+  min-height: 72px;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+[data-manual-food-result="true"]:hover {
+  border-color: color-mix(in srgb, var(--btn-ok-border) 65%, var(--border3));
+  transform: translateY(-1px);
+}
+
+[data-manual-food-result="true"]:focus-visible {
+  outline: 3px solid var(--focus-ring, #78b83a);
+  outline-offset: 2px;
+}
+
 body:has([data-meal-result-overlay="true"]) {
   overflow: hidden !important;
   overscroll-behavior: none;
@@ -3600,6 +3615,13 @@ body:has([data-meal-result-overlay="true"]) [data-app-main="adicionar"] {
   overflow: hidden;
   border-radius: 18px;
   background: var(--meal-result-card);
+}
+[data-meal-result-source="saved-food"] [data-meal-result-thumbnail="true"] {
+  display: grid;
+  place-items: center;
+  color: var(--meal-result-accent);
+  font-size: 1.25rem;
+  font-weight: 800;
 }
 
 [data-meal-result-thumbnail="true"] img { width: 100%; height: 100%; object-fit: cover; }
@@ -3790,5 +3812,6 @@ body:has([data-meal-result-overlay="true"]) [data-app-main="adicionar"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-manual-food-result="true"],
   [data-meal-result-sheet="true"] { transition: none !important; }
 }

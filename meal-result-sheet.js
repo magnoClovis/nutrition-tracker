@@ -78,6 +78,7 @@
       onMealChange,
       onChange,
       onConfirm,
+      confirmLabel,
       onReview,
       onRetry,
       onDiscard
@@ -92,15 +93,19 @@
       const items = Array.isArray(estimate?.items) ? estimate.items : [];
       const totals = calculateTotals({ ...(estimate || {}), items });
       const grams = totalEstimatedGrams(estimate);
+      const savedFoodResult = estimate?.resultSource === "saved-food";
+      const portionUnit = String(estimate?.portionUnit || "g");
       const validationErrors = Array.isArray(errors) ? errors : [];
       const confidence = ["high", "medium", "low"].includes(estimate?.overallConfidence)
         ? estimate.overallConfidence
         : "low";
-      const confidenceLabel = {
+      const confidenceLabel = savedFoodResult
+        ? text("Alimento verificado", "Verified food", "Alimento verificado")
+        : ({
         high: text("Confiança alta", "High confidence", "Confianza alta"),
         medium: text("Confiança média", "Medium confidence", "Confianza media"),
         low: text("Confiança baixa", "Low confidence", "Confianza baja")
-      }[confidence];
+      }[confidence]);
 
       React.useEffect(() => {
         if (typeof document === "undefined") return undefined;
@@ -234,9 +239,12 @@
         ref: overlayRef,
         "data-meal-result-overlay": "true",
         "data-meal-result-snap": snap,
+        "data-meal-result-source": savedFoodResult ? "saved-food" : "photo",
         role: "dialog",
         "aria-modal": "true",
-        "aria-label": text("Resultado da análise da refeição", "Meal analysis result", "Resultado del análisis de la comida"),
+        "aria-label": savedFoodResult
+          ? text("Detalhes do alimento salvo", "Saved food details", "Detalles del alimento guardado")
+          : text("Resultado da análise da refeição", "Meal analysis result", "Resultado del análisis de la comida"),
         onKeyDown: handleOverlayKeyDown
       },
       photoUrl ? React.createElement("img", {
@@ -268,12 +276,14 @@
       React.createElement("div", { "data-meal-result-scroll": "true" },
         React.createElement("header", { "data-meal-result-header": "true" },
           React.createElement("div", { "data-meal-result-thumbnail": "true", "aria-hidden": "true" },
-            photoUrl ? React.createElement("img", { src: photoUrl, alt: "" }) : null),
+            photoUrl ? React.createElement("img", { src: photoUrl, alt: "" }) : savedFoodResult ? "✓" : null),
           React.createElement("div", null,
             React.createElement("h2", null, estimate?.dishName || text("Refeição reconhecida", "Recognized meal", "Comida reconocida")),
             React.createElement("div", { "data-meal-result-confidence-row": "true" },
               React.createElement("span", { "data-meal-result-confidence-badge": "true" }, confidenceLabel),
-              React.createElement("span", null, text("Estimativa por foto", "Photo estimate", "Estimación por foto"))))),
+              React.createElement("span", null, savedFoodResult
+                ? text("Alimentos salvos", "Saved foods", "Alimentos guardados")
+                : text("Estimativa por foto", "Photo estimate", "Estimación por foto"))))),
         grams !== null ? React.createElement("div", { "data-meal-result-portion": "true" },
           React.createElement("span", null, text("Porção", "Portion", "Porción")),
           React.createElement("div", null,
@@ -290,7 +300,7 @@
               minValue: 1,
               maxValue: 100000,
               maxDecimals: 1,
-              unit: "g",
+              unit: portionUnit,
               disabled,
               strings: {
                 cancel: text("Cancelar", "Cancel", "Cancelar"),
@@ -320,7 +330,7 @@
             Math.round(finite(totals.satfat) * 10) / 10, " g") : null) : null,
         React.createElement("div", { "data-meal-result-ingredients-heading": "true" },
           React.createElement("strong", null, text("Ingredientes", "Ingredients", "Ingredientes")),
-          React.createElement("button", { type: "button", disabled, onClick: addItem }, text("+ Adicionar", "+ Add", "+ Agregar"))),
+          savedFoodResult ? null : React.createElement("button", { type: "button", disabled, onClick: addItem }, text("+ Adicionar", "+ Add", "+ Agregar"))),
         React.createElement("div", { "data-meal-result-ingredients": "true" }, items.length
           ? items.map(item => React.createElement("article", {
               key: item.id,
@@ -337,7 +347,7 @@
                 minValue: 0,
                 maxValue: 100000,
                 maxDecimals: 1,
-                unit: "g",
+                unit: savedFoodResult ? String(item.unit || portionUnit) : "g",
                 disabled,
                 strings: {
                   cancel: text("Cancelar", "Cancel", "Cancelar"), confirm: text("Confirmar", "Confirm", "Confirmar"),
@@ -362,9 +372,11 @@
             "Revisa los datos marcados antes de registrar."
           )) : null,
         React.createElement("div", { "data-meal-result-secondary-actions": "true" },
-          React.createElement("button", { type: "button", disabled, onClick: onReview }, text("Avaliar refeição", "Evaluate meal", "Evaluar comida")),
-          React.createElement("button", { type: "button", disabled, onClick: onRetry }, text("Analisar novamente", "Analyze again", "Analizar de nuevo")),
-          React.createElement("button", { type: "button", disabled, onClick: onDiscard }, text("Descartar foto", "Discard photo", "Descartar foto")))),
+          typeof onReview === "function" ? React.createElement("button", { type: "button", disabled, onClick: onReview }, text("Avaliar refeição", "Evaluate meal", "Evaluar comida")) : null,
+          typeof onRetry === "function" ? React.createElement("button", { type: "button", disabled, onClick: onRetry }, text("Analisar novamente", "Analyze again", "Analizar de nuevo")) : null,
+          typeof onDiscard === "function" ? React.createElement("button", { type: "button", disabled, onClick: onDiscard }, savedFoodResult
+            ? text("Voltar à busca", "Back to search", "Volver a la búsqueda")
+            : text("Descartar foto", "Discard photo", "Descartar foto")) : null)),
       React.createElement("footer", { "data-meal-result-footer": "true" },
         React.createElement(ChoiceField, {
           id: "image-meal-category",
@@ -383,7 +395,7 @@
           onClick: onConfirm
         }, disabled
           ? text("Registrando...", "Logging...", "Registrando...")
-          : text("Registrar refeição", "Log meal", "Registrar comida")))));
+          : confirmLabel || text("Registrar refeição", "Log meal", "Registrar comida")))));
     }
 
     return { MealResultSheet };

@@ -158,7 +158,9 @@ test.describe('authenticated critical data flows', () => {
     ].join(', '));
     await foodSearch.fill(foodName);
     await stagedMeal.getByText(foodName, { exact: true }).last().click();
-    await stagedMeal.locator('#meal-food-quantity-trigger').click();
+    const resultSheet = page.locator('[data-meal-result-overlay="true"][data-meal-result-source="saved-food"]');
+    await expect(resultSheet).toBeVisible();
+    await resultSheet.locator('#meal-result-total-grams-trigger').click();
     for (const character of String(quantity)) {
       if (character === '.' || character === ',') {
         await page.locator('[data-numeric-keypad-decimal="true"]').click();
@@ -167,7 +169,8 @@ test.describe('authenticated critical data flows', () => {
       }
     }
     await page.locator('[data-numeric-keypad-confirm="true"]').click();
-    await stagedMeal.getByRole('button', { name: /Adicionar à refeição|Add to meal|Agregar a la comida/i }).click();
+    await resultSheet.getByRole('button', { name: /Adicionar à refeição|Add to meal|Agregar a la comida/i }).click();
+    await expect(resultSheet).toHaveCount(0);
   }
 
   async function openStagedMeal(page) {
@@ -229,6 +232,7 @@ test.describe('authenticated critical data flows', () => {
     try {
       await replaceStorage(page, noteKey, originalMarker);
       await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
       await dismissTutorialIfVisible(page);
       await clickByTutorialKeyOrText(page, 'menu-settings', /Configura/i);
       await clickFirstButtonMatching(page, /Backup e restaurar/i);
