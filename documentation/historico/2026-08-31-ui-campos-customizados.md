@@ -23,14 +23,14 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 | S8 — checkboxes e sliders | Mesclada na `main` pelo PR #166, com CI autenticado integralmente verde |
 | S9 — diálogo genérico | Implementada, validada e mesclada na `main` pelo PR #172 |
 | Fechamento S1–S9 | Concluído: todas as fatias S1–S9 integram a `main` |
-| Sequência I1–I7 | I1 com runtime implementado e em validação; I2 com protótipo visual aprovado e implementação pendente; I3–I7 permanecem planejadas |
+| Sequência I1–I7 | I1 concluída e integrada à `main`; I2 com protótipo visual aprovado e implementação pendente; I3–I7 permanecem planejadas |
 
 ### [I1] - Carregamento animado
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 22/09/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
+- **Data de conclusão:** 28/09/2026.
+- **Tempo decorrido:** 9 h 54 min 18 s, do primeiro commit funcional `38f55ad` ao merge `b0e20f4`.
 - **Minutos de CI:** 1 h 15 min 45 s — 46 s leves (`36358744468`: 21 s; `36363011969`: 25 s) e 1 h 14 min 59 s pesados (`36358744469`: 37 min 37 s; `36363011937`: 37 min 22 s).
 - **Propósito:** validar antes da implementação uma espera inicial que pareça deliberada e vinculada à identidade do Trofia, evitando tanto uma tela estática sem resposta quanto um spinner genérico desconectado do produto.
 - **O que se planeja fazer:** prototipar e, após aprovação específica, implementar a marca do Trofia pulsando e expandindo durante o bootstrap, com permanência visual mínima entre 800 e 1.000 ms, temas claro e escuro, textos localizados e uma alternativa sem pulsação/escala para usuários com `prefers-reduced-motion`.
@@ -41,8 +41,9 @@ As datas dos itens implementados são as datas de merge ou dos commits confirmad
 
   A cobertura focada passou com 8/8 unitários e matriz visual de 6/6 no legado mais 6/6 no Vite. O primeiro gate integral confirmou preflight, 1.513/1.513 unitários e smoke legado completo; no Vite, 144 casos passaram e apenas o cenário mobile de round trip de backup falhou antes de abrir o menu. Os artefatos mostraram o Diário plenamente renderizado e a camada de I1 já removida, sem erro de página, mas o teste havia executado um segundo `page.reload({waitUntil:'domcontentloaded'})` e imediatamente forçado o clique na engrenagem, sem aguardar `#loading` desaparecer. A reprodução focada falhou 3/3 exatamente no botão `Backup e restaurar`; ao acrescentar a mesma barreira de prontidão usada por `openApp()` e `setAppLanguage()`, o recorte passou 3/3 (mais o setup autenticado), demonstrando que o runtime de backup e a navegação estavam corretos e que a expectativa do harness ficou obsoleta diante da permanência mínima aprovada. A correção limita-se a sincronizar esse smoke com a prontidão já pública, sem aumentar timeout, retry, `force:true` adicional ou alteração do produto.
 
-  O gate integral repetido após essa correção ficou totalmente verde na mesma árvore: preflight aprovado; 1.513/1.513 unitários; smoke legado com 135 aprovados e 10 skips estruturais; smoke Vite 145/145; e matriz cutover 60/60. O cenário de backup passou tanto em desktop quanto em mobile. No PR draft #280, tanto o HEAD funcional quanto o HEAD de registro das métricas concluíram integralmente verdes nos pares leve/pesado `36358744468`/`36358744469` e `36363011969`/`36363011937`; a fatia permanece em andamento somente até aprovação e merge.
-- **PRs/commits relacionados:** protótipo externo aprovado e registro documental anterior no PR #263, commit `59ef675`; implementação no commit `38f55ad`; registro inicial de CI no commit `5b41d48`; [PR draft #280](https://github.com/magnoClovis/nutrition-tracker/pull/280); runs `36358744468`, `36358744469`, `36363011969` e `36363011937`. — **Chat-Origin:** Trofia-UIUX.
+  O gate integral repetido após essa correção ficou totalmente verde na mesma árvore: preflight aprovado; 1.513/1.513 unitários; smoke legado com 135 aprovados e 10 skips estruturais; smoke Vite 145/145; e matriz cutover 60/60. O cenário de backup passou tanto em desktop quanto em mobile. No PR #280, tanto o HEAD funcional quanto o HEAD de registro das métricas concluíram integralmente verdes nos pares leve/pesado `36358744468`/`36358744469` e `36363011969`/`36363011937`; o check final de consolidação também ficou verde e não foi somado novamente. Após aprovação explícita, o PR saiu do draft e foi mesclado na `main` em `b0e20f4`.
+- **Alinhamento:** 100%. A implementação corresponde ao protótipo e ao escopo aprovados: identidade Trofia, permanência mínima perceptível, textos honestos, PT/EN/ES, temas claro/escuro, movimento reduzido e falha observável foram preservados. A única correção adjacente foi no harness, sem mudança funcional de backup ou relaxamento dos gates; impacto final positivo.
+- **PRs/commits relacionados:** protótipo externo aprovado e registro documental anterior no PR #263, commit `59ef675`; implementação no commit `38f55ad`; registros de CI nos commits `5b41d48` e `f379eb5`; [PR #280](https://github.com/magnoClovis/nutrition-tracker/pull/280), merge `b0e20f4`; runs `36358744468`, `36358744469`, `36363011969` e `36363011937`. — **Chat-Origin:** Trofia-UIUX.
 
 ### [I2] - Protótipo aprovado do registro progressivo por campo
 
