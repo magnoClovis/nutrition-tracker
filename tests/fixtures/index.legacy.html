@@ -70,10 +70,48 @@
         scroll-behavior: auto !important;
       }
     }
-    #loading{position:fixed;inset:0;background:var(--surface-page,#f2f1ed);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--text-secondary,#888);font-size:13px;letter-spacing:2px;text-transform:uppercase;z-index:10000;opacity:1;transition:opacity .18s ease}
+    #loading{
+      --initial-loading-page:var(--surface-page,#f2f1ed);
+      --initial-loading-ink:var(--text-primary,#20231f);
+      --initial-loading-copy:var(--text-secondary,#777b72);
+      --initial-loading-brand:var(--accent-action-fill,#5f9828);
+      --initial-loading-brand-deep:#2f681b;
+      --initial-loading-aura:rgba(95,152,40,.18);
+      position:fixed;inset:0;background:var(--initial-loading-page);display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:24px;color:var(--initial-loading-copy);font-size:13px;
+      letter-spacing:2px;text-transform:uppercase;z-index:10000;opacity:1;transition:opacity .26s ease;
+    }
     #loading.is-hidden{opacity:0;pointer-events:none}
-    html[data-theme="dark"] #loading{background:var(--surface-page,#0e0e0d);color:var(--text-secondary,#a8a69e);}
-    html[data-theme="dark"] #loading div:first-child{border-color:#343431!important;border-top-color:var(--accent-action-fill,#78ab3c)!important;}
+    html[data-theme="dark"] #loading{
+      --initial-loading-page:var(--surface-page,#0e100e);
+      --initial-loading-ink:var(--text-primary,#f0f2ec);
+      --initial-loading-copy:var(--text-secondary,#a8aca2);
+      --initial-loading-brand:var(--accent-action-fill,#8bc54c);
+      --initial-loading-brand-deep:#b6e17e;
+      --initial-loading-aura:rgba(139,197,76,.2);
+    }
+    .initial-loading-brand{position:relative;display:grid;place-items:center;gap:16px;text-transform:none}
+    .initial-loading-aura{position:absolute;top:-19px;width:118px;height:118px;border-radius:50%;background:var(--initial-loading-aura);transform:scale(.64);opacity:0;animation:initialLoadingAuraIn .95s cubic-bezier(.2,.8,.2,1) both,initialLoadingAuraBreathe 1.8s .95s ease-in-out infinite}
+    .initial-loading-mark{width:82px;height:82px;position:relative;display:grid;place-items:center;border-radius:27px;color:var(--initial-loading-page);background:linear-gradient(145deg,var(--initial-loading-brand),var(--initial-loading-brand-deep));box-shadow:0 14px 30px rgba(42,92,28,.2);transform:scale(.78);animation:initialLoadingMarkIn .9s cubic-bezier(.2,.8,.2,1) both,initialLoadingBreathe 1.8s .9s ease-in-out infinite}
+    .initial-loading-letter{font-size:44px;line-height:1;font-weight:500;letter-spacing:-4px;transform:translateX(-2px)}
+    .initial-loading-leaf{position:absolute;top:14px;right:14px;width:17px;height:10px;border-radius:100% 0 100% 0;background:currentColor;transform:rotate(-18deg)}
+    .initial-loading-wordmark{color:var(--initial-loading-ink);font-size:25px;line-height:1;font-weight:500;letter-spacing:-.7px;opacity:0;transform:translateY(7px);animation:initialLoadingWordIn .52s .44s ease-out both}
+    #initial-loading-text{min-height:20px;line-height:1.4;letter-spacing:.12em}
+    .initial-loading-progress{width:76px;height:3px;overflow:hidden;border-radius:99px;background:color-mix(in srgb,var(--initial-loading-copy) 20%,transparent)}
+    .initial-loading-progress span{display:block;width:34%;height:100%;border-radius:inherit;background:var(--initial-loading-brand);transform:translateX(-110%);animation:initialLoadingProgress 1.25s .7s ease-in-out infinite}
+    @keyframes initialLoadingMarkIn{from{transform:scale(.78);opacity:.55}to{transform:scale(1);opacity:1}}
+    @keyframes initialLoadingAuraIn{from{transform:scale(.64);opacity:0}to{transform:scale(1);opacity:.62}}
+    @keyframes initialLoadingWordIn{to{opacity:1;transform:translateY(0)}}
+    @keyframes initialLoadingBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
+    @keyframes initialLoadingAuraBreathe{0%,100%{transform:scale(1);opacity:.48}50%{transform:scale(1.12);opacity:.72}}
+    @keyframes initialLoadingProgress{0%{transform:translateX(-110%)}55%,100%{transform:translateX(300%)}}
+    @media (prefers-reduced-motion:reduce){
+      #loading{transition-duration:.12s}
+      .initial-loading-mark{transform:scale(1);opacity:1;animation:none!important}
+      .initial-loading-aura{transform:scale(1);opacity:.55;animation:none!important}
+      .initial-loading-wordmark{opacity:1;transform:none;animation:none!important}
+      .initial-loading-progress span{width:100%;transform:none;animation:none!important}
+    }
     select option{background:#f5f3ef;color:#252220}
     ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg,#f2f1ed)}::-webkit-scrollbar-thumb{background:var(--border2,#b8b4ac);border-radius:2px}
     input[type=date]{color-scheme:dark}
@@ -157,14 +195,24 @@
 </style>
 </head>
 <body>
-  <div id="loading">
-    <div style="width:30px;height:30px;border-radius:50%;border:3px solid #d8d4cc;border-top-color:#2a6a2a;animation:spin 1.2s linear infinite"></div>
-    <div id="initial-loading-text" style="animation:pulse 1.5s ease-in-out infinite">Carregando...</div>
+  <div id="loading" role="status" aria-live="polite" aria-atomic="true">
+    <div class="initial-loading-brand" aria-hidden="true">
+      <div class="initial-loading-aura"></div>
+      <div class="initial-loading-mark"><span class="initial-loading-letter">T</span><span class="initial-loading-leaf"></span></div>
+      <div class="initial-loading-wordmark">Trofia</div>
+    </div>
+    <div id="initial-loading-text">Carregando…</div>
+    <div class="initial-loading-progress" aria-hidden="true"><span></span></div>
   </div>
   <div id="root"></div>
   <footer id="app-version-footer" aria-label="Versão do aplicativo"></footer>
   <script>
   window.APP_VERSION_LABEL = 'Trofia v0.11.0 Beta';
+  window.INITIAL_LOADING_MIN_MS = 900;
+  window.initialLoadingStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  window.initialLoadingHideTimer = null;
+  window.initialLoadingRemoveTimer = null;
+  window.initialLoadingHideRequested = false;
 
   document.getElementById('app-version-footer').textContent = window.APP_VERSION_LABEL;
 
@@ -173,13 +221,29 @@
     if (label && text) label.textContent = text;
   };
 
+  try {
+    var initialLoadingLanguage = String(localStorage.getItem('appLang') || 'pt').toLowerCase();
+    window.setInitialLoadingText(initialLoadingLanguage.indexOf('en') === 0
+      ? 'Loading…'
+      : initialLoadingLanguage.indexOf('es') === 0 ? 'Cargando…' : 'Carregando…');
+  } catch (_) {
+    window.setInitialLoadingText('Carregando…');
+  }
+
   window.hideInitialLoading = function(){
     var loading = document.getElementById('loading');
     if (!loading) return;
-    loading.classList.add('is-hidden');
-    setTimeout(function(){
-      if (loading && loading.parentNode) loading.parentNode.removeChild(loading);
-    }, 220);
+    if (window.initialLoadingHideRequested) return;
+    window.initialLoadingHideRequested = true;
+    var now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    var elapsed = Math.max(0, now - window.initialLoadingStartedAt);
+    var remaining = Math.max(0, window.INITIAL_LOADING_MIN_MS - elapsed);
+    window.initialLoadingHideTimer = setTimeout(function(){
+      loading.classList.add('is-hidden');
+      window.initialLoadingRemoveTimer = setTimeout(function(){
+        if (loading && loading.parentNode) loading.parentNode.removeChild(loading);
+      }, 280);
+    }, remaining);
   };
 
   // Shows startup failures in the loading layer. This is intentionally small:
@@ -189,6 +253,16 @@
   function showStartupError(title, message, detail) {
     var el = document.getElementById('loading');
     if (!el || el.style.display === 'none') return;
+    if (window.initialLoadingHideTimer) {
+      clearTimeout(window.initialLoadingHideTimer);
+      window.initialLoadingHideTimer = null;
+    }
+    if (window.initialLoadingRemoveTimer) {
+      clearTimeout(window.initialLoadingRemoveTimer);
+      window.initialLoadingRemoveTimer = null;
+    }
+    window.initialLoadingHideRequested = false;
+    el.classList.remove('is-hidden');
 
     var box = document.createElement('div');
     box.style.color = '#c87e7e';

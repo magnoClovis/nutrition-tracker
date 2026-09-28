@@ -232,6 +232,7 @@ test.describe('authenticated critical data flows', () => {
     try {
       await replaceStorage(page, noteKey, originalMarker);
       await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
       await dismissTutorialIfVisible(page);
       await clickByTutorialKeyOrText(page, 'menu-settings', /Configura/i);
       await clickFirstButtonMatching(page, /Backup e restaurar/i);
