@@ -907,6 +907,107 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 - **Alinhamento:** 100%. O diagnóstico separou a corrida de Auth da falha independente de liberação, corrigiu ambas sem retry de login, aumento de timeout ou fallback inseguro e preservou integralmente a CAM-RED-6. O impacto foi positivo: removeu um logout destrutivo real e impediu leases residuais sem reduzir o rigor do gate.
 - **PRs/commits relacionados:** bloqueio reportado no draft PR #246; lease residual `36024006073`; PR #251; commits `d0b373b`, `68a843c` e merge `d6bc04f`; runs `36142057000` e `36142056828`; PR #250 fechado como incorporado. — **Chat:** Trofia-Principal.
 
+## [ORG] - Reorganização integral do repositório aprovada para planejamento
+
+Em 29/09/2026, o responsável aprovou registrar a sequência ORG-0 a ORG-7 antes de qualquer movimentação. Esta é uma frente de organização e manutenção, não uma autorização para excluir arquivos, publicar infraestrutura ou antecipar itens do lançamento. O contrato detalhado de destinos, riscos, dependências e gates está em `documentation/estado-atual/ORG_PLANO_REORGANIZACAO_REPOSITORIO.md`; o `RESUMO-STATUS.md` mantém o estado breve individual de todas as fatias.
+
+### [ORG-0] - Inventário final e mapa de dependências
+
+- **Status:** em andamento.
+- **Data de início:** 29/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; ainda não iniciado para esta fatia documental.
+- **Propósito:** evitar uma reorganização visual que quebre URLs públicos, script order legado, módulos ESM, Firestore/Functions, Capacitor ou trabalho local não commitado.
+- **O que se planeja fazer:** catalogar cada arquivo rastreado na raiz e as pastas relevantes, identificar consumidores e fontes canônicas, comparar cópias documentais, classificar candidatos de remoção, branches e worktrees por evidência, e produzir a matriz `origem → destino → dependências → risco → verificação`. Itens não comprovados ficam explicitamente pendentes, nunca são declarados órfãos por nome ou idade.
+- **Recursos/arquivos principais envolvidos:** `git ls-tree`, `git status`, `git worktree list`, `index.html`, `tests/fixtures/index.legacy.html`, `src/`, `vite.config.js`, `firebase.json`, `capacitor.config.json`, `scripts/verify-vite-build.js`, `documentation/` e o plano específico ORG.
+- **O que foi feito:** uma leitura sem escrita da `origin/main` em `3f3557b` encontrou 129 arquivos rastreados diretamente na raiz (83 `.js`) e nove diretórios. A raiz não contém README; existe `documentation/README.md`. O par `app.js`/`nutrition-tracker.jsx` continua espelhado e verificado no preflight (887 linhas cada), enquanto `nutrition-tracker-controller.js` tem cerca de 6.710 linhas e `one-ui.css`, cerca de 3.817. O fixture legado usa scripts UMD da raiz em ordem explícita; o Vite usa `src/` e `base: './'`, copia manifest/ícones por configuração explícita e exige allowlist do `dist`; `firebase.json` aponta para rules/índices da raiz; Capacitor usa `dist`. Quatro worktrees Git estavam registradas no momento da inspeção: checkout principal sujo/desatualizado, C14-F2 ativa, investigação App Check não contida na main e worktree de portas Playwright com alterações locais. Outras pastas `.codex-*` físicas não registradas requerem auditoria própria. Não houve remoção, mudança de configuração nem classificação de segurança de exclusão. Falta a matriz exaustiva por arquivo e a verificação de consumidores/owners para encerrar ORG-0.
+- **PRs/commits relacionados:** plano documental em preparação; baseline `3f3557b`; nenhum PR de implementação ORG.
+
+### [ORG-1] - Documentação, README, scripts e worktrees
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** oferecer entrada profissional ao repositório e eliminar dispersão documental/operacional sem apagar evidência histórica nem resíduos ativos de outras frentes.
+- **O que se planeja fazer:** criar README raiz com arquitetura, instalação, gates e links; classificar os documentos da raiz entre estado-atual, operação, compliance e histórico; reconciliar originais/cópias controladas antes de escolher uma fonte canônica; mover os dois scripts Python administrativos para `scripts/admin/`, preservando dry-run e confirmações destrutivas; instituir convenção para novos worktrees fora do checkout principal/OneDrive e limpeza controlada após o encerramento. `bug-inventory.txt` permanece preservado até reconciliar sua alteração local com a cópia Markdown.
+- **Recursos/arquivos principais envolvidos:** `README.md`, guias `.txt`, políticas/relatórios `.md`, `documentation/estado-atual/`, `documentation/operacao/`, `documentation/snapshots/`, `scripts/admin/`, `bug-inventory.txt`, Git worktree e referências internas.
+- **PRs/commits relacionados:** nenhum de implementação ORG-1.
+
+### [ORG-2] - Ativos estáticos e estilos
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** separar artefatos publicados da fonte de código sem modificar o caminho que Pages, PWA e Android veem em produção.
+- **O que se planeja fazer:** migrar `manifest.json` e ícones Trofia para `public/`, preservando seus nomes finais no `dist`; ajustar ou eliminar com prova o plugin de cópia explícita, a allowlist de build e as referências relativas sob o subcaminho GitHub Pages. Mover `one-ui.css` inicialmente inteiro para `src/styles/` e comparar cascata/saída visual antes de qualquer divisão. `icon-placeholder.png` só será arquivado como fonte visual histórica se ORG-0 excluir uso runtime.
+- **Recursos/arquivos principais envolvidos:** `vite.config.js`, `scripts/verify-vite-build.js`, `index.html`, `manifest.json`, ícones, `one-ui.css`, `src/styles/`, `tests/fixtures/index.legacy.html`, Pages e Android.
+- **PRs/commits relacionados:** nenhum de implementação ORG-2.
+
+### [ORG-3] - Configuração Firebase
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** tornar explícita a fronteira de configuração Firestore sem reabrir o incidente de rules que rejeitaram escritas legítimas.
+- **O que se planeja fazer:** mover rules e índices para `firebase/`, ajustar somente referências em `firebase.json`, testes, emuladores, scripts e CI; comparar artefato compilado/dry-run e executar testes reais. A localização do arquivo não altera rules publicadas; qualquer deploy fica condicionado a autorização e validação próprias.
+- **Recursos/arquivos principais envolvidos:** `firestore.rules`, `firestore.indexes.json`, `firebase.json`, `functions/test/`, emuladores e workflows de deploy.
+- **PRs/commits relacionados:** nenhum de implementação ORG-3.
+
+### [ORG-4] - Módulos da raiz e compatibilidade UMD/ESM
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** retirar dezenas de módulos JavaScript da raiz sem tratar como duplicata descartável o código compartilhado pelo legado e pelo Vite.
+- **O que se planeja fazer:** agrupar movimentações mecânicas por domínio, criar a fronteira `src/compat/` para UMD ainda necessário, atualizar globals, caminhos e ordem de scripts do fixture legado e imports/fachadas ESM sem alterar algoritmos, persistência ou UI. Cada grupo será provado isoladamente em legado, Vite, cutover e CI autenticado.
+- **Recursos/arquivos principais envolvidos:** módulos JS da raiz, `src/leaf/`, `src/composite/`, `src/firebase/`, `src/components/`, `tests/fixtures/index.legacy.html`, Vite e testes de contrato.
+- **PRs/commits relacionados:** nenhum de implementação ORG-4.
+
+### [ORG-5] - Organização interna de src
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** substituir nomes transitórios da migração Vite por fronteiras que representem posse e responsabilidade reais.
+- **O que se planeja fazer:** após ORG-4, reclassificar módulos ESM entre `app/`, `features/`, `domain/`, `services/`, `platform/` e `components/` a partir de grafo de imports e responsabilidades, reduzindo fachadas redundantes somente com prova de ausência de consumidores. Não misturar a reorganização com mudanças de regra nutricional, Auth ou persistência.
+- **Recursos/arquivos principais envolvidos:** `src/App.jsx`, `src/main.jsx`, diretórios `src/leaf`, `src/composite`, `src/firebase`, `src/components` e testes UMD/ESM.
+- **PRs/commits relacionados:** nenhum de implementação ORG-5.
+
+### [ORG-6] - Controlador e estilos extensos
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** reduzir o maior risco de manutenção após os movimentos mecânicos, sem supor que mover um arquivo equivale a modularizar seu comportamento.
+- **O que se planeja fazer:** criar testes de caracterização para ordem dos hooks, dependências de efeitos, closures, hidratação, autosave, perfis e fluxos de refeição; extrair responsabilidades do controlador em PRs menores mantendo as interfaces. Só depois dividir CSS em camadas com comparação visual e ordem de cascata preservada. O par `app.js`/`nutrition-tracker.jsx` só pode deixar de ser espelhado depois de eliminar seus consumidores e atualizar o preflight.
+- **Recursos/arquivos principais envolvidos:** `nutrition-tracker-controller.js`, `app.js`, `nutrition-tracker.jsx`, `src/App.jsx`, `one-ui.css`, preflight, testes unitários, Playwright legado/Vite e cutover.
+- **PRs/commits relacionados:** nenhum de implementação ORG-6.
+
+### [ORG-7] - Limpeza e verificação final
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** encerrar a migração com menos resíduos sem sacrificar trabalho local, rastreabilidade ou compatibilidade de produção.
+- **O que se planeja fazer:** provar que cada duplicata/artefato é dispensável antes de excluir; auditar branches e worktrees por PR, reachability, alterações ignoradas/não commitadas e processos; arquivar/remover somente com segurança; comparar build Vite, Pages em subcaminho, fixture legado, Android, Firebase e documentos canônicos. Não usar `git worktree prune` como substituto para remover worktrees existentes, nem apagar diretórios de outras frentes por idade.
+- **Recursos/arquivos principais envolvidos:** árvore Git, worktrees, refs locais/remotas, `dist`, Pages, Android, `firebase.json`, `documentation/` e contratos de CI.
+- **PRs/commits relacionados:** nenhum de implementação ORG-7.
+
 ## Métricas retroativas
 
 | PR | Tempo decorrido | Minutos de CI | Chat-Origin |

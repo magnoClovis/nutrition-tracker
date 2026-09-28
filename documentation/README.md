@@ -10,6 +10,7 @@ Os arquivos em `estado-atual/` e `historico/` oferecem fontes classificadas, um 
 - [`historico/`](historico/) contém cronologias de uma frente ou chat específico, sustentadas por commits e pull requests.
 - [`snapshots/`](snapshots/) contém as versões completas dos três documentos finais, agrupadas pela data de geração no formato `AAAA-MM-DD`.
 - [`PADRAO-DOCUMENTACAO.md`](PADRAO-DOCUMENTACAO.md) define a Definition of Done documental obrigatória para todas as frentes.
+- [`estado-atual/ORG_PLANO_REORGANIZACAO_REPOSITORIO.md`](estado-atual/ORG_PLANO_REORGANIZACAO_REPOSITORIO.md) detalha a sequência ORG aprovada, os destinos propostos e os gates de preservação; ainda não há migração estrutural autorizada por esse plano.
 
 Os arquivos originais continuam na raiz porque podem ser consumidos por scripts, testes, CI ou processos de publicação. As cópias desta pasta têm cabeçalho de proveniência e não devem ser editadas no lugar do original.
 

@@ -234,6 +234,23 @@ C29 é uma evolução pós-lançamento do fluxo C24 e não altera o estado concl
 6. Imagem, descrição corretiva e resposta bruta permanecem transitórias e não entram no armazenamento, backup ou observabilidade.
 7. A matriz final comprova os fluxos PT/EN/ES, web/Android aplicável e os estados de sucesso, retry, cancelamento, timeout, quota e resposta inválida.
 
+## ORG — Reorganização estrutural do repositório
+
+Sequência aprovada em 29/09/2026 para planejar e executar, em PRs separados, uma organização profissional sem perda do runtime legado, do Vite ou dos contratos de publicação. **ORG-0 está em andamento somente como inventário documental; ORG-1 a ORG-7 não foram iniciadas.** Este registro não autoriza movimentação ou exclusão imediata nem altera a ordem de C14, C16 ou dos itens necessários ao lançamento.
+
+| Fatia | Escopo aprovado | Estado atual |
+|---|---|---|
+| ORG-0 | Inventário de arquivos, consumidores, duplicações, branches/worktrees e matriz de migração com risco e prova. | Em andamento; sem alteração estrutural. |
+| ORG-1 | README, fontes documentais canônicas, guias/scripts e convenção de worktrees. | Não iniciado. |
+| ORG-2 | Ativos estáticos e estilos, preservando URLs, cascata e artefatos web/Android. | Não iniciado. |
+| ORG-3 | Organização de rules e índices Firebase com caminhos, emuladores e deploy separados. | Não iniciado. |
+| ORG-4 | Migração em grupos dos módulos da raiz e manutenção explícita da ponte UMD/ESM. | Não iniciado. |
+| ORG-5 | Fronteiras internas de `src/` por app, feature, domínio, serviço e plataforma. | Não iniciado. |
+| ORG-6 | Extração controlada do controlador e dos estilos extensos, com caracterização e equivalência visual. | Não iniciado. |
+| ORG-7 | Limpeza apenas de resíduos comprovados e verificação final web/Android/documentação. | Não iniciado. |
+
+O mapa de destino, os riscos e os gates estão em [`documentation/estado-atual/ORG_PLANO_REORGANIZACAO_REPOSITORIO.md`](documentation/estado-atual/ORG_PLANO_REORGANIZACAO_REPOSITORIO.md). O estado por fatia está no `RESUMO-STATUS.md` e as evidências de planejamento, no histórico do Trofia-Principal.
+
 ## Decisões de ordenação
 
 - **Linha de lançamento público:** as posições 1–18 formam o grupo A; funcionalidades Beta e trabalhos de manutenibilidade pós-lançamento começam na posição 19, no grupo B.

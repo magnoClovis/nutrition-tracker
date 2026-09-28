@@ -1761,6 +1761,81 @@
 - **O que foi feito:** o PR #170 foi fechado sem merge porque os PRs #169, #172 e #196 já incorporavam informações mais atuais; worktree limpo e branches foram removidos sem tocar no produto.
 - **Alinhamento:** 100%; limpeza administrativa concluída sem perda de conteúdo.
 
+## Organização do repositório — sequência ORG aprovada
+
+### [ORG-0] - Inventário final e mapa de dependências
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 29/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** definir destinos e exclusões com evidência antes de modificar a estrutura.
+- **O que se planeja fazer:** mapear cada arquivo da raiz, referências, duplicações, branches/worktrees e riscos em uma matriz de migração.
+- **Recursos/arquivos principais envolvidos:** raiz, `src/`, `documentation/`, `tests/`, configs Vite/Firebase/Capacitor, Git e `ORG_PLANO_REORGANIZACAO_REPOSITORIO.md`.
+- **O que foi feito:** a baseline `origin/main` em `3f3557b` mostrou 129 arquivos na raiz, ausência de README raiz e contratos legado/Vite que impedem uma mudança em massa; a matriz por arquivo ainda falta.
+
+### [ORG-1] - Documentação, README, scripts e worktrees
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** tornar a entrada do projeto clara e reduzir documentos/scripts soltos sem perder histórico.
+- **O que se planeja fazer:** criar README, definir fontes documentais canônicas, mover guias/scripts com referências e padronizar novas worktrees fora do checkout principal.
+- **Recursos/arquivos principais envolvidos:** `README.md`, `documentation/`, `scripts/`, guias da raiz, `bug-inventory.txt` e Git worktree.
+
+### [ORG-2] - Ativos estáticos e estilos
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** separar ativos publicados e estilos do código mantendo saída idêntica.
+- **O que se planeja fazer:** migrar manifest/ícones e `one-ui.css` preservando URLs, CSS, Pages em subcaminho e pacote Android.
+- **Recursos/arquivos principais envolvidos:** `public/`, `src/styles/`, `vite.config.js`, `index.html`, `manifest.json`, ícones e testes visuais.
+
+### [ORG-3] - Configuração Firebase
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** agrupar rules e índices sem alterar acidentalmente a política publicada.
+- **O que se planeja fazer:** mover regras/índices para `firebase/`, atualizar caminhos, validar emuladores/CI e separar qualquer deploy.
+- **Recursos/arquivos principais envolvidos:** `firebase.json`, `firestore.rules`, `firestore.indexes.json`, Functions, emuladores e workflows.
+
+### [ORG-4] - Módulos da raiz e compatibilidade UMD/ESM
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** reduzir JavaScript solto na raiz sem perder o runtime legado ou o Vite.
+- **O que se planeja fazer:** migrar módulos por grupos para `src/compat/` e destinos canônicos com ordem de scripts/imports preservada.
+- **Recursos/arquivos principais envolvidos:** módulos JS da raiz, `src/`, fixture legado, adaptadores ESM, Vite e Playwright.
+
+### [ORG-5] - Organização interna de src
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** substituir agrupamentos transitórios por fronteiras de responsabilidade compreensíveis.
+- **O que se planeja fazer:** consolidar app, features, domínio, serviços, plataforma e componentes após mapear o grafo de imports.
+- **Recursos/arquivos principais envolvidos:** `src/leaf/`, `src/composite/`, `src/firebase/`, `src/components/`, imports e testes UMD/ESM.
+
+### [ORG-6] - Controlador e estilos extensos
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** reduzir pontos de manutenção arriscados sem mudar semântica observável.
+- **O que se planeja fazer:** caracterizar e extrair responsabilidades do controlador e dividir CSS em PRs pequenos preservando hooks, hidratação e cascata.
+- **Recursos/arquivos principais envolvidos:** `nutrition-tracker-controller.js`, `app.js`, `nutrition-tracker.jsx`, `src/App.jsx`, `one-ui.css` e testes de caracterização/visuais.
+
+### [ORG-7] - Limpeza e verificação final
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** retirar resíduos comprovados e encerrar a migração sem perda de trabalho.
+- **O que se planeja fazer:** revisar duplicatas, artefatos, refs/branches e worktrees, remover apenas itens comprovadamente dispensáveis e validar web/Android/documentação.
+- **Recursos/arquivos principais envolvidos:** Git worktrees/branches, arquivos ignorados/rastreados, `dist`, Pages, Android e documentação operacional.
+
 ## Observações não confirmadas sob acompanhamento
 
 ### [INV-RELOAD-SESSAO] - Sessão e loading após reload/troca de idioma
@@ -1775,6 +1850,7 @@
 
 ## Onde aprofundar
 
+- Plano de reorganização estrutural: [`ORG_PLANO_REORGANIZACAO_REPOSITORIO.md`](ORG_PLANO_REORGANIZACAO_REPOSITORIO.md).
 - Estado por item: [`ROADMAP.md`](ROADMAP.md).
 - Releases: [`VERSIONING.md`](VERSIONING.md).
 - Decisões adiadas: [`PENDENCIAS.md`](PENDENCIAS.md).
