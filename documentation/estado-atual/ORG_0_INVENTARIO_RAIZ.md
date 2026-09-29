@@ -1,6 +1,6 @@
 # ORG-0 — Inventário da raiz e dependências (baseline 29/09/2026)
 
-> Auditoria somente leitura da `origin/main` em `4a9d8cc`. A ORG-PREP #286 ainda está em validação; destinos/README desse PR não são tratados aqui como mesclados. Nenhum arquivo foi movido ou excluído. Esta matriz propõe destino, **não autoriza** migração em massa.
+> Auditoria somente leitura da `origin/main` em `4a9d8cc`, apresentada no PR draft #289. A ORG-PREP #286 ainda está em validação; destinos/README desse PR não são tratados aqui como mesclados. Nenhum arquivo foi movido ou excluído. Esta matriz propõe destino, **não autoriza** migração em massa.
 
 ## Método e limites
 
