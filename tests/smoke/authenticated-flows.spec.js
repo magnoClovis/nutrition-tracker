@@ -13,6 +13,8 @@ const {
   expectNoCriticalErrors,
   interceptOptionalExternalApis,
   openApp,
+  restoreFixtureActions,
+  setCriticalErrorPhase,
   setAppLanguage
 } = require('./test-helpers');
 
@@ -99,9 +101,9 @@ test.describe('authenticated critical data flows', () => {
   }
 
   async function restoreStorage(page, key, snapshot) {
-    if (page.isClosed()) return;
+    if (page.isClosed()) throw new Error('authenticated-fixture-restore-page-closed');
     await page.waitForTimeout(900);
-    if (page.isClosed()) return;
+    if (page.isClosed()) throw new Error('authenticated-fixture-restore-page-closed');
     await page.evaluate(async ([storageKey, previous]) => {
       if (previous.exists) await window.storage.set(storageKey, previous.value);
       else await window.storage.delete(storageKey);
@@ -212,6 +214,7 @@ test.describe('authenticated critical data flows', () => {
     test.setTimeout(90000);
     await interceptOptionalExternalApis(page);
     const errors = await openApp(page);
+    setCriticalErrorPhase(errors, 'backup-round-trip');
     await setAppLanguage(page, 'pt');
 
     // Keep the backup fixture away from the actively hydrated civil day.
@@ -245,12 +248,14 @@ test.describe('authenticated critical data flows', () => {
       expect(JSON.stringify(backup)).toContain(originalMarker);
 
       await replaceStorage(page, noteKey, changedMarker);
+      setCriticalErrorPhase(errors, 'backup-preview');
       await page.locator('input[type="file"][accept=".json"]').last().setInputFiles(downloadPath);
       await expect(page.getByRole('heading', { name: /Revisar importação/i })).toBeVisible({ timeout: 20000 });
 
       await page.getByRole('checkbox', { name: /^Notas\b/i }).check({ force: true });
       await page.getByRole('button', { name: 'Substituir', exact: true }).click();
       await page.getByRole('button', { name: /Importar selecionados/i }).click();
+      setCriticalErrorPhase(errors, 'backup-import');
       await expect(page.getByText(/Importação concluída:/i)).toBeVisible({ timeout: 30000 });
 
       await expect.poll(async () => (await readStorage(page, noteKey)).value).toBe(originalMarker);
@@ -428,7 +433,7 @@ test.describe('authenticated critical data flows', () => {
         hasSnapshot: false,
       });
       await expect(evaluationBadge).toHaveCount(0);
-      const unexpectedErrors = errors.filter(error => !/Failed to load resource: net::ERR_TIMED_OUT/i.test(error));
+      const unexpectedErrors = errors.filter(error => !/kind=net::ERR_TIMED_OUT/i.test(error));
       await expectNoCriticalErrors(unexpectedErrors);
     } finally {
       await replaceDailyLog(page, today, previousLog);
@@ -444,6 +449,7 @@ test.describe('authenticated critical data flows', () => {
     const today = await readLocalCivilDate(page);
     const previousLog = await readDailyLog(page, today);
     const previousLanguage = await readStorage(page, 'language');
+    const previousPantry = await readStorage(page, 'pantry_v2');
     const fixture = {
       id: `score-language-food-${Date.now()}`,
       name: `Score language matrix ${Date.now()}`,
@@ -455,8 +461,6 @@ test.describe('authenticated critical data flows', () => {
       fiber100: 4,
       salt100: 0.3
     };
-    await replaceDailyLog(page, today, {});
-    const previousPantry = await replacePantry(page, [fixture]);
     const languageMatrix = [
       {
         language: 'pt',
@@ -504,6 +508,10 @@ test.describe('authenticated critical data flows', () => {
     const seenEvaluationIds = new Set();
 
     try {
+      setCriticalErrorPhase(errors, 'meal-assessment-setup');
+      await replaceDailyLog(page, today, {});
+      await replacePantry(page, [fixture]);
+      setCriticalErrorPhase(errors, 'meal-assessment');
       for (const copy of languageMatrix) {
         await setAppLanguage(page, copy.language);
         await openStagedMeal(page);
@@ -551,12 +559,15 @@ test.describe('authenticated critical data flows', () => {
         await expect(savedEvaluation).toBeHidden();
       }
 
-      const unexpectedErrors = errors.filter(error => !/Failed to load resource: net::ERR_TIMED_OUT/i.test(error));
+      const unexpectedErrors = errors.filter(error => !/kind=net::ERR_TIMED_OUT/i.test(error));
+      Object.defineProperty(unexpectedErrors, 'diagnostics', { value: errors.diagnostics });
       await expectNoCriticalErrors(unexpectedErrors);
     } finally {
-      await replaceDailyLog(page, today, previousLog);
-      await restoreStorage(page, 'pantry_v2', previousPantry);
-      await restoreStorage(page, 'language', previousLanguage);
+      await restoreFixtureActions([
+        () => replaceDailyLog(page, today, previousLog),
+        () => restoreStorage(page, 'pantry_v2', previousPantry),
+        () => restoreStorage(page, 'language', previousLanguage)
+      ]);
     }
   });
 

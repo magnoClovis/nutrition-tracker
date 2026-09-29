@@ -1,5 +1,31 @@
 # Histórico da frente principal — arquitetura de IA e dados
 
+### [INC-I2-AUTH-T0] - Auditoria das falhas autenticadas do gate I2
+
+- **Status:** em andamento.
+- **Data de início:** 29/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado nesta investigação.
+- **Propósito:** classificar três falhas intermitentes no CI autenticado do PR #293 sem atribuí-las à I2 por associação temporal.
+- **O que se planeja fazer:** examinar as duas tentativas do run `36590911079`, bootstrap Auth/App Check/perfil, requests, coordenação e restauração de fixtures; não alterar a branch da UIUX nem repetir o CI sem diagnóstico.
+- **Recursos/arquivos principais envolvidos:** artefatos `11046177805` e `11052475783`, `tests/smoke/auth.setup.js`, `tests/smoke/authenticated-flows.spec.js`, `tests/smoke/test-helpers.js`, coordenador do lease e trace isolado da UIUX.
+- **O que foi feito:** a tentativa 1 falhou no perfil com `unavailable` e em loading de login; ambos passaram isoladamente sem alteração. A tentativa 2 concluiu o round trip do backup, mas encontrou um HTTP 400 anônimo no coletor de console; o teste isolado com trace passou sem 400. O coletor anterior descartava `message.location().url`, impedindo identificar o endpoint retrospectivamente. Os três eventos não demonstram causa comum nem vínculo causal com a I2. No teste de avaliação, a preparação das fixtures estava fora do `try` e a primeira falha de restauração impedia as seguintes; esse risco do harness é comprovado pelo código, mas a origem dos marcadores residuais específicos não é comprovada. O run C14-G `36621844513` mostrou 54 casos Vite mobile presos em `#loading`, todos antes do cenário, também sem diagnóstico de rede preservado; não se atribui a CSP sem evidência.
+- **PRs/commits relacionados:** PR #293 da UIUX, HEAD `ade7d8b`; run `36590911079` tentativas 1 e 2.
+
+### [INC-I2-HARNESS] - Diagnóstico sanitizado de navegador e rede
+
+- **Status:** em andamento.
+- **Data de início:** 29/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** tornar acionável uma recorrência do HTTP 400 ou de falha de bootstrap sem registrar informação pessoal, tokens ou payloads.
+- **O que se planeja fazer:** registrar apenas domínio autorizado, caminho com segmentos variáveis redigidos, método, status, fase e classe segura de erro; manter HTTP 400 como falha, sem retry ou timeout novo, com testes de sanitização. Corrigir defeito de teardown somente se demonstrado pelo código/evidência.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/test-helpers.js`, `tests/smoke/authenticated-flows.spec.js`, `tests/unit/smoke-console-filter.test.js` e `tests/smoke/README.md`.
+- **O que foi feito:** em branch isolada `codex/i2-auth-diagnostics`, o coletor agora registra apenas fase, classe segura, domínio permitido, caminho redigido, método e status; URLs brutas só são processadas transitoriamente e associadas por hash em memória, sem persistir query, mensagem arbitrária, headers ou payload. O setup de autenticação e o bootstrap passaram a relatar contexto seguro quando bloqueados, e o HTTP 400 continua crítico. A preparação da avaliação foi movida para dentro do `try` e as três restaurações são tentadas mesmo se uma falhar. Teste focado 6/6; suíte integral final com preflight verde, 1.518/1.518 unitários, legado 76 + 69 skips locais sem credenciais, Vite 76 + 69 skips locais e cutover 60/60; recorte Vite autenticado 5/5 com App Check e lease real. O CI autenticado do PR técnico ainda está pendente. Os passes não provam que as três falhas intermitentes desapareceram.
+- **PRs/commits relacionados:** PR técnico ainda não aberto.
+
 ## Escopo e método
 
 Este arquivo registra a frente de trabalho retomada para a migração da IA gerenciada e continuada em segurança de dados, releases, critérios nutricionais e infraestrutura. A evidência primária é o histórico de PRs mesclados do repositório `magnoClovis/nutrition-tracker`, complementado pelos documentos versionados citados.
