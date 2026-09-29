@@ -1769,8 +1769,8 @@
 - **Data de início:** 29/09/2026.
 - **Data de conclusão:** não concluído.
 - **Propósito:** preparar uma hierarquia compreensível antes de continuar a migração.
-- **O que se planeja fazer:** criar apenas pastas-alvo aprovadas e README de responsabilidade em pastas novas ou existentes, mantendo inventário por arquivo para quando houver migração.
-- **Recursos/arquivos principais envolvidos:** `public/`, `src/`, `firebase/`, `scripts/`, `tests/`, `documentation/`, `android/`, `functions/`, `worker/` e seus README.
+- **O que se planeja fazer:** criar apenas pastas-alvo aprovadas e README de responsabilidade na raiz e nas pastas novas ou existentes; impedir que o README de `public/` entre no build até ORG-2.
+- **Recursos/arquivos principais envolvidos:** `README.md`, `public/`, `src/`, `firebase/`, `scripts/`, `tests/`, `documentation/`, `android/`, `functions/`, `worker/`, `vite.config.js` e seus README.
 - **O que foi feito:** o contrato de preparação foi aprovado e registrado; ainda não há diretórios nem README criados por esta fatia.
 
 ### [ORG-0] - Inventário final e mapa de dependências

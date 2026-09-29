@@ -240,7 +240,7 @@ Sequência aprovada em 29/09/2026 para planejar e executar, em PRs separados, um
 
 | Fatia | Escopo aprovado | Estado atual |
 |---|---|---|
-| ORG-PREP | Criar diretórios-alvo e README de responsabilidade; completar o inventário de cada pasta conforme os arquivos forem migrados. | Em andamento; sem arquivos movidos. |
+| ORG-PREP | Criar diretórios-alvo e README na raiz/pastas; impedir que o README de `public/` entre no build antes de ORG-2. | Em andamento; sem arquivos movidos. |
 | ORG-0 | Inventário de arquivos, consumidores, duplicações, branches/worktrees e matriz de migração com risco e prova. | Em andamento; sem alteração estrutural. |
 | ORG-1 | README, fontes documentais canônicas, guias/scripts e convenção de worktrees. | Não iniciado. |
 | ORG-2 | Ativos estáticos e estilos, preservando URLs, cascata e artefatos web/Android. | Não iniciado. |
