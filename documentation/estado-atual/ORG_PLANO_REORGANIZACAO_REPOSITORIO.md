@@ -1,6 +1,6 @@
 # ORG — Plano aprovado de reorganização do repositório
 
-> **Estado:** planejamento documental em 29/09/2026. ORG-0 está em andamento; ORG-1 a ORG-7 não foram iniciadas. Este documento não autoriza mover, excluir, publicar ou alterar produção. A execução de cada fatia exige seus próprios gates e preserva o trabalho paralelo das outras frentes.
+> **Estado:** planejamento documental em 29/09/2026. ORG-PREP está em andamento, ORG-0 tem apenas auditoria preliminar em andamento e ORG-1 a ORG-7 não foram iniciadas. Este documento não autoriza mover, excluir, publicar ou alterar produção. A execução de cada fatia exige seus próprios gates e preserva o trabalho paralelo das outras frentes.
 
 ## Propósito e baseline comprovada
 
@@ -50,6 +50,7 @@ Arquivos de entrada e configuração que as ferramentas esperam na raiz permanec
 
 ## Sequência aprovada
 
+0. **ORG-PREP — Diretórios-alvo e README de responsabilidade (em andamento):** antes de prosseguir com o inventário ORG-0, criar somente os diretórios-alvo ainda ausentes e adicionar `README.md` aos diretórios-alvo novos e já existentes. Cada README explica a responsabilidade, o que pertence e o que não pertence à pasta, as cautelas de integração e reserva uma seção de inventário por arquivo. Enquanto a pasta estiver vazia ou contiver arquivos legados ainda não auditados, não atribuir propósito individual inventado. Ao migrar cada arquivo nas fatias futuras, atualizar o README correspondente no mesmo PR com seu propósito, origem, consumidores e contratos relevantes. Não mover, apagar, renomear ou alterar comportamento de código nesta preparação. Preservar qualquer README existente e não criar subpastas de feature especulativas antes da matriz ORG-0.
 1. **ORG-0 — Inventário final e mapa de dependências (em andamento):** catalogar cada arquivo da raiz e os diretórios relevantes; identificar consumidores, cópias, assets, caminhos de build/deploy, branches/worktrees e candidatos a exclusão. Entregar matriz `origem → destino → referências → risco → prova` e marcar como `não confirmado` qualquer órfão sem análise suficiente. Não alterar código ou remover conteúdo.
 2. **ORG-1 — Documentação, README, scripts e convenção de worktrees (não iniciado):** criar README de entrada, estabelecer documentação canônica e mover somente guias/scripts após atualizar referências. Padronizar novos worktrees fora do checkout principal e do diretório sincronizado pelo OneDrive; não mover worktrees ativas à força.
 3. **ORG-2 — Ativos estáticos e estilos (não iniciado):** migrar manifest/ícones para `public/` e CSS para `src/styles/` preservando URLs públicas, conteúdo gerado, cascata e aparência web/Android.

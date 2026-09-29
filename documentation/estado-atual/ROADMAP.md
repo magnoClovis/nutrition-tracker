@@ -238,10 +238,11 @@ C29 é uma evolução pós-lançamento do fluxo C24 e não altera o estado concl
 
 ## ORG — Reorganização estrutural do repositório
 
-Sequência aprovada em 29/09/2026 para planejar e executar, em PRs separados, uma organização profissional sem perda do runtime legado, do Vite ou dos contratos de publicação. **ORG-0 está em andamento somente como inventário documental; ORG-1 a ORG-7 não foram iniciadas.** Este registro não autoriza movimentação ou exclusão imediata nem altera a ordem de C14, C16 ou dos itens necessários ao lançamento.
+Sequência aprovada em 29/09/2026 para planejar e executar, em PRs separados, uma organização profissional sem perda do runtime legado, do Vite ou dos contratos de publicação. **ORG-PREP prepara diretórios e README; ORG-0 está em andamento somente como inventário documental; ORG-1 a ORG-7 não foram iniciadas.** Este registro não autoriza movimentação ou exclusão imediata nem altera a ordem de C14, C16 ou dos itens necessários ao lançamento.
 
 | Fatia | Escopo aprovado | Estado atual |
 |---|---|---|
+| ORG-PREP | Criar diretórios-alvo e README de responsabilidade; completar o inventário de cada pasta conforme os arquivos forem migrados. | Em andamento; sem arquivos movidos. |
 | ORG-0 | Inventário de arquivos, consumidores, duplicações, branches/worktrees e matriz de migração com risco e prova. | Em andamento; sem alteração estrutural. |
 | ORG-1 | README, fontes documentais canônicas, guias/scripts e convenção de worktrees. | Não iniciado. |
 | ORG-2 | Ativos estáticos e estilos, preservando URLs, cascata e artefatos web/Android. | Não iniciado. |

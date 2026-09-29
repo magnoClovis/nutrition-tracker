@@ -909,7 +909,20 @@ C08-A a C08-D foram concluídas nesses PRs. O modelo permanece `gemini-3.5-flash
 
 ## [ORG] - Reorganização integral do repositório aprovada para planejamento
 
-Em 29/09/2026, o responsável aprovou registrar a sequência ORG-0 a ORG-7 antes de qualquer movimentação. Esta é uma frente de organização e manutenção, não uma autorização para excluir arquivos, publicar infraestrutura ou antecipar itens do lançamento. O contrato detalhado de destinos, riscos, dependências e gates está em `documentation/estado-atual/ORG_PLANO_REORGANIZACAO_REPOSITORIO.md`; o `RESUMO-STATUS.md` mantém o estado breve individual de todas as fatias.
+Em 29/09/2026, o responsável aprovou registrar a sequência ORG-0 a ORG-7 antes de qualquer movimentação e, em seguida, acrescentou ORG-PREP para criar os diretórios e seus README antes de continuar ORG-0. Esta é uma frente de organização e manutenção, não uma autorização para excluir arquivos, publicar infraestrutura ou antecipar itens do lançamento. O contrato detalhado de destinos, riscos, dependências e gates está em `documentation/estado-atual/ORG_PLANO_REORGANIZACAO_REPOSITORIO.md`; o `RESUMO-STATUS.md` mantém o estado breve individual de todas as fatias.
+
+### [ORG-PREP] - Diretórios-alvo e README de responsabilidade
+
+- **Status:** em andamento.
+- **Data de início:** 29/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; implementação ainda não iniciada.
+- **Propósito:** criar uma hierarquia legível antes dos movimentos de arquivo e evitar pastas vazias sem contrato, destinos ambíguos ou README que inventem responsabilidades de arquivos ainda não classificados.
+- **O que se planeja fazer:** após mesclar o PR documental #285, criar os onze diretórios-alvo ainda inexistentes (`public/`, `firebase/`, `src/app/`, `src/features/`, `src/domain/`, `src/services/`, `src/platform/`, `src/styles/`, `src/compat/`, `scripts/admin/` e `documentation/compliance/`); adicionar ou complementar README nos destinos existentes e novos, inclusive `src/`, `scripts/`, `tests/`, `android/`, `functions/`, `worker/` e diretórios documentais pertinentes. Cada README deve explicar propósito, limites e integração; a lista de arquivos começa vazia nos diretórios novos e passa a identificar propósito, origem e consumidores reais quando cada arquivo for migrado. Não sobrescrever README existente, não criar subpastas especulativas, não mover/excluir código, não mudar build ou deploy e usar PR próprio para a preparação.
+- **Recursos/arquivos principais envolvidos:** `documentation/estado-atual/ORG_PLANO_REORGANIZACAO_REPOSITORIO.md`, `RESUMO-STATUS.md`, `ROADMAP.md`, `public/`, `firebase/`, `src/`, `scripts/`, `tests/`, `android/`, `functions/`, `worker/` e `documentation/`.
+- **O que foi feito:** o pedido complementar do responsável foi incorporado ao plano antes do merge do PR #285. A varredura confirmou que `src/components/`, `android/`, `functions/`, `worker/`, `tests/`, `scripts/` e os diretórios documentais relevantes já existem; `documentation/README.md` também já existe. Ainda não foi criado nem alterado nenhum diretório-alvo para esta preparação.
+- **PRs/commits relacionados:** PR documental draft #285 em revisão; PR da execução ORG-PREP ainda não iniciado.
 
 ### [ORG-0] - Inventário final e mapa de dependências
 
