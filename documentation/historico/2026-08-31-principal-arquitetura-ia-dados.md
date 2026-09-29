@@ -394,6 +394,20 @@ O papel de projeto `trofiaAuthDelete` foi criado com **uma única permissão**, 
 - **Alinhamento:** 100%; entregou o fechamento documental previsto sem ampliar o escopo funcional, impacto positivo para a rastreabilidade.
 - **PRs/commits relacionados:** PR #265/merge `e8b369d`; PR #287/commit `26f08a4`, merge `4a9d8cc`, preflight `36508626058`. — **Chat:** Trofia-Principal.
 
+### [DOC-C14-F2-288] - Simulação e preparação IAM autorizada
+
+- **Status:** concluído.
+- **Data de início:** 29/09/2026.
+- **Data de conclusão:** 29/09/2026.
+- **Tempo decorrido:** 11 h 9 min 28 s, do primeiro commit `5bad8b5` (29/09/2026 01:44:36 UTC) ao merge `41a5817` (29/09/2026 12:54:04 UTC).
+- **Minutos de CI:** 5 min 37 s (5 min 37 s leve + 0 min pesado), soma dos 11 runs de `Documentation preflight` concluídos no branch; cada duração foi medida de `run_started_at` a `updated_at`. O último run `36560464469` terminou verde em 31 s.
+- **Propósito:** distinguir evidência administrativa e preparação IAM realmente aplicada de uma migração funcional ainda não realizada, evitando declarar a C14-F2 encerrada ao mesclar apenas documentação.
+- **O que se planeja fazer:** registrar a barreira da Cloud Asset API, reconciliar identidades de runtime/build/Scheduler, simular a perda de Editor, investigar a atribuição dos acessos observados, definir papéis e rollback; após autorização específica, criar cinco contas e conceder apenas os grants candidatos sem trocar identidades nem revogar Editor.
+- **Recursos/arquivos principais envolvidos:** `documentation/estado-atual/RESUMO-STATUS.md`, este histórico, `documentation/estado-atual/C14_F2_PRE_INVENTARIO_IAM_DEPENDENCIAS.md`, Cloud Asset Inventory, Policy Simulator, IAM, Cloud Tasks, Cloud Run, Artifact Registry e Cloud Storage.
+- **O que foi feito:** a auditoria do Cloud Asset foi cruzada com as APIs efetivas porque o Scheduler não apareceu entre os recursos indexados. O primeiro replay `3e9552f5-70c3-4a48-bb70-b0916f7aa8d0` mostrou três perdas se Editor fosse retirado isoladamente: escrita de logs e duas leituras em buckets de source distintos. O segundo replay `350c7559-a026-4636-9bb5-9c01d391e047`, com compensações **apenas em overlay** na conta antiga, zerou as perdas observadas, mas ambos apresentaram erro agregado `UNSUPPORTED_RESOURCE`; nenhum dos replays valida contas novas ou prova cobertura completa. Após aprovação separada, foram criadas cinco contas dedicadas sem chaves de usuário, um papel customizado contendo somente `firebaseauth.users.delete` e 12 associações IAM restritas aos escopos previstos, com leitura de `etag`, preservação dos bindings anteriores e verificação posterior. A quinta conta recebeu HTTP 429 na primeira tentativa; sua ausência foi confirmada antes de uma única repetição posterior bem-sucedida. A checagem final confirmou que as três Functions e o job Scheduler continuam configurados na identidade antiga, que mantém `roles/editor`; não houve deploy, troca de identidade ou revogação. O PR #288 contém somente os três documentos citados, passou o preflight local sem avisos e 11 preflights remotos, saiu do draft e foi mesclado em `41a5817`. A descrição do PR recebeu exatamente as métricas acima após o merge, mantendo `Chat-Origin` na última linha. A C14-F2 continua em andamento até provas reais, migração controlada, replay final e decisão separada sobre Editor.
+- **Alinhamento:** 100% para a etapa documental e preparação IAM especificamente autorizada. O erro transitório de quota foi resolvido sem alterar escopo nem serviços ativos; impacto neutro no produto e positivo para a separação futura de privilégios. Não equivale a 100% da C14-F2 como um todo.
+- **PRs/commits relacionados:** PR #288; primeiro commit `5bad8b5`, commits de preparação `cd226a4`/`dce3698`, merge `41a5817`; último preflight `36560464469`. — **Chat:** Trofia-Principal.
+
 ### [C14-F2-PRE] - Inventário preparatório de IAM, invocadores e dependências
 
 - **Status:** concluído.
