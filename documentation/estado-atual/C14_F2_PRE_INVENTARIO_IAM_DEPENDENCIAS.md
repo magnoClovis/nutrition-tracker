@@ -139,6 +139,8 @@ Os dois achados residuais são uma única cadeia: `@google-cloud/storage@8.2.0` 
 
 Referências oficiais para a decisão IAM futura: [conta padrão e remoção segura de Editor](https://docs.cloud.google.com/compute/docs/access/service-accounts), [Cloud Tasks HTTP com OIDC](https://docs.cloud.google.com/tasks/docs/creating-http-target-tasks), [permissão de enfileiramento](https://docs.cloud.google.com/iam/docs/roles-permissions/cloudtasks) e [invocação de Functions Gen2](https://docs.cloud.google.com/functions/docs/securing/managing-access-iam).
 
+**Gate final após a fixture D2:** os PRs #282/#283 corrigiram separadamente o teste que buscava dados preexistentes, e a branch F2 integrou a `main` em `3f3557b` sem alterar UI. O SHA `1a50045` passou o preflight `36496829834` e o CI autenticado `36496829830`: 1.513 unitários, 44 testes Node + 9 runtime do Worker, 74 Functions emuladas, 135 smokes legados com 10 skips estruturais e 145 Vite, sem falha. O CI do SHA documental intermediário `95cd499` foi cancelado por obsolescência após 4 min 53 s de job efetivo, durante Playwright; seu preflight passou e seu cancelamento não é evidência de defeito funcional. O PR #265 segue draft, sem merge, deploy ou mudança de IAM. A dependência `gaxios`/`uuid` ainda apresenta dois avisos moderados, e a conta padrão ainda tem consumidores não inventariados; nenhuma dessas lacunas é resolvida pelos testes verdes.
+
 ## Ordem recomendada para as próximas mudanças da C14-F2
 
 1. Reconfirmar todo o inventário contra produção e fechar a lacuna de segredos do Worker — realizado em 26/09/2026, somente leitura; repetir imediatamente antes de qualquer mutação.
