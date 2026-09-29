@@ -129,3 +129,7 @@ retry, larger timeout or forced UI action.
 The test runner starts the app locally at `http://127.0.0.1:8765/index.html`.
 That local server is implemented in Node at `tests/smoke/serve-static.js`, so
 Python is not required for the smoke suite.
+
+## Organização ORG-PREP
+
+Este README pré-existente continua sendo o guia de setup e lease autenticado. Para cada arquivo que for movido durante a ORG, acrescentar aqui: arquivo | fluxo | origem | projeto Playwright | fixture/restauração. Os arquivos atuais serão mapeados na ORG-0; esta preparação não muda o gate.
