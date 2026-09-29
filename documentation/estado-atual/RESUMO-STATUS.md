@@ -1780,8 +1780,8 @@
 - **Data de conclusão:** não concluído.
 - **Propósito:** definir destinos e exclusões com evidência antes de modificar a estrutura.
 - **O que se planeja fazer:** mapear cada arquivo da raiz, referências, duplicações, branches/worktrees e riscos em uma matriz de migração.
-- **Recursos/arquivos principais envolvidos:** raiz, `src/`, `documentation/`, `tests/`, configs Vite/Firebase/Capacitor, Git e `ORG_PLANO_REORGANIZACAO_REPOSITORIO.md`.
-- **O que foi feito:** a baseline `origin/main` em `3f3557b` mostrou 129 arquivos na raiz, ausência de README raiz e contratos legado/Vite que impedem uma mudança em massa; a matriz por arquivo ainda falta.
+- **Recursos/arquivos principais envolvidos:** raiz, `src/`, `documentation/`, `tests/`, configs Vite/Firebase/Capacitor, Git, `ORG_PLANO_REORGANIZACAO_REPOSITORIO.md` e `ORG_0_INVENTARIO_RAIZ.md`.
+- **O que foi feito:** a base `4a9d8cc` confirmou 129 arquivos na raiz; a matriz individual e 184 refs locais candidatas à revisão foram registradas, sem mover ou excluir nada. ORG-PREP #286 e validação documental seguem abertos.
 
 ### [ORG-1] - Documentação, README, scripts e worktrees
 
