@@ -28,6 +28,7 @@ function heavyCiIsSkipped(changedPaths) {
 }
 
 test('runs authenticated verification only in CI for each SHA', () => {
+  assert.match(ci, /^    timeout-minutes:\s*60$/m);
   assert.match(ci, /NUTRITION_TEST_EMAIL:\s*\$\{\{ secrets\.NUTRITION_TEST_EMAIL \}\}/);
   assert.match(ci, /npm run test:smoke/);
   assert.match(ci, /group:\s*nutrition-authenticated-suite/);

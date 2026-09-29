@@ -74,6 +74,9 @@ function preserveLegacyCssCascadeOrder() {
 
 export default defineConfig({
   base: './',
+  // ORG-PREP: public/ currently contains only its repository README. Static
+  // assets remain copied explicitly until ORG-2 migrates their publishing contract.
+  publicDir: false,
   plugins: [
     react({ jsxRuntime: 'classic' }),
     preserveLegacyCssCascadeOrder(),
