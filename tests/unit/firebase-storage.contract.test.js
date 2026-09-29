@@ -156,7 +156,7 @@ function createFirestoreBackend({ uid = "user-1", root = {}, data = {}, legacy =
   return { fetchRequest, calls, rootFields, dataDocs, legacyDocs };
 }
 
-function loadFirebaseStorage({ local = {}, reportConfig, fetchRequest } = {}) {
+function loadFirebaseStorage({ local = {}, reportConfig, fetchRequest, hostname = "127.0.0.1" } = {}) {
   const calls = [];
   const warnings = [];
   const errors = [];
@@ -177,6 +177,7 @@ function loadFirebaseStorage({ local = {}, reportConfig, fetchRequest } = {}) {
       error(...args) { errors.push(args); }
     },
     localStorage,
+    location: {hostname},
     NUTRITION_TRACKER_CONFIG: reportConfig,
     async fetch(...args) {
       calls.push(args);
@@ -283,6 +284,14 @@ test("publishes the complete intentional Firebase contract with stable arities a
     assert.equal(context.FirebaseStorage[name], fixture.evaluate(name), `FirebaseStorage.${name}`);
   });
   assert.equal(context.FirebaseStorage.storage, context.storage);
+});
+
+test("does not expose the data-preview diagnostic on Pages while preserving storage", () => {
+  const {context} = loadFirebaseStorage({hostname: "magnoclovis.github.io"});
+  assert.equal(context.debugNutritionStorage, undefined);
+  assert.equal(context.FirebaseStorage.debugNutritionStorage, undefined);
+  assert.equal(typeof context.storage.get, "function");
+  assert.equal(typeof context.FirebaseStorage.fbSignIn, "function");
 });
 
 test("keeps the Firebase constants and one-time report configuration behavior", () => {

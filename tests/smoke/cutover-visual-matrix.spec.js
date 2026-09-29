@@ -166,9 +166,19 @@ async function openScreen(page, screen) {
   await expect(page.locator(screen.selector)).toBeVisible({ timeout: 10000 });
 }
 
+async function addSameOriginTestStyle(page, path, content) {
+  const url = new URL(path, page.url()).href;
+  const handler = route => route.fulfill({ contentType: 'text/css', body: content });
+  await page.route(url, handler);
+  try {
+    await page.addStyleTag({ url });
+  } finally {
+    await page.unroute(url, handler);
+  }
+}
+
 async function stabilize(page) {
-  await page.addStyleTag({
-    content: `
+  await addSameOriginTestStyle(page, '/__cutover-stabilize.css', `
       html [data-one-ui-root] *,
       html [data-one-ui-root] *::before,
       html [data-one-ui-root] *::after {
@@ -179,8 +189,7 @@ async function stabilize(page) {
         transition-delay: 0s !important;
         transition-duration: 0s !important;
       }
-    `
-  });
+    `);
   await page.evaluate(() => document.fonts?.ready);
   await page.locator('#root').evaluate(root => new Promise((resolve, reject) => {
     const minimumWaitMs = 2500;
@@ -276,8 +285,7 @@ async function renderCase(page, origin, screen) {
         ].join('|');
       }).join('\n')
     ));
-    await page.addStyleTag({
-      content: `
+    await addSameOriginTestStyle(page, '/__cutover-screenshot.css', `
         *, *::before, *::after {
           -webkit-backdrop-filter: none !important;
           backdrop-filter: none !important;
@@ -290,8 +298,7 @@ async function renderCase(page, origin, screen) {
           width: 0 !important;
           height: 0 !important;
         }
-      `
-    });
+      `);
     await page.waitForTimeout(200);
     const screenshot = await captureStableScreenshot(page);
     return {
