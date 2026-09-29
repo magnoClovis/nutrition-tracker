@@ -10,6 +10,8 @@ test('CSP precedes scripts and hashes every inline script/style block', () => {
   const policy = verifyCspPolicy(sourceHtml);
   assert.match(policy, /script-src 'self'/);
   assert.match(policy, /https:\/\/www\.google\.com\/recaptcha\//);
+  assert.match(policy, /script-src[^;]*https:\/\/apis\.google\.com\/js\/api\.js/);
+  assert.match(policy, /img-src[^;]*https:\/\/www\.google\.com\/images\/cleardot\.gif/);
   assert.match(policy, /https:\/\/trofia-ai-proxy\.cmagno-dev\.workers\.dev/);
 });
 
