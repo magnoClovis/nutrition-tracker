@@ -366,6 +366,20 @@ O teste puro das Functions terminou com 62/62 aprovados e 12 skips exclusivos do
 
 **Correção do diagnóstico do 403, 29/09/2026:** uma nova consulta administrativa, exclusivamente de leitura, distinguiu permissão IAM de disponibilidade do serviço. `projects.testIamPermissions` retornou HTTP 200 e incluiu `compute.instances.list`, `cloudasset.assets.searchAllResources`, `cloudasset.assets.listComputeInstances` e `serviceusage.services.enable` para a sessão atual. Mesmo assim, `compute.instances.aggregatedList` e `cloudasset.searchAllResources` retornaram HTTP 403 com o motivo estruturado `SERVICE_DISABLED`. Uma consulta independente ao Service Usage retornou HTTP 200 e estado `DISABLED` para `compute.googleapis.com` e `cloudasset.googleapis.com`. Logo, o 403 anterior **não prova falta de permissão**: essas duas APIs estão desativadas no projeto. Também não prova ausência de VMs ou de outros workloads; desativação de API não equivale a inventário vazio. Nenhum serviço foi habilitado, nenhuma permissão foi alterada e nenhum token, valor de segredo ou dado de usuário foi registrado. O caminho mínimo proposto é habilitar primeiro somente Cloud Asset Inventory, se o responsável autorizar, para pesquisar recursos de forma somente leitura e paginada; Compute Engine permaneceria desativada. Depois, verificar tipos suportados e lacunas do inventário antes de propor qualquer troca/revogação IAM. A habilitação da API é mudança de estado de infraestrutura e aguarda aprovação explícita; a F2 continua em andamento.
 
+### [DOC-C14-F2-287] - Métricas pós-merge das dependências
+
+- **Status:** concluído.
+- **Data de início:** 29/09/2026.
+- **Data de conclusão:** 29/09/2026.
+- **Tempo decorrido:** 3 min 5 s do primeiro commit `26f08a4` (01:35:08Z) ao merge (01:38:13Z).
+- **Minutos de CI:** 25 s (25 s leve + 0 s pesado), preflight `36508626058`.
+- **Propósito:** impedir que o merge funcional #265 fosse considerado fechado documentalmente sem suas métricas reais e sem distinguir dependência atualizada de IAM ainda pendente.
+- **O que se planeja fazer:** sincronizar o `RESUMO-STATUS.md`, o histórico principal e o inventário da C14-F2 com o merge `e8b369d`, o tempo exato, o CI acumulado e a ausência de deploy/mutação IAM.
+- **Recursos/arquivos principais envolvidos:** `documentation/estado-atual/RESUMO-STATUS.md`, este histórico e `documentation/estado-atual/C14_F2_PRE_INVENTARIO_IAM_DEPENDENCIAS.md`.
+- **O que foi feito:** o PR #287 alterou somente os três documentos, passou o preflight local e o remoto `36508626058`, saiu do draft e foi mesclado em `4a9d8cc`. O histórico e a descrição do #265 usam os mesmos 58 h 51 min 17 s e 283 min 25 s de CI, com a mesma divisão leve/pesado. A descrição do próprio #287 recebeu suas métricas pós-merge; nenhuma Function ou política de produção mudou.
+- **Alinhamento:** 100%; entregou o fechamento documental previsto sem ampliar o escopo funcional, impacto positivo para a rastreabilidade.
+- **PRs/commits relacionados:** PR #265/merge `e8b369d`; PR #287/commit `26f08a4`, merge `4a9d8cc`, preflight `36508626058`. — **Chat:** Trofia-Principal.
+
 ### [C14-F2-PRE] - Inventário preparatório de IAM, invocadores e dependências
 
 - **Status:** concluído.

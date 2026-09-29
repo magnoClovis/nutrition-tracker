@@ -1721,6 +1721,17 @@
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/`, manifests/lockfiles e inventário administrativo.
 - **O que foi feito:** o PR #258 reconfirmou IAM; o PR #265, mesclado em `e8b369d` em 29/09/2026, atualizou `firebase-admin` 14.2.0→14.5.0 e reduziu o audit de produção das Functions de sete para dois alertas moderados transitivos (`gaxios`/`uuid`). O último SHA passou preflight e CI autenticado (`36505171736`/`36505171754`): 1.513 unitários, Worker/Functions verdes, 135 legados + 10 skips estruturais e 145 Vite. Sem deploy nem alteração IAM; a auditoria adicional comprovou que Compute Engine e Cloud Asset Inventory estão desativadas, motivo dos 403 que impedem inventariar os demais consumidores da identidade padrão antes de revogar `roles/editor`.
 
+### [DOC-C14-F2-287] - Métricas pós-merge das dependências
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 29/09/2026.
+- **Data de conclusão:** 29/09/2026.
+- **Propósito:** preservar as métricas exatas e o limite da entrega do PR #265.
+- **O que se planeja fazer:** atualizar resumo, histórico e inventário após o merge funcional, sem mudar IAM nem runtime.
+- **Recursos/arquivos principais envolvidos:** `RESUMO-STATUS.md`, histórico principal e `C14_F2_PRE_INVENTARIO_IAM_DEPENDENCIAS.md`.
+- **O que foi feito:** PR documental #287 mesclado em `4a9d8cc`, com preflight verde e métricas do #265 idênticas no histórico e no PR; o próprio #287 levou 3 min 5 s e 25 s de CI leve.
+- **Alinhamento:** 100%; os três documentos registram o estado real, mantendo a parte IAM da F2 em andamento.
+
 ### [C14-F2-PRE] - Inventário preparatório de IAM e dependências
 
 - **Status:** concluído — **Chat:** Trofia-Principal.
