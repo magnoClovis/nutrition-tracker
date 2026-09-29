@@ -12,6 +12,8 @@ Os arquivos em `estado-atual/` e `historico/` oferecem fontes classificadas, um 
 - [`PADRAO-DOCUMENTACAO.md`](PADRAO-DOCUMENTACAO.md) define a Definition of Done documental obrigatória para todas as frentes.
 - [`estado-atual/ORG_PLANO_REORGANIZACAO_REPOSITORIO.md`](estado-atual/ORG_PLANO_REORGANIZACAO_REPOSITORIO.md) detalha a sequência ORG aprovada, os destinos propostos e os gates de preservação; ainda não há migração estrutural autorizada por esse plano.
 
+Cada subpasta de destino possui um README de responsabilidade. Quando uma fatia ORG mover um documento, o mesmo PR deverá registrar no README do destino sua finalidade, origem, leitores e relação com eventuais cópias controladas. Os documentos já existentes serão inventariados na ORG-0, sem atribuição retrospectiva presumida nesta preparação.
+
 Os arquivos originais continuam na raiz porque podem ser consumidos por scripts, testes, CI ou processos de publicação. As cópias desta pasta têm cabeçalho de proveniência e não devem ser editadas no lugar do original.
 
 ## Snapshots dos três documentos finais

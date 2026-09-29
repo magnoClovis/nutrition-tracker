@@ -55,3 +55,7 @@ The runner writes:
 - `avgAbsKcalError`: average absolute kcal deviation for valid suggestions.
 - `avgAbsProteinError`: average absolute protein deviation for valid suggestions.
 - `p95TimeMs`: 95th percentile runtime.
+
+## Organização ORG-PREP
+
+Este README pré-existente é preservado como guia operacional do benchmark. Na reorganização, registrar aqui cada arquivo que for movido: arquivo | função | origem | consumidores | validação. Os arquivos já presentes serão classificados na matriz ORG-0; esta preparação não altera algoritmos nem resultados.

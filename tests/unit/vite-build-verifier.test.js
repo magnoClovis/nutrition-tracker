@@ -10,6 +10,12 @@ const {
   REQUIRED_OUTPUT_FILES,
   verifyBuildDirectory,
 } = require('../../scripts/verify-vite-build.js');
+const viteConfigSource = fs.readFileSync(path.join(__dirname, '..', '..', 'vite.config.js'), 'utf8');
+
+test('does not publish the repository-only public README before ORG-2', () => {
+  assert.match(viteConfigSource, /publicDir:\s*false/);
+  assert.ok(fs.existsSync(path.join(__dirname, '..', '..', 'public', 'README.md')));
+});
 
 function createValidBuildFixture() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'nutrition-vite-build-'));

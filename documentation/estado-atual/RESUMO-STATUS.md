@@ -1763,6 +1763,17 @@
 
 ## Organização do repositório — sequência ORG aprovada
 
+### [DOC-ORG-285] - Registro aprovado da sequência e preparação ORG
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 29/09/2026.
+- **Data de conclusão:** 29/09/2026.
+- **Propósito:** fixar o fatiamento e os gates documentais antes de criar diretórios ou mover arquivos.
+- **O que se planeja fazer:** registrar ORG-PREP e ORG-0 a ORG-7 no resumo, histórico, roadmap e plano específico.
+- **Recursos/arquivos principais envolvidos:** `RESUMO-STATUS.md`, histórico do Principal, `ROADMAP.md`, cópia controlada e plano ORG.
+- **O que foi feito:** PR #285 mesclado em `86f79e3` com quatro preflights leves verdes; nenhum arquivo do produto foi movido.
+- **Alinhamento:** 100%; o registro inclui a preparação adicional de README aprovada antes do merge.
+
 ### [ORG-PREP] - Diretórios-alvo e README de responsabilidade
 
 - **Status:** em andamento — **Chat:** Trofia-Principal.
@@ -1771,7 +1782,7 @@
 - **Propósito:** preparar uma hierarquia compreensível antes de continuar a migração.
 - **O que se planeja fazer:** criar apenas pastas-alvo aprovadas e README de responsabilidade na raiz e nas pastas novas ou existentes; impedir que o README de `public/` entre no build até ORG-2.
 - **Recursos/arquivos principais envolvidos:** `README.md`, `public/`, `src/`, `firebase/`, `scripts/`, `tests/`, `documentation/`, `android/`, `functions/`, `worker/`, `vite.config.js` e seus README.
-- **O que foi feito:** o contrato de preparação foi aprovado e registrado; ainda não há diretórios nem README criados por esta fatia.
+- **O que foi feito:** onze destinos novos e README de responsabilidade foram criados, os guias existentes preservados e `publicDir: false` manteve o build Vite sem publicar Markdown; `npm test` passou localmente, com CI autenticado ainda pendente.
 
 ### [ORG-0] - Inventário final e mapa de dependências
 
