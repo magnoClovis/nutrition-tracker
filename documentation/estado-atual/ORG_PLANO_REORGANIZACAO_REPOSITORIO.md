@@ -62,7 +62,7 @@ Arquivos de entrada e configuração que as ferramentas esperam na raiz permanec
 
 Nenhuma fatia muda a posição ou os gates já aprovados de C14, C16 ou lançamento público por inferência. ORG-PREP deve provar que a saída Vite permanece idêntica e, por tocar a configuração de build, exige teste focado, suíte completa e CI autenticado antes do merge. ORG-1 pode ser coordenada com frentes ativas; ORG-2 a ORG-6 exigem janela sem edição concorrente dos mesmos arquivos. Cada fatia usa PR draft e documentação do próprio escopo.
 
-**Checkpoint ORG-0 (29/09/2026):** sobre a `origin/main` `4a9d8cc`, a auditoria individualizou os 129 arquivos rastreados na raiz na [matriz de destinos, consumidores prioritários e provas](ORG_0_INVENTARIO_RAIZ.md). O [apêndice de branches](ORG_0_BRANCHES.md) separa 184 refs locais contidas na main para revisão, sem autorização de exclusão; nenhum arquivo de produto, worktree ativa ou branch foi removido. A ORG-PREP #286 segue separada e não se presume mesclada. A ORG-0 continua em andamento até validação documental e revisão da matriz.
+**Checkpoint ORG-0 (29/09/2026):** sobre a `origin/main` `4a9d8cc`, a auditoria individualizou os 129 arquivos rastreados na raiz na [matriz de destinos, consumidores prioritários e provas](ORG_0_INVENTARIO_RAIZ.md). O [apêndice de branches](ORG_0_BRANCHES.md) separa 184 refs locais contidas na main para revisão, sem autorização de exclusão; nenhum arquivo de produto, worktree ativa ou branch foi removido. O preflight documental do PR draft #289 passou no run `36534452251`. A ORG-PREP #286 segue separada e não se presume mesclada. A ORG-0 continua em andamento até revisão da matriz e conciliação com a ORG-PREP.
 
 ## Política de worktrees e exclusão
 
