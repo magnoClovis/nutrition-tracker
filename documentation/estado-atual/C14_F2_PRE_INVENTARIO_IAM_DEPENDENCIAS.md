@@ -1,6 +1,6 @@
 # C14-F2 — inventário preparatório de IAM, invocadores e dependências
 
-> **Estado:** baseline preparatória concluída em 26/09/2026; a C14-F2 começou no mesmo dia pela reconfirmação somente leitura abaixo. Nenhuma permissão, conta de serviço, política IAM, segredo, dependência, fila, Function ou Worker foi alterado por esta auditoria.
+> **Estado:** baseline preparatória concluída em 26/09/2026. O PR #265 de dependências foi mesclado em 29/09/2026 sem deploy ou alteração IAM; a redução de privilégios da C14-F2 continua pendente por falta de inventário completo dos consumidores da conta padrão. A auditoria administrativa abaixo foi somente leitura.
 
 ## Objetivo
 
@@ -140,6 +140,8 @@ Os dois achados residuais são uma única cadeia: `@google-cloud/storage@8.2.0` 
 Referências oficiais para a decisão IAM futura: [conta padrão e remoção segura de Editor](https://docs.cloud.google.com/compute/docs/access/service-accounts), [Cloud Tasks HTTP com OIDC](https://docs.cloud.google.com/tasks/docs/creating-http-target-tasks), [permissão de enfileiramento](https://docs.cloud.google.com/iam/docs/roles-permissions/cloudtasks) e [invocação de Functions Gen2](https://docs.cloud.google.com/functions/docs/securing/managing-access-iam).
 
 **Gate final após a fixture D2:** os PRs #282/#283 corrigiram separadamente o teste que buscava dados preexistentes, e a branch F2 integrou a `main` em `3f3557b` sem alterar UI. O SHA `1a50045` passou o preflight `36496829834` e o CI autenticado `36496829830`: 1.513 unitários, 44 testes Node + 9 runtime do Worker, 74 Functions emuladas, 135 smokes legados com 10 skips estruturais e 145 Vite, sem falha. O CI do SHA documental intermediário `95cd499` foi cancelado por obsolescência após 4 min 53 s de job efetivo, durante Playwright; seu preflight passou e seu cancelamento não é evidência de defeito funcional. O PR #265 segue draft, sem merge, deploy ou mudança de IAM. A dependência `gaxios`/`uuid` ainda apresenta dois avisos moderados, e a conta padrão ainda tem consumidores não inventariados; nenhuma dessas lacunas é resolvida pelos testes verdes.
+
+**Estado pós-merge de 29/09/2026:** o SHA documental final `6b4886c` repetiu preflight (`36505171736`) e CI autenticado (`36505171754`) verdes; o PR #265 foi mesclado em `e8b369d`. A atualização do Admin SDK e lockfile está agora na `main`, mas **não houve deploy das Functions nem alteração de IAM**. A árvore de produção continua com dois alertas moderados da cadeia transitiva `gaxios`/`uuid`; a exceção continua temporária e rastreada. O inventário de consumidores da conta padrão ainda é incompleto pelo HTTP 403 de Compute Engine, portanto criação/troca de identidades e revogação de `roles/editor` exigem auditoria administrativa adicional, simulação de impacto e plano de rollback antes de qualquer mutação.
 
 ## Ordem recomendada para as próximas mudanças da C14-F2
 
