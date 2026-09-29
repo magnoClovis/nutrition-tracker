@@ -6,7 +6,7 @@
 
 O objetivo é tornar a organização do código, dos ativos, da configuração e da documentação legível para manutenção de produção, sem trocar comportamento por aparência de limpeza. A inspeção read-only da `origin/main` em `3f3557b` encontrou 129 arquivos rastreados diretamente na raiz (83 JavaScript) e nove diretórios; não havia `README.md` na raiz. `nutrition-tracker.jsx` e `app.js` tinham 887 linhas cada e são espelhos verificados pelo preflight; o controlador UMD tinha cerca de 6.710 linhas e `one-ui.css`, cerca de 3.817. Esses números são uma fotografia da base examinada, não uma métrica permanente.
 
-O Vite já usa `src/components`, `src/composite`, `src/firebase` e `src/leaf`, mas parte dos módulos UMD da raiz continua servindo de fonte aos adaptadores ESM e ao fixture legado. A ordem de scripts de `tests/fixtures/index.legacy.html`, os imports Vite, a allowlist de `dist`, o `base: './'` do Pages, `firebase.json`, o `webDir: dist` do Capacitor e a comparação `app.js`/`nutrition-tracker.jsx` são contratos reais. A matriz arquivo a arquivo e a busca completa de consumidores ainda pertencem à ORG-0; os exemplos abaixo não são autorização para uma movimentação em massa.
+O Vite já usa `src/components`, `src/composite`, `src/firebase` e `src/leaf`, mas parte dos módulos UMD da raiz continua servindo de fonte aos adaptadores ESM e ao fixture legado. A ordem de scripts de `tests/fixtures/index.legacy.html`, os imports Vite, a allowlist de `dist`, o `base: './'` do Pages, `firebase.json`, o `webDir: dist` do Capacitor e a comparação `app.js`/`nutrition-tracker.jsx` são contratos reais. A [matriz individual da raiz](ORG_0_INVENTARIO_RAIZ.md) já foi iniciada na ORG-0; a busca completa de consumidores e a classificação individual de resíduos continuam pendentes. Os exemplos abaixo não são autorização para uma movimentação em massa.
 
 ## Estrutura-alvo
 
@@ -61,6 +61,8 @@ Arquivos de entrada e configuração que as ferramentas esperam na raiz permanec
 8. **ORG-7 — Limpeza e verificação final (não iniciado):** excluir somente duplicatas/artefatos cuja dispensabilidade esteja comprovada, revisar refs/branches/worktrees sem trabalho exclusivo, comparar saída web/Android e concluir documentação.
 
 Nenhuma fatia muda a posição ou os gates já aprovados de C14, C16 ou lançamento público por inferência. ORG-PREP deve provar que a saída Vite permanece idêntica e, por tocar a configuração de build, exige teste focado, suíte completa e CI autenticado antes do merge. ORG-1 pode ser coordenada com frentes ativas; ORG-2 a ORG-6 exigem janela sem edição concorrente dos mesmos arquivos. Cada fatia usa PR draft e documentação do próprio escopo.
+
+**Checkpoint ORG-0 (29/09/2026):** sobre a `origin/main` `4a9d8cc`, a auditoria individualizou os 129 arquivos rastreados na raiz na [matriz de destinos, consumidores prioritários e provas](ORG_0_INVENTARIO_RAIZ.md). O [apêndice de branches](ORG_0_BRANCHES.md) separa 184 refs locais contidas na main para revisão, sem autorização de exclusão; nenhum arquivo de produto, worktree ativa ou branch foi removido. O preflight documental do PR draft #289 passou no run `36534452251`. A ORG-PREP #286 segue separada e não se presume mesclada. A ORG-0 continua em andamento até revisão da matriz e conciliação com a ORG-PREP.
 
 ## Política de worktrees e exclusão
 
