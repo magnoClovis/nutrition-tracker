@@ -1762,7 +1762,7 @@
 - **Propósito:** reduzir impacto de XSS e impedir diagnósticos globais desnecessários em produção.
 - **O que se planeja fazer:** aplicar CSP via meta compatível com Firebase/reCAPTCHA/Worker e restringir globals de debug.
 - **Recursos/arquivos principais envolvidos:** `index.html`, `firebase-storage.js`, `src/firebase/firebase-storage.js`, verificador de build, Firebase/reCAPTCHA/Worker, Pages e testes PT/EN/ES.
-- **O que foi feito:** CSP e debug local implementados; suíte integral verde (1.518 unitários, legado/Vite 76+69 skips locais cada, cutover 60/60); CSS do harness adaptado à CSP; CI autenticado e Pages pendentes.
+- **O que foi feito:** PR draft #294 (commit `ec68fcb`) aberto com CSP e debug local; suíte integral verde (1.518 unitários, legado/Vite 76+69 skips locais cada, cutover 60/60); CI autenticado e Pages pendentes.
 
 ### [C14-H] - Staging, validação final e rollout
 
