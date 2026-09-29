@@ -1717,9 +1717,20 @@
 - **Data de início:** 26/09/2026.
 - **Data de conclusão:** não concluído.
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
-- **O que se planeja fazer:** reconfirmar IAM, contas de serviço, invocadores, Functions/Tasks, segredos por nome/tipo e lockfiles; propor redução de privilégios e correções de dependências sem aplicá-las antes de avaliar o inventário.
+- **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; após avaliar o inventário e obter autorização específica, preparar identidades e grants mínimos, provar cada fluxo e só então considerar migração/revogação com rollback.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** o PR #258 reconfirmou IAM; o PR #265, mesclado em `e8b369d` em 29/09/2026, atualizou `firebase-admin` 14.2.0→14.5.0 e reduziu o audit de produção das Functions de sete para dois alertas moderados transitivos (`gaxios`/`uuid`). O último SHA passou preflight e CI autenticado (`36505171736`/`36505171754`): 1.513 unitários, Worker/Functions verdes, 135 legados + 10 skips estruturais e 145 Vite. Sem deploy nem alteração IAM; revogar `roles/editor` aguarda inventário dos demais consumidores da identidade padrão.
+- **O que foi feito:** o PR #258 reconfirmou IAM; o PR #265 (merge `e8b369d`) atualizou `firebase-admin` para 14.5.0 e reduziu o audit de produção das Functions de sete para dois alertas moderados transitivos, com CI autenticado verde. Cloud Asset e dois replays identificaram três perdas se Editor fosse simplesmente removido, compensadas apenas no overlay candidato, ainda com recursos sem suporte. Em 29/09 foram criadas e verificadas cinco contas dedicadas sem chaves, um papel mínimo para excluir usuário Auth e 12 associações IAM delimitadas por projeto/fila/buckets/repositórios/serviço. Functions, Scheduler e Editor da conta antiga permanecem inalterados; faltam migração, provas reais e novo replay antes de qualquer revogação.
+
+### [DOC-C14-F2-287] - Métricas pós-merge das dependências
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 29/09/2026.
+- **Data de conclusão:** 29/09/2026.
+- **Propósito:** preservar as métricas exatas e o limite da entrega do PR #265.
+- **O que se planeja fazer:** atualizar resumo, histórico e inventário após o merge funcional, sem mudar IAM nem runtime.
+- **Recursos/arquivos principais envolvidos:** `RESUMO-STATUS.md`, histórico principal e `C14_F2_PRE_INVENTARIO_IAM_DEPENDENCIAS.md`.
+- **O que foi feito:** PR documental #287 mesclado em `4a9d8cc`, com preflight verde e métricas do #265 idênticas no histórico e no PR; o próprio #287 levou 3 min 5 s e 25 s de CI leve.
+- **Alinhamento:** 100%; os três documentos registram o estado real, mantendo a parte IAM da F2 em andamento.
 
 ### [C14-F2-PRE] - Inventário preparatório de IAM e dependências
 
