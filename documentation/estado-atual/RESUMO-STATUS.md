@@ -1782,7 +1782,7 @@
 - **Propósito:** preparar uma hierarquia compreensível antes de continuar a migração.
 - **O que se planeja fazer:** criar apenas pastas-alvo aprovadas e README de responsabilidade na raiz e nas pastas novas ou existentes; impedir que o README de `public/` entre no build até ORG-2.
 - **Recursos/arquivos principais envolvidos:** `README.md`, `public/`, `src/`, `firebase/`, `scripts/`, `tests/`, `documentation/`, `android/`, `functions/`, `worker/`, `vite.config.js` e seus README.
-- **O que foi feito:** onze destinos novos e README de responsabilidade foram criados, os guias existentes preservados e `publicDir: false` manteve o build Vite sem publicar Markdown; `npm test` passou localmente, com CI autenticado ainda pendente.
+- **O que foi feito:** PR draft #286 criou onze destinos novos e README de responsabilidade; `publicDir: false` manteve o build Vite sem publicar Markdown. Após cancelamento do CI no teto global de 45 min, o limite foi elevado a 60 min sem relaxar testes; a suíte local integral passou novamente, e falta CI autenticado do novo SHA.
 
 ### [ORG-0] - Inventário final e mapa de dependências
 

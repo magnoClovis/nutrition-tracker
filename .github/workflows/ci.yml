@@ -30,10 +30,10 @@ jobs:
   test:
     name: Preflight, unit and Playwright
     runs-on: windows-2022
-    # The authenticated legacy + Vite matrix currently needs about 35 minutes
-    # on Windows. Keep a bounded margin so GitHub does not interrupt a healthy
-    # final Vite test while still failing genuinely stalled jobs.
-    timeout-minutes: 45
+    # Run 36507325162 hit the previous 45-minute job cap during the final
+    # authenticated Vite cases. This bounds the whole job only; per-test
+    # deadlines and assertions remain unchanged.
+    timeout-minutes: 60
     env:
       VITE_FIREBASE_WEB_APP_ID: ${{ vars.VITE_FIREBASE_WEB_APP_ID }}
       VITE_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY }}
