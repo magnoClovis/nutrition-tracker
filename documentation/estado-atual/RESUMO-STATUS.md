@@ -1236,7 +1236,7 @@
 - **Propósito:** reduzir a carga cognitiva do cadastro apresentando uma decisão clara por etapa.
 - **O que se planeja fazer:** reorganizar o onboarding em sete decisões progressivas com transições fluidas, revisão final e linguagem One UI 8/Glass UI, preservando somente perguntas essenciais ao cálculo nutricional.
 - **Recursos/arquivos principais envolvidos:** protótipo `i2-registro-progressivo.html`, `login-screen.js`, `required-profile-modal.js`, ChoiceField/TemporalField, i18n e Playwright.
-- **O que foi feito:** o protótipo PT/EN/ES e claro/escuro foi aprovado em 26/09/2026 com nome, nascimento, opção de cálculo, medidas, atividade, objetivo e revisão; a implementação runtime permanece pendente.
+- **O que foi feito:** o protótipo PT/EN/ES e claro/escuro foi aprovado em 26/09/2026 com nome, nascimento, opção de cálculo, medidas, atividade, objetivo e revisão; em 29/09/2026 começou a implementação runtime na branch isolada `codex/i2-registration`, preservando os campos e contratos de perfil existentes e sem incorporar as perguntas adicionais mantidas fora do escopo.
 
 ### [I3] - Política e migração de tema
 
