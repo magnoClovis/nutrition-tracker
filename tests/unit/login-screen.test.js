@@ -17,7 +17,7 @@ const { localToday } = createDateUtils({
   localeForLang: () => "en-US"
 });
 const { ACTIVITY_LEVELS } = createGoalCalculator();
-const { isValidBirthDate, isValidGender } = createProfileValidation({
+const { isValidBirthDate, isValidGender, isValidGoalProfile } = createProfileValidation({
   storage: { async get() { return null; } },
   activityLevels: ACTIVITY_LEVELS
 });
@@ -148,8 +148,11 @@ function createFixture(createLoginScreen, { stored = {}, session = {}, auth = {}
     React,
     languageOptions: LANGUAGE_OPTIONS,
     normalizeLanguage,
+    pickLang: (lang, pt, en, es) => ({pt, en, es})[normalizeLanguage(lang)] || pt,
+    activityLevels: ACTIVITY_LEVELS,
     isValidBirthDate,
     isValidGender,
+    isValidGoalProfile,
     ChoiceField,
     DateField,
     authService: services,
@@ -187,7 +190,7 @@ function switchToRegistration(fixture) {
   fixture.harness.render();
 }
 
-function fillRegistration(fixture, overrides = {}) {
+async function fillRegistration(fixture, overrides = {}, targetStep = 6) {
   const values = {
     email: "new@example.com",
     password: "secret123456",
@@ -197,18 +200,56 @@ function fillRegistration(fixture, overrides = {}) {
     gender: "female",
     weight: "70.5",
     height: "170",
+    activityLevel: "moderate",
+    goalType: "loss",
+    goalKg: "5",
+    goalWeeks: "10",
     ...overrides
   };
   change(findInput(fixture.harness.tree, props => props.type === "email"), values.email);
   const passwords = elementsByType(fixture.harness.tree, "input").filter(input => input.props.autoComplete === "new-password");
   change(passwords[0], values.password);
   change(passwords[1], values.password2);
+  fixture.harness.render();
+  await submit(fixture);
+  if (elementsByType(fixture.harness.tree, "form")[0].props["data-registration-step"] !== "0") return values;
+  if (targetStep === 0) return values;
   change(findInput(fixture.harness.tree, props => props.autoComplete === "name"), values.name);
+  fixture.harness.render();
+  await submit(fixture);
+  if (elementsByType(fixture.harness.tree, "form")[0].props["data-registration-step"] !== "1") return values;
+  if (targetStep === 1) return values;
   elementsByType(fixture.harness.tree, DateField)[0].props.onChange(values.birthDate);
+  fixture.harness.render();
+  await submit(fixture);
+  if (elementsByType(fixture.harness.tree, "form")[0].props["data-registration-step"] !== "2") return values;
+  if (targetStep === 2) return values;
   elementsByType(fixture.harness.tree, ChoiceField)[0].props.onChange(values.gender);
-  const numbers = elementsByType(fixture.harness.tree, "input").filter(input => input.props.type === "number");
+  fixture.harness.render();
+  await submit(fixture);
+  if (elementsByType(fixture.harness.tree, "form")[0].props["data-registration-step"] !== "3") return values;
+  if (targetStep === 3) return values;
+  let numbers = elementsByType(fixture.harness.tree, "input").filter(input => input.props.type === "number");
   change(numbers[0], values.weight);
   change(numbers[1], values.height);
+  fixture.harness.render();
+  await submit(fixture);
+  if (elementsByType(fixture.harness.tree, "form")[0].props["data-registration-step"] !== "4") return values;
+  if (targetStep === 4) return values;
+  elementsByType(fixture.harness.tree, ChoiceField)[0].props.onChange(values.activityLevel);
+  fixture.harness.render();
+  await submit(fixture);
+  if (elementsByType(fixture.harness.tree, "form")[0].props["data-registration-step"] !== "5") return values;
+  if (targetStep === 5) return values;
+  elementsByType(fixture.harness.tree, ChoiceField)[0].props.onChange(values.goalType);
+  fixture.harness.render();
+  numbers = elementsByType(fixture.harness.tree, "input").filter(input => input.props.type === "number");
+  if (numbers.length) {
+    change(numbers[0], values.goalKg);
+    change(numbers[1], values.goalWeeks);
+    fixture.harness.render();
+  }
+  await submit(fixture);
   fixture.harness.render();
   return values;
 }
@@ -307,7 +348,7 @@ contractTest("requires twelve registration characters in every supported languag
   ]) {
     const fixture = createFixture(createLoginScreen, {stored: {appLang: language}});
     switchToRegistration(fixture);
-    fillRegistration(fixture, {password: "short123", password2: "short123"});
+    await fillRegistration(fixture, {password: "short123", password2: "short123"});
     await submit(fixture);
     assert.match(elementText(fixture.harness.tree), message);
     assert.equal(fixture.calls.some(call => call[0] === "signUp"), false);
@@ -315,13 +356,17 @@ contractTest("requires twelve registration characters in every supported languag
 });
 
 contractTest("registers with real profile validators and writes the exact persistence keys in order", async createLoginScreen => {
-  const fixture = createFixture(createLoginScreen);
-  switchToRegistration(fixture);
-  const dateField = elementsByType(fixture.harness.tree, DateField)[0];
-  assert.equal(elementsByType(fixture.harness.tree, "input").some(input => input.props.type === "date"), false);
+  const dateFixture = createFixture(createLoginScreen);
+  switchToRegistration(dateFixture);
+  await fillRegistration(dateFixture, {}, 1);
+  const dateField = elementsByType(dateFixture.harness.tree, DateField)[0];
+  assert.equal(elementsByType(dateFixture.harness.tree, "input").some(input => input.props.type === "date"), false);
   assert.equal(dateField.props.max, "2026-07-16");
   assert.equal(dateField.props.min, "1900-01-01");
-  fillRegistration(fixture);
+
+  const fixture = createFixture(createLoginScreen);
+  switchToRegistration(fixture);
+  await fillRegistration(fixture);
   await submit(fixture);
 
   const relevantCalls = fixture.calls.filter(call => call[0] !== "readPreferredDarkMode");
@@ -332,6 +377,10 @@ contractTest("registers with real profile validators and writes the exact persis
     "setValue:userName",
     "setValue:birthDate",
     "setValue:gender",
+    "setValue:activityLevel",
+    "setValue:goalType",
+    "setValue:goalKg",
+    "setValue:goalWeeks",
     "setValue:language",
     "sendVerificationEmail",
     "onPendingVerification"
@@ -343,14 +392,20 @@ contractTest("registers with real profile validators and writes the exact persis
     ["setValue", "userName", "New User"],
     ["setValue", "birthDate", "1990-02-28"],
     ["setValue", "gender", "female"],
+    ["setValue", "activityLevel", "moderate"],
+    ["setValue", "goalType", "loss"],
+    ["setValue", "goalKg", "5"],
+    ["setValue", "goalWeeks", "10"],
     ["setValue", "language", "en"]
   ]);
   assert.deepEqual(fixture.pending, [["new@example.com", "New User"]]);
 });
 
-contractTest("uses the inline-eligible reusable ChoiceField for registration gender", createLoginScreen => {
+contractTest("uses progressive steps and the reusable ChoiceFields for registration", async createLoginScreen => {
   const fixture = createFixture(createLoginScreen);
   switchToRegistration(fixture);
+  assert.equal(elementsByType(fixture.harness.tree, ChoiceField).length, 0);
+  await fillRegistration(fixture, {}, 2);
   const fields = elementsByType(fixture.harness.tree, ChoiceField);
 
   assert.equal(elementsByType(fixture.harness.tree, "select").length, 0);
@@ -358,19 +413,20 @@ contractTest("uses the inline-eligible reusable ChoiceField for registration gen
   assert.equal(fields[0].props.id, "registration-gender");
   assert.deepEqual(fields[0].props.options.map(option => option.value), ["male", "female"]);
   assert.equal(fields[0].props.options.some(option => option.description), false);
+  assert.equal(elementsByType(fixture.harness.tree, "form")[0].props["data-registration-step"], "2");
 });
 
 contractTest("rejects invalid birth date and gender through the production validators", async createLoginScreen => {
   const invalidBirth = createFixture(createLoginScreen);
   switchToRegistration(invalidBirth);
-  fillRegistration(invalidBirth, { birthDate: "2999-01-01" });
+  await fillRegistration(invalidBirth, { birthDate: "2999-01-01" });
   await submit(invalidBirth);
   assert.match(elementText(invalidBirth.harness.tree), /Date of birth is required and must be valid\./);
   assert.equal(invalidBirth.calls.some(call => call[0] === "signUp"), false);
 
   const invalidGender = createFixture(createLoginScreen);
   switchToRegistration(invalidGender);
-  fillRegistration(invalidGender, { gender: "other" });
+  await fillRegistration(invalidGender, { gender: "other" });
   await submit(invalidGender);
   assert.match(elementText(invalidGender.harness.tree), /Gender is required\./);
   assert.equal(invalidGender.calls.some(call => call[0] === "signUp"), false);
@@ -383,7 +439,7 @@ contractTest("reports an existing registration email without applying later writ
     }
   });
   switchToRegistration(fixture);
-  fillRegistration(fixture);
+  await fillRegistration(fixture);
   await submit(fixture);
 
   assert.match(elementText(fixture.harness.tree), /This email already has an account\./);
@@ -402,7 +458,7 @@ contractTest("keeps a recoverable checkpoint and retries profile persistence wit
     }
   });
   switchToRegistration(fixture);
-  fillRegistration(fixture);
+  await fillRegistration(fixture);
   await submit(fixture);
 
   assert.match(elementText(fixture.harness.tree), /account was created, but the profile could not be saved/i);
@@ -421,13 +477,13 @@ contractTest("distinguishes verification delivery failure from profile persisten
     }
   });
   switchToRegistration(fixture);
-  fillRegistration(fixture);
+  await fillRegistration(fixture);
   await submit(fixture);
 
   const rendered = elementText(fixture.harness.tree);
   assert.match(rendered, /EMAIL_DELIVERY_FAILED/);
   assert.doesNotMatch(rendered, /profile could not be saved/i);
-  assert.equal(fixture.calls.filter(call => call[0] === "setValue").length, 5);
+  assert.equal(fixture.calls.filter(call => call[0] === "setValue").length, 9);
 });
 
 contractTest("sends password recovery for the trimmed email and preserves the neutral response", async createLoginScreen => {

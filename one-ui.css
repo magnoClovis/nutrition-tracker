@@ -3815,3 +3815,17 @@ body:has([data-meal-result-overlay="true"]) [data-app-main="adicionar"] {
   [data-manual-food-result="true"],
   [data-meal-result-sheet="true"] { transition: none !important; }
 }
+@keyframes registration-step-enter {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.registration-step {
+  animation: registration-step-enter 240ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .registration-step {
+    animation: none;
+  }
+}

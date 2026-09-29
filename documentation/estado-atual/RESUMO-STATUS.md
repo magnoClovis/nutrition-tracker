@@ -1235,8 +1235,8 @@
 - **Data de conclusão:** não concluído.
 - **Propósito:** reduzir a carga cognitiva do cadastro apresentando uma decisão clara por etapa.
 - **O que se planeja fazer:** reorganizar o onboarding em sete decisões progressivas com transições fluidas, revisão final e linguagem One UI 8/Glass UI, preservando somente perguntas essenciais ao cálculo nutricional.
-- **Recursos/arquivos principais envolvidos:** protótipo `i2-registro-progressivo.html`, `login-screen.js`, `required-profile-modal.js`, ChoiceField/TemporalField, i18n e Playwright.
-- **O que foi feito:** o protótipo PT/EN/ES e claro/escuro foi aprovado em 26/09/2026 com nome, nascimento, opção de cálculo, medidas, atividade, objetivo e revisão; em 29/09/2026 começou a implementação runtime na branch isolada `codex/i2-registration`, preservando os campos e contratos de perfil existentes e sem incorporar as perguntas adicionais mantidas fora do escopo.
+- **Recursos/arquivos principais envolvidos:** protótipo `i2-registro-progressivo.html`, contrato `documentation/estado-atual/I2-REGISTRO-PROGRESSIVO.md`, `login-screen.js`, `required-profile-modal.js`, ChoiceField/TemporalField, i18n e Playwright.
+- **O que foi feito:** o protótipo PT/EN/ES e claro/escuro foi aprovado em 26/09/2026; o runtime implementado em 29/09/2026 conduz credenciais e sete decisões progressivas — nome, nascimento, opção de cálculo, medidas, atividade, objetivo e revisão —, cria a conta somente após a confirmação final, preserva checkpoint e contratos existentes, torna progressivo o fallback de perfil obrigatório e mantém fora do escopo as perguntas adicionais não aprovadas. Os recortes focados passaram em legado e Vite, e o gate local integral ficou verde com preflight, 1.514/1.514 unitários, smoke legado com 149 aprovados e 10 skips estruturais, smoke Vite 159/159 e cutover 60/60; CI autenticado e merge permanecem pendentes.
 
 ### [I3] - Política e migração de tema
 
