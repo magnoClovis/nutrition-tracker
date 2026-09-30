@@ -56,3 +56,9 @@ O preflight `36621844450` passou, mas o CI `36621844513` terminou com falha às 
 **Reteste do frame Auth:** build Vite e recorte autenticado mobile passaram 2/2 em 42,8 s, com zero violações CSP e `#loading` encerrado no prazo original. A suíte integral e o novo CI permanecem obrigatórios antes de revisar o draft #294; Pages real segue pendente.
 
 **Gate local integral sobre a terceira allowlist:** `npm test` exit code 0; preflight sem avisos, 1.518/1.518 unitários, legado e Vite 78 aprovados + 69 skips locais cada, cutover 60/60. Os relatórios Playwright indicam zero `unexpected`/`flaky`; a conta descartável não estava configurada nesta worktree, de modo que o CI autenticado do novo SHA continua obrigatório. Nenhuma alteração foi publicada no Pages.
+
+**CI do `61eb907` e conexão Google ainda em teste:** preflight `36664973393` verde; CI `36664973404` falhou após 1.518 unitários, Worker 44/44, Functions 74/74 e legado 137 aprovados + 10 skips. Vite teve 146 aprovados e uma falha mobile: o navegador bloqueou por `connect-src` a rota `apis.google.com/js/gen_204`, observada no artefato `11076434001`. Foi adicionada apenas essa rota, não a origem `apis.google.com` inteira; contrato CSP 3/3 e build Vite passaram. O recorte autenticado do caso afetado está em execução. PR #294 continua draft; sem merge, Pages ou deploy.
+
+**Recorte pós-conexão:** login autenticado e refeição retroativa Vite mobile passaram 2/2 em 50,9 s com a política pontual. `npm test` integral e novo CI ainda são necessários; não houve publicação.
+
+**Gate integral após a rota pontual:** `npm test` passou com código 0: preflight sem avisos, 1.518 unitários, legado e Vite 78 aprovados + 69 skips locais cada, cutover 60/60; nenhum inesperado/flaky nos relatórios. O CI autenticado do novo SHA e a prova de Pages continuam pendentes antes de qualquer merge/publicação.

@@ -15,6 +15,8 @@ test('CSP precedes scripts and hashes every inline script/style block', () => {
   assert.doesNotMatch(policy, /script-src[^;]*https:\/\/apis\.google\.com(?:\s|;)/);
   assert.match(policy, /frame-src[^;]*https:\/\/nutrition-tracker-780b3\.firebaseapp\.com(?:\s|;)/);
   assert.doesNotMatch(policy, /frame-src[^;]*https:\/\/\*\.firebaseapp\.com/);
+  assert.match(policy, /connect-src[^;]*https:\/\/apis\.google\.com\/js\/gen_204(?:\s|;)/);
+  assert.doesNotMatch(policy, /connect-src[^;]*https:\/\/apis\.google\.com(?:\s|;)/);
   assert.match(policy, /img-src[^;]*https:\/\/www\.google\.com\/images\/cleardot\.gif/);
   assert.match(policy, /https:\/\/trofia-ai-proxy\.cmagno-dev\.workers\.dev/);
 });
