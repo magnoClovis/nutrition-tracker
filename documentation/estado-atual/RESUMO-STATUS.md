@@ -1764,7 +1764,7 @@
 - **Propósito:** reduzir impacto de XSS e impedir diagnósticos globais desnecessários em produção.
 - **O que se planeja fazer:** aplicar CSP via meta compatível com Firebase/reCAPTCHA/Worker e restringir globals de debug.
 - **Recursos/arquivos principais envolvidos:** `index.html`, `firebase-storage.js`, `src/firebase/firebase-storage.js`, verificador de build, Firebase/reCAPTCHA/Worker, Pages e testes PT/EN/ES.
-- **O que foi feito:** o PR #294 foi mesclado em `5dfff2a` após preflight e CI autenticado verdes no HEAD `f16ab31`; CSP restrita e regressões locais passaram. O CI da `main` iniciou, e Pages real ainda depende de seu resultado para publicar e validar o domínio final.
+- **O que foi feito:** o PR #294 foi mesclado em `5dfff2a` com gates da branch verdes; o primeiro CI da `main` falhou em oito casos Vite com loading/Firestore indisponível e teve uma repetição diagnóstica iniciada. Pages real ainda não foi acionado nem validado.
 
 ### [C14-H] - Staging, validação final e rollout
 
