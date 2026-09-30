@@ -88,6 +88,7 @@
       const [goalType, setGoalType] = React.useState(profile?.goalType || '');
       const [goalKg, setGoalKg] = React.useState(profile?.goalKg || '');
       const [goalWeeks, setGoalWeeks] = React.useState(profile?.goalWeeks || '');
+      const [step, setStep] = React.useState(0);
       const [error, setError] = React.useState('');
       const [saving, setSaving] = React.useState(false);
       const S = isPt
@@ -95,6 +96,11 @@
         : isEs
           ? {title:'Completar perfil nutricional', text:'Estos datos son obligatorios para calcular tus metas.', birth:'Fecha de nacimiento *', gender:'G\u00e9nero *', activity:'Actividad f\u00edsica *', goal:'Objetivo *', choose:'Seleccionar', close:'Cerrar', male:'Masculino', female:'Femenino', maintenance:'Mantenimiento del peso', maintenanceDesc:'Mantener el peso y la composici\u00f3n actuales', loss:'P\u00e9rdida de peso', lossDesc:'Reducir el peso de forma gradual', gain:'Ganancia de peso', gainDesc:'Aumentar el peso de forma gradual', kgLoss:'\u00bfCu\u00e1ntos kg quieres perder?', kgGain:'\u00bfCu\u00e1ntos kg quieres ganar?', weeks:'\u00bfEn cu\u00e1ntas semanas?', save:'Guardar y continuar', saving:'Guardando...', err:'Completa todos los datos obligatorios.', readErr:'Los datos no se encontraron despu\u00e9s de guardar.', saveErr:'No fue posible guardar en la base de datos: '}
           : {title:'Complete nutrition profile', text:'These details are required to calculate your targets.', birth:'Date of birth *', gender:'Gender *', activity:'Physical activity *', goal:'Goal *', choose:'Select', close:'Close', male:'Male', female:'Female', maintenance:'Weight maintenance', maintenanceDesc:'Maintain your current weight and body composition', loss:'Weight loss', lossDesc:'Reduce weight gradually', gain:'Weight gain', gainDesc:'Increase weight gradually', kgLoss:'How many kg do you want to lose?', kgGain:'How many kg do you want to gain?', weeks:'In how many weeks?', save:'Save and continue', saving:'Saving...', err:'Fill all required details.', readErr:'Saved details could not be read back.', saveErr:'Could not save to the database: '};
+      const R = isPt
+        ? {continue:'Continuar',back:'Voltar',step:'Etapa',of:'de',review:'Revise os dados',birthHelp:'Sua idade participa do c\u00e1lculo energ\u00e9tico.',genderHelp:'A f\u00f3rmula atual usa uma destas duas op\u00e7\u00f5es.',activityHelp:'Escolha a op\u00e7\u00e3o que representa uma semana comum.',goalHelp:'Defina o resultado que deseja buscar.',reviewHelp:'Confirme antes de salvar e continuar.'}
+        : isEs
+          ? {continue:'Continuar',back:'Volver',step:'Paso',of:'de',review:'Revisa los datos',birthHelp:'Tu edad forma parte del c\u00e1lculo energ\u00e9tico.',genderHelp:'La f\u00f3rmula actual usa una de estas dos opciones.',activityHelp:'Elige la opci\u00f3n que representa una semana habitual.',goalHelp:'Define el resultado que quieres alcanzar.',reviewHelp:'Confirma antes de guardar y continuar.'}
+          : {continue:'Continue',back:'Back',step:'Step',of:'of',review:'Review your details',birthHelp:'Your age is part of the energy calculation.',genderHelp:'The current formula uses one of these two options.',activityHelp:'Choose the option that represents a typical week.',goalHelp:'Define the result you want to pursue.',reviewHelp:'Confirm before saving and continuing.'};
       const dateCopy = isPt
         ? {title:'Escolher data de nascimento',previousMonth:'M\u00eas anterior',nextMonth:'Pr\u00f3ximo m\u00eas',editMonthYear:'Escolher m\u00eas e ano',previousYear:'Ano anterior',nextYear:'Pr\u00f3ximo ano',editYear:'Digitar ano',showDays:'Mostrar dias',cancel:'Cancelar',confirm:'Confirmar',close:'Voltar',backspace:'Apagar d\u00edgito',invalidYear:'Digite um ano entre 1900 e hoje.'}
         : isEs
@@ -103,9 +109,21 @@
       const dateLocale = isPt ? 'pt-BR' : isEs ? 'es-ES' : 'en-US';
       const inp = {width:'100%',background:'var(--surface-block-alt)',border:'1px solid color-mix(in srgb, var(--text-primary) 13%, transparent)',color:'var(--text-primary)',padding:'12px 14px',borderRadius:'var(--radius-control)',fontSize:15,fontFamily:'inherit',boxSizing:'border-box',outline:'none',marginTop:6,marginBottom:14};
       const labelStyle = {fontSize:12,color:'var(--text-secondary)'};
+      function stepIsValid() {
+        if (step === 0) return isValidBirthDate(birthDate);
+        if (step === 1) return isValidGender(gender);
+        if (step === 2) return Object.prototype.hasOwnProperty.call(ACTIVITY_LEVELS, activityLevel);
+        if (step === 3) return isValidGoalProfile({birthDate,gender,activityLevel,goalType,goalKg:goalType==='maintenance'?'':goalKg,goalWeeks:goalType==='maintenance'?'':goalWeeks});
+        return true;
+      }
       async function saveProfile(e) {
         e.preventDefault();
         setError('');
+        if (step < 4) {
+          if (!stepIsValid()) { setError(S.err); return; }
+          setStep(current => current + 1);
+          return;
+        }
         const nextProfile = {birthDate, gender, activityLevel, goalType, goalKg, goalWeeks};
         if (!isValidBirthDate(birthDate) || !isValidGender(gender) || !isValidGoalProfile(nextProfile)) { setError(S.err); return; }
         setSaving(true);
@@ -141,18 +159,45 @@
         React.createElement('form', {'data-required-profile-form':'true',onSubmit:saveProfile, style:{width:'100%',maxWidth:420,background:'color-mix(in srgb, var(--surface-block) 92%, transparent)',border:'1px solid color-mix(in srgb, var(--text-primary) 9%, transparent)',borderRadius:'var(--radius-block)',padding:24,boxShadow:'0 20px 80px color-mix(in srgb, var(--text-primary) 14%, transparent)',margin:'auto',backdropFilter:'blur(18px) saturate(130%)'}},
           React.createElement('div', {style:{fontSize:20,color:'var(--text-primary)',marginBottom:8}}, S.title),
           React.createElement('div', {style:{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:20}}, S.text),
-          React.createElement(DateField, {id:'required-profile-birth-date',label:S.birth,value:birthDate,onChange:setBirthDate,min:'1900-01-01',max:localToday(),locale:dateLocale,initialViewYear:Number(localToday().slice(0,4))-18,strings:dateCopy,style:{marginBottom:14}}),
-          React.createElement(ChoiceField, {id:'required-profile-gender',label:S.gender,value:gender,onChange:setGender,placeholder:S.choose,closeLabel:S.close,required:true,options:[{value:'male',label:S.male},{value:'female',label:S.female}],style:{marginBottom:14}}),
-          React.createElement(ChoiceField, {id:'required-profile-activity',label:S.activity,value:activityLevel,onChange:setActivityLevel,placeholder:S.choose,closeLabel:S.close,required:true,options:activityOptions,style:{marginBottom:14}}),
-          React.createElement(ChoiceField, {id:'required-profile-goal',label:S.goal,value:goalType,onChange:setGoalType,placeholder:S.choose,closeLabel:S.close,required:true,options:goalOptions,style:{marginBottom:14}}),
+          React.createElement('div', {'data-required-profile-progress':'true',style:{marginBottom:22}},
+            React.createElement('div', {style:{display:'flex',justifyContent:'space-between',fontSize:12,color:'var(--text-muted)',marginBottom:8}}, `${R.step} ${step + 1} ${R.of} 5`, `${Math.round(((step + 1) / 5) * 100)}%`),
+            React.createElement('div', {style:{height:5,borderRadius:999,background:'color-mix(in srgb, var(--text-primary) 12%, transparent)',overflow:'hidden'}},
+              React.createElement('div', {style:{height:'100%',width:`${((step + 1) / 5) * 100}%`,background:'var(--accent-action-bg)',borderRadius:999,transition:'width 260ms ease'}})
+            )
+          ),
+          React.createElement('div', {className:'registration-step','data-required-profile-step':String(step)},
+          step === 0 && React.createElement(React.Fragment, null,
+            React.createElement('div', {style:{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:14}}, R.birthHelp),
+            React.createElement(DateField, {id:'required-profile-birth-date',label:S.birth,value:birthDate,onChange:setBirthDate,min:'1900-01-01',max:localToday(),locale:dateLocale,initialViewYear:Number(localToday().slice(0,4))-18,strings:dateCopy,style:{marginBottom:14}})
+          ),
+          step === 1 && React.createElement(React.Fragment, null,
+            React.createElement('div', {style:{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:14}}, R.genderHelp),
+            React.createElement(ChoiceField, {id:'required-profile-gender',label:S.gender,value:gender,onChange:setGender,placeholder:S.choose,closeLabel:S.close,required:true,options:[{value:'male',label:S.male},{value:'female',label:S.female}],style:{marginBottom:14}})
+          ),
+          step === 2 && React.createElement(React.Fragment, null,
+            React.createElement('div', {style:{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:14}}, R.activityHelp),
+            React.createElement(ChoiceField, {id:'required-profile-activity',label:S.activity,value:activityLevel,onChange:setActivityLevel,placeholder:S.choose,closeLabel:S.close,required:true,options:activityOptions,style:{marginBottom:14}})
+          ),
+          step === 3 && React.createElement(React.Fragment, null,
+            React.createElement('div', {style:{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:14}}, R.goalHelp),
+            React.createElement(ChoiceField, {id:'required-profile-goal',label:S.goal,value:goalType,onChange:setGoalType,placeholder:S.choose,closeLabel:S.close,required:true,options:goalOptions,style:{marginBottom:14}}),
           (goalType === 'loss' || goalType === 'gain') && React.createElement(React.Fragment, null,
             React.createElement('label', {style:labelStyle}, goalType === 'loss' ? S.kgLoss : S.kgGain),
             React.createElement('input', {type:'number', min:'0.1', step:'0.1', value:goalKg, onChange:e=>setGoalKg(e.target.value), required:true, style:inp}),
             React.createElement('label', {style:labelStyle}, S.weeks),
             React.createElement('input', {type:'number', min:'1', step:'1', value:goalWeeks, onChange:e=>setGoalWeeks(e.target.value), required:true, style:inp})
+          )),
+          step === 4 && React.createElement(React.Fragment, null,
+            React.createElement('div', {style:{fontSize:18,color:'var(--text-primary)',marginBottom:6}}, R.review),
+            React.createElement('div', {style:{fontSize:13,color:'var(--text-secondary)',lineHeight:1.5,marginBottom:14}}, R.reviewHelp),
+            [[S.birth,birthDate],[S.gender,gender === 'male' ? S.male : S.female],[S.activity,activityOptions.find(option=>option.value===activityLevel)?.label || ''],[S.goal,goalOptions.find(option=>option.value===goalType)?.label || '']].map(([label,value]) => React.createElement('div', {key:label,style:{display:'flex',justifyContent:'space-between',gap:12,padding:'10px 12px',marginBottom:8,borderRadius:'var(--radius-control)',background:'var(--surface-block-alt)'}}, React.createElement('span',{style:{fontSize:12,color:'var(--text-muted)'}},label),React.createElement('strong',{style:{fontSize:13,color:'var(--text-primary)',textAlign:'right'}},value)))
+          ),
           ),
           error && React.createElement('div', {style:{color:'#c87e7e',fontSize:12,marginBottom:14,padding:'8px 12px',background:'rgba(200,80,80,0.1)',borderRadius:6,border:'1px solid rgba(200,80,80,0.2)'}}, error),
-          React.createElement('button', {type:'submit', disabled:saving, style:{width:'100%',background:saving?'var(--surface-block-alt)':'var(--accent-action-bg)',border:'1px solid transparent',color:saving?'var(--text-muted)':'var(--accent-action-text)',padding:'13px',borderRadius:'var(--radius-control)',fontSize:12,letterSpacing:1,textTransform:'uppercase',cursor:saving?'default':'pointer',fontFamily:'inherit'}}, saving ? S.saving : S.save)
+          React.createElement('div', {style:{display:'flex',gap:10,marginTop:8}},
+            step > 0 && React.createElement('button', {type:'button',onClick:()=>{setError('');setStep(current=>current-1);},style:{minWidth:92,background:'transparent',border:'1px solid color-mix(in srgb, var(--text-primary) 13%, transparent)',color:'var(--text-primary)',padding:'13px',borderRadius:'var(--radius-control)',fontSize:12,fontFamily:'inherit'}}, R.back),
+            React.createElement('button', {type:'submit', disabled:saving, style:{flex:1,width:'100%',background:saving?'var(--surface-block-alt)':'var(--accent-action-bg)',border:'1px solid transparent',color:saving?'var(--text-muted)':'var(--accent-action-text)',padding:'13px',borderRadius:'var(--radius-control)',fontSize:12,letterSpacing:1,textTransform:'uppercase',cursor:saving?'default':'pointer',fontFamily:'inherit'}}, saving ? S.saving : step === 4 ? S.save : R.continue)
+          )
         )
       );
     }

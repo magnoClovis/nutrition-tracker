@@ -4,6 +4,7 @@ const {
   clickFirstButtonMatching,
   dismissTutorialIfVisible,
   expectNoCriticalErrors,
+  fillProgressiveRegistration,
   interceptOptionalExternalApis,
   openApp,
   setAppLanguage,
@@ -135,13 +136,7 @@ test.describe('public boot and login screen', () => {
       window.fbSendVerificationEmail = async () => { throw new Error('EMAIL_DELIVERY_FAILED'); };
     });
     await page.getByRole('button', { name: /Criar conta|Create account/i }).first().click();
-    await page.locator('input[type="email"]').fill('new@example.com');
-    await page.locator('input[type="password"]').nth(0).fill('secret123456');
-    await page.locator('input[type="password"]').nth(1).fill('secret123456');
-    await page.locator('input[autocomplete="name"]').fill('New User');
-    await setDateFieldValue(page, '#registration-birth-date-trigger', '1990-01-01');
-    await page.locator('#registration-gender-trigger').click();
-    await page.getByRole('option', { name: /Feminino|Female|Femenino/i }).click();
+    await fillProgressiveRegistration(page, {email:'new@example.com',name:'New User',birthDate:'1990-01-01'});
     await page.getByRole('button', { name: /Criar conta|Create account/i }).last().click();
 
     await expect(page.getByText(/EMAIL_DELIVERY_FAILED/)).toBeVisible();

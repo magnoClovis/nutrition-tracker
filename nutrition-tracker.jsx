@@ -306,8 +306,11 @@ const {
   React,
   languageOptions: LANGUAGE_OPTIONS,
   normalizeLanguage,
+  pickLang,
+  activityLevels: ACTIVITY_LEVELS,
   isValidBirthDate,
   isValidGender,
+  isValidGoalProfile,
   ChoiceField,
   DateField,
   authService: {

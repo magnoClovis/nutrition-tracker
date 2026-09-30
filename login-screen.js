@@ -33,8 +33,11 @@
    * @param {Object} dependencies.React React runtime already loaded by the host.
    * @param {Array<Object>} dependencies.languageOptions Real `LANGUAGE_OPTIONS` from `i18n.js`.
    * @param {function(string): string} dependencies.normalizeLanguage Language normalizer from `i18n.js`.
+   * @param {function(string, *, *, *): *} dependencies.pickLang Language selector from `i18n.js`.
+   * @param {Object<string, Object>} dependencies.activityLevels Real activity descriptors from `goal-calculator.js`.
    * @param {function(string): boolean} dependencies.isValidBirthDate Birth-date validator from `profile-validation.js`.
    * @param {function(string): boolean} dependencies.isValidGender Gender validator from `profile-validation.js`.
+   * @param {function(Object): boolean} dependencies.isValidGoalProfile Goal-profile validator from `profile-validation.js`.
    * @param {function(Object): Object} dependencies.ChoiceField Reusable Trofia list selector.
    * @param {function(Object): Object} dependencies.DateField Reusable Trofia civil-date selector.
    * @param {{signIn: function(string,string,Object=): Promise<*>, checkEmailVerified: function(): Promise<boolean>, signUp: function(string,string,Object=): Promise<*>, updateProfile: function(string): Promise<*>, setValue: function(string,*): Promise<*>, sendVerificationEmail: function(): Promise<*>, sendPasswordResetEmail: function(string): Promise<*>}} dependencies.authService Named Firebase authentication and persistence operations.
@@ -51,8 +54,11 @@
     React,
     languageOptions,
     normalizeLanguage,
+    pickLang,
+    activityLevels,
     isValidBirthDate,
     isValidGender,
+    isValidGoalProfile,
     ChoiceField,
     DateField,
     authService,
@@ -66,8 +72,10 @@
   }) {
     if (!React || typeof React.createElement !== "function" ||
         typeof React.useState !== "function" || typeof React.useEffect !== "function" ||
-        !Array.isArray(languageOptions) || typeof normalizeLanguage !== "function" ||
+        !Array.isArray(languageOptions) || typeof normalizeLanguage !== "function" || typeof pickLang !== "function" ||
+        !activityLevels || typeof activityLevels !== "object" ||
         typeof isValidBirthDate !== "function" || typeof isValidGender !== "function" ||
+        typeof isValidGoalProfile !== "function" ||
         typeof ChoiceField !== "function" || typeof DateField !== "function" ||
         !authService || typeof authService.signIn !== "function" ||
         typeof authService.checkEmailVerified !== "function" ||
@@ -88,6 +96,7 @@
     }
 
     const LANGUAGE_OPTIONS = languageOptions;
+    const ACTIVITY_LEVELS = activityLevels;
     const localStorage = localStorageService;
     const sessionStorage = sessionStorageService;
     const NEW_ACCOUNT_SESSION_KEY = 'trofia:new-account-onboarding';
@@ -128,6 +137,11 @@
       const [regName, setRegName] = React.useState('');
       const [regBirthDate, setRegBirthDate] = React.useState('');
       const [regGender, setRegGender] = React.useState('');
+      const [regActivityLevel, setRegActivityLevel] = React.useState('');
+      const [regGoalType, setRegGoalType] = React.useState('');
+      const [regGoalKg, setRegGoalKg] = React.useState('');
+      const [regGoalWeeks, setRegGoalWeeks] = React.useState('');
+      const [registrationStep, setRegistrationStep] = React.useState(-1);
       const [loginDark, setLoginDark] = React.useState(readPreferredDarkMode);
       React.useEffect(() => {
         document.documentElement.dataset.theme = loginDark ? 'dark' : 'light';
@@ -193,6 +207,60 @@
         }
       };
       const S = loginCopy[normalizedLoginLang] || loginCopy.pt;
+      const progressiveCopy = {
+        pt: {
+          continue:'Continuar', back:'Voltar', finish:'Criar conta', step:'Etapa', of:'de',
+          intro:'Vamos configurar seu perfil nutricional', why:'Usamos apenas os dados necessários para calcular suas metas.',
+          nameTitle:'Como podemos chamar você?', nameText:'Seu nome personaliza a experiência e identifica seu perfil.',
+          birthTitle:'Qual é sua data de nascimento?', birthText:'A idade participa do cálculo das necessidades energéticas.',
+          genderTitle:'Qual opção o cálculo deve usar?', genderText:'A fórmula nutricional atual utiliza uma destas duas opções.',
+          measuresTitle:'Quais são suas medidas atuais?', measuresText:'Peso e altura são necessários para estimar suas metas iniciais.',
+          activityTitle:'Como é sua rotina de atividade?', activityText:'Escolha a opção que melhor representa uma semana comum.',
+          goalTitle:'Qual é seu objetivo principal?', goalText:'Você poderá ajustar esse objetivo mais tarde nas configurações.',
+          reviewTitle:'Revise seu perfil', reviewText:'Confirme os dados antes de criar a conta.',
+          activity:'Nível de atividade *', goal:'Objetivo *', maintenance:'Manter o peso', maintenanceDesc:'Manter peso e composição atuais',
+          loss:'Perder peso', lossDesc:'Reduzir o peso gradualmente', gain:'Ganhar peso', gainDesc:'Aumentar o peso gradualmente',
+          kgLoss:'Quantos kg deseja perder?', kgGain:'Quantos kg deseja ganhar?', weeks:'Em quantas semanas?',
+          errMeasures:'Informe peso e altura dentro dos limites indicados.', errActivity:'Selecione seu nível de atividade.', errGoal:'Complete um objetivo válido.',
+          account:'Conta', editAccount:'Os dados de acesso serão usados somente ao finalizar a revisão.',
+          reviewEmail:'Email', reviewName:'Nome', reviewBirth:'Nascimento', reviewGender:'Opção de cálculo', reviewMeasures:'Medidas', reviewActivity:'Atividade', reviewGoal:'Objetivo'
+        },
+        en: {
+          continue:'Continue', back:'Back', finish:'Create account', step:'Step', of:'of',
+          intro:'Let\'s set up your nutrition profile', why:'We only use the details needed to calculate your targets.',
+          nameTitle:'What should we call you?', nameText:'Your name personalizes the experience and identifies your profile.',
+          birthTitle:'What is your date of birth?', birthText:'Age is part of the energy-needs calculation.',
+          genderTitle:'Which option should the calculation use?', genderText:'The current nutrition formula uses one of these two options.',
+          measuresTitle:'What are your current measurements?', measuresText:'Weight and height are needed to estimate your initial targets.',
+          activityTitle:'What is your activity routine?', activityText:'Choose the option that best represents a typical week.',
+          goalTitle:'What is your main goal?', goalText:'You can adjust this goal later in settings.',
+          reviewTitle:'Review your profile', reviewText:'Confirm the details before creating your account.',
+          activity:'Activity level *', goal:'Goal *', maintenance:'Maintain weight', maintenanceDesc:'Maintain your current weight and body composition',
+          loss:'Lose weight', lossDesc:'Reduce weight gradually', gain:'Gain weight', gainDesc:'Increase weight gradually',
+          kgLoss:'How many kg do you want to lose?', kgGain:'How many kg do you want to gain?', weeks:'In how many weeks?',
+          errMeasures:'Enter weight and height within the indicated limits.', errActivity:'Select your activity level.', errGoal:'Complete a valid goal.',
+          account:'Account', editAccount:'Your sign-in details are only used after you finish the review.',
+          reviewEmail:'Email', reviewName:'Name', reviewBirth:'Birth date', reviewGender:'Calculation option', reviewMeasures:'Measurements', reviewActivity:'Activity', reviewGoal:'Goal'
+        },
+        es: {
+          continue:'Continuar', back:'Volver', finish:'Crear cuenta', step:'Paso', of:'de',
+          intro:'Configuremos tu perfil nutricional', why:'Usamos solo los datos necesarios para calcular tus objetivos.',
+          nameTitle:'¿Cómo podemos llamarte?', nameText:'Tu nombre personaliza la experiencia e identifica tu perfil.',
+          birthTitle:'¿Cuál es tu fecha de nacimiento?', birthText:'La edad forma parte del cálculo de las necesidades energéticas.',
+          genderTitle:'¿Qué opción debe usar el cálculo?', genderText:'La fórmula nutricional actual utiliza una de estas dos opciones.',
+          measuresTitle:'¿Cuáles son tus medidas actuales?', measuresText:'El peso y la altura son necesarios para estimar tus objetivos iniciales.',
+          activityTitle:'¿Cómo es tu rutina de actividad?', activityText:'Elige la opción que mejor represente una semana habitual.',
+          goalTitle:'¿Cuál es tu objetivo principal?', goalText:'Podrás ajustar este objetivo más tarde en la configuración.',
+          reviewTitle:'Revisa tu perfil', reviewText:'Confirma los datos antes de crear la cuenta.',
+          activity:'Nivel de actividad *', goal:'Objetivo *', maintenance:'Mantener el peso', maintenanceDesc:'Mantener el peso y la composición actuales',
+          loss:'Perder peso', lossDesc:'Reducir el peso gradualmente', gain:'Ganar peso', gainDesc:'Aumentar el peso gradualmente',
+          kgLoss:'¿Cuántos kg quieres perder?', kgGain:'¿Cuántos kg quieres ganar?', weeks:'¿En cuántas semanas?',
+          errMeasures:'Indica peso y altura dentro de los límites señalados.', errActivity:'Selecciona tu nivel de actividad.', errGoal:'Completa un objetivo válido.',
+          account:'Cuenta', editAccount:'Los datos de acceso se usarán solo al finalizar la revisión.',
+          reviewEmail:'Email', reviewName:'Nombre', reviewBirth:'Nacimiento', reviewGender:'Opción de cálculo', reviewMeasures:'Medidas', reviewActivity:'Actividad', reviewGoal:'Objetivo'
+        }
+      };
+      const P = progressiveCopy[normalizedLoginLang] || progressiveCopy.pt;
       const dateCopy = normalizedLoginLang === 'en'
         ? {title:'Choose date of birth',previousMonth:'Previous month',nextMonth:'Next month',editMonthYear:'Choose month and year',previousYear:'Previous year',nextYear:'Next year',editYear:'Type year',showDays:'Show days',cancel:'Cancel',confirm:'Confirm',close:'Back',backspace:'Delete digit',invalidYear:'Enter a year from 1900 to today.'}
         : normalizedLoginLang === 'es'
@@ -224,12 +292,63 @@
         return S.errPrefix + raw;
       }
 
+      const activityOptions = Object.entries(ACTIVITY_LEVELS).map(([value, data]) => ({
+        value,
+        label: pickLang(normalizedLoginLang, data.pt, data.en, data.es),
+        description: pickLang(normalizedLoginLang, data.descPt, data.descEn, data.descEs)
+      }));
+      const goalOptions = [
+        {value:'maintenance', label:P.maintenance, description:P.maintenanceDesc},
+        {value:'loss', label:P.loss, description:P.lossDesc},
+        {value:'gain', label:P.gain, description:P.gainDesc}
+      ];
+
+      function validMeasures() {
+        const weight = Number(regWeight);
+        const height = Number(regHeight);
+        return Number.isFinite(weight) && weight >= 30 && weight <= 300 &&
+          Number.isFinite(height) && height >= 100 && height <= 250;
+      }
+
+      function validateRegistrationStep(step) {
+        if (step === 0 && !regName.trim()) return S.errName;
+        if (step === 1 && !isValidBirthDate(regBirthDate)) return S.errBirth;
+        if (step === 2 && !isValidGender(regGender)) return S.errGender;
+        if (step === 3 && !validMeasures()) return P.errMeasures;
+        if (step === 4 && !Object.prototype.hasOwnProperty.call(ACTIVITY_LEVELS, regActivityLevel)) return P.errActivity;
+        if (step === 5 && !isValidGoalProfile({
+          birthDate:regBirthDate,
+          gender:regGender,
+          activityLevel:regActivityLevel,
+          goalType:regGoalType,
+          goalKg:regGoalType === 'maintenance' ? '' : regGoalKg,
+          goalWeeks:regGoalType === 'maintenance' ? '' : regGoalWeeks
+        })) return P.errGoal;
+        return '';
+      }
+
+      function advanceRegistration() {
+        const validationError = validateRegistrationStep(registrationStep);
+        if (validationError) { setError(validationError); return false; }
+        setError('');
+        setRegistrationStep(step => Math.min(6, step + 1));
+        return true;
+      }
+
       async function handleSubmit(e) {
         e.preventDefault();
         setError('');
         setResetMessage('');
-        if (mode === 'register' && password !== password2) { setError(S.errMatch); return; }
-        if (mode === 'register' && !registrationCheckpoint && password.length < 12) { setError(S.errShort); return; }
+        if (mode === 'register' && registrationStep === -1) {
+          if (password !== password2) { setError(S.errMatch); return; }
+          if (password.length < 12) { setError(S.errShort); return; }
+          setRegistrationStep(0);
+          return;
+        }
+        if (mode === 'register' && registrationStep < 6 && !registrationCheckpoint) {
+          advanceRegistration();
+          return;
+        }
         setLoading(true);
         let registrationStage = null;
         try {
@@ -240,9 +359,8 @@
             if (!verified) { onPendingVerification(email); return; }
             onLogin(false);
           } else {
-            if (!regName.trim()) { setError(S.errName); setLoading(false); return; }
-            if (!isValidBirthDate(regBirthDate)) { setError(S.errBirth); setLoading(false); return; }
-            if (!isValidGender(regGender)) { setError(S.errGender); setLoading(false); return; }
+            const validationError = [0,1,2,3,4,5].map(validateRegistrationStep).find(Boolean);
+            if (validationError) { setError(validationError); setLoading(false); return; }
             const checkpoint = registrationCheckpoint || {
               email: String(email || '').trim(),
               name: regName.trim(),
@@ -250,6 +368,10 @@
               gender: regGender,
               weight: regWeight,
               height: regHeight,
+              activityLevel: regActivityLevel,
+              goalType: regGoalType,
+              goalKg: regGoalType === 'maintenance' ? '' : regGoalKg,
+              goalWeeks: regGoalType === 'maintenance' ? '' : regGoalWeeks,
               language: normalizedLoginLang,
               entryId: Date.now().toString(),
               today: localToday(new Date())
@@ -274,6 +396,10 @@
             await fbSet('userName', checkpoint.name);
             await fbSet('birthDate', checkpoint.birthDate);
             await fbSet('gender', checkpoint.gender);
+            await fbSet('activityLevel', checkpoint.activityLevel);
+            await fbSet('goalType', checkpoint.goalType);
+            await fbSet('goalKg', checkpoint.goalKg);
+            await fbSet('goalWeeks', checkpoint.goalWeeks);
             await fbSet('language', checkpoint.language);
             registrationStage = 'verification';
             await fbSendVerificationEmail();
@@ -316,6 +442,7 @@
         setPassword2('');
         setPasswordVisible(false);
         setPassword2Visible(false);
+        setRegistrationStep(-1);
       }
 
       const inp = {width:'100%',background:'var(--input)',border:'1px solid var(--border2)',color:'var(--text)',padding:'12px 14px',borderRadius:8,fontSize:15,fontFamily:'inherit',boxSizing:'border-box',outline:'none',marginBottom:12};
@@ -344,6 +471,81 @@
         ? {'--bg':'#111','--surface':'#161616','--input':'#1e1e1e','--border2':'#2a2a2a','--text':'#e8e0d5','--text3':'#c9bfb0','--muted':'#8a8a8a','--btn-ok':'#1e2e1e','--btn-ok-border':'#3a5a3a','--btn-ok-text':'#7ec87e','--btn-info':'#1a1e2a','--btn-info-border':'#3a3a6a','--btn-info-text':'#8a9ec8','--btn-inactive':'#191919','--btn-warn-text':'#c87e7e'}
         : {'--bg':'#f2f1ed','--surface':'#ffffff','--input':'#f5f3ef','--border2':'#b8b4ac','--text':'#252220','--text3':'#3a3733','--muted':'#6a6662','--btn-ok':'#e8f4e8','--btn-ok-border':'#a8cfa8','--btn-ok-text':'#2a6a2a','--btn-info':'#e8eaf4','--btn-info-border':'#a8aed0','--btn-info-text':'#3a4a8a','--btn-inactive':'#ede9e3','--btn-warn-text':'#8a2a2a'};
       const loginVars = Object.assign({position:'fixed',inset:0,background:loginDark?'#111':'#f2f1ed',display:'flex',alignItems:'center',justifyContent:'center',padding:24,zIndex:99999}, loginTheme);
+      const stepTitleStyle = {fontSize:24,lineHeight:1.2,color:'var(--text)',margin:'0 0 8px',fontWeight:650};
+      const stepTextStyle = {fontSize:13,lineHeight:1.55,color:'var(--muted)',margin:'0 0 22px'};
+      const labelStyle = {display:'block',fontSize:12,color:'var(--muted)',marginBottom:6};
+      const reviewRows = [
+        [P.reviewEmail, String(email || '').trim()],
+        [P.reviewName, regName.trim()],
+        [P.reviewBirth, regBirthDate],
+        [P.reviewGender, regGender === 'male' ? S.male : S.female],
+        [P.reviewMeasures, `${regWeight} kg · ${regHeight} cm`],
+        [P.reviewActivity, activityOptions.find(option => option.value === regActivityLevel)?.label || ''],
+        [P.reviewGoal, goalOptions.find(option => option.value === regGoalType)?.label || '']
+      ];
+
+      function renderRegistrationProgress() {
+        if (registrationStep < 0) return null;
+        return React.createElement('div', {'data-registration-progress':'true',style:{marginBottom:24}},
+          React.createElement('div', {style:{display:'flex',justifyContent:'space-between',fontSize:12,color:'var(--muted)',marginBottom:8}},
+            React.createElement('span', null, `${P.step} ${registrationStep + 1} ${P.of} 7`),
+            React.createElement('span', null, `${Math.round(((registrationStep + 1) / 7) * 100)}%`)
+          ),
+          React.createElement('div', {style:{height:5,borderRadius:999,background:'var(--border2)',overflow:'hidden'}},
+            React.createElement('div', {style:{height:'100%',width:`${((registrationStep + 1) / 7) * 100}%`,borderRadius:999,background:'var(--btn-ok-text)',transition:'width 260ms ease'}})
+          )
+        );
+      }
+
+      function renderRegistrationStep() {
+        if (registrationStep === 0) return React.createElement('div', {className:'registration-step',key:'registration-name'},
+          React.createElement('h2', {style:stepTitleStyle}, P.nameTitle),
+          React.createElement('p', {style:stepTextStyle}, P.nameText),
+          React.createElement('input', {type:'text',value:regName,onChange:e=>setRegName(e.target.value),placeholder:S.name,disabled:Boolean(registrationCheckpoint),style:{...inp,marginBottom:4},autoComplete:'name',autoFocus:true})
+        );
+        if (registrationStep === 1) return React.createElement('div', {className:'registration-step',key:'registration-birth'},
+          React.createElement('h2', {style:stepTitleStyle}, P.birthTitle),
+          React.createElement('p', {style:stepTextStyle}, P.birthText),
+          React.createElement(DateField, {id:'registration-birth-date',label:S.birthTitle,value:regBirthDate,onChange:setRegBirthDate,disabled:Boolean(registrationCheckpoint),min:'1900-01-01',max:localToday(new Date()),locale:dateLocale,initialViewYear:new Date().getFullYear()-18,strings:dateCopy,style:{marginBottom:4}})
+        );
+        if (registrationStep === 2) return React.createElement('div', {className:'registration-step',key:'registration-gender'},
+          React.createElement('h2', {style:stepTitleStyle}, P.genderTitle),
+          React.createElement('p', {style:stepTextStyle}, P.genderText),
+          React.createElement(ChoiceField, {id:'registration-gender',label:S.genderPlaceholder,value:regGender,onChange:setRegGender,placeholder:S.choose,closeLabel:S.close,required:true,disabled:Boolean(registrationCheckpoint),options:[{value:'male',label:S.male},{value:'female',label:S.female}],style:{marginBottom:4}})
+        );
+        if (registrationStep === 3) return React.createElement('div', {className:'registration-step',key:'registration-measures'},
+          React.createElement('h2', {style:stepTitleStyle}, P.measuresTitle),
+          React.createElement('p', {style:stepTextStyle}, P.measuresText),
+          React.createElement('div', {style:{display:'flex',gap:8}},
+            React.createElement('input', {type:'number',value:regWeight,onChange:e=>setRegWeight(e.target.value),placeholder:S.weightPlaceholder,min:30,max:300,step:0.1,disabled:Boolean(registrationCheckpoint),style:{...inp,flex:1}}),
+            React.createElement('input', {type:'number',value:regHeight,onChange:e=>setRegHeight(e.target.value),placeholder:S.heightPlaceholder,min:100,max:250,step:0.1,disabled:Boolean(registrationCheckpoint),style:{...inp,flex:1}})
+          )
+        );
+        if (registrationStep === 4) return React.createElement('div', {className:'registration-step',key:'registration-activity'},
+          React.createElement('h2', {style:stepTitleStyle}, P.activityTitle),
+          React.createElement('p', {style:stepTextStyle}, P.activityText),
+          React.createElement(ChoiceField, {id:'registration-activity',label:P.activity,value:regActivityLevel,onChange:setRegActivityLevel,placeholder:S.choose,closeLabel:S.close,required:true,disabled:Boolean(registrationCheckpoint),options:activityOptions,style:{marginBottom:4}})
+        );
+        if (registrationStep === 5) return React.createElement('div', {className:'registration-step',key:'registration-goal'},
+          React.createElement('h2', {style:stepTitleStyle}, P.goalTitle),
+          React.createElement('p', {style:stepTextStyle}, P.goalText),
+          React.createElement(ChoiceField, {id:'registration-goal',label:P.goal,value:regGoalType,onChange:setRegGoalType,placeholder:S.choose,closeLabel:S.close,required:true,disabled:Boolean(registrationCheckpoint),options:goalOptions,style:{marginBottom:12}}),
+          (regGoalType === 'loss' || regGoalType === 'gain') && React.createElement(React.Fragment, null,
+            React.createElement('label', {style:labelStyle}, regGoalType === 'loss' ? P.kgLoss : P.kgGain),
+            React.createElement('input', {type:'number',min:'0.1',step:'0.1',value:regGoalKg,onChange:e=>setRegGoalKg(e.target.value),disabled:Boolean(registrationCheckpoint),style:inp}),
+            React.createElement('label', {style:labelStyle}, P.weeks),
+            React.createElement('input', {type:'number',min:'1',step:'1',value:regGoalWeeks,onChange:e=>setRegGoalWeeks(e.target.value),disabled:Boolean(registrationCheckpoint),style:inp})
+          )
+        );
+        return React.createElement('div', {className:'registration-step',key:'registration-review','data-registration-review':'true'},
+          React.createElement('h2', {style:stepTitleStyle}, P.reviewTitle),
+          React.createElement('p', {style:stepTextStyle}, P.reviewText),
+          React.createElement('div', {style:{display:'grid',gap:8,marginBottom:8}}, reviewRows.map(([label,value]) => React.createElement('div', {key:label,style:{display:'flex',justifyContent:'space-between',gap:16,padding:'10px 12px',borderRadius:10,background:'var(--input)',border:'1px solid var(--border2)'}},
+            React.createElement('span', {style:{fontSize:12,color:'var(--muted)'}}, label),
+            React.createElement('strong', {style:{fontSize:13,color:'var(--text)',textAlign:'right',fontWeight:600}}, value)
+          )))
+        );
+      }
 
       return React.createElement('div', {'data-safe-area-dialog':'24', style: loginVars},
         React.createElement('div', {style:{width:'100%',maxWidth:380}},
@@ -359,41 +561,30 @@
           ),
           React.createElement('div', {style:{textAlign:'center',marginBottom:32}},
             React.createElement('div', {style:{fontSize:11,letterSpacing:1,color:'var(--muted)',textTransform:'uppercase',marginBottom:6}}, S.title),
-            React.createElement('div', {style:{fontSize:22,color:'var(--text3)',fontWeight:400,marginBottom:8}}, mode === 'login' ? S.login : S.register),
-            mode === 'login' && React.createElement('p', {style:{fontSize:13,color:'var(--muted)',margin:0,lineHeight:1.5}}, S.subtitle)
+            React.createElement('div', {style:{fontSize:22,color:'var(--text3)',fontWeight:400,marginBottom:8}}, mode === 'login' ? S.login : registrationStep < 0 ? S.register : P.intro),
+            React.createElement('p', {style:{fontSize:13,color:'var(--muted)',margin:0,lineHeight:1.5}}, mode === 'login' ? S.subtitle : registrationStep < 0 ? P.editAccount : P.why)
           ),
-          React.createElement('div', {style:{display:'flex',marginBottom:28,borderBottom:'2px solid var(--border2)'}},
+          registrationStep < 0 && React.createElement('div', {style:{display:'flex',marginBottom:28,borderBottom:'2px solid var(--border2)'}},
             React.createElement('button', {onClick:()=>switchMode('login'), disabled:Boolean(registrationCheckpoint), style:tabStyle(mode==='login')}, S.tabLogin),
             React.createElement('button', {onClick:()=>switchMode('register'), disabled:Boolean(registrationCheckpoint), style:tabStyle(mode==='register')}, S.tabRegister)
           ),
-          React.createElement('form', {onSubmit:handleSubmit},
-            React.createElement('input', {type:'email',value:email,onChange:e=>setEmail(e.target.value),placeholder:S.email,required:true,disabled:Boolean(registrationCheckpoint),style:inp,autoComplete:'email'}),
-            renderPasswordInput({value:password,onChange:e=>setPassword(e.target.value),placeholder:S.password,visible:passwordVisible,onToggle:()=>setPasswordVisible(visible=>!visible),autoComplete:mode==='login'?'current-password':'new-password',marginBottom:mode==='register'?12:error?8:10,testId:'password-visibility',disabled:Boolean(registrationCheckpoint)}),
+          renderRegistrationProgress(),
+          React.createElement('form', {'data-registration-step':mode === 'register' ? String(registrationStep) : undefined,onSubmit:handleSubmit},
+            (mode === 'login' || registrationStep < 0) && React.createElement('input', {type:'email',value:email,onChange:e=>setEmail(e.target.value),placeholder:S.email,required:true,disabled:Boolean(registrationCheckpoint),style:inp,autoComplete:'email'}),
+            (mode === 'login' || registrationStep < 0) && renderPasswordInput({value:password,onChange:e=>setPassword(e.target.value),placeholder:S.password,visible:passwordVisible,onToggle:()=>setPasswordVisible(visible=>!visible),autoComplete:mode==='login'?'current-password':'new-password',marginBottom:mode==='register'?12:error?8:10,testId:'password-visibility',disabled:Boolean(registrationCheckpoint)}),
             mode === 'login' && !isNativePlatform() && React.createElement('label', {style:{display:'flex',alignItems:'center',gap:8,color:'var(--text3)',fontSize:12,margin:'0 2px 12px',cursor:'pointer'}},
               React.createElement('input', {type:'checkbox',checked:keepSignedIn,onChange:e=>setKeepSignedIn(Boolean(e.target.checked)),'aria-label':S.keepSignedIn}),
               S.keepSignedIn
             ),
             mode === 'login' && React.createElement('button', {type:'button',onClick:handlePasswordReset,disabled:resetLoading || loading,style:{width:'100%',background:'none',border:'none',color:'var(--btn-info-text)',cursor:(resetLoading||loading)?'default':'pointer',fontSize:12,fontFamily:'inherit',textAlign:'right',padding:'0 2px 14px',opacity:(resetLoading||loading)?0.65:1}}, resetLoading ? S.resetSending : S.forgotPassword),
-            mode === 'register' && renderPasswordInput({value:password2,onChange:e=>setPassword2(e.target.value),placeholder:S.confirm,visible:password2Visible,onToggle:()=>setPassword2Visible(visible=>!visible),autoComplete:'new-password',marginBottom:12,testId:'password-confirmation-visibility',disabled:Boolean(registrationCheckpoint)}),
-            mode === 'register' && React.createElement('input', {type:'text',value:regName,onChange:e=>setRegName(e.target.value),placeholder:S.name,disabled:Boolean(registrationCheckpoint),style:{...inp,marginBottom:12},autoComplete:'name'}),
-            mode === 'register' && React.createElement(DateField, {
-              id:'registration-birth-date',label:S.birthTitle,value:regBirthDate,onChange:setRegBirthDate,disabled:Boolean(registrationCheckpoint),
-              min:'1900-01-01',max:localToday(new Date()),locale:dateLocale,
-              initialViewYear:new Date().getFullYear()-18,strings:dateCopy,style:{marginBottom:12}
-            }),
-            mode === 'register' && React.createElement(ChoiceField, {
-              id:'registration-gender', label:S.genderPlaceholder, value:regGender,
-              onChange:setRegGender, placeholder:S.choose, closeLabel:S.close, required:true,disabled:Boolean(registrationCheckpoint),
-              options:[{value:'male',label:S.male},{value:'female',label:S.female}],
-              style:{marginBottom:12}
-            }),
-            mode === 'register' && React.createElement('div', {style:{display:'flex',gap:8,marginBottom:error?8:20}},
-              React.createElement('input', {type:'number',value:regWeight,onChange:e=>setRegWeight(e.target.value),placeholder:S.weightPlaceholder,min:30,max:300,step:0.1,disabled:Boolean(registrationCheckpoint),style:{...inp,marginBottom:0,flex:1}}),
-              React.createElement('input', {type:'number',value:regHeight,onChange:e=>setRegHeight(e.target.value),placeholder:S.heightPlaceholder,min:100,max:250,disabled:Boolean(registrationCheckpoint),style:{...inp,marginBottom:0,flex:1}})
-            ),
+            mode === 'register' && registrationStep < 0 && renderPasswordInput({value:password2,onChange:e=>setPassword2(e.target.value),placeholder:S.confirm,visible:password2Visible,onToggle:()=>setPassword2Visible(visible=>!visible),autoComplete:'new-password',marginBottom:12,testId:'password-confirmation-visibility',disabled:Boolean(registrationCheckpoint)}),
+            mode === 'register' && registrationStep >= 0 && renderRegistrationStep(),
             error && React.createElement('div', {style:{color:'#c87e7e',fontSize:12,marginBottom:16,padding:'8px 12px',background:'rgba(200,80,80,0.1)',borderRadius:6,border:'1px solid rgba(200,80,80,0.2)'}}, error),
             resetMessage && React.createElement('div', {style:{color:'var(--btn-ok-text)',fontSize:12,marginBottom:16,padding:'8px 12px',background:'rgba(80,160,80,0.1)',borderRadius:6,border:'1px solid var(--btn-ok-border)',lineHeight:1.4}}, resetMessage),
-            React.createElement('button', {type:'submit',disabled:loading,style:{width:'100%',background:loading?'var(--btn-inactive)':mode==='login'?'var(--btn-ok)':'var(--btn-info)',border:'1px solid ' + (mode==='login'?'var(--btn-ok-border)':'var(--btn-info-border)'),color:loading?'var(--muted)':mode==='login'?'var(--btn-ok-text)':'var(--btn-info-text)',padding:'13px',borderRadius:8,fontSize:12,letterSpacing:1,textTransform:'uppercase',cursor:loading?'default':'pointer',fontFamily:'inherit',transition:'all 0.2s'}}, loading ? S.processing : mode==='login' ? S.loginBtn : registrationCheckpoint ? S.retryRegistration : S.registerBtn)
+            React.createElement('div', {style:{display:'flex',gap:10,marginTop:registrationStep >= 0 ? 20 : 0}},
+              mode === 'register' && registrationStep >= 0 && !registrationCheckpoint && React.createElement('button', {type:'button','data-registration-back':'true',onClick:()=>{setError('');setRegistrationStep(step=>Math.max(-1,step-1));},style:{minWidth:96,background:'transparent',border:'1px solid var(--border2)',color:'var(--text3)',padding:'13px',borderRadius:8,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}, P.back),
+              React.createElement('button', {type:'submit',disabled:loading,style:{flex:1,width:'100%',background:loading?'var(--btn-inactive)':mode==='login'?'var(--btn-ok)':'var(--btn-info)',border:'1px solid ' + (mode==='login'?'var(--btn-ok-border)':'var(--btn-info-border)'),color:loading?'var(--muted)':mode==='login'?'var(--btn-ok-text)':'var(--btn-info-text)',padding:'13px',borderRadius:8,fontSize:12,letterSpacing:1,textTransform:'uppercase',cursor:loading?'default':'pointer',fontFamily:'inherit',transition:'all 0.2s'}}, loading ? S.processing : mode==='login' ? S.loginBtn : registrationCheckpoint ? S.retryRegistration : registrationStep === 6 ? P.finish : P.continue)
+            )
           )
         )
       );

@@ -131,6 +131,60 @@ async function setDateFieldValue(page, triggerSelector, isoDate) {
   await page.locator('[data-temporal-field-confirm="true"]').click();
 }
 
+async function fillProgressiveRegistration(page, {
+  email = 'new-profile@example.test',
+  password = 'secret123456',
+  name = 'New Profile',
+  birthDate = '1990-06-15',
+  gender = /Feminino|Female|Femenino/i,
+  weight = '70',
+  height = '170',
+  activity = /Moderadamente ativo|Moderately active|Moderadamente activo/i,
+  goal = /Manter o peso|Maintain weight|Mantener el peso/i,
+  stopAt = 6,
+} = {}) {
+  const form = page.locator('form[data-registration-step]');
+  await page.locator('input[type="email"]').fill(email);
+  await page.locator('input[autocomplete="new-password"]').nth(0).fill(password);
+  await page.locator('input[autocomplete="new-password"]').nth(1).fill(password);
+  await form.getByRole('button', { name: /Continuar|Continue/i }).click();
+  await expect(form).toHaveAttribute('data-registration-step', '0');
+  if (stopAt === 0) return;
+
+  await page.locator('input[autocomplete="name"]').fill(name);
+  await form.getByRole('button', { name: /Continuar|Continue/i }).click();
+  await expect(form).toHaveAttribute('data-registration-step', '1');
+  if (stopAt === 1) return;
+
+  await setDateFieldValue(page, '#registration-birth-date-trigger', birthDate);
+  await form.getByRole('button', { name: /Continuar|Continue/i }).click();
+  await expect(form).toHaveAttribute('data-registration-step', '2');
+  if (stopAt === 2) return;
+
+  await page.locator('#registration-gender-trigger').click();
+  await page.getByRole('option', { name: gender }).click();
+  await form.getByRole('button', { name: /Continuar|Continue/i }).click();
+  await expect(form).toHaveAttribute('data-registration-step', '3');
+  if (stopAt === 3) return;
+
+  await page.locator('input[type="number"]').nth(0).fill(weight);
+  await page.locator('input[type="number"]').nth(1).fill(height);
+  await form.getByRole('button', { name: /Continuar|Continue/i }).click();
+  await expect(form).toHaveAttribute('data-registration-step', '4');
+  if (stopAt === 4) return;
+
+  await page.locator('#registration-activity-trigger').click();
+  await page.getByRole('option').filter({ hasText: activity }).click();
+  await form.getByRole('button', { name: /Continuar|Continue/i }).click();
+  await expect(form).toHaveAttribute('data-registration-step', '5');
+  if (stopAt === 5) return;
+
+  await page.locator('#registration-goal-trigger').click();
+  await page.getByRole('option').filter({ hasText: goal }).click();
+  await form.getByRole('button', { name: /Continuar|Continue/i }).click();
+  await expect(form).toHaveAttribute('data-registration-step', '6');
+}
+
 async function interceptOptionalExternalApis(page, { aiDelayMs = 0 } = {}) {
   await page.route('https://trofia-ai-proxy.cmagno-dev.workers.dev/**', async (route) => {
     if (aiDelayMs) await new Promise(resolve => setTimeout(resolve, aiDelayMs));
@@ -150,5 +204,6 @@ module.exports = {
   interceptOptionalExternalApis,
   openApp,
   setAppLanguage,
-  setDateFieldValue
+  setDateFieldValue,
+  fillProgressiveRegistration
 };
