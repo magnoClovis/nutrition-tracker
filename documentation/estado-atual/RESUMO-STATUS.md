@@ -8,7 +8,7 @@
 - **Propósito:** distinguir falha real de Auth, App Check, Firestore ou teardown de intermitência externa antes de liberar o PR #293.
 - **O que se planeja fazer:** confrontar as duas tentativas do CI e os artefatos com bootstrap, rede, lease e restauração das fixtures, sem alterar a I2 nem dados reais.
 - **Recursos/arquivos principais envolvidos:** run `36590911079`, artefatos `11046177805`/`11052475783`, `tests/smoke/authenticated-flows.spec.js`, `tests/smoke/test-helpers.js` e coordenador autenticado.
-- **O que foi feito:** perfil `unavailable`, loading e HTTP 400 ficaram sem causa comum comprovada; o código confirmou um defeito de restauração de fixtures, e a falha móvel do CI C14-G reforçou a necessidade do diagnóstico.
+- **O que foi feito:** perfil `unavailable`, loading e HTTP 400 ficaram sem causa comum comprovada; o código confirmou um defeito de restauração de fixtures. O primeiro CI do draft #295 expôs uma asserção visual incompatível com erros sanitizados; a correção passou no recorte autenticado 3/3 e em `npm test` integral (1.519 unitários, cutover 60/60); novo CI pendente.
 
 ### [INC-I2-HARNESS] - Diagnóstico sanitizado de navegador e rede
 
@@ -18,7 +18,7 @@
 - **Propósito:** permitir que a próxima falha autenticada revele o endpoint e a fase sem expor dados da conta.
 - **O que se planeja fazer:** registrar domínio, caminho redigido, método, status, fase e tipo de falha; preservar o gate e corrigir somente um defeito de teardown ou runtime comprovado.
 - **Recursos/arquivos principais envolvidos:** `tests/smoke/test-helpers.js`, `tests/smoke/authenticated-flows.spec.js`, `tests/unit/smoke-console-filter.test.js` e guia operacional dos smokes.
-- **O que foi feito:** instrumentação e restauração fail-closed implementadas; `npm test` final e recorte autenticado Vite 5/5 passaram; CI do PR técnico ainda pendente.
+- **O que foi feito:** instrumentação e restauração fail-closed implementadas; recorte Vite autenticado 5/5 passou. O primeiro CI do draft #295 revelou a asserção visual dependente de mensagem bruta; ela foi substituída por marcador sanitizado com regressão 7/7, recorte autenticado 3/3 e `npm test` integral verde. Novo CI ainda pendente.
 
 > Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `13bd540`, em 13/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 

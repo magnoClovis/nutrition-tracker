@@ -90,6 +90,25 @@ test('records page and request failures without raw messages or URLs', () => {
   assert.doesNotMatch(JSON.stringify([errors, errors.diagnostics]), /secret|person@|private-uid|token=/);
 });
 
+test('labels only the controlled export fixture without retaining its raw console message', () => {
+  const page = new EventEmitter();
+  const errors = collectCriticalErrors(page);
+  page.emit('console', {
+    type: () => 'error',
+    text: () => 'Export error: Error: Falha visual controlada',
+    location: () => ({ url: 'http://localhost/index.html' })
+  });
+  page.emit('console', {
+    type: () => 'error',
+    text: () => 'Export error: Error: falha inesperada com token privado',
+    location: () => ({ url: 'http://localhost/index.html' })
+  });
+  assert.equal(errors.length, 2);
+  assert.match(errors[0], /source=console kind=controlled-export-error/);
+  assert.match(errors[1], /source=console kind=browser-error/);
+  assert.doesNotMatch(JSON.stringify(errors), /Falha visual controlada|token privado/);
+});
+
 test('attempts every fixture restoration even when the first fails', async () => {
   const calls = [];
   await assert.rejects(restoreFixtureActions([

@@ -221,7 +221,7 @@ test.describe('authenticated GenericDialog visual and accessibility contract', (
     expect(stylesByTheme.light.background).not.toBe(stylesByTheme.dark.background);
     expect(stylesByTheme.light.border).not.toBe(stylesByTheme.dark.border);
     expect(stylesByTheme.light.overlayBackground).not.toBe(stylesByTheme.dark.overlayBackground);
-    const controlledExportErrors = errors.filter(error => /Export error.*Falha visual controlada/i.test(error));
+    const controlledExportErrors = errors.filter(error => /source=console kind=controlled-export-error(?:\s|$)/.test(error));
     expect(controlledExportErrors).toHaveLength(2);
     await expectNoCriticalErrors(errors.filter(error => !controlledExportErrors.includes(error)));
   });

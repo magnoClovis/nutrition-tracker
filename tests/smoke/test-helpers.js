@@ -34,6 +34,9 @@ function safeResourceLocation(rawUrl) {
 }
 
 function safeFailureKind(text) {
+  if (/^Export error:\s*(?:Error:\s*)?Falha visual controlada(?:\b|$)/i.test(text || '')) {
+    return { kind: 'controlled-export-error', status: 'none' };
+  }
   const httpStatus = /status of (\d{3}) \(\)/i.exec(text || '');
   if (httpStatus) return { kind: 'http-error', status: httpStatus[1] };
   if (/net::ERR_TIMED_OUT/i.test(text || '')) return { kind: 'net::ERR_TIMED_OUT', status: 'none' };

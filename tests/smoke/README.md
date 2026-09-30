@@ -16,6 +16,12 @@ Unknown domains are labeled `external-host`; unknown URL segments become
 new assertion failure. A 400 is not automatically ignored; use the sanitized
 origin to investigate it before changing any allowlist.
 
+The GenericDialog export fixture has one explicitly classified console marker,
+`controlled-export-error`. It is emitted only for the static, intentionally
+thrown `Falha visual controlada` error. The visual test still requires exactly
+two such errors; an unexpected export error remains critical. Never restore raw
+console messages merely to satisfy a test assertion.
+
 Fixture restoration must be inside `finally` and every independent restore
 action must be attempted even when an earlier one fails. A failure is reported
 as `authenticated-fixture-restore-failed:<step>`, without the fixture value.
