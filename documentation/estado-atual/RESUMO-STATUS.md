@@ -1762,7 +1762,7 @@
 - **Propósito:** reduzir impacto de XSS e impedir diagnósticos globais desnecessários em produção.
 - **O que se planeja fazer:** aplicar CSP via meta compatível com Firebase/reCAPTCHA/Worker e restringir globals de debug.
 - **Recursos/arquivos principais envolvidos:** `index.html`, `firebase-storage.js`, `src/firebase/firebase-storage.js`, verificador de build, Firebase/reCAPTCHA/Worker, Pages e testes PT/EN/ES.
-- **O que foi feito:** PR draft #294 aberto; após dois CI antigos falhos por CSP, allowlist pontual, suíte integral e recortes autenticados legado/Vite 2/2 cada passaram; novo CI e Pages pendentes.
+- **O que foi feito:** PR draft #294 no commit `aaa6563`; o CI `36621844513` falhou com 54 casos Vite mobile presos em `#loading`. Diagnóstico isolado confirmou CSP bloqueando o bundle Google `apis.google.com/_/scs/`; a allowlist pontual passou no recorte autenticado mobile 2/2 e no `npm test` local completo (1.518 unitários, legado/Vite 78 aprovados + 69 skips esperados cada, cutover 60/60). Novo CI autenticado e Pages ainda pendentes; sem merge/deploy.
 
 ### [C14-H] - Staging, validação final e rollout
 
