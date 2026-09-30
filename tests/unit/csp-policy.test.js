@@ -13,6 +13,8 @@ test('CSP precedes scripts and hashes every inline script/style block', () => {
   assert.match(policy, /script-src[^;]*https:\/\/apis\.google\.com\/js\/api\.js/);
   assert.match(policy, /script-src[^;]*https:\/\/apis\.google\.com\/_\/scs\//);
   assert.doesNotMatch(policy, /script-src[^;]*https:\/\/apis\.google\.com(?:\s|;)/);
+  assert.match(policy, /frame-src[^;]*https:\/\/nutrition-tracker-780b3\.firebaseapp\.com(?:\s|;)/);
+  assert.doesNotMatch(policy, /frame-src[^;]*https:\/\/\*\.firebaseapp\.com/);
   assert.match(policy, /img-src[^;]*https:\/\/www\.google\.com\/images\/cleardot\.gif/);
   assert.match(policy, /https:\/\/trofia-ai-proxy\.cmagno-dev\.workers\.dev/);
 });
