@@ -29,7 +29,9 @@ A correção move a preparação para dentro do `try` após capturar os snapshot
 - Unitários completos: 1.518/1.518 aprovados, zero skips, após instalar dependências exatas do lockfile principal e do Worker na worktree isolada.
 - `npm test` integral final: preflight verde, 1.518/1.518 unitários, legado 76 aprovados + 69 skips locais por falta de credenciais nesta worktree, Vite 76 aprovados + 69 skips locais, cutover 60/60; código de saída 0.
 - Recorte autenticado real Vite, com a configuração App Check completa no mesmo processo e lease distribuído: 5/5 (setup mais avaliação contextual e backup em desktop/mobile), zero falhas/skips. Lock e portas liberados no teardown. As credenciais e tokens foram lidos somente de arquivos locais ignorados/variáveis do repositório e não copiados para esta worktree.
-- CI autenticado do PR técnico: pendente. Os passes isolados não permitem classificar o HTTP 400 original: a tentativa isolada não o reproduziu.
+- CI autenticado do PR técnico: primeiro ciclo falhou em asserção visual do harness; segundo ciclo sobre `00b3766` passou. Os passes não classificam o HTTP 400 original, que não reapareceu.
+- O primeiro CI do PR #295 expôs uma asserção GenericDialog incompatível com o coletor agora sanitizado: o alerta controlado foi exibido, mas o teste ainda buscava texto bruto. O commit `00b3766` classifica somente o marcador estático como `controlled-export-error` e mantém falhas inesperadas críticas; o recorte autenticado passou 3/3.
+- No SHA `00b3766`, o preflight documental `36654209987` passou em 27 s e o CI autenticado `36654210219` em 38 min 04 s: 1.519 unitários, Worker 44/44, Functions emuladas 74/74, legado 135 aprovados + 10 skips estruturais, Vite 145/145, `SMOKE_OUTCOME: success`. O CI não reproduziu os três sintomas originais da I2, portanto sua causa comum permanece não confirmada; não se declarou o runtime corrigido por esse resultado.
 
 ## Ocorrência paralela C14-G
 
