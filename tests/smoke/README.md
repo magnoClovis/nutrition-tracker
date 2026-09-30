@@ -16,6 +16,12 @@ Unknown domains are labeled `external-host`; unknown URL segments become
 new assertion failure. A 400 is not automatically ignored; use the sanitized
 origin to investigate it before changing any allowlist.
 
+On a bootstrap timeout, the harness also reports only fixed boolean state of
+`#loading`, its hide request/timers, whether the app shell exists, and an
+allowlisted `document.readyState`. It never copies loading text or profile
+contents. `net::ERR_ABORTED` requests alone do not establish why bootstrap
+stalled; compare the DOM state and the order of events before changing runtime.
+
 The GenericDialog export fixture has one explicitly classified console marker,
 `controlled-export-error`. It is emitted only for the static, intentionally
 thrown `Falha visual controlada` error. The visual test still requires exactly

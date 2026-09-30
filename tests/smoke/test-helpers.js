@@ -150,6 +150,28 @@ function formatSafeDiagnostics(errors) {
   return [...errors, ...(errors.diagnostics || [])].slice(-50).join('\n') || 'none';
 }
 
+async function readSafeBootstrapState(page) {
+  try {
+    const state = await page.evaluate(() => {
+      const loading = document.getElementById('loading');
+      return {
+        loadingPresent: Boolean(loading),
+        loadingHidden: Boolean(loading?.classList.contains('is-hidden')),
+        hideRequested: window.initialLoadingHideRequested === true,
+        hideTimerPending: window.initialLoadingHideTimer != null,
+        removeTimerPending: window.initialLoadingRemoveTimer != null,
+        appMainPresent: document.querySelector('[data-app-main]') != null,
+        readyState: document.readyState
+      };
+    });
+    const readyState = ['loading', 'interactive', 'complete'].includes(state?.readyState)
+      ? state.readyState : 'unknown';
+    return `bootstrap-dom loading=${Boolean(state?.loadingPresent)} hidden=${Boolean(state?.loadingHidden)} hide-requested=${Boolean(state?.hideRequested)} hide-timer=${Boolean(state?.hideTimerPending)} remove-timer=${Boolean(state?.removeTimerPending)} app-main=${Boolean(state?.appMainPresent)} document=${readyState}`;
+  } catch {
+    return 'bootstrap-dom unavailable';
+  }
+}
+
 async function restoreFixtureActions(actions) {
   const failed = [];
   for (const [index, action] of actions.entries()) {
@@ -169,7 +191,8 @@ async function openApp(page) {
     await expect(page.locator('#root')).toBeVisible();
     await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
   } catch {
-    throw new Error(`app-bootstrap-failed; sanitized diagnostics:\n${formatSafeDiagnostics(errors)}`);
+    const state = await readSafeBootstrapState(page);
+    throw new Error(`app-bootstrap-failed; sanitized diagnostics:\n${state}\n${formatSafeDiagnostics(errors)}`);
   }
   setCriticalErrorPhase(errors, 'scenario');
   return errors;
@@ -288,6 +311,7 @@ module.exports = {
   setCriticalErrorPhase,
   formatSafeDiagnostics,
   restoreFixtureActions,
+  readSafeBootstrapState,
   interceptOptionalExternalApis,
   openApp,
   setAppLanguage,

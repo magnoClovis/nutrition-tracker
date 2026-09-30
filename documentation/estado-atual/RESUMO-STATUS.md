@@ -8,7 +8,7 @@
 - **Propósito:** distinguir falha real de Auth, App Check, Firestore ou teardown de intermitência externa antes de liberar o PR #293.
 - **O que se planeja fazer:** confrontar as duas tentativas do CI e os artefatos com bootstrap, rede, lease e restauração das fixtures, sem alterar a I2 nem dados reais.
 - **Recursos/arquivos principais envolvidos:** run `36590911079`, artefatos `11046177805`/`11052475783`, `tests/smoke/authenticated-flows.spec.js`, `tests/smoke/test-helpers.js` e coordenador autenticado.
-- **O que foi feito:** perfil `unavailable`, loading e HTTP 400 da I2 seguem sem causa comum comprovada; o harness teve restauração de fixtures e diagnóstico sanitizado corrigidos. Após ajustar a asserção visual, o PR draft #295 passou no CI autenticado `36654210219` (1.519 unitários, legado 135 + 10 skips, Vite 145); a investigação original permanece aberta sem atribuição especulativa.
+- **O que foi feito:** após um CI verde no `00b3766`, o HEAD apenas documental `f2bae8a` falhou no CI `36694910642` em dois bootstraps desktop com loading e Firestore `ERR_ABORTED`, sem causa comprovada; o diagnóstico I2 agora também captura apenas estados booleanos da camada de loading. O PR #295 permanece draft.
 
 ### [INC-I2-HARNESS] - Diagnóstico sanitizado de navegador e rede
 
@@ -18,7 +18,7 @@
 - **Propósito:** permitir que a próxima falha autenticada revele o endpoint e a fase sem expor dados da conta.
 - **O que se planeja fazer:** registrar domínio, caminho redigido, método, status, fase e tipo de falha; preservar o gate e corrigir somente um defeito de teardown ou runtime comprovado.
 - **Recursos/arquivos principais envolvidos:** `tests/smoke/test-helpers.js`, `tests/smoke/authenticated-flows.spec.js`, `tests/unit/smoke-console-filter.test.js` e guia operacional dos smokes.
-- **O que foi feito:** instrumentação e restauração fail-closed implementadas; recortes autenticados 5/5 e 3/3 passaram. A asserção visual dependente de mensagem bruta foi substituída por marcador sanitizado, com regressão 7/7, `npm test` integral e CI autenticado `36654210219` verdes; PR #295 segue draft, sem alteração de runtime.
+- **O que foi feito:** instrumentação, restauração fail-closed e marcador visual sanitizado passaram no CI `36654210219`; a recorrência do loading no CI `36694910642` motivou diagnóstico DOM de campos fixos, com regressão focada 8/8. O PR #295 segue draft, sem alteração de runtime.
 
 > Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `13bd540`, em 13/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 

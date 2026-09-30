@@ -5,6 +5,7 @@ const { EventEmitter } = require('node:events');
 const {
   collectCriticalErrors,
   isIgnorableConsoleError,
+  readSafeBootstrapState,
   restoreFixtureActions,
   safeResourceLocation,
   setCriticalErrorPhase
@@ -117,4 +118,21 @@ test('attempts every fixture restoration even when the first fails', async () =>
     async () => { calls.push('language'); throw new Error('private language payload'); }
   ]), /authenticated-fixture-restore-failed:1,3/);
   assert.deepEqual(calls, ['meal', 'pantry', 'language']);
+});
+
+test('bootstrap DOM diagnostic exposes only fixed boolean and ready-state fields', async () => {
+  const diagnostic = await readSafeBootstrapState({
+    evaluate: async () => ({
+      loadingPresent: true,
+      loadingHidden: false,
+      hideRequested: false,
+      hideTimerPending: true,
+      removeTimerPending: false,
+      appMainPresent: true,
+      readyState: 'private-uid token=secret'
+    })
+  });
+  assert.equal(diagnostic, 'bootstrap-dom loading=true hidden=false hide-requested=false hide-timer=true remove-timer=false app-main=true document=unknown');
+  assert.doesNotMatch(diagnostic, /private-uid|token|secret/);
+  assert.equal(await readSafeBootstrapState({ evaluate: async () => { throw new Error('private token'); } }), 'bootstrap-dom unavailable');
 });
