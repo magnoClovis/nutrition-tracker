@@ -5,6 +5,8 @@ const TASK_REGION = "europe-west1";
 const PRODUCTION_PROJECT_ID = "nutrition-tracker-780b3";
 const PROCESSOR_SERVICE_ACCOUNT =
   `trofia-del-process@${PRODUCTION_PROJECT_ID}.iam.gserviceaccount.com`;
+const REQUEST_SERVICE_ACCOUNT =
+  `trofia-del-request@${PRODUCTION_PROJECT_ID}.iam.gserviceaccount.com`;
 const EMULATOR_PROJECT_ID = "demo-trofia-c22";
 const ACCOUNT_DELETION_JOBS_COLLECTION = "accountDeletionJobs";
 const ACCOUNT_DELETION_TASK_FUNCTION = "processAccountDeletionTask";
@@ -41,6 +43,7 @@ module.exports = Object.freeze({
   TASK_REGION,
   PRODUCTION_PROJECT_ID,
   PROCESSOR_SERVICE_ACCOUNT,
+  REQUEST_SERVICE_ACCOUNT,
   EMULATOR_PROJECT_ID,
   FAILED_JOB_RETENTION_MS,
   RECONCILIATION_LEASE_MS,

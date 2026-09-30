@@ -1719,7 +1719,7 @@
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; preparar grants mínimos, validar primeiro a identidade do processador isoladamente e depois cada consumidor restante, com testes reais e rollback antes de qualquer revogação.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/config.js`, `functions/test/infrastructure.test.js`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** PRs #258/#265/#288 prepararam IAM e dependências; #292 (merge `d9815c9`) isolou o processador, publicado seletivamente em 30/09 na revisão `00003-kuf` com `trofia-del-process` e validado por exclusão completa de conta descartável. Callable, reconciliador/Scheduler e `Editor` antigo permanecem intactos; faltam as demais migrações e o replay final.
+- **O que foi feito:** PRs #258/#265/#288 prepararam IAM/dependências; #292 isolou o processador, publicado e validado com conta descartável. O candidato seguinte configura somente o callable com identidade dedicada: infraestrutura 5/5, Functions emuladas 74/74 e `npm test` integral com 1.518 unitários e cutover 60/60 passaram; o smoke autenticado local foi omitido por falta de credenciais nesta worktree e ainda exige CI real. O reconciliador foi separado porque o Firebase CLI também trocaria seu OIDC do Scheduler. Nenhum novo deploy ou revogação ocorreu.
 
 ### [DOC-C14-F2-287] - Métricas pós-merge das dependências
 
