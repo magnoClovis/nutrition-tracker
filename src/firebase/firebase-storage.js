@@ -89,12 +89,14 @@ const facade = {
   fbHeaders, fbGet, fbSet, fbDel, fbList, fbGet3, fbSet3, fbDel3, fbList3,
   exportFullAccountBackup, validateFullAccountBackup,
   previewFullAccountBackupImport, importFullAccountBackup,
-  debugNutritionStorage, debugFirestoreReadMetrics,
   FB_PROJECT, FB_KEY, FB_BASE, AUTH_BASE, TOKEN_BASE,
   REPORT_SERVER_URL, REPORTS_ENABLED, storage,
 };
 
 Object.assign(globalThis, facade);
+if (/^(localhost|127\.0\.0\.1)$/.test(globalThis.location?.hostname || '')) {
+  Object.assign(globalThis, {debugNutritionStorage, debugFirestoreReadMetrics});
+}
 
 export {
   AUTH_BASE, FB_BASE, FB_KEY, FB_PROJECT, REPORTS_ENABLED, REPORT_SERVER_URL,

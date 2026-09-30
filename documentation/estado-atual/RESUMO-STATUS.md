@@ -236,7 +236,7 @@
 ## O que está em andamento agora
 
 - **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.
-- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D, C14-E e C14-F1 estão concluídas; C14-F2 está em andamento; C14-G e C14-H não foram iniciadas. — **Chat:** Trofia-Principal.
+- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D, C14-E e C14-F1 estão concluídas; C14-F2 e C14-G estão em andamento em branches isoladas; C14-H não foi iniciada. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 - **[DOC-TRACKING-193] Concluído (12/09/2026) — Chat: Trofia-Principal.** O que se planeja fazer: registrar integralmente as sequências aprovadas e formalizar planejamento, entrega, alinhamento e métricas. O que foi feito: 100 entradas de fatias foram normalizadas no PR #193, com escopos incertos de D3–D7 explicitamente delegados ao chat UI/UX. Alinhamento: 100%.
@@ -1737,9 +1737,9 @@
 - **Data de início:** 26/09/2026.
 - **Data de conclusão:** não concluído.
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
-- **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; após avaliar o inventário e obter autorização específica, preparar identidades e grants mínimos, provar cada fluxo e só então considerar migração/revogação com rollback.
-- **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** o PR #258 reconfirmou IAM; o PR #265 (merge `e8b369d`) atualizou `firebase-admin` para 14.5.0 e reduziu o audit de produção das Functions de sete para dois alertas moderados transitivos, com CI autenticado verde. Cloud Asset e dois replays identificaram três perdas se Editor fosse simplesmente removido, compensadas apenas no overlay candidato, ainda com recursos sem suporte. Em 29/09 foram criadas e verificadas cinco contas dedicadas sem chaves, um papel mínimo para excluir usuário Auth e 12 associações IAM delimitadas por projeto/fila/buckets/repositórios/serviço; o registro foi mesclado no PR #288 (`41a5817`). Functions, Scheduler e Editor da conta antiga permanecem inalterados; faltam migração, provas reais e novo replay antes de qualquer revogação.
+- **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; preparar grants mínimos, validar primeiro a identidade do processador isoladamente e depois cada consumidor restante, com testes reais e rollback antes de qualquer revogação.
+- **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/config.js`, `functions/test/infrastructure.test.js`, manifests/lockfiles e inventário administrativo.
+- **O que foi feito:** PRs #258/#265/#288 prepararam IAM e dependências; #292 (merge `d9815c9`) isolou o processador, publicado seletivamente em 30/09 na revisão `00003-kuf` com `trofia-del-process` e validado por exclusão completa de conta descartável. Callable, reconciliador/Scheduler e `Editor` antigo permanecem intactos; faltam as demais migrações e o replay final.
 
 ### [DOC-C14-F2-287] - Métricas pós-merge das dependências
 
@@ -1763,6 +1763,8 @@
 - **O que foi feito:** PR documental #288 mesclado em `41a5817` após 11 h 9 min 28 s; 11 preflights leves somaram 5 min 37 s, e as métricas idênticas constam na descrição do PR. Cinco contas e 12 grants preparados por autorização separada; serviços ativos e Editor preservados.
 - **Alinhamento:** 100%; o registro descreve a preparação efetiva e mantém a C14-F2 em andamento.
 
+**Métricas do PR documental #291, incorporadas neste próximo registro substantivo conforme combinado:** merge `c88b91b`; tempo decorrido de 19 min 11 s; CI de 1 min (1 min leve + 0 min pesado). A descrição do #291 já contém os mesmos valores. Esse PR apenas registrou métricas do #288, sem trocar identidades ou encerrar C14-F2.
+
 ### [C14-F2-PRE] - Inventário preparatório de IAM e dependências
 
 - **Status:** concluído — **Chat:** Trofia-Principal.
@@ -1776,12 +1778,13 @@
 
 ### [C14-G] - CSP e superfícies de debug
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 29/09/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** reduzir impacto de XSS e impedir diagnósticos globais desnecessários em produção.
 - **O que se planeja fazer:** aplicar CSP via meta compatível com Firebase/reCAPTCHA/Worker e restringir globals de debug.
-- **Recursos/arquivos principais envolvidos:** `index.html`, CSP, Firebase/reCAPTCHA/Google APIs, globals de debug, Pages e matriz PT/EN/ES.
+- **Recursos/arquivos principais envolvidos:** `index.html`, `firebase-storage.js`, `src/firebase/firebase-storage.js`, verificador de build, Firebase/reCAPTCHA/Worker, Pages e testes PT/EN/ES.
+- **O que foi feito:** PR draft #294 no commit `5ca3e11` passou preflight `36671149562` e CI autenticado `36671149555` (1.518 unitários, Worker 44, Functions 74, legado 137 + 10 skips estruturais, Vite 147); CSP restrita e regressões locais passaram, mas Pages real, merge e publicação seguem pendentes.
 
 ### [C14-H] - Staging, validação final e rollout
 
