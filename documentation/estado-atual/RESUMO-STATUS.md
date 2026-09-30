@@ -1717,9 +1717,9 @@
 - **Data de início:** 26/09/2026.
 - **Data de conclusão:** não concluído.
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
-- **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; após avaliar o inventário e obter autorização específica, preparar identidades e grants mínimos, provar cada fluxo e só então considerar migração/revogação com rollback.
-- **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** o PR #258 reconfirmou IAM; o PR #265 (merge `e8b369d`) atualizou `firebase-admin` para 14.5.0 e reduziu o audit de produção das Functions de sete para dois alertas moderados transitivos, com CI autenticado verde. Cloud Asset e dois replays identificaram três perdas se Editor fosse simplesmente removido, compensadas apenas no overlay candidato, ainda com recursos sem suporte. Em 29/09 foram criadas e verificadas cinco contas dedicadas sem chaves, um papel mínimo para excluir usuário Auth e 12 associações IAM delimitadas por projeto/fila/buckets/repositórios/serviço; o registro foi mesclado no PR #288 (`41a5817`). Functions, Scheduler e Editor da conta antiga permanecem inalterados; faltam migração, provas reais e novo replay antes de qualquer revogação.
+- **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; preparar grants mínimos, validar primeiro a identidade do processador isoladamente e depois cada consumidor restante, com testes reais e rollback antes de qualquer revogação.
+- **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/config.js`, `functions/test/infrastructure.test.js`, manifests/lockfiles e inventário administrativo.
+- **O que foi feito:** o PR #258 reconfirmou IAM; o PR #265 (merge `e8b369d`) atualizou `firebase-admin` para 14.5.0 e reduziu o audit das Functions de sete para dois alertas moderados transitivos. Após inventário e dois replays limitados, foram criadas cinco contas, um papel mínimo Auth e 12 grants candidatos (PR #288, merge `41a5817`); mais seis vínculos OIDC restritos foram aplicados e relidos após autorização. O draft #292 prepara a troca apenas no processador: teste focado 5/5, emuladores 74/74, `npm test` integral verde (1.514 unitários, cutover 60) e CI autenticado `36592479018` verde; o futuro deploy também atualizaria `firebase-admin` de 14.2.0 para 14.5.0 nessa Function. Nenhuma Function foi publicada; a conta antiga conserva `Editor`. Faltam revisão/merge do #292, prova real, demais migrações e replay final.
 
 ### [DOC-C14-F2-287] - Métricas pós-merge das dependências
 
@@ -1742,6 +1742,8 @@
 - **Recursos/arquivos principais envolvidos:** `RESUMO-STATUS.md`, histórico principal, inventário IAM C14-F2 e PR #288.
 - **O que foi feito:** PR documental #288 mesclado em `41a5817` após 11 h 9 min 28 s; 11 preflights leves somaram 5 min 37 s, e as métricas idênticas constam na descrição do PR. Cinco contas e 12 grants preparados por autorização separada; serviços ativos e Editor preservados.
 - **Alinhamento:** 100%; o registro descreve a preparação efetiva e mantém a C14-F2 em andamento.
+
+**Métricas do PR documental #291, incorporadas neste próximo registro substantivo conforme combinado:** merge `c88b91b`; tempo decorrido de 19 min 11 s; CI de 1 min (1 min leve + 0 min pesado). A descrição do #291 já contém os mesmos valores. Esse PR apenas registrou métricas do #288, sem trocar identidades ou encerrar C14-F2.
 
 ### [C14-F2-PRE] - Inventário preparatório de IAM e dependências
 

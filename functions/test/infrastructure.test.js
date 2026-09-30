@@ -71,6 +71,14 @@ test("exposes only the reviewed callable, task and reconciliation handlers", () 
 
   const taskEndpoint = exportedFunctions.processAccountDeletionTask.__endpoint;
   assert.deepEqual(taskEndpoint.region, [runtimeConfig.TASK_REGION]);
+  assert.equal(
+    taskEndpoint.serviceAccountEmail,
+    runtimeConfig.PROCESSOR_SERVICE_ACCOUNT,
+  );
+  assert.equal(
+    runtimeConfig.PROCESSOR_SERVICE_ACCOUNT,
+    "trofia-del-process@nutrition-tracker-780b3.iam.gserviceaccount.com",
+  );
   assert.deepEqual(
     taskEndpoint.taskQueueTrigger.retryConfig,
     runtimeConfig.DELETION_TASK_OPTIONS.retryConfig,
@@ -83,11 +91,19 @@ test("exposes only the reviewed callable, task and reconciliation handlers", () 
   const scheduleEndpoint =
     exportedFunctions.reconcileAccountDeletionJobs.__endpoint;
   assert.deepEqual(scheduleEndpoint.region, [runtimeConfig.TASK_REGION]);
+  assert.equal(
+    scheduleEndpoint.serviceAccountEmail.constructor.name,
+    "ResetValue",
+  );
   assert.equal(scheduleEndpoint.scheduleTrigger.schedule, "every 60 minutes");
   assert.equal(scheduleEndpoint.scheduleTrigger.timeZone, "Etc/UTC");
 
   const callableEndpoint = exportedFunctions.requestAccountDeletion.__endpoint;
   assert.deepEqual(callableEndpoint.region, [runtimeConfig.CALLABLE_REGION]);
+  assert.equal(
+    callableEndpoint.serviceAccountEmail.constructor.name,
+    "ResetValue",
+  );
   assert.deepEqual(callableEndpoint.callableTrigger, {});
   assert.match(functionsIndexSource, /requestAccountDeletion\s*=\s*onCall\([\s\S]*?enforceAppCheck:\s*true/);
 });
