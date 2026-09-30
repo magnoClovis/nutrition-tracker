@@ -1,6 +1,6 @@
 # C14-G — CSP do Pages e superfícies de diagnóstico
 
-Status em 30/09/2026: implementação e CI autenticado verdes; Pages real e publicação pendentes. Chat-Origin: Trofia-Principal.
+Status em 30/09/2026: PR #294 mesclado após CI autenticado verde; CI pós-merge da main em execução e Pages real pendente. Chat-Origin: Trofia-Principal.
 
 ## Escopo e limite
 
@@ -64,3 +64,9 @@ O preflight `36621844450` passou, mas o CI `36621844513` terminou com falha às 
 **Gate integral após a rota pontual:** `npm test` passou com código 0: preflight sem avisos, 1.518 unitários, legado e Vite 78 aprovados + 69 skips locais cada, cutover 60/60; nenhum inesperado/flaky nos relatórios. O CI autenticado do novo SHA e a prova de Pages continuam pendentes antes de qualquer merge/publicação.
 
 **Gate remoto do SHA `5ca3e11`:** preflight documental `36671149562` e CI autenticado `36671149555` concluíram verdes em 30/09/2026. O pesado confirmou 1.518 unitários, Worker 44/44, Functions emuladas 74/74, legado autenticado 137 aprovados + 10 skips estruturais, Vite autenticado 147/147, smoke Chromium CSP e `SMOKE_OUTCOME: success`. O cutover 60/60 foi validado localmente, não nesse run remoto. O custo acumulado comprovado até esse SHA, incluindo cinco runs de diagnóstico que falharam, é 4 h 11 min 46 s (3 min 18 s leves + 4 h 8 min 28 s pesados). Isso não comprova o comportamento no domínio publicado do Pages: falta validar login/App Check, perfil e fluxos críticos no Pages real, conferir ausência de violação CSP e somente então avaliar publicação/rollback. O PR #294 permanece draft; nenhum merge ou deploy foi feito.
+
+**Estado após o merge `5dfff2a`, 30/09/2026:** o HEAD documental `f16ab31` também passou preflight `36688816423` e CI autenticado `36688816425`, com 1.518 unitários, legado 137 + 10 skips e Vite 147/147. O PR #294 levou 19 h 19 min 11 s do primeiro commit ao merge; seus runs somaram 5 h 00 min 12 s de CI (3 min 44 s leve + 4 h 56 min 28 s pesado), incluindo os diagnósticos anteriores. O CI pós-merge `36721651685` está em execução; por `workflow_run`, somente seu sucesso iniciará build/deploy/smoke do Pages. Não interpretar o merge como validação da CSP publicada nem encerrar G antes do gate do domínio real.
+
+**Primeiro CI pós-merge falho:** o run `36721651685` terminou com preflight, unitários, Worker e Functions verdes, mas oito testes Vite falharam. O artefato `11103211872` mostra casos diversos com `#loading` persistente e um aviso explícito de que Firestore não respondeu em 10 s. A falha impediu o disparo de Pages; não existe prova publicada da CSP nesta revisão. Uma única repetição diagnóstica do mesmo SHA foi iniciada para classificar intermitência, sem alterar política, código ou limites. Se falhar novamente, parar e investigar bootstrap/rede com evidência sanitizada, sem atribuição especulativa à CSP ou a um serviço externo.
+
+**Segunda tentativa do mesmo SHA também falhou:** o rerun `36721651685` terminou com 144 Vite aprovados e três falhas (artefato `11108085022`), em casos distintos da primeira tentativa: um `#loading` não removido e dois controles de navegação ausentes. O padrão não sustenta atribuir a falha à CSP ou ao Firestore sem mais evidência. Não haverá novo rerun por tentativa e erro. Pages não foi disparado; aguardar diagnóstico sanitizado Auth/App Check/perfil/rede antes de publicar ou marcar G como concluída.
