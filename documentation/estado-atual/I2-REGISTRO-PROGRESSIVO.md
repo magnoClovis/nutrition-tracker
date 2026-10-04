@@ -67,6 +67,8 @@ O modal não duplica nome, peso ou altura e não substitui o percurso principal 
 - matriz Vite pública afetada: 50/50, com 9 skips autenticados esperados porque esse recorte não carregou credenciais;
 - gate local integral autenticado: preflight verde, 1.514/1.514 unitários, smoke legado com 149 aprovados e 10 skips estruturais, smoke Vite 159/159 e cutover 60/60.
 
-A expectativa antiga `Weight maintenance` existia somente no helper de teste; o runtime aprovado usa `Maintain weight`. A correção não relaxou asserções nem alterou o comportamento do produto. PR, CI real, métricas e merge permanecem pendentes.
+Após o diagnóstico separado `INC-I2-AUTH` entrar na `main` pelo commit `0823472`, a branch incorporou essa base no merge local `c41b0ad` sem conflitos e sem alterar o comportamento funcional da I2. Na árvore integrada, os quatro recortes afetados passaram 59/59 no legado e 59/59 no Vite. O gate integral repetido também ficou totalmente verde: preflight, 1.524/1.524 unitários, smoke legado 161/161, smoke Vite 161/161 e cutover 60/60. Nenhum dos sintomas autenticados anteriores reapareceu; esse resultado não atribui causa nem declara correção de runtime para a intermitência investigada pelo Principal.
+
+A expectativa antiga `Weight maintenance` existia somente no helper de teste; o runtime aprovado usa `Maintain weight`. A correção não relaxou asserções nem alterou o comportamento do produto. O PR funcional é o draft #293; CI real atualizado, métricas finais e merge permanecem pendentes.
 
 Chat-Origin: Trofia-UIUX
