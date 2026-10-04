@@ -1,5 +1,26 @@
 # Resumo de status do Trofia
 
+### [INC-I2-AUTH-T0] - Auditoria das falhas autenticadas do gate I2
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 29/09/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** distinguir falha real de Auth, App Check, Firestore ou teardown de intermitência externa antes de liberar o PR #293.
+- **O que se planeja fazer:** confrontar as duas tentativas do CI e os artefatos com bootstrap, rede, lease e restauração das fixtures, sem alterar a I2 nem dados reais.
+- **Recursos/arquivos principais envolvidos:** run `36590911079`, artefatos `11046177805`/`11052475783`, `tests/smoke/authenticated-flows.spec.js`, `tests/smoke/test-helpers.js` e coordenador autenticado.
+- **O que foi feito:** o CI `36694910642` revelou dois bootstraps desktop presos sem causa comprovada. O PR diagnóstico #295 passou CI autenticado no SHA `f7b6b09` e foi mesclado em `0823472`; não alterou o runtime nem identificou a causa comum. O UI/UX recebeu diretamente o SHA e os limites para atualizar e repetir o gate do PR #293, ainda draft.
+
+### [INC-I2-HARNESS] - Diagnóstico sanitizado de navegador e rede
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 29/09/2026.
+- **Data de conclusão:** 04/10/2026.
+- **Propósito:** permitir que a próxima falha autenticada revele o endpoint e a fase sem expor dados da conta.
+- **O que se planeja fazer:** registrar domínio, caminho redigido, método, status, fase e tipo de falha; preservar o gate e corrigir somente um defeito de teardown ou runtime comprovado.
+- **Recursos/arquivos principais envolvidos:** `tests/smoke/test-helpers.js`, `tests/smoke/authenticated-flows.spec.js`, `tests/unit/smoke-console-filter.test.js` e guia operacional dos smokes.
+- **O que foi feito:** instrumentação, restauração fail-closed e marcador visual sanitizado foram mesclados no PR #295 (`0823472`), após regressão focada, suíte local e CI final `36741893220` verdes (1.524 unitários; legado 137 + 10 skips estruturais; Vite 147). Não houve alteração de runtime nem confirmação da causa intermitente.
+- **Alinhamento:** aproximadamente 100% do escopo de instrumentação e correção objetiva do teardown; impacto positivo para diagnósticos futuros, sem alegar resolução da investigação I2.
+
 > Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `13bd540`, em 13/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
 ## O que está implementado e funcionando hoje
