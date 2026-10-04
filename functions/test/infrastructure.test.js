@@ -101,8 +101,12 @@ test("exposes only the reviewed callable, task and reconciliation handlers", () 
   const callableEndpoint = exportedFunctions.requestAccountDeletion.__endpoint;
   assert.deepEqual(callableEndpoint.region, [runtimeConfig.CALLABLE_REGION]);
   assert.equal(
-    callableEndpoint.serviceAccountEmail.constructor.name,
-    "ResetValue",
+    callableEndpoint.serviceAccountEmail,
+    runtimeConfig.REQUEST_SERVICE_ACCOUNT,
+  );
+  assert.equal(
+    runtimeConfig.REQUEST_SERVICE_ACCOUNT,
+    "trofia-del-request@nutrition-tracker-780b3.iam.gserviceaccount.com",
   );
   assert.deepEqual(callableEndpoint.callableTrigger, {});
   assert.match(functionsIndexSource, /requestAccountDeletion\s*=\s*onCall\([\s\S]*?enforceAppCheck:\s*true/);
