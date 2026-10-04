@@ -256,6 +256,8 @@ O PR documental #291, mesclado em `c88b91b`, levou **19 min 11 s** do primeiro c
 
 **Prova natural concluída — 04/10/2026:** o Scheduler `ENABLED` executou às **15:26:00 UTC** com OIDC `trofia-scheduler-oidc` e status sem erro; o Cloud Run registrou uma requisição HTTP **200**, três entradas `INFO` e nenhuma 401/403 nos metadados consultados. A revisão `00003-zip` seguia com 100% de tráfego e runtime `trofia-del-reconcile`; IAM ainda tinha exatamente os invocadores `default-compute` e `trofia-scheduler-oidc`. A consulta não imprimiu mensagens, URL, UID, corpos nem dados. Isso valida o caminho agendado sem job pendente conhecido; não valida reenvio/retry de um job, nem o rollback REST recusado na validação, nem a futura revogação de `roles/editor`. O monitor foi removido após o resultado. A F2 permanece aberta para cobertura funcional/IAM restante e decisão específica sobre build e Editor.
 
+**Registro pós-merge da prova natural:** o PR documental #300 foi mesclado em `55a45c9` em 04/10/2026, após **1 h 39 min 3 s** do primeiro commit ao merge e **52 s de CI (52 s leve + 0 s pesado)**, idênticos ao histórico do Principal e à descrição do PR. Não houve nova mutação de IAM, Scheduler ou Function nesse PR. A execução HTTP 200 não fecha as provas de enfileiramento/retry, identidade de build, revogação de `roles/editor` ou rollback de tráfego; a C14-F2 permanece em andamento.
+
 - nenhuma Function administrativa executa com `roles/editor`;
 - cada identidade possui somente os acessos necessários ao seu fluxo;
 - invocadores públicos/privados são comprovados por testes positivos e negativos;
