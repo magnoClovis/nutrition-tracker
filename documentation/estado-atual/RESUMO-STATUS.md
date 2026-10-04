@@ -10,6 +10,28 @@
 - **Recursos/arquivos principais envolvidos:** `src/App.jsx`, `tests/smoke/test-helpers.js`, `tests/unit/smoke-console-filter.test.js`, PR UIUX #293 e `INC-I2-AUTH-DIAGNOSTICS.md`.
 - **O que foi feito:** a recorrência do CI UIUX `37213604958` parou antes da I2 funcional com `#loading` sem pedido de ocultação; a fase pendente ainda não era observável. Marcador e whitelist passaram no recorte final 28/28 e no `npm test` completo: 1.524 unitários, legado e Vite 78 aprovados + 69 skips locais esperados cada, cutover 60/60. CI autenticado próprio ainda pendente.
 
+### [DOC-C14-G-301] - Métricas pós-merge do encerramento C14-G
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 04/10/2026.
+- **Data de conclusão:** 04/10/2026.
+- **Propósito:** alinhar o registro final da C14-G às métricas reais do PR documental #301.
+- **O que se planeja fazer:** registrar tempo do primeiro commit ao merge e duração integral dos preflights, sem alterar o escopo funcional.
+- **Recursos/arquivos principais envolvidos:** PR #301, histórico Principal, resumo e rollout C14-G.
+- **O que foi feito:** PR #301 mesclado em `bcdf6fd`; tempo decorrido de 1 h 6 min 37 s; CI de 1 min 21 s (1 min 21 s leve + 0 min pesado), em três preflights verdes. A descrição do PR contém os mesmos valores.
+- **Alinhamento:** 100%; documentação e publicação já comprovadas, sem nova mudança funcional.
+
+### [DOC-C14-F2-302] - Métricas pós-merge da auditoria complementar
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 04/10/2026.
+- **Data de conclusão:** 04/10/2026.
+- **Propósito:** manter rastreável o custo real do registro Cloud Asset e build, sem declarar a F2 encerrada.
+- **O que se planeja fazer:** registrar o tempo até o merge e os dois preflights do PR #302 nos documentos pertinentes.
+- **Recursos/arquivos principais envolvidos:** PR #302, resumo, histórico Principal e inventário IAM C14-F2.
+- **O que foi feito:** PR #302 mesclado em `911c727`; tempo decorrido de 32 min 26 s; CI de 58 s (58 s leve + 0 s pesado). A descrição do PR contém os mesmos valores.
+- **Alinhamento:** 100% do registro documental; a C14-F2 continua em andamento.
+
 ### [INC-I2-AUTH-T0] - Auditoria das falhas autenticadas do gate I2
 
 - **Status:** em andamento — **Chat:** Trofia-Principal.
@@ -247,7 +269,7 @@
 ## O que está em andamento agora
 
 - **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.
-- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D, C14-E e C14-F1 estão concluídas; C14-F2 e C14-G estão em andamento em branches isoladas; C14-H não foi iniciada. — **Chat:** Trofia-Principal.
+- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D, C14-E, C14-F1 e C14-G estão concluídas; C14-F2 permanece em andamento e C14-H não foi iniciada. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 - **[DOC-TRACKING-193] Concluído (12/09/2026) — Chat: Trofia-Principal.** O que se planeja fazer: registrar integralmente as sequências aprovadas e formalizar planejamento, entrega, alinhamento e métricas. O que foi feito: 100 entradas de fatias foram normalizadas no PR #193, com escopos incertos de D3–D7 explicitamente delegados ao chat UI/UX. Alinhamento: 100%.
@@ -1750,7 +1772,7 @@
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; preparar grants mínimos, validar primeiro a identidade do processador isoladamente e depois cada consumidor restante, com testes reais e rollback antes de qualquer revogação.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/config.js`, `functions/test/infrastructure.test.js`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** PRs #258/#265/#288 prepararam IAM/dependências; #292 isolou o processador e #298 isolou o callable, ambos publicados e comprovados com conta descartável. O #299 foi mesclado em `a763951` com CI autenticado verde também na `main` (`37204746549`). O reconciliador foi publicado seletivamente na revisão `00003-zip` com runtime `trofia-del-reconcile`, e o Scheduler usa `trofia-scheduler-oidc`; os invocadores da baseline foram restaurados após efeito colateral do deploy. A execução natural de 04/10 às 15:26 UTC respondeu HTTP 200, sem 401/403 nos metadados. Build e `roles/editor` permanecem intactos; cobertura de enfileiramento/retry e revogação ainda pendentes.
+- **O que foi feito:** PRs #258/#265/#288 prepararam IAM/dependências; #292 isolou o processador e #298 isolou o callable, ambos publicados e comprovados com conta descartável. O #299 foi mesclado em `a763951` com CI autenticado verde também na `main` (`37204746549`). O reconciliador foi publicado seletivamente na revisão `00003-zip` com runtime `trofia-del-reconcile`, e o Scheduler usa `trofia-scheduler-oidc`; os invocadores da baseline foram restaurados após efeito colateral do deploy. A execução natural de 04/10 às 15:26 UTC respondeu HTTP 200, sem 401/403 nos metadados; o registro documental #300 foi mesclado em `55a45c9`. Nova busca Cloud Asset/IAM encontrou 139 recursos pesquisáveis e um `run.invoker` residual da conta padrão no reconciliador; a API Functions confirmou build ainda na conta padrão apesar dos runtimes dedicados. `roles/editor` permanece intacto. Prova de reenvio/retry, migração de build e decisão de revogação seguem pendentes.
 
 ### [DOC-C14-F2-287] - Métricas pós-merge das dependências
 
@@ -1789,13 +1811,14 @@
 
 ### [C14-G] - CSP e superfícies de debug
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 29/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 04/10/2026.
 - **Propósito:** reduzir impacto de XSS e impedir diagnósticos globais desnecessários em produção.
 - **O que se planeja fazer:** aplicar CSP via meta compatível com Firebase/reCAPTCHA/Worker e restringir globals de debug.
 - **Recursos/arquivos principais envolvidos:** `index.html`, `firebase-storage.js`, `src/firebase/firebase-storage.js`, verificador de build, Firebase/reCAPTCHA/Worker, Pages e testes PT/EN/ES.
-- **O que foi feito:** PR draft #294 no commit `5ca3e11` passou preflight `36671149562` e CI autenticado `36671149555` (1.518 unitários, Worker 44, Functions 74, legado 137 + 10 skips estruturais, Vite 147); CSP restrita e regressões locais passaram, mas Pages real, merge e publicação seguem pendentes.
+- **O que foi feito:** CSP restrita e helpers de debug condicionados passaram o CI autenticado; PR #294 mesclado em `5dfff2a` e Pages publicado. A prova final no domínio real passou em desktop/mobile: login/perfil, leitura Firestore, troca App Check e marcador do token no transporte WebChannel, sem violação CSP ou erro de página. As capturas anteriores de cabeçalho HTTP eram falso negativo, pois o SDK codifica os cabeçalhos iniciais na mensagem POST.
+- **Alinhamento:** 100%; a política e a prova publicada cumprem o escopo de G sem alteração especulativa de Auth/App Check.
 
 ### [C14-H] - Staging, validação final e rollout
 
