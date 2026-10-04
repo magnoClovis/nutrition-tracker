@@ -8,7 +8,14 @@ const {
   hasCredentials,
   missingCredentialsMessage
 } = require('./test-credentials');
-const { dismissTutorialIfVisible, interceptOptionalExternalApis, setDateFieldValue } = require('./test-helpers');
+const {
+  collectCriticalErrors,
+  dismissTutorialIfVisible,
+  formatSafeDiagnostics,
+  interceptOptionalExternalApis,
+  setCriticalErrorPhase,
+  setDateFieldValue
+} = require('./test-helpers');
 
 test('authenticate disposable test account', async ({ page }) => {
   fs.mkdirSync(path.dirname(AUTH_STATE_PATH), { recursive: true });
@@ -20,8 +27,13 @@ test('authenticate disposable test account', async ({ page }) => {
   }
 
   await interceptOptionalExternalApis(page);
-  await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
+  const errors = collectCriticalErrors(page);
+  try {
+    await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
+  } catch {
+    throw new Error(`auth-public-bootstrap-failed; sanitized diagnostics:\n${formatSafeDiagnostics(errors)}`);
+  }
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(password);
   // Authenticated projects reuse this setup in fresh browser contexts. Opt in
@@ -31,6 +43,7 @@ test('authenticate disposable test account', async ({ page }) => {
     name: /Manter logado|Keep me signed in|Mantener sesi[oó]n iniciada/i
   }).check();
   await page.getByRole('button', { name: /Entrar|Sign in|Iniciar sesi[oó]n/i }).last().click();
+  setCriticalErrorPhase(errors, 'auth-sign-in');
 
   const appNavigation = page.locator('button').filter({
     hasText: /Di.rio|Diary|Alimentos|Foods|Semana|Week|M.tricas|Metrics|Métricas/i
@@ -39,15 +52,20 @@ test('authenticate disposable test account', async ({ page }) => {
     /Completar perfil nutricional|Complete nutrition profile/i
   );
   const incompleteExistingProfile = page.getByText(/profile-incomplete-existing-account/i);
-  await expect.poll(async () => (
-    await appNavigation.isVisible() || await requiredProfile.isVisible() ||
-    await incompleteExistingProfile.isVisible()
-  ), { timeout: 20000 }).toBe(true);
+  try {
+    await expect.poll(async () => (
+      await appNavigation.isVisible() || await requiredProfile.isVisible() ||
+      await incompleteExistingProfile.isVisible()
+    ), { timeout: 20000 }).toBe(true);
+  } catch {
+    throw new Error(`auth-sign-in-stalled; sanitized diagnostics:\n${formatSafeDiagnostics(errors)}`);
+  }
 
   // The authenticated fixture is disposable and may legitimately have no
   // profile after the C28 one-time Auth cutover. Make setup self-contained
   // instead of depending on data left by an earlier workflow run.
   if (await requiredProfile.isVisible()) {
+    setCriticalErrorPhase(errors, 'new-account-profile');
     await setDateFieldValue(page, '#required-profile-birth-date-trigger', '1990-06-15');
     await page.getByRole('button', {name:/Continuar|Continue/i}).last().click();
     await page.locator('#required-profile-gender-trigger').click();
@@ -69,6 +87,7 @@ test('authenticate disposable test account', async ({ page }) => {
   // its authenticated storage port, then exercise the same retry path a real
   // existing account would use after its server data is restored.
   if (await incompleteExistingProfile.isVisible()) {
+    setCriticalErrorPhase(errors, 'existing-profile-recovery');
     await page.evaluate(async () => {
       await Promise.all([
         window.storage.set('birthDate', '1990-06-15'),
@@ -80,7 +99,11 @@ test('authenticate disposable test account', async ({ page }) => {
     await page.getByRole('button', {name: /Tentar novamente|Try again|Intentar de nuevo/i}).click();
   }
 
-  await expect(appNavigation).toBeVisible({ timeout: 20000 });
+  try {
+    await expect(appNavigation).toBeVisible({ timeout: 20000 });
+  } catch {
+    throw new Error(`auth-profile-gate-failed; sanitized diagnostics:\n${formatSafeDiagnostics(errors)}`);
+  }
 
   await dismissTutorialIfVisible(page);
   // Modular Firebase Auth persists its session in IndexedDB. Preserve that

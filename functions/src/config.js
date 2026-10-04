@@ -3,6 +3,10 @@
 const CALLABLE_REGION = "europe-southwest1";
 const TASK_REGION = "europe-west1";
 const PRODUCTION_PROJECT_ID = "nutrition-tracker-780b3";
+const PROCESSOR_SERVICE_ACCOUNT =
+  `trofia-del-process@${PRODUCTION_PROJECT_ID}.iam.gserviceaccount.com`;
+const REQUEST_SERVICE_ACCOUNT =
+  `trofia-del-request@${PRODUCTION_PROJECT_ID}.iam.gserviceaccount.com`;
 const EMULATOR_PROJECT_ID = "demo-trofia-c22";
 const ACCOUNT_DELETION_JOBS_COLLECTION = "accountDeletionJobs";
 const ACCOUNT_DELETION_TASK_FUNCTION = "processAccountDeletionTask";
@@ -15,6 +19,7 @@ const RECONCILIATION_RETRY_MS = 5 * 60 * 1000;
 
 const DELETION_TASK_OPTIONS = Object.freeze({
   region: TASK_REGION,
+  serviceAccount: PROCESSOR_SERVICE_ACCOUNT,
   retryConfig: Object.freeze({
     maxAttempts: DELETION_MAX_ATTEMPTS,
     maxRetrySeconds: 24 * 60 * 60,
@@ -37,6 +42,8 @@ module.exports = Object.freeze({
   DELETION_TASK_OPTIONS,
   TASK_REGION,
   PRODUCTION_PROJECT_ID,
+  PROCESSOR_SERVICE_ACCOUNT,
+  REQUEST_SERVICE_ACCOUNT,
   EMULATOR_PROJECT_ID,
   FAILED_JOB_RETENTION_MS,
   RECONCILIATION_LEASE_MS,

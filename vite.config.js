@@ -4,8 +4,10 @@ import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import privacyPageRenderer from './scripts/render-privacy-page.js';
+import cspVerifier from './scripts/verify-csp-policy.js';
 
 const { renderPrivacyPage } = privacyPageRenderer;
+const { verifyCspPolicy } = cspVerifier;
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 const outputDirectory = resolve(projectRoot, 'dist');
@@ -72,6 +74,17 @@ function preserveLegacyCssCascadeOrder() {
   };
 }
 
+function verifyBuiltCsp() {
+  return {
+    name: 'verify-built-csp',
+    apply: 'build',
+    async closeBundle() {
+      const html = await readFile(resolve(outputDirectory, 'index.html'), 'utf8');
+      verifyCspPolicy(html);
+    },
+  };
+}
+
 export default defineConfig({
   base: './',
   // ORG-PREP: public/ currently contains only its repository README. Static
@@ -80,6 +93,7 @@ export default defineConfig({
   plugins: [
     react({ jsxRuntime: 'classic' }),
     preserveLegacyCssCascadeOrder(),
+    verifyBuiltCsp(),
     copyExplicitStaticFiles(),
     buildPrivacyPage(),
   ],

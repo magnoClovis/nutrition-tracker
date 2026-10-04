@@ -110,7 +110,7 @@ window.previewFullAccountBackupImport = previewFullAccountBackupImport3;
  * Example:
  *   await debugNutritionStorage(["pantry_v2", "weightHistory", "goalHistory"])
  */
-window.debugNutritionStorage = async function debugNutritionStorage(keys) {
+const _debugNutritionStorage = async function debugNutritionStorage(keys) {
   const requested = keys || [
     "pantry_v2",
     "suppPantry",
@@ -140,6 +140,12 @@ window.debugNutritionStorage = async function debugNutritionStorage(keys) {
   return result;
 };
 
+// Diagnostics may expose profile values. Never publish this console helper on
+// Pages or inside the packaged Android app; local smoke runs retain it.
+if (/^(localhost|127\.0\.0\.1)$/.test(window.location?.hostname || "")) {
+  window.debugNutritionStorage = _debugNutritionStorage;
+}
+
 window.storage = {get:fbGet, set:fbSet, delete:fbDel, list:fbList};
 
 window.FirebaseStorage = {
@@ -167,7 +173,9 @@ window.FirebaseStorage = {
   validateFullAccountBackup: window.validateFullAccountBackup,
   previewFullAccountBackupImport: window.previewFullAccountBackupImport,
   importFullAccountBackup: window.importFullAccountBackup,
-  debugNutritionStorage: window.debugNutritionStorage,
+  ...(window.debugNutritionStorage
+    ? {debugNutritionStorage: window.debugNutritionStorage}
+    : {}),
   FB_PROJECT,
   FB_KEY,
   FB_BASE,

@@ -23,6 +23,7 @@ const {
   CALLABLE_REGION,
   DELETION_TASK_OPTIONS,
   PRODUCTION_PROJECT_ID,
+  REQUEST_SERVICE_ACCOUNT,
   TASK_REGION,
 } = require("./config.js");
 const {createFirestoreAccountDeletionOperations} = require(
@@ -65,6 +66,7 @@ const requestService = createAccountDeletionRequestService({
 const requestAccountDeletion = onCall(
   {
     region: CALLABLE_REGION,
+    serviceAccount: REQUEST_SERVICE_ACCOUNT,
     enforceAppCheck: true,
     timeoutSeconds: 30,
     maxInstances: 10,
