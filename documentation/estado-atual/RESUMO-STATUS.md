@@ -1739,7 +1739,7 @@
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; preparar grants mínimos, validar primeiro a identidade do processador isoladamente e depois cada consumidor restante, com testes reais e rollback antes de qualquer revogação.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/config.js`, `functions/test/infrastructure.test.js`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** PRs #258/#265/#288 prepararam IAM/dependências; #292 isolou o processador e #298 isolou o callable. Ambos foram publicados seletivamente e uma conta descartável nova comprovou aceitação, execução, exclusão e selagem, sem tocar na conta compartilhada. O reconciliador/Scheduler permanece na identidade antiga porque o Firebase CLI vincula a identidade de runtime à OIDC do job; a etapa isolada de migração está sendo preparada com invocador mínimo, rollback e prova real. `roles/editor` ainda não foi revogado.
+- **O que foi feito:** PRs #258/#265/#288 prepararam IAM/dependências; #292 isolou o processador e #298 isolou o callable. Ambos foram publicados seletivamente e uma conta descartável nova comprovou aceitação, execução, exclusão e selagem, sem tocar na conta compartilhada. O draft #299 prepara o reconciliador: suíte local com 1.524 unitários e cutover 60/60 verde; CI autenticado pendente. Scheduler/OIDC permanecem na identidade antiga até invocador mínimo, deploy e prova real. `roles/editor` ainda não foi revogado.
 
 ### [DOC-C14-F2-287] - Métricas pós-merge das dependências
 
