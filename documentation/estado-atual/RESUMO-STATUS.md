@@ -8,17 +8,18 @@
 - **Propósito:** distinguir falha real de Auth, App Check, Firestore ou teardown de intermitência externa antes de liberar o PR #293.
 - **O que se planeja fazer:** confrontar as duas tentativas do CI e os artefatos com bootstrap, rede, lease e restauração das fixtures, sem alterar a I2 nem dados reais.
 - **Recursos/arquivos principais envolvidos:** run `36590911079`, artefatos `11046177805`/`11052475783`, `tests/smoke/authenticated-flows.spec.js`, `tests/smoke/test-helpers.js` e coordenador autenticado.
-- **O que foi feito:** o CI `36694910642` revelou dois bootstraps desktop presos sem causa comprovada; o diagnóstico sanitizado da camada de loading foi integrado à main atual e passou em 1.524 unitários e suíte local completa. Um recorte Vite autenticado na base integrada passou 3/3 (login e dois fluxos críticos); o CI autenticado integral do novo SHA ainda é obrigatório. O PR #295 permanece draft.
+- **O que foi feito:** o CI `36694910642` revelou dois bootstraps desktop presos sem causa comprovada. O PR diagnóstico #295 passou CI autenticado no SHA `f7b6b09` e foi mesclado em `0823472`; não alterou o runtime nem identificou a causa comum. O UI/UX recebeu diretamente o SHA e os limites para atualizar e repetir o gate do PR #293, ainda draft.
 
 ### [INC-I2-HARNESS] - Diagnóstico sanitizado de navegador e rede
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 29/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 04/10/2026.
 - **Propósito:** permitir que a próxima falha autenticada revele o endpoint e a fase sem expor dados da conta.
 - **O que se planeja fazer:** registrar domínio, caminho redigido, método, status, fase e tipo de falha; preservar o gate e corrigir somente um defeito de teardown ou runtime comprovado.
 - **Recursos/arquivos principais envolvidos:** `tests/smoke/test-helpers.js`, `tests/smoke/authenticated-flows.spec.js`, `tests/unit/smoke-console-filter.test.js` e guia operacional dos smokes.
-- **O que foi feito:** instrumentação, restauração fail-closed e marcador visual sanitizado passaram no CI `36654210219`; a recorrência no `36694910642` motivou diagnóstico DOM de campos fixos, com regressão 8/8, suíte local integrada verde e recorte Vite autenticado 3/3. O PR #295 segue draft, sem alteração de runtime ou causa raiz confirmada.
+- **O que foi feito:** instrumentação, restauração fail-closed e marcador visual sanitizado foram mesclados no PR #295 (`0823472`), após regressão focada, suíte local e CI final `36741893220` verdes (1.524 unitários; legado 137 + 10 skips estruturais; Vite 147). Não houve alteração de runtime nem confirmação da causa intermitente.
+- **Alinhamento:** aproximadamente 100% do escopo de instrumentação e correção objetiva do teardown; impacto positivo para diagnósticos futuros, sem alegar resolução da investigação I2.
 
 > Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `13bd540`, em 13/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
@@ -1739,7 +1740,7 @@
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; preparar grants mínimos, validar primeiro a identidade do processador isoladamente e depois cada consumidor restante, com testes reais e rollback antes de qualquer revogação.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/config.js`, `functions/test/infrastructure.test.js`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** PRs #258/#265/#288 prepararam IAM/dependências; #292 isolou o processador, publicado e validado com conta descartável. O candidato seguinte configura somente o callable com identidade dedicada: infraestrutura 5/5, Functions emuladas 74/74 e `npm test` integral com 1.518 unitários e cutover 60/60 passaram; o smoke autenticado local foi omitido por falta de credenciais nesta worktree e ainda exige CI real. O reconciliador foi separado porque o Firebase CLI também trocaria seu OIDC do Scheduler. Nenhum novo deploy ou revogação ocorreu.
+- **O que foi feito:** PRs #258/#265/#288 prepararam IAM e dependências; #292 (merge `d9815c9`) isolou o processador, publicado e provado com conta descartável. O PR #298 (merge `7219873`) isolou a callable em `trofia-del-request`; CI da `main` e Pages passaram, e o deploy seletivo publicou a revisão `requestaccountdeletion-00004-det`. Uma conta inédita com Auth recente e App Check confirmou exclusão de Auth, perfil e job e lock selado na primeira observação (45 s). Reconciliador, Scheduler, build e `Editor` antigo permanecem intactos; faltam essas migrações, a prova da agenda e o replay final.
 
 ### [DOC-C14-F2-287] - Métricas pós-merge das dependências
 
@@ -1784,7 +1785,7 @@
 - **Propósito:** reduzir impacto de XSS e impedir diagnósticos globais desnecessários em produção.
 - **O que se planeja fazer:** aplicar CSP via meta compatível com Firebase/reCAPTCHA/Worker e restringir globals de debug.
 - **Recursos/arquivos principais envolvidos:** `index.html`, `firebase-storage.js`, `src/firebase/firebase-storage.js`, verificador de build, Firebase/reCAPTCHA/Worker, Pages e testes PT/EN/ES.
-- **O que foi feito:** PR draft #294 no commit `5ca3e11` passou preflight `36671149562` e CI autenticado `36671149555` (1.518 unitários, Worker 44, Functions 74, legado 137 + 10 skips estruturais, Vite 147); CSP restrita e regressões locais passaram, mas Pages real, merge e publicação seguem pendentes.
+- **O que foi feito:** o PR #294 foi mesclado em `5dfff2a` com gates da branch verdes; duas tentativas anteriores do CI da `main` falharam em bootstrap/loading sem causa confirmada. O novo CI da `main` `37195322970` e o Pages `37197465596` passaram no SHA `7219873`. No domínio real, login e leitura protegida chegaram à navegação em desktop/mobile sem violação CSP, mas a instrumentação não observou troca do token App Check; a prova autenticada completa permanece aberta.
 
 ### [C14-H] - Staging, validação final e rollout
 

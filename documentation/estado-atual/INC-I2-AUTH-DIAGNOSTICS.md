@@ -2,7 +2,7 @@
 
 ## Estado
 
-Investigação em andamento na frente Trofia-Principal, separada da implementação I2 da UIUX. A branch e o PR #293 não são alterados aqui.
+Investigação da causa intermitente em andamento na frente Trofia-Principal, separada da implementação I2 da UIUX. O harness diagnóstico do PR #295 foi concluído e mesclado em `0823472` em 04/10/2026; a branch e o PR #293 não foram alterados por esta frente.
 
 ## Evidência inicial
 
@@ -43,4 +43,10 @@ O SHA `f2bae8a` altera somente documentação em relação ao `00b3766` funciona
 
 Como passo diagnóstico restrito ao harness, `openApp()` agora informa estados booleanos da camada de loading e seus timers, além de presença da interface e `document.readyState` em enumeração fixa. O teste focado passou 8/8 e prova que um valor de página malicioso não entra no erro. A causa segue **não confirmada**; não há correção de runtime, retry ou relaxamento do timeout, e o PR #293 da UIUX continua bloqueado para decisão após novo gate confiável.
 
-**Integração da main e gate local — 30/09/2026:** a instrumentação foi commitada em `bac6c36` e a `origin/main` foi integrada sem conflitos no merge local `93c6516`, preservando C14-F2 e C14-G. `npm test` na base integrada terminou com código 0: preflight sem avisos, 1.524/1.524 unitários, smokes locais sem falhas funcionais e com skips autenticados esperados pela ausência de credenciais nesta worktree, e cutover 60/60. Isso valida integração local, **não** reproduz a falha autenticada nem substitui um novo CI real. O PR #295 segue draft e o #293 não foi alterado.
+**Integração da main e gate local — 30/09/2026:** a instrumentação foi commitada em `bac6c36` e a `origin/main` foi integrada sem conflitos no merge local `93c6516`, preservando C14-F2 e C14-G. `npm test` na base integrada terminou com código 0: preflight sem avisos, 1.524/1.524 unitários, smokes locais sem falhas funcionais e com skips autenticados esperados pela ausência de credenciais nesta worktree, e cutover 60/60. Isso valida integração local, **não** reproduz a falha autenticada nem substitui um novo CI real. O #293 não foi alterado.
+
+## Fechamento do harness e limite do diagnóstico — 04/10/2026
+
+O PR #295 (`f7b6b09`) concluiu preflight `36741893246` e CI autenticado `36741893220` verdes: 1.524 unitários, Worker 44, Functions emuladas 74, legado 137 aprovados + 10 skips estruturais, Vite 147 aprovados e `SMOKE_OUTCOME: success`. Foi mesclado em `0823472`. O tempo do primeiro commit ao merge foi 4 d 14 h 9 min 6 s; a soma real dos quatro ciclos do PR, incluindo os dois ciclos falhos diagnósticos, foi 2 h 28 min 15 s (2 min 24 s leve + 2 h 25 min 51 s pesado). Estes mesmos números constam na descrição do PR.
+
+O trabalho entregue classifica e sanitiza falhas futuras do navegador/rede e torna a restauração das fixtures fail-closed. Ele **não** demonstra a causa da espera intermitente em `#loading` nem corrige Auth, App Check ou Firestore. O incidente `INC-I2-AUTH-T0` continua aberto. O chat Trofia-UI/UX recebeu diretamente o SHA e os limites do diagnóstico para incorporar a main e repetir os gates do PR #293, preservando a implementação I2; não está autorizado a interpretar um único passe como prova da causa resolvida.
