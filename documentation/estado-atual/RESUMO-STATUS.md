@@ -2,13 +2,14 @@
 
 ### [INC-I2-BOOTSTRAP-PHASE] - Fase fixa do bootstrap autenticado
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 04/10/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 04/10/2026.
 - **Propósito:** tornar discriminável a próxima ocorrência intermitente de `#loading` sem revelar a conta descartável.
 - **O que se planeja fazer:** publicar um marcador de fase enumerado no bootstrap Vite, incluí-lo no diagnóstico sanitizado do smoke e provar que valores desconhecidos não entram no relatório; sem alterar Auth, App Check, Firestore, timeout ou retry.
 - **Recursos/arquivos principais envolvidos:** `src/App.jsx`, `tests/smoke/test-helpers.js`, `tests/unit/smoke-console-filter.test.js`, PR UIUX #293 e `INC-I2-AUTH-DIAGNOSTICS.md`.
-- **O que foi feito:** a recorrência do CI UIUX `37213604958` parou antes da I2 funcional com `#loading` sem pedido de ocultação; a fase pendente ainda não era observável. Marcador e whitelist passaram no recorte final 28/28 e no `npm test` completo: 1.524 unitários, legado e Vite 78 aprovados + 69 skips locais esperados cada, cutover 60/60. CI autenticado próprio ainda pendente.
+- **O que foi feito:** a recorrência do CI UIUX `37213604958` parou antes da I2 funcional com `#loading` sem pedido de ocultação; a fase pendente ainda não era observável. O PR #303/merge `bf4ea77` integrou marcador e whitelist após recorte 28/28, `npm test` completo e CI autenticado `37222460191` verde. O UIUX recebeu o commit para repetir o gate do #293; a causa intermitente continua não confirmada.
+- **Alinhamento:** 100% da instrumentação aprovada; não equivale à resolução do incidente nem à conclusão da I2.
 
 ### [DOC-C14-G-301] - Métricas pós-merge do encerramento C14-G
 
@@ -1770,7 +1771,7 @@
 - **Data de início:** 26/09/2026.
 - **Data de conclusão:** não concluído.
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
-- **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; preparar grants mínimos, validar primeiro a identidade do processador isoladamente e depois cada consumidor restante, com testes reais e rollback antes de qualquer revogação.
+- **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; preparar grants mínimos, validar primeiro a identidade do processador isoladamente e depois cada consumidor restante. Na etapa autorizada de 04/10, migrar controladamente a identidade de build das três Functions e provar um retry com falha induzida apenas em conta nova descartável, preservando baseline e rollback antes de qualquer revogação.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/config.js`, `functions/test/infrastructure.test.js`, manifests/lockfiles e inventário administrativo.
 - **O que foi feito:** PRs #258/#265/#288 prepararam IAM/dependências; #292 isolou o processador e #298 isolou o callable, ambos publicados e comprovados com conta descartável. O #299 foi mesclado em `a763951` com CI autenticado verde também na `main` (`37204746549`). O reconciliador foi publicado seletivamente na revisão `00003-zip` com runtime `trofia-del-reconcile`, e o Scheduler usa `trofia-scheduler-oidc`; os invocadores da baseline foram restaurados após efeito colateral do deploy. A execução natural de 04/10 às 15:26 UTC respondeu HTTP 200, sem 401/403 nos metadados; o registro documental #300 foi mesclado em `55a45c9`. Nova busca Cloud Asset/IAM encontrou 139 recursos pesquisáveis e um `run.invoker` residual da conta padrão no reconciliador; a API Functions confirmou build ainda na conta padrão apesar dos runtimes dedicados. `roles/editor` permanece intacto. Prova de reenvio/retry, migração de build e decisão de revogação seguem pendentes.
 
