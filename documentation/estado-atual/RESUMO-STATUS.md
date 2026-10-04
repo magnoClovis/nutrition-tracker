@@ -1,5 +1,15 @@
 # Resumo de status do Trofia
 
+### [INC-I2-BOOTSTRAP-PHASE] - Fase fixa do bootstrap autenticado
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 04/10/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** tornar discriminável a próxima ocorrência intermitente de `#loading` sem revelar a conta descartável.
+- **O que se planeja fazer:** publicar um marcador de fase enumerado no bootstrap Vite, incluí-lo no diagnóstico sanitizado do smoke e provar que valores desconhecidos não entram no relatório; sem alterar Auth, App Check, Firestore, timeout ou retry.
+- **Recursos/arquivos principais envolvidos:** `src/App.jsx`, `tests/smoke/test-helpers.js`, `tests/unit/smoke-console-filter.test.js`, PR UIUX #293 e `INC-I2-AUTH-DIAGNOSTICS.md`.
+- **O que foi feito:** a recorrência do CI UIUX `37213604958` parou antes da I2 funcional com `#loading` sem pedido de ocultação; a fase pendente ainda não era observável. Marcador e whitelist passaram no recorte final 28/28 e no `npm test` completo: 1.524 unitários, legado e Vite 78 aprovados + 69 skips locais esperados cada, cutover 60/60. CI autenticado próprio ainda pendente.
+
 ### [INC-I2-AUTH-T0] - Auditoria das falhas autenticadas do gate I2
 
 - **Status:** em andamento — **Chat:** Trofia-Principal.
@@ -8,17 +18,18 @@
 - **Propósito:** distinguir falha real de Auth, App Check, Firestore ou teardown de intermitência externa antes de liberar o PR #293.
 - **O que se planeja fazer:** confrontar as duas tentativas do CI e os artefatos com bootstrap, rede, lease e restauração das fixtures, sem alterar a I2 nem dados reais.
 - **Recursos/arquivos principais envolvidos:** run `36590911079`, artefatos `11046177805`/`11052475783`, `tests/smoke/authenticated-flows.spec.js`, `tests/smoke/test-helpers.js` e coordenador autenticado.
-- **O que foi feito:** o CI `36694910642` revelou dois bootstraps desktop presos sem causa comprovada; o diagnóstico sanitizado da camada de loading foi integrado à main atual e passou em 1.524 unitários e suíte local completa. Um recorte Vite autenticado na base integrada passou 3/3 (login e dois fluxos críticos); o CI autenticado integral do novo SHA ainda é obrigatório. O PR #295 permanece draft.
+- **O que foi feito:** o CI `36694910642` revelou dois bootstraps desktop presos sem causa comprovada. O diagnóstico sanitizado foi integrado à main no PR #295, merge `0823472`; o CI UIUX `37213604958` voltou a mostrar `#loading` em um caso Vite mobile antes da I2 funcional, sem fase assíncrona observável. A investigação continua aberta; a nova fase fixa é tratada em `INC-I2-BOOTSTRAP-PHASE`.
 
 ### [INC-I2-HARNESS] - Diagnóstico sanitizado de navegador e rede
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 29/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 04/10/2026.
 - **Propósito:** permitir que a próxima falha autenticada revele o endpoint e a fase sem expor dados da conta.
 - **O que se planeja fazer:** registrar domínio, caminho redigido, método, status, fase e tipo de falha; preservar o gate e corrigir somente um defeito de teardown ou runtime comprovado.
 - **Recursos/arquivos principais envolvidos:** `tests/smoke/test-helpers.js`, `tests/smoke/authenticated-flows.spec.js`, `tests/unit/smoke-console-filter.test.js` e guia operacional dos smokes.
-- **O que foi feito:** instrumentação, restauração fail-closed e marcador visual sanitizado passaram no CI `36654210219`; a recorrência no `36694910642` motivou diagnóstico DOM de campos fixos, com regressão 8/8, suíte local integrada verde e recorte Vite autenticado 3/3. O PR #295 segue draft, sem alteração de runtime ou causa raiz confirmada.
+- **O que foi feito:** instrumentação e restauração fail-closed passaram no CI `36654210219`; o diagnóstico DOM de campos fixos passou na suíte local e em CI autenticado. O PR #295 foi mesclado em `0823472`, com métricas pós-merge no histórico/PR. A causa do `#loading` não foi declarada resolvida; a fase adicional é uma investigação separada.
+- **Alinhamento:** 100% para o harness aprovado, sem atribuir a ele uma correção de runtime.
 
 > Retrato do checkpoint `0.11.0-beta`, atualizado sobre a `main` no merge `13bd540`, em 13/09/2026. Este resumo prioriza fatos verificáveis no repositório e nos PRs; não substitui o roadmap.
 
