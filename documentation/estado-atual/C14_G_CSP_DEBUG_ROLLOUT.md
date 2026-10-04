@@ -1,6 +1,6 @@
 # C14-G — CSP do Pages e superfícies de diagnóstico
 
-Status em 30/09/2026: implementação e CI autenticado verdes; Pages real e publicação pendentes. Chat-Origin: Trofia-Principal.
+Status em 04/10/2026: código mesclado e Pages publicado; prova autenticada adicional no domínio real ainda não passou. Chat-Origin: Trofia-Principal.
 
 ## Escopo e limite
 
@@ -64,3 +64,5 @@ O preflight `36621844450` passou, mas o CI `36621844513` terminou com falha às 
 **Gate integral após a rota pontual:** `npm test` passou com código 0: preflight sem avisos, 1.518 unitários, legado e Vite 78 aprovados + 69 skips locais cada, cutover 60/60; nenhum inesperado/flaky nos relatórios. O CI autenticado do novo SHA e a prova de Pages continuam pendentes antes de qualquer merge/publicação.
 
 **Gate remoto do SHA `5ca3e11`:** preflight documental `36671149562` e CI autenticado `36671149555` concluíram verdes em 30/09/2026. O pesado confirmou 1.518 unitários, Worker 44/44, Functions emuladas 74/74, legado autenticado 137 aprovados + 10 skips estruturais, Vite autenticado 147/147, smoke Chromium CSP e `SMOKE_OUTCOME: success`. O cutover 60/60 foi validado localmente, não nesse run remoto. O custo acumulado comprovado até esse SHA, incluindo cinco runs de diagnóstico que falharam, é 4 h 11 min 46 s (3 min 18 s leves + 4 h 8 min 28 s pesados). Isso não comprova o comportamento no domínio publicado do Pages: falta validar login/App Check, perfil e fluxos críticos no Pages real, conferir ausência de violação CSP e somente então avaliar publicação/rollback. O PR #294 permanece draft; nenhum merge ou deploy foi feito.
+
+**Estado posterior comprovado em 04/10/2026:** a afirmação anterior descreve o estado de 30/09 e não o atual. O PR #294 foi mesclado em `5dfff2a` e a publicação via workflow Pages concluiu verde. A prova adicional, diretamente no domínio publicado e em desktop/mobile, observou zero violações CSP e zero `page errors`; a troca do debug token do App Check ocorreu e requisições Firestore responderam com sucesso. Contudo, a instrumentação da prova não observou `X-Firebase-AppCheck` nas requisições Firestore interceptadas, e seu critério estrito de login/perfil terminou `failed`. Isso **não** permite concluir que o SDK deixou de enviar App Check: a própria interceptação/visibilidade do transporte precisa ser auditada antes de atribuir um defeito ao runtime. Também não permite declarar a prova verde só porque as leituras receberam sucesso. Próximo gate: confirmar, por um método que não altere Auth, Firestore ou dados, o header/estado App Check efetivamente usado no Pages; repetir a prova de perfil e os fluxos críticos, preservando CSP sem violações. Até lá, C14-G permanece em andamento; não há novo deploy corretivo autorizado por essa observação.

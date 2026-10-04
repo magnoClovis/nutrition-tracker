@@ -1739,7 +1739,7 @@
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; preparar grants mínimos, validar primeiro a identidade do processador isoladamente e depois cada consumidor restante, com testes reais e rollback antes de qualquer revogação.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/config.js`, `functions/test/infrastructure.test.js`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** PRs #258/#265/#288 prepararam IAM/dependências; #292 isolou o processador e #298 isolou o callable, ambos publicados e comprovados com conta descartável. O #299 foi mesclado em `a763951` com CI autenticado verde também na `main` (`37204746549`). O reconciliador foi publicado seletivamente na revisão `00003-zip` com runtime `trofia-del-reconcile`, e o Scheduler usa `trofia-scheduler-oidc`; os invocadores da baseline foram restaurados após efeito colateral do deploy. A execução natural de 04/10 às 15:26 UTC respondeu HTTP 200, sem 401/403 nos metadados. Build e `roles/editor` permanecem intactos; cobertura de enfileiramento/retry e revogação ainda pendentes.
+- **O que foi feito:** PRs #258/#265/#288 prepararam IAM/dependências; #292 isolou o processador e #298 isolou o callable, ambos publicados e comprovados com conta descartável. O #299 foi mesclado em `a763951` com CI autenticado verde também na `main` (`37204746549`). O reconciliador foi publicado seletivamente na revisão `00003-zip` com runtime `trofia-del-reconcile`, e o Scheduler usa `trofia-scheduler-oidc`; os invocadores da baseline foram restaurados após efeito colateral do deploy. A execução natural de 04/10 às 15:26 UTC respondeu HTTP 200, sem 401/403 nos metadados; o registro documental #300 foi mesclado em `55a45c9`. Build e `roles/editor` permanecem intactos; cobertura de enfileiramento/retry e revogação ainda pendentes.
 
 ### [DOC-C14-F2-287] - Métricas pós-merge das dependências
 
@@ -1784,7 +1784,7 @@
 - **Propósito:** reduzir impacto de XSS e impedir diagnósticos globais desnecessários em produção.
 - **O que se planeja fazer:** aplicar CSP via meta compatível com Firebase/reCAPTCHA/Worker e restringir globals de debug.
 - **Recursos/arquivos principais envolvidos:** `index.html`, `firebase-storage.js`, `src/firebase/firebase-storage.js`, verificador de build, Firebase/reCAPTCHA/Worker, Pages e testes PT/EN/ES.
-- **O que foi feito:** PR draft #294 no commit `5ca3e11` passou preflight `36671149562` e CI autenticado `36671149555` (1.518 unitários, Worker 44, Functions 74, legado 137 + 10 skips estruturais, Vite 147); CSP restrita e regressões locais passaram, mas Pages real, merge e publicação seguem pendentes.
+- **O que foi feito:** a CSP restrita e os helpers de debug condicionados passaram o CI autenticado; o PR #294 foi mesclado em `5dfff2a` e o workflow Pages publicou a revisão. A prova adicional no domínio real não concluiu o gate de login/perfil: houve leituras Firestore bem-sucedidas e troca do token App Check, mas a instrumentação não observou o header App Check nas requisições interceptadas; não se confirmou ainda se isso é falha do produto ou limitação da captura. A fatia segue aberta até esclarecer e repetir essa prova.
 
 ### [C14-H] - Staging, validação final e rollout
 
