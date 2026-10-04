@@ -1719,7 +1719,7 @@
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; preparar grants mínimos, validar primeiro a identidade do processador isoladamente e depois cada consumidor restante, com testes reais e rollback antes de qualquer revogação.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/config.js`, `functions/test/infrastructure.test.js`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** PRs #258/#265/#288 prepararam IAM e dependências; #292 (merge `d9815c9`) isolou o processador, publicado seletivamente em 30/09 na revisão `00003-kuf` com `trofia-del-process` e validado por exclusão completa de conta descartável; #296 documentou a prova. O PR #298 (merge `7219873`) isolou somente `trofia-del-request` na callable, após infraestrutura 5/5, emuladores 74/74, suíte local e CI autenticado verdes; o deploy e a prova real seguem pendentes. O reconciliador foi separado porque seu deploy também trocaria o OIDC do Scheduler; Scheduler, build e `Editor` antigo permanecem intactos. Faltam essas migrações e o replay final.
+- **O que foi feito:** PRs #258/#265/#288 prepararam IAM e dependências; #292 (merge `d9815c9`) isolou o processador, publicado e provado com conta descartável. O PR #298 (merge `7219873`) isolou a callable em `trofia-del-request`; CI da `main` e Pages passaram, e o deploy seletivo publicou a revisão `requestaccountdeletion-00004-det`. Uma conta inédita com Auth recente e App Check confirmou exclusão de Auth, perfil e job e lock selado na primeira observação (45 s). Reconciliador, Scheduler, build e `Editor` antigo permanecem intactos; faltam essas migrações, a prova da agenda e o replay final.
 
 ### [DOC-C14-F2-287] - Métricas pós-merge das dependências
 
@@ -1764,7 +1764,7 @@
 - **Propósito:** reduzir impacto de XSS e impedir diagnósticos globais desnecessários em produção.
 - **O que se planeja fazer:** aplicar CSP via meta compatível com Firebase/reCAPTCHA/Worker e restringir globals de debug.
 - **Recursos/arquivos principais envolvidos:** `index.html`, `firebase-storage.js`, `src/firebase/firebase-storage.js`, verificador de build, Firebase/reCAPTCHA/Worker, Pages e testes PT/EN/ES.
-- **O que foi feito:** o PR #294 foi mesclado em `5dfff2a` com gates da branch verdes; duas tentativas do CI da `main` falharam em casos Vite diferentes, com bootstrap/loading recorrente, sem causa confirmada. Pages real não foi acionado nem validado.
+- **O que foi feito:** o PR #294 foi mesclado em `5dfff2a` com gates da branch verdes; duas tentativas anteriores do CI da `main` falharam em bootstrap/loading sem causa confirmada. O novo CI da `main` `37195322970` e o Pages `37197465596` passaram no SHA `7219873`. No domínio real, login e leitura protegida chegaram à navegação em desktop/mobile sem violação CSP, mas a instrumentação não observou troca do token App Check; a prova autenticada completa permanece aberta.
 
 ### [C14-H] - Staging, validação final e rollout
 
