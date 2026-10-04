@@ -236,7 +236,7 @@
 ## O que está em andamento agora
 
 - **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.
-- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D, C14-E e C14-F1 estão concluídas; C14-F2 e C14-G estão em andamento em branches isoladas; C14-H não foi iniciada. — **Chat:** Trofia-Principal.
+- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D, C14-E, C14-F1 e C14-G estão concluídas; C14-F2 permanece em andamento e C14-H não foi iniciada. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 - **[DOC-TRACKING-193] Concluído (12/09/2026) — Chat: Trofia-Principal.** O que se planeja fazer: registrar integralmente as sequências aprovadas e formalizar planejamento, entrega, alinhamento e métricas. O que foi feito: 100 entradas de fatias foram normalizadas no PR #193, com escopos incertos de D3–D7 explicitamente delegados ao chat UI/UX. Alinhamento: 100%.
@@ -1778,13 +1778,14 @@
 
 ### [C14-G] - CSP e superfícies de debug
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 29/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 04/10/2026.
 - **Propósito:** reduzir impacto de XSS e impedir diagnósticos globais desnecessários em produção.
 - **O que se planeja fazer:** aplicar CSP via meta compatível com Firebase/reCAPTCHA/Worker e restringir globals de debug.
 - **Recursos/arquivos principais envolvidos:** `index.html`, `firebase-storage.js`, `src/firebase/firebase-storage.js`, verificador de build, Firebase/reCAPTCHA/Worker, Pages e testes PT/EN/ES.
-- **O que foi feito:** a CSP restrita e os helpers de debug condicionados passaram o CI autenticado; o PR #294 foi mesclado em `5dfff2a` e o workflow Pages publicou a revisão. A prova adicional no domínio real não concluiu o gate de login/perfil: houve leituras Firestore bem-sucedidas e troca do token App Check, mas a instrumentação não observou o header App Check nas requisições interceptadas; não se confirmou ainda se isso é falha do produto ou limitação da captura. A fatia segue aberta até esclarecer e repetir essa prova.
+- **O que foi feito:** CSP restrita e helpers de debug condicionados passaram o CI autenticado; PR #294 mesclado em `5dfff2a` e Pages publicado. A prova final no domínio real passou em desktop/mobile: login/perfil, leitura Firestore, troca App Check e marcador do token no transporte WebChannel, sem violação CSP ou erro de página. As capturas anteriores de cabeçalho HTTP eram falso negativo, pois o SDK codifica os cabeçalhos iniciais na mensagem POST.
+- **Alinhamento:** 100%; a política e a prova publicada cumprem o escopo de G sem alteração especulativa de Auth/App Check.
 
 ### [C14-H] - Staging, validação final e rollout
 
