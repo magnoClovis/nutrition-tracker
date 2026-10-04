@@ -2,6 +2,8 @@
 
 Status em 04/10/2026: C14-G concluída; código mesclado, Pages publicado e prova autenticada adicional no domínio real aprovada em desktop/mobile. Chat-Origin: Trofia-Principal.
 
+Registro documental pós-merge: o PR #301 foi mesclado em `bcdf6fd` após 1 h 6 min 37 s do primeiro commit; seus três preflights verdes somaram 1 min 21 s de CI (1 min 21 s leve + 0 min pesado). Os mesmos valores constam no histórico e no rodapé da descrição do PR. Esse fechamento não modifica o runtime publicado nem amplia a cobertura da prova Pages descrita abaixo.
+
 ## Escopo e limite
 
 O escopo aprovado é acrescentar uma política de segurança de conteúdo ao HTML publicado no GitHub Pages e retirar helpers globais exclusivamente diagnósticos do ambiente de produção. As pontes UMD/ESM, backup, Auth, Firestore, IA e reconhecimento por foto continuam necessárias ao aplicativo e não podem ser removidas por associação com a palavra `window`.

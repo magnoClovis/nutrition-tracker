@@ -1,5 +1,16 @@
 # Resumo de status do Trofia
 
+### [DOC-C14-G-301] - Métricas pós-merge do encerramento C14-G
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 04/10/2026.
+- **Data de conclusão:** 04/10/2026.
+- **Propósito:** alinhar o registro final da C14-G às métricas reais do PR documental #301.
+- **O que se planeja fazer:** registrar tempo do primeiro commit ao merge e duração integral dos preflights, sem alterar o escopo funcional.
+- **Recursos/arquivos principais envolvidos:** PR #301, histórico Principal, resumo e rollout C14-G.
+- **O que foi feito:** PR #301 mesclado em `bcdf6fd`; tempo decorrido de 1 h 6 min 37 s; CI de 1 min 21 s (1 min 21 s leve + 0 min pesado), em três preflights verdes. A descrição do PR contém os mesmos valores.
+- **Alinhamento:** 100%; documentação e publicação já comprovadas, sem nova mudança funcional.
+
 ### [INC-I2-AUTH-T0] - Auditoria das falhas autenticadas do gate I2
 
 - **Status:** em andamento — **Chat:** Trofia-Principal.
@@ -1739,7 +1750,7 @@
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; preparar grants mínimos, validar primeiro a identidade do processador isoladamente e depois cada consumidor restante, com testes reais e rollback antes de qualquer revogação.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/config.js`, `functions/test/infrastructure.test.js`, manifests/lockfiles e inventário administrativo.
-- **O que foi feito:** PRs #258/#265/#288 prepararam IAM/dependências; #292 isolou o processador e #298 isolou o callable, ambos publicados e comprovados com conta descartável. O #299 foi mesclado em `a763951` com CI autenticado verde também na `main` (`37204746549`). O reconciliador foi publicado seletivamente na revisão `00003-zip` com runtime `trofia-del-reconcile`, e o Scheduler usa `trofia-scheduler-oidc`; os invocadores da baseline foram restaurados após efeito colateral do deploy. A execução natural de 04/10 às 15:26 UTC respondeu HTTP 200, sem 401/403 nos metadados; o registro documental #300 foi mesclado em `55a45c9`. Build e `roles/editor` permanecem intactos; cobertura de enfileiramento/retry e revogação ainda pendentes.
+- **O que foi feito:** PRs #258/#265/#288 prepararam IAM/dependências; #292 isolou o processador e #298 isolou o callable, ambos publicados e comprovados com conta descartável. O #299 foi mesclado em `a763951` com CI autenticado verde também na `main` (`37204746549`). O reconciliador foi publicado seletivamente na revisão `00003-zip` com runtime `trofia-del-reconcile`, e o Scheduler usa `trofia-scheduler-oidc`; os invocadores da baseline foram restaurados após efeito colateral do deploy. A execução natural de 04/10 às 15:26 UTC respondeu HTTP 200, sem 401/403 nos metadados; o registro documental #300 foi mesclado em `55a45c9`. Nova busca Cloud Asset/IAM encontrou 139 recursos pesquisáveis e um `run.invoker` residual da conta padrão no reconciliador; a API Functions confirmou build ainda na conta padrão apesar dos runtimes dedicados. `roles/editor` permanece intacto. Prova de reenvio/retry, migração de build e decisão de revogação seguem pendentes.
 
 ### [DOC-C14-F2-287] - Métricas pós-merge das dependências
 
