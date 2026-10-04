@@ -1,5 +1,19 @@
 # Histórico da frente principal — arquitetura de IA e dados
 
+### [INC-I2-BOOTSTRAP-PHASE] - Fase fixa do bootstrap autenticado
+
+- **Status:** em andamento.
+- **Data de início:** 04/10/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** identificar a etapa assíncrona exata da próxima recorrência de `#loading` sem registrar estado da conta.
+- **O que se planeja fazer:** emitir somente fases enumeradas no bootstrap Vite, recolhê-las no diagnóstico DOM do smoke com whitelist e teste de sanitização; não alterar Auth, App Check, Firestore, timeout, retry nem a I2 funcional.
+- **Recursos/arquivos principais envolvidos:** `src/App.jsx`, `tests/smoke/test-helpers.js`, `tests/unit/smoke-console-filter.test.js`, CI UIUX `37213604958` e PR #293.
+- **O que foi feito:** o CI do HEAD `3df7607` da I2 passou 160 cenários e falhou um Vite mobile antes da avaliação de refeição: `#loading` ficou presente, `hide-requested=false`, `app-main=false` e `document.readyState=complete`; sem erro de console/rede preservado que distinga Auth, App Check, e-mail, preferências ou perfil. A frente UIUX confirmou que não há evidência contra o código da I2 e manteve o PR draft. O Principal acrescentou somente um marcador DOM com fases fixas (`auth-restore`, `app-check`, `email-verification`, `preferences`, `profile-gate` e estados finais/erro) e fez o harness aceitar apenas a whitelist; qualquer valor desconhecido vira `not-reported`. Uma hipótese preliminar de reordenar Auth/App Check foi descartada e inteiramente revertida antes do gate final, pois não havia causa comprovada. O recorte final de 28 testes unitários passou; `npm test` terminou com código zero, preflight sem avisos, 1.524/1.524 unitários, smoke legado 78 aprovados + 69 skips locais por ausência de credenciais, smoke Vite com as mesmas contagens e cutover 60/60. O primeiro diagnóstico paralelo que procurava um cabeçalho App Check HTTP foi descartado: o SDK Firestore codifica os cabeçalhos iniciais no POST WebChannel, e a prova corrigida no Pages passou; essa descoberta é documentada na C14-G, não tratada como causa do loading da I2. CI autenticado real e revisão da UIUX ainda faltam.
+- **Alinhamento:** pendente; instrumentação pronta localmente, sem causa raiz confirmada.
+- **PRs/commits relacionados:** PR UIUX #293 (não modificado); PR técnico Principal ainda não aberto.
+
 ### [DOC-C14-G-301] - Métricas pós-merge do encerramento C14-G
 
 - **Status:** concluído.
@@ -14,6 +28,20 @@
 - **Alinhamento:** 100%; os três documentos e a descrição do PR reproduzem o mesmo tempo e custo real.
 - **PRs/commits relacionados:** PR #301, merge `bcdf6fd`, commits `3326b1e`, `4fc5918` e `a130ff0`.
 
+### [DOC-C14-F2-302] - Métricas pós-merge da auditoria complementar
+
+- **Status:** concluído.
+- **Data de início:** 04/10/2026.
+- **Data de conclusão:** 04/10/2026.
+- **Tempo decorrido:** 32 min 26 s.
+- **Minutos de CI:** 58 s (58 s leve + 0 s pesado).
+- **Propósito:** preservar evidência temporal exata da auditoria documental que separou as identidades de runtime da identidade de build ainda privilegiada.
+- **O que se planeja fazer:** somar os preflights concluídos e registrar o intervalo do primeiro commit ao merge sem confundir o PR documental com mutação de IAM.
+- **Recursos/arquivos principais envolvidos:** PR #302, `RESUMO-STATUS.md`, este histórico e `C14_F2_PRE_INVENTARIO_IAM_DEPENDENCIAS.md`.
+- **O que foi feito:** o primeiro commit `cc0826e` foi criado às 17:14:02 UTC e o PR #302 foi mesclado em `911c727` às 17:46:28 UTC de 04/10/2026. Os preflights `37219766793` e `37221688435` passaram; cada run decorreu 29 s entre criação e término, somando 58 s leves, sem CI pesado. A descrição do PR repete as métricas e termina em `Chat-Origin: Trofia-Principal`. A auditoria confirmou por leitura apenas a conta de build padrão e os bindings residuais; não removeu Editor, não publicou Function nem provou reenvio/retry.
+- **Alinhamento:** 100% do escopo documental; impacto neutro na produção, C14-F2 ainda aberta.
+- **PRs/commits relacionados:** PR #302, commits `cc0826e` e `3a95ada`, merge `911c727`.
+
 ### [INC-I2-AUTH-T0] - Auditoria das falhas autenticadas do gate I2
 
 - **Status:** em andamento.
@@ -25,20 +53,21 @@
 - **O que se planeja fazer:** examinar as duas tentativas do run `36590911079`, bootstrap Auth/App Check/perfil, requests, coordenação e restauração de fixtures; não alterar a branch da UIUX nem repetir o CI sem diagnóstico.
 - **Recursos/arquivos principais envolvidos:** artefatos `11046177805` e `11052475783`, `tests/smoke/auth.setup.js`, `tests/smoke/authenticated-flows.spec.js`, `tests/smoke/test-helpers.js`, coordenador do lease e trace isolado da UIUX.
 - **O que foi feito:** a tentativa 1 falhou no perfil com `unavailable` e em loading de login; ambos passaram isoladamente sem alteração. A tentativa 2 concluiu o round trip do backup, mas encontrou um HTTP 400 anônimo no coletor de console; o teste isolado com trace passou sem 400. O coletor anterior descartava `message.location().url`, impedindo identificar o endpoint retrospectivamente. Os três eventos não demonstram causa comum nem vínculo causal com a I2. No teste de avaliação, a preparação das fixtures estava fora do `try` e a primeira falha de restauração impedia as seguintes; esse risco do harness é comprovado pelo código, mas a origem dos marcadores residuais específicos não é comprovada. O run C14-G `36621844513` mostrou 54 casos Vite mobile presos em `#loading`, todos antes do cenário, também sem diagnóstico de rede preservado; não se atribui a CSP sem evidência.
-- **PRs/commits relacionados:** PR #293 da UIUX, HEAD `ade7d8b`; run `36590911079` tentativas 1 e 2.
+- **PRs/commits relacionados:** PR #293 da UIUX, HEAD `3df7607` em 04/10/2026; run inicial `36590911079` tentativas 1 e 2; recorrência `37213604958`. O PR #295 do diagnóstico anterior foi mesclado em `0823472`; a causa do loading permanece aberta.
 
 ### [INC-I2-HARNESS] - Diagnóstico sanitizado de navegador e rede
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 29/09/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 1 h 40 min 7 s até `f2bae8a` (1 min 27 s leve + 1 h 38 min 40 s pesado); o primeiro ciclo falhou no contrato visual do harness, o segundo passou e o terceiro revelou recorrência de bootstrap. Total final sujeito aos runs adicionais antes do merge.
+- **Data de conclusão:** 04/10/2026.
+- **Tempo decorrido:** 4 d 14 h 9 min 6 s até o merge do PR #295.
+- **Minutos de CI:** 2 h 28 min 15 s (2 min 24 s leve + 2 h 25 min 51 s pesado), idênticos ao rodapé do PR #295.
 - **Propósito:** tornar acionável uma recorrência do HTTP 400 ou de falha de bootstrap sem registrar informação pessoal, tokens ou payloads.
 - **O que se planeja fazer:** registrar apenas domínio autorizado, caminho com segmentos variáveis redigidos, método, status, fase e classe segura de erro; manter HTTP 400 como falha, sem retry ou timeout novo, com testes de sanitização. Corrigir defeito de teardown somente se demonstrado pelo código/evidência.
 - **Recursos/arquivos principais envolvidos:** `tests/smoke/test-helpers.js`, `tests/smoke/authenticated-flows.spec.js`, `tests/unit/smoke-console-filter.test.js` e `tests/smoke/README.md`.
 - **O que foi feito:** em branch isolada `codex/i2-auth-diagnostics`, o coletor agora registra apenas fase, classe segura, domínio permitido, caminho redigido, método e status; URLs brutas só são processadas transitoriamente e associadas por hash em memória, sem persistir query, mensagem arbitrária, headers ou payload. O setup de autenticação e o bootstrap passaram a relatar contexto seguro quando bloqueados, e o HTTP 400 continua crítico. A preparação da avaliação foi movida para dentro do `try` e as três restaurações são tentadas mesmo se uma falhar. Teste focado 6/6; suíte integral final com preflight verde, 1.518/1.518 unitários, legado 76 + 69 skips locais sem credenciais, Vite 76 + 69 skips locais e cutover 60/60; recorte Vite autenticado 5/5 com App Check e lease real. No draft #295, o preflight `36632648373` passou e o CI pesado `36632648402` passou preflight, 1.518 unitários, Worker 44/44 e Functions 74/74, mas Playwright terminou com 133 aprovados, 10 skips estruturais e duas falhas no mesmo teste visual GenericDialog (desktop/mobile): a asserção ainda buscava texto bruto `Export error` em uma lista agora sanitizada, recebendo zero dos dois erros controlados esperados. O app exibiu o alerta controlado corretamente; a falha é do contrato de teste, não prova nova falha de Auth. A correção classifica somente o marcador estático dessa fixture como `controlled-export-error`, preserva erros inesperados como críticos e não registra mensagens cruas. O teste unitário focado passou 7/7; o recorte visual autenticado está em execução. Nenhum timeout, retry ou expectativa foi relaxado. Os passes anteriores não provam que as três falhas intermitentes desapareceram.
-- **PRs/commits relacionados:** draft PR #295, commits `0464b12` e `00b3766`; preflights `36632648373`/`36654209987`; CI pesado falho `36632648402` e CI pesado verde `36654210219`.
+- **Alinhamento:** 100% para o harness aprovado; o incidente de bootstrap permanece em investigação separada.
+- **PRs/commits relacionados:** PR #295 mesclado em `0823472`, commits `0464b12`, `00b3766` e posteriores; preflights `36632648373`/`36654209987`; CI pesado falho `36632648402` e CI pesado verde `36654210219`.
 
 O primeiro recorte autenticado da correção parou no global setup antes de abrir o navegador porque `VITE_FIREBASE_WEB_APP_ID` não havia sido injetado no processo local; nenhum cenário executou. A configuração foi completada sem imprimir seus valores. A segunda tentativa parou igualmente antes dos cenários porque o coordenador detectou o CI autenticado `36644000194` da C14-F2 usando a conta compartilhada. Esse bloqueio é o comportamento fail-closed esperado do lease, não resultado funcional do GenericDialog. O recorte será retomado somente após a liberação do CI, sem teste concorrente nem aumento de timeout.
 

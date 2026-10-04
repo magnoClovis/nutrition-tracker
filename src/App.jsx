@@ -235,6 +235,12 @@ const ensureAppCheckReady = () => firebaseRuntimeConfigured
   ? ensureAppCheckInitialized().then(() => getAppCheckToken())
   : Promise.resolve(null);
 
+const markBootstrapPhase = phase => {
+  document.documentElement.dataset.bootstrapPhase = phase;
+  const loading = document.getElementById('loading');
+  if (loading) loading.dataset.bootstrapPhase = phase;
+};
+
 const imageMealClient = ImageMealClient.createImageMealClient({
   fetchRequest: (...args) => window.fetch(...args),
   getIdToken: () => fbToken(),
@@ -969,6 +975,7 @@ export function App() {
   ]);
 
   async function checkRequiredProfile({isNewAccount = profileCompletionAllowedRef.current} = {}) {
+    markBootstrapPhase('profile-gate');
     setProfileChecking(true);
     setProfileLoadError(null);
     try {
@@ -980,19 +987,23 @@ export function App() {
         inspectRequiredProfileData,
       });
       if (result.status === 'requires-completion') {
+        markBootstrapPhase('profile-completion');
         setRequiredProfile(result.profile);
         return result.status;
       }
       setRequiredProfile(null);
       if (result.status === 'incomplete-existing') {
+        markBootstrapPhase('profile-incomplete');
         if (result.diagnostic) {
           console.warn('Authenticated profile gate rejected a server-confirmed profile', result.diagnostic);
         }
         setProfileLoadError(result.diagnostic?.code || 'profile-incomplete-existing-account');
         return false;
       }
+      markBootstrapPhase('profile-ready');
       return result.status;
     } catch (error) {
+      markBootstrapPhase('profile-error');
       setRequiredProfile(null);
       setProfileLoadError(profileReadErrorCode(error));
       return false;
@@ -1014,8 +1025,10 @@ export function App() {
     setAuthed(true);
     profileCompletionAllowedRef.current = effectiveIsNew;
     try {
+      markBootstrapPhase('app-check');
       await ensureAppCheckReady();
     } catch (error) {
+      markBootstrapPhase('app-check-error');
       setRequiredProfile(null);
       setProfileLoadError(profileReadErrorCode(error));
       return;
@@ -1059,8 +1072,10 @@ export function App() {
     // Never race it with a timer that signs the user out: under a temporarily
     // slow IndexedDB/network restore, that timer can destroy a valid session
     // while this same bootstrap is still reading it.
+    markBootstrapPhase('auth-restore');
     Promise.resolve().then(() => initializeFirebase())
       .then(() => {
+        markBootstrapPhase('auth-ready');
         if (!active || !fbIsLoggedIn()) {
           if (active) setChecking(false);
           return null;
@@ -1069,7 +1084,9 @@ export function App() {
       })
       .then(async () => {
         if (!active || !fbIsLoggedIn()) return;
+        markBootstrapPhase('app-check');
         await ensureAppCheckReady();
+        markBootstrapPhase('email-verification');
         const verified = await fbCheckEmailVerified({reload: false});
         if (!verified) {
           setAuthed(false);
@@ -1079,6 +1096,7 @@ export function App() {
           return;
         }
         setAuthed(true);
+        markBootstrapPhase('preferences');
         const savedLang = await storage.get('language').catch(() => null);
         const normalizedSavedLang = normalizeLanguage(savedLang?.value || localStorage.getItem('appLang') || 'pt');
         localStorage.setItem('appLang', normalizedSavedLang);
@@ -1098,6 +1116,7 @@ export function App() {
         await checkRequiredProfile({isNewAccount: false});
       })
       .catch(error => {
+        markBootstrapPhase('bootstrap-error');
         if (fbIsLoggedIn()) {
           setAuthed(true);
           setRequiredProfile(null);
