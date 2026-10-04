@@ -1,4 +1,68 @@
 const { expect } = require('@playwright/test');
+const { createHash } = require('node:crypto');
+
+const SAFE_PATH_PARTS = new Set([
+  'v1', 'v2', 'v3', 'projects', 'apps', 'databases', '(default)',
+  'documents', 'accounts:signInWithPassword', 'accounts:lookup',
+  'accounts:signUp', 'accounts:sendOobCode', 'index.html',
+  'recaptcha', 'enterprise', 'reload', 'anchor', 'api.js',
+  'images', 'cleardot.gif'
+]);
+const SAFE_DOMAINS = new Set([
+  'localhost', '127.0.0.1', 'firestore.googleapis.com',
+  'identitytoolkit.googleapis.com', 'securetoken.googleapis.com',
+  'content-firebaseappcheck.googleapis.com', 'www.google.com',
+  'apis.google.com', 'magnoclovis.github.io',
+  'trofia-ai-proxy.cmagno-dev.workers.dev'
+]);
+
+function safeResourceLocation(rawUrl) {
+  try {
+    const url = new URL(rawUrl);
+    if (!['http:', 'https:'].includes(url.protocol)) return { domain: 'unknown', path: '/:redacted' };
+    const domain = SAFE_DOMAINS.has(url.hostname.toLowerCase())
+      ? url.hostname.toLowerCase()
+      : 'external-host';
+    const path = url.pathname.split('/').map((part, index) => {
+      if (index === 0 || part === '') return part;
+      return SAFE_PATH_PARTS.has(part) ? part : ':redacted';
+    }).join('/');
+    return { domain, path: path || '/' };
+  } catch {
+    return { domain: 'unknown', path: '/:redacted' };
+  }
+}
+
+function safeFailureKind(text) {
+  if (/^Export error:\s*(?:Error:\s*)?Falha visual controlada(?:\b|$)/i.test(text || '')) {
+    return { kind: 'controlled-export-error', status: 'none' };
+  }
+  const httpStatus = /status of (\d{3}) \(\)/i.exec(text || '');
+  if (httpStatus) return { kind: 'http-error', status: httpStatus[1] };
+  if (/net::ERR_TIMED_OUT/i.test(text || '')) return { kind: 'net::ERR_TIMED_OUT', status: 'none' };
+  if (/app-check-initialization-failed/i.test(text || '')) return { kind: 'app-check-initialization-failed', status: 'none' };
+  if (/profile-incomplete-existing-account/i.test(text || '')) return { kind: 'profile-incomplete-existing-account', status: 'none' };
+  return { kind: 'browser-error', status: 'none' };
+}
+
+function safeNetworkFailure(request) {
+  const code = /net::(ERR_[A-Z_]+)/.exec(request.failure()?.errorText || '');
+  return code ? `net::${code[1]}` : 'network-failure';
+}
+
+function requestKey(url) {
+  return createHash('sha256').update(url || '').digest('hex');
+}
+
+function safeDiagnostic({ phase, source, url, method, status, kind }) {
+  const location = safeResourceLocation(url);
+  const safePhase = /^[a-z0-9-]{1,40}$/i.test(phase || '') ? phase : 'unknown';
+  const safeMethod = /^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)$/.test(method || '') ? method : 'unknown';
+  const safeStatus = /^(?:[1-5]\d\d|none)$/.test(String(status)) ? status : 'none';
+  const safeKind = /^[a-z0-9_:-]{1,50}$/i.test(kind || '') ? kind : 'browser-error';
+  const safeSource = ['console', 'pageerror', 'response', 'requestfailed'].includes(source) ? source : 'unknown';
+  return `phase=${safePhase} source=${safeSource} kind=${safeKind} domain=${location.domain} path=${location.path} method=${safeMethod} status=${safeStatus}`;
+}
 
 function isIgnorableConsoleError(text, locationUrl = '') {
   return /favicon/i.test(text)
@@ -20,27 +84,122 @@ function isIgnorableConsoleError(text, locationUrl = '') {
 
 function collectCriticalErrors(page) {
   const errors = [];
+  const requests = new Map();
+  Object.defineProperties(errors, {
+    diagnostics: { value: [], writable: true },
+    phase: { value: 'bootstrap', writable: true }
+  });
+
+  function note(diagnostic) {
+    errors.diagnostics.push(diagnostic);
+    if (errors.diagnostics.length > 50) errors.diagnostics.shift();
+  }
+
+  page.on('response', (response) => {
+    const request = response.request();
+    requests.set(requestKey(response.url()), { method: request.method(), status: response.status() });
+    if (requests.size > 100) requests.delete(requests.keys().next().value);
+    if (response.status() >= 400) {
+      note(safeDiagnostic({ phase: errors.phase, source: 'response', url: response.url(), method: request.method(), status: response.status(), kind: 'http-error' }));
+    }
+  });
+
+  page.on('requestfailed', (request) => {
+    note(safeDiagnostic({ phase: errors.phase, source: 'requestfailed', url: request.url(), method: request.method(), status: 'none', kind: safeNetworkFailure(request) }));
+  });
 
   page.on('console', (message) => {
     if (message.type() !== 'error') return;
     const text = message.text();
-    if (!isIgnorableConsoleError(text, message.location().url)) errors.push(text);
+    const url = message.location().url;
+    if (!isIgnorableConsoleError(text, url)) {
+      const failure = safeFailureKind(text);
+      const response = requests.get(requestKey(url));
+      errors.push(safeDiagnostic({
+        phase: errors.phase,
+        source: 'console',
+        url,
+        method: response?.method,
+        status: response?.status || failure.status,
+        kind: failure.kind
+      }));
+    }
   });
 
-  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('pageerror', (error) => {
+    const failure = safeFailureKind(error.message);
+    errors.push(safeDiagnostic({
+      phase: errors.phase,
+      source: 'pageerror',
+      url: '',
+      method: 'unknown',
+      status: failure.status,
+      kind: failure.kind === 'browser-error'
+        ? (['Error', 'TypeError', 'ReferenceError', 'SyntaxError', 'RangeError'].includes(error.name) ? error.name : 'page-error')
+        : failure.kind
+    }));
+  });
   return errors;
+}
+
+function setCriticalErrorPhase(errors, phase) {
+  errors.phase = phase;
+}
+
+function formatSafeDiagnostics(errors) {
+  return [...errors, ...(errors.diagnostics || [])].slice(-50).join('\n') || 'none';
+}
+
+async function readSafeBootstrapState(page) {
+  try {
+    const state = await page.evaluate(() => {
+      const loading = document.getElementById('loading');
+      return {
+        loadingPresent: Boolean(loading),
+        loadingHidden: Boolean(loading?.classList.contains('is-hidden')),
+        hideRequested: window.initialLoadingHideRequested === true,
+        hideTimerPending: window.initialLoadingHideTimer != null,
+        removeTimerPending: window.initialLoadingRemoveTimer != null,
+        appMainPresent: document.querySelector('[data-app-main]') != null,
+        readyState: document.readyState
+      };
+    });
+    const readyState = ['loading', 'interactive', 'complete'].includes(state?.readyState)
+      ? state.readyState : 'unknown';
+    return `bootstrap-dom loading=${Boolean(state?.loadingPresent)} hidden=${Boolean(state?.loadingHidden)} hide-requested=${Boolean(state?.hideRequested)} hide-timer=${Boolean(state?.hideTimerPending)} remove-timer=${Boolean(state?.removeTimerPending)} app-main=${Boolean(state?.appMainPresent)} document=${readyState}`;
+  } catch {
+    return 'bootstrap-dom unavailable';
+  }
+}
+
+async function restoreFixtureActions(actions) {
+  const failed = [];
+  for (const [index, action] of actions.entries()) {
+    try {
+      await action();
+    } catch {
+      failed.push(index + 1);
+    }
+  }
+  if (failed.length) throw new Error(`authenticated-fixture-restore-failed:${failed.join(',')}`);
 }
 
 async function openApp(page) {
   const errors = collectCriticalErrors(page);
-  await page.goto('index.html', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('#root')).toBeVisible();
-  await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
+  try {
+    await page.goto('index.html', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#root')).toBeVisible();
+    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
+  } catch {
+    const state = await readSafeBootstrapState(page);
+    throw new Error(`app-bootstrap-failed; sanitized diagnostics:\n${state}\n${formatSafeDiagnostics(errors)}`);
+  }
+  setCriticalErrorPhase(errors, 'scenario');
   return errors;
 }
 
 async function expectNoCriticalErrors(errors) {
-  expect(errors, `critical browser errors:\n${errors.join('\n')}`).toEqual([]);
+  expect(errors, `critical browser errors; sanitized diagnostics:\n${formatSafeDiagnostics(errors)}`).toEqual([]);
 }
 
 async function dismissTutorialIfVisible(page) {
@@ -147,6 +306,12 @@ module.exports = {
   dismissTutorialIfVisible,
   expectNoCriticalErrors,
   isIgnorableConsoleError,
+  safeResourceLocation,
+  safeDiagnostic,
+  setCriticalErrorPhase,
+  formatSafeDiagnostics,
+  restoreFixtureActions,
+  readSafeBootstrapState,
   interceptOptionalExternalApis,
   openApp,
   setAppLanguage,

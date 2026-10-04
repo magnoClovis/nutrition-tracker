@@ -4,6 +4,34 @@ These tests are intentionally small and separate from the app code. They catch
 the failures that have caused most regressions so far: boot errors, blank tabs,
 language persistence, settings, backup, and logout.
 
+## Sanitized browser diagnostics
+
+The authenticated browser harness keeps HTTP 400 and unexpected console/page
+errors as failures. On failure it reports the scenario phase, an allowlisted
+domain, a path with variable segments redacted, request method, HTTP status and
+error class. Query strings, request/response bodies, headers, account IDs,
+credentials and raw exception messages are never copied into this diagnostic.
+Unknown domains are labeled `external-host`; unknown URL segments become
+`:redacted`. A network request failure is diagnostic context, not by itself a
+new assertion failure. A 400 is not automatically ignored; use the sanitized
+origin to investigate it before changing any allowlist.
+
+On a bootstrap timeout, the harness also reports only fixed boolean state of
+`#loading`, its hide request/timers, whether the app shell exists, and an
+allowlisted `document.readyState`. It never copies loading text or profile
+contents. `net::ERR_ABORTED` requests alone do not establish why bootstrap
+stalled; compare the DOM state and the order of events before changing runtime.
+
+The GenericDialog export fixture has one explicitly classified console marker,
+`controlled-export-error`. It is emitted only for the static, intentionally
+thrown `Falha visual controlada` error. The visual test still requires exactly
+two such errors; an unexpected export error remains critical. Never restore raw
+console messages merely to satisfy a test assertion.
+
+Fixture restoration must be inside `finally` and every independent restore
+action must be attempted even when an earlier one fails. A failure is reported
+as `authenticated-fixture-restore-failed:<step>`, without the fixture value.
+
 ## One-time setup
 
 ```powershell
