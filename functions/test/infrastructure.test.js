@@ -92,8 +92,12 @@ test("exposes only the reviewed callable, task and reconciliation handlers", () 
     exportedFunctions.reconcileAccountDeletionJobs.__endpoint;
   assert.deepEqual(scheduleEndpoint.region, [runtimeConfig.TASK_REGION]);
   assert.equal(
-    scheduleEndpoint.serviceAccountEmail.constructor.name,
-    "ResetValue",
+    scheduleEndpoint.serviceAccountEmail,
+    runtimeConfig.RECONCILER_SERVICE_ACCOUNT,
+  );
+  assert.equal(
+    runtimeConfig.RECONCILER_SERVICE_ACCOUNT,
+    "trofia-del-reconcile@nutrition-tracker-780b3.iam.gserviceaccount.com",
   );
   assert.equal(scheduleEndpoint.scheduleTrigger.schedule, "every 60 minutes");
   assert.equal(scheduleEndpoint.scheduleTrigger.timeZone, "Etc/UTC");

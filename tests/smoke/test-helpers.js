@@ -161,12 +161,19 @@ async function readSafeBootstrapState(page) {
         hideTimerPending: window.initialLoadingHideTimer != null,
         removeTimerPending: window.initialLoadingRemoveTimer != null,
         appMainPresent: document.querySelector('[data-app-main]') != null,
-        readyState: document.readyState
+        readyState: document.readyState,
+        bootstrapPhase: document.documentElement.dataset.bootstrapPhase
       };
     });
     const readyState = ['loading', 'interactive', 'complete'].includes(state?.readyState)
       ? state.readyState : 'unknown';
-    return `bootstrap-dom loading=${Boolean(state?.loadingPresent)} hidden=${Boolean(state?.loadingHidden)} hide-requested=${Boolean(state?.hideRequested)} hide-timer=${Boolean(state?.hideTimerPending)} remove-timer=${Boolean(state?.removeTimerPending)} app-main=${Boolean(state?.appMainPresent)} document=${readyState}`;
+    const bootstrapPhase = [
+      'app-check', 'app-check-error', 'auth-restore', 'auth-ready',
+      'email-verification', 'preferences', 'profile-gate',
+      'profile-completion', 'profile-incomplete', 'profile-ready',
+      'profile-error', 'bootstrap-error'
+    ].includes(state?.bootstrapPhase) ? state.bootstrapPhase : 'not-reported';
+    return `bootstrap-dom loading=${Boolean(state?.loadingPresent)} hidden=${Boolean(state?.loadingHidden)} hide-requested=${Boolean(state?.hideRequested)} hide-timer=${Boolean(state?.hideTimerPending)} remove-timer=${Boolean(state?.removeTimerPending)} app-main=${Boolean(state?.appMainPresent)} document=${readyState} phase=${bootstrapPhase}`;
   } catch {
     return 'bootstrap-dom unavailable';
   }

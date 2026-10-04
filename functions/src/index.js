@@ -24,6 +24,7 @@ const {
   DELETION_TASK_OPTIONS,
   PRODUCTION_PROJECT_ID,
   REQUEST_SERVICE_ACCOUNT,
+  RECONCILER_SERVICE_ACCOUNT,
   TASK_REGION,
 } = require("./config.js");
 const {createFirestoreAccountDeletionOperations} = require(
@@ -112,6 +113,10 @@ const processAccountDeletionTask = onTaskDispatched(
 const reconcileAccountDeletionJobs = onSchedule(
   {
     region: TASK_REGION,
+    // firebase-tools uses this as the desired Scheduler OIDC identity too.
+    // Its update check can skip OIDC-only changes; deployment must verify
+    // and, if needed, patch the job before declaring the migration complete.
+    serviceAccount: RECONCILER_SERVICE_ACCOUNT,
     schedule: "every 60 minutes",
     timeZone: "Etc/UTC",
     timeoutSeconds: 9 * 60,
