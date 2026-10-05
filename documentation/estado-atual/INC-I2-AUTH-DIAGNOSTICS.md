@@ -10,6 +10,8 @@ O marcador legado e o relatório de falha restrito ao reload passaram no teste s
 
 O primeiro `npm test` local passou preflight e 1.525 unitários, mas parou antes dos smokes: o sandbox negou (`EPERM`) escrita em três arquivos de relatório Playwright da worktree externa. Os arquivos existiam, não havia servidor do projeto nas portas 8765/8766/8775/8776 e os processos Node visíveis pertenciam ao Codex. Sem apagar relatórios nem alterar testes, a suíte foi repetida com acesso de escrita à worktree e terminou com código 0: preflight sem avisos, 1.525/1.525 unitários, smokes legado e Vite sem falha (skips autenticados esperados pela ausência de credenciais locais) e cutover 60/60. Esse gate demonstra integridade local da instrumentação, não uma reprodução autenticada nem a solução do `#loading` intermitente.
 
+O draft PR #305 (commit inicial `e71e587`) passou o Quick repository sanity `37368929027` e o CI autenticado `37368928963`. No CI: preflight sem avisos, 1.525/1.525 unitários, Worker 44/44, Functions emuladas 74/74, Playwright legado 137 aprovados, Vite 147 aprovados e `SMOKE_OUTCOME: success`; nenhuma etapa falhou. O job pesado executou de 20:25:41 a 21:05:49 UTC em 05/10/2026 (40 min 8 s); o leve de 20:18:46 a 20:19:22 UTC (36 s). Um único CI verde verifica a instrumentação sob autenticação real, mas não encerra o incidente intermitente nem prova a etapa causadora, pois `#loading` não reapareceu nesse run. O PR permanece draft até revisão; a UIUX deve incorporar a instrumentação após a integração aprovada e repetir seu gate.
+
 ## Estado
 
 Investigação em andamento na frente Trofia-Principal, separada da implementação I2 da UIUX. A branch e o PR #293 não são alterados aqui.
