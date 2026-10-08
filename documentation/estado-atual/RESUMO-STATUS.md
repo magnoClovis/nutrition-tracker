@@ -1,5 +1,15 @@
 # Resumo de status do Trofia
 
+### [INC-I2-LEGACY-RELOAD] - Diagnóstico da restauração após troca de idioma
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 05/10/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** identificar a etapa em que o bootstrap legado fica em “Entrando...” após reload durante o gate I2.
+- **O que se planeja fazer:** examinar a falha preservada, acrescentar somente fases fixas e captura sanitizada ao caminho de reload do teste, validar o contrato e reproduzir um recorte autenticado controlado, sem alterar a implementação I2, Auth, App Check, Firestore, timeout ou retry.
+- **Recursos/arquivos principais envolvidos:** `nutrition-tracker.jsx`, cópia controlada `app.js`, `tests/smoke/test-helpers.js`, `tests/unit/smoke-console-filter.test.js` e PR UIUX #293.
+- **O que foi feito:** o último gate da UIUX passou 1.524 unitários e 160/161 casos legados; `temporal-field.visual.spec.js` parou após troca de idioma com `#loading` por 15 s. O artefato confirma “Entrando...”, mas não contém fase de bootstrap nem erro de rede suficiente para atribuir causa. Na branch isolada do Principal, fases fixas no legado e diagnóstico sanitizado do reload passaram no teste focado 9/9. A primeira reprodução autenticada nem iniciou o teste: o lease remoto não foi observado como adquirido em 2 min e foi cancelado. O gate local sem credenciais, repetido fora do sandbox após erro ambiental `EPERM` na escrita de relatórios, passou preflight sem avisos, 1.525/1.525 unitários, smokes legado/Vite com skips autenticados esperados e cutover 60/60. O draft PR #305 passou preflight `37368929027` e CI autenticado `37368928963`: 1.525 unitários, Worker 44, Functions 74, Playwright legado 137 aprovados, Vite 147 aprovados e `SMOKE_OUTCOME: success`. A intermitência não foi reproduzida nem declarada resolvida.
+
 ### [INC-I2-BOOTSTRAP-PHASE] - Fase fixa do bootstrap autenticado
 
 - **Status:** concluído — **Chat:** Trofia-Principal.
@@ -8,8 +18,8 @@
 - **Propósito:** tornar discriminável a próxima ocorrência intermitente de `#loading` sem revelar a conta descartável.
 - **O que se planeja fazer:** publicar um marcador de fase enumerado no bootstrap Vite, incluí-lo no diagnóstico sanitizado do smoke e provar que valores desconhecidos não entram no relatório; sem alterar Auth, App Check, Firestore, timeout ou retry.
 - **Recursos/arquivos principais envolvidos:** `src/App.jsx`, `tests/smoke/test-helpers.js`, `tests/unit/smoke-console-filter.test.js`, PR UIUX #293 e `INC-I2-AUTH-DIAGNOSTICS.md`.
-- **O que foi feito:** a recorrência do CI UIUX `37213604958` parou antes da I2 funcional com `#loading` sem pedido de ocultação; a fase pendente ainda não era observável. O PR #303/merge `bf4ea77` integrou marcador e whitelist após recorte 28/28, `npm test` completo e CI autenticado `37222460191` verde. O UIUX recebeu o commit para repetir o gate do #293; a causa intermitente continua não confirmada.
-- **Alinhamento:** 100% da instrumentação aprovada; não equivale à resolução do incidente nem à conclusão da I2.
+- **O que foi feito:** a recorrência do CI UIUX `37213604958` parou antes da I2 funcional com `#loading` sem pedido de ocultação; a fase pendente ainda não era observável. O PR #303/merge `bf4ea77` integrou marcador e whitelist após recorte 28/28, `npm test` completo e CI autenticado `37222460191` verde. O UIUX recebeu o commit para repetir o gate do #293. A nova falha no legado é tratada em `INC-I2-LEGACY-RELOAD`.
+- **Alinhamento:** 100% da instrumentação Vite aprovada; não equivale à resolução do incidente nem à conclusão da I2.
 
 ### [DOC-C14-G-301] - Métricas pós-merge do encerramento C14-G
 

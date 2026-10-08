@@ -4,6 +4,7 @@ const test = require('node:test');
 const { EventEmitter } = require('node:events');
 const {
   collectCriticalErrors,
+  formatLanguageReloadFailure,
   isIgnorableConsoleError,
   readSafeBootstrapState,
   restoreFixtureActions,
@@ -138,4 +139,25 @@ test('bootstrap DOM diagnostic exposes only fixed boolean and ready-state fields
   const known = await readSafeBootstrapState({evaluate: async () => ({bootstrapPhase: 'profile-gate'})});
   assert.match(known, /phase=profile-gate$/);
   assert.equal(await readSafeBootstrapState({ evaluate: async () => { throw new Error('private token'); } }), 'bootstrap-dom unavailable');
+});
+
+test('language reload failure includes only fixed phase and redacted network context', async () => {
+  const page = new EventEmitter();
+  page.evaluate = async () => ({
+    loadingPresent: true,
+    loadingHidden: false,
+    readyState: 'complete',
+    bootstrapPhase: 'profile-gate'
+  });
+  const errors = collectCriticalErrors(page);
+  setCriticalErrorPhase(errors, 'language-reload');
+  page.emit('requestfailed', {
+    url: () => 'https://firestore.googleapis.com/v1/projects/private-project/databases/(default)/documents/users/private-uid?token=secret',
+    method: () => 'GET',
+    failure: () => ({ errorText: 'net::ERR_TIMED_OUT token=secret' })
+  });
+  const diagnostic = await formatLanguageReloadFailure(page, errors);
+  assert.match(diagnostic, /phase=profile-gate/);
+  assert.match(diagnostic, /phase=language-reload source=requestfailed kind=net::ERR_TIMED_OUT domain=firestore\.googleapis\.com/);
+  assert.doesNotMatch(diagnostic, /private-project|private-uid|token=|secret/);
 });
