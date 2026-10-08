@@ -12,6 +12,13 @@ const VISUAL_UPDATE_NOTICE_KEY = "seenVisualUpdateNotice_0.8.1";
 const tutorialSeenKey = type => "tutorialSeen_" + type;
 const DARK_THEME_DEFAULT_MIGRATION_KEY = "appThemeDefaultDarkV1";
 
+// Fixed diagnostic stages only: never place account or profile values in the DOM.
+function markLegacyBootstrapPhase(phase) {
+  document.documentElement.dataset.bootstrapPhase = phase;
+  const loading = document.getElementById('loading');
+  if (loading) loading.dataset.bootstrapPhase = phase;
+}
+
 /**
  * Makes dark mode the default once for every browser after this release.
  * After the migration marker is stored, the user's explicit light/dark choice
@@ -679,13 +686,17 @@ function App() {
     }
   }
   async function checkRequiredProfile() {
+    markLegacyBootstrapPhase('profile-gate');
     setProfileChecking(true);
     setProfileLoadError(null);
     try {
       const profile = await getRequiredProfileData();
-      setRequiredProfile(hasRequiredProfileData(profile) ? null : profile);
+      const complete = hasRequiredProfileData(profile);
+      setRequiredProfile(complete ? null : profile);
+      markLegacyBootstrapPhase(complete ? 'profile-ready' : 'profile-completion');
       return true;
     } catch (error) {
+      markLegacyBootstrapPhase('profile-error');
       setRequiredProfile(null);
       setProfileLoadError(profileReadErrorCode(error));
       return false;
@@ -703,6 +714,7 @@ function App() {
 
   async function afterAuthenticated(isNew) {
     setAuthed(true);
+    markLegacyBootstrapPhase('preferences');
     storage.set('lastLoginAt', new Date().toISOString()).catch(()=>{});
     const savedLang = await storage.get('language').catch(()=>null);
     const normalizedSavedLang = normalizeLanguage(savedLang?.value || localStorage.getItem('appLang') || lang || 'pt');
@@ -725,11 +737,13 @@ function App() {
   }
 
   React.useEffect(() => {
-    if (!fbIsLoggedIn()) { setChecking(false); return; }
+    markLegacyBootstrapPhase('auth-restore');
+    if (!fbIsLoggedIn()) { markLegacyBootstrapPhase('auth-ready'); setChecking(false); return; }
     const timeout = setTimeout(() => { fbSignOut(); setAuthed(false); setChecking(false); }, 8000);
     fbRefreshToken()
       .then(async () => {
         clearTimeout(timeout);
+        markLegacyBootstrapPhase('email-verification');
         const verified = await fbCheckEmailVerified();
         if (!verified) {
           setAuthed(false);
@@ -738,6 +752,7 @@ function App() {
           setProfileChecking(false);
           return;
         }
+        markLegacyBootstrapPhase('preferences');
         const savedLang = await storage.get('language').catch(()=>null);
         const normalizedSavedLang = normalizeLanguage(savedLang?.value || localStorage.getItem('appLang') || 'pt');
         localStorage.setItem('appLang', normalizedSavedLang);
@@ -755,7 +770,7 @@ function App() {
         setChecking(false);
         await checkRequiredProfile();
       })
-      .catch(() => { clearTimeout(timeout); fbSignOut(); setAuthed(false); setChecking(false); setProfileChecking(false); });
+      .catch(() => { markLegacyBootstrapPhase('bootstrap-error'); clearTimeout(timeout); fbSignOut(); setAuthed(false); setChecking(false); setProfileChecking(false); });
   }, []);
 
   // Removed: was auto-opening settings on every login

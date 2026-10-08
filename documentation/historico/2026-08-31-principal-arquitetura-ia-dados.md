@@ -1,18 +1,34 @@
 # Histórico da frente principal — arquitetura de IA e dados
 
-### [INC-I2-BOOTSTRAP-PHASE] - Fase fixa do bootstrap autenticado
+### [INC-I2-LEGACY-RELOAD] - Diagnóstico da restauração após troca de idioma
 
 - **Status:** em andamento.
-- **Data de início:** 04/10/2026.
+- **Data de início:** 05/10/2026.
 - **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; não iniciado.
+- **Minutos de CI:** 40 min 44 s até o commit inicial do PR #305 (36 s leve + 40 min 8 s pesado); sujeito a atualização se houver novos runs antes do merge.
+- **Propósito:** discriminar a etapa assíncrona do bootstrap legado que pode deixar `#loading` em “Entrando...” após reload no gate I2.
+- **O que se planeja fazer:** examinar a evidência preservada, emitir apenas marcos enumerados no legado e fazer o helper de troca de idioma relatar DOM/rede sanitizados quando falhar, com teste de regressão; reproduzir um recorte autenticado uma vez sob lease e sem alterar Auth, App Check, Firestore, timeout, retry ou I2 funcional.
+- **Recursos/arquivos principais envolvidos:** `nutrition-tracker.jsx`, `app.js`, `tests/smoke/test-helpers.js`, `tests/unit/smoke-console-filter.test.js`, artefato local `temporal-field.visual.spec.js` e PR #293.
+- **O que foi feito:** a UIUX preservou screenshot e contexto do último gate: preflight e 1.524/1.524 unitários passaram, mas o legado parou em 160/161. O helper `setAppLanguage()` aguardou diretamente a remoção de `#loading` por 15 s e, diferentemente de `openApp()`, não coletou o diagnóstico sanitizado; o legado não emitia as fases DOM já presentes no Vite. O screenshot comprova o loading, não a Promise ou serviço causador. A branch isolada do Principal agora marca somente fases fixas no legado e faz o helper emitir apenas estado DOM e falhas de rede redigidas quando o reload falha, sem mudar expectativa nem prazo. O teste de sanitização passou 9/9. Uma única reprodução autenticada foi tentada, mas parou antes do auth-setup: `authenticated-smoke-remote-lease-acquire-timeout`. O run de lease `37362017398` foi cancelado pelo coordenador após 2 min, sem CI concorrente identificado na leitura posterior; não houve teste de UI nem evidência de defeito I2 nessa tentativa. O primeiro `npm test` passou preflight e 1.525 unitários, porém parou antes dos smokes porque o sandbox negou com `EPERM` a escrita dos relatórios Playwright na worktree externa. Conferidos os arquivos e as portas livres, a repetição fora do sandbox concluiu com código 0: preflight sem avisos, 1.525/1.525 unitários, smokes legado/Vite sem falhas e com skips autenticados esperados pela ausência de credenciais locais, e cutover 60/60. Nenhuma dessas passagens locais demonstra que o bootstrap autenticado intermitente foi corrigido. A worktree/branch UIUX foi mantida intacta.
+- **Alinhamento:** pendente; nenhuma causa ou correção funcional foi declarada.
+- **PRs/commits relacionados:** UIUX #293; branch de diagnóstico `codex/i2-reload-diagnostics`.
+
+**Gate autenticado do draft #305 — 05/10/2026:** o commit `e71e587` recebeu Quick repository sanity verde no run `37368929027` (36 s) e CI autenticado verde no run `37368928963` (job 40 min 8 s). O CI confirmou preflight sem avisos, 1.525/1.525 unitários, Worker 44/44, Functions emuladas 74/74, Playwright legado 137 aprovados e Vite 147 aprovados, com `SMOKE_OUTCOME: success`. Os skips estruturais do legado permanecem esperados; o log consultado forneceu as contagens de aprovados, sem contagem numérica de skips para esse run. A instrumentação passou sob autenticação real; a ocorrência intermitente de `#loading` não reapareceu nessa execução. Isso não identifica causa nem autoriza marcar o incidente ou a I2 da UIUX como resolvidos. O PR continua draft, separado do #293.
+
+### [INC-I2-BOOTSTRAP-PHASE] - Fase fixa do bootstrap autenticado
+
+- **Status:** concluído.
+- **Data de início:** 04/10/2026.
+- **Data de conclusão:** 04/10/2026.
+- **Tempo decorrido:** 3 h 8 min 45 s.
+- **Minutos de CI:** 44 min 38 s (26 s leve + 44 min 12 s pesado).
 - **Propósito:** identificar a etapa assíncrona exata da próxima recorrência de `#loading` sem registrar estado da conta.
 - **O que se planeja fazer:** emitir somente fases enumeradas no bootstrap Vite, recolhê-las no diagnóstico DOM do smoke com whitelist e teste de sanitização; não alterar Auth, App Check, Firestore, timeout, retry nem a I2 funcional.
 - **Recursos/arquivos principais envolvidos:** `src/App.jsx`, `tests/smoke/test-helpers.js`, `tests/unit/smoke-console-filter.test.js`, CI UIUX `37213604958` e PR #293.
-- **O que foi feito:** o CI do HEAD `3df7607` da I2 passou 160 cenários e falhou um Vite mobile antes da avaliação de refeição: `#loading` ficou presente, `hide-requested=false`, `app-main=false` e `document.readyState=complete`; sem erro de console/rede preservado que distinga Auth, App Check, e-mail, preferências ou perfil. A frente UIUX confirmou que não há evidência contra o código da I2 e manteve o PR draft. O Principal acrescentou somente um marcador DOM com fases fixas (`auth-restore`, `app-check`, `email-verification`, `preferences`, `profile-gate` e estados finais/erro) e fez o harness aceitar apenas a whitelist; qualquer valor desconhecido vira `not-reported`. Uma hipótese preliminar de reordenar Auth/App Check foi descartada e inteiramente revertida antes do gate final, pois não havia causa comprovada. O recorte final de 28 testes unitários passou; `npm test` terminou com código zero, preflight sem avisos, 1.524/1.524 unitários, smoke legado 78 aprovados + 69 skips locais por ausência de credenciais, smoke Vite com as mesmas contagens e cutover 60/60. O primeiro diagnóstico paralelo que procurava um cabeçalho App Check HTTP foi descartado: o SDK Firestore codifica os cabeçalhos iniciais no POST WebChannel, e a prova corrigida no Pages passou; essa descoberta é documentada na C14-G, não tratada como causa do loading da I2. CI autenticado real e revisão da UIUX ainda faltam.
-- **Alinhamento:** pendente; instrumentação pronta localmente, sem causa raiz confirmada.
-- **PRs/commits relacionados:** PR UIUX #293 (não modificado); PR técnico Principal ainda não aberto.
+- **O que foi feito:** o CI do HEAD `3df7607` da I2 passou 160 cenários e falhou um Vite mobile antes da avaliação de refeição: `#loading` ficou presente, `hide-requested=false`, `app-main=false` e `document.readyState=complete`; sem erro de console/rede preservado que distinga Auth, App Check, e-mail, preferências ou perfil. A frente UIUX confirmou que não há evidência contra o código da I2 e manteve o PR draft. O Principal acrescentou somente um marcador DOM com fases fixas (`auth-restore`, `app-check`, `email-verification`, `preferences`, `profile-gate` e estados finais/erro) e fez o harness aceitar apenas a whitelist; qualquer valor desconhecido vira `not-reported`. Uma hipótese preliminar de reordenar Auth/App Check foi descartada e inteiramente revertida antes do gate final, pois não havia causa comprovada. O recorte 28/28, o `npm test` integral com 1.524 unitários e o CI autenticado do PR #303 passaram; o PR foi mesclado em `bf4ea77`. O primeiro diagnóstico paralelo que procurava um cabeçalho App Check HTTP foi descartado porque o SDK codifica os cabeçalhos iniciais no POST WebChannel; a prova corrigida no Pages pertence à C14-G. O merge entregou observabilidade Vite, não uma causa ou correção do loading da I2.
+- **Alinhamento:** 100% do marcador Vite aprovado; a investigação da intermitência permanece aberta em entradas separadas. Impacto positivo na capacidade de diagnóstico, sem mudança funcional de Auth.
+- **PRs/commits relacionados:** PR Principal #303, `3df5535` e merge `bf4ea77`; PR UIUX #293 não modificado.
 
 ### [DOC-C14-G-301] - Métricas pós-merge do encerramento C14-G
 
