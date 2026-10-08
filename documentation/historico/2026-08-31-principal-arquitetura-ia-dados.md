@@ -1,12 +1,26 @@
 # Histórico da frente principal — arquitetura de IA e dados
 
+### [DOC-C14-F2-304] - Registro pós-merge do build e retry descartável
+
+- **Status:** concluído.
+- **Data de início:** 04/10/2026.
+- **Data de conclusão:** 08/10/2026.
+- **Tempo decorrido:** 3 d 20 h 48 min 52 s.
+- **Minutos de CI:** 2 min 27 s (2 min 27 s leve + 0 min pesado).
+- **Propósito:** fixar o resultado operacional e o custo real do PR documental sem declarar privilégio mínimo antes da revisão da conta padrão.
+- **O que se planeja fazer:** conferir o merge, os cinco preflights e a descrição do PR, preservando os limites do rollout.
+- **Recursos/arquivos principais envolvidos:** PR #304, Cloud Functions v2, Cloud Run IAM, Scheduler, `RESUMO-STATUS.md` e `C14_F2_PRE_INVENTARIO_IAM_DEPENDENCIAS.md`.
+- **O que foi feito:** primeiro commit `dba3c0e` em 04/10 às 21:13:50 UTC; merge `59dd9bc` em 08/10 às 18:02:42 UTC. Os preflights `37237285560`, `37238735808`, `37356937240`, `37364546094` e `37820775836` passaram, com durações efetivas dos jobs de 25, 25, 36, 26 e 35 s: 2 min 27 s no total. A descrição do PR foi corrigida para o mesmo critério e valor. As três contas de runtime e a conta de build dedicadas estavam ativas na releitura de 08/10; a primeira leitura de grants retornou HTTP 500 transitório, e a segunda confirmou grants mínimos preparados. Nenhuma revogação de `roles/editor` ocorreu neste PR.
+- **Alinhamento:** 100% do registro documental; impacto operacional neutro, porque o PR é documental e a F2 ainda está aberta.
+- **PRs/commits relacionados:** PR #304, commits `dba3c0e` e `b11f04d`, merge `59dd9bc`.
+
 ### [INC-I2-LEGACY-RELOAD] - Diagnóstico da restauração após troca de idioma
 
 - **Status:** em andamento.
 - **Data de início:** 05/10/2026.
 - **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 40 min 44 s até o commit inicial do PR #305 (36 s leve + 40 min 8 s pesado); sujeito a atualização se houver novos runs antes do merge.
+- **Tempo decorrido:** 2 d 21 h 33 min 1 s até o merge do PR #305; investigação do incidente ainda aberta.
+- **Minutos de CI:** 1 h 22 min 43 s (1 min leve + 1 h 21 min 43 s pesado).
 - **Propósito:** discriminar a etapa assíncrona do bootstrap legado que pode deixar `#loading` em “Entrando...” após reload no gate I2.
 - **O que se planeja fazer:** examinar a evidência preservada, emitir apenas marcos enumerados no legado e fazer o helper de troca de idioma relatar DOM/rede sanitizados quando falhar, com teste de regressão; reproduzir um recorte autenticado uma vez sob lease e sem alterar Auth, App Check, Firestore, timeout, retry ou I2 funcional.
 - **Recursos/arquivos principais envolvidos:** `nutrition-tracker.jsx`, `app.js`, `tests/smoke/test-helpers.js`, `tests/unit/smoke-console-filter.test.js`, artefato local `temporal-field.visual.spec.js` e PR #293.
@@ -14,7 +28,7 @@
 - **Alinhamento:** pendente; nenhuma causa ou correção funcional foi declarada.
 - **PRs/commits relacionados:** UIUX #293; branch de diagnóstico `codex/i2-reload-diagnostics`.
 
-**Gate autenticado do draft #305 — 05/10/2026:** o commit `e71e587` recebeu Quick repository sanity verde no run `37368929027` (36 s) e CI autenticado verde no run `37368928963` (job 40 min 8 s). O CI confirmou preflight sem avisos, 1.525/1.525 unitários, Worker 44/44, Functions emuladas 74/74, Playwright legado 137 aprovados e Vite 147 aprovados, com `SMOKE_OUTCOME: success`. Os skips estruturais do legado permanecem esperados; o log consultado forneceu as contagens de aprovados, sem contagem numérica de skips para esse run. A instrumentação passou sob autenticação real; a ocorrência intermitente de `#loading` não reapareceu nessa execução. Isso não identifica causa nem autoriza marcar o incidente ou a I2 da UIUX como resolvidos. O PR continua draft, separado do #293.
+**Integração da instrumentação #305 — 08/10/2026:** o commit `e71e587` recebeu Quick repository sanity verde no run `37368929027` (36 s) e CI autenticado verde no run `37368928963` (40 min 8 s). O SHA documental `7b11cfb` repetiu preflight `37375040780` (24 s) e CI `37375040727` (41 min 35 s), ambos verdes. O CI confirmou preflight sem avisos, 1.525/1.525 unitários, Worker 44/44, Functions emuladas 74/74, Playwright legado 137 aprovados e Vite 147 aprovados, com `SMOKE_OUTCOME: success` no primeiro SHA; o segundo também terminou verde. Os skips estruturais do legado permanecem esperados. O PR foi mesclado em `88ad052` às 17:50:46 UTC: 2 d 21 h 33 min 1 s desde o primeiro commit, com 1 h 22 min 43 s de jobs CI. A UIUX recebeu o SHA para incorporar no #293. A ocorrência intermitente de `#loading` não reapareceu nesse CI; a causa não está identificada, e a I2 funcional segue sob responsabilidade da UIUX.
 
 ### [INC-I2-BOOTSTRAP-PHASE] - Fase fixa do bootstrap autenticado
 

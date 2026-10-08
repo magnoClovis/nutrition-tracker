@@ -1,5 +1,16 @@
 # Resumo de status do Trofia
 
+### [DOC-C14-F2-304] - Registro pós-merge do build e retry descartável
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 04/10/2026.
+- **Data de conclusão:** 08/10/2026.
+- **Propósito:** registrar com métricas comprovadas a publicação das identidades de build dedicadas e as provas operacionais já realizadas, sem confundir isso com a revogação de `roles/editor`.
+- **O que se planeja fazer:** conciliar resumo, histórico, inventário IAM e descrição do PR #304 após o merge documental.
+- **Recursos/arquivos principais envolvidos:** PR #304, três Cloud Functions, Scheduler, IAM Cloud Run e inventário C14-F2.
+- **O que foi feito:** PR documental #304 mesclado em `59dd9bc`; tempo decorrido de 3 d 20 h 48 min 52 s; cinco preflights verdes totalizaram 2 min 27 s (2 min 27 s leve + 0 min pesado), iguais à descrição corrigida do PR. As três Functions seguem com build e runtime dedicados; `roles/editor` da conta Compute padrão permanece e exige avaliação separada.
+- **Alinhamento:** 100% do registro documental; C14-F2 ainda em andamento.
+
 ### [INC-I2-LEGACY-RELOAD] - Diagnóstico da restauração após troca de idioma
 
 - **Status:** em andamento — **Chat:** Trofia-Principal.
@@ -8,7 +19,7 @@
 - **Propósito:** identificar a etapa em que o bootstrap legado fica em “Entrando...” após reload durante o gate I2.
 - **O que se planeja fazer:** examinar a falha preservada, acrescentar somente fases fixas e captura sanitizada ao caminho de reload do teste, validar o contrato e reproduzir um recorte autenticado controlado, sem alterar a implementação I2, Auth, App Check, Firestore, timeout ou retry.
 - **Recursos/arquivos principais envolvidos:** `nutrition-tracker.jsx`, cópia controlada `app.js`, `tests/smoke/test-helpers.js`, `tests/unit/smoke-console-filter.test.js` e PR UIUX #293.
-- **O que foi feito:** o último gate da UIUX passou 1.524 unitários e 160/161 casos legados; `temporal-field.visual.spec.js` parou após troca de idioma com `#loading` por 15 s. O artefato confirma “Entrando...”, mas não contém fase de bootstrap nem erro de rede suficiente para atribuir causa. Na branch isolada do Principal, fases fixas no legado e diagnóstico sanitizado do reload passaram no teste focado 9/9. A primeira reprodução autenticada nem iniciou o teste: o lease remoto não foi observado como adquirido em 2 min e foi cancelado. O gate local sem credenciais, repetido fora do sandbox após erro ambiental `EPERM` na escrita de relatórios, passou preflight sem avisos, 1.525/1.525 unitários, smokes legado/Vite com skips autenticados esperados e cutover 60/60. O draft PR #305 passou preflight `37368929027` e CI autenticado `37368928963`: 1.525 unitários, Worker 44, Functions 74, Playwright legado 137 aprovados, Vite 147 aprovados e `SMOKE_OUTCOME: success`. A intermitência não foi reproduzida nem declarada resolvida.
+- **O que foi feito:** o último gate da UIUX passou 1.524 unitários e 160/161 casos legados; `temporal-field.visual.spec.js` parou após troca de idioma com `#loading` por 15 s. O artefato confirma “Entrando...”, mas não contém fase de bootstrap nem erro de rede suficiente para atribuir causa. Na branch isolada do Principal, fases fixas no legado e diagnóstico sanitizado do reload passaram no teste focado 9/9. A primeira reprodução autenticada nem iniciou o teste: o lease remoto não foi observado como adquirido em 2 min e foi cancelado. O gate local sem credenciais, repetido fora do sandbox após erro ambiental `EPERM` na escrita de relatórios, passou preflight sem avisos, 1.525/1.525 unitários, smokes legado/Vite com skips autenticados esperados e cutover 60/60. O PR #305 passou dois preflights e dois CI autenticados, e foi mesclado em `88ad052` em 08/10; a UIUX recebeu esse commit para retomar o PR #293. A intermitência não foi reproduzida nem declarada resolvida.
 
 ### [INC-I2-BOOTSTRAP-PHASE] - Fase fixa do bootstrap autenticado
 
