@@ -17,9 +17,9 @@ Registrar o estado administrativo real antes de reduzir privilégios ou atualiza
 
 Nenhuma saída contendo token, credencial, UID ou dado de usuário foi persistida.
 
-## Estado implantado das Functions
+## Estado implantado das Functions na baseline inicial de 26/09/2026
 
-As três Functions Gen2 executam atualmente com a mesma identidade padrão:
+Na captura inicial, as três Functions Gen2 executavam com a mesma identidade padrão; as migrações posteriores são registradas cronologicamente abaixo:
 
 `128834310181-compute@developer.gserviceaccount.com`
 
@@ -297,6 +297,8 @@ O PR documental #291, mesclado em `c88b91b`, levou **19 min 11 s** do primeiro c
 **Replay atual da retirada de Editor — 08/10/2026, sem alteração IAM:** a política de projeto foi lida em memória na versão 3 com `etag`; o overlay retirou exatamente uma associação da conta Compute padrão a `roles/editor`, sem adicionar papéis ou alterar outra política. O replay `projects/nutrition-tracker-780b3/locations/global/replays/c638ec98-cab5-44e6-bf59-6a2550deb13c` terminou `SUCCEEDED`: 832 acessos, 828 sem mudança, três transições `GRANTED` → `NOT_GRANTED` (`ACCESS_REVOKED`) e um erro agregado `UNSUPPORTED_RESOURCE`. As três perdas são `logging.logEntries.create` (última vez em 21/08) e duas `storage.objects.get` (última vez em 30/09); todas antecedem a migração de build concluída em 04/10. O erro contém 23.245 detalhes de recurso sem suporte, não 23.245 recursos distintos. O dado mais recente usado no replay é de 01/10, anterior ao novo build; a [fonte `RECENT_ACCESSES`](https://docs.cloud.google.com/policy-intelligence/docs/reference/policysimulator/rest/v1/folders.locations.replays) pode omitir os sete dias mais recentes. Portanto, as perdas históricas não provam dependência atual, mas o replay também **não** libera a revogação. Uma consulta separada aos metadados de Cloud Audit Logs desde 05/10 não encontrou entradas visíveis da conta antiga; ausência de log não prova ausência de uso, pois a cobertura de auditoria pode ser incompleta. **Decisão:** manter `roles/editor` até obter evidência atual suficiente e aprovação específica de corte com rollback; nenhum `setIamPolicy` foi feito nesta etapa.
 
 **Rastreabilidade documental:** o PR #306 registrou esta auditoria e os merges anteriores; primeiro commit `cc6b15a`, merge `840a5ce` em 08/10/2026, tempo decorrido **15 min 2 s**, CI **2 min (2 min leve + 0 min pesado)** nos três preflights `37821735020`, `37822057761` e `37823391345`. Esses valores também constam da descrição do PR. A C14-F2 permanece em andamento.
+
+**Dependências transitivas no repositório — 08/10/2026:** o PR #308 alterou somente `functions/package-lock.json` dentro das faixas das dependências diretas existentes; `npm audit --omit=dev` local caiu de seis alertas para zero. Testes locais e CI autenticado em Node 22 passaram; o CI `37839291948` registrou 1.525 unitários, 44 Worker, 74 Functions emuladas, 137 casos legados + 10 skips estruturais, 147 Vite e `SMOKE_OUTCOME: success`. O preflight `37839291798` também passou. O primeiro commit `0554d8f` ao merge `127def2` levou **1 h 6 min 42 s**; CI **47 min 59 s (30 s leve + 47 min 29 s pesado)**, idênticos à descrição pós-merge do PR. Não houve deploy: as Functions publicadas não devem ser descritas como corrigidas por esse merge. O inventário de IAM e a decisão sobre `roles/editor` permanecem separados e abertos.
 
 - nenhuma Function administrativa executa com `roles/editor`;
 - cada identidade possui somente os acessos necessários ao seu fluxo;
