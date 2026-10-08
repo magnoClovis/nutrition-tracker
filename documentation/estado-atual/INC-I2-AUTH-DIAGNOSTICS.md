@@ -16,6 +16,8 @@ O PR #305 (commit inicial `e71e587`) passou o Quick repository sanity `373689290
 
 **Gate da instrumentação em 08/10/2026:** os rótulos fixos `auth-refresh`, `auth-refresh-timeout`, `auth-ready`, `daily-hydration`, `daily-ready`, `daily-ready-timeout` e `splash-hide`, mais o booleano `root-content`, entraram na whitelist sanitizada. O espelho legado permanece idêntico. O teste focado passou 9/9, preflight zero avisos e `npm test` local saiu com código 0, incluindo cutover 60/60; a worktree não tinha credenciais descartáveis, então o smoke local não comprova restauração autenticada. Nenhum timeout, retry, Auth, Firestore, App Check ou UI I2 funcional foi alterado. A próxima etapa é CI autenticado e reprodução controlada; se a falha reaparecer, usar a fase exata antes de propor correção.
 
+**CI autenticado do draft #310 — 08/10/2026:** Quick repository sanity `37852620056` e CI `37852620011` passaram no commit `1a74cfa`. O smoke legado registrou 137 aprovações e 10 skips estruturais; Vite registrou 147 aprovações, com `SMOKE_OUTCOME: success`. Nenhum novo `#loading` apareceu nesse run. Isso confirma que a observabilidade não quebrou o gate, mas não resolve a intermitência; o próximo passo continua sendo uma reprodução autenticada controlada sob lease para capturar a fase exata se a espera reaparecer. Não aumentar timeout, adicionar retry nem atribuir a causa a Auth, Firestore ou App Check sem essa evidência.
+
 ## Estado
 
 Investigação em andamento na frente Trofia-Principal, separada da implementação I2 da UIUX. A branch e o PR #293 não são alterados aqui.
