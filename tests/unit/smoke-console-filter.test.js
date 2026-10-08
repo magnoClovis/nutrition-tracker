@@ -130,14 +130,18 @@ test('bootstrap DOM diagnostic exposes only fixed boolean and ready-state fields
       hideTimerPending: true,
       removeTimerPending: false,
       appMainPresent: true,
+      rootContentPresent: true,
       readyState: 'private-uid token=secret',
       bootstrapPhase: 'private-uid token=secret'
     })
   });
-  assert.equal(diagnostic, 'bootstrap-dom loading=true hidden=false hide-requested=false hide-timer=true remove-timer=false app-main=true document=unknown phase=not-reported');
+  assert.equal(diagnostic, 'bootstrap-dom loading=true hidden=false hide-requested=false hide-timer=true remove-timer=false app-main=true root-content=true document=unknown phase=not-reported');
   assert.doesNotMatch(diagnostic, /private-uid|token|secret/);
   const known = await readSafeBootstrapState({evaluate: async () => ({bootstrapPhase: 'profile-gate'})});
   assert.match(known, /phase=profile-gate$/);
+  for (const phase of ['auth-refresh', 'auth-refresh-timeout', 'daily-hydration', 'daily-ready', 'daily-ready-timeout', 'splash-hide']) {
+    assert.match(await readSafeBootstrapState({evaluate: async () => ({bootstrapPhase: phase})}), new RegExp(`phase=${phase}$`));
+  }
   assert.equal(await readSafeBootstrapState({ evaluate: async () => { throw new Error('private token'); } }), 'bootstrap-dom unavailable');
 });
 
