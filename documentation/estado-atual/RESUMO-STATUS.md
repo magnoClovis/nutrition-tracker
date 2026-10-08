@@ -1,5 +1,16 @@
 # Resumo de status do Trofia
 
+### [C14-F2-DEPLOY-DEPENDENCIAS] - Publicação controlada do lockfile já aprovado
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 09/10/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** levar às três Functions o lockfile de produção validado no PR #308, sem confundir merge de código com atualização do artefato publicado.
+- **O que se planeja fazer:** conferir baseline, revisão de retorno, build/runtime e invocadores; publicar seletivamente uma Function por vez com verificação pós-deploy; repetir provas funcionais proporcionais e auditar o artefato publicado; registrar ou executar rollback diante de regressão. Não revogar `roles/editor` nesta etapa.
+- **Recursos/arquivos principais envolvidos:** três Functions de exclusão de conta, `functions/package-lock.json`, revisões Cloud Run, IAM de invocação, Scheduler e inventário C14-F2.
+- **O que foi feito:** o PR documental #309 foi mesclado em `48b4de4` após 47 min 4 s, com 31 s de CI leve e nenhum CI pesado; as mesmas métricas constam na descrição do PR. Leitura administrativa de 09/10 confirmou as três Functions `ACTIVE`, Node 22, com identidades dedicadas de build/runtime e revisões/source generations ainda datadas de 04/10, anteriores ao PR #308. O ensaio de deploy seletivo do processador com filtro de codebase `functions:account-deletion:processAccountDeletionTask` terminou verde; o filtro sem codebase não correspondia a nenhuma Function. O deploy real somente de `processAccountDeletionTask` concluiu com código 0: nova revisão `00005-nek`/source geração `1791498402921587`, `ACTIVE`, 100% no latest, build/runtime dedicados e exatamente os dois invocadores esperados. Callable e reconciliador permaneceram nas revisões anteriores. A prova funcional pós-deploy com conta descartável ainda não foi executada; `roles/editor` não foi alterada.
+- **Alinhamento:** código e CI aprovados; processador publicado/configuração conferida; prova funcional e publicação das outras duas Functions pendentes. A decisão separada de `roles/editor` mantém a C14-F2 geral aberta.
+
 ### [C14-F2-DEPENDENCIAS] - Revisão de alertas transitivos das Functions
 
 - **Status:** concluído — **Chat:** Trofia-Principal.

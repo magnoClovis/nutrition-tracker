@@ -1,5 +1,19 @@
 # Histórico da frente principal — arquitetura de IA e dados
 
+### [C14-F2-DEPLOY-DEPENDENCIAS] - Publicação controlada após o PR #308
+
+- **Status:** em andamento.
+- **Data de início:** 09/10/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** a apurar após merge do registro final.
+- **Minutos de CI:** a apurar após os gates do registro final.
+- **Propósito:** comprovar a atualização das dependências no artefato publicado, preservando as identidades e o contrato de exclusão de conta já validados.
+- **O que se planeja fazer:** capturar baseline e retorno por revisão; publicar as três Functions seletivamente, uma por vez; conferir build/runtime/invocadores/source/tráfego; executar provas funcionais proporcionais, inclusive Scheduler, e auditar o lockfile efetivamente implantado. Parar e avaliar retorno se houver regressão; não retirar `roles/editor` por associação.
+- **Recursos/arquivos principais envolvidos:** `functions/package-lock.json`, três Functions de exclusão, Cloud Run, Scheduler, IAM de invocação e inventário C14-F2.
+- **O que foi feito:** o PR documental #309 foi mesclado em `48b4de4`, do primeiro commit ao merge em 47 min 4 s; preflight `37847597448` durou 31 s (31 s leve + 0 s pesado), números copiados à descrição do PR. Em 09/10, leitura somente administrativa mostrou as três Functions `ACTIVE`, Node 22, build/runtime dedicados, mas com source generations/revisões de 04/10; portanto o merge #308 ainda não havia chegado à produção. O dry-run com filtro de codebase explícito passou; o filtro sem codebase foi rejeitado antes de qualquer mutação. O deploy real restrito ao processador terminou com código 0 e criou a revisão `processaccountdeletiontask-00005-nek`, source geração `1791498402921587`. Leitura posterior confirmou `ACTIVE`, Node 22, build/runtime dedicados, 100% do tráfego no latest e os mesmos dois invocadores esperados. Callable e reconciliador ficaram inalterados. A prova pós-deploy com conta nova descartável foi preparada e passou no preflight read-only, mas não foi executada enquanto o CI autenticado I2 ocupa o lease. Não houve alteração de IAM, Scheduler ou `roles/editor`.
+- **Alinhamento:** implementação no repositório validada, primeiro deploy e configuração pós-deploy comprovados; prova funcional e duas publicações pendentes.
+- **PRs/commits relacionados:** #308 (`127def2`), #309 (`48b4de4`); PR de registro final ainda não aberto.
+
 ### [C14-F2-DEPENDENCIAS] - Auditoria e correção transitiva das Functions
 
 - **Status:** concluído.
