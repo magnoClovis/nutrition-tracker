@@ -1,5 +1,15 @@
 # Resumo de status do Trofia
 
+### [C14-F2-DEPENDENCIAS] - Revisão de alertas transitivos das Functions
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 08/10/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** encerrar a parte de dependências da C14-F2 sem confundir a classificação do registry com exposição efetiva do runtime.
+- **O que se planeja fazer:** identificar os caminhos das dependências transitivas afetadas no lockfile atual, preparar apenas versões corrigidas compatíveis, validar testes e CI antes de propor publicação seletiva; registrar qualquer exceção comprovada.
+- **Recursos/arquivos principais envolvidos:** `functions/package.json`, `functions/package-lock.json`, Firebase Admin/Functions, npm audit, emuladores e CI autenticado.
+- **O que foi feito:** auditoria inicial em 08/10 encontrou seis alertas transitivos de produção (um crítico, dois altos e três moderados) no lockfile da `origin/main`. A proposta restrita ao lockfile atualizou quatro pacotes afetados e `@google-cloud/storage` dentro da major já permitida pelo Firebase Admin; `npm audit --omit=dev` agora retorna 0 alertas. `npm ci` passou, os testes puros foram 62/62 com 12 skips exclusivos dos emuladores, e o gate emulado passou 74/74 sem skips. A suíte integral `npm test` terminou com código 0: preflight sem avisos, 1.525/1.525 unitários e cutover 60/60; os smokes locais tiveram skips autenticados pela ausência de credenciais nesta worktree. O CI autenticado em Node 22 ainda não ocorreu; nada foi publicado.
+
 ### [DOC-C14-F2-304] - Registro pós-merge do build e retry descartável
 
 - **Status:** concluído — **Chat:** Trofia-Principal.

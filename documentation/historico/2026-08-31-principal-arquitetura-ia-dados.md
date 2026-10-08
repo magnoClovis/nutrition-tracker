@@ -1,5 +1,19 @@
 # Histórico da frente principal — arquitetura de IA e dados
 
+### [C14-F2-DEPENDENCIAS] - Auditoria e correção transitiva das Functions
+
+- **Status:** em andamento.
+- **Data de início:** 08/10/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** fechar o critério de segurança de dependências da C14-F2 sobre o artefato realmente instalado, sem atualizar major versions por associação.
+- **O que se planeja fazer:** confirmar alertas e caminhos no lockfile de produção, testar atualização transitiva compatível, repetir auditoria, recortes focados, emuladores, suíte integral e CI autenticado antes de qualquer deploy; manter IAM e identidade das Functions estáveis nesta etapa.
+- **Recursos/arquivos principais envolvidos:** `functions/package.json`, `functions/package-lock.json`, `firebase-admin@14.5.0`, `firebase-functions@7.3.2`, dependências transitivas, npm audit, emuladores e CI.
+- **O que foi feito:** `npm audit --omit=dev` em 08/10 retornou seis alertas no lockfile da `origin/main`: `proxy-addr` crítico, `@grpc/grpc-js` e `brace-expansion` altos, `@fastify/busboy`, `gaxios` e `uuid` moderados. `npm ls` rastreou `proxy-addr` por Functions/Express; os demais passam por Firebase Admin e bibliotecas Google. Um primeiro dry-run não teve saída recuperável; a repetição comprovou que não mudou arquivos, mas não resolveu os alertas. A proposta seguinte, ainda local, usa apenas `functions/package-lock.json`: `@fastify/busboy` 3.2.1→3.2.2, `@grpc/grpc-js` 1.14.4→1.14.6, `brace-expansion` 2.1.4→2.1.7, `proxy-addr` 2.0.7→2.0.8 e `@google-cloud/storage` 8.2.0→8.3.0 (dentro de `^8.1.0` permitido pelo Admin), substituindo a árvore antiga de `gaxios`/`uuid` de produção. `npm audit --omit=dev` passou de seis para zero alertas. `npm ci` concluiu com código zero em cerca de dois minutos; os 23 alertas totais exibidos ao final incluem dependências de desenvolvimento e não contradizem o recorte `--omit=dev`. `npm test` das Functions passou 62/62, sem falhas, com 12 skips exclusivos de emuladores; `npm run test:emulators` passou 74/74, sem skips, e encerrou seus processos. A primeira tentativa de suíte raiz aguardou a porta 8765 ocupada por `i2-registration`; após liberação comprovada das quatro portas, `npm test` integral concluiu com código 0, preflight sem avisos, 1.525 unitários e cutover 60/60. Os smokes locais tiveram skips autenticados esperados por ausência de credenciais; não se infere deles um gate autenticado verde. O npm local é Node 24, enquanto o projeto declara Node 22; CI autenticado em Node 22 continua obrigatório. Ainda não houve IAM ou deploy desta proposta; a gravidade do registry não demonstra, por si, exploração no Trofia.
+- **Alinhamento:** pendente de validação.
+- **PRs/commits relacionados:** nenhum desta etapa ainda.
+
 ### [DOC-C14-F2-304] - Registro pós-merge do build e retry descartável
 
 - **Status:** concluído.
