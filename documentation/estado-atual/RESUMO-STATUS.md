@@ -2,13 +2,14 @@
 
 ### [C14-F2-DEPENDENCIAS] - Revisão de alertas transitivos das Functions
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 08/10/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 08/10/2026.
 - **Propósito:** encerrar a parte de dependências da C14-F2 sem confundir a classificação do registry com exposição efetiva do runtime.
 - **O que se planeja fazer:** identificar os caminhos das dependências transitivas afetadas no lockfile atual, preparar apenas versões corrigidas compatíveis, validar testes e CI antes de propor publicação seletiva; registrar qualquer exceção comprovada.
 - **Recursos/arquivos principais envolvidos:** `functions/package.json`, `functions/package-lock.json`, Firebase Admin/Functions, npm audit, emuladores e CI autenticado.
-- **O que foi feito:** auditoria inicial em 08/10 encontrou seis alertas transitivos de produção (um crítico, dois altos e três moderados) no lockfile da `origin/main`. A proposta restrita ao lockfile atualizou quatro pacotes afetados e `@google-cloud/storage` dentro da major já permitida pelo Firebase Admin; `npm audit --omit=dev` agora retorna 0 alertas. `npm ci` passou, os testes puros foram 62/62 com 12 skips exclusivos dos emuladores, e o gate emulado passou 74/74 sem skips. A suíte integral `npm test` terminou com código 0: preflight sem avisos, 1.525/1.525 unitários e cutover 60/60; os smokes locais tiveram skips autenticados pela ausência de credenciais nesta worktree. O CI autenticado em Node 22 ainda não ocorreu; nada foi publicado.
+- **O que foi feito:** auditoria inicial em 08/10 encontrou seis alertas transitivos de produção (um crítico, dois altos e três moderados) no lockfile da `origin/main`. O PR #308 atualizou apenas versões compatíveis no lockfile, reduzindo `npm audit --omit=dev` a zero alertas locais; passou `npm ci`, Functions 62/62 com 12 skips próprios dos emuladores, emuladores 74/74, `npm test` local com 1.525/1.525 unitários e cutover 60/60. Preflight remoto `37839291798` e CI autenticado em Node 22 `37839291948` passaram, com 137 casos legados + 10 skips estruturais, 147 Vite e `SMOKE_OUTCOME: success`. O PR foi mesclado em `127def2` após 1 h 6 min 42 s, com 47 min 59 s de CI (30 s leve + 47 min 29 s pesado). Nenhuma Function foi publicada por esta etapa; `roles/editor` permanece e a C14-F2 geral não está concluída.
+- **Alinhamento:** 100% da atualização compatível de código e dos gates; o benefício de segurança ainda não foi comprovado no runtime publicado.
 
 ### [DOC-C14-F2-304] - Registro pós-merge do build e retry descartável
 
