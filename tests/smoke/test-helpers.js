@@ -1,5 +1,6 @@
 const { expect } = require('@playwright/test');
 const { createHash } = require('node:crypto');
+const criticalErrorsByPage = new WeakMap();
 
 const SAFE_PATH_PARTS = new Set([
   'v1', 'v2', 'v3', 'projects', 'apps', 'databases', '(default)',
@@ -179,6 +180,14 @@ async function readSafeBootstrapState(page) {
   }
 }
 
+async function formatLanguageReloadFailure(page, errors, criticalStart = 0, diagnosticStart = 0) {
+  const state = await readSafeBootstrapState(page);
+  const recent = errors
+    ? [...errors.slice(criticalStart), ...errors.diagnostics.slice(diagnosticStart)].slice(-50)
+    : [];
+  return `language-reload-failed; sanitized diagnostics:\n${state}\n${recent.join('\n') || 'none'}`;
+}
+
 async function restoreFixtureActions(actions) {
   const failed = [];
   for (const [index, action] of actions.entries()) {
@@ -193,6 +202,7 @@ async function restoreFixtureActions(actions) {
 
 async function openApp(page) {
   const errors = collectCriticalErrors(page);
+  criticalErrorsByPage.set(page, errors);
   try {
     await page.goto('index.html', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#root')).toBeVisible();
@@ -273,12 +283,22 @@ async function clickByTutorialKeyOrText(page, tutorialKey, fallbackPattern) {
 }
 
 async function setAppLanguage(page, language) {
-  await page.evaluate(async (nextLanguage) => {
-    localStorage.setItem('appLang', nextLanguage);
-    await window.storage.set('language', nextLanguage);
-  }, language);
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
+  const errors = criticalErrorsByPage.get(page);
+  const criticalStart = errors?.length || 0;
+  const diagnosticStart = errors?.diagnostics.length || 0;
+  if (errors) setCriticalErrorPhase(errors, 'language-reload');
+  try {
+    await page.evaluate(async (nextLanguage) => {
+      localStorage.setItem('appLang', nextLanguage);
+      await window.storage.set('language', nextLanguage);
+    }, language);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
+  } catch {
+    throw new Error(await formatLanguageReloadFailure(page, errors, criticalStart, diagnosticStart));
+  } finally {
+    if (errors) setCriticalErrorPhase(errors, 'scenario');
+  }
   await dismissTutorialIfVisible(page);
 }
 
@@ -373,6 +393,7 @@ module.exports = {
   formatSafeDiagnostics,
   restoreFixtureActions,
   readSafeBootstrapState,
+  formatLanguageReloadFailure,
   interceptOptionalExternalApis,
   openApp,
   setAppLanguage,
