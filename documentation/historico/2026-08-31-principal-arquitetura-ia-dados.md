@@ -14,6 +14,8 @@
 - **Alinhamento:** 100% do registro documental; impacto operacional neutro, porque o PR é documental e a F2 ainda está aberta.
 - **PRs/commits relacionados:** PR #304, commits `dba3c0e` e `b11f04d`, merge `59dd9bc`.
 
+**Replay posterior à migração, 08/10/2026:** somente a associação da conta Compute padrão a `roles/editor` foi retirada da política simulada, em memória; IAM real permaneceu intacto. O replay `c638ec98-cab5-44e6-bf59-6a2550deb13c` concluiu com 832 acessos: 828 sem mudança, três perdas `GRANTED` → `NOT_GRANTED` e um erro `UNSUPPORTED_RESOURCE` com 23.245 detalhes agregados, não recursos distintos. Uma perda de `logging.logEntries.create` foi vista pela última vez em 21/08, e duas de `storage.objects.get` em 30/09; a cobertura do replay termina em 01/10, antes da migração de build de 04/10. A consulta Cloud Audit Logs desde 05/10 não retornou entrada visível da conta antiga, mas isso não prova ausência de consumidor não auditado. Assim, o replay histórico não demonstra dependência atual dessas três permissões, tampouco segurança para revogar Editor. A C14-F2 fica aberta; nenhuma política foi escrita.
+
 ### [INC-I2-LEGACY-RELOAD] - Diagnóstico da restauração após troca de idioma
 
 - **Status:** em andamento.
