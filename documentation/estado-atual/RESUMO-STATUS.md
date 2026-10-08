@@ -8,7 +8,7 @@
 - **Propósito:** registrar com métricas comprovadas a publicação das identidades de build dedicadas e as provas operacionais já realizadas, sem confundir isso com a revogação de `roles/editor`.
 - **O que se planeja fazer:** conciliar resumo, histórico, inventário IAM e descrição do PR #304 após o merge documental.
 - **Recursos/arquivos principais envolvidos:** PR #304, três Cloud Functions, Scheduler, IAM Cloud Run e inventário C14-F2.
-- **O que foi feito:** PR documental #304 mesclado em `59dd9bc`; tempo decorrido de 3 d 20 h 48 min 52 s; cinco preflights verdes totalizaram 2 min 27 s (2 min 27 s leve + 0 min pesado), iguais à descrição corrigida do PR. As três Functions seguem com build e runtime dedicados; `roles/editor` da conta Compute padrão permanece e exige avaliação separada.
+- **O que foi feito:** PR documental #304 mesclado em `59dd9bc`; tempo decorrido de 3 d 20 h 48 min 52 s; cinco preflights verdes totalizaram 2 min 27 s (2 min 27 s leve + 0 min pesado), iguais à descrição corrigida do PR. As três Functions seguem com build e runtime dedicados. A leitura de 08/10 encontrou 146 ativos pesquisáveis, apenas `roles/editor` como binding direto indexado da conta Compute e invocadores dedicados nos três serviços; cobertura parcial impede concluir que a role já pode ser retirada.
 - **Alinhamento:** 100% do registro documental; C14-F2 ainda em andamento.
 
 ### [INC-I2-LEGACY-RELOAD] - Diagnóstico da restauração após troca de idioma
