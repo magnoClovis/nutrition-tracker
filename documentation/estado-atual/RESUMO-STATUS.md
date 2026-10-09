@@ -1919,7 +1919,7 @@
 - **Propósito:** registrar as métricas do merge da Tarefa 0 e transformar os achados em escolhas explícitas de custo e hospedagem.
 - **O que se planeja fazer:** conciliar os três registros documentais e a descrição do #315; recomendar controles de billing e host isolado sem criar projeto, aceitar termos ou vincular pagamento.
 - **Recursos/arquivos principais envolvidos:** PR #315, resumo, histórico Principal e `C14_H_STAGING_AUDITORIA.md`.
-- **O que foi feito:** o #315 levou 18 min 1 s até o merge, com 52 s de CI leve e nenhum pesado. A recomendação preliminar é Firebase Hosting no projeto staging e Worker/DO separados; vínculo de billing, limite monetário e host final não foram verificados/aprovados.
+- **O que foi feito:** o #315 levou 18 min 1 s até o merge, com 52 s de CI leve e nenhum pesado. O usuário aprovou Firebase Hosting no novo projeto staging, com domínio padrão e sem alterar Pages; Worker/DO separados seguem propostos. Nenhum site foi criado. Conta pagadora, limite monetário, identificador do projeto e política de acesso seguem pendentes de verificação/decisão.
 
 ### [DOC-PR170-CLOSEOUT] - Encerramento de PR documental obsoleto
 
