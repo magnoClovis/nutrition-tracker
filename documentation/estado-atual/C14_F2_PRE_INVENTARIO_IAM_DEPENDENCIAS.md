@@ -1,6 +1,6 @@
 # C14-F2 — inventário preparatório de IAM, invocadores e dependências
 
-> **Estado:** baseline preparatória concluída em 26/09/2026. O PR #265 de dependências foi mesclado em 29/09/2026 sem deploy. Em 29/09, após inventário e autorizações específicas, cinco identidades, 12 grants candidatos e mais seis vínculos mínimos para Cloud Tasks/OIDC foram preparados em IAM, sem migrar Functions/Scheduler nem revogar Editor. A redução efetiva de privilégios da C14-F2 continua pendente de provas reais e cobertura suficiente dos consumidores da conta padrão. As seções históricas anteriores à preparação foram somente leitura; a seção de preparação identifica todas as mutações.
+> **Estado:** baseline preparatória concluída em 26/09/2026. As três Functions de exclusão já operam com identidades dedicadas de runtime/build, invocadores restritos conforme o contrato e o lockfile aprovado publicado; provas descartáveis e execução natural do Scheduler passaram. O fechamento documental da C14-F2 aguarda o merge do PR #311. A conta Compute padrão ainda possui `roles/editor`; por decisão explícita de 09/10/2026, sua eventual revogação pertence à tarefa separada `SEC-IAM-EDITOR-RESIDUAL` e não foi executada. As seções anteriores preservam a cronologia da baseline e das mutações.
 
 ## Objetivo
 
@@ -316,3 +316,11 @@ O PR documental #291, mesclado em `c88b91b`, levou **19 min 11 s** do primeiro c
 - inventário de segredos do Worker é concluído sem expor valores;
 - nenhum dado real é apagado durante a validação; testes destrutivos usam contas descartáveis;
 - documentação, runbook e rollback refletem o estado efetivamente implantado.
+
+## Delimitação aprovada em 09/10/2026
+
+O usuário autorizou encerrar a C14-F2 após corrigir e integrar o registro documental do rollout, mantendo a possível revogação de `roles/editor` como `SEC-IAM-EDITOR-RESIDUAL`, não iniciada. Essa separação não afirma que a role seja inofensiva nem que a conta Compute padrão esteja desprovida de privilégios amplos. O replay mais recente teve 832 acessos, três perdas históricas anteriores à migração de build e um erro de cobertura para recurso sem suporte; há lacuna de evidência para um corte seguro. Não houve `setIamPolicy`, grant substituto ou revogação nesta decisão.
+
+Em leitura somente administrativa de 09/10, as três Functions continuavam `ACTIVE` em Node 22 nas revisões pós-lockfile `requestaccountdeletion-00006-mud`, `processaccountdeletiontask-00005-nek` e `reconcileaccountdeletionjobs-00005-wuc`, com identidades dedicadas, 100% do tráfego no latest e invocadores esperados. O Scheduler permanecia `ENABLED` com OIDC dedicado; a última tentativa consultada, às 05:26 UTC, tinha status 0. A igualdade SHA-256 dos três lockfiles publicados foi comprovada após os respectivos deploys; esta leitura posterior reconfirmou configuração/revisões, não recalculou os três hashes. Os dois roteiros com contas descartáveis e a primeira execução natural pós-revisão permanecem as provas funcionais do rollout. O plano de rollback por revisão foi preservado, mas um retorno de tráfego real não foi executado.
+
+O encerramento formal da C14-F2 exige que #311 e o registro pós-merge reflitam essas evidências. A tarefa `SEC-IAM-EDITOR-RESIDUAL` exigirá nova auditoria, simulação atualizada, plano de retorno e autorização específica antes de qualquer mutação IAM.
