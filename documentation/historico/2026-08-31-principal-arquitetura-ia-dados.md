@@ -766,17 +766,32 @@ O usuário autorizou em seguida esse plano revisado de identidade de runtime sep
 
 ### [C14-H] - Staging, validação final e rollout
 
-- **Status:** em andamento, somente Tarefa 0 de auditoria.
+- **Status:** em andamento; Tarefa 0 concluída, staging ainda não iniciado.
 - **Data de início:** 09/10/2026.
 - **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 30 s de preflight documental (30 s leve + 0 min pesado), run `37943855487`; implementação não iniciada.
+- **Tempo decorrido:** Tarefa 0 documental #315: 18 min 1 s do primeiro commit ao merge; C14-H funcional não concluída.
+- **Minutos de CI:** Tarefa 0 documental #315: 52 s (52 s leve + 0 min pesado), runs `37943855487` e `37945184179`; implementação não iniciada.
 - **Propósito:** comprovar o endurecimento completo em um ambiente destrutivo separado antes do lançamento público e produzir o handoff operacional para C16/C25.
 - **O que se planeja fazer:** criar staging separado e executar a matriz destrutiva/final antes do lançamento público.
 - **Recursos/arquivos principais envolvidos:** novo projeto Firebase staging, emuladores, CI, Pages, Worker, Functions/Tasks, AAB distribuído pela Play, matriz offline/multiaba/backup/exclusão, inventário IAM/secrets/dependências e documentação operacional.
 - **O que foi feito:** a Tarefa 0, iniciada em 09/10/2026, examinou o repositório e configurações acessíveis sem criar recursos. `firebase projects:list` mostrou apenas o projeto de produção para a credencial atual; `.firebaserc` só contém `production` e emulador. A configuração Firebase compartilhada pelo legado/Vite fixa projeto e chave da produção; o endpoint de exclusão, o Worker (projeto/número/App IDs e origem permitida), o CSP e as verificações do AAB também contêm alvos de produção. Functions usa projeto do ambiente na inicialização, mas nomes das contas de execução no código apontam ao projeto de produção. O workflow CI usa uma conta descartável e App Check de produção em uma fila única; a suíte intercepta o Worker em vez de fazer IA real. Pages publica somente da `main`, e o repositório não contém ambiente Wrangler staging ou configuração GitHub staging. O acesso consultado ao GitHub mostra apenas o environment `github-pages`; nenhuma variável/segredo de staging foi identificada pelos nomes disponíveis. Portanto, antes de criar/deployar recursos é preciso estabelecer contratos fail-closed por ambiente e isolamento de identidades, URLs, dados, secrets, Durable Objects e artefatos Android. A matriz, os gates e os limites da evidência estão no documento específico `C14_H_STAGING_AUDITORIA.md`. Nenhum projeto, secret, política, dado, deploy ou código de runtime foi alterado.
 - **Alinhamento:** Tarefa 0 entregue como investigação; a C14-H funcional continua pendente, sem porcentagem de conclusão inferida.
-- **PRs/commits relacionados:** PR draft #315 (`29ec5df`), preflight documental `37943855487` verde; merge pendente.
+- **PRs/commits relacionados:** #315 (`29ec5df`, reconciliação `0324588`, merge `1fb3c72`); preflights `37943855487` (30 s) e `37945184179` (22 s). O PR UI/UX #293 foi mesclado em `f09ac0b` depois do #315, com checks verdes; integração na matriz H ainda não executada.
+
+### [DOC-C14-H-315] - Métricas e preparação de staging pós-auditoria
+
+- **Status:** em andamento.
+- **Data de início:** 09/10/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge deste registro documental; o #315 foi mesclado após 18 min 1 s.
+- **Minutos de CI:** pendente deste registro; o #315 somou 52 s (52 s leve + 0 min pesado).
+- **Propósito:** fechar as métricas comprovadas da auditoria e preparar escolhas de cobrança/host sem confundi-las com autorização de gasto ou deploy.
+- **O que se planeja fazer:** registrar números idênticos no histórico, documento específico e descrição do #315; recomendar controles de custo e host web isolado antes de pedir qualquer vínculo de billing.
+- **Recursos/arquivos principais envolvidos:** PR #315, `C14_H_STAGING_AUDITORIA.md`, Google Cloud Billing, Firebase Hosting, Cloudflare Worker/DO e registros documentais da frente.
+- **O que foi feito:** primeiro commit `29ec5df` às 14:23:19 UTC; merge `1fb3c72` às 14:41:20 UTC, intervalo exato 18 min 1 s. Os preflights duraram 30 s e 22 s; nenhum CI pesado foi disparado para este PR documental. A descrição do #315 recebeu esses valores. A página de cobrança do projeto de produção não concluiu carregamento nesta sessão, e os CLIs de Google Cloud/Firebase não estão disponíveis no PATH; nenhuma conta de billing, orçamento ou elegibilidade administrativa foi inferida. A documentação oficial confirma Blaze para Functions, alertas de orçamento que não limitam cobrança e spend cap de Functions ainda em prévia e não absoluto. Firebase Hosting no projeto staging é a recomendação para o host web; não foi criado site. A I2 #293 foi mesclada depois do #315, mas não foi testada no staging.
+- **Decisão de hospedagem em 09/10/2026:** antes de mesclar o PR #317, o usuário aprovou explicitamente Firebase Hosting no projeto staging separado, usando o domínio padrão `*.web.app`, sem domínio personalizado e sem alterar Pages/Firebase/dados de produção. A autorização define o host, mas não cria site/projeto, não vincula billing e não autoriza deploy. O usuário indicou a mesma conta Google Cloud de sempre; a conta pagadora vinculada, o limite mensal e o identificador do projeto continuam sem verificação/decisão.
+- **Alinhamento:** registro pós-merge preparado; host aprovado, decisões financeiras e implementação permanecem abertas, sem mudança de produção.
+- **PRs/commits relacionados:** #315 (`29ec5df`, merge `1fb3c72`), preflights `37943855487` e `37945184179`; #293 (merge `f09ac0b`) apenas como dependência da futura matriz.
 
 ### [DOC-ROADMAP-LAUNCH-C26-C30] - Notificações e cobrança no pré-lançamento
 
