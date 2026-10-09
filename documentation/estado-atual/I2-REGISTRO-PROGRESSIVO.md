@@ -2,7 +2,7 @@
 
 ## Estado
 
-Implementação em andamento na frente Trofia-UIUX. Este documento descreve o contrato funcional em validação; a fatia só será concluída depois dos gates aplicáveis, da revisão do PR e do fechamento documental pós-merge.
+Implementação concluída pela frente Trofia-UIUX e integrada à `main` pelo PR #293, merge `f09ac0b`, em 09/10/2026. Este documento descreve o contrato funcional entregue.
 
 ## Percurso principal aprovado
 
@@ -71,6 +71,6 @@ Após o diagnóstico separado `INC-I2-AUTH` entrar na `main` pelo commit `082347
 
 Em 09/10/2026 a branch incorporou também a instrumentação sanitizada ampliada do PR #310, commit `35698f6`, no merge local `9c60a36`. Os cinco recortes I2 passaram 63/63 no legado e 63/63 no Vite. A primeira tentativa do gate integral nessa árvore ficou inconclusiva por perda do executor: o processo morreu sem estado terminal e sem artefato Playwright, portanto não foi contabilizado como sucesso nem como falha. A retomada controlada pelo coordenador normal terminou com `npm test` em código 0; o smoke Vite passou 161/161 e o cutover 60/60, com teardown concluído e lease/portas liberados. O CI real do HEAD `b1f6b8f` também ficou totalmente verde no run pesado `37930046423` e no preflight leve `37930046314`: 1.525/1.525 unitários, Worker 44/44 mais 9/9 runtime, Functions 74/74, smoke legado com 151 aprovações e 10 skips estruturais e smoke Vite 161/161. Não houve recorrência de `#loading` nessas execuções concluídas, mas os passes verdes não estabelecem causa nem comprovam que a intermitência foi corrigida.
 
-A expectativa antiga `Weight maintenance` existia somente no helper de teste; o runtime aprovado usa `Maintain weight`. A correção não relaxou asserções nem alterou o comportamento do produto. O PR funcional é o draft #293; revisão final e merge permanecem pendentes.
+A expectativa antiga `Weight maintenance` existia somente no helper de teste; o runtime aprovado usa `Maintain weight`. A correção não relaxou asserções nem alterou o comportamento do produto. Após todos os checks ficarem verdes, o PR #293 foi retirado do draft e mesclado em `f09ac0b`.
 
 Chat-Origin: Trofia-UIUX
