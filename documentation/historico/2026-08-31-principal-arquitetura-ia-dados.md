@@ -33,16 +33,16 @@
 
 ### [SEC-IAM-EDITOR-RESIDUAL] - Avaliação separada da role Editor na conta Compute padrão
 
-- **Status:** não iniciado.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento.
+- **Data de início:** 09/10/2026.
+- **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; não iniciado.
+- **Minutos de CI:** 0 min; auditoria read-only ainda sem PR.
 - **Propósito:** obter uma decisão segura sobre o binding amplo remanescente sem confundir o rollout operacional da C14-F2 com a autorização de um corte IAM.
 - **O que se planeja fazer:** reconfirmar consumidores e cobertura de auditoria após as migrações, atribuir as três perdas históricas e o recurso sem suporte do replay a workloads concretos, simular a retirada de `roles/editor` com grants mínimos e rollback verificável; só propor a revogação com evidência suficiente e autorização específica.
 - **Recursos/arquivos principais envolvidos:** política IAM de projeto da conta Compute padrão, Cloud Asset Inventory, Policy Simulator, Cloud Audit Logs, Functions, Cloud Run, Cloud Tasks, Scheduler e inventário C14-F2.
-- **O que foi feito:** em 09/10/2026, o usuário autorizou separar explicitamente esta pendência da conclusão da C14-F2. O replay anterior cobriu 832 acessos, encontrou três perdas históricas e um erro de cobertura de recurso sem suporte; essas evidências não provam dependência atual nem permitem concluir que a revogação seja segura. Nenhuma política foi alterada e a atividade operacional desta nova tarefa não começou.
-- **Alinhamento:** não aplicável antes da execução.
+- **O que foi feito:** em 09/10/2026, a Tarefa 0 somente em leitura confirmou que a política de projeto ainda concede `roles/editor` à conta Compute padrão e que a busca IAM indexada encontra apenas esse binding para a identidade. A primeira busca de ativos retornou 155 recursos indexados, três Functions, três serviços Cloud Run, oito contas de serviço e zero VMs indexadas; duas releituras posteriores falharam, e a API Compute Engine segue desativada. As três Functions estão ativas e usam runtime/build dedicados; o reconciliador Scheduler usa OIDC dedicada, mas a listagem da segunda região não foi concluída. Desde 04/10, seis builds listados usam a identidade dedicada e dois usam a conta padrão, ambos antes da migração naquela noite. Logs visíveis desde 04/10 não mostraram entradas da conta antiga, sem provar ausência de uso. O replay de 08/10 cobriu 832 acessos, com três perdas históricas anteriores à migração e um erro `UNSUPPORTED_RESOURCE`; a janela de até sete dias da fonte pode omitir os acessos posteriores à migração. Um novo replay em 09/10 não sanaria essa lacuna, portanto não foi criado. Nenhum IAM ou serviço foi alterado. O relatório detalhado e os limites constam no inventário C14-F2.
+- **Alinhamento:** a auditoria inicial foi executada, mas a tarefa de decisão/corte continua aberta; evidência ainda insuficiente para revogação segura. Impacto neutro na operação e positivo na precisão do inventário.
 - **PRs/commits relacionados:** nenhum para esta tarefa.
 
 ### [C14-F2-DEPENDENCIAS] - Auditoria e correção transitiva das Functions

@@ -24,13 +24,13 @@
 
 ### [SEC-IAM-EDITOR-RESIDUAL] - Avaliação separada da role Editor na conta Compute padrão
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 09/10/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** decidir com segurança se e quando remover `roles/editor` da conta Compute padrão, sem manter indefinidamente aberta a C14-F2 já implantada.
 - **O que se planeja fazer:** reconfirmar os consumidores e a cobertura de auditoria após as migrações, classificar as três perdas históricas e o recurso sem suporte do replay, simular um corte atualizado com permissões mínimas e rollback verificável; propor a revogação somente mediante evidência suficiente e autorização específica, sem mutação IAM nesta tarefa preparatória.
 - **Recursos/arquivos principais envolvidos:** política IAM do projeto, conta Compute padrão, Cloud Asset Inventory, Policy Simulator, Cloud Audit Logs, Functions/Cloud Run/Scheduler/Tasks e inventário C14-F2.
-- **O que foi feito:** em 09/10/2026 o usuário aprovou separar esta pendência da conclusão operacional/documental da C14-F2; a role não foi revogada.
+- **O que foi feito:** a auditoria Tarefa 0 de 09/10 reconfirmou `roles/editor` na conta Compute padrão, três Functions e o Scheduler com identidades dedicadas, seis builds dedicados e dois builds antigos na conta padrão anteriores à migração; a busca de IAM indexado achou somente o binding de projeto. Logs visíveis não mostraram uso recente, mas a cobertura do replay ainda não alcança seguramente a migração de 04/10 e contém recurso sem suporte. Revogação não liberada; nenhum IAM ou serviço foi alterado.
 
 ### [C14-F2-DEPENDENCIAS] - Revisão de alertas transitivos das Functions
 
