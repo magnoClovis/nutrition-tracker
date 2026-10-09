@@ -1423,9 +1423,15 @@
         }
       }, [tab]);
       async function loadAll() {
+        if (root?.document?.documentElement?.dataset?.bootstrapPhase === "profile-ready") {
+          root.document.documentElement.dataset.bootstrapPhase = "daily-hydration";
+        }
         setSyncing(true);
         // Timeout fallback: if Firebase hangs for 12s, show app anyway
         const _loadTimeout = setTimeout(() => {
+          if (root?.document?.documentElement?.dataset?.bootstrapPhase === "daily-hydration") {
+            root.document.documentElement.dataset.bootstrapPhase = "daily-ready-timeout";
+          }
           setSyncing(false);
           setLoaded(true);
         }, 12000);
@@ -1501,6 +1507,9 @@
           }
         } catch (_) {}
         clearTimeout(_loadTimeout);
+        if (root?.document?.documentElement?.dataset?.bootstrapPhase === "daily-hydration") {
+          root.document.documentElement.dataset.bootstrapPhase = "daily-ready";
+        }
         setSyncing(false);
         setLoaded(true);
       }
@@ -5151,6 +5160,9 @@
 
       useEffect(() => {
         if (!loaded || typeof window.hideInitialLoading !== "function") return;
+        if (root?.document?.documentElement?.dataset && root.document.getElementById("loading")) {
+          root.document.documentElement.dataset.bootstrapPhase = "splash-hide";
+        }
         window.hideInitialLoading();
       }, [loaded]);
 
