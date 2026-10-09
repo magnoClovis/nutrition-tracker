@@ -33,17 +33,31 @@
 
 ### [SEC-IAM-EDITOR-RESIDUAL] - Avaliação separada da role Editor na conta Compute padrão
 
-- **Status:** não iniciado.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; não iniciado.
+- **Status:** em andamento.
+- **Data de início:** 09/10/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** tarefa decisória pendente; Tarefa 0 documental #314: 26 min 19 s do primeiro commit ao merge.
+- **Minutos de CI:** Tarefa 0 documental #314: 25 s (25 s leve + 0 min pesado), run `37941710844`; gates futuros pendentes.
 - **Propósito:** obter uma decisão segura sobre o binding amplo remanescente sem confundir o rollout operacional da C14-F2 com a autorização de um corte IAM.
 - **O que se planeja fazer:** reconfirmar consumidores e cobertura de auditoria após as migrações, atribuir as três perdas históricas e o recurso sem suporte do replay a workloads concretos, simular a retirada de `roles/editor` com grants mínimos e rollback verificável; só propor a revogação com evidência suficiente e autorização específica.
 - **Recursos/arquivos principais envolvidos:** política IAM de projeto da conta Compute padrão, Cloud Asset Inventory, Policy Simulator, Cloud Audit Logs, Functions, Cloud Run, Cloud Tasks, Scheduler e inventário C14-F2.
-- **O que foi feito:** em 09/10/2026, o usuário autorizou separar explicitamente esta pendência da conclusão da C14-F2. O replay anterior cobriu 832 acessos, encontrou três perdas históricas e um erro de cobertura de recurso sem suporte; essas evidências não provam dependência atual nem permitem concluir que a revogação seja segura. Nenhuma política foi alterada e a atividade operacional desta nova tarefa não começou.
-- **Alinhamento:** não aplicável antes da execução.
-- **PRs/commits relacionados:** nenhum para esta tarefa.
+- **O que foi feito:** em 09/10/2026, a Tarefa 0 somente em leitura confirmou que a política de projeto ainda concede `roles/editor` à conta Compute padrão e que a busca IAM indexada encontra apenas esse binding para a identidade. A primeira busca de ativos retornou 155 recursos indexados, três Functions, três serviços Cloud Run, oito contas de serviço e zero VMs indexadas; duas releituras posteriores falharam, e a API Compute Engine segue desativada. As três Functions estão ativas e usam runtime/build dedicados; o reconciliador Scheduler usa OIDC dedicada, mas a listagem da segunda região não foi concluída. Desde 04/10, seis builds listados usam a identidade dedicada e dois usam a conta padrão, ambos antes da migração naquela noite. Logs visíveis desde 04/10 não mostraram entradas da conta antiga, sem provar ausência de uso. O replay de 08/10 cobriu 832 acessos, com três perdas históricas anteriores à migração e um erro `UNSUPPORTED_RESOURCE`; a janela de até sete dias da fonte pode omitir os acessos posteriores à migração. Um novo replay em 09/10 não sanaria essa lacuna, portanto não foi criado. Nenhum IAM ou serviço foi alterado. O relatório detalhado e os limites constam no inventário C14-F2.
+- **Alinhamento:** a auditoria inicial foi executada, mas a tarefa de decisão/corte continua aberta; evidência ainda insuficiente para revogação segura. Impacto neutro na operação e positivo na precisão do inventário.
+- **PRs/commits relacionados:** auditoria Tarefa 0 #314 (`d78348a`, merge `a2b0c32`); eventual corte IAM ainda sem PR.
+
+### [DOC-SEC-IAM-314] - Métricas pós-merge da auditoria Editor residual
+
+- **Status:** concluído.
+- **Data de início:** 09/10/2026.
+- **Data de conclusão:** 09/10/2026.
+- **Tempo decorrido:** 26 min 19 s do primeiro commit `d78348a` (14:05:59 UTC) ao merge `a2b0c32` (14:32:18 UTC).
+- **Minutos de CI:** 25 s (25 s leve + 0 min pesado), run `37941710844`.
+- **Propósito:** registrar as métricas exatas do PR documental sem confundir a auditoria com a revogação IAM.
+- **O que se planeja fazer:** copiar os valores comprovados aos três registros e à descrição do #314, preservando `SEC-IAM-EDITOR-RESIDUAL` aberta.
+- **Recursos/arquivos principais envolvidos:** PR #314, resumo, histórico Principal e inventário C14-F2.
+- **O que foi feito:** #314 mesclado sem alteração de IAM; o replay atualizado e a cobertura independente continuam gates futuros para qualquer proposta de corte.
+- **Alinhamento:** 100% do registro documental pós-merge; `roles/editor` permanece atribuída.
+- **PRs/commits relacionados:** #314 (`d78348a`, merge `a2b0c32`), preflight `37941710844`.
 
 ### [C14-F2-DEPENDENCIAS] - Auditoria e correção transitiva das Functions
 
@@ -756,13 +770,13 @@ O usuário autorizou em seguida esse plano revisado de identidade de runtime sep
 - **Data de início:** 09/10/2026.
 - **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; implementação não iniciada.
+- **Minutos de CI:** 30 s de preflight documental (30 s leve + 0 min pesado), run `37943855487`; implementação não iniciada.
 - **Propósito:** comprovar o endurecimento completo em um ambiente destrutivo separado antes do lançamento público e produzir o handoff operacional para C16/C25.
 - **O que se planeja fazer:** criar staging separado e executar a matriz destrutiva/final antes do lançamento público.
 - **Recursos/arquivos principais envolvidos:** novo projeto Firebase staging, emuladores, CI, Pages, Worker, Functions/Tasks, AAB distribuído pela Play, matriz offline/multiaba/backup/exclusão, inventário IAM/secrets/dependências e documentação operacional.
 - **O que foi feito:** a Tarefa 0, iniciada em 09/10/2026, examinou o repositório e configurações acessíveis sem criar recursos. `firebase projects:list` mostrou apenas o projeto de produção para a credencial atual; `.firebaserc` só contém `production` e emulador. A configuração Firebase compartilhada pelo legado/Vite fixa projeto e chave da produção; o endpoint de exclusão, o Worker (projeto/número/App IDs e origem permitida), o CSP e as verificações do AAB também contêm alvos de produção. Functions usa projeto do ambiente na inicialização, mas nomes das contas de execução no código apontam ao projeto de produção. O workflow CI usa uma conta descartável e App Check de produção em uma fila única; a suíte intercepta o Worker em vez de fazer IA real. Pages publica somente da `main`, e o repositório não contém ambiente Wrangler staging ou configuração GitHub staging. O acesso consultado ao GitHub mostra apenas o environment `github-pages`; nenhuma variável/segredo de staging foi identificada pelos nomes disponíveis. Portanto, antes de criar/deployar recursos é preciso estabelecer contratos fail-closed por ambiente e isolamento de identidades, URLs, dados, secrets, Durable Objects e artefatos Android. A matriz, os gates e os limites da evidência estão no documento específico `C14_H_STAGING_AUDITORIA.md`. Nenhum projeto, secret, política, dado, deploy ou código de runtime foi alterado.
 - **Alinhamento:** Tarefa 0 entregue como investigação; a C14-H funcional continua pendente, sem porcentagem de conclusão inferida.
-- **PRs/commits relacionados:** pendentes do PR documental desta auditoria.
+- **PRs/commits relacionados:** PR draft #315 (`29ec5df`), preflight documental `37943855487` verde; merge pendente.
 
 ### [DOC-ROADMAP-LAUNCH-C26-C30] - Notificações e cobrança no pré-lançamento
 

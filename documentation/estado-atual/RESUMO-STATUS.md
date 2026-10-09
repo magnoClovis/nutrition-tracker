@@ -24,13 +24,24 @@
 
 ### [SEC-IAM-EDITOR-RESIDUAL] - Avaliação separada da role Editor na conta Compute padrão
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 09/10/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** decidir com segurança se e quando remover `roles/editor` da conta Compute padrão, sem manter indefinidamente aberta a C14-F2 já implantada.
 - **O que se planeja fazer:** reconfirmar os consumidores e a cobertura de auditoria após as migrações, classificar as três perdas históricas e o recurso sem suporte do replay, simular um corte atualizado com permissões mínimas e rollback verificável; propor a revogação somente mediante evidência suficiente e autorização específica, sem mutação IAM nesta tarefa preparatória.
 - **Recursos/arquivos principais envolvidos:** política IAM do projeto, conta Compute padrão, Cloud Asset Inventory, Policy Simulator, Cloud Audit Logs, Functions/Cloud Run/Scheduler/Tasks e inventário C14-F2.
-- **O que foi feito:** em 09/10/2026 o usuário aprovou separar esta pendência da conclusão operacional/documental da C14-F2; a role não foi revogada.
+- **O que foi feito:** a auditoria Tarefa 0 de 09/10 reconfirmou `roles/editor` na conta Compute padrão, três Functions e o Scheduler com identidades dedicadas, seis builds dedicados e dois builds antigos na conta padrão anteriores à migração; a busca de IAM indexado achou somente o binding de projeto. Logs visíveis não mostraram uso recente, mas a cobertura do replay ainda não alcança seguramente a migração de 04/10 e contém recurso sem suporte. Revogação não liberada; nenhum IAM ou serviço foi alterado.
+
+### [DOC-SEC-IAM-314] - Métricas pós-merge da auditoria Editor residual
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 09/10/2026.
+- **Data de conclusão:** 09/10/2026.
+- **Propósito:** registrar o fechamento documental da Tarefa 0 sem antecipar a decisão sobre `roles/editor`.
+- **O que se planeja fazer:** copiar duração e CI reais do #314 para o histórico, inventário e descrição do PR.
+- **Recursos/arquivos principais envolvidos:** PR #314, `RESUMO-STATUS.md`, histórico Principal e inventário C14-F2.
+- **O que foi feito:** o #314 foi mesclado em `a2b0c32` após 26 min 19 s do primeiro commit, com 25 s de CI leve e 0 min de CI pesado no run `37941710844`; a revogação da role segue não autorizada.
+- **Alinhamento:** 100% do registro pós-merge; não houve alteração IAM.
 
 ### [C14-F2-DEPENDENCIAS] - Revisão de alertas transitivos das Functions
 
@@ -1898,6 +1909,7 @@
 - **O que se planeja fazer:** criar Firebase staging e executar matriz cross-account, App Check, payloads, rate limit, cache, backup, exclusão, IAM e rollback.
 - **Recursos/arquivos principais envolvidos:** projeto Firebase staging, emuladores, CI, Pages, Worker, Functions, AAB Play e runbooks.
 - **O que foi feito:** a Tarefa 0 identificou apenas produção no acesso Firebase atual e nenhum ambiente staging versionado; cliente legado/Vite, Worker, Functions, CSP e verificação Android contêm vínculos de produção. CI e Pages também usam configurações de produção. A matriz, barreiras de isolamento e decisões pendentes estão em `C14_H_STAGING_AUDITORIA.md`. Nenhum projeto, secret, IAM, deploy ou dado foi alterado.
+- **Gate documental:** PR draft #315, commit `29ec5df`, preflight `37943855487` verde em 30 s; reconciliado com o merge #314 sem iniciar implementação.
 
 ### [DOC-PR170-CLOSEOUT] - Encerramento de PR documental obsoleto
 
