@@ -162,6 +162,7 @@ async function readSafeBootstrapState(page) {
         hideTimerPending: window.initialLoadingHideTimer != null,
         removeTimerPending: window.initialLoadingRemoveTimer != null,
         appMainPresent: document.querySelector('[data-app-main]') != null,
+        rootContentPresent: Boolean(document.getElementById('root')?.firstElementChild),
         readyState: document.readyState,
         bootstrapPhase: document.documentElement.dataset.bootstrapPhase
       };
@@ -169,12 +170,12 @@ async function readSafeBootstrapState(page) {
     const readyState = ['loading', 'interactive', 'complete'].includes(state?.readyState)
       ? state.readyState : 'unknown';
     const bootstrapPhase = [
-      'app-check', 'app-check-error', 'auth-restore', 'auth-ready',
+      'app-check', 'app-check-error', 'auth-restore', 'auth-refresh', 'auth-refresh-timeout', 'auth-ready',
       'email-verification', 'preferences', 'profile-gate',
       'profile-completion', 'profile-incomplete', 'profile-ready',
-      'profile-error', 'bootstrap-error'
+      'profile-error', 'daily-hydration', 'daily-ready', 'daily-ready-timeout', 'splash-hide', 'bootstrap-error'
     ].includes(state?.bootstrapPhase) ? state.bootstrapPhase : 'not-reported';
-    return `bootstrap-dom loading=${Boolean(state?.loadingPresent)} hidden=${Boolean(state?.loadingHidden)} hide-requested=${Boolean(state?.hideRequested)} hide-timer=${Boolean(state?.hideTimerPending)} remove-timer=${Boolean(state?.removeTimerPending)} app-main=${Boolean(state?.appMainPresent)} document=${readyState} phase=${bootstrapPhase}`;
+    return `bootstrap-dom loading=${Boolean(state?.loadingPresent)} hidden=${Boolean(state?.loadingHidden)} hide-requested=${Boolean(state?.hideRequested)} hide-timer=${Boolean(state?.hideTimerPending)} remove-timer=${Boolean(state?.removeTimerPending)} app-main=${Boolean(state?.appMainPresent)} root-content=${Boolean(state?.rootContentPresent)} document=${readyState} phase=${bootstrapPhase}`;
   } catch {
     return 'bootstrap-dom unavailable';
   }

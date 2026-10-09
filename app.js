@@ -742,10 +742,12 @@ function App() {
   React.useEffect(() => {
     markLegacyBootstrapPhase('auth-restore');
     if (!fbIsLoggedIn()) { markLegacyBootstrapPhase('auth-ready'); setChecking(false); return; }
-    const timeout = setTimeout(() => { fbSignOut(); setAuthed(false); setChecking(false); }, 8000);
+    markLegacyBootstrapPhase('auth-refresh');
+    const timeout = setTimeout(() => { markLegacyBootstrapPhase('auth-refresh-timeout'); fbSignOut(); setAuthed(false); setChecking(false); }, 8000);
     fbRefreshToken()
       .then(async () => {
         clearTimeout(timeout);
+        markLegacyBootstrapPhase('auth-ready');
         markLegacyBootstrapPhase('email-verification');
         const verified = await fbCheckEmailVerified();
         if (!verified) {
