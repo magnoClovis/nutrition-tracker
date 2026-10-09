@@ -1,6 +1,6 @@
 # C14-F2 — inventário preparatório de IAM, invocadores e dependências
 
-> **Estado:** baseline preparatória concluída em 26/09/2026. As três Functions de exclusão já operam com identidades dedicadas de runtime/build, invocadores restritos conforme o contrato e o lockfile aprovado publicado; provas descartáveis e execução natural do Scheduler passaram. O fechamento documental da C14-F2 aguarda o merge do PR #311. A conta Compute padrão ainda possui `roles/editor`; por decisão explícita de 09/10/2026, sua eventual revogação pertence à tarefa separada `SEC-IAM-EDITOR-RESIDUAL` e não foi executada. As seções anteriores preservam a cronologia da baseline e das mutações.
+> **Estado:** C14-F2 concluída em 09/10/2026, após o merge documental do PR #311 em `75c5c0e`. As três Functions de exclusão operam com identidades dedicadas de runtime/build, invocadores conforme o contrato e o lockfile aprovado publicado; provas descartáveis e execução natural do Scheduler passaram. A conta Compute padrão ainda possui `roles/editor`; por decisão explícita de 09/10/2026, sua eventual revogação pertence à tarefa separada `SEC-IAM-EDITOR-RESIDUAL`, não iniciada, e não foi executada. As seções históricas preservam a cronologia da baseline e das mutações.
 
 ## Objetivo
 
@@ -323,4 +323,6 @@ O usuário autorizou encerrar a C14-F2 após corrigir e integrar o registro docu
 
 Em leitura somente administrativa de 09/10, as três Functions continuavam `ACTIVE` em Node 22 nas revisões pós-lockfile `requestaccountdeletion-00006-mud`, `processaccountdeletiontask-00005-nek` e `reconcileaccountdeletionjobs-00005-wuc`, com identidades dedicadas, 100% do tráfego no latest e invocadores esperados. O Scheduler permanecia `ENABLED` com OIDC dedicado; a última tentativa consultada, às 05:26 UTC, tinha status 0. A igualdade SHA-256 dos três lockfiles publicados foi comprovada após os respectivos deploys; esta leitura posterior reconfirmou configuração/revisões, não recalculou os três hashes. Os dois roteiros com contas descartáveis e a primeira execução natural pós-revisão permanecem as provas funcionais do rollout. O plano de rollback por revisão foi preservado, mas um retorno de tráfego real não foi executado.
 
-O encerramento formal da C14-F2 exige que #311 e o registro pós-merge reflitam essas evidências. A tarefa `SEC-IAM-EDITOR-RESIDUAL` exigirá nova auditoria, simulação atualizada, plano de retorno e autorização específica antes de qualquer mutação IAM.
+O PR #311 foi mesclado em `75c5c0e`: 12 h 39 min 46 s do primeiro commit ao merge, com 2 min 20 s de CI (2 min 20 s leve + 0 min pesado), exatamente como registrado em sua descrição. Este registro pós-merge fecha formalmente a C14-F2 sem nova mutação de produção. A tarefa `SEC-IAM-EDITOR-RESIDUAL` exigirá nova auditoria, simulação atualizada, plano de retorno e autorização específica antes de qualquer mutação IAM.
+
+O PR documental de encerramento #312 foi mesclado em `358be0f` após 1 h 1 min 24 s do primeiro commit, com 24 s de CI (24 s leve + 0 min pesado) no run `37922999330`; as mesmas métricas constam em sua descrição. Esse registro não modifica a configuração de produção nem revoga `roles/editor`.

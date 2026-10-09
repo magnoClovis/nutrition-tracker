@@ -2,14 +2,25 @@
 
 ### [C14-F2-DEPLOY-DEPENDENCIAS] - Publicação controlada do lockfile já aprovado
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 09/10/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 09/10/2026.
 - **Propósito:** levar às três Functions o lockfile de produção validado no PR #308, sem confundir merge de código com atualização do artefato publicado.
 - **O que se planeja fazer:** conferir baseline, revisão de retorno, build/runtime e invocadores; publicar seletivamente uma Function por vez com verificação pós-deploy; repetir provas funcionais proporcionais e auditar o artefato publicado; registrar ou executar rollback diante de regressão. Não revogar `roles/editor` nesta etapa.
 - **Recursos/arquivos principais envolvidos:** três Functions de exclusão de conta, `functions/package-lock.json`, revisões Cloud Run, IAM de invocação, Scheduler e inventário C14-F2.
 - **O que foi feito:** o PR documental #309 foi mesclado em `48b4de4` após 47 min 4 s, com 31 s de CI leve e nenhum CI pesado; as mesmas métricas constam na descrição do PR. Leitura administrativa de 09/10 confirmou as três Functions `ACTIVE`, Node 22, com identidades dedicadas de build/runtime e revisões/source generations ainda datadas de 04/10, anteriores ao PR #308. O ensaio de deploy seletivo do processador com filtro de codebase `functions:account-deletion:processAccountDeletionTask` terminou verde; o filtro sem codebase não correspondia a nenhuma Function. O deploy real somente de `processAccountDeletionTask` concluiu com código 0: nova revisão `00005-nek`/source geração `1791498402921587`, `ACTIVE`, 100% no latest, build/runtime dedicados e exatamente os dois invocadores esperados. O ZIP publicado contém o lockfile aprovado. Uma prova única em produção com conta nova descartável foi aceita pelo callable e confirmou Auth, marcador e job removidos, lock selado e artefatos de prova limpos, código de saída 0. Em seguida, o deploy seletivo somente de `requestAccountDeletion` criou a revisão `00006-mud`/source geração `1791500599240732`, `ACTIVE` em Node 22, 100% latest, identidades dedicadas e invocador público esperado; o ZIP publicado corresponde ao lockfile aprovado. A segunda prova única com outra conta inédita descartável passou sob o callable novo: resposta aceita, Auth/marcador/job removidos, lock selado e artefatos da prova limpos, exit code 0. Por fim, PATCH restrito à source do reconciliador publicou revisão `00005-wuc`/geração `1791504743676167`, `ACTIVE` em Node 22, identidades dedicadas, 100% latest, invocador OIDC único e ZIP com o lockfile aprovado; Scheduler/OIDC permaneceram iguais. A primeira execução natural pós-revisão ocorreu às 00:26 UTC com status 0 e HTTP 200, sem 401/403 nos metadados Cloud Run consultados. `roles/editor` não foi alterada; a decisão sobre sua revogação permanece separada da publicação das dependências.
-- **Alinhamento:** as três Functions receberam o lockfile aprovado, foram verificadas nas revisões publicadas e passaram as provas proporcionais; impacto positivo. O fechamento formal aguarda o merge documental #311. A revogação de `roles/editor` foi separada por decisão explícita do usuário, sem alteração IAM nem declaração de risco eliminado.
+- **Alinhamento:** 100% do escopo aprovado desta publicação: as três Functions receberam o lockfile aprovado, foram verificadas nas revisões publicadas e passaram as provas proporcionais. O PR documental #311 foi mesclado em `75c5c0e`; `roles/editor` permanece intacta e sua avaliação está separada em `SEC-IAM-EDITOR-RESIDUAL`, sem declaração de risco eliminado.
+
+### [DOC-C14-F2-312] - Métricas pós-merge do encerramento C14-F2
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 09/10/2026.
+- **Data de conclusão:** 09/10/2026.
+- **Propósito:** registrar as métricas comprovadas do PR documental que marcou a C14-F2 como concluída.
+- **O que se planeja fazer:** copiar duração e CI reais do #312 para o histórico e a descrição do PR, sem alterar produção ou IAM.
+- **Recursos/arquivos principais envolvidos:** PR #312, histórico da frente Principal e inventário C14-F2.
+- **O que foi feito:** o PR #312 foi mesclado em `358be0f`; do primeiro commit ao merge foram 1 h 1 min 24 s, com 24 s de CI leve e nenhum pesado (run `37922999330`), valores idênticos aos da descrição do PR.
+- **Alinhamento:** 100% do registro pós-merge; `roles/editor` segue intacta em tarefa separada.
 
 ### [SEC-IAM-EDITOR-RESIDUAL] - Avaliação separada da role Editor na conta Compute padrão
 
@@ -1822,15 +1833,15 @@
 
 ### [C14-F2] - IAM, invocadores e dependências
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 26/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 09/10/2026.
 - **Propósito:** reduzir privilégios e dependências somente após conhecer o estado administrativo real.
 - **O que se planeja fazer:** reconfirmar IAM, invocadores, Functions/Tasks, segredos e lockfiles; preparar grants mínimos, validar primeiro a identidade do processador isoladamente e depois cada consumidor restante. Na etapa autorizada de 04/10, migrar controladamente a identidade de build das três Functions e provar um retry com falha induzida apenas em conta nova descartável, preservando baseline e rollback antes de qualquer revogação.
 - **Recursos/arquivos principais envolvidos:** Google Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, Firebase Functions, Cloudflare Wrangler, `functions/src/config.js`, `functions/test/infrastructure.test.js`, manifests/lockfiles e inventário administrativo.
 - **O que foi feito:** PRs #258/#265/#288 prepararam IAM/dependências; #292 isolou o processador e #298 isolou o callable, ambos publicados e comprovados com conta descartável. O #299 foi mesclado em `a763951` com CI autenticado verde também na `main` (`37204746549`). O reconciliador foi publicado seletivamente na revisão `00003-zip` com runtime `trofia-del-reconcile`, e o Scheduler usa `trofia-scheduler-oidc`; os invocadores da baseline foram restaurados após efeito colateral do deploy. A execução natural de 04/10 às 15:26 UTC respondeu HTTP 200, sem 401/403 nos metadados; o registro documental #300 foi mesclado em `55a45c9`. Nova busca Cloud Asset/IAM encontrou 139 recursos pesquisáveis e um `run.invoker` residual da conta padrão no reconciliador. As três Functions passaram para `trofia-functions-build`, com runtimes, tráfego e invocadores preservados; uma conta descartável comprovou falha induzida, retry automático, exclusão e limpeza. Outra conta nova comprovou a chamada legítima do callable pós-build com Auth recente/App Check e limpeza completa. O Scheduler invocou a revisão pós-build às 22:26 UTC com HTTP 200 e sem 401/403. Em 05/10, foi retirado somente o invocador Compute residual do reconciliador; a primeira agenda natural posterior, às 19:26 UTC, retornou HTTP 200 na revisão `00004-kaf`, zero 401/403, com apenas `trofia-scheduler-oidc` como invocador. `roles/editor` permanece intacto e sua revogação exige decisão separada.
 
-- **Delimitação aprovada em 09/10:** o rollout das três Functions, o build/runtime dedicados, invocadores, retry descartável, callable e Scheduler já foram comprovados; a revisão das dependências em produção consta em `C14-F2-DEPLOY-DEPENDENCIAS`. O fechamento da C14-F2 aguarda o merge documental #311 e o registro pós-merge. A possível retirada de `roles/editor` foi movida para `SEC-IAM-EDITOR-RESIDUAL`, sem revogação ou atestado de risco eliminado.
+- **Fechamento em 09/10:** o rollout das três Functions, o build/runtime dedicados, invocadores, retry descartável, callable e Scheduler foram comprovados; a revisão das dependências em produção consta em `C14-F2-DEPLOY-DEPENDENCIAS`. O PR #311 foi mesclado em `75c5c0e`, com registro pós-merge nesta atualização. A possível retirada de `roles/editor` foi movida para `SEC-IAM-EDITOR-RESIDUAL`, sem revogação ou atestado de risco eliminado.
 
 ### [DOC-C14-F2-287] - Métricas pós-merge das dependências
 
