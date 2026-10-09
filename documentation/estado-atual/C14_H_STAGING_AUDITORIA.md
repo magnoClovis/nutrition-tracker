@@ -1,6 +1,6 @@
 # C14-H — Tarefa 0 de staging e validação final
 
-> Estado em 09/10/2026: auditoria somente em leitura concluída; C14-H funcional em andamento, sem staging criado ou rollout iniciado. Responsável: Trofia-Principal. Este documento é proposta de execução e gate, não autorização para vincular billing, criar identidades, copiar dados, publicar ou mudar produção.
+> Estado em 09/10/2026: auditoria somente em leitura mesclada no PR #315 (`1fb3c72`); C14-H funcional em andamento, sem staging criado ou rollout iniciado. Responsável: Trofia-Principal. Este documento é proposta de execução e gate, não autorização para vincular billing, criar identidades, copiar dados, publicar ou mudar produção.
 
 ## Escopo e método
 
@@ -59,5 +59,16 @@ Esta é uma proposta de etapas de execução, não sub-fatias já aprovadas. O r
 - Janela e responsável pelo gate final após I2, incluindo quem executa a prova física na Play e quem pode acionar rollback.
 
 Até essas decisões e os contratos fail-closed serem comprovados, **não criar staging por tentativa**, não reutilizar produção como substituto e não iniciar testes destrutivos fora dos emuladores.
+
+## Preparação de billing e host após o merge da Tarefa 0
+
+- **Métricas do #315:** 18 min 1 s do primeiro commit `29ec5df` (14:23:19 UTC) ao merge `1fb3c72` (14:41:20 UTC); 52 s de CI (52 s leve + 0 min pesado), somando os preflights `37943855487` (30 s) e `37945184179` (22 s). Os mesmos valores constam na descrição do PR e no histórico.
+- **Billing observado:** nenhum vínculo de conta pagadora, orçamento ou permissão administrativa do futuro projeto staging foi comprovado. A página de cobrança do projeto de produção não concluiu o carregamento nesta sessão, e `gcloud`/`firebase` não estão no PATH consultado. O projeto staging não aparece no inventário versionado. Não deduzir que o billing de produção se aplica automaticamente a ele.
+- **Controle de custo recomendado:** usar projeto separado em Blaze somente após definir conta pagadora e teto de risco aceitável; configurar orçamento e alertas por projeto antes de publicar Functions. A [orientação oficial de preços](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans) confirma que alertas não interrompem cobrança. O [spend cap de Functions](https://firebase.google.com/docs/projects/billing/spend-caps) está em prévia, é por serviço/projeto e não é absoluto devido à latência da contabilização; sua ativação também pode pausar chamadas de teste/limpeza. Não usá-lo como única salvaguarda nem afirmar que cobre Firestore, Hosting, Cloud Tasks ou Worker.
+- **Host web recomendado:** usar o domínio HTTPS padrão de [Firebase Hosting](https://firebase.google.com/docs/hosting/quickstart) **no novo projeto staging**, sem domínio personalizado inicialmente. Isso mantém host, Auth e configuração Firebase sob a mesma fronteira e evita alterar o Pages de produção. Registrar host exato em Auth/App Check/CSP/CORS antes do primeiro acesso. Host final e política de acesso ainda precisam ser aprovados; nenhum site foi criado.
+- **Worker e dados:** usar [ambiente Wrangler staging](https://developers.cloudflare.com/workers/wrangler/environments/) com Worker, secrets e [Durable Object](https://developers.cloudflare.com/durable-objects/reference/environments/) exclusivos. Um projeto Firebase separado e `google-services.json` por variante Android seguem a [orientação de múltiplos projetos](https://firebase.google.com/docs/projects/multiprojects). Nenhuma credencial de produção será copiada como atalho.
+- **Dependência atualizada:** o PR I2 #293 foi mesclado em `f09ac0b` com checks verdes depois do #315. Isso permite integrar seu código na futura matriz, mas não comprova qualquer comportamento no staging nem elimina a necessidade da prova final.
+
+Próxima decisão externa antes de criar recursos: confirmar **conta pagadora e limite mensal aceitável**, identificador do projeto staging e aprovação do host Firebase Hosting; em seguida escolher o identificador Android de QA e a distribuição interna. Enquanto isso, o contrato fail-closed por ambiente pode ser preparado e testado localmente sem billing ou deploy.
 
 Referência de isolamento Firebase: a [orientação oficial para múltiplos projetos](https://firebase.google.com/docs/projects/multiprojects) exige configuração correspondente a cada ambiente, e a [orientação sobre API keys](https://firebase.google.com/docs/projects/api-keys) adverte que uma instância staging não deve interagir com o projeto de produção. O [debug provider de App Check](https://firebase.google.com/docs/app-check/web/debug-provider) é restrito a testes privados e nunca deve entrar em build público.

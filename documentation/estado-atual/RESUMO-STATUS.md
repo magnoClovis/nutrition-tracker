@@ -1902,14 +1902,24 @@
 
 ### [C14-H] - Staging, validação final e rollout
 
-- **Status:** em andamento, somente Tarefa 0 de auditoria — **Chat:** Trofia-Principal.
+- **Status:** em andamento; Tarefa 0 concluída, staging ainda não iniciado — **Chat:** Trofia-Principal.
 - **Data de início:** 09/10/2026.
 - **Data de conclusão:** não concluído.
 - **Propósito:** validar o endurecimento completo fora da produção e preparar o gate de lançamento.
 - **O que se planeja fazer:** criar Firebase staging e executar matriz cross-account, App Check, payloads, rate limit, cache, backup, exclusão, IAM e rollback.
 - **Recursos/arquivos principais envolvidos:** projeto Firebase staging, emuladores, CI, Pages, Worker, Functions, AAB Play e runbooks.
 - **O que foi feito:** a Tarefa 0 identificou apenas produção no acesso Firebase atual e nenhum ambiente staging versionado; cliente legado/Vite, Worker, Functions, CSP e verificação Android contêm vínculos de produção. CI e Pages também usam configurações de produção. A matriz, barreiras de isolamento e decisões pendentes estão em `C14_H_STAGING_AUDITORIA.md`. Nenhum projeto, secret, IAM, deploy ou dado foi alterado.
-- **Gate documental:** PR draft #315, commit `29ec5df`, preflight `37943855487` verde em 30 s; reconciliado com o merge #314 sem iniciar implementação.
+- **Gate documental:** PR #315 mesclado em `1fb3c72`, com preflights `37943855487` e `37945184179` verdes; opções de billing, host e artefato Android seguem para decisão antes da criação de recursos.
+
+### [DOC-C14-H-315] - Métricas e preparação de staging pós-auditoria
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 09/10/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** registrar as métricas do merge da Tarefa 0 e transformar os achados em escolhas explícitas de custo e hospedagem.
+- **O que se planeja fazer:** conciliar os três registros documentais e a descrição do #315; recomendar controles de billing e host isolado sem criar projeto, aceitar termos ou vincular pagamento.
+- **Recursos/arquivos principais envolvidos:** PR #315, resumo, histórico Principal e `C14_H_STAGING_AUDITORIA.md`.
+- **O que foi feito:** o #315 levou 18 min 1 s até o merge, com 52 s de CI leve e nenhum pesado. A recomendação preliminar é Firebase Hosting no projeto staging e Worker/DO separados; vínculo de billing, limite monetário e host final não foram verificados/aprovados.
 
 ### [DOC-PR170-CLOSEOUT] - Encerramento de PR documental obsoleto
 
