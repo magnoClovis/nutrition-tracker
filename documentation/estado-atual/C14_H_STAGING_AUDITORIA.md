@@ -1,0 +1,63 @@
+# C14-H — Tarefa 0 de staging e validação final
+
+> Estado em 09/10/2026: auditoria somente em leitura concluída; C14-H funcional em andamento, sem staging criado ou rollout iniciado. Responsável: Trofia-Principal. Este documento é proposta de execução e gate, não autorização para vincular billing, criar identidades, copiar dados, publicar ou mudar produção.
+
+## Escopo e método
+
+O escopo aprovado da C14-H é criar um ambiente Firebase separado e provar, antes do gate público, isolamento entre contas, App Check, payloads, rate limit, cache/lifecycle, backup, exclusão, IAM e rollback em web e Android. A Tarefa 0 examinou a `origin/main`, configurações, testes, workflows e a lista de projetos Firebase visível à credencial atual. Não leu valores de secrets, dados nutricionais, tokens ou contas de usuário; não executou testes autenticados, builds ou operações destrutivas. A I2 ainda está em PR draft e seu CI final não havia terminado no início desta auditoria: o onboarding final só poderá integrar a matriz após merge e novo gate.
+
+## Inventário comprovado
+
+| Fronteira | Estado observado | Implicação para staging |
+|---|---|---|
+| Projetos Firebase | `.firebaserc` tem `production` e `emulator`, sem alias staging. `firebase projects:list --json` retornou somente produção para a credencial atual. | Nenhum projeto staging foi comprovado nesta conta; isso não prova inexistência em outras contas. Não executar `deploy` usando alias implícito. |
+| Cliente legado e Vite | `firebase-config-internal.js` fixa o projeto/chave Firebase de produção e a fachada ESM importa o mesmo módulo. `app.js`, `nutrition-tracker.jsx` e `src/App.jsx` apontam o callable de exclusão de produção. `ai-client.js` e `image-meal-client.js` apontam o Worker publicado. | Build staging precisa de um único contrato de ambiente explícito, validado no legado e Vite; ausência/mistura de valores deve falhar antes de qualquer chamada protegida. Não substituir strings isoladamente. |
+| CSP e artefato | `index.html` permite explicitamente o Worker, callable e domínio Auth de produção. O verificador e testes de CSP exigem esses destinos exatos; Pages publica o `dist` da `main`. | Uma URL staging exigirá política exata gerada/verificada por ambiente, sem wildcard ou enfraquecimento. O Pages atual não é um host staging. |
+| Worker e limitador | `worker/wrangler.jsonc` tem somente configuração principal (`APP_CHECK_MODE=enforce`, `AI_TIER_MODE=observe`) e um Durable Object de rate limit. `worker/src/ai-worker.js` fixa projeto/número/App IDs Firebase e origem de produção. | Criar ambiente/Worker staging distinto, com secrets próprios e DO separado; nunca compartilhar namespace de limite nem aceitar tokens da produção em staging. Não mudar o Worker ativo durante a auditoria. |
+| Functions, Tasks, Scheduler e IAM | `functions/src/index.js` usa `GCLOUD_PROJECT` quando presente, mas `functions/src/config.js` declara contas de serviço pertencentes à produção. F2 comprovou identidades, invocadores e Scheduler dedicados apenas na produção. | O mesmo pacote não pode ser implantado em staging sem resolver identidades, fila, invocadores, OIDC, regiões e rollback por projeto. Clonar bindings da produção ou conceder Editor por conveniência está vetado. |
+| CI e dados de teste | `.github/workflows/ci.yml` usa secrets de uma conta descartável, App Check e grupo único `nutrition-authenticated-suite`. O smoke real usa Auth/Firestore, mas intercepta o Worker; há backup round-trip e provas de cache no Vite. | Criar lane staging separada com contas e debug token do staging, fixtures determinísticas e restauração `finally`; não concorrer nem reutilizar a conta/lease da produção. O CI atual não prova chamadas reais de IA no staging. |
+| Android | `android/app/build.gradle` e `scripts/verify-android-release-security.js` exigem o projeto/número Firebase e package de produção. O AAB release assinado é bloqueado se a configuração divergir. | Necessário artefato de teste distinguível e configuração Firebase de staging sem enfraquecer o fail-closed do release de produção. Uma build debug com token de App Check não substitui a prova final de Play Integrity no AAB distribuído pela Play. |
+| GitHub e hospedagem | O único environment GitHub listado foi `github-pages`; os nomes das variáveis/secrets disponíveis são de um único conjunto, sem lane staging identificável. `pages.yml` constrói e publica a `main` após CI verde. | Escolher host de preview isolado e environment protegido antes de testar URLs públicas; não apontar Pages de produção ao Firebase staging nem vice-versa. |
+
+## Riscos de isolamento que bloqueiam a implementação direta
+
+1. **Mistura de ambientes:** hoje é possível alterar um alvo aparente e deixar outros vínculos em produção (Auth/Firestore, callable, Worker, CSP ou AAB). Cada build deve provar por manifesto sanitizado que todos os destinos e App IDs pertencem a um único projeto aprovado; misturas falham antes do teste.
+2. **IAM e recursos destrutivos:** a exclusão usa Functions, Tasks e Scheduler. Um staging seguro precisa de contas próprias, grants mínimos, fila/job próprios e contas de teste inéditas; nenhuma conta/dado de produção deve ser copiado. O risco residual `roles/editor` da conta Compute padrão permanece em tarefa separada e não deve ser ocultado por um staging verde.
+3. **App Check e Android:** o app web/Android staging precisa de registros de app e provedores próprios. Debug tokens são apenas para CI/debug privados e não entram no artefato distribuído. A prova Android final continua exigindo Play Integrity real no pacote e projeto que serão lançados.
+4. **Rate limit/segredos:** um Worker staging deve ter DO e secrets exclusivos. Mesmo que o código seja idêntico, compartilhar a identidade ou o estado do limitador contaminaria métricas e poderia afetar produção. As [configurações de ambiente Wrangler](https://developers.cloudflare.com/workers/wrangler/environments/) criam Worker nomeado à parte, e os [bindings de Durable Objects não são herdados](https://developers.cloudflare.com/durable-objects/reference/environments/): a separação precisa ser explícita.
+5. **Custos e responsabilidade:** o [deploy de Cloud Functions exige Blaze](https://firebase.google.com/docs/functions) com billing vinculado; [alertas de orçamento não são limite rígido de gasto](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans). Antes de vincular billing ou publicar Worker/Functions, definir conta pagadora, orçamento/alertas e responsável pela remoção ou manutenção do ambiente.
+
+## Sequência proposta depois da Tarefa 0
+
+Esta é uma proposta de etapas de execução, não sub-fatias já aprovadas. O resumo mantém C14-H como uma fatia até aprovação de fatiamento específico.
+
+1. **Contrato de ambiente fail-closed:** caracterizar configurações de cliente, Worker, Functions, CSP e Android; introduzir seleção explícita de projeto/host/identidades por ambiente, mantendo produção como configuração release aprovada e testes que recusem misturas. Não publicar ainda.
+2. **Infraestrutura staging isolada:** após decisões de nome, billing, região e hosting, criar projeto Firebase e apps Web/Android separados; registrar Auth, Firestore, App Check, regras, índices e contas mínimas; preparar Functions/Tasks/Scheduler e Worker staging com DO/secrets próprios. Conferir tudo antes de habilitar invocações.
+3. **Lane de testes e matriz:** adicionar configuração CI staging com secrets e conta(s) próprias, mantendo o grupo/lease de produção independente. Executar emuladores e depois as provas remotas abaixo com fixtures e restauração, sem usar dados reais.
+4. **Gates de publicação:** depois do merge da I2 e das demais mudanças que integrarão o candidato, executar web staging e Android staging; validar regressões, observabilidade e rollback. Repetir os gates finais no artefato Pages/AAB de produção antes do handoff à C16/C25. Staging verde não é prova automática da Play Integrity de produção.
+
+## Matriz mínima de aceite
+
+| Domínio | Prova positiva | Prova negativa/recuperação |
+|---|---|---|
+| Auth e cross-account | Duas contas descartáveis independentes criam/leem apenas seus dados. | Leitura/escrita cruzada negada pelas rules; troca/logout não reaproveita cache ou sessão da outra conta. |
+| App Check | Cliente web staging válido e Android de teste obtêm token do app correspondente e alcançam endpoints autorizados. | Token ausente, inválido ou de outro projeto/app é recusado sem chamar IA, gravar dados ou conceder acesso. |
+| Payloads e IA | Texto, imagem e sugestões válidos respeitam contratos e limites, com resposta sanitizada. | Método, corpo, tamanho, estrutura e conteúdo malformados falham sem exceção vazada; falha do provedor não vira sucesso. |
+| Rate limit e tiers | Contadores/observabilidade staging usam identidade pseudonimizada e DO staging. | Estouro, retry e janela temporal obedecem modo aprovado; staging não altera contadores de produção. `AI_TIER_MODE=observe` não é tratado como enforcement comercial. |
+| Cache/offline | Repetição, reconexão, segunda aba e virada civil preservam dados da conta e estado correto. | Sem rede/App Check, não mostrar dados de outra conta nem classificar leitura falha como ausência. |
+| Backup | Export, preview e import round-trip com marcadores controlados e snapshots confirmados. | Virada de data, estado existente ilegível, contagens inválidas e import cancelado não geram arquivo/importação enganosa; restauração no `finally`. |
+| Exclusão e retry | Conta nova descartável passa por pedido, Task, limpeza Auth/Firestore e Scheduler; idempotência/retry comprovados. | Sem Auth/App Check, usuário errado e invocador indevido são negados; falha induzida recupera sem tocar outras contas. |
+| IAM e rollback | Políticas/identidades staging são lidas antes/depois; versões anteriores e plano de retorno são registrados. | Revogar invocador de teste nega somente o chamador esperado; rollback de código/configuração é ensaiado sem presumir reversão de dados ou DO. |
+| Web/Android final | Pages real e AAB Play passam login, perfil, IA, backup e exclusão conforme contrato aprovado. | Qualquer 401/403/erro CSP/bootstrap indevido interrompe rollout; versão anterior e artefatos ficam identificados para retorno. |
+
+## Decisões necessárias antes de criar recursos
+
+- Identificador/nome do projeto Firebase staging, organização/conta administradora, billing e alertas de custo; confirmar se a credencial atual deve receber acesso ao novo projeto.
+- Host web staging e política de acesso; registrar origens exatas para CSP, Auth, reCAPTCHA/App Check e CORS do Worker, sem wildcard.
+- Estratégia de artefato Android staging (package/applicationId e distribuição interna) e como distingui-lo inequivocamente do release de produção.
+- Política de acesso à IA de staging: credencial/provedor separado ou stub controlado para a maior parte da matriz, com prova real limitada; nunca copiar secret de produção por reflexo.
+- Janela e responsável pelo gate final após I2, incluindo quem executa a prova física na Play e quem pode acionar rollback.
+
+Até essas decisões e os contratos fail-closed serem comprovados, **não criar staging por tentativa**, não reutilizar produção como substituto e não iniciar testes destrutivos fora dos emuladores.
+
+Referência de isolamento Firebase: a [orientação oficial para múltiplos projetos](https://firebase.google.com/docs/projects/multiprojects) exige configuração correspondente a cada ambiente, e a [orientação sobre API keys](https://firebase.google.com/docs/projects/api-keys) adverte que uma instância staging não deve interagir com o projeto de produção. O [debug provider de App Check](https://firebase.google.com/docs/app-check/web/debug-provider) é restrito a testes privados e nunca deve entrar em build público.

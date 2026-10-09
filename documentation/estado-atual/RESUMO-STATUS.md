@@ -1891,12 +1891,13 @@
 
 ### [C14-H] - Staging, validação final e rollout
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento, somente Tarefa 0 de auditoria — **Chat:** Trofia-Principal.
+- **Data de início:** 09/10/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** validar o endurecimento completo fora da produção e preparar o gate de lançamento.
 - **O que se planeja fazer:** criar Firebase staging e executar matriz cross-account, App Check, payloads, rate limit, cache, backup, exclusão, IAM e rollback.
 - **Recursos/arquivos principais envolvidos:** projeto Firebase staging, emuladores, CI, Pages, Worker, Functions, AAB Play e runbooks.
+- **O que foi feito:** a Tarefa 0 identificou apenas produção no acesso Firebase atual e nenhum ambiente staging versionado; cliente legado/Vite, Worker, Functions, CSP e verificação Android contêm vínculos de produção. CI e Pages também usam configurações de produção. A matriz, barreiras de isolamento e decisões pendentes estão em `C14_H_STAGING_AUDITORIA.md`. Nenhum projeto, secret, IAM, deploy ou dado foi alterado.
 
 ### [DOC-PR170-CLOSEOUT] - Encerramento de PR documental obsoleto
 

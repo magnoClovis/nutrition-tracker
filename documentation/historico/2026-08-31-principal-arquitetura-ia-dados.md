@@ -752,15 +752,17 @@ O usuário autorizou em seguida esse plano revisado de identidade de runtime sep
 
 ### [C14-H] - Staging, validação final e rollout
 
-- **Status:** não iniciado.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento, somente Tarefa 0 de auditoria.
+- **Data de início:** 09/10/2026.
+- **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; não iniciado.
+- **Minutos de CI:** 0 min; implementação não iniciada.
 - **Propósito:** comprovar o endurecimento completo em um ambiente destrutivo separado antes do lançamento público e produzir o handoff operacional para C16/C25.
 - **O que se planeja fazer:** criar staging separado e executar a matriz destrutiva/final antes do lançamento público.
 - **Recursos/arquivos principais envolvidos:** novo projeto Firebase staging, emuladores, CI, Pages, Worker, Functions/Tasks, AAB distribuído pela Play, matriz offline/multiaba/backup/exclusão, inventário IAM/secrets/dependências e documentação operacional.
-- **O que foi feito:** nenhuma implementação iniciada. Está aprovada a criação de um projeto Firebase separado para testes destrutivos; a matriz final cobrirá cross-account, payloads malformados, App Check, rate limit, tarefas duplicadas, cache/lifecycle, Auto Backup, rollback e validação física.
+- **O que foi feito:** a Tarefa 0, iniciada em 09/10/2026, examinou o repositório e configurações acessíveis sem criar recursos. `firebase projects:list` mostrou apenas o projeto de produção para a credencial atual; `.firebaserc` só contém `production` e emulador. A configuração Firebase compartilhada pelo legado/Vite fixa projeto e chave da produção; o endpoint de exclusão, o Worker (projeto/número/App IDs e origem permitida), o CSP e as verificações do AAB também contêm alvos de produção. Functions usa projeto do ambiente na inicialização, mas nomes das contas de execução no código apontam ao projeto de produção. O workflow CI usa uma conta descartável e App Check de produção em uma fila única; a suíte intercepta o Worker em vez de fazer IA real. Pages publica somente da `main`, e o repositório não contém ambiente Wrangler staging ou configuração GitHub staging. O acesso consultado ao GitHub mostra apenas o environment `github-pages`; nenhuma variável/segredo de staging foi identificada pelos nomes disponíveis. Portanto, antes de criar/deployar recursos é preciso estabelecer contratos fail-closed por ambiente e isolamento de identidades, URLs, dados, secrets, Durable Objects e artefatos Android. A matriz, os gates e os limites da evidência estão no documento específico `C14_H_STAGING_AUDITORIA.md`. Nenhum projeto, secret, política, dado, deploy ou código de runtime foi alterado.
+- **Alinhamento:** Tarefa 0 entregue como investigação; a C14-H funcional continua pendente, sem porcentagem de conclusão inferida.
+- **PRs/commits relacionados:** pendentes do PR documental desta auditoria.
 
 ### [DOC-ROADMAP-LAUNCH-C26-C30] - Notificações e cobrança no pré-lançamento
 
