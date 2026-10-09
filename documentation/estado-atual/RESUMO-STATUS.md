@@ -347,7 +347,7 @@
 ## O que está em andamento agora
 
 - **Diagnóstico do encerramento do smoke legado:** correção técnica isolada em andamento após a `origin/main` reproduzir todos os casos concluídos, porta liberada e processo auxiliar Node ainda vivo no Windows. — **Chat:** Trofia-UIUX.
-- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D, C14-E, C14-F1 e C14-G estão concluídas; C14-F2 permanece em andamento e C14-H não foi iniciada. — **Chat:** Trofia-Principal.
+- **C14 — revisão geral de segurança:** C14-A, C14-B1, C14-B2, C14-C, C14-D, C14-E, C14-F1, C14-F2 e C14-G estão concluídas; C14-H está em andamento. A retirada de `roles/editor` permanece na tarefa separada `SEC-IAM-EDITOR-RESIDUAL`. — **Chat:** Trofia-Principal.
 - C20, C19 e C08 continuam concluídos; a suspensão temporária da build 11 não reabre esses itens.
 - **Organização documental:** o índice inicial foi mesclado no PR #153; o filtro que evita a suíte pesada em PRs exclusivamente documentais foi mesclado no PR #155.
 - **[DOC-TRACKING-193] Concluído (12/09/2026) — Chat: Trofia-Principal.** O que se planeja fazer: registrar integralmente as sequências aprovadas e formalizar planejamento, entrega, alinhamento e métricas. O que foi feito: 100 entradas de fatias foram normalizadas no PR #193, com escopos incertos de D3–D7 explicitamente delegados ao chat UI/UX. Alinhamento: 100%.
@@ -1903,14 +1903,14 @@
 
 ### [C14-H] - Staging, validação final e rollout
 
-- **Status:** em andamento; Tarefa 0 concluída, staging ainda não iniciado — **Chat:** Trofia-Principal.
+- **Status:** em andamento; Tarefa 0 concluída e projeto staging criado — **Chat:** Trofia-Principal.
 - **Data de início:** 09/10/2026.
 - **Data de conclusão:** não concluído.
 - **Propósito:** validar o endurecimento completo fora da produção e preparar o gate de lançamento.
 - **O que se planeja fazer:** criar Firebase staging e executar matriz cross-account, App Check, payloads, rate limit, cache, backup, exclusão, IAM e rollback.
 - **Recursos/arquivos principais envolvidos:** projeto Firebase staging, emuladores, CI, Pages, Worker, Functions, AAB Play e runbooks.
-- **O que foi feito:** a Tarefa 0 identificou apenas produção no acesso Firebase atual e nenhum ambiente staging versionado; cliente legado/Vite, Worker, Functions, CSP e verificação Android contêm vínculos de produção. CI e Pages também usam configurações de produção. A matriz, barreiras de isolamento e decisões pendentes estão em `C14_H_STAGING_AUDITORIA.md`. Nenhum projeto, secret, IAM, deploy ou dado foi alterado.
-- **Gate documental:** PR #315 mesclado em `1fb3c72`, com preflights `37943855487` e `37945184179` verdes; opções de billing, host e artefato Android seguem para decisão antes da criação de recursos.
+- **O que foi feito:** a Tarefa 0 identificou apenas produção no inventário inicial e vínculos de produção no cliente legado/Vite, Worker, Functions, CSP, Android, CI e Pages. Após aprovação, em 09/10 foi criado o projeto Firebase/Cloud separado `trofia-staging` (número `31822846339`), sem organização, com Gemini e Analytics opcionais desativados. O projeto foi vinculado à mesma conta pagadora da produção, `Pagamento do Firebase`; o Console Cloud confirmou o vínculo. Não foram criados apps, site, dados, secrets, IAM, Worker ou deploy. A matriz e as barreiras de isolamento estão em `C14_H_STAGING_AUDITORIA.md`; o orçamento exclusivo de staging ainda não foi salvo.
+- **Gate documental:** PRs #315, #317 e #318 mesclados, este último em `0e27f52` com preflight `37949727558` verde (24 s). A conta pagadora e o host Firebase Hosting `*.web.app` foram escolhidos; faltam orçamento por projeto, contrato fail-closed, apps/recursos isolados e decisão do artefato Android antes de qualquer deploy.
 
 ### [DOC-C14-H-315] - Métricas e preparação de staging pós-auditoria
 
