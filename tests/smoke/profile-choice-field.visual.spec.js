@@ -1,5 +1,5 @@
 const { test, expect } = require('./app-check-fixture');
-const { expectNoCriticalErrors, openApp, setDateFieldValue } = require('./test-helpers');
+const { expectNoCriticalErrors, fillProgressiveRegistration, openApp, setDateFieldValue } = require('./test-helpers');
 
 async function startLoggedOut(page, theme) {
   await page.addInitScript(nextTheme => {
@@ -43,7 +43,9 @@ async function installRequiredProfileFixture(page) {
         ? {value: window.__profileChoiceVisual[key]}
         : null
     ]));
-    window.fbSet = (...args) => window.storage.set(...args);
+    window.fbSet = (key, value) => ['activityLevel','goalType','goalKg','goalWeeks'].includes(key)
+      ? Promise.resolve(true)
+      : window.storage.set(key, value);
     window.storage.readDailyStateCompatible = async () => ({ log: {}, waterIntake: [], supplementLog: [] });
     window.storage.migrateDailyEntries = async () => ({ migrated: false });
     window.storage.subscribeMany = () => () => {};
@@ -52,13 +54,7 @@ async function installRequiredProfileFixture(page) {
 
 async function createAccountUntilRequiredProfile(page) {
   await page.getByRole('button', {name: /Criar conta|Create account/i}).first().click();
-  await page.locator('input[type="email"]').fill('new-profile@example.test');
-  await page.locator('input[autocomplete="new-password"]').nth(0).fill('secret123456');
-  await page.locator('input[autocomplete="new-password"]').nth(1).fill('secret123456');
-  await page.locator('input[autocomplete="name"]').fill('New Profile');
-  await setDateFieldValue(page, '#registration-birth-date-trigger', '1990-06-15');
-  await page.locator('#registration-gender-trigger').click();
-  await page.getByRole('option', {name: 'Feminino', exact: true}).click();
+  await fillProgressiveRegistration(page);
   await page.getByRole('button', {name: /Criar conta|Create account/i}).last().click();
   await expect(page.getByRole('heading', {name: /Verifique seu email|Verify your email/i})).toBeVisible();
   await expect(page.locator('[data-required-profile-modal="true"]')).toBeVisible({timeout: 10000});
@@ -81,6 +77,7 @@ for (const theme of ['light', 'dark']) {
   test(`registration gender expands inline and closes immediately in ${theme} mode`, async ({ page }) => {
     const errors = await startLoggedOut(page, theme);
     await page.getByRole('button', { name: /Criar conta|Create account/i }).first().click();
+    await fillProgressiveRegistration(page, { stopAt: 2 });
 
     const field = page.locator('[data-choice-field][data-choice-field-mode="inline"]').filter({
       has: page.locator('#registration-gender-trigger')
@@ -133,13 +130,16 @@ for (const theme of ['light', 'dark']) {
     const modal = page.locator('[data-required-profile-modal="true"]');
     await expect(modal).toBeVisible();
     await expect(page.locator('select:visible')).toHaveCount(0);
+    await setDateFieldValue(page, '#required-profile-birth-date-trigger', '1990-06-15');
+    await modal.getByRole('button', {name:/Continuar|Continue/i}).click();
     await expect(page.locator('[data-choice-field-mode="inline"]')).toHaveCount(1);
-    await expect(page.locator('[data-choice-field-mode="sheet"]')).toHaveCount(2);
+    await expect(page.locator('[data-choice-field-mode="sheet"]')).toHaveCount(0);
 
     await page.locator('#required-profile-gender-trigger').click();
     await expect(page.locator('[data-choice-field-inline-options="true"]')).toBeVisible();
     await page.getByRole('option', { name: 'Feminino', exact: true }).click();
     await expect(page.locator('[data-choice-field-inline-options="true"]')).toHaveCount(0);
+    await modal.getByRole('button', {name:/Continuar|Continue/i}).click();
 
     await page.locator('#required-profile-activity-trigger').click();
     const sheet = page.locator('[data-choice-field-sheet="true"]');

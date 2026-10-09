@@ -1366,8 +1366,8 @@
 - **Data de conclusão:** não concluído.
 - **Propósito:** reduzir a carga cognitiva do cadastro apresentando uma decisão clara por etapa.
 - **O que se planeja fazer:** reorganizar o onboarding em sete decisões progressivas com transições fluidas, revisão final e linguagem One UI 8/Glass UI, preservando somente perguntas essenciais ao cálculo nutricional.
-- **Recursos/arquivos principais envolvidos:** protótipo `i2-registro-progressivo.html`, `login-screen.js`, `required-profile-modal.js`, ChoiceField/TemporalField, i18n e Playwright.
-- **O que foi feito:** o protótipo PT/EN/ES e claro/escuro foi aprovado em 26/09/2026 com nome, nascimento, opção de cálculo, medidas, atividade, objetivo e revisão; a implementação runtime permanece pendente.
+- **Recursos/arquivos principais envolvidos:** protótipo `i2-registro-progressivo.html`, contrato `documentation/estado-atual/I2-REGISTRO-PROGRESSIVO.md`, `login-screen.js`, `required-profile-modal.js`, ChoiceField/TemporalField, i18n e Playwright.
+- **O que foi feito:** o protótipo PT/EN/ES e claro/escuro foi aprovado em 26/09/2026; o runtime implementado em 29/09/2026 conduz credenciais e sete decisões progressivas — nome, nascimento, opção de cálculo, medidas, atividade, objetivo e revisão —, cria a conta somente após a confirmação final, preserva checkpoint e contratos existentes, torna progressivo o fallback de perfil obrigatório e mantém fora do escopo as perguntas adicionais não aprovadas. A branch incorporou os diagnósticos sanitizados do Principal sem alterar a função da I2; na base mais recente, com PR #310/commit `35698f6` ancestral do merge local `9c60a36`, os cinco recortes passaram 63/63 no legado e 63/63 no Vite. Uma primeira execução integral ficou inconclusiva por perda do executor e não foi contabilizada; a retomada terminou com `npm test` em código 0, smoke Vite 161/161 e cutover 60/60, sem nova recorrência observada de `#loading`, mas sem inferir causa ou correção definitiva. O PR #293 permanece draft; novo CI autenticado e merge continuam pendentes.
 
 ### [I3] - Política e migração de tema
 

@@ -104,6 +104,16 @@ async function submit(fixture) {
   return fixture.harness.render();
 }
 
+async function advanceToStep(fixture, targetStep) {
+  for (let current = 0; current < targetStep; current += 1) await submit(fixture);
+  return fixture.harness.render();
+}
+
+async function completeProgressiveProfile(fixture) {
+  await advanceToStep(fixture, 4);
+  return submit(fixture);
+}
+
 function contractTest(name, callback) {
   implementations.forEach(([format, load]) => {
     test(`${format}: ${name}`, async t => {
@@ -118,7 +128,7 @@ contractTest("renders empty, partial, and complete persisted profile values", cr
   let tree = empty.harness.render();
   assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), []);
   assert.deepEqual(elementsByType(tree, DateField).map(field => field.props.value), [""]);
-  assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), ["", "", ""]);
+  assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), []);
   assert.equal(elementsByType(tree, DateField)[0].props.max, "2026-07-31");
   assert.equal(elementsByType(tree, "input").some(input => input.props.type === "date"), false);
 
@@ -126,7 +136,7 @@ contractTest("renders empty, partial, and complete persisted profile values", cr
   tree = partial.harness.render();
   assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), []);
   assert.deepEqual(elementsByType(tree, DateField).map(field => field.props.value), ["1990-06-15"]);
-  assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), ["female", "", ""]);
+  assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), []);
 
   const complete = createFixture(createRequiredProfileModal, {
     birthDate: "1990-06-15",
@@ -137,28 +147,30 @@ contractTest("renders empty, partial, and complete persisted profile values", cr
     goalWeeks: "12"
   });
   tree = complete.harness.render();
-  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), ["5.5", "12"]);
+  assert.deepEqual(elementsByType(tree, "input").map(input => input.props.value), []);
   assert.deepEqual(elementsByType(tree, DateField).map(field => field.props.value), ["1990-06-15"]);
-  assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), ["male", "moderate", "loss"]);
+  assert.deepEqual(elementsByType(tree, ChoiceField).map(field => field.props.value), []);
 });
 
-contractTest("uses inline gender and described bottom-sheet activity and goal ChoiceFields", createRequiredProfileModal => {
-  const fixture = createFixture(createRequiredProfileModal);
-  const tree = fixture.harness.render();
-  const fields = elementsByType(tree, ChoiceField);
-
-  assert.equal(elementsByType(tree, "select").length, 0);
-  assert.deepEqual(fields.map(field => field.props.id), [
-    "required-profile-gender",
-    "required-profile-activity",
-    "required-profile-goal"
-  ]);
+contractTest("uses progressive inline gender and described activity and goal ChoiceFields", async createRequiredProfileModal => {
+  const fixture = createFixture(createRequiredProfileModal, {birthDate:"1990-06-15",gender:"female",activityLevel:"moderate",goalType:"maintenance",goalKg:"",goalWeeks:""});
+  assert.equal(elementsByType(fixture.harness.render(), "select").length, 0);
+  let tree = await advanceToStep(fixture, 1);
+  let fields = elementsByType(tree, ChoiceField);
+  assert.equal(fields[0].props.id, "required-profile-gender");
   assert.equal(fields[0].props.options.length, 2);
   assert.equal(fields[0].props.options.some(option => option.description), false);
-  assert.equal(fields[1].props.options.length, 5);
-  assert.equal(fields[1].props.options.every(option => option.description), true);
-  assert.equal(fields[2].props.options.length, 3);
-  assert.equal(fields[2].props.options.every(option => option.description), true);
+  tree = await submit(fixture);
+  fields = elementsByType(tree, ChoiceField);
+  assert.equal(fields[0].props.id, "required-profile-activity");
+  assert.equal(fields[0].props.options.length, 5);
+  assert.equal(fields[0].props.options.every(option => option.description), true);
+  tree = await submit(fixture);
+  fields = elementsByType(tree, ChoiceField);
+
+  assert.equal(fields[0].props.id, "required-profile-goal");
+  assert.equal(fields[0].props.options.length, 3);
+  assert.equal(fields[0].props.options.every(option => option.description), true);
 });
 
 contractTest("rejects invalid birth date, gender, activity level, and goal combination", async (createRequiredProfileModal, t) => {
@@ -171,15 +183,16 @@ contractTest("rejects invalid birth date, gender, activity level, and goal combi
     goalWeeks: ""
   };
   const cases = [
-    ["birth date", { birthDate: "2999-01-01" }],
-    ["gender", { gender: "other" }],
-    ["activity level", { activityLevel: "unknown" }],
-    ["goal combination", { goalType: "loss", goalKg: "0", goalWeeks: "10" }]
+    ["birth date", { birthDate: "2999-01-01" }, 0],
+    ["gender", { gender: "other" }, 1],
+    ["activity level", { activityLevel: "unknown" }, 2],
+    ["goal combination", { goalType: "loss", goalKg: "0", goalWeeks: "10" }, 3]
   ];
 
-  for (const [name, override] of cases) {
+  for (const [name, override, invalidStep] of cases) {
     await t.test(name, async () => {
       const fixture = createFixture(createRequiredProfileModal, { ...valid, ...override });
+      await advanceToStep(fixture, invalidStep);
       const tree = await submit(fixture);
       assert.deepEqual(fixture.writes, []);
       assert.deepEqual(fixture.completed, []);
@@ -198,7 +211,7 @@ contractTest("writes the six exact storage keys and calls onComplete only after 
     goalWeeks: "8"
   });
 
-  await submit(fixture);
+  await completeProgressiveProfile(fixture);
 
   assert.deepEqual(fixture.writes, [
     ["birthDate", "1988-02-29"],
@@ -229,7 +242,7 @@ contractTest("preserves maintenance storage semantics by clearing goalKg and goa
     goalWeeks: "20"
   });
 
-  await submit(fixture);
+  await completeProgressiveProfile(fixture);
 
   assert.deepEqual(fixture.writes.map(([key]) => key), [
     "birthDate",
