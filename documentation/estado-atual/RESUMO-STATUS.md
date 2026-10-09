@@ -1913,13 +1913,14 @@
 
 ### [DOC-C14-H-315] - Métricas e preparação de staging pós-auditoria
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído — **Chat:** Trofia-Principal.
 - **Data de início:** 09/10/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 09/10/2026.
 - **Propósito:** registrar as métricas do merge da Tarefa 0 e transformar os achados em escolhas explícitas de custo e hospedagem.
 - **O que se planeja fazer:** conciliar os três registros documentais e a descrição do #315; recomendar controles de billing e host isolado sem criar projeto, aceitar termos ou vincular pagamento.
 - **Recursos/arquivos principais envolvidos:** PR #315, resumo, histórico Principal e `C14_H_STAGING_AUDITORIA.md`.
-- **O que foi feito:** o #315 levou 18 min 1 s até o merge, com 52 s de CI leve e nenhum pesado. O usuário aprovou Firebase Hosting no novo projeto staging, com domínio padrão e sem alterar Pages; Worker/DO separados seguem propostos. Nenhum site foi criado. Conta pagadora, limite monetário, identificador do projeto e política de acesso seguem pendentes de verificação/decisão.
+- **O que foi feito:** o #315 levou 18 min 1 s até o merge, com 52 s de CI leve e nenhum pesado. O #317 foi mesclado em `eccce92` após 22 min 30 s, com 59 s de CI leve e nenhum pesado. O usuário aprovou Firebase Hosting no novo projeto staging, com domínio padrão e sem alterar Pages; Worker/DO separados seguem propostos. Nenhum site foi criado. Conta pagadora, limite monetário, identificador do projeto e política de acesso seguem pendentes de verificação/decisão.
+- **Alinhamento:** 100% da preparação documental; a C14-H funcional segue aberta.
 
 ### [DOC-PR170-CLOSEOUT] - Encerramento de PR documental obsoleto
 
