@@ -780,18 +780,19 @@ O usuário autorizou em seguida esse plano revisado de identidade de runtime sep
 
 ### [DOC-C14-H-315] - Métricas e preparação de staging pós-auditoria
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 09/10/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge deste registro documental; o #315 foi mesclado após 18 min 1 s.
-- **Minutos de CI:** pendente deste registro; o #315 somou 52 s (52 s leve + 0 min pesado).
+- **Data de conclusão:** 09/10/2026.
+- **Tempo decorrido:** PR #317: 22 min 30 s do primeiro commit ao merge; o #315 foi mesclado após 18 min 1 s.
+- **Minutos de CI:** PR #317: 59 s (59 s leve + 0 min pesado); o #315 somou 52 s (52 s leve + 0 min pesado).
 - **Propósito:** fechar as métricas comprovadas da auditoria e preparar escolhas de cobrança/host sem confundi-las com autorização de gasto ou deploy.
 - **O que se planeja fazer:** registrar números idênticos no histórico, documento específico e descrição do #315; recomendar controles de custo e host web isolado antes de pedir qualquer vínculo de billing.
 - **Recursos/arquivos principais envolvidos:** PR #315, `C14_H_STAGING_AUDITORIA.md`, Google Cloud Billing, Firebase Hosting, Cloudflare Worker/DO e registros documentais da frente.
 - **O que foi feito:** primeiro commit `29ec5df` às 14:23:19 UTC; merge `1fb3c72` às 14:41:20 UTC, intervalo exato 18 min 1 s. Os preflights duraram 30 s e 22 s; nenhum CI pesado foi disparado para este PR documental. A descrição do #315 recebeu esses valores. A página de cobrança do projeto de produção não concluiu carregamento nesta sessão, e os CLIs de Google Cloud/Firebase não estão disponíveis no PATH; nenhuma conta de billing, orçamento ou elegibilidade administrativa foi inferida. A documentação oficial confirma Blaze para Functions, alertas de orçamento que não limitam cobrança e spend cap de Functions ainda em prévia e não absoluto. Firebase Hosting no projeto staging é a recomendação para o host web; não foi criado site. A I2 #293 foi mesclada depois do #315, mas não foi testada no staging.
 - **Decisão de hospedagem em 09/10/2026:** antes de mesclar o PR #317, o usuário aprovou explicitamente Firebase Hosting no projeto staging separado, usando o domínio padrão `*.web.app`, sem domínio personalizado e sem alterar Pages/Firebase/dados de produção. A autorização define o host, mas não cria site/projeto, não vincula billing e não autoriza deploy. O usuário indicou a mesma conta Google Cloud de sempre; a conta pagadora vinculada, o limite mensal e o identificador do projeto continuam sem verificação/decisão.
-- **Alinhamento:** registro pós-merge preparado; host aprovado, decisões financeiras e implementação permanecem abertas, sem mudança de produção.
-- **PRs/commits relacionados:** #315 (`29ec5df`, merge `1fb3c72`), preflights `37943855487` e `37945184179`; #293 (merge `f09ac0b`) apenas como dependência da futura matriz.
+- **Fechamento documental em 09/10/2026:** o primeiro commit do #317, `140704d`, foi criado às 14:46:14 UTC; merge `eccce92` às 15:08:44 UTC, intervalo exato 22 min 30 s. Os preflights `37946715456` e `37949378252` duraram 26 s e 33 s, respectivamente, somando 59 s de CI leve e 0 min pesado; esses valores foram copiados para a descrição do #317. Nenhum recurso staging ou billing foi criado/vinculado.
+- **Alinhamento:** 100% da preparação documental; host aprovado, decisões financeiras e implementação permanecem abertas, sem mudança de produção.
+- **PRs/commits relacionados:** #315 (`29ec5df`, merge `1fb3c72`), preflights `37943855487` e `37945184179`; #317 (`140704d`, `6dfd2f4`, merge `eccce92`), preflights `37946715456` e `37949378252`; #293 (merge `f09ac0b`) apenas como dependência da futura matriz.
 
 ### [DOC-ROADMAP-LAUNCH-C26-C30] - Notificações e cobrança no pré-lançamento
 
