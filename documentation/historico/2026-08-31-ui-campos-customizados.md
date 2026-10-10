@@ -1639,7 +1639,7 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 - **Tempo decorrido:** pendente de merge.
 
-- **Minutos de CI:** 0 min; CI remoto não iniciado.
+- **Minutos de CI:** 48 min 34 s — 27 s leves e 48 min 07 s pesados.
 
 - **Propósito:** estabelecer o tema claro como padrão coerente em todo o app e na web, inclusive no bootstrap público, e executar a transição dos usuários existentes sem manter indefinidamente lógica ou dados criados apenas para explicar uma mudança única.
 
@@ -1659,9 +1659,9 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
   Durante o gate autenticado, dois cenários de avaliação de refeição expuseram uma ordem frágil apenas no teste: a asserção de fechamento era feita antes da confirmação de persistência remota que o próprio cenário já aguardava por até 30 segundos. Reproduções autenticadas mostraram persistência e fechamento funcionais; os dois testes passaram a aguardar primeiro essa confirmação existente e depois exigir a tela fechada, sem aumentar timeout, inserir retry, usar `force:true` ou alterar runtime. Os recortes resultantes passaram 5/5 no legado e 5/5 no Vite. Uma falha isolada posterior no avanço do perfil obrigatório não se repetiu no recorte exato em nenhum dos runtimes e o mesmo cenário passou no gate final, portanto nenhum código foi alterado por hipótese.
 
-  A primeira repetição integral após esses ajustes concluiu toda a matriz Vite, mas o verificador pós-build ainda exigia literalmente o antigo padrão `dark`. `scripts/verify-csp-browser.mjs` foi alinhado para exigir `light`; seu recorte isolado comprovou simultaneamente bootstrap claro, carregamento da aplicação e bloqueio de script inline pela CSP. O gate local integral final então ficou verde: preflight com 0 avisos, 1.529/1.529 unitários, smoke legado com 177 aprovados e 10 skips estruturais, smoke Vite 187/187, verificação CSP verde, build allowlist de 14 arquivos e cutover 60/60. CI remoto permanece pendente; a fatia continua em andamento e `Tempo decorrido` permanece pendente de merge.
+  A primeira repetição integral após esses ajustes concluiu toda a matriz Vite, mas o verificador pós-build ainda exigia literalmente o antigo padrão `dark`. `scripts/verify-csp-browser.mjs` foi alinhado para exigir `light`; seu recorte isolado comprovou simultaneamente bootstrap claro, carregamento da aplicação e bloqueio de script inline pela CSP. O gate local integral final então ficou verde: preflight com 0 avisos, 1.529/1.529 unitários, smoke legado com 177 aprovados e 10 skips estruturais, smoke Vite 187/187, verificação CSP verde, build allowlist de 14 arquivos e cutover 60/60. No PR draft #321, o run pesado `38025532624` passou em 48 min 07 s e o preflight documental `38025532606` passou em 27 s, totalizando 48 min 34 s. A fatia continua em andamento e `Tempo decorrido` permanece pendente de merge.
 
-- **PRs/commits relacionados:** branch `codex/i3-theme-policy`; commit e PR ainda não determinados. — **Chat-Origin:** Trofia-UIUX.
+- **PRs/commits relacionados:** [PR draft #321](https://github.com/magnoClovis/nutrition-tracker/pull/321); commit funcional `6a12c51`; runs `38025532624` (pesado) e `38025532606` (leve). — **Chat-Origin:** Trofia-UIUX.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 

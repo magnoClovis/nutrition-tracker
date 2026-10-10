@@ -115,6 +115,7 @@ O marcador de versão é necessário para distinguir uma instalação ainda não
 - build Vite com 848 módulos e allowlist aprovada de 14 arquivos;
 - verificação CSP confirmando bootstrap público em `light` e bloqueio de script inline;
 - cutover legado/Vite 60/60.
+- CI remoto do PR draft #321 integralmente verde: run pesado `38025532624` em 48 min 07 s e preflight documental `38025532606` em 27 s.
 
 Dois cenários autenticados de avaliação de refeição foram ajustados somente na ordem das verificações: primeiro aguardam a confirmação de persistência pela janela de 30 segundos que já existia e depois exigem o fechamento da tela. O runtime, os timeouts e as expectativas funcionais permaneceram inalterados. Uma falha isolada de clique no perfil obrigatório não foi reproduzida nos recortes legado/Vite e passou no gate integral final, sem correção especulativa.
 
