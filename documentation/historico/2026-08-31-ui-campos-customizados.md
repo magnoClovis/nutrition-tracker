@@ -1631,13 +1631,13 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 ### [I3] - Política e migração de tema
 
-- **Status:** em andamento.
+- **Status:** concluído.
 
 - **Data de início:** 22/09/2026.
 
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 10/10/2026.
 
-- **Tempo decorrido:** pendente de merge.
+- **Tempo decorrido:** 3 h 28 min 52 s, do primeiro commit funcional `6a12c51` ao merge `76b71eb`.
 
 - **Minutos de CI:** 48 min 34 s — 27 s leves e 48 min 07 s pesados.
 
@@ -1659,9 +1659,13 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
   Durante o gate autenticado, dois cenários de avaliação de refeição expuseram uma ordem frágil apenas no teste: a asserção de fechamento era feita antes da confirmação de persistência remota que o próprio cenário já aguardava por até 30 segundos. Reproduções autenticadas mostraram persistência e fechamento funcionais; os dois testes passaram a aguardar primeiro essa confirmação existente e depois exigir a tela fechada, sem aumentar timeout, inserir retry, usar `force:true` ou alterar runtime. Os recortes resultantes passaram 5/5 no legado e 5/5 no Vite. Uma falha isolada posterior no avanço do perfil obrigatório não se repetiu no recorte exato em nenhum dos runtimes e o mesmo cenário passou no gate final, portanto nenhum código foi alterado por hipótese.
 
-  A primeira repetição integral após esses ajustes concluiu toda a matriz Vite, mas o verificador pós-build ainda exigia literalmente o antigo padrão `dark`. `scripts/verify-csp-browser.mjs` foi alinhado para exigir `light`; seu recorte isolado comprovou simultaneamente bootstrap claro, carregamento da aplicação e bloqueio de script inline pela CSP. O gate local integral final então ficou verde: preflight com 0 avisos, 1.529/1.529 unitários, smoke legado com 177 aprovados e 10 skips estruturais, smoke Vite 187/187, verificação CSP verde, build allowlist de 14 arquivos e cutover 60/60. No PR draft #321, o run pesado `38025532624` passou em 48 min 07 s e o preflight documental `38025532606` passou em 27 s, totalizando 48 min 34 s. A fatia continua em andamento e `Tempo decorrido` permanece pendente de merge.
+  A primeira repetição integral após esses ajustes concluiu toda a matriz Vite, mas o verificador pós-build ainda exigia literalmente o antigo padrão `dark`. `scripts/verify-csp-browser.mjs` foi alinhado para exigir `light`; seu recorte isolado comprovou simultaneamente bootstrap claro, carregamento da aplicação e bloqueio de script inline pela CSP. O gate local integral final então ficou verde: preflight com 0 avisos, 1.529/1.529 unitários, smoke legado com 177 aprovados e 10 skips estruturais, smoke Vite 187/187, verificação CSP verde, build allowlist de 14 arquivos e cutover 60/60. No PR #321, o run pesado `38025532624` passou em 48 min 07 s e o preflight documental `38025532606` passou em 27 s, totalizando 48 min 34 s. Após aprovação explícita, o PR foi mesclado na `main` em `76b71eb`, 3 h 28 min 52 s depois do primeiro commit funcional.
 
-- **PRs/commits relacionados:** [PR draft #321](https://github.com/magnoClovis/nutrition-tracker/pull/321); commit funcional `6a12c51`; runs `38025532624` (pesado) e `38025532606` (leve). — **Chat-Origin:** Trofia-UIUX.
+  O AAB release assinado `trofia-0.11.0-beta-v28-i3-theme-policy.aab`, `versionCode 28` e `versionName 0.11.0-beta`, foi validado com SHA-256 `0E8FCE7D142D4D16B6C471A1E1B4CD9BDA544735B43CC792B13DA715F05B0C1A` e publicado na faixa de teste interno da Play. A Play Console confirmou a versão `28 (0.11.0-beta)` como disponível para testadores internos em 10/10/2026, com notas en-US/pt-BR/es-ES. Permaneceram apenas avisos não bloqueantes sobre ausência de arquivo de desofuscação e símbolos nativos de depuração.
+
+- **Alinhamento:** 100%. A entrega corresponde integralmente à política aprovada, preserva escolhas posteriores, não cria estado remoto ou aviso de migração e conclui validação, merge e distribuição interna; impacto final positivo.
+
+- **PRs/commits relacionados:** [PR #321](https://github.com/magnoClovis/nutrition-tracker/pull/321), commit funcional `6a12c51`, commit documental `9ba6f77`, merge `76b71eb`; runs `38025532624` (pesado) e `38025532606` (leve); AAB interno `versionCode 28`. — **Chat-Origin:** Trofia-UIUX.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
