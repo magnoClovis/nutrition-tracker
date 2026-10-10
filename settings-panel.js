@@ -65,8 +65,10 @@
      * @param {function(): void} props.onOpenPrivacy Opens privacy and security.
      * @param {string} props.lang Active application language.
      * @param {boolean} props.darkMode Whether dark mode is active.
+     * @param {'light'|'dark'|'system'} props.themePreference Stored theme preference.
      * @param {function(string): void} props.toggleLang Changes the active language.
      * @param {function(): void} props.toggleDark Toggles the active color mode.
+     * @param {function(string): void} props.onThemePreferenceChange Persists an enumerated theme preference.
      * @param {function(Object): function(): void} [props.registerBackHandler] Registers nested Android Back handling.
      * @param {number} [props.backHandlerPriority] Dispatcher priority for the nested handler.
      * @returns {Object} React element tree for the settings panel.
@@ -78,8 +80,10 @@
       onOpenPrivacy,
       lang,
       darkMode,
+      themePreference = darkMode ? 'dark' : 'light',
       toggleLang,
       toggleDark,
+      onThemePreferenceChange,
       registerBackHandler,
       backHandlerPriority
     }) {
@@ -97,9 +101,11 @@
         appearance: pickLang(normalizedLang, 'Apar\u00eancia', 'Appearance', 'Apariencia'),
         languageTitle: pickLang(normalizedLang, 'Idioma', 'Language', 'Idioma'),
         languageHint: pickLang(normalizedLang, 'Escolha o idioma da interface.', 'Choose the interface language.', 'Elige el idioma de la interfaz.'),
-        darkMode: darkMode
-          ? pickLang(normalizedLang, 'Modo claro', 'Light mode', 'Modo claro')
-          : pickLang(normalizedLang, 'Modo escuro', 'Dark mode', 'Modo oscuro'),
+        themeTitle: pickLang(normalizedLang, 'Tema', 'Theme', 'Tema'),
+        themeHint: pickLang(normalizedLang, 'Escolha claro, escuro ou acompanhe o sistema.', 'Choose light, dark, or follow the system.', 'Elige claro, oscuro o sigue el sistema.'),
+        themeLight: pickLang(normalizedLang, 'Claro', 'Light', 'Claro'),
+        themeDark: pickLang(normalizedLang, 'Escuro', 'Dark', 'Oscuro'),
+        themeSystem: pickLang(normalizedLang, 'Sistema', 'System', 'Sistema'),
         data: pickLang(normalizedLang, 'Dados', 'Data', 'Datos'),
         backup: pickLang(normalizedLang, 'Backup e restaurar', 'Backup & restore', 'Copia de seguridad y restauraci\u00f3n'),
         privacy: pickLang(normalizedLang, 'Privacidade e seguran\u00e7a', 'Privacy & security', 'Privacidad y seguridad'),
@@ -222,6 +228,28 @@
           ))
         )
       );
+
+      const themeSelector = React.createElement('div', {style:{borderTop:'1px solid var(--border2)',padding:'14px 20px 16px'}},
+        React.createElement('div', {style:{fontSize:14,color:'var(--text2)',marginBottom:4}}, S.themeTitle),
+        React.createElement('div', {style:{fontSize:12,color:'var(--muted)',lineHeight:1.35,marginBottom:12}}, S.themeHint),
+        React.createElement('div', {role:'group','aria-label':S.themeTitle,style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}},
+          [
+            ['light', S.themeLight, '\u2600'],
+            ['dark', S.themeDark, '\u263e'],
+            ['system', S.themeSystem, '\u25d0']
+          ].map(([value, label, icon]) => {
+            const selected = themePreference === value;
+            return React.createElement('button', {
+              key:value,
+              type:'button',
+              'aria-label':label,
+              'aria-pressed':selected,
+              onClick:()=>typeof onThemePreferenceChange === 'function' ? onThemePreferenceChange(value) : toggleDark(),
+              style:{border:selected?'1px solid var(--accent)':'1px solid var(--border2)',background:selected?'var(--btn-ok)':'var(--surface3)',color:selected?'var(--btn-ok-text)':'var(--text2)',borderRadius:10,padding:'10px 6px',fontFamily:'inherit',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:5,fontSize:12,fontWeight:selected?700:500}
+            }, React.createElement('span', {style:{fontSize:17}}, icon), label);
+          })
+        )
+      );
     
       return React.createElement(React.Fragment, null,
         React.createElement('div', {onClick:onClose, style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,display:'flex',alignItems:'flex-end'}},
@@ -232,7 +260,7 @@
             React.createElement('div',{style:{paddingBottom:8}},
               sectionTitle(S.appearance),
               languageButton,
-              rowBtn(S.darkMode, toggleDark, false, null, darkMode ? '\u2600' : '\u263e'),
+              themeSelector,
               sectionTitle(S.data),
               rowBtn(S.backup, ()=>{onClose(); onOpenBackup && onOpenBackup();}, false, null, '\ud83d\udcbe'),
               rowBtn(S.privacy, ()=>{onClose(); onOpenPrivacy && onOpenPrivacy();}, false, null, '\ud83d\udd12'),

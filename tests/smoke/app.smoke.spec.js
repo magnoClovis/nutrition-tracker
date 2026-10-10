@@ -55,28 +55,52 @@ test.describe('public boot and login screen', () => {
     });
   }
 
-  test('migrates once to dark and then preserves the saved theme after reload', async ({ page }) => {
+  test('migrates once to light and preserves dark and system choices after reload', async ({ page }) => {
     const errors = await openApp(page);
 
     await page.evaluate(() => {
-      localStorage.setItem('appDarkMode', 'false');
-      localStorage.removeItem('appThemeDefaultDarkV1');
+      localStorage.setItem('appDarkMode', 'true');
+      localStorage.setItem('appThemeDefaultDarkV1', '1');
+      localStorage.removeItem('appThemePolicyVersion');
+      localStorage.removeItem('appThemePreference');
     });
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await expect.poll(() => page.evaluate(() => localStorage.getItem('appThemeDefaultDarkV1'))).toBe('1');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('appThemePolicyVersion'))).toBe('2');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('appThemePreference'))).toBe('light');
 
-    await page.evaluate(() => localStorage.setItem('appDarkMode', 'false'));
+    await page.evaluate(() => localStorage.setItem('appThemePreference', 'dark'));
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.evaluate(() => localStorage.setItem('appThemePreference', 'system'));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+    await page.emulateMedia({ colorScheme: 'light' });
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 
-    await page.evaluate(() => localStorage.setItem('appDarkMode', 'true'));
+    await expectNoCriticalErrors(errors);
+  });
+
+  test('persists the explicit public light and dark choice before authentication', async ({ page }) => {
+    const errors = await openApp(page);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+    await page.getByRole('button', { name: /Usar tema escuro|Use dark theme/i }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('appThemePreference'))).toBe('dark');
+
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
+    await page.getByRole('button', { name: /Usar tema claro|Use light theme/i }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     await expectNoCriticalErrors(errors);
   });
 
@@ -153,31 +177,29 @@ test.describe('authenticated app smoke tests', () => {
   test.use({ storageState: AUTH_STATE_PATH });
   test.beforeEach(async ({ page }) => interceptOptionalExternalApis(page));
 
-  test('opens the critical tabs in Portuguese, English, and Spanish', async ({ page }) => {
-    const errors = await openApp(page);
-    const languages = [
-      { code: 'pt', diary: /Di.rio/i, pantry: /Alimentos/i, week: /Semana/i, metrics: /M.tricas/i, metricText: /Acompanhamento/ },
-      { code: 'en', diary: /Diary/i, pantry: /Foods|Pantry/i, week: /Week/i, metrics: /Metrics/i, metricText: /Tracking/ },
-      { code: 'es', diary: /Diario/i, pantry: /Alimentos/i, week: /Semana/i, metrics: /M.tricas/i, metricText: /Seguimiento/ }
-    ];
-
-    for (const language of languages) {
-      await setAppLanguage(page, language.code);
-      for (const tab of [
-        ['tab-diario', language.diary, '[data-screen="diario"]'],
-        ['tab-despensa', language.pantry, '[data-screen="despensa"]'],
-        ['tab-semana', language.week, '[data-screen="semana"]'],
-        ['tab-metricas', language.metrics, '[data-screen="metricas"]']
-      ]) {
-        await clickByTutorialKeyOrText(page, tab[0], tab[1]);
+  for (const language of [
+    { name: 'Portuguese', code: 'pt', diary: /Di.rio/i, pantry: /Alimentos/i, week: /Semana/i, metrics: /M.tricas/i, metricText: /Acompanhamento/ },
+    { name: 'English', code: 'en', diary: /Diary/i, pantry: /Foods|Pantry/i, week: /Week/i, metrics: /Metrics/i, metricText: /Tracking/ },
+    { name: 'Spanish', code: 'es', diary: /Diario/i, pantry: /Alimentos/i, week: /Semana/i, metrics: /M.tricas/i, metricText: /Seguimiento/ }
+  ]) {
+    for (const tab of [
+      { key: 'diary', tutorial: 'tab-diario', label: language.diary, screen: '[data-screen="diario"]' },
+      { key: 'foods', tutorial: 'tab-despensa', label: language.pantry, screen: '[data-screen="despensa"]' },
+      { key: 'week', tutorial: 'tab-semana', label: language.week, screen: '[data-screen="semana"]' },
+      { key: 'metrics', tutorial: 'tab-metricas', label: language.metrics, screen: '[data-screen="metricas"]', content: language.metricText }
+    ]) {
+      test(`opens the ${tab.key} tab in ${language.name}`, async ({ page }) => {
+        const errors = await openApp(page);
+        await setAppLanguage(page, language.code);
+        await clickByTutorialKeyOrText(page, tab.tutorial, tab.label);
         await dismissTutorialIfVisible(page);
-        await expect(page.locator(tab[2])).toBeVisible({ timeout: 10000 });
-      }
-      await expect(page.locator('[data-screen="metricas"]')).toContainText(language.metricText);
-    }
+        await expect(page.locator(tab.screen)).toBeVisible({ timeout: 10000 });
+        if (tab.content) await expect(page.locator(tab.screen)).toContainText(tab.content);
 
-    await expectNoCriticalErrors(errors);
-  });
+        await expectNoCriticalErrors(errors);
+      });
+    }
+  }
 
   test('validates each Metrics section independently', async ({ page }) => {
     const errors = await openApp(page);
@@ -208,6 +230,26 @@ test.describe('authenticated app smoke tests', () => {
 
     await expect(page.getByText(/Backup|Importar|Exportar|Restore|Import|Export/i).first()).toBeVisible();
 
+    await expectNoCriticalErrors(errors);
+  });
+
+  test('uses the system theme from Settings and preserves it after reload', async ({ page }) => {
+    const errors = await openApp(page);
+    await setAppLanguage(page, 'pt');
+    await clickByTutorialKeyOrText(page, 'menu-settings', /Settings|Configura/i);
+    await clickFirstButtonMatching(page, /Configura/i);
+
+    await page.getByRole('button', { name: 'Sistema', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('appThemePreference'))).toBe('system');
+
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await page.emulateMedia({ colorScheme: 'light' });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     await expectNoCriticalErrors(errors);
   });
 

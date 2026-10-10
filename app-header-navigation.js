@@ -294,7 +294,7 @@
           padding: isMobileView ? "10px 14px 8px" : "12px 20px 10px",
           position: "sticky",
           top: 0,
-          zIndex: 80,
+          zIndex: menuOpen ? 900 : 80,
           boxShadow: "0 2px 14px rgba(0,0,0,0.06)",
           transition: "padding 240ms ease, box-shadow 240ms ease, background-color 240ms ease",
           display: "flex",

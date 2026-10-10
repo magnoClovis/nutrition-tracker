@@ -82,6 +82,7 @@ function findButton(tree, label) {
 function createFixture(createSettingsPanel, {
   lang = "en",
   darkMode = false,
+  themePreference = darkMode ? "dark" : "light",
   signOut,
   registerBackHandler,
   callbacks = {}
@@ -103,8 +104,10 @@ function createFixture(createSettingsPanel, {
     onOpenPrivacy: callbacks.onOpenPrivacy || (() => {}),
     lang,
     darkMode,
+    themePreference,
     toggleLang: callbacks.toggleLang || (() => {}),
     toggleDark: callbacks.toggleDark || (() => {}),
+    onThemePreferenceChange: callbacks.onThemePreferenceChange,
     registerBackHandler,
     backHandlerPriority: 300
   };
@@ -123,11 +126,11 @@ function contractTest(name, callback) {
   });
 }
 
-contractTest("renders the existing localized copy for light and dark mode combinations", createSettingsPanel => {
+contractTest("renders the localized three-option theme control", createSettingsPanel => {
   const cases = [
-    { lang: "pt", darkMode: false, expected: ["Aparência", "Modo escuro"] },
-    { lang: "en", darkMode: true, expected: ["Appearance", "Light mode"] },
-    { lang: "es", darkMode: false, expected: ["Apariencia", "Modo oscuro"] }
+    { lang: "pt", expected: ["Aparência", "Claro", "Escuro", "Sistema"] },
+    { lang: "en", expected: ["Appearance", "Light", "Dark", "System"] },
+    { lang: "es", expected: ["Apariencia", "Claro", "Oscuro", "Sistema"] }
   ];
 
   for (const entry of cases) {
@@ -139,13 +142,13 @@ contractTest("renders the existing localized copy for light and dark mode combin
   }
 });
 
-contractTest("delegates language and dark-mode changes to the existing callbacks", createSettingsPanel => {
+contractTest("delegates language and enumerated theme changes", createSettingsPanel => {
   const calls = [];
   const fixture = createFixture(createSettingsPanel, {
     lang: "en",
     callbacks: {
       toggleLang(code) { calls.push(["lang", code]); },
-      toggleDark() { calls.push(["dark"]); }
+      onThemePreferenceChange(preference) { calls.push(["theme", preference]); }
     }
   });
 
@@ -153,9 +156,9 @@ contractTest("delegates language and dark-mode changes to the existing callbacks
   findButton(tree, "Language: English").props.onClick();
   tree = fixture.harness.render();
   findButton(tree, "Português").props.onClick();
-  findButton(tree, "Dark mode").props.onClick();
+  findButton(tree, "Dark").props.onClick();
 
-  assert.deepEqual(calls, [["lang", "pt"], ["dark"]]);
+  assert.deepEqual(calls, [["lang", "pt"], ["theme", "dark"]]);
 });
 
 contractTest("calls signOut before onLogout and onClose", async createSettingsPanel => {

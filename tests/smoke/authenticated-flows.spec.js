@@ -360,13 +360,13 @@ test.describe('authenticated critical data flows', () => {
       await expect(modal).toBeVisible();
       await expect(modal.getByText(/^\d\.\d{2}$/).first()).toBeVisible();
       await modal.getByRole('button', { name: /Registrar refeição/i }).click();
-      await expect(stagedMeal).toBeHidden();
-      await dismissTutorialIfVisible(page);
-      await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
       await expect.poll(async () => {
         const current = await readDailyLog(page, today);
         return JSON.stringify(current);
       }, { timeout: 30000 }).toContain(fixture.name);
+      await expect(stagedMeal).toBeHidden();
+      await dismissTutorialIfVisible(page);
+      await expect(page.getByText(fixture.name, { exact: true })).toBeVisible();
       const storedLog = await readDailyLog(page, today);
       const storedEntry = Object.values(storedLog).flat().find(item => item.name === fixture.name);
       const diaryEntryRow = page.locator('[data-diary-meal-items="true"] > div')
@@ -528,8 +528,6 @@ test.describe('authenticated critical data flows', () => {
         await modal.getByRole('button', { name: copy.help }).click();
         await expect(modal.getByText(copy.disclaimer)).toBeVisible();
         await modal.getByRole('button', { name: copy.confirm, exact: true }).click();
-        await expect(stagedMeal).toBeHidden();
-        await dismissTutorialIfVisible(page);
 
         let acceptedEntry = null;
         await expect.poll(async () => {
@@ -541,6 +539,8 @@ test.describe('authenticated critical data flows', () => {
           )) || null;
           return acceptedEntry?.mealEvaluationId || '';
         }, { timeout: 30000 }).not.toBe('');
+        await expect(stagedMeal).toBeHidden();
+        await dismissTutorialIfVisible(page);
         seenEvaluationIds.add(acceptedEntry.mealEvaluationId);
 
         const evaluationBadge = page.locator(`[data-meal-evaluation-badge="${acceptedEntry.mealEvaluationId}"]`);

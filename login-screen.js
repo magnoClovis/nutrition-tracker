@@ -4,12 +4,11 @@
  *
  * The UMD module exposes a `createLoginScreen` factory. The host injects React,
  * the real language and profile-validation contracts, seven named Firebase
- * operations from `firebase-storage.js`, `readPreferredDarkMode` from app.js,
+ * operations from `firebase-storage.js`, the local theme-policy adapters,
  * and browser environment services. The configured component accepts only
- * `onLogin` and `onPendingVerification` and returns a React element tree.
+ * `onLogin`, `onPendingVerification`, and the optional theme callback.
  *
- * AUTHENTICATION-ROBUSTNESS BACKLOG DELIBERATELY PRESERVED: login theme state is
- * not synchronized back to App.darkMode; submit actions have no synchronous
+ * AUTHENTICATION-ROBUSTNESS BACKLOG DELIBERATELY PRESERVED: submit actions have no synchronous
  * double-click guard; registration writes have no transaction or rollback;
  * pending verification returns without resetting loading; and the local login
  * language can later be replaced by App.afterAuthenticated. Partial profile
@@ -42,6 +41,7 @@
    * @param {function(Object): Object} dependencies.DateField Reusable Trofia civil-date selector.
    * @param {{signIn: function(string,string,Object=): Promise<*>, checkEmailVerified: function(): Promise<boolean>, signUp: function(string,string,Object=): Promise<*>, updateProfile: function(string): Promise<*>, setValue: function(string,*): Promise<*>, sendVerificationEmail: function(): Promise<*>, sendPasswordResetEmail: function(string): Promise<*>}} dependencies.authService Named Firebase authentication and persistence operations.
    * @param {function(): boolean} dependencies.readPreferredDarkMode Existing theme initializer from app.js.
+   * @param {function(boolean): string} dependencies.savePreferredDarkMode Persists an explicit public light/dark choice.
    * @param {{getItem: function(string): (string|null), setItem: function(string,string): void}} dependencies.localStorage Browser-local storage service.
    * @param {{getItem: function(string): (string|null), setItem: function(string,string): void, removeItem: function(string): void}} dependencies.sessionStorage Browser-session storage used only for the non-sensitive onboarding marker.
    * @param {function(): boolean} dependencies.isNativePlatform Native-runtime detector; installed apps always retain their Firebase session.
@@ -63,6 +63,7 @@
     DateField,
     authService,
     readPreferredDarkMode,
+    savePreferredDarkMode,
     localStorage: localStorageService,
     sessionStorage: sessionStorageService,
     isNativePlatform,
@@ -83,7 +84,7 @@
         typeof authService.setValue !== "function" ||
         typeof authService.sendVerificationEmail !== "function" ||
         typeof authService.sendPasswordResetEmail !== "function" ||
-        typeof readPreferredDarkMode !== "function" ||
+        typeof readPreferredDarkMode !== "function" || typeof savePreferredDarkMode !== "function" ||
         !localStorageService || typeof localStorageService.getItem !== "function" ||
         typeof localStorageService.setItem !== "function" ||
         !sessionStorageService || typeof sessionStorageService.getItem !== "function" ||
@@ -118,7 +119,7 @@
      * @param {function(string,string=): void} props.onPendingVerification Opens verification for login or registration.
      * @returns {Object} React element tree for login, registration, and password recovery.
      */
-    function LoginScreen({onLogin, onPendingVerification}) {
+    function LoginScreen({onLogin, onPendingVerification, onThemePreferenceChange}) {
       const [mode, setMode] = React.useState('login');
       const [email, setEmail] = React.useState('');
       const [password, setPassword] = React.useState('');
@@ -153,6 +154,7 @@
           title: 'Trofia', login: 'Entrar', register: 'Criar conta',
           subtitle: 'Acompanhe sua nutri\u00e7\u00e3o di\u00e1ria e alcance seus objetivos.',
           email: 'Email', password: 'Senha', confirm: 'Confirmar senha',
+          lightTheme: 'Usar tema claro', darkTheme: 'Usar tema escuro',
           showPassword: 'Mostrar senha', hidePassword: 'Ocultar senha', keepSignedIn: 'Manter logado',
           loginBtn: 'Entrar', registerBtn: 'Criar conta', processing: 'Processando...',
           forgotPassword: 'Esqueci minha senha', resetSending: 'Enviando...',
@@ -173,6 +175,7 @@
           title: 'Trofia', login: 'Sign in', register: 'Create account',
           subtitle: 'Track your daily nutrition and reach your goals.',
           email: 'Email', password: 'Password', confirm: 'Confirm password',
+          lightTheme: 'Use light theme', darkTheme: 'Use dark theme',
           showPassword: 'Show password', hidePassword: 'Hide password', keepSignedIn: 'Keep me signed in',
           loginBtn: 'Sign in', registerBtn: 'Create account', processing: 'Processing...',
           forgotPassword: 'Forgot password?', resetSending: 'Sending...',
@@ -191,6 +194,7 @@
           title: 'Trofia', login: 'Iniciar sesi\u00f3n', register: 'Crear cuenta',
           subtitle: 'Registra tu nutrici\u00f3n diaria y avanza hacia tus objetivos.',
           email: 'Email', password: 'Contrase\u00f1a', confirm: 'Confirmar contrase\u00f1a',
+          lightTheme: 'Usar tema claro', darkTheme: 'Usar tema oscuro',
           showPassword: 'Mostrar contrase\u00f1a', hidePassword: 'Ocultar contrase\u00f1a', keepSignedIn: 'Mantener la sesi\u00f3n iniciada',
           loginBtn: 'Entrar', registerBtn: 'Crear cuenta', processing: 'Procesando...',
           forgotPassword: 'Olvid\u00e9 mi contrase\u00f1a', resetSending: 'Enviando...',
@@ -271,7 +275,8 @@
       function toggleLoginDark() {
         setLoginDark(d => {
           const next = !d;
-          localStorage.setItem('appDarkMode', String(next));
+          const savedPreference = savePreferredDarkMode(next);
+          if (typeof onThemePreferenceChange === 'function') onThemePreferenceChange(savedPreference);
           return next;
         });
       }
@@ -550,7 +555,7 @@
       return React.createElement('div', {'data-safe-area-dialog':'24', style: loginVars},
         React.createElement('div', {style:{width:'100%',maxWidth:380}},
           React.createElement('div', {style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:16}},
-            React.createElement('button', {onClick:toggleLoginDark, style:{background:'none',border:'1px solid var(--border2)',color:'var(--muted)',borderRadius:6,padding:'5px 10px',fontSize:13,cursor:'pointer',fontFamily:'inherit'}}, loginDark ? '\u2600' : '\u263e'),
+            React.createElement('button', {onClick:toggleLoginDark,'aria-label':loginDark?S.lightTheme:S.darkTheme,style:{background:'none',border:'1px solid var(--border2)',color:'var(--muted)',borderRadius:6,padding:'5px 10px',fontSize:13,cursor:'pointer',fontFamily:'inherit'}}, loginDark ? '\u2600' : '\u263e'),
             React.createElement('div', {style:{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}},
               LANGUAGE_OPTIONS.map(option => React.createElement('button', {
                 key: option.code,

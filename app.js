@@ -10,7 +10,11 @@ const MOST_RECENT_TUTORIAL_KEY = "tutorial_most_recent_version_seen";
 const CURRENT_RELEASE_ID = CURRENT_RELEASE.id;
 const VISUAL_UPDATE_NOTICE_KEY = "seenVisualUpdateNotice_0.8.1";
 const tutorialSeenKey = type => "tutorialSeen_" + type;
-const DARK_THEME_DEFAULT_MIGRATION_KEY = "appThemeDefaultDarkV1";
+const {
+  readThemePreference,
+  saveThemePreference,
+  resolveThemePreference
+} = window.ThemePolicy;
 
 // Fixed diagnostic stages only: never place account or profile values in the DOM.
 function markLegacyBootstrapPhase(phase) {
@@ -19,23 +23,17 @@ function markLegacyBootstrapPhase(phase) {
   if (loading) loading.dataset.bootstrapPhase = phase;
 }
 
-/**
- * Makes dark mode the default once for every browser after this release.
- * After the migration marker is stored, the user's explicit light/dark choice
- * remains authoritative on every subsequent app load and login.
- */
+const themeServices = () => ({
+  storage: localStorage,
+  document,
+  matchMedia: typeof window.matchMedia === 'function' ? window.matchMedia.bind(window) : null,
+});
+function readPreferredThemePreference() { return readThemePreference(themeServices()); }
 function readPreferredDarkMode() {
-  try {
-    if (localStorage.getItem(DARK_THEME_DEFAULT_MIGRATION_KEY) !== "1") {
-      localStorage.setItem("appDarkMode", "true");
-      localStorage.setItem(DARK_THEME_DEFAULT_MIGRATION_KEY, "1");
-      return true;
-    }
-    const saved = localStorage.getItem("appDarkMode");
-    return saved !== null ? saved === "true" : true;
-  } catch (_) {
-    return true;
-  }
+  return resolveThemePreference(readPreferredThemePreference(), themeServices().matchMedia) === 'dark';
+}
+function savePreferredDarkMode(darkMode) {
+  return saveThemePreference(darkMode ? 'dark' : 'light', themeServices());
 }
 
 /**
@@ -330,6 +328,7 @@ const {
     sendPasswordResetEmail: (...args) => window.fbSendPasswordResetEmail(...args)
   },
   readPreferredDarkMode,
+  savePreferredDarkMode,
   localStorage,
   sessionStorage,
   isNativePlatform: () => Boolean(window.Capacitor?.isNativePlatform?.()),
@@ -633,12 +632,23 @@ function App() {
   const [lang, setLang]         = React.useState(()=>normalizeLanguage(localStorage.getItem('appLang')||'pt'));
   const [showReleaseNotice, setShowReleaseNotice] = React.useState(false);
   const [showVisualUpdateNotice, setShowVisualUpdateNotice] = React.useState(false);
-  const [darkMode, setDarkMode] = React.useState(readPreferredDarkMode);
+  const [themePreference, setThemePreference] = React.useState(readPreferredThemePreference);
+  const [darkMode, setDarkMode] = React.useState(() => resolveThemePreference(themePreference, themeServices().matchMedia) === 'dark');
   const releaseAudienceRef = React.useRef(null);
   const genericDialog = useGenericDialog();
   React.useEffect(() => {
-    document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
-  }, [darkMode]);
+    const media = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    const syncResolvedTheme = () => {
+      const resolvedDark = resolveThemePreference(themePreference, themeServices().matchMedia) === 'dark';
+      setDarkMode(resolvedDark);
+      document.documentElement.dataset.theme = resolvedDark ? 'dark' : 'light';
+      document.documentElement.classList.toggle('dark-loading', resolvedDark);
+    };
+    syncResolvedTheme();
+    if (themePreference !== 'system' || !media) return undefined;
+    media.addEventListener ? media.addEventListener('change', syncResolvedTheme) : media.addListener(syncResolvedTheme);
+    return () => media.removeEventListener ? media.removeEventListener('change', syncResolvedTheme) : media.removeListener(syncResolvedTheme);
+  }, [themePreference]);
 
   function toggleLang(nextLang) {
     const fallback = lang === 'pt' ? 'en' : lang === 'en' ? 'es' : 'pt';
@@ -648,7 +658,10 @@ function App() {
     Promise.resolve(storage.set('language', nl))
       .catch(()=>{});
   }
-  function toggleDark() { setDarkMode(d => { const next = !d; localStorage.setItem('appDarkMode', String(next)); return next; }); }
+  function changeThemePreference(nextPreference) {
+    setThemePreference(saveThemePreference(nextPreference, themeServices()));
+  }
+  function toggleDark() { changeThemePreference(darkMode ? 'light' : 'dark'); }
   function resetToAuthentication() {
     setAuthed(false);
     setChecking(false);
@@ -812,6 +825,7 @@ function App() {
     onBack: () => { setPendingEmail(null); setPendingName(''); fbSignOut(); }
   });
   if (!authed) return React.createElement(LoginScreen, {
+    onThemePreferenceChange: setThemePreference,
     onLogin: (isNew) => {
       setLang(localStorage.getItem('appLang') || 'pt');
       afterAuthenticated(isNew);
@@ -896,7 +910,8 @@ function App() {
         onLogout: handleLogout,
         onOpenBackup: () => setShowBackup(true),
         onOpenPrivacy: () => setShowPrivacy(true),
-        lang, darkMode, toggleLang, toggleDark
+        lang, darkMode, themePreference, toggleLang, toggleDark,
+        onThemePreferenceChange: changeThemePreference
       }) : null,
       genericDialog.dialogNode
     )

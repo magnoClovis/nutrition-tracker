@@ -20,6 +20,8 @@ async function startRegistration(page, language, theme) {
     localStorage.setItem('appLang', language);
     localStorage.setItem('appThemeDefaultDarkV1', '1');
     localStorage.setItem('appDarkMode', String(theme === 'dark'));
+    localStorage.setItem('appThemePolicyVersion', '2');
+    localStorage.setItem('appThemePreference', theme);
   }, { language, theme });
   const errors = await openApp(page);
   await page.getByRole('button', { name: languages[language].tab }).first().click();

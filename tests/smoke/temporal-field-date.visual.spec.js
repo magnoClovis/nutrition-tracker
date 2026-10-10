@@ -10,6 +10,8 @@ async function startLoggedOut(page, theme, language = 'pt') {
     localStorage.setItem('appLang', nextLanguage);
     localStorage.setItem('appThemeDefaultDarkV1', '1');
     localStorage.setItem('appDarkMode', String(nextTheme === 'dark'));
+    localStorage.setItem('appThemePolicyVersion', '2');
+    localStorage.setItem('appThemePreference', nextTheme);
   }, { nextTheme: theme, nextLanguage: language });
   return openApp(page);
 }

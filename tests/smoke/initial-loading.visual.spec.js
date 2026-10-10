@@ -13,6 +13,8 @@ test.describe('I1 branded initial loading', () => {
       await page.addInitScript(({ theme, language }) => {
         localStorage.setItem('appThemeDefaultDarkV1', '1');
         localStorage.setItem('appDarkMode', String(theme === 'dark'));
+        localStorage.setItem('appThemePolicyVersion', '2');
+        localStorage.setItem('appThemePreference', theme);
         localStorage.setItem('appLang', language);
       }, scenario);
 

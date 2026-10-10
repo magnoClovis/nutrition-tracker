@@ -93,6 +93,8 @@ async function installDeterministicBrowserState(page, language, theme) {
     localStorage.setItem('appLang', languageCode);
     localStorage.setItem('appDarkMode', String(themeName === 'dark'));
     localStorage.setItem('appThemeDefaultDarkV1', '1');
+    localStorage.setItem('appThemePolicyVersion', '2');
+    localStorage.setItem('appThemePreference', themeName);
   }, { fixedNow: FIXED_NOW, languageCode: language, themeName: theme });
 }
 

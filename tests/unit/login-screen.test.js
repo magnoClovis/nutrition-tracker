@@ -157,6 +157,13 @@ function createFixture(createLoginScreen, { stored = {}, session = {}, auth = {}
     DateField,
     authService: services,
     readPreferredDarkMode() { calls.push(["readPreferredDarkMode"]); return initialDark; },
+    savePreferredDarkMode(darkMode) {
+      const preference = darkMode ? "dark" : "light";
+      localStorage.setItem("appThemePreference", preference);
+      localStorage.setItem("appDarkMode", String(darkMode));
+      calls.push(["savePreferredDarkMode", darkMode]);
+      return preference;
+    },
     localStorage,
     sessionStorage,
     isNativePlatform: () => native,
@@ -169,7 +176,8 @@ function createFixture(createLoginScreen, { stored = {}, session = {}, auth = {}
     onPendingVerification(email, name) {
       calls.push(["onPendingVerification", email, name]);
       pending.push([email, name]);
-    }
+    },
+    onThemePreferenceChange(preference) { calls.push(["onThemePreferenceChange", preference]); }
   });
   return { harness, calls, pending, loggedIn, localWrites, values, sessionValues, documentElement };
 }
@@ -500,7 +508,7 @@ contractTest("sends password recovery for the trimmed email and preserves the ne
   assert.match(elementText(fixture.harness.tree), /If an account exists for this email/);
 });
 
-contractTest("persists language and theme locally and writes the document theme without synchronizing App", createLoginScreen => {
+contractTest("persists language and synchronizes an explicit public theme choice", createLoginScreen => {
   const fixture = createFixture(createLoginScreen, { stored: { appLang: "pt" }, initialDark: true });
   fixture.harness.render();
   assert.equal(fixture.documentElement.dataset.theme, "dark");
@@ -512,7 +520,9 @@ contractTest("persists language and theme locally and writes the document theme 
   findButton(fixture.harness.tree, "☀").props.onClick();
   fixture.harness.render();
   assert.equal(fixture.values.get("appDarkMode"), "false");
+  assert.equal(fixture.values.get("appThemePreference"), "light");
   assert.equal(fixture.documentElement.dataset.theme, "light");
   assert.equal(fixture.localWrites.some(([key]) => key === "appLang"), true);
   assert.equal(fixture.localWrites.some(([key]) => key === "appDarkMode"), true);
+  assert.deepEqual(fixture.calls.find(call => call[0] === "onThemePreferenceChange"), ["onThemePreferenceChange", "light"]);
 });

@@ -147,6 +147,7 @@ contractTest("keeps both ephemeral menu states controlled and delegates resolved
     }]
   }));
 
+  assert.equal(view.props.children[0].props.style.zIndex, 900);
   findNodes(view, node => node.props && node.props["data-tutorial"] === "menu-settings")[0].props.onClick();
   findNodes(view, node => node.type === "div" && node.props.style && node.props.style.zIndex === 99)[0].props.onClick();
   findNodes(view, node => node.type === "button" && textContent(node).includes("Language"))[0].props.onClick();
