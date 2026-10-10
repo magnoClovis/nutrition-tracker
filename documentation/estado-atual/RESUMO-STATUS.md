@@ -1687,12 +1687,13 @@
 
 ### [CAM-RED-9] - Robustez, acessibilidade e estados extremos
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não determinado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 10/10/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** preservar integralmente CAM-C4a/C4b e os contratos nutricionais após a mudança estrutural.
 - **O que se planeja fazer:** revalidar permissão/Configurações/galeria, TalkBack, foco, 200%, contraste, 48 px, PT/EN/ES, reduced-motion, lifecycle, descarte temporário, baixa confiança, dados parciais, nomes/listas longos e zero ingredientes; medir toque no obturador → retorno nativo → primeira pintura → `stop()` → análise, dar feedback visual imediato e reduzir somente atrasos comprovadamente evitáveis sem enfraquecer a serialização anticrash.
-- **Recursos/arquivos principais envolvidos:** componentes CAM-RED, `embedded-camera-preview.js`, trace do fluxo de captura, Camera Preview/Capacitor, ARIA/TalkBack, CSS responsivo, Playwright legado/Vite e Galaxy físico.
+- **Recursos/arquivos principais envolvidos:** componentes CAM-RED, `image-meal-flow.js`, `image-meal-screen.js`, `meal-image-capture.js`, `src/composite/embedded-camera-preview.js`, trace temporizado do fluxo de captura, Camera Preview/Capacitor, ARIA/TalkBack, CSS responsivo, Playwright legado/Vite e Galaxy físico.
+- **O que foi feito:** a auditoria estática confirmou que o toque já publica `camera-capturing`, mas a primeira fotografia visível aguardava sequencialmente captura nativa, decodificação, canvas e recompressão. O trace passou a anexar duração monotônica total/delta sem conteúdo do usuário. O Galaxy SM-S938B com Trofia Play v28 foi reconhecido e três capturas confirmaram a ordem segura e a preservação da foto, embora a extração temporal exata tenha ficado pendente por limitação local do vídeo e desconexão do aparelho. A correção local agora cria a prévia congelada diretamente da captura bruta e processa em paralelo a versão normalizada usada pela IA; qualidade 100 na captura, JPEG 80%, 1280 px, 1,5 MB, dois frames, `stop()` e lifecycle permanecem intactos. Passaram build Vite/allowlist, 125/125 unitários focados e 8/8 recortes visuais mobile em cada runtime. O gate local integral válido também ficou verde: preflight com 0 avisos, 1.533/1.533 unitários, smoke legado com 177 aprovados + 10 skips estruturais, smoke Vite 187/187, CSP browser verde e cutover 60/60. Uma queda isolada de sessão no NumericField Vite não se repetiu no recorte exato nem no gate integral e não motivou alteração de timeout ou expectativa. O CI autenticado real do commit funcional ficou verde em 54 min 58 s, repetindo 177 aprovados + 10 skips estruturais no legado e 187/187 no Vite. Faltam a prova física do build corrigido e a matriz física ampliada.
 
 ### [CAM-RED-10] - Validação final do redesenho pela Play Store
 

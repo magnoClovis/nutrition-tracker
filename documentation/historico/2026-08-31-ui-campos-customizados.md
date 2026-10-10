@@ -1667,6 +1667,28 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 - **PRs/commits relacionados:** [PR #321](https://github.com/magnoClovis/nutrition-tracker/pull/321), commit funcional `6a12c51`, commit documental `9ba6f77`, merge `76b71eb`; runs `38025532624` (pesado) e `38025532606` (leve); AAB interno `versionCode 28`. — **Chat-Origin:** Trofia-UIUX.
 
+### [CAM-RED-9] - Robustez, acessibilidade e estados extremos
+
+- **Status:** em andamento.
+- **Data de início:** 10/10/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 54 min 58 s — 24 s leves e 54 min 34 s pesados.
+- **Propósito:** preservar os contratos de câmera e nutrição já entregues enquanto se mede e reduz a latência perceptível da captura e se revalidam acessibilidade, localização, lifecycle e estados extremos.
+- **O que se planeja fazer:** instrumentar de forma sanitizada a cadeia toque → captura nativa → pré-processamento → primeira pintura → `stop()` → análise; provar os tempos no Galaxy pela Play; corrigir somente atrasos comprovadamente evitáveis sem enfraquecer a serialização anticrash; e executar a matriz de permissão, galeria, TalkBack, foco, 200%, contraste, alvos, PT/EN/ES, movimento reduzido, lifecycle, descarte e resultados extremos.
+- **Recursos/arquivos principais envolvidos:** `image-meal-flow.js`, `image-meal-screen.js`, `meal-image-capture.js`, `src/composite/embedded-camera-preview.js`, Camera Preview/Capacitor, trace temporizado, CSS, Playwright legado/Vite, ADB e Galaxy físico.
+- **O que foi feito:** foi criada a branch isolada `codex/cam-red-9-audit` na base `4da8452`. A leitura estática confirmou feedback síncrono por `camera-capturing`, texto “Segure firme” e escala do palco, mas mostrou que a fotografia só ficava disponível depois da captura nativa em qualidade 100 e de outro ciclo de decodificação, canvas e JPEG no WebView. Depois da pintura, dois frames ainda protegem a troca antes de `stop()` e da análise. Como os marcadores existentes preservavam somente a ordem, o trace recebeu relógio monotônico injetável, duração total e delta por fronteira, lista defensiva limitada a 32 itens e logger com números sanitizados; ele não guarda foto, base64, UID, token ou conteúdo alimentar e não altera a máquina de estados.
+
+  No Galaxy físico `SM-S938B`, Android 17, com a versão Play `0.11.0-beta`/`versionCode 28`, três capturas confirmaram o sintoma perceptível: o feedback de disparo aparece, mas a foto só fixa depois do trabalho de preparação. A foto permaneceu preservada quando a análise não identificou o prato e quando a cota de análise foi atingida. Nenhuma refeição foi registrada. A coleta por gravação de tela não produziu uma medição quadro a quadro confiável no ferramental disponível, portanto não foi inventado um número em milissegundos.
+
+  A correção local separa agora a prévia do artefato normalizado: o `Blob`/object URL da captura nativa é criado uma única vez e entregue imediatamente ao fluxo; a foto congela na tela e a câmera pode encerrar após a pintura, enquanto a normalização existente continua em paralelo. O upload aguarda explicitamente o resultado normalizado antes de montar a requisição. Qualidade, resolução, serialização anticrash, timeouts e contratos de análise não foram relaxados. O descarte revoga a URL provisória e também libera o resultado processado, inclusive se ele terminar depois de a operação ter sido cancelada.
+
+  A validação local passou com 125/125 unitários focados e build Vite/allowlist de 14 arquivos. Os recortes visuais mobile passaram 8/8 no legado e 8/8 no Vite. O primeiro build depois da separação revelou que o runtime ESM não reexportava `MealImageCaptureError`; a exportação foi corrigida e o build e os unitários foram repetidos verdes. A primeira preparação do gate integral também encontrou somente o `worker/node_modules` ausente; `npm ci` instalou exatamente o lockfile, confirmou `jose` e não alterou manifestos. Em uma execução posterior, o NumericField Vite caiu uma única vez para a tela pública; autenticação e caso exato passaram numa reprodução limpa, sem mudança de código, timeout, retry ou expectativa. O gate integral válido seguinte confirmou preflight com 0 avisos, 1.533/1.533 unitários, smoke legado com 177 aprovados + 10 skips estruturais, smoke Vite 187/187, CSP browser verde e cutover 60/60. Permanecem somente avisos preexistentes de comentário `PURE` e tamanho de chunk.
+
+  O CI autenticado real do commit funcional `ea69fd5` repetiu o contrato integralmente verde. O run pesado `38065949566` durou 54 min 34 s; o preflight documental `38065949581`, 24 s; total de 54 min 58 s. O Playwright remoto confirmou 177 aprovados + 10 skips estruturais esperados no legado e 187/187 no Vite. Ainda faltam a prova física da versão corrigida no Galaxy, a matriz física completa de robustez/acessibilidade e o fechamento documental.
+- **Alinhamento:** pendente até medição, eventual correção, gates e prova física.
+- **PRs/commits relacionados:** [PR #323](https://github.com/magnoClovis/nutrition-tracker/pull/323), commit funcional `ea69fd5`, runs `38065949566` (pesado) e `38065949581` (leve). — **Chat-Origin:** Trofia-UIUX.
+
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
 **Data (se determinável):** não determinado.
