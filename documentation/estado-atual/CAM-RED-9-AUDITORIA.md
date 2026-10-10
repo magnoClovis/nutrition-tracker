@@ -7,7 +7,7 @@
 - **Branch isolada:** `codex/cam-red-9-audit`.
 - **Base inicial:** `4da8452b50acb1590a38ecc22cd77d78885f3f1a` (`origin/main`).
 - **Implementação comportamental:** iniciada localmente; a captura bruta passa a congelar a tela antes do pré-processamento, que continua em paralelo sem reduzir qualidade ou antecipar o `stop()`.
-- **CI:** 0 min; CI remoto ainda não iniciado. O gate local integral está verde.
+- **CI:** 54 min 58 s — 24 s leves e 54 min 34 s pesados. O gate local integral e o CI remoto do commit funcional estão verdes.
 
 ## Objetivo
 
@@ -65,6 +65,7 @@ Essa ordem protege contra quadro preto e contra o encerramento prematuro da câm
 - A cobertura inclui ordem captura/pintura/`stop()`, timeout de pintura, lifecycle, descarte, flash, movimento reduzido, semântica dos controles e cópia defensiva do trace temporizado.
 - Nenhum timeout, resolução, qualidade, retry ou expectativa de comportamento foi alterado.
 - O gate local integral válido passou com preflight em 0 avisos, 1.533/1.533 unitários, smoke legado em 177 aprovados + 10 skips estruturais, smoke Vite em 187/187, CSP browser verde e cutover em 60/60.
+- O CI autenticado real do commit funcional `ea69fd5` também passou integralmente: run pesado `38065949566` em 54 min 34 s e preflight documental `38065949581` em 24 s, totalizando 54 min 58 s. O Playwright remoto repetiu 177 aprovados + 10 skips estruturais no legado e 187/187 no Vite; os skips continuam sendo exclusivamente os contratos estruturais previstos.
 - A preparação inicial sem `worker/node_modules` não foi contada como gate funcional. A dependência foi instalada exatamente pelo lockfile; `package.json` e `package-lock.json` permaneceram intactos.
 - Uma queda isolada de sessão no NumericField Vite não se repetiu na autenticação/recorte exato nem no gate integral válido. Nenhum timeout, retry ou expectativa foi alterado por hipótese.
 
