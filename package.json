@@ -18,6 +18,7 @@
     "verify:image-worker": "node scripts/verify-image-worker-deployment.js",
     "verify:worker-app-check": "node scripts/verify-ai-worker-app-check-mode.js",
     "verify:android-release": "node scripts/verify-android-release-security.js",
+    "verify:staging-boundaries": "node scripts/verify-staging-boundaries.js",
     "test": "npm.cmd run preflight && npm.cmd run test:unit && npm.cmd run test:smoke && npm.cmd run test:cutover"
   },
   "dependencies": {

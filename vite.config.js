@@ -5,12 +5,19 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import privacyPageRenderer from './scripts/render-privacy-page.js';
 import cspVerifier from './scripts/verify-csp-policy.js';
+import stagingBoundaryVerifier from './scripts/verify-staging-boundaries.js';
 
 const { renderPrivacyPage } = privacyPageRenderer;
 const { verifyCspPolicy } = cspVerifier;
+const { verifyDeploymentTarget } = stagingBoundaryVerifier;
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 const outputDirectory = resolve(projectRoot, 'dist');
+// Staging must never fall back to production bindings in a web build.
+const deploymentTarget = process.env.TROFIA_DEPLOY_TARGET === undefined
+  ? 'production'
+  : process.env.TROFIA_DEPLOY_TARGET.trim();
+verifyDeploymentTarget(deploymentTarget, projectRoot);
 
 const baselineRuntimeFiles = [];
 
