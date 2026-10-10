@@ -3,11 +3,11 @@
 ## Estado
 
 - **Fatia:** I3 — Política e migração de tema.
-- **Status:** em andamento.
+- **Status:** concluído em 10/10/2026.
 - **Chat responsável:** Trofia-UIUX.
 - **Decisão de produto:** aprovada em 27/09/2026.
 - **Estratégia técnica:** migração local versionada, aprovada para documentação em 27/09/2026.
-- **Implementação runtime:** em validação na branch `codex/i3-theme-policy`.
+- **Implementação runtime:** mesclada na `main` pelo PR #321, merge `76b71eb`.
 - **Protótipo visual:** o aviso exploratório foi descartado; a implementação segue a política textual aprovada e não mostra aviso.
 
 ## Objetivo
@@ -85,10 +85,10 @@ O marcador de versão é necessário para distinguir uma instalação ainda não
 | Instalação já migrada que escolheu escuro | Tema escuro também depois da autenticação. |
 | Instalação já migrada que escolheu sistema | Tema resolvido pela preferência do dispositivo. |
 
-## Limites e decisões ainda pendentes
+## Limites preservados
 
-- A implementação definirá os nomes finais das chaves e a estratégia de compatibilidade temporária com `appDarkMode`, sem alterar o contrato acima.
-- A aplicação antecipada do tema deverá ocorrer antes da primeira pintura para impedir flash escuro, mas o ponto exato do bootstrap será confirmado com teste real nos runtimes legado e Vite.
+- Os nomes finais são `appThemePolicyVersion` e `appThemePreference`; `appDarkMode` permanece apenas como espelho temporário de compatibilidade, sem autoridade sobre a política versionada.
+- A aplicação antecipada ocorre antes da primeira pintura e foi confirmada nos runtimes legado e Vite.
 - Esta fatia não sincroniza tema entre aparelhos. Em uma instalação nova, reinstalada ou com armazenamento apagado, o produto começa corretamente em claro; uma escolha escura feita em outro dispositivo não será recuperada pelo comportamento atual.
 - Sincronização por conta exigiria uma fatia separada de persistência remota e coordenação com o Trofia-Principal. Nenhuma mudança em Firebase, Firestore, Auth, App Check, rules ou dados está autorizada na I3 atual.
 
@@ -118,6 +118,16 @@ O marcador de versão é necessário para distinguir uma instalação ainda não
 - CI remoto do PR draft #321 integralmente verde: run pesado `38025532624` em 48 min 07 s e preflight documental `38025532606` em 27 s.
 
 Dois cenários autenticados de avaliação de refeição foram ajustados somente na ordem das verificações: primeiro aguardam a confirmação de persistência pela janela de 30 segundos que já existia e depois exigem o fechamento da tela. O runtime, os timeouts e as expectativas funcionais permaneceram inalterados. Uma falha isolada de clique no perfil obrigatório não foi reproduzida nos recortes legado/Vite e passou no gate integral final, sem correção especulativa.
+
+## Fechamento e distribuição interna
+
+- PR #321 mesclado na `main` em `76b71eb` em 10/10/2026;
+- tempo real até o merge: 3 h 28 min 52 s, do commit funcional `6a12c51` ao merge;
+- CI comprovado: 48 min 34 s — 27 s leves e 48 min 07 s pesados;
+- AAB assinado `28 (0.11.0-beta)` publicado na faixa de teste interno da Play em 10/10/2026;
+- SHA-256 do AAB: `0E8FCE7D142D4D16B6C471A1E1B4CD9BDA544735B43CC792B13DA715F05B0C1A`;
+- notas de lançamento publicadas em en-US, pt-BR e es-ES;
+- a Play Console confirmou disponibilidade aos testadores internos; os únicos avisos foram recomendações não bloqueantes de arquivo de desofuscação e símbolos nativos.
 
 ## Privacidade e dados
 

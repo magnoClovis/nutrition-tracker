@@ -1372,13 +1372,14 @@
 
 ### [I3] - Política e migração de tema
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 22/09/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 10/10/2026.
 - **Propósito:** tornar o claro o padrão visual comum sem retirar do usuário o controle posterior do tema.
 - **O que se planeja fazer:** adotar claro como padrão global, migrar silenciosamente uma única vez os usuários existentes para claro e, depois dessa migração, respeitar normalmente as escolhas claro, escuro ou sistema.
 - **Recursos/arquivos principais envolvidos:** `documentation/estado-atual/I3-POLITICA-MIGRACAO-TEMA.md`, `theme-policy.js`, `src/leaf/theme-policy.js`, `index.html`, `app.js`, `nutrition-tracker.jsx`, `src/App.jsx`, `login-screen.js`, `settings-panel.js`, `localStorage`, `prefers-color-scheme`, Configurações e testes unitários/Playwright.
-- **O que foi feito:** a implementação está pronta para CI remoto: a política local versionada `2` aplica claro antes da primeira pintura, migra instalações antigas uma única vez sem aviso, torna inerte a antiga autoridade escura e preserva escolhas posteriores `light`, `dark` ou `system`; login e app sincronizam escolhas locais, Configurações oferece as três opções, o modo sistema observa o dispositivo e Firebase permanece inalterado. Passaram 68/68 unitários focados, 1.529/1.529 unitários completos, smoke legado com 177 aprovados e 10 skips estruturais, smoke Vite 187/187, CSP do build Vite, allowlist de 14 arquivos e cutover 60/60. Dois testes de persistência passaram a verificar o fechamento somente depois da confirmação remota já existente, e o verificador CSP foi alinhado ao novo padrão público claro; não houve aumento de timeout, retry, `force:true` nem mudança de runtime.
+- **O que foi feito:** a política local versionada `2` aplica claro antes da primeira pintura, migra instalações antigas uma única vez sem aviso, torna inerte a antiga autoridade escura e preserva escolhas posteriores `light`, `dark` ou `system`; login e app sincronizam escolhas locais, Configurações oferece as três opções, o modo sistema observa o dispositivo e Firebase permanece inalterado. Passaram 68/68 unitários focados, 1.529/1.529 unitários completos, smoke legado com 177 aprovados e 10 skips estruturais, smoke Vite 187/187, CSP do build Vite, allowlist de 14 arquivos e cutover 60/60. Dois testes de persistência passaram a verificar o fechamento somente depois da confirmação remota já existente, e o verificador CSP foi alinhado ao novo padrão público claro; não houve aumento de timeout, retry, `force:true` nem mudança de runtime. O PR #321 foi mesclado na `main` em `76b71eb`; o AAB assinado `28 (0.11.0-beta)` foi publicado na faixa de teste interno e ficou disponível aos testadores em 10/10/2026.
+- **Alinhamento:** 100%; política, migração silenciosa, controle posterior do usuário, validação legado/Vite e entrega interna foram concluídos sem persistência remota ou ampliação do escopo aprovado.
 
 ### [I4] - Ação principal e menu “o que criar”
 
