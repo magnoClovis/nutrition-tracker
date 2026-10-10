@@ -320,6 +320,63 @@ const imageMealRegistration = ImageMealRegistration.createImageMealRegistration(
   mealKeys: MEAL_KEYS,
 });
 
+function prepareEmbeddedMealPhoto(base64) {
+  if (typeof base64 !== 'string' || !base64.trim()) {
+    throw new MealImageCaptureRuntime.MealImageCaptureError('invalid-image');
+  }
+  let sourceBlob;
+  try {
+    sourceBlob = new Blob([
+      Uint8Array.from(atob(base64), character => character.charCodeAt(0)),
+    ], { type: 'image/jpeg' });
+  } catch (error) {
+    throw new MealImageCaptureRuntime.MealImageCaptureError('invalid-image', error);
+  }
+
+  let previewUrl = URL.createObjectURL(sourceBlob);
+  let processedPhoto = null;
+  let disposed = false;
+  const processingOutcome = MealImageCaptureRuntime.preprocessMealImage(sourceBlob).then(
+    photo => {
+      processedPhoto = photo;
+      if (disposed) photo.dispose();
+      return { photo, error: null };
+    },
+    error => ({ photo: null, error }),
+  );
+
+  async function processed() {
+    const outcome = await processingOutcome;
+    if (outcome.error) throw outcome.error;
+    return outcome.photo;
+  }
+
+  return {
+    get previewUrl() { return previewUrl; },
+    get size() { return sourceBlob?.size || 0; },
+    get disposed() { return disposed; },
+    whenProcessed: processed,
+    async toRequestImage() {
+      if (disposed) {
+        throw new MealImageCaptureRuntime.MealImageCaptureError('image-disposed');
+      }
+      const photo = await processed();
+      if (disposed) {
+        throw new MealImageCaptureRuntime.MealImageCaptureError('image-disposed');
+      }
+      return photo.toRequestImage();
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
+      sourceBlob = null;
+      if (processedPhoto) processedPhoto.dispose();
+    },
+  };
+}
+
 const imageMealFeature = Object.freeze({
   embeddedCameraPreviewProof: embeddedMealCameraPreview,
   addAppStateListener: listener => androidAppRuntime.addAppStateListener(listener),
@@ -330,18 +387,16 @@ const imageMealFeature = Object.freeze({
   createFlow: ({ onReview, onConfirm }) => ImageMealFlow.createImageMealFlow({
     captureFromCamera: MealImageCaptureRuntime.captureMealImageFromCamera,
     embeddedCameraPreview: embeddedMealCameraPreview,
-    preprocessEmbeddedCapture: base64 => MealImageCaptureRuntime.preprocessMealImage(
-      new Blob([Uint8Array.from(atob(base64), character => character.charCodeAt(0))], {
-        type: 'image/jpeg',
-      }),
-    ),
+    preprocessEmbeddedCapture: prepareEmbeddedMealPhoto,
     chooseFromGallery: MealImageCaptureRuntime.chooseMealImageFromGallery,
     analyzeImageMeal: imageMealClient.analyzeImageMeal,
     normalizeMealEstimate: mealEstimateDomain.normalizeMealEstimate,
     validateMealEstimate: MealEstimate.validateMealEstimate,
     onReview,
     onConfirm,
-    onCameraHandoffTrace: stage => console.info(`[Trofia camera handoff] ${stage}`),
+    onCameraHandoffTrace: (stage, timing) => console.info(
+      `[Trofia camera handoff] ${stage} elapsed=${timing?.elapsedMs ?? "unknown"}ms delta=${timing?.deltaMs ?? "unknown"}ms`,
+    ),
     createAbortController: () => new AbortController(),
     ImageMealClientError: ImageMealClient.ImageMealClientError,
     MealEstimateValidationError: MealEstimate.MealEstimateValidationError,

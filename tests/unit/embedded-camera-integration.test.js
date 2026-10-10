@@ -10,7 +10,9 @@ test('C3 composes the bounded native preview into the real image-meal flow', () 
   const app = read('src/App.jsx');
   const controller = read('nutrition-tracker-controller.js');
   assert.match(app, /embeddedCameraPreview:\s*embeddedMealCameraPreview/);
-  assert.match(app, /preprocessEmbeddedCapture:[\s\S]*preprocessMealImage/);
+  assert.match(app, /preprocessEmbeddedCapture:\s*prepareEmbeddedMealPhoto/);
+  assert.match(app, /function prepareEmbeddedMealPhoto[\s\S]*preprocessMealImage\(sourceBlob\)/);
+  assert.match(app, /previewUrl[\s\S]*whenProcessed:\s*processed[\s\S]*toRequestImage/);
   assert.match(controller, /onCameraSurface:[\s\S]*startEmbeddedCamera/);
   assert.match(controller, /onEmbeddedCapture:[\s\S]*captureEmbeddedCamera/);
   assert.match(controller, /onEmbeddedPhotoPainted:[\s\S]*confirmEmbeddedPhotoPainted/);
