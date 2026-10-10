@@ -14,6 +14,26 @@ test.describe('I1 branded initial loading', () => {
         localStorage.setItem('appThemeDefaultDarkV1', '1');
         localStorage.setItem('appDarkMode', String(theme === 'dark'));
         localStorage.setItem('appLang', language);
+
+        // Keep the short-lived splash available for visual assertions. Release
+        // the app's original hide function below to test its real removal timing.
+        let hideInitialLoading;
+        Object.defineProperty(window, 'hideInitialLoading', {
+          configurable: true,
+          get: () => () => {},
+          set: (hide) => { hideInitialLoading = hide; },
+        });
+        window.releaseInitialLoadingForVisualTest = () => {
+          if (typeof hideInitialLoading !== 'function') {
+            throw new Error('The app did not install hideInitialLoading');
+          }
+          Object.defineProperty(window, 'hideInitialLoading', {
+            configurable: true,
+            writable: true,
+            value: hideInitialLoading,
+          });
+          hideInitialLoading();
+        };
       }, scenario);
 
       await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
@@ -58,7 +78,7 @@ test.describe('I1 branded initial loading', () => {
         expect(visual.progressAnimation).toContain('initialLoadingProgress');
       }
 
-      await page.evaluate(() => window.hideInitialLoading());
+      await page.evaluate(() => window.releaseInitialLoadingForVisualTest());
       await expect(loading).toHaveCount(0, { timeout: 5000 });
       const removedAt = await page.evaluate(() => performance.now());
       expect(removedAt - visual.startedAt).toBeGreaterThanOrEqual(900);
