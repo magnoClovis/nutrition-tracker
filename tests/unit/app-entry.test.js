@@ -26,7 +26,7 @@ function matches(pattern, source = appSource) {
 }
 
 test('preserves the App hook and helper-function contract', () => {
-  assert.equal(matches(/React\.useState\(/g).length, 16);
+  assert.equal(matches(/React\.useState\(/g).length, 17);
   assert.equal(matches(/React\.useEffect\(/g).length, 5);
 
   assert.deepEqual(
@@ -42,7 +42,7 @@ test('preserves the App hook and helper-function contract', () => {
     ],
   );
 
-  assert.match(appSource, /\}, \[darkMode\]\);/);
+  assert.match(appSource, /\}, \[themePreference\]\);/);
   assert.match(appSource, /\}, \[\]\);/);
   assert.match(
     appSource,
@@ -133,7 +133,8 @@ test('keeps one production ESM entry and a separate frozen legacy loader', () =>
   assert.equal((productionHtmlSource.match(/<script\b/g) || []).length, 3);
   assert.equal((productionHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 1);
   assert.equal((legacyHtmlSource.match(/<script\b/g) || []).length, 73);
-  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 71);
+  assert.equal((legacyHtmlSource.match(/<script\b[^>]*\bsrc=/g) || []).length, 72);
+  assert.match(legacyHtmlSource, /src="theme-policy\.js"/);
   assert.match(legacyHtmlSource, /src="vendor\/react\.production\.min\.js"/);
   assert.match(legacyHtmlSource, /src="daily-entry-model\.js\?v=/);
   assert.match(legacyHtmlSource, /src="daily-entry-persistence\.js\?v=/);

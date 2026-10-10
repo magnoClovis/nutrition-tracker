@@ -7,8 +7,8 @@
 - **Chat responsável:** Trofia-UIUX.
 - **Decisão de produto:** aprovada em 27/09/2026.
 - **Estratégia técnica:** migração local versionada, aprovada para documentação em 27/09/2026.
-- **Implementação runtime:** não iniciada.
-- **Protótipo visual:** exploratório e ainda não aprovado; a versão que apresentava aviso de migração ficou superada por esta política.
+- **Implementação runtime:** em validação na branch `codex/i3-theme-policy`.
+- **Protótipo visual:** o aviso exploratório foi descartado; a implementação segue a política textual aprovada e não mostra aviso.
 
 ## Objetivo
 
@@ -27,13 +27,25 @@ Estabelecer o tema claro como ponto de partida consistente no app e na web, incl
 9. A tela pública e a aplicação autenticada compartilharão a mesma preferência local; autenticar não deve sobrescrever uma escolha feita depois da migração.
 10. A migração precisa ser idempotente por navegador/instalação: uma preferência escolhida após a migração jamais pode ser sobrescrita novamente por reload ou novo login no mesmo armazenamento.
 
-## Estado técnico atual
+## Estado técnico anterior auditado
 
 - A preferência existente é booleana e local: `appDarkMode` no `localStorage`.
 - `app.js`, `nutrition-tracker.jsx` e `src/App.jsx` possuem a migração `appThemeDefaultDarkV1`, que força escuro uma única vez por navegador e depois respeita `appDarkMode`.
 - `login-screen.js` lê e grava a mesma preferência local, portanto login e aplicação autenticada já compartilham o estado daquela instalação.
 - Não existe hoje preferência de tema vinculada à conta no Firestore. Consequentemente, não existe preferência remota a ser migrada nem sincronização automática de tema entre dispositivos.
-- A I3 deverá retirar a autoridade da migração escura antiga; deixá-la ativa poderia recolocar uma instalação em escuro antes da nova política.
+- A I3 precisava retirar a autoridade da migração escura antiga; deixá-la ativa poderia recolocar uma instalação em escuro antes da nova política.
+
+## Implementação em validação
+
+- `theme-policy.js` é o contrato compartilhado por legado e Vite para normalizar, resolver, migrar e persistir a preferência local.
+- As chaves finais são `appThemePolicyVersion = 2` e `appThemePreference = light | dark | system`.
+- `appDarkMode` permanece somente como espelho temporário para consumidores legados; não decide mais migração ou bootstrap.
+- `appThemeDefaultDarkV1` pode permanecer no armazenamento, mas ficou sem autoridade.
+- `index.html` aplica a política I3 antes dos estilos com hash CSP validado; a fixture legada carrega o contrato antes do controlador.
+- Login grava uma escolha explícita claro/escuro e a sincroniza com o host; Configurações oferece Claro, Escuro e Sistema em PT/EN/ES.
+- O modo sistema observa mudanças de `prefers-color-scheme`; o Android continua derivando o contraste das barras do `data-theme` resolvido.
+- A limpeza local de conta preserva idioma e as chaves neutras de tema, sem introduzir persistência remota.
+- Validação comprovada até o momento: 68/68 unitários focados; 1.529/1.529 unitários completos; build Vite e allowlist de 14 arquivos; recorte público 2/2 legado e 2/2 Vite em desktop/mobile. Smoke autenticado, cutover e CI remoto continuam pendentes.
 
 ## Algoritmo de migração aprovado
 
@@ -94,12 +106,24 @@ O marcador de versão é necessário para distinguir uma instalação ainda não
 - falha de storage resolvendo de forma segura para claro e permitindo nova tentativa sem loop destrutivo;
 - temas claro/escuro, app/web, PT/EN/ES, fonte ampliada, contraste e `prefers-reduced-motion` onde aplicável.
 
+## Evidência pré-merge
+
+- 68/68 testes unitários focados da política e de seus consumidores;
+- 1.529/1.529 testes unitários completos;
+- smoke legado com 177 aprovados e 10 skips estruturais;
+- smoke Vite 187/187;
+- build Vite com 848 módulos e allowlist aprovada de 14 arquivos;
+- verificação CSP confirmando bootstrap público em `light` e bloqueio de script inline;
+- cutover legado/Vite 60/60.
+
+Dois cenários autenticados de avaliação de refeição foram ajustados somente na ordem das verificações: primeiro aguardam a confirmação de persistência pela janela de 30 segundos que já existia e depois exigem o fechamento da tela. O runtime, os timeouts e as expectativas funcionais permaneceram inalterados. Uma falha isolada de clique no perfil obrigatório não foi reproduzida nos recortes legado/Vite e passou no gate integral final, sem correção especulativa.
+
 ## Privacidade e dados
 
 A política não introduz aviso nem telemetria de visualização. A versão local registra somente a execução técnica da política, não uma interação do usuário. Tema é uma preferência visual; nenhum dado sensível, credencial ou conteúdo pessoal deve ser incluído na migração, nos testes ou na documentação.
 
 ## Relação com o protótipo
 
-O protótipo exploratório `i3-politica-migracao-tema.html` serviu para avaliar a política anterior com aviso. A decisão aprovada neste documento remove integralmente esse aviso. Portanto, o arquivo não representa mais o contrato final nessa parte e deverá ser revisado antes de qualquer aprovação visual ou implementação runtime.
+O protótipo exploratório `i3-politica-migracao-tema.html` serviu para avaliar a política anterior com aviso. A decisão textual aprovada neste documento removeu integralmente esse aviso antes da implementação. O runtime entregue segue este contrato documental — migração silenciosa e local — e o protótipo permanece apenas como artefato exploratório histórico, não como especificação vigente.
 
 Chat-Origin: Trofia-UIUX

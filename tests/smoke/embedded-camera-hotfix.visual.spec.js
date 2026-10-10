@@ -289,6 +289,8 @@ test.describe('embedded camera release hotfix CSS contract', () => {
       await page.addInitScript(themeName => {
         localStorage.setItem('appThemeDefaultDarkV1', '1');
         localStorage.setItem('appDarkMode', String(themeName === 'dark'));
+        localStorage.setItem('appThemePolicyVersion', '2');
+        localStorage.setItem('appThemePreference', themeName);
       }, theme);
       await page.goto('index.html', { waitUntil: 'domcontentloaded' });
       await page.evaluate((themeName) => {

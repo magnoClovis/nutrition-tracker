@@ -36,7 +36,7 @@ try {
     });
   });
   await page.goto(`http://127.0.0.1:${server.address().port}/index.html`, {waitUntil: 'domcontentloaded'});
-  assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark');
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'light');
   assert.match(await page.locator('#app-version-footer').innerText(), /Trofia/);
   await page.evaluate(() => {
     const injection = document.createElement('script');

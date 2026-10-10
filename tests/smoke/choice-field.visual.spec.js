@@ -29,6 +29,8 @@ test.describe('authenticated ChoiceField visual contract', () => {
   async function setTheme(page, theme) {
     await page.evaluate(nextTheme => {
       localStorage.setItem('appDarkMode', String(nextTheme === 'dark'));
+      localStorage.setItem('appThemePolicyVersion', '2');
+      localStorage.setItem('appThemePreference', nextTheme);
     }, theme);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.locator('#loading')).toHaveCount(0, { timeout: 15000 });

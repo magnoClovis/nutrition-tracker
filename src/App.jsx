@@ -106,6 +106,11 @@ import * as MealScore from './leaf/meal-score.js';
 import * as OpenFoodFacts from './leaf/open-food-facts.js';
 import * as RecentMealsModel from './leaf/recent-meals-model.js';
 import { resolveAuthenticatedProfileGate } from './leaf/authenticated-profile-gate.js';
+import {
+  readThemePreference,
+  resolveThemePreference,
+  saveThemePreference,
+} from './leaf/theme-policy.js';
 
 const Recharts = {
   Line,
@@ -145,20 +150,17 @@ const CURRENT_RELEASE_ID = CURRENT_RELEASE.id;
 const VISUAL_UPDATE_NOTICE_KEY = 'seenVisualUpdateNotice_0.8.1';
 const NEW_ACCOUNT_ONBOARDING_SESSION_KEY = 'trofia:new-account-onboarding';
 const tutorialSeenKey = type => `tutorialSeen_${type}`;
-const DARK_THEME_DEFAULT_MIGRATION_KEY = 'appThemeDefaultDarkV1';
-
+const themeServices = () => ({
+  storage: localStorage,
+  document,
+  matchMedia: typeof window.matchMedia === 'function' ? window.matchMedia.bind(window) : null,
+});
+function readPreferredThemePreference() { return readThemePreference(themeServices()); }
 function readPreferredDarkMode() {
-  try {
-    if (localStorage.getItem(DARK_THEME_DEFAULT_MIGRATION_KEY) !== '1') {
-      localStorage.setItem('appDarkMode', 'true');
-      localStorage.setItem(DARK_THEME_DEFAULT_MIGRATION_KEY, '1');
-      return true;
-    }
-    const saved = localStorage.getItem('appDarkMode');
-    return saved !== null ? saved === 'true' : true;
-  } catch (_) {
-    return true;
-  }
+  return resolveThemePreference(readPreferredThemePreference(), themeServices().matchMedia) === 'dark';
+}
+function savePreferredDarkMode(darkMode) {
+  return saveThemePreference(darkMode ? 'dark' : 'light', themeServices());
 }
 
 function hasSeenTutorial(record) {
@@ -507,6 +509,7 @@ const {
     sendPasswordResetEmail: (...args) => window.fbSendPasswordResetEmail(...args),
   },
   readPreferredDarkMode,
+  savePreferredDarkMode,
   localStorage,
   sessionStorage,
   isNativePlatform: () => androidAppRuntime.isAvailable(),
@@ -817,7 +820,8 @@ export function App() {
   const [lang, setLang] = React.useState(() => normalizeLanguage(localStorage.getItem('appLang') || 'pt'));
   const [showReleaseNotice, setShowReleaseNotice] = React.useState(false);
   const [showVisualUpdateNotice, setShowVisualUpdateNotice] = React.useState(false);
-  const [darkMode, setDarkMode] = React.useState(readPreferredDarkMode);
+  const [themePreference, setThemePreference] = React.useState(readPreferredThemePreference);
+  const [darkMode, setDarkMode] = React.useState(() => resolveThemePreference(themePreference, themeServices().matchMedia) === 'dark');
   const releaseAudienceRef = React.useRef(null);
   const profileCompletionAllowedRef = React.useRef(false);
   const backDispatcherRef = React.useRef(null);
@@ -857,14 +861,30 @@ export function App() {
   }, []);
 
   React.useEffect(() => {
-    document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
-    return observeSystemBarsTheme({
+    const media = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    const syncResolvedTheme = () => {
+      const resolvedDark = resolveThemePreference(themePreference, themeServices().matchMedia) === 'dark';
+      setDarkMode(resolvedDark);
+      document.documentElement.dataset.theme = resolvedDark ? 'dark' : 'light';
+      document.documentElement.classList.toggle('dark-loading', resolvedDark);
+    };
+    syncResolvedTheme();
+    if (themePreference === 'system' && media) {
+      media.addEventListener ? media.addEventListener('change', syncResolvedTheme) : media.addListener(syncResolvedTheme);
+    }
+    const disconnectSystemBars = observeSystemBarsTheme({
       rootElement: document.documentElement,
       runtime: androidSystemBarsRuntime,
       createObserver: listener => new MutationObserver(listener),
       onError: error => console.error('Unable to update Android status bar style', error),
     });
-  }, [darkMode]);
+    return () => {
+      if (themePreference === 'system' && media) {
+        media.removeEventListener ? media.removeEventListener('change', syncResolvedTheme) : media.removeListener(syncResolvedTheme);
+      }
+      disconnectSystemBars();
+    };
+  }, [themePreference]);
 
   function toggleLang(nextLang) {
     const fallback = lang === 'pt' ? 'en' : lang === 'en' ? 'es' : 'pt';
@@ -875,13 +895,11 @@ export function App() {
       .catch(() => {});
   }
 
-  function toggleDark() {
-    setDarkMode(d => {
-      const next = !d;
-      localStorage.setItem('appDarkMode', String(next));
-      return next;
-    });
+  function changeThemePreference(nextPreference) {
+    setThemePreference(saveThemePreference(nextPreference, themeServices()));
   }
+
+  function toggleDark() { changeThemePreference(darkMode ? 'light' : 'dark'); }
 
   function resetToAuthentication() {
     setAuthed(false);
@@ -1174,6 +1192,7 @@ export function App() {
   if (!authed) {
     return (
       <LoginScreen
+        onThemePreferenceChange={setThemePreference}
         onLogin={isNew => {
           setLang(localStorage.getItem('appLang') || 'pt');
           afterAuthenticated(isNew);
@@ -1291,8 +1310,10 @@ export function App() {
             onOpenPrivacy={() => setShowPrivacy(true)}
             lang={lang}
             darkMode={darkMode}
+            themePreference={themePreference}
             toggleLang={toggleLang}
             toggleDark={toggleDark}
+            onThemePreferenceChange={changeThemePreference}
             registerBackHandler={registerBackHandler}
             backHandlerPriority={BACK_HANDLER_PRIORITY.nestedPanel}
           />

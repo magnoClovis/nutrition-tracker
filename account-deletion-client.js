@@ -12,7 +12,9 @@
   const PRESERVED_LOCAL_KEYS = Object.freeze([
     "appLang",
     "appDarkMode",
-    "appThemeDefaultDarkV1"
+    "appThemeDefaultDarkV1",
+    "appThemePolicyVersion",
+    "appThemePreference"
   ]);
 
   class AccountDeletionClientError extends Error {

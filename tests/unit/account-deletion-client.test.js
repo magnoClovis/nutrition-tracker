@@ -89,6 +89,8 @@ for (const [format, load] of implementations) {
       appLang: 'es',
       appDarkMode: 'false',
       appThemeDefaultDarkV1: '1',
+      appThemePolicyVersion: '2',
+      appThemePreference: 'light',
       fb_email: 'person@example.test',
       fb_refresh: 'secret-refresh',
       pantry_v2: 'private nutrition',
@@ -104,6 +106,8 @@ for (const [format, load] of implementations) {
       appLang: 'es',
       appDarkMode: 'false',
       appThemeDefaultDarkV1: '1',
+      appThemePolicyVersion: '2',
+      appThemePreference: 'light',
     });
     assert.deepEqual(sessionStorage.snapshot(), {});
   });
