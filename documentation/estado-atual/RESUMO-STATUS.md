@@ -446,7 +446,7 @@
 - **Propósito:** oferecer lembretes úteis de água e acompanhamento diário com o app fechado antes do lançamento público.
 - **O que se planeja fazer:** em sequência, implementar (1) modelo puro de horários/déficit, (2) adaptador Android/manifesto sem alarme exato, (3) coordenação por conta, hidratação e ciclo de vida, (4) preferências PT/EN/ES e navegação ao toque, (5) testes locais/CI e prova física no Android distribuído; sem web push/backend.
 - **Recursos/arquivos principais envolvidos:** `@capacitor/local-notifications`, metas e registros locais, idioma/fuso, preferências, Android, Data Safety e testes físicos.
-- **O que foi feito:** Tarefa 0 mesclada no PR #328. O candidato Android em worktree isolada contém modelo, plugin nativo, permissão contextual e preferências; preflight, 1.547 unitários, smokes locais, CSP, cutover 60/60 e APK debug passaram. Os manifestos debug/release não exigem alarme exato. CI autenticado, revisão e prova física com AAB pendem; nenhuma versão foi publicada. Contrato e limites em [`C26_B_LEMBRETES_LOCAIS_AUDITORIA.md`](C26_B_LEMBRETES_LOCAIS_AUDITORIA.md).
+- **O que foi feito:** Tarefa 0 mesclada no PR #328. O PR técnico draft #329 contém modelo, plugin nativo, permissão contextual e preferências; suíte local, cutover 60/60, APK debug e CI autenticado do SHA funcional passaram (1.547 unitários, Worker 44, Functions 74, legado 177+10 skips estruturais, Vite 187, CSP). Os manifestos debug/release não exigem alarme exato. Revisão e prova física com AAB pendem; nenhuma versão foi publicada. Contrato e limites em [`C26_B_LEMBRETES_LOCAIS_AUDITORIA.md`](C26_B_LEMBRETES_LOCAIS_AUDITORIA.md).
 
 ### [C26-C] - Push e backend de notificações
 
