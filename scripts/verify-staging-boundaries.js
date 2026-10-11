@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { verifyStagingManifest } = require('./verify-staging-manifest.js');
 
 // Runtime inputs only: documentation and tests may legitimately name production.
 const RUNTIME_FILES = Object.freeze([
@@ -59,6 +60,7 @@ function verifyStagingBoundaries(projectRoot) {
 function verifyDeploymentTarget(target, projectRoot) {
   if (target === 'production') return;
   if (target === 'staging') {
+    verifyStagingManifest(projectRoot);
     verifyStagingBoundaries(projectRoot);
     return;
   }

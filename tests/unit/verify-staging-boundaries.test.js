@@ -44,6 +44,6 @@ test('rejects unknown deployment targets and blocks staging on the current produ
   const projectRoot = path.resolve(__dirname, '../..');
   assert.throws(() => verifyDeploymentTarget('', projectRoot), /Unknown Trofia deployment target/);
   assert.throws(() => verifyDeploymentTarget('preview', projectRoot), /Unknown Trofia deployment target/);
-  assert.throws(() => verifyDeploymentTarget('staging', projectRoot), /Staging boundary check failed/);
+  assert.throws(() => verifyDeploymentTarget('staging', projectRoot), /Staging manifest check failed/);
   assert.doesNotThrow(() => verifyDeploymentTarget('production', projectRoot));
 });
