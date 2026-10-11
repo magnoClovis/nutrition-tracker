@@ -379,7 +379,7 @@
 ### Indispensável antes do lançamento público
 
 - **C14:** revisão geral de segurança — em andamento; decisões de escopo aprovadas em 01/09/2026 e execução sequencial autorizada a partir da C14-B.
-- **C26-A/B:** toast seguro e lembretes locais — não iniciados; promovidos ao pré-lançamento em 25/09/2026, sem incluir push/backend.
+- **C26-A/B:** C26-A (toast seguro) não iniciada; C26-B iniciou somente Tarefa 0 em 11/10/2026, sem implementação de lembretes. Ambas permanecem no pré-lançamento; C26-C push/backend segue pós-lançamento.
 - **C30:** assinaturas, cobranças e direitos de acesso — não iniciado; depende de C14 e antecede a documentação e o gate finais.
 - **C16:** documentação técnica e de manutenção — parcial; deve fechar depois de C14, C26-A/B e C30.
 - **C25:** gate da versão pública — parcial e dependente de C14, C26-A/B, C30 e C16.
@@ -440,12 +440,13 @@
 
 ### [C26-B] - Lembretes locais
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento somente na Tarefa 0; implementação não iniciada — **Chat:** Trofia-Principal.
+- **Data de início:** 11/10/2026 (auditoria).
+- **Data de conclusão:** não concluído.
 - **Propósito:** oferecer lembretes úteis de água e acompanhamento diário com o app fechado antes do lançamento público.
 - **O que se planeja fazer:** implementar consentimento, preferências, janela ativa/silenciosa, agendamento local contextual, cancelamento/reagendamento e navegação ao tocar.
 - **Recursos/arquivos principais envolvidos:** `@capacitor/local-notifications`, metas e registros locais, idioma/fuso, preferências, Android, Data Safety e testes físicos.
+- **O que foi feito:** Tarefa 0 auditou Capacitor 8/Android 36, ausência do plugin/permissão/agendador, fontes de água e ciclo de vida, limites de dados obsoletos com o app fechado e decisões de consentimento/horários; contrato e gates propostos em [`C26_B_LEMBRETES_LOCAIS_AUDITORIA.md`](C26_B_LEMBRETES_LOCAIS_AUDITORIA.md). Nenhum código, permissão ou deploy foi alterado.
 
 ### [C26-C] - Push e backend de notificações
 
