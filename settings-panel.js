@@ -69,6 +69,8 @@
      * @param {function(string): void} props.toggleLang Changes the active language.
      * @param {function(): void} props.toggleDark Toggles the active color mode.
      * @param {function(string): void} props.onThemePreferenceChange Persists an enumerated theme preference.
+     * @param {Object} [props.reminderPreferences] Device-local reminder preferences for the current account.
+     * @param {function(Object): void} [props.onReminderPreferencesChange] Applies explicit reminder choices.
      * @param {function(Object): function(): void} [props.registerBackHandler] Registers nested Android Back handling.
      * @param {number} [props.backHandlerPriority] Dispatcher priority for the nested handler.
      * @returns {Object} React element tree for the settings panel.
@@ -84,6 +86,10 @@
       toggleLang,
       toggleDark,
       onThemePreferenceChange,
+      reminderPreferences,
+      reminderStatus,
+      remindersAvailable = false,
+      onReminderPreferencesChange,
       registerBackHandler,
       backHandlerPriority
     }) {
@@ -123,6 +129,15 @@
           'Las funciones con \u2726 est\u00e1n disponibles para tu cuenta.'
         ),
         feedbackSupport: pickLang(normalizedLang, 'Feedback e suporte', 'Feedback & support', 'Comentarios y soporte'),
+        reminders: pickLang(normalizedLang, 'Lembretes', 'Reminders', 'Recordatorios'),
+        remindersEnable: pickLang(normalizedLang, 'Ativar lembretes locais', 'Enable local reminders', 'Activar recordatorios locales'),
+        remindersHint: pickLang(normalizedLang, 'O Android pode pedir permissão. Os horários são aproximados; nenhum dado de saúde aparece na notificação.', 'Android may ask for permission. Times are approximate; notifications contain no health data.', 'Android puede pedir permiso. Los horarios son aproximados; las notificaciones no incluyen datos de salud.'),
+        remindersUnavailable: pickLang(normalizedLang, 'Disponíveis apenas no aplicativo Android.', 'Available only in the Android app.', 'Disponibles solo en la aplicación Android.'),
+        remindersDenied: pickLang(normalizedLang, 'Permissão de notificação desativada nas configurações do Android.', 'Notification permission is disabled in Android settings.', 'El permiso de notificaciones está desactivado en los ajustes de Android.'),
+        remindersError: pickLang(normalizedLang, 'Não foi possível confirmar o agendamento. Tente novamente.', 'Could not confirm scheduling. Please try again.', 'No se pudo confirmar la programación. Inténtalo de nuevo.'),
+        remindersWater: pickLang(normalizedLang, 'Pausas para beber água', 'Water breaks', 'Pausas para beber agua'),
+        remindersDaily: pickLang(normalizedLang, 'Início, meio e fim do dia', 'Morning, midday and evening', 'Inicio, mitad y final del día'),
+        remindersWindow: pickLang(normalizedLang, 'Horário ativo', 'Active hours', 'Horario activo'),
         feedbackLabel: pickLang(normalizedLang, 'Enviar feedback / reportar erro', 'Send feedback / report a bug', 'Enviar comentarios / reportar error'),
         feedbackHint: pickLang(normalizedLang, 'Abre um formul\u00e1rio em uma nova aba.', 'Opens a form in a new tab.', 'Abre un formulario en una nueva pesta\u00f1a.'),
         feedbackTitle: pickLang(normalizedLang, 'Enviar feedback', 'Send feedback', 'Enviar comentarios'),
@@ -250,6 +265,36 @@
           })
         )
       );
+
+      const reminderPrefs = reminderPreferences || {enabled:false,water:true,daily:false,activeStart:'09:00',activeEnd:'20:00'};
+      const reminderWindow = `${reminderPrefs.activeStart}-${reminderPrefs.activeEnd}`;
+      const reminderSettings = React.createElement('div', {style:{borderTop:'1px solid var(--border2)',padding:'12px 20px 16px',fontSize:13,color:'var(--text2)'}},
+        React.createElement('button', {
+          type:'button',
+          'aria-pressed': reminderPrefs.enabled === true,
+          disabled: !remindersAvailable || typeof onReminderPreferencesChange !== 'function',
+          onClick: () => onReminderPreferencesChange({...reminderPrefs,enabled:!reminderPrefs.enabled}),
+          style:{width:'100%',textAlign:'left',padding:'10px 0',background:'none',border:'none',color:'var(--text2)',fontFamily:'inherit',fontSize:14,cursor:remindersAvailable?'pointer':'default'}
+        }, `${reminderPrefs.enabled ? '\u2611' : '\u2610'} ${S.remindersEnable}`),
+        React.createElement('div', {style:{color:'var(--muted)',fontSize:12,lineHeight:1.4,marginBottom:10}},
+          !remindersAvailable ? S.remindersUnavailable : reminderStatus === 'permission-denied' ? S.remindersDenied : reminderStatus === 'error' ? S.remindersError : S.remindersHint),
+        remindersAvailable ? React.createElement(React.Fragment, null,
+          [['water',S.remindersWater],['daily',S.remindersDaily]].map(([key,label]) => React.createElement('label', {key,style:{display:'flex',gap:10,alignItems:'center',padding:'8px 0'}},
+            React.createElement('input', {type:'checkbox',checked:reminderPrefs[key],disabled:!reminderPrefs.enabled,onChange:event=>onReminderPreferencesChange({...reminderPrefs,[key]:event.target.checked})}), label)),
+          React.createElement('label', {style:{display:'flex',gap:10,alignItems:'center',justifyContent:'space-between',padding:'8px 0'}},
+            S.remindersWindow,
+            React.createElement('select', {
+              value:reminderWindow,
+              disabled:!reminderPrefs.enabled,
+              'aria-label':S.remindersWindow,
+              onChange:event=>{
+                const [activeStart,activeEnd] = event.target.value.split('-');
+                onReminderPreferencesChange({...reminderPrefs,activeStart,activeEnd});
+              },
+              style:{background:'var(--surface3)',color:'var(--text2)',border:'1px solid var(--border2)',borderRadius:8,padding:'7px 8px',fontFamily:'inherit'}
+            }, [['08:00-18:00','08:00–18:00'],['09:00-20:00','09:00–20:00'],['10:00-21:00','10:00–21:00']].map(([value,label]) => React.createElement('option',{key:value,value},label))))
+        ) : null
+      );
     
       return React.createElement(React.Fragment, null,
         React.createElement('div', {onClick:onClose, style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:9999,display:'flex',alignItems:'flex-end'}},
@@ -264,6 +309,8 @@
               sectionTitle(S.data),
               rowBtn(S.backup, ()=>{onClose(); onOpenBackup && onOpenBackup();}, false, null, '\ud83d\udcbe'),
               rowBtn(S.privacy, ()=>{onClose(); onOpenPrivacy && onOpenPrivacy();}, false, null, '\ud83d\udd12'),
+              sectionTitle(S.reminders),
+              reminderSettings,
               sectionTitle(S.intelligence),
               infoRow(S.aiReady, S.aiReadyHint, '\u2726'),
               sectionTitle(S.feedbackSupport),
