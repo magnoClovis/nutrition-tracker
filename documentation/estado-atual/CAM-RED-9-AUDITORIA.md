@@ -66,7 +66,7 @@ Todos os itens foram cumpridos. A decomposição interna por fronteira é compro
 - O AAB `trofia-0.11.0-beta-v29-cam-red-9.aab` foi produzido no HEAD `e0f4bbd6c913121a4d9e6b5af8f04c575984f79e`, com SHA-256 `3E036BBF2713B9C9F039160902A7324549FBD9242D21E8883E808DB2FFF5475A`, assinatura release, configuração Firebase real e gates fail-closed.
 - Três capturas em claro e três em escuro mantiveram a fotografia contínua desde o fim da captura até a análise; nenhuma refeição foi registrada.
 - O cliente nativo foi liberado depois da pintura. Background/retorno preservou o resultado ainda não registrado, e cancelamento/serviço indisponível preservaram a foto e apresentaram recuperação.
-- A matriz física cobriu tema, contraste, alvos, fonte a 200%, lifecycle, cancelamento, limpeza e estados não identificável/preenchido; a matriz automatizada já verde complementa permissão, galeria, PT/EN/ES, TalkBack/semântica, foco e movimento reduzido.
+- A matriz física cobriu tema, contraste, alvos, lifecycle, cancelamento, limpeza e estados não identificável/preenchido; a matriz automatizada já verde complementa permissão, galeria, PT/EN/ES, TalkBack/semântica, foco, fonte a 200% e movimento reduzido. A troca física para fonte Android a 200% recriou o app na tela inicial e mostrou sobreposição preexistente nos rótulos da navegação inferior; esse achado transversal de layout fica encaminhado à fatia visual responsável e não foi mascarado nem corrigido dentro do PR de câmera.
 - O estado do Galaxy foi restaurado ao final: conta descartável desconectada, login claro, DND desligado, sincronização habilitada, rotação retrato, fonte 1,0, `stay_on_while_plugged_in=0`, timeout de tela de 30 s, app encerrado e launcher em primeiro plano.
 
 ## Validação local da instrumentação
