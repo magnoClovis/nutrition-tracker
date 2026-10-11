@@ -57,6 +57,31 @@ test('fails closed when a GitHub authenticated CI run is active', async () => {
   }), /authenticated-smoke-github-ci-active:35281945540/);
 });
 
+test('authenticates the GitHub CI guard when a CLI token is available', async () => {
+  let requestOptions;
+  await assertNoActiveGithubCi({
+    env: {GH_TOKEN: 'registered-token'},
+    async fetchRequest(_url, options) {
+      requestOptions = options;
+      return {ok: true, async json() { return {workflow_runs: []}; }};
+    },
+  });
+  assert.equal(requestOptions.headers.Accept, 'application/vnd.github+json');
+  assert.equal(requestOptions.headers.Authorization, 'Bearer registered-token');
+});
+
+test('does not invent GitHub authorization without a configured token', async () => {
+  let requestOptions;
+  await assertNoActiveGithubCi({
+    env: {},
+    async fetchRequest(_url, options) {
+      requestOptions = options;
+      return {ok: true, async json() { return {workflow_runs: []}; }};
+    },
+  });
+  assert.equal('Authorization' in requestOptions.headers, false);
+});
+
 test('releases the local lock when the GitHub guard rejects', async () => {
   const env = makeTempEnv();
   await assert.rejects(coordinateAuthenticatedSuite({

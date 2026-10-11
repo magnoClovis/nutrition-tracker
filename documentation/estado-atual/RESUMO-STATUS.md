@@ -1382,32 +1382,105 @@
 - **O que foi feito:** a política local versionada `2` aplica claro antes da primeira pintura, migra instalações antigas uma única vez sem aviso, torna inerte a antiga autoridade escura e preserva escolhas posteriores `light`, `dark` ou `system`; login e app sincronizam escolhas locais, Configurações oferece as três opções, o modo sistema observa o dispositivo e Firebase permanece inalterado. Passaram 68/68 unitários focados, 1.529/1.529 unitários completos, smoke legado com 177 aprovados e 10 skips estruturais, smoke Vite 187/187, CSP do build Vite, allowlist de 14 arquivos e cutover 60/60. Dois testes de persistência passaram a verificar o fechamento somente depois da confirmação remota já existente, e o verificador CSP foi alinhado ao novo padrão público claro; não houve aumento de timeout, retry, `force:true` nem mudança de runtime. O PR #321 foi mesclado na `main` em `76b71eb`; o AAB assinado `28 (0.11.0-beta)` foi publicado na faixa de teste interno e ficou disponível aos testadores em 10/10/2026.
 - **Alinhamento:** 100%; política, migração silenciosa, controle posterior do usuário, validação legado/Vite e entrega interna foram concluídos sem persistência remota ou ampliação do escopo aprovado.
 
-### [I4] - Ação principal e menu “o que criar”
+### [I4-A] - Ação principal e menu de criação
 
 - **Status:** em andamento — **Chat:** Trofia-UIUX.
 - **Data de início:** 22/09/2026.
 - **Data de conclusão:** não concluído.
-- **Propósito:** tornar a ação principal mais encontrável e esclarecer as alternativas de criação antes da escolha.
-- **O que se planeja fazer:** avaliar FAB estendido e menu de criação com subtítulos, adaptando a hierarquia concorrente ao One UI 8/Glass UI.
-- **Recursos/arquivos principais envolvidos:** navegação/Diário, fluxo Adicionar, menu de criação, ícones SVG, CSS e Playwright.
+- **Propósito:** tornar a entrada de criação encontrável, explicar os caminhos antes da escolha e alinhar a identidade instalada à marca do carregamento.
+- **O que se planeja fazer:** implementar o FAB/ação central e o menu aprovado com Tirar uma foto, Descrever a refeição, Montar manualmente e Usar refeição salva, preservando foco, Android Back, reduced motion e encaminhamento ao fluxo CAM-RED existente; no mesmo PR/gate, substituir launcher e equivalentes web pela marca “T + folha”, com variantes adaptativa, redonda, legada e monocromática, safe zones e sem texto/aura/animação no asset estático.
+- **Recursos/arquivos principais envolvidos:** protótipo `i4-create-menu-prototype`, navegação/Diário, fluxo Adicionar, ícones SVG, `app-header-navigation.js`, `one-ui.css`, `mipmap-*`, adaptive/round/monochrome icon, manifest, favicon/PWA/Apple Touch Icon, verificadores Android/Vite e Playwright.
+- **O que foi feito:** o protótipo e a integração da marca “T + folha” ao escopo foram aprovados em 10/10/2026; a troca de ícones foi fundida à I4-A e não terá fatia independente. A implementação faz o botão global do Diário abrir um popover desktop ou folha inferior mobile com foto, descrição, montagem manual e refeição salva; cada escolha reutiliza os contratos existentes da tela Adicionar, o fechamento cobre botão, backdrop, Escape e Android Back, a navegação Tab permanece contida e o foco retorna à ação de origem. A marca aprovada passou a ter fonte SVG determinística e variantes Web, Apple Touch, Android legada/redonda/adaptativa/monocromática, com foreground dentro da safe zone; o gerador versionado reproduz os 19 PNGs. Helpers consumidores e a matriz cutover foram adaptados para abrir o novo menu e selecionar explicitamente a entrada manual, enquanto o coordenador autenticado usa token GitHub quando disponível e continua fail-closed. Na base final integrada `74a988a4`, passaram 125/125 testes focados, preflight com 0 avisos, 1.556/1.556 unitários, smoke legado com 181 aprovados e 10 skips estruturais, smoke Vite 191/191, CSP do build Vite e cutover 60/60; o build transformou 848 módulos, a allowlist confirmou 14 arquivos e `:app:processDebugResources` compilou os recursos Android. Nenhum estado da Play foi alterado; PR e CI permanecem pendentes.
+
+### [I4-B] - Orquestração do sheet Adicionar
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** organizar destino, horário, repetição e entradas secundárias sem sobrecarregar o menu principal.
+- **O que se planeja fazer:** validar e implementar chips de refeição/horário, repetição recente com Undo, entrada manual e retorno ao contexto de origem. Barcode permanece pendente por conflitar com o protótipo I4-A aprovado.
+- **Recursos/arquivos principais envolvidos:** pacote `UI_visuals/trofia-diary-timeline-calendar-add-sheet`, `add-screen.js`, componentes de sheet/ChoiceField/TemporalField, i18n e Playwright.
+- **O que foi feito:** proposta distribuída documentalmente em 10/10/2026; visual e Barcode ainda não aprovados.
+
+### [I4-C] - Pesquisa e bandeja de refeição
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** permitir composição cumulativa clara sem recriar o resultado nutricional.
+- **O que se planeja fazer:** implementar busca/filtros, seleção de itens e bandeja com totais, abrindo a revisão no `MealResultSheet` já entregue por CAM-RED-8.
+- **Recursos/arquivos principais envolvidos:** pacote `UI_visuals/trofia-diary-timeline-calendar-add-sheet`, `add-screen.js`, busca/salvos, `MealResultSheet`, i18n e testes.
+- **O que foi feito:** proposta distribuída documentalmente; nenhuma implementação iniciada.
 
 ### [I5] - Configurações em tela cheia
 
-- **Status:** concluído — **Chat:** Trofia-UIUX.
-- **Data de início:** 22/09/2026.
-- **Data de conclusão:** 25/09/2026.
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
 - **Propósito:** dar às preferências uma hierarquia própria e aproveitar melhor telas móveis e largas.
-- **O que se planeja fazer:** prototipar Configurações em tela cheia, coordenando a estrutura e os breakpoints com a fatia D7.
+- **O que se planeja fazer:** aguardar o novo desenho de Configurações e, quando ele for recebido, auditá-lo como reabertura `I5-R`, subdividindo a implementação conforme seus contratos e coordenando estrutura/breakpoints com D7.
 - **Recursos/arquivos principais envolvidos:** tela de Configurações, SelectionControls, GenericDialog, shell desktop, `one-ui.css` e Playwright.
+- **O que foi feito:** somente planejamento desta revisão. Em 11/10/2026, o responsável confirmou que o menu de Configurações ainda será redesenhado; ele saiu do caminho crítico das quatro abas e não será reaberto até existir novo pacote visual. Qualquer entrega histórica anterior permanece preservada e não será reclassificada pela futura I5-R.
 
-### [I6] - Hierarquia visual da tela inicial
+### [I6-A] - Cabeçalho, resumo e navegação do Diário
 
 - **Status:** em andamento — **Chat:** Trofia-UIUX.
 - **Data de início:** 25/09/2026.
 - **Data de conclusão:** não concluído.
-- **Propósito:** priorizar informações e ações da página inicial sem copiar a aparência dos aplicativos de referência.
-- **O que se planeja fazer:** reprojetar a organização da tela inicial com protótipo e aprovação específicos por ser a mudança mais subjetiva e ampla.
-- **Recursos/arquivos principais envolvidos:** Diário/home, cabeçalho, cards nutricionais, ações principais, estados vazios, `one-ui.css` e Playwright.
+- **Propósito:** estabelecer a hierarquia principal do Diário sem misturar eventos, histórico ou edição.
+- **O que se planeja fazer:** implementar título/data, Hoje contextual, avatar por iniciais abrindo Configurações, treino/descanso, resumo nutricional e encaixe da navegação/I4-A; desktop terá composição própria que preserva D2.
+- **Recursos/arquivos principais envolvidos:** `app-header-navigation.js`, perfil/Configurações, `diary-screen.js`, `one-ui.css`, i18n e Playwright.
+- **O que foi feito:** avatar por iniciais e direção visual foram aprovados; em 11/10/2026, os estados claro/escuro do Diário Timeline v2/V3 e seus contratos escritos foram auditados e esta fatia passou à primeira prioridade funcional após I4-A. Nenhum código da I6 foi iniciado.
+
+### [I6-B] - Timeline diária e água
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** representar o dia como sequência temporal legível de refeições e hidratação.
+- **O que se planeja fazer:** implementar água rápida/favorita/personalizada com Undo, timeline, Agora, estado vazio e slot da próxima refeição, cobrindo listas longas e estados vazio/parcial/preenchido.
+- **Recursos/arquivos principais envolvidos:** `diary-screen.js`, controller, água/entradas diárias, médias existentes, i18n, `one-ui.css` e testes.
+- **O que foi feito:** os estados de hoje, dia passado, água, timeline, doses e notas foram conferidos nos PNGs/READMEs em 11/10/2026; a fatia integra o núcleo prioritário do Diário, sem implementação iniciada.
+
+### [I6-C] - Histórico semanal, mensal e salto de período
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** navegar no histórico sem depender de busca linear por datas.
+- **O que se planeja fazer:** implementar faixa semanal, calendário mensal e seleção mês/ano com datas civis, limites de hoje/primeiro registro e loaders agregados/cacheados.
+- **Recursos/arquivos principais envolvidos:** `history-loaders.js`, `calendar-model.js`, date-utils, sheet, i18n e testes de navegação/agregação.
+- **O que foi feito:** calendário mensal, salto de mês/ano, limites e navegação direta foram conferidos no pacote e mantidos separados do shell/timeline em 11/10/2026; nenhuma implementação iniciada.
+
+### [I6-D] - Leitura nutricional e atalhos de IA
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** aprofundar a leitura do dia sem criar novo fluxo de IA ou fingir cobertura nutricional.
+- **O que se planeja fazer:** conectar atalhos aos fluxos existentes e criar sheet de macro/micronutrientes que mostre apenas dados disponíveis, metas reais e ressalva de cobertura.
+- **Recursos/arquivos principais envolvidos:** `diary-screen.js`, `daily-nutrition-model.js`, IA existente, sheet, i18n e testes.
+- **O que foi feito:** proposta distribuída documentalmente; nenhuma implementação iniciada.
+
+### [I6-E] - Doses de suplementos e notas temporizadas
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** registrar eventos complementares no momento correto sem esconder mudança de dados como ajuste visual.
+- **O que se planeja fazer:** após auditoria de persistência, adicionar ações rápidas, doses múltiplas e notas temporizadas com identidade, ordenação, Undo, offline e restauração; schema/rules/migração, se necessários, serão pré-requisito da frente Principal.
+- **Recursos/arquivos principais envolvidos:** suplementos, `daily-entry-model.js`, notas, Firestore/rules se aplicável, timeline, i18n e testes.
+- **O que foi feito:** proposta separada formalmente; a regra externa de migrar nota para última edição/21:00 não foi aprovada.
+
+### [I6-F] - Detalhe expansível de refeição
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** editar e compreender uma refeição no contexto da timeline sem duplicar contratos existentes.
+- **O que se planeja fazer:** permitir uma expansão por vez com ingredientes, porções, macros, estimativa/avaliação e ações de horário, categoria, salvar e excluir, reutilizando recálculo proporcional, sincronização, Undo e `GenericDialog`.
+- **Recursos/arquivos principais envolvidos:** `diary-screen.js`, `meal-estimate-editor.js`, `MealResultSheet`, `DIARY-MENU-A`, `PHOTO-03`, sync state, i18n e testes.
+- **O que foi feito:** proposta separada formalmente; nenhuma implementação iniciada.
 
 ### [I7] - Gamificação de metas
 
@@ -1415,8 +1488,119 @@
 - **Data de início:** não determinado.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** tornar progresso e consistência mais legíveis sem impor o contador a quem não o deseja.
-- **O que se planeja fazer:** adicionar contadores de meta ativos por padrão e preferência para desativá-los, sem coletar dados sensíveis novos.
-- **Recursos/arquivos principais envolvidos:** Diário/home, cálculo de metas existentes, Configurações, storage/Firestore já autorizado, i18n e testes.
+- **O que se planeja fazer:** adicionar contadores de meta ativos por padrão e preferência para desativá-los, sem coletar dados sensíveis novos; centralizar a classificação diária `meta atingida`/`parcial`/`sem registros`, pontos de status semanais/mensais, totais de consistência e mensagens derivadas de metas consumidas pela I6.
+- **Recursos/arquivos principais envolvidos:** `documentation/estado-atual/UI-VISUALS-FATIAMENTO.md`, Diário/home, calendário/histórico I6, `daily-nutrition-model.js`, cálculo de metas existentes, médias de 30 dias, Configurações, storage/Firestore já autorizado, i18n e testes.
+- **O que foi feito:** em 10/10/2026, os indicadores e agregações presentes nos dois pacotes `UI_visuals` foram atribuídos à I7 para impedir que regras de domínio fossem implementadas como simples detalhe visual da I6. Os pacotes não definem por completo o contador opcional originalmente planejado; protótipo e aprovação da I7 continuam pendentes.
+
+### [I8-A] - Shell, abas e categorias de Alimentos/Despensa
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** redesenhar a segunda aba principal como biblioteca navegável e coerente com o novo Diário.
+- **O que se planeja fazer:** implementar cabeçalho/contagens, busca visível, segmentos Alimentos/Refeições/Suplementos/Categorias, filtros, grade/lista de categorias, estados vazios e barra inferior compartilhada, com composição própria mobile/desktop.
+- **Recursos/arquivos principais envolvidos:** `UI_visuals/trofia-foods-tabs-categories`, `pantry-screen.js`, modelos de alimentos/refeições/suplementos, `one-ui.css`, i18n e testes legado/Vite.
+- **O que foi feito:** o pacote completo, seus 26 PNGs claro/escuro, FLOW e referências interativas foram auditados em 11/10/2026; nenhum código foi iniciado.
+
+### [I8-B] - Cartões, porções e ações da biblioteca
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** permitir compreender e agir sobre cada item sem duplicar editores ou contratos nutricionais.
+- **O que se planeja fazer:** implementar expansão única, stepper e recálculo de macros, favorito, editar, excluir/Undo, adicionar alimento/refeição e registrar dose, reutilizando os domínios atuais.
+- **Recursos/arquivos principais envolvidos:** `pantry-screen.js`, `saved-meal-card.js`, suplementos, `food-entry.js`, componentes NumericField/GenericDialog, sync state, i18n e testes.
+- **O que foi feito:** escopo separado durante a auditoria de 11/10/2026; nenhuma implementação iniciada.
+
+### [I8-C] - Busca unificada e base aberta
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** encontrar itens locais e externos rapidamente sem confundir busca da biblioteca com montagem de refeição.
+- **O que se planeja fazer:** combinar resultados locais imediatos com base aberta assíncrona/debounced, permitir salvar item externo e cobrir ausência/erro; Barcode e o redesenho de `+ Novo` permanecem fora até decisão específica.
+- **Recursos/arquivos principais envolvidos:** `pantry-screen.js`, busca/base aberta existente, persistência da biblioteca, `UI_visuals/trofia-foods-tabs-categories`, i18n e testes.
+- **O que foi feito:** escopo separado da I4-C em 11/10/2026; nenhuma implementação iniciada.
+
+### [I9-A] - Contrato semanal, banco calórico e resumo
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** redesenhar a terceira aba principal com uma leitura semanal objetiva e matematicamente explícita.
+- **O que se planeja fazer:** implementar janela móvel de sete dias, exclusão de hoje das médias/banco até o fim do dia, banco calórico, dias registrados e tiles de média/meta usando metas históricas por tipo de dia.
+- **Recursos/arquivos principais envolvidos:** `UI_visuals/trofia-week-overview`, `week-screen.js`, `week-aggregator.js`, `history-loaders.js`, `historical-goals-model.js`, água diária, i18n e testes.
+- **O que foi feito:** FLOW, 32 PNGs claro/escuro e referências interativas foram auditados em 11/10/2026; nenhum código foi iniciado.
+
+### [I9-B] - Gráficos configuráveis e detalhe do dia
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** tornar os dados semanais exploráveis sem criar navegação paralela ao Diário.
+- **O que se planeja fazer:** implementar seis gráficos em ordem fixa, seleção persistida, metas por dia, estado sem gráficos, hit areas acessíveis e sheet que abre/loga o dia selecionado diretamente no Diário.
+- **Recursos/arquivos principais envolvidos:** `week-screen.js`, Recharts, preferências do usuário, navegação `onOpenDay`, sheets, i18n e testes.
+- **O que foi feito:** escopo separado durante a auditoria de 11/10/2026; nenhuma implementação iniciada.
+
+### [I9-C] - Treino/descanso e médias de refeições
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** comparar os dois tipos de dia e mostrar padrões de refeição sem misturar IA à agregação determinística.
+- **O que se planeja fazer:** implementar médias treino/descanso e médias de refeições dos últimos 30 dias, preservando loaders/agregadores e movendo a exportação semanal para Configurações.
+- **Recursos/arquivos principais envolvidos:** `week-aggregator.js`, `historical-goals-model.js`, `history-loaders.js`, `settings-panel.js`, i18n e testes.
+- **O que foi feito:** escopo separado durante a auditoria de 11/10/2026; nenhuma implementação iniciada.
+
+### [I9-D] - Análise semanal consolidada
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** reunir feedback semanal e padrões de 30 dias numa leitura única sem criar endpoint novo.
+- **O que se planeja fazer:** executar os dois geradores existentes em paralelo, aceitar sucesso parcial, oferecer retry/refresh e salvar o resultado combinado nas notas pelo contrato vigente.
+- **Recursos/arquivos principais envolvidos:** `week-screen.js`, handlers existentes de feedback/padrões, `ai-client.js`, notas, i18n e testes de erro/sucesso parcial.
+- **O que foi feito:** escopo separado durante a auditoria de 11/10/2026; nenhuma implementação iniciada.
+
+### [I10-A] - Shell, jornada e estado atual de Métricas
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** estabelecer o núcleo visual da quarta aba principal preservando os contratos corporais já entregues.
+- **O que se planeja fazer:** implementar cabeçalho, segmentos Progresso/Metas, card Jornada, progresso do plano, previsão, CTA de pesagem, tiles Peso/IMC/TMB e estados de carregamento/primeiro uso, preservando hooks tutoriais e D4.
+- **Recursos/arquivos principais envolvidos:** `UI_visuals/trofia-metrics-journey`, `metrics-screen.js`, `body-metrics-model.js`, `goal-calculator.js`, `historical-goals-model.js`, navegação compartilhada, `one-ui.css`, i18n e testes.
+- **O que foi feito:** o pacote aprovado de Métricas, com 46 PNGs claro/escuro, FLOW e referência interativa, foi auditado em 11/10/2026; a antiga reserva genérica foi dividida em I10-A–D. Nenhum código foi iniciado.
+
+### [I10-B] - Gráficos, composição corporal e previsão
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** tornar evolução e composição legíveis sem substituir os modelos já validados.
+- **O que se planeja fazer:** implementar seleção/intervalo persistidos de gráficos, estados sem dados, composição corporal, meta de gordura, progresso/previsão e relatórios avançados pelos contratos atuais.
+- **Recursos/arquivos principais envolvidos:** `body-metrics-charts.js`, `body-metrics-model.js`, `weeklyProgress`, `weightTrend`, preferências do usuário, Recharts, D4, i18n e testes.
+- **O que foi feito:** escopo separado durante a auditoria do pacote em 11/10/2026; nenhuma implementação iniciada.
+
+### [I10-C] - Pesagens e histórico determinístico
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** registrar, editar e restaurar medições sem depender do formulário permanente atual.
+- **O que se planeja fazer:** implementar sheet de pesagem com Peso/Gordura/Cintura/Músculo, validação, data/substituição, histórico compacto, edição, exclusão, paginação, Undo e confirmação de persistência/restauração.
+- **Recursos/arquivos principais envolvidos:** `metrics-screen.js`, `saveWeight`, `saveWeightEdit`, `setWeightHistory`, NumericField, date picker, toasts, i18n e testes.
+- **O que foi feito:** escopo separado durante a auditoria do pacote em 11/10/2026; nenhuma implementação iniciada.
+
+### [I10-D] - Metas, perfil e objetivos nutricionais
+
+- **Status:** não iniciado — **Chat:** Trofia-UIUX.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** transformar os formulários sempre visíveis em edição contextual clara, sem alterar a matemática vigente.
+- **O que se planeja fazer:** implementar alvos diários treino/descanso, lista de perfil, ChoiceField/NumericField para atividade/objetivo/altura/composição/plano e objetivos nutricionais Auto/Personalizado com recálculo pelos callbacks existentes.
+- **Recursos/arquivos principais envolvidos:** `metrics-screen.js`, `saveNutritionPrefs`, `saveProfileHeight`, `updateBodyFatGoalTarget`, `saveBodyFatGoal`, `saveGoals`, `goal-calculator.js`, i18n e testes.
+- **O que foi feito:** escopo separado durante a auditoria do pacote em 11/10/2026; nenhuma implementação iniciada.
 
 ### [D1] - Shell desktop, cabeçalho e navegação
 

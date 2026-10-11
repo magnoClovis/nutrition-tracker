@@ -18,11 +18,12 @@ test.describe('authenticated ChoiceField visual contract', () => {
 
   async function openAddScreen(page) {
     await dismissTutorialIfVisible(page);
-    const addButton = page.locator(
-      '[data-diary-global-add]:visible [data-tutorial="open-log-sheet"]'
-    ).first();
+    const addButton = page.locator('[data-tutorial="open-log-sheet"]:visible').first();
     await expect(addButton).toBeVisible();
     await addButton.evaluate(button => button.click());
+    const createMenu = page.locator('[data-diary-create-menu]:visible');
+    await expect(createMenu).toBeVisible();
+    await createMenu.locator('[data-create-menu-option="manual"]').click();
     await expect(page.locator('[data-app-main="adicionar"]:visible')).toBeVisible();
   }
 

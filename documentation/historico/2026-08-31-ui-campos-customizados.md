@@ -1696,6 +1696,313 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
   Ao encerrar, a conta descartável foi desconectada, o tema voltou ao claro, o registro de água criado acidentalmente durante a navegação foi removido, o app foi encerrado e o launcher restaurado. DND voltou a desligado, sincronização permaneceu habilitada, rotação permaneceu travada em retrato, fonte voltou a 1,0, `stay_on_while_plugged_in` voltou a 0 e o timeout de tela voltou a 30 s. A tela de login foi confirmada antes do encerramento do app; nenhuma foto, credencial, token, UID ou dado nutricional foi registrado na documentação.
 - **Alinhamento:** 100%. A fotografia agora aparece no primeiro handoff possível enquanto a normalização segue em paralelo, com qualidade, lifecycle, dois frames e serialização anticrash preservados. A instrumentação cobre os deltas internos e a prova física confirma o ganho percebido de ponta a ponta; impacto final positivo.
 - **PRs/commits relacionados:** [PR #323](https://github.com/magnoClovis/nutrition-tracker/pull/323), commit funcional `ea69fd5`, commits documentais `e0f4bbd`, `8b4a677` e `5f501ba`, merge `9537a9d`; runs pesados `38065949566`, `38070844011` e `38132701835`; runs leves `38065949581`, `38070844067`, `38132535391` e `38132701832`; run `38132535355` substituído sem job; AAB interno v29. — **Chat-Origin:** Trofia-UIUX.
+### [I4-A] - Ação principal e menu de criação
+
+- **Status:** em andamento.
+- **Data de início:** 22/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; CI não iniciado.
+- **Propósito:** tornar a entrada de criação encontrável e alinhar a identidade instalada à marca usada no carregamento.
+- **O que se planeja fazer:** implementar a ação central e o menu aprovado com foto, descrição, montagem manual e refeição salva, preservando acessibilidade, Android Back e reduced motion; no mesmo PR/gate, trocar launcher e equivalentes web pela marca “T + folha”, com variantes adaptativa, redonda, legada e monocromática e safe zones verificadas.
+- **Recursos/arquivos principais envolvidos:** protótipo `i4-create-menu-prototype`, navegação/Diário, fluxo Adicionar, `app-header-navigation.js`, `one-ui.css`, `mipmap-*`, manifest/adaptive/round/monochrome icon, favicon/PWA/Apple Touch Icon, verificadores e Playwright.
+- **O que foi feito:** o protótipo e a direção “T + folha” foram aprovados em 10/10/2026; foto apenas encaminha ao CAM-RED existente. Em decisão posterior, o ícone foi fundido à I4-A como alteração pequena e a I4-D deixou de existir. O Diário mantém estado explícito do menu de criação, apresenta os quatro caminhos aprovados em popover desktop/folha inferior mobile e encaminha cada escolha aos contratos preexistentes de foto, descrição, montagem manual e refeição salva. Botão, backdrop, Escape e Android Back fecham o menu respeitando a hierarquia contextual; Tab/Shift+Tab ficam contidos, o foco retorna à ação de origem e reduced motion neutraliza transições. Os ícones de foto, montagem manual e refeição salva foram reconstruídos como SVGs determinísticos do protótipo, evitando glifos/emoji dependentes da plataforma. A identidade instalada usa uma fonte SVG “T + folha” e um gerador determinístico para os 19 assets Web/Apple Touch/Android legados, redondos e foregrounds, enquanto os adaptive icons usam foreground vetorial e variante monocromática dentro da safe zone. Helpers consumidores e a matriz cutover agora abrem o novo menu e selecionam explicitamente a montagem manual; o coordenador autenticado usa token GitHub quando disponível, preservando o bloqueio fail-closed diante de CI concorrente. Na base final integrada `74a988a4`, passaram 125/125 testes focados, preflight com 0 avisos, 1.556/1.556 unitários, smoke legado com 181 aprovados e 10 skips estruturais, smoke Vite 191/191, CSP do build Vite e cutover 60/60; o build transformou 848 módulos, a allowlist confirmou 14 arquivos e `:app:processDebugResources` compilou os recursos Android. Nenhum timeout, retry, `force:true`, runtime, Auth, Firestore ou estado da Play foi alterado.
+- **Alinhamento:** implementação e gate local integral concluídos; pendente apenas PR, CI e merge.
+- **PRs/commits relacionados:** nenhum; planejamento anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+
+### [I4-B] - Orquestração do sheet Adicionar
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** organizar destino, horário, repetição e entradas secundárias separadamente da ação principal.
+- **O que se planeja fazer:** validar e implementar chips de refeição/horário, repetição recente com Undo, entrada manual e retorno ao contexto de origem.
+- **Recursos/arquivos principais envolvidos:** pacote `UI_visuals/trofia-diary-timeline-calendar-add-sheet`, `add-screen.js`, ChoiceField/TemporalField, sheets, i18n e Playwright.
+- **O que foi feito:** a proposta foi separada formalmente em 10/10/2026. Barcode permanece pendente e não substitui a exclusão já aprovada na I4-A.
+- **Alinhamento:** pendente até aprovação visual, implementação e merge.
+- **PRs/commits relacionados:** nenhum. — **Chat-Origin:** Trofia-UIUX.
+
+### [I4-C] - Pesquisa e bandeja de refeição
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** compor vários itens pesquisados com totais legíveis sem duplicar o resultado nutricional.
+- **O que se planeja fazer:** implementar busca/filtros, seleção cumulativa e bandeja inferior, levando a revisão ao `MealResultSheet` existente.
+- **Recursos/arquivos principais envolvidos:** pacote `UI_visuals/trofia-diary-timeline-calendar-add-sheet`, `add-screen.js`, salvos/base, `MealResultSheet`, i18n e testes.
+- **O que foi feito:** a proposta foi separada formalmente; nenhuma implementação foi iniciada.
+- **Alinhamento:** pendente até aprovação visual, implementação e merge.
+- **PRs/commits relacionados:** nenhum. — **Chat-Origin:** Trofia-UIUX.
+
+### [I5] - Configurações em tela cheia
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** dar às preferências uma hierarquia própria e aproveitar melhor telas móveis e largas.
+- **O que se planeja fazer:** aguardar o novo desenho de Configurações e auditá-lo como reabertura `I5-R`, subdividindo a composição mobile/desktop em coordenação com D7 e preservando os controles/contratos atuais.
+- **Recursos/arquivos principais envolvidos:** futuro pacote I5-R, `settings-panel.js`, SelectionControls, GenericDialog, shell desktop, `one-ui.css`, i18n e Playwright.
+- **O que foi feito:** a conferência de 11/10/2026 encontrou apenas a tela de Configurações preexistente e o planejamento histórico da I5. Na mesma data, o responsável confirmou que o menu será redesenhado futuramente; por isso, Configurações saiu do caminho crítico das quatro abas e só será reaberta quando houver novo pacote. Entregas históricas anteriores não serão apagadas nem reclassificadas pela I5-R.
+- **Alinhamento:** pendente até protótipo, aprovação, implementação, validação e merge.
+- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+
+### [I6-A] - Cabeçalho, resumo e navegação do Diário
+
+- **Status:** em andamento.
+- **Data de início:** 25/09/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; implementação não iniciada.
+- **Propósito:** estabelecer a hierarquia principal do Diário sem misturar eventos, histórico ou edição.
+- **O que se planeja fazer:** implementar cabeçalho/data/Hoje, avatar por iniciais, treino/descanso, resumo e encaixe da navegação/I4-A, com desktop próprio que preserve D2.
+- **Recursos/arquivos principais envolvidos:** `app-header-navigation.js`, perfil/Configurações, `diary-screen.js`, `one-ui.css`, i18n e Playwright.
+- **O que foi feito:** avatar e direção visual foram aprovados. Em 11/10/2026 foram conferidos os estados claro/escuro do Diário Timeline v2 e da extensão Timeline v3, além dos READMEs e referências interativas; I6-A/I6-B tornaram-se o primeiro bloco funcional depois de I4-A na prioridade das quatro abas. Nenhum código da I6 foi iniciado.
+- **Alinhamento:** pendente até aprovação final, implementação e merge.
+- **PRs/commits relacionados:** nenhum. — **Chat-Origin:** Trofia-UIUX.
+
+### [I6-B] - Timeline diária e água
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** representar refeições e hidratação como sequência temporal legível.
+- **O que se planeja fazer:** implementar água rápida/favorita/personalizada com Undo, timeline, Agora, estado vazio e slot da próxima refeição.
+- **Recursos/arquivos principais envolvidos:** `diary-screen.js`, controller, água/entradas diárias, médias existentes, i18n, CSS e testes.
+- **O que foi feito:** os estados de hoje, dia passado, água, timeline, doses e notas foram conferidos nos PNGs/READMEs em 11/10/2026. A fatia permanece separada do histórico, dos nutrientes e da edição; nenhuma implementação iniciada.
+- **Alinhamento:** pendente até aprovação visual, implementação e merge.
+- **PRs/commits relacionados:** nenhum. — **Chat-Origin:** Trofia-UIUX.
+
+### [I6-C] - Histórico semanal, mensal e salto de período
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** navegar no histórico sem busca linear por datas.
+- **O que se planeja fazer:** implementar faixa semanal, calendário mensal e mês/ano com datas civis, limites reais e agregações cacheadas.
+- **Recursos/arquivos principais envolvidos:** `history-loaders.js`, `calendar-model.js`, date-utils, sheet, i18n e testes.
+- **O que foi feito:** calendário mensal, salto de mês/ano, limites e navegação direta foram conferidos no pacote em 11/10/2026 e mantidos separados do shell/timeline para não misturar layout e agregação histórica. Nenhuma implementação iniciada.
+- **Alinhamento:** pendente até aprovação visual, implementação e merge.
+- **PRs/commits relacionados:** nenhum. — **Chat-Origin:** Trofia-UIUX.
+
+### [I6-D] - Leitura nutricional e atalhos de IA
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** aprofundar a leitura do dia sem criar novo fluxo de IA nem fingir cobertura nutricional.
+- **O que se planeja fazer:** ligar atalhos à IA existente e criar sheet de macro/micronutrientes com dados disponíveis e ressalva de cobertura.
+- **Recursos/arquivos principais envolvidos:** `diary-screen.js`, `daily-nutrition-model.js`, IA existente, sheets, i18n e testes.
+- **O que foi feito:** proposta separada formalmente; nenhuma implementação iniciada.
+- **Alinhamento:** pendente até aprovação visual, implementação e merge.
+- **PRs/commits relacionados:** nenhum. — **Chat-Origin:** Trofia-UIUX.
+
+### [I6-E] - Doses de suplementos e notas temporizadas
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** registrar eventos complementares sem esconder mudança de dados como ajuste visual.
+- **O que se planeja fazer:** após auditoria de persistência, adicionar doses múltiplas e notas temporizadas com ordenação, Undo, offline e restauração; schema/rules/migração são pré-requisito separado se necessários.
+- **Recursos/arquivos principais envolvidos:** suplementos, `daily-entry-model.js`, notas, Firestore/rules se aplicável, timeline, i18n e testes.
+- **O que foi feito:** proposta separada formalmente. A migração externa para última edição/21:00 não foi aprovada.
+- **Alinhamento:** pendente até auditoria de dados, aprovação, implementação e merge.
+- **PRs/commits relacionados:** nenhum. — **Chat-Origin:** Trofia-UIUX.
+
+### [I6-F] - Detalhe expansível de refeição
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** editar e compreender a refeição na timeline sem duplicar contratos existentes.
+- **O que se planeja fazer:** permitir uma expansão por vez com itens, porções, macros, estimativa/avaliação e ações, reutilizando recálculo, sincronização, Undo e `GenericDialog`.
+- **Recursos/arquivos principais envolvidos:** `diary-screen.js`, `meal-estimate-editor.js`, `MealResultSheet`, `DIARY-MENU-A`, `PHOTO-03`, sync state, i18n e testes.
+- **O que foi feito:** proposta separada formalmente; nenhuma implementação iniciada.
+- **Alinhamento:** pendente até aprovação visual, implementação e merge.
+- **PRs/commits relacionados:** nenhum. — **Chat-Origin:** Trofia-UIUX.
+
+### [I7] - Gamificação de metas e consistência
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** tornar progresso e consistência legíveis sem misturar regras de domínio ao redesenho visual do Diário e sem impor a gamificação ao usuário.
+- **O que se planeja fazer:** centralizar classificação diária de meta atingida/parcial/sem registros, indicadores semanais e mensais, totais de consistência, mensagens baseadas em metas e a preferência do contador originalmente planejado; expor o resultado para consumo visual pela I6.
+- **Recursos/arquivos principais envolvidos:** `documentation/estado-atual/UI-VISUALS-FATIAMENTO.md`, `daily-nutrition-model.js`, metas e médias históricas, Diário/calendário I6, Configurações, storage/Firestore já autorizado, i18n e testes.
+- **O que foi feito:** a revisão de 10/10/2026 atribuiu à I7 os pontos de status, totais mensais e mensagens derivadas presentes nos pacotes externos. O material não define completamente o contador opcional nem sua preferência; portanto não substitui protótipo e aprovação específicos. Nenhuma regra, persistência ou UI foi implementada.
+- **Alinhamento:** pendente até protótipo, implementação, validação e merge.
+- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+
+### [I8-A] - Shell, abas e categorias de Alimentos/Despensa
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** redesenhar a segunda aba principal como biblioteca navegável e coerente com o novo Diário.
+- **O que se planeja fazer:** implementar cabeçalho/contagens, busca visível, segmentos Alimentos/Refeições/Suplementos/Categorias, filtros, grade/lista de categorias, estados vazios e barra inferior compartilhada, com composição própria mobile/desktop.
+- **Recursos/arquivos principais envolvidos:** `UI_visuals/trofia-foods-tabs-categories`, `pantry-screen.js`, modelos de alimentos/refeições/suplementos, `one-ui.css`, i18n e testes legado/Vite.
+- **O que foi feito:** em 11/10/2026 foram auditados o FLOW, a referência interativa e os 26 PNGs claro/escuro do pacote. O pacote foi dividido em shell/categorias, cartões/ações e busca/base para evitar que navegação, mutações e rede sejam alteradas no mesmo PR. Nenhum código foi iniciado.
+- **Alinhamento:** pendente até implementação, validação e merge.
+- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+
+### [I8-B] - Cartões, porções e ações da biblioteca
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** permitir compreender e agir sobre cada item sem duplicar editores ou contratos nutricionais.
+- **O que se planeja fazer:** implementar expansão única, stepper e recálculo de macros, favorito, editar, excluir/Undo, adicionar alimento/refeição e registrar dose, reutilizando os domínios atuais.
+- **Recursos/arquivos principais envolvidos:** `pantry-screen.js`, `saved-meal-card.js`, suplementos, `food-entry.js`, NumericField, GenericDialog, sync state, i18n e testes.
+- **O que foi feito:** os estados recolhido/expandido de alimentos, refeições salvas, suplementos e item da base foram conferidos em claro/escuro. O desenho externo não autoriza schema novo nem substituição dos editores existentes. Nenhuma implementação foi iniciada.
+- **Alinhamento:** pendente até implementação, validação e merge.
+- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+
+### [I8-C] - Busca unificada e base aberta
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** encontrar itens locais e externos rapidamente sem confundir busca da biblioteca com montagem de refeição.
+- **O que se planeja fazer:** combinar resultados locais imediatos com base aberta assíncrona/debounced, permitir salvar item externo e cobrir ausência/erro; Barcode e o redesenho de `+ Novo` permanecem fora até decisão específica.
+- **Recursos/arquivos principais envolvidos:** `pantry-screen.js`, busca/base aberta existente, persistência da biblioteca, `UI_visuals/trofia-foods-tabs-categories`, i18n e testes.
+- **O que foi feito:** a busca permanente da aba foi separada da I4-C, que monta uma refeição dentro do sheet Adicionar. Foram conferidos resultados locais/base, expansão de resultado externo e ausência de resultados nos dois temas. Nenhuma implementação foi iniciada.
+- **Alinhamento:** pendente até implementação, validação e merge.
+- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+
+### [I9-A] - Contrato semanal, banco calórico e resumo
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** redesenhar a terceira aba principal com uma leitura semanal objetiva e matematicamente explícita.
+- **O que se planeja fazer:** implementar janela móvel dos últimos sete dias, excluir hoje de médias/banco até o encerramento civil, calcular banco calórico, dias registrados e tiles de média/meta com metas históricas treino/descanso.
+- **Recursos/arquivos principais envolvidos:** `UI_visuals/trofia-week-overview`, `week-screen.js`, `week-aggregator.js`, `history-loaders.js`, `historical-goals-model.js`, água diária, i18n e testes.
+- **O que foi feito:** em 11/10/2026 foram auditados o FLOW, as referências e os 32 PNGs claro/escuro da Semana. O contrato separa deterministamente dias passados de hoje e documenta os estados sem dados; nenhum código foi iniciado.
+- **Alinhamento:** pendente até implementação, validação e merge.
+- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+
+### [I9-B] - Gráficos configuráveis e detalhe do dia
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** tornar os dados semanais exploráveis sem criar navegação paralela ao Diário.
+- **O que se planeja fazer:** implementar seis gráficos em ordem fixa, seleção persistida, metas por dia, estado sem gráficos, hit areas acessíveis e sheet que abre/loga o dia diretamente no Diário.
+- **Recursos/arquivos principais envolvidos:** `week-screen.js`, Recharts, preferências do usuário, `onOpenDay`, sheets, i18n e testes.
+- **O que foi feito:** foram conferidos os estados com dois/quatro/zero gráficos e os sheets de seleção, dia registrado, hoje e dia vazio. A referência usa toast como substituto visual, mas produção deve navegar realmente ao Diário. Nenhuma implementação foi iniciada.
+- **Alinhamento:** pendente até implementação, validação e merge.
+- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+
+### [I9-C] - Treino/descanso e médias de refeições
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** comparar tipos de dia e mostrar padrões de refeição sem misturar IA à agregação determinística.
+- **O que se planeja fazer:** implementar médias treino/descanso e médias de refeições dos últimos 30 dias, preservando loaders/agregadores e movendo exportação semanal para Configurações.
+- **Recursos/arquivos principais envolvidos:** `week-aggregator.js`, `historical-goals-model.js`, `history-loaders.js`, `settings-panel.js`, i18n e testes.
+- **O que foi feito:** a composição e as fórmulas foram separadas do shell, dos gráficos e da IA. Nenhuma implementação foi iniciada.
+- **Alinhamento:** pendente até implementação, validação e merge.
+- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+
+### [I9-D] - Análise semanal consolidada
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** reunir feedback semanal e padrões de 30 dias numa leitura única sem criar endpoint novo.
+- **O que se planeja fazer:** executar os dois geradores existentes em paralelo, aceitar sucesso parcial, oferecer retry/refresh e salvar o resultado combinado nas notas pelo contrato vigente.
+- **Recursos/arquivos principais envolvidos:** `week-screen.js`, handlers existentes de feedback/padrões, `ai-client.js`, notas, i18n e testes de erro/sucesso parcial.
+- **O que foi feito:** foram conferidos os estados ocioso, carregando, resultado e salvo nos dois temas. A nota temporizada depende de I6-E; até lá, esta fatia deve usar o salvamento atual. Nenhuma implementação foi iniciada.
+- **Alinhamento:** pendente até implementação, validação e merge.
+- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+
+### [I10-A] - Shell, jornada e estado atual de Métricas
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** estabelecer o núcleo visual da quarta aba principal preservando os contratos corporais já entregues.
+- **O que se planeja fazer:** implementar cabeçalho, segmentos Progresso/Metas, card Jornada, progresso do plano, previsão, CTA de pesagem, tiles Peso/IMC/TMB e estados de carregamento/primeiro uso, preservando hooks tutoriais e D4.
+- **Recursos/arquivos principais envolvidos:** `UI_visuals/trofia-metrics-journey`, `metrics-screen.js`, `body-metrics-model.js`, `goal-calculator.js`, `historical-goals-model.js`, navegação compartilhada, `one-ui.css`, i18n e testes.
+- **O que foi feito:** em 11/10/2026 foram auditados o FLOW, a referência interativa e 46 PNGs claro/escuro. A reserva genérica anterior foi substituída por I10-A–D; nenhum código foi iniciado.
+- **Alinhamento:** pendente até implementação, validação e merge.
+- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+
+### [I10-B] - Gráficos, composição corporal e previsão
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** tornar evolução e composição legíveis sem substituir os modelos já validados.
+- **O que se planeja fazer:** implementar seleção/intervalo persistidos de gráficos, estados sem dados, composição corporal, meta de gordura, progresso/previsão e relatórios avançados pelos contratos atuais.
+- **Recursos/arquivos principais envolvidos:** `body-metrics-charts.js`, `body-metrics-model.js`, `weeklyProgress`, `weightTrend`, preferências do usuário, Recharts, D4, i18n e testes.
+- **O que foi feito:** os estados 02–05 e 13–16 do pacote foram atribuídos a esta fatia; nenhuma implementação foi iniciada.
+- **Alinhamento:** pendente até implementação, validação e merge.
+- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+
+### [I10-C] - Pesagens e histórico determinístico
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** registrar, editar e restaurar medições sem depender do formulário permanente atual.
+- **O que se planeja fazer:** implementar sheet de pesagem com Peso/Gordura/Cintura/Músculo, validação, data/substituição, histórico compacto, edição, exclusão, paginação, Undo e confirmação de persistência/restauração.
+- **Recursos/arquivos principais envolvidos:** `metrics-screen.js`, `saveWeight`, `saveWeightEdit`, `setWeightHistory`, NumericField, date picker, toasts, i18n e testes.
+- **O que foi feito:** os estados 06–12 do pacote foram atribuídos a esta fatia; nenhuma implementação foi iniciada.
+- **Alinhamento:** pendente até implementação, validação e merge.
+- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+
+### [I10-D] - Metas, perfil e objetivos nutricionais
+
+- **Status:** não iniciado.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** transformar os formulários sempre visíveis em edição contextual clara, sem alterar a matemática vigente.
+- **O que se planeja fazer:** implementar alvos diários treino/descanso, lista de perfil, ChoiceField/NumericField para atividade/objetivo/altura/composição/plano e objetivos nutricionais Auto/Personalizado com recálculo pelos callbacks existentes.
+- **Recursos/arquivos principais envolvidos:** `metrics-screen.js`, `saveNutritionPrefs`, `saveProfileHeight`, `updateBodyFatGoalTarget`, `saveBodyFatGoal`, `saveGoals`, `goal-calculator.js`, i18n e testes.
+- **O que foi feito:** os estados 18–24 do pacote foram atribuídos a esta fatia; nenhuma implementação foi iniciada.
+- **Alinhamento:** pendente até implementação, validação e merge.
+- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
