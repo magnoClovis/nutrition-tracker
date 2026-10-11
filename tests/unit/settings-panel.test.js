@@ -83,6 +83,9 @@ function createFixture(createSettingsPanel, {
   lang = "en",
   darkMode = false,
   themePreference = darkMode ? "dark" : "light",
+  remindersAvailable = false,
+  reminderPreferences = null,
+  reminderStatus = 'disabled',
   signOut,
   registerBackHandler,
   callbacks = {}
@@ -105,6 +108,10 @@ function createFixture(createSettingsPanel, {
     lang,
     darkMode,
     themePreference,
+    remindersAvailable,
+    reminderPreferences,
+    reminderStatus,
+    onReminderPreferencesChange: callbacks.onReminderPreferencesChange,
     toggleLang: callbacks.toggleLang || (() => {}),
     toggleDark: callbacks.toggleDark || (() => {}),
     onThemePreferenceChange: callbacks.onThemePreferenceChange,
@@ -140,6 +147,26 @@ contractTest("renders the localized three-option theme control", createSettingsP
       assert.equal(text.includes(expected), true, `${entry.lang} should include ${expected}: ${text}`);
     }
   }
+});
+
+contractTest('keeps local reminders unavailable on web and delegates explicit Android choices', createSettingsPanel => {
+  const calls = [];
+  const web = createFixture(createSettingsPanel, {lang:'en'}).harness.render();
+  const webButton = findButton(web, 'Enable local reminders');
+  assert.equal(webButton.props.disabled, true);
+  assert.match(elementText(web), /Available only in the Android app/);
+
+  const prefs = {enabled:false,water:true,daily:false,activeStart:'09:00',activeEnd:'20:00'};
+  const fixture = createFixture(createSettingsPanel, {
+    lang:'en',
+    remindersAvailable:true,
+    reminderPreferences:prefs,
+    callbacks:{onReminderPreferencesChange:next=>calls.push(next)},
+  });
+  const tree = fixture.harness.render();
+  findButton(tree, 'Enable local reminders').props.onClick();
+  assert.deepEqual(calls[0], {...prefs,enabled:true});
+  assert.equal(elementsByType(tree, 'input').every(input => input.props.disabled), true);
 });
 
 contractTest("delegates language and enumerated theme changes", createSettingsPanel => {

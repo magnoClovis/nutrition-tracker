@@ -379,7 +379,7 @@
 ### Indispensável antes do lançamento público
 
 - **C14:** revisão geral de segurança — em andamento; decisões de escopo aprovadas em 01/09/2026 e execução sequencial autorizada a partir da C14-B.
-- **C26-A/B:** C26-A (toast seguro) não iniciada; C26-B iniciou somente Tarefa 0 em 11/10/2026, sem implementação de lembretes. Ambas permanecem no pré-lançamento; C26-C push/backend segue pós-lançamento.
+- **C26-A/B:** C26-A (toast seguro) não iniciada; C26-B teve auditoria mesclada e implementação Android iniciada em 11/10/2026, ainda sem validação física ou entrega. Ambas permanecem no pré-lançamento; C26-C push/backend segue pós-lançamento.
 - **C30:** assinaturas, cobranças e direitos de acesso — não iniciado; depende de C14 e antecede a documentação e o gate finais.
 - **C16:** documentação técnica e de manutenção — parcial; deve fechar depois de C14, C26-A/B e C30.
 - **C25:** gate da versão pública — parcial e dependente de C14, C26-A/B, C30 e C16.
@@ -440,13 +440,13 @@
 
 ### [C26-B] - Lembretes locais
 
-- **Status:** em andamento somente na Tarefa 0; implementação não iniciada — **Chat:** Trofia-Principal.
+- **Status:** em andamento — Tarefa 0 mesclada; implementação Android em validação — **Chat:** Trofia-Principal.
 - **Data de início:** 11/10/2026 (auditoria).
 - **Data de conclusão:** não concluído.
 - **Propósito:** oferecer lembretes úteis de água e acompanhamento diário com o app fechado antes do lançamento público.
-- **O que se planeja fazer:** implementar consentimento, preferências, janela ativa/silenciosa, agendamento local contextual, cancelamento/reagendamento e navegação ao tocar.
+- **O que se planeja fazer:** em sequência, implementar (1) modelo puro de horários/déficit, (2) adaptador Android/manifesto sem alarme exato, (3) coordenação por conta, hidratação e ciclo de vida, (4) preferências PT/EN/ES e navegação ao toque, (5) testes locais/CI e prova física no Android distribuído; sem web push/backend.
 - **Recursos/arquivos principais envolvidos:** `@capacitor/local-notifications`, metas e registros locais, idioma/fuso, preferências, Android, Data Safety e testes físicos.
-- **O que foi feito:** Tarefa 0 auditou Capacitor 8/Android 36, ausência do plugin/permissão/agendador, fontes de água e ciclo de vida, limites de dados obsoletos com o app fechado e decisões de consentimento/horários; contrato e gates propostos em [`C26_B_LEMBRETES_LOCAIS_AUDITORIA.md`](C26_B_LEMBRETES_LOCAIS_AUDITORIA.md). Nenhum código, permissão ou deploy foi alterado.
+- **O que foi feito:** Tarefa 0 mesclada no PR #328. O PR técnico draft #329 contém modelo, plugin nativo, permissão contextual e preferências; suíte local, cutover 60/60, APK debug e CI autenticado do SHA funcional passaram (1.547 unitários, Worker 44, Functions 74, legado 177+10 skips estruturais, Vite 187, CSP). Os manifestos debug/release não exigem alarme exato. Revisão e prova física com AAB pendem; nenhuma versão foi publicada. Contrato e limites em [`C26_B_LEMBRETES_LOCAIS_AUDITORIA.md`](C26_B_LEMBRETES_LOCAIS_AUDITORIA.md).
 
 ### [C26-C] - Push e backend de notificações
 

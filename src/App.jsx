@@ -68,6 +68,7 @@ import * as PantrySuggestionsAI from './composite/pantry-suggestions-ai.js';
 import * as ProfileValidation from './composite/profile-validation.js';
 import * as WeekAggregator from './composite/week-aggregator.js';
 import { androidAppRuntime } from './composite/android-app-runtime.js';
+import { localReminderRuntime, readLocalReminderPreferences, saveLocalReminderPreferences } from './composite/local-reminders-runtime.js';
 import {
   androidSystemBarsRuntime,
   observeSystemBarsTheme,
@@ -84,6 +85,7 @@ import {
   REPORTS_ENABLED,
   REPORT_SERVER_URL,
   fbCheckEmailVerified,
+  fbGetUid,
   fbIsLoggedIn,
   fbSignOut,
   fbToken,
@@ -877,6 +879,12 @@ export function App() {
   const [showVisualUpdateNotice, setShowVisualUpdateNotice] = React.useState(false);
   const [themePreference, setThemePreference] = React.useState(readPreferredThemePreference);
   const [darkMode, setDarkMode] = React.useState(() => resolveThemePreference(themePreference, themeServices().matchMedia) === 'dark');
+  const [reminderConfig, setReminderConfig] = React.useState(null);
+  const [reminderWaterState, setReminderWaterState] = React.useState(null);
+  const [reminderStatus, setReminderStatus] = React.useState('disabled');
+  const [reminderRevision, setReminderRevision] = React.useState(0);
+  const [reminderDestination, setReminderDestination] = React.useState(null);
+  const reminderAccountId = authed && fbIsLoggedIn() ? fbGetUid() : null;
   const releaseAudienceRef = React.useRef(null);
   const profileCompletionAllowedRef = React.useRef(false);
   const backDispatcherRef = React.useRef(null);
@@ -914,6 +922,67 @@ export function App() {
       void removeListener();
     };
   }, []);
+
+  React.useEffect(() => {
+    setReminderWaterState(null);
+    setReminderConfig(reminderAccountId
+      ? {uid: reminderAccountId, preferences: readLocalReminderPreferences(localStorage, reminderAccountId)}
+      : null);
+  }, [reminderAccountId]);
+
+  React.useEffect(() => {
+    // Do not erase a returning user's pending reminders before Auth finishes
+    // restoring the persisted session. A real signed-out state is handled below.
+    if (checking || profileChecking || (authed && !reminderAccountId)) return undefined;
+    let active = true;
+    localReminderRuntime.reconcile({
+      uid: requiredProfile || profileLoadError ? null : reminderAccountId,
+      preferences: reminderConfig?.uid === reminderAccountId ? reminderConfig.preferences : null,
+      waterState: reminderWaterState,
+      language: lang,
+    }).then(result => {
+      if (active) setReminderStatus(result.status);
+    }).catch(() => {
+      if (active) setReminderStatus('error');
+    });
+    return () => { active = false; };
+  }, [checking, profileChecking, authed, requiredProfile, profileLoadError, reminderAccountId, reminderConfig, reminderWaterState, lang, reminderRevision]);
+
+  React.useEffect(() => {
+    let disposed = false;
+    let removeState = () => {};
+    let removeAction = () => {};
+    androidAppRuntime.addAppStateListener(({isActive}) => {
+      if (isActive) setReminderRevision(value => value + 1);
+    }).then(remove => {
+      if (disposed) void remove(); else removeState = remove;
+    }).catch(() => {});
+    localReminderRuntime.addActionListener(kind => setReminderDestination({kind, at: Date.now()}))
+      .then(remove => {
+        if (disposed) void remove(); else removeAction = remove;
+      }).catch(() => {});
+    return () => {
+      disposed = true;
+      void removeState();
+      void removeAction();
+    };
+  }, []);
+
+  async function changeReminderPreferences(next) {
+    if (!reminderAccountId || !localReminderRuntime.isAvailable()) return;
+    try {
+      if (next.enabled && !reminderConfig?.preferences.enabled) {
+        if (!await localReminderRuntime.requestPermission()) {
+          setReminderStatus('permission-denied');
+          return;
+        }
+      }
+      const preferences = saveLocalReminderPreferences(localStorage, reminderAccountId, next);
+      setReminderConfig({uid: reminderAccountId, preferences});
+    } catch (_) {
+      setReminderStatus('error');
+    }
+  }
 
   React.useEffect(() => {
     const media = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -975,6 +1044,7 @@ export function App() {
 
   async function handleLogout() {
     try {
+      await localReminderRuntime.clearOwned().catch(() => {});
       await Promise.resolve(fbSignOut());
     } catch (_) {
       // The explicit logout remains fail-safe: always expose the login screen.
@@ -986,6 +1056,7 @@ export function App() {
   async function requestReauthenticationAfterSessionExpired() {
     let signOutFailed = false;
     try {
+      await localReminderRuntime.clearOwned().catch(() => {});
       await Promise.resolve(fbSignOut());
     } catch (_) {
       signOutFailed = true;
@@ -1284,6 +1355,9 @@ export function App() {
         ) : null}
         {!requiredProfile && !profileLoadError && (
           <NutritionTracker
+            onReminderWaterState={setReminderWaterState}
+            reminderDestination={reminderDestination}
+            onReminderDestinationConsumed={() => setReminderDestination(null)}
             onOpenSettings={() => setShowSettings(true)}
             onLogout={handleLogout}
             onRequestReauthenticationAfterSessionExpired={requestReauthenticationAfterSessionExpired}
@@ -1359,6 +1433,10 @@ export function App() {
         ) : null}
         {showSettings ? (
           <SettingsPanel
+            reminderPreferences={reminderConfig?.uid === reminderAccountId ? reminderConfig.preferences : null}
+            reminderStatus={reminderStatus}
+            remindersAvailable={localReminderRuntime.isAvailable()}
+            onReminderPreferencesChange={changeReminderPreferences}
             onClose={() => setShowSettings(false)}
             onLogout={handleLogout}
             onOpenBackup={() => setShowBackup(true)}
