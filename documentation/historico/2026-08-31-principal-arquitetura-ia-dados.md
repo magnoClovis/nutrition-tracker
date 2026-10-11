@@ -844,15 +844,17 @@ O usuário autorizou em seguida esse plano revisado de identidade de runtime sep
 
 ### [C26-B] - Lembretes locais
 
-- **Status:** não iniciado.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento apenas na Tarefa 0; implementação não iniciada.
+- **Data de início:** 11/10/2026 (auditoria).
+- **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
 - **Minutos de CI:** 0 min; não iniciado.
 - **Propósito:** incluir no produto público lembretes externos úteis mesmo com o app fechado, sem introduzir servidor ou push remoto nesta etapa.
 - **O que se planeja fazer:** usar `@capacitor/local-notifications` com consentimento e preferências, período ativo e janela silenciosa, lembrete de água proporcional ao déficit/tempo restante, mensagens de início/meio/fim do dia, cancelamento/reagendamento diante de mudança de registro, meta, idioma ou fuso e deep link para a área correta.
 - **Recursos/arquivos principais envolvidos:** `@capacitor/local-notifications`, estado local/offline-first de água e metas, preferências, relógio/fuso, i18n PT/EN/ES, Android, permissões, Data Safety e matriz física.
-- **PRs/commits relacionados:** planejamento aprovado em 25/09/2026; implementação ainda não iniciada. — **Chat:** Trofia-Principal.
+- **O que foi feito:** auditoria sobre `origin/main` `8b46ead` confirmou Capacitor/Android `8.4.2`, targetSdk 36, inexistência de `@capacitor/local-notifications`, permissão de notificação, canal e agendador; mapeou `waterGoal`, `waterIntake` por data civil, hidratação, `appStateChange`, logout e configurações. A documentação oficial Android exige permissão de notificação nas versões aplicáveis e recomenda solicitá-la em contexto; como o app fechado não lê alterações em outro dispositivo, o contrato deve impedir texto de progresso obsoleto. Foram propostos modelo puro, adaptador, reconciliação, UI e prova física, sem iniciar código. Decisões de horários, frequência, textos, persistência e destino do toque estão em `C26_B_LEMBRETES_LOCAIS_AUDITORIA.md`.
+- **Alinhamento:** Tarefa 0 documental em validação; a C26-B funcional não foi entregue.
+- **PRs/commits relacionados:** planejamento aprovado em 25/09/2026; PR da Tarefa 0 pendente; implementação ainda não iniciada. — **Chat:** Trofia-Principal.
 
 ### [C26-C] - Push e backend de notificações
 
