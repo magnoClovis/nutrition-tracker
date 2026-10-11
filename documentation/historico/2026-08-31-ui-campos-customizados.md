@@ -1669,11 +1669,11 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 ### [CAM-RED-9] - Robustez, acessibilidade e estados extremos
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 10/10/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 54 min 58 s — 24 s leves e 54 min 34 s pesados.
+- **Data de conclusão:** 11/10/2026.
+- **Tempo decorrido:** 19 h 58 min 21 s, do primeiro commit funcional `ea69fd5` ao merge `9537a9d`.
+- **Minutos de CI:** 2 h 33 min 53 s — 1 min 33 s leves e 2 h 32 min 20 s pesados.
 - **Propósito:** preservar os contratos de câmera e nutrição já entregues enquanto se mede e reduz a latência perceptível da captura e se revalidam acessibilidade, localização, lifecycle e estados extremos.
 - **O que se planeja fazer:** instrumentar de forma sanitizada a cadeia toque → captura nativa → pré-processamento → primeira pintura → `stop()` → análise; provar os tempos no Galaxy pela Play; corrigir somente atrasos comprovadamente evitáveis sem enfraquecer a serialização anticrash; e executar a matriz de permissão, galeria, TalkBack, foco, 200%, contraste, alvos, PT/EN/ES, movimento reduzido, lifecycle, descarte e resultados extremos.
 - **Recursos/arquivos principais envolvidos:** `image-meal-flow.js`, `image-meal-screen.js`, `meal-image-capture.js`, `src/composite/embedded-camera-preview.js`, Camera Preview/Capacitor, trace temporizado, CSS, Playwright legado/Vite, ADB e Galaxy físico.
@@ -1687,13 +1687,15 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
   O CI autenticado real do commit funcional `ea69fd5` repetiu o contrato integralmente verde. O run pesado `38065949566` durou 54 min 34 s; o preflight documental `38065949581`, 24 s; total de 54 min 58 s. O Playwright remoto confirmou 177 aprovados + 10 skips estruturais esperados no legado e 187/187 no Vite.
 
+  Os HEADs documentais também executaram validações reais e entram no total exigido pelo padrão. Em `e0f4bbd`, o run pesado `38070844011` consumiu 53 min 45 s e o leve `38070844067`, 24 s. Em `8b4a677`, o leve `38132535391` consumiu 23 s; o pesado `38132535355` foi substituído antes de criar job e soma 0 s, sem fabricar minutos. No HEAD final `5f501ba`, o pesado `38132701835` consumiu 44 min 01 s e o leve `38132701832`, 22 s. Assim, todos os jobs efetivamente iniciados somam 2 h 33 min 53 s: 1 min 33 s leves e 2 h 32 min 20 s pesados.
+
   O AAB release `trofia-0.11.0-beta-v29-cam-red-9.aab`, `versionCode 29` e `versionName 0.11.0-beta`, foi gerado no HEAD documental `e0f4bbd`, validado com assinatura release, `google-services.json` real e verificações fail-closed, e publicou SHA-256 `3E036BBF2713B9C9F039160902A7324549FBD9242D21E8883E808DB2FFF5475A`. A Play confirmou a versão 29 na faixa interna e a atualização foi instalada no Galaxy `SM-S938B`, Android 17, pelo instalador oficial.
 
   A sessão física preservou primeiro o estado do aparelho e usou conta descartável. Foram feitas três capturas no tema claro e três no escuro, sempre sem registrar refeição. A foto congelada permaneceu contínua na análise, a câmera nativa foi liberada depois da pintura e o resultado sobreviveu ao envio do app para background e ao retorno. Cancelamento e indisponibilidade do serviço mantiveram a fotografia e ofereceram recuperação; contraste, alvos de toque, tema, localização, estado sem identificação e resultado preenchido foram exercitados em conjunto com a matriz automatizada de PT/EN/ES, TalkBack/semântica, foco, permissão, galeria, fonte a 200% e movimento reduzido. A captura temporizada por quadros delimitou de forma conservadora o comportamento percebido: “Mantenha firme” estava visível em 1,256 s após o toque e a tela de análise com a própria fotografia já estava visível em 2,099 s. A build release não expõe o trace interno no log do aparelho; por isso os tempos por fronteira permanecem comprovados nos testes determinísticos, sem inventar uma decomposição física que a evidência não fornece. Ao alterar fisicamente a fonte Android para 200%, o sistema recriou o app na tela inicial e expôs uma sobreposição preexistente nos rótulos da navegação inferior; o defeito é transversal de layout, não ocorre no componente de câmera validado pelos recortes a 200% e foi preservado para a fatia de layout responsável, sem ser mascarado dentro deste PR.
 
   Ao encerrar, a conta descartável foi desconectada, o tema voltou ao claro, o registro de água criado acidentalmente durante a navegação foi removido, o app foi encerrado e o launcher restaurado. DND voltou a desligado, sincronização permaneceu habilitada, rotação permaneceu travada em retrato, fonte voltou a 1,0, `stay_on_while_plugged_in` voltou a 0 e o timeout de tela voltou a 30 s. A tela de login foi confirmada antes do encerramento do app; nenhuma foto, credencial, token, UID ou dado nutricional foi registrado na documentação.
 - **Alinhamento:** 100%. A fotografia agora aparece no primeiro handoff possível enquanto a normalização segue em paralelo, com qualidade, lifecycle, dois frames e serialização anticrash preservados. A instrumentação cobre os deltas internos e a prova física confirma o ganho percebido de ponta a ponta; impacto final positivo.
-- **PRs/commits relacionados:** [PR #323](https://github.com/magnoClovis/nutrition-tracker/pull/323), commit funcional `ea69fd5`, commit documental pré-merge `e0f4bbd`, runs `38065949566` (pesado) e `38065949581` (leve), AAB interno v29. — **Chat-Origin:** Trofia-UIUX.
+- **PRs/commits relacionados:** [PR #323](https://github.com/magnoClovis/nutrition-tracker/pull/323), commit funcional `ea69fd5`, commits documentais `e0f4bbd`, `8b4a677` e `5f501ba`, merge `9537a9d`; runs pesados `38065949566`, `38070844011` e `38132701835`; runs leves `38065949581`, `38070844067`, `38132535391` e `38132701832`; run `38132535355` substituído sem job; AAB interno v29. — **Chat-Origin:** Trofia-UIUX.
 
 ## Roadmap de UI/UX e auditoria de inspiração concorrente
 
