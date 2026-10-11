@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "target": "staging",
+  "firebase": {
+    "projectId": "trofia-staging",
+    "projectNumber": "31822846339",
+    "webAppId": "",
+    "webApiKey": "",
+    "authDomain": ""
+  },
+  "appCheck": {
+    "webSiteKey": ""
+  },
+  "hosting": {
+    "origin": ""
+  },
+  "worker": {
+    "name": "",
+    "origin": ""
+  },
+  "callable": {
+    "url": ""
+  },
+  "android": {
+    "applicationId": "",
+    "firebaseAppId": ""
+  },
+  "functions": {
+    "requestServiceAccount": "",
+    "processorServiceAccount": "",
+    "reconcilerServiceAccount": "",
+    "schedulerServiceAccount": "",
+    "taskQueueId": "",
+    "schedulerJobId": ""
+  }
+}
