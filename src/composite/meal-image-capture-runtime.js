@@ -5,7 +5,10 @@ import {
   EncodingType,
   MediaTypeSelection,
 } from '@capacitor/camera';
-import { createMealImageCapture } from './meal-image-capture.js';
+import {
+  createMealImageCapture,
+  MealImageCaptureError,
+} from './meal-image-capture.js';
 
 function loadHtmlImage(blob) {
   return new Promise((resolve, reject) => {
@@ -76,3 +79,4 @@ const captureService = createMealImageCapture({
 export const captureMealImageFromCamera = captureService.captureFromCamera;
 export const chooseMealImageFromGallery = captureService.chooseFromGallery;
 export const preprocessMealImage = captureService.preprocess;
+export { MealImageCaptureError };

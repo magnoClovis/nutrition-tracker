@@ -86,6 +86,7 @@ function createFixture(module, overrides = {}) {
     analysisTimeoutMs: overrides.analysisTimeoutMs,
     setTimer: overrides.setTimer,
     clearTimer: overrides.clearTimer,
+    now: overrides.now,
   });
   return { flow, photos, reviews, confirmations, aborts, embeddedCalls, photo, ClientError };
 }
@@ -162,6 +163,7 @@ contractTest('keeps the native camera alive until the frozen photo paint is conf
   assert.deepEqual(trace, [
     'native-capture-start',
     'native-capture-resolved',
+    'preview-prepared',
     'preprocess-resolved',
     'frozen-state-emitted',
   ]);
@@ -172,6 +174,7 @@ contractTest('keeps the native camera alive until the frozen photo paint is conf
   assert.deepEqual(trace, [
     'native-capture-start',
     'native-capture-resolved',
+    'preview-prepared',
     'preprocess-resolved',
     'frozen-state-emitted',
     'paint-confirmed',
@@ -179,6 +182,87 @@ contractTest('keeps the native camera alive until the frozen photo paint is conf
     'native-stop-resolved',
     'photo-state-emitted',
   ]);
+});
+
+contractTest('records sanitized monotonic durations for every camera handoff boundary', async module => {
+  const ticks = [100, 350, 355, 430, 435, 500, 501, 620, 621];
+  const callbacks = [];
+  const fixture = createFixture(module, {
+    now: () => ticks.shift(),
+    onCameraHandoffTrace: (stage, timing) => callbacks.push({ stage, timing }),
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() {},
+      async capture() { return 'timed'; },
+      async stop() {},
+    },
+  });
+
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  await fixture.flow.captureEmbeddedCamera();
+  await fixture.flow.confirmEmbeddedPhotoPainted();
+
+  assert.deepEqual(fixture.flow.getCameraHandoffTrace(), [
+    { stage: 'native-capture-start', elapsedMs: 0, deltaMs: 0 },
+    { stage: 'native-capture-resolved', elapsedMs: 250, deltaMs: 250 },
+    { stage: 'preview-prepared', elapsedMs: 255, deltaMs: 5 },
+    { stage: 'preprocess-resolved', elapsedMs: 330, deltaMs: 75 },
+    { stage: 'frozen-state-emitted', elapsedMs: 335, deltaMs: 5 },
+    { stage: 'paint-confirmed', elapsedMs: 400, deltaMs: 65 },
+    { stage: 'native-stop-start', elapsedMs: 401, deltaMs: 1 },
+    { stage: 'native-stop-resolved', elapsedMs: 520, deltaMs: 119 },
+    { stage: 'photo-state-emitted', elapsedMs: 521, deltaMs: 1 },
+  ]);
+  assert.deepEqual(
+    callbacks.map(({ stage, timing }) => ({ stage, ...timing })),
+    fixture.flow.getCameraHandoffTrace().map(entry => ({ stage: entry.stage, ...entry })),
+  );
+  const exported = fixture.flow.getCameraHandoffTrace();
+  exported[0].elapsedMs = 999;
+  assert.equal(fixture.flow.getCameraHandoffTrace()[0].elapsedMs, 0);
+});
+
+contractTest('freezes the native preview before background preprocessing completes', async module => {
+  const preprocessing = deferred();
+  const trace = [];
+  const immediatePhoto = {
+    previewUrl: 'blob:raw-native-capture',
+    disposed: false,
+    whenProcessed: () => preprocessing.promise,
+    async toRequestImage() {
+      const processed = await preprocessing.promise;
+      return processed.toRequestImage();
+    },
+    dispose() { this.disposed = true; },
+  };
+  const fixture = createFixture(module, {
+    preprocessEmbeddedCapture: () => immediatePhoto,
+    onCameraHandoffTrace: stage => trace.push(stage),
+    embeddedCameraPreview: {
+      isSupported: () => true,
+      async start() {},
+      async capture() { return 'raw-native-capture'; },
+      async stop() {},
+    },
+  });
+
+  await fixture.flow.captureFromCamera();
+  await fixture.flow.startEmbeddedCamera({});
+  const frozen = await fixture.flow.captureEmbeddedCamera();
+
+  assert.equal(frozen.phase, 'camera-frozen');
+  assert.equal(frozen.photo.previewUrl, 'blob:raw-native-capture');
+  assert.deepEqual(trace, [
+    'native-capture-start',
+    'native-capture-resolved',
+    'preview-prepared',
+    'frozen-state-emitted',
+  ]);
+
+  preprocessing.resolve(fixture.photo('normalized-native-capture'));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(trace.includes('preprocess-resolved'), true);
 });
 
 contractTest('starts honest analysis only after the frozen frame painted and native stop resolved', async module => {

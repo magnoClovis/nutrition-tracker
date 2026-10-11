@@ -23,6 +23,17 @@
   const DEFAULT_FROZEN_PHOTO_PAINT_TIMEOUT_MS = 2500;
   const DEFAULT_ANALYSIS_TIMEOUT_MS = 45000;
 
+  function defaultMonotonicNow() {
+    if (typeof performance !== "undefined" && typeof performance.now === "function") {
+      return performance.now();
+    }
+    return Date.now();
+  }
+
+  function roundedDuration(value) {
+    return Math.round(Math.max(0, value) * 10) / 10;
+  }
+
   function initialState() {
     return {
       phase: "empty",
@@ -80,7 +91,8 @@
     frozenPhotoPaintTimeoutMs = DEFAULT_FROZEN_PHOTO_PAINT_TIMEOUT_MS,
     analysisTimeoutMs = DEFAULT_ANALYSIS_TIMEOUT_MS,
     setTimer = setTimeout,
-    clearTimer = clearTimeout
+    clearTimer = clearTimeout,
+    now = defaultMonotonicNow
   }) {
     if (typeof captureFromCamera !== "function" || typeof chooseFromGallery !== "function" ||
         typeof analyzeImageMeal !== "function" || typeof normalizeMealEstimate !== "function" ||
@@ -97,15 +109,41 @@
     let frozenPhotoPaintTimer = null;
     let analysisTimer = null;
     let frozenPhotoStopPending = false;
+    let cameraHandoffStartedAt = null;
+    let cameraHandoffPreviousAt = null;
+    let cameraHandoffEntries = [];
     const listeners = new Set();
 
     function traceCameraHandoff(stage) {
-      if (typeof onCameraHandoffTrace !== "function") return;
+      const instant = Number(now());
+      if (stage === "native-capture-start" || cameraHandoffStartedAt === null) {
+        cameraHandoffStartedAt = instant;
+        cameraHandoffPreviousAt = instant;
+        cameraHandoffEntries = [];
+      }
+      const entry = Object.freeze({
+        stage,
+        elapsedMs: Number.isFinite(instant) && Number.isFinite(cameraHandoffStartedAt)
+          ? roundedDuration(instant - cameraHandoffStartedAt)
+          : null,
+        deltaMs: Number.isFinite(instant) && Number.isFinite(cameraHandoffPreviousAt)
+          ? roundedDuration(instant - cameraHandoffPreviousAt)
+          : null
+      });
+      cameraHandoffPreviousAt = instant;
+      cameraHandoffEntries.push(entry);
+      if (cameraHandoffEntries.length > 32) cameraHandoffEntries.shift();
+      if (typeof onCameraHandoffTrace !== "function") return entry;
       try {
-        onCameraHandoffTrace(stage);
+        onCameraHandoffTrace(stage, entry);
       } catch (_) {
         // Diagnostics must never influence the camera state machine.
       }
+      return entry;
+    }
+
+    function getCameraHandoffTrace() {
+      return cameraHandoffEntries.map(entry => ({ ...entry }));
     }
 
     function snapshot() {
@@ -259,7 +297,19 @@
           await embeddedCameraPreview.setFlashMode("off").catch(() => {});
         }
         const photo = await preprocessEmbeddedCapture(base64);
-        traceCameraHandoff("preprocess-resolved");
+        traceCameraHandoff("preview-prepared");
+        if (photo && typeof photo.whenProcessed === "function") {
+          Promise.resolve(photo.whenProcessed()).then(
+            () => {
+              if (currentOperation === operationId) traceCameraHandoff("preprocess-resolved");
+            },
+            () => {
+              if (currentOperation === operationId) traceCameraHandoff("preprocess-failed");
+            }
+          );
+        } else {
+          traceCameraHandoff("preprocess-resolved");
+        }
         if (currentOperation !== operationId) {
           disposePhoto(photo);
           return snapshot();
@@ -540,6 +590,7 @@
       captureEmbeddedCamera,
       toggleEmbeddedCameraFlash,
       traceCameraHandoff,
+      getCameraHandoffTrace,
       confirmEmbeddedPhotoPainted,
       rejectEmbeddedPhotoPaint,
       cancelEmbeddedCamera,
