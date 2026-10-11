@@ -44,8 +44,8 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
   const source = NutritionTracker.toString();
 
   assert.equal((source.match(/\buseState\s*\(/g) || []).length, 158);
-  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 42);
-  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 29);
+  assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 44);
+  assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 31);
 });
 
 contractTest("routes browser dialog decisions through the injected generic service", createNutritionTrackerController => {
@@ -67,6 +67,15 @@ contractTest("cuts aggregate daily autosaves only when granular persistence is a
   assert.match(source, /dailyEntryPersistence\.persist\("supplement", TODAY, suppLog\)/);
   assert.match(source, /if \(dailyEntryPersistence\.granular\)[\s\S]*?else \{[\s\S]*?scheduleSave\("log_v2_"/);
   assert.match(source, /dailyEntryPersistence\.persist\("meal", viewDate, nextLog\)/);
+});
+
+contractTest('publishes reminder water snapshots only after hydration or successful persistence', createNutritionTrackerController => {
+  const {NutritionTracker} = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+  assert.match(source, /waterReminderHydratedRef\.current = false/);
+  assert.match(source, /waterReminderHydratedRef\.current = loadedResults\[6\]\.ok && loadedResults\[8\]\.ok/);
+  assert.match(source, /dailyEntryPersistence\.persist\("water", TODAY, waterIntake\)\s*\.then\(/);
+  assert.match(source, /onReminderWaterState\(reminderWaterSnapshotRef\.current\)/);
 });
 
 contractTest("routes historical screens and reports through grouped cache-first loaders", createNutritionTrackerController => {
@@ -911,7 +920,9 @@ contractTest("keeps every render-scoped factory argument and current-render clos
         "setTimer: (callback, delay) => setTimeout(callback, delay)",
         "clearTimer: handle => clearTimeout(handle)",
         "timersByKey: saveTimeout.current",
-        "onPersisted: key => hydratedStorageKeysRef.current.add(key)"
+        "onPersisted: key => {",
+        "hydratedStorageKeysRef.current.add(key)",
+        "onReminderWaterState(reminderWaterSnapshotRef.current)"
       ]
     }
   ];

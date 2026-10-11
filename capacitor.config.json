@@ -1,5 +1,11 @@
 {
   "appId": "com.hermegas.trofia",
   "appName": "Trofia",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_trofia_reminder",
+      "iconColor": "#FFFFFF"
+    }
+  }
 }

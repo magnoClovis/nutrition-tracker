@@ -838,17 +838,18 @@ O usuário autorizou em seguida esse plano revisado de identidade de runtime sep
 
 ### [C26-B] - Lembretes locais
 
-- **Status:** em andamento apenas na Tarefa 0; implementação não iniciada.
+- **Status:** em andamento; auditoria mesclada e implementação Android em validação.
 - **Data de início:** 11/10/2026 (auditoria).
 - **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
 - **Minutos de CI:** 0 min; não iniciado.
 - **Propósito:** incluir no produto público lembretes externos úteis mesmo com o app fechado, sem introduzir servidor ou push remoto nesta etapa.
-- **O que se planeja fazer:** usar `@capacitor/local-notifications` com consentimento e preferências, período ativo e janela silenciosa, lembrete de água proporcional ao déficit/tempo restante, mensagens de início/meio/fim do dia, cancelamento/reagendamento diante de mudança de registro, meta, idioma ou fuso e deep link para a área correta.
+- **O que se planeja fazer:** entregar sequencialmente modelo puro, adaptador Android sem alarmes exatos, coordenador por conta/dispositivo e dados hidratados, preferências PT/EN/ES com navegação ao toque, testes de regressão/CI e prova física em Android; sem backend/push da C26-C.
 - **Recursos/arquivos principais envolvidos:** `@capacitor/local-notifications`, estado local/offline-first de água e metas, preferências, relógio/fuso, i18n PT/EN/ES, Android, permissões, Data Safety e matriz física.
 - **O que foi feito:** auditoria sobre `origin/main` `8b46ead` confirmou Capacitor/Android `8.4.2`, targetSdk 36, inexistência de `@capacitor/local-notifications`, permissão de notificação, canal e agendador; mapeou `waterGoal`, `waterIntake` por data civil, hidratação, `appStateChange`, logout e configurações. A documentação oficial Android exige permissão de notificação nas versões aplicáveis e recomenda solicitá-la em contexto; como o app fechado não lê alterações em outro dispositivo, o contrato deve impedir texto de progresso obsoleto. Foram propostos modelo puro, adaptador, reconciliação, UI e prova física, sem iniciar código. Decisões de horários, frequência, textos, persistência e destino do toque estão em `C26_B_LEMBRETES_LOCAIS_AUDITORIA.md`.
-- **Alinhamento:** Tarefa 0 documental em validação; a C26-B funcional não foi entregue.
-- **PRs/commits relacionados:** planejamento aprovado em 25/09/2026; PR da Tarefa 0 pendente; implementação ainda não iniciada. — **Chat:** Trofia-Principal.
+- **Evolução após a auditoria:** o PR documental #328, primeiro commit `41a981d`, foi mesclado em `e17c5e7` em 11/10/2026 15:38:24 UTC. Tempo do primeiro commit ao merge: 7 min 59 s; CI: 26 s (26 s leve + 0 s pesado), preflight 38151576799 verde. Com autorização posterior, foi iniciado candidato separado: `@capacitor/local-notifications` 8.3.1, modelo com até dois lembretes de água somente do dia atual confirmado e check-ins genéricos de hoje/amanhã, reconciliação idempotente e limitada aos IDs próprios, opt-in/permissão explícitos, preferências por conta/dispositivo, janela editável por presets, PT/EN/ES e abertura do diário. O `npm test` terminou com código 0: preflight sem avisos, 1.547/1.547 unitários, smokes locais legado/Vite verdes com skips autenticados esperados por credenciais ausentes, check CSP e cutover 60/60. Após `cap copy android`, o APK debug compilou; manifestos debug e release mesclados contêm `POST_NOTIFICATIONS` e não contêm `SCHEDULE_EXACT_ALARM`. CI autenticado, revisão do PR e prova física ainda são gates, sem publicação.
+- **Alinhamento:** Tarefa 0 documental entregue; C26-B funcional não concluída, com validação e revisão pendentes.
+- **PRs/commits relacionados:** planejamento aprovado em 25/09/2026; Tarefa 0 PR #328 (`41a981d` → `e17c5e7`), run 38151576799; PR funcional ainda não aberto. — **Chat:** Trofia-Principal.
 
 ### [C26-C] - Push e backend de notificações
 

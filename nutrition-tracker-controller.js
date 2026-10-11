@@ -836,6 +836,9 @@
     function NutritionTracker({
       onOpenSettings,
       onLogout,
+      onReminderWaterState,
+      reminderDestination,
+      onReminderDestinationConsumed,
       onRequestReauthenticationAfterSessionExpired,
       onStartTutorial,
       onOpenPrivacy,
@@ -1292,6 +1295,7 @@
       const [profileData, setProfileData] = useState({ birthDate: "", gender: "", height: "" });
       const [goalHistory, setGoalHistory] = useState({});
       const hydratedStorageKeysRef = useRef(new Set());
+      const waterReminderHydratedRef = useRef(false);
       const [metricsProgressOpen, setMetricsProgressOpen] = useState(false);
       const [metricsProgressInfoOpen, setMetricsProgressInfoOpen] = useState(false);
       const [bodyCompositionOpen, setBodyCompositionOpen] = useState(false);
@@ -1353,6 +1357,8 @@
       const [waterInput, setWaterInput] = useState("");
       const [waterGoal, setWaterGoal] = useState(2500);
       const [waterGoalInput, setWaterGoalInput] = useState("");
+      const reminderWaterSnapshotRef = useRef(null);
+      reminderWaterSnapshotRef.current = {date: TODAY, goal: waterGoal, intake: waterIntake};
       const [editWaterGoal, setEditWaterGoal] = useState(false);
       const [waterCustomPreset, setWaterCustomPreset] = useState(null);
       const [waterExpanded, setWaterExpanded] = useState(false);
@@ -1402,7 +1408,13 @@
         setTimer: (callback, delay) => setTimeout(callback, delay),
         clearTimer: handle => clearTimeout(handle),
         timersByKey: saveTimeout.current,
-        onPersisted: key => hydratedStorageKeysRef.current.add(key)
+        onPersisted: key => {
+          hydratedStorageKeysRef.current.add(key);
+          if (waterReminderHydratedRef.current && typeof onReminderWaterState === 'function' &&
+              (key === 'waterGoal' || key === 'waterIntake_' + reminderWaterSnapshotRef.current.date)) {
+            onReminderWaterState(reminderWaterSnapshotRef.current);
+          }
+        }
       });
       window._accountDeletionAutosaves = Object.freeze({
         suspend: suspendAutosaves,
@@ -1423,6 +1435,7 @@
         }
       }, [tab]);
       async function loadAll() {
+        waterReminderHydratedRef.current = false;
         if (root?.document?.documentElement?.dataset?.bootstrapPhase === "profile-ready") {
           root.document.documentElement.dataset.bootstrapPhase = "daily-hydration";
         }
@@ -1462,7 +1475,10 @@
             "bodyFatGoal",
             "userName"
           ];
-          const loadedValues = await Promise.all(loadKeys.map(key => storage.get(key).catch(() => null)));
+          const loadedResults = await Promise.all(loadKeys.map(key =>
+            storage.get(key).then(value => ({value, ok: true}), () => ({value: null, ok: false}))
+          ));
+          const loadedValues = loadedResults.map(result => result.value);
           loadedValues.forEach((value, index) => {
             if (value) hydratedStorageKeysRef.current.add(loadKeys[index]);
           });
@@ -1505,6 +1521,7 @@
             dailyEntryPersistence.seed("water", TODAY, dailyState.waterIntake);
             dailyEntryPersistence.seed("supplement", TODAY, dailyState.supplementLog);
           }
+          waterReminderHydratedRef.current = loadedResults[6].ok && loadedResults[8].ok;
         } catch (_) {}
         clearTimeout(_loadTimeout);
         if (root?.document?.documentElement?.dataset?.bootstrapPhase === "daily-hydration") {
@@ -1542,6 +1559,7 @@
           windowObject: window,
           documentObject: document,
           onDayChange: async (nextDate, previousDate) => {
+            waterReminderHydratedRef.current = false;
             setSyncing(true);
             setLoaded(false);
             try {
@@ -1575,6 +1593,7 @@
                     ? {...current, date: nextDate}
                     : current);
                   setToday(nextDate);
+                  waterReminderHydratedRef.current = true;
                 }
               });
             } finally {
@@ -1643,12 +1662,22 @@
         if (loaded && canPersistHydratedKey("waterGoal", waterGoal, hydratedStorageKeysRef.current)) scheduleSave("waterGoal", waterGoal);
       }, [waterGoal, loaded]);
       useEffect(() => {
+        if (loaded && waterReminderHydratedRef.current && typeof onReminderWaterState === 'function') {
+          onReminderWaterState(reminderWaterSnapshotRef.current);
+        }
+      }, [loaded, TODAY, onReminderWaterState]);
+      useEffect(() => {
         if (loaded && waterCustomPreset) scheduleSave("waterCustomPreset", waterCustomPreset);
       }, [waterCustomPreset, loaded]);
       useEffect(() => {
         if (!loaded) return;
         if (dailyEntryPersistence.granular) {
-          dailyEntryPersistence.persist("water", TODAY, waterIntake).catch(() => {});
+          dailyEntryPersistence.persist("water", TODAY, waterIntake)
+            .then(() => {
+              if (waterReminderHydratedRef.current && typeof onReminderWaterState === 'function') {
+                onReminderWaterState(reminderWaterSnapshotRef.current);
+              }
+            }).catch(() => {});
         } else {
           scheduleSave("waterIntake_" + TODAY, waterIntake);
         }
@@ -1687,6 +1716,12 @@
           }
         }
       }
+      useEffect(() => {
+        if (!loaded || !reminderDestination || typeof onReminderDestinationConsumed !== 'function') return;
+        openTab('diario', {skipTutorial: true});
+        void changeViewDate(TODAY);
+        onReminderDestinationConsumed();
+      }, [loaded, reminderDestination, TODAY, onReminderDestinationConsumed]);
       // Calculates the goal snapshot for one date and one explicit day type.
       // This is used both for read-only historical views and for intentional
       // retroactive edits, such as changing a past day from training to rest.
