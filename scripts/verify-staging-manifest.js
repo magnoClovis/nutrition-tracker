@@ -139,7 +139,7 @@ function verifyStagingManifest(projectRoot) {
     throw new Error('Staging manifest check failed:\n- manifest: missing or invalid JSON');
   }
   const productionConfig = fs.readFileSync(path.join(projectRoot, 'firebase-config-internal.js'), 'utf8');
-  const productionWebApiKey = productionConfig.match(/const FB_KEY = "([A-Za-z0-9_-]+)";/)?.[1];
+  const productionWebApiKey = productionConfig.match(/const PRODUCTION_WEB_KEY = "([A-Za-z0-9_-]+)";/)?.[1];
   const findings = inspectStagingManifest(manifest, { productionWebApiKey });
   if (!productionWebApiKey) findings.push('firebase.webApiKey: production comparison unavailable');
   if (findings.length) {

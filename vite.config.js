@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,6 +19,9 @@ const deploymentTarget = process.env.TROFIA_DEPLOY_TARGET === undefined
   ? 'production'
   : process.env.TROFIA_DEPLOY_TARGET.trim();
 verifyDeploymentTarget(deploymentTarget, projectRoot);
+const stagingFirebase = deploymentTarget === 'staging'
+  ? JSON.parse(readFileSync(resolve(projectRoot, 'config/staging-environment.json'), 'utf8')).firebase
+  : null;
 
 const baselineRuntimeFiles = [];
 
@@ -94,6 +98,10 @@ function verifyBuiltCsp() {
 
 export default defineConfig({
   base: './',
+  define: {
+    __TROFIA_DEPLOY_TARGET__: JSON.stringify(deploymentTarget),
+    __TROFIA_FIREBASE_CONFIG__: JSON.stringify(stagingFirebase),
+  },
   // ORG-PREP: public/ currently contains only its repository README. Static
   // assets remain copied explicitly until ORG-2 migrates their publishing contract.
   publicDir: false,
