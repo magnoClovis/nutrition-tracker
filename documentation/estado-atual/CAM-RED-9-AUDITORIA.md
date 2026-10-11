@@ -2,12 +2,13 @@
 
 ## Estado
 
-- **Status:** em andamento.
+- **Status:** implementação e provas concluídas; aguardando aprovação explícita e merge.
 - **Início comprovado:** 10/10/2026.
 - **Branch isolada:** `codex/cam-red-9-audit`.
 - **Base inicial:** `4da8452b50acb1590a38ecc22cd77d78885f3f1a` (`origin/main`).
 - **Implementação comportamental:** iniciada localmente; a captura bruta passa a congelar a tela antes do pré-processamento, que continua em paralelo sem reduzir qualidade ou antecipar o `stop()`.
 - **CI:** 54 min 58 s — 24 s leves e 54 min 34 s pesados. O gate local integral e o CI remoto do commit funcional estão verdes.
+- **Prova física:** Play interna v29 validada no Galaxy SM-S938B em 11/10/2026, com três capturas em claro e três em escuro, sem registro de refeição.
 
 ## Objetivo
 
@@ -43,7 +44,7 @@ Essa ordem protege contra quadro preto e contra o encerramento prematuro da câm
 - O invólucro transitório revoga a URL bruta e descarta também a fotografia processada em cancelamento, substituição ou destruição.
 - O trace ganhou a fronteira `preview-prepared` e registra `preprocess-resolved` ou `preprocess-failed` sem armazenar imagem ou conteúdo.
 
-## Próximas etapas obrigatórias
+## Etapas obrigatórias e resultado
 
 1. Tornar o trace temporizado e sanitizado, sem foto, base64, token, UID, conteúdo alimentar ou telemetria remota. **Concluído localmente:** duração total e delta por fronteira, mantidos em memória e encaminhados ao logger já existente.
 2. Cobrir por testes a ordem e os deltas, garantindo que o diagnóstico não altera a máquina de estados.
@@ -56,6 +57,17 @@ Essa ordem protege contra quadro preto e contra o encerramento prematuro da câm
    - `stop()` → análise visível.
 5. Comparar a nova primeira pintura com o build Play v28 e confirmar que a separação do pré-processamento removeu a espera evitável. Não reduzir resolução/qualidade, remover frames, antecipar `stop()`, paralelizar lifecycle ou enfraquecer timeouts.
 6. Executar a matriz de acessibilidade e extremos já aprovada e, ao final, gate integral, CI autenticado e prova física antes de encaminhar a CAM-RED-10.
+
+Todos os itens foram cumpridos. A decomposição interna por fronteira é comprovada pelos testes determinísticos do trace sanitizado. A build release não expõe esse trace no log do aparelho, portanto a sessão física registrou o envelope observável sem fabricar números: o quadro “Mantenha firme” ainda estava visível em 1,256 s e a análise com a fotografia já estava visível em 2,099 s após o toque. Essa janela confirma que a foto acompanha o handoff para análise sem aguardar a resposta da IA.
+
+## Prova física Play v29
+
+- A Play Store instalou `versionCode 29`, `versionName 0.11.0-beta`, pelo pacote `com.hermegas.trofia`; o instalador reportado foi `com.android.vending`.
+- O AAB `trofia-0.11.0-beta-v29-cam-red-9.aab` foi produzido no HEAD `e0f4bbd6c913121a4d9e6b5af8f04c575984f79e`, com SHA-256 `3E036BBF2713B9C9F039160902A7324549FBD9242D21E8883E808DB2FFF5475A`, assinatura release, configuração Firebase real e gates fail-closed.
+- Três capturas em claro e três em escuro mantiveram a fotografia contínua desde o fim da captura até a análise; nenhuma refeição foi registrada.
+- O cliente nativo foi liberado depois da pintura. Background/retorno preservou o resultado ainda não registrado, e cancelamento/serviço indisponível preservaram a foto e apresentaram recuperação.
+- A matriz física cobriu tema, contraste, alvos, fonte a 200%, lifecycle, cancelamento, limpeza e estados não identificável/preenchido; a matriz automatizada já verde complementa permissão, galeria, PT/EN/ES, TalkBack/semântica, foco e movimento reduzido.
+- O estado do Galaxy foi restaurado ao final: conta descartável desconectada, login claro, DND desligado, sincronização habilitada, rotação retrato, fonte 1,0, `stay_on_while_plugged_in=0`, timeout de tela de 30 s, app encerrado e launcher em primeiro plano.
 
 ## Validação local da instrumentação
 
