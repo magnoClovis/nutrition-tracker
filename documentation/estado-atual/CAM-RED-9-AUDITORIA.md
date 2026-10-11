@@ -2,13 +2,14 @@
 
 ## Estado
 
-- **Status:** implementação e provas concluídas; aguardando aprovação explícita e merge.
+- **Status:** concluída e mesclada no PR #323.
 - **Início comprovado:** 10/10/2026.
 - **Branch isolada:** `codex/cam-red-9-audit`.
 - **Base inicial:** `4da8452b50acb1590a38ecc22cd77d78885f3f1a` (`origin/main`).
 - **Implementação comportamental:** iniciada localmente; a captura bruta passa a congelar a tela antes do pré-processamento, que continua em paralelo sem reduzir qualidade ou antecipar o `stop()`.
-- **CI:** 54 min 58 s — 24 s leves e 54 min 34 s pesados. O gate local integral e o CI remoto do commit funcional estão verdes.
+- **CI:** 2 h 33 min 53 s — 1 min 33 s leves e 2 h 32 min 20 s pesados, somando todos os jobs efetivamente iniciados no PR. O gate local integral e os três ciclos remotos concluídos estão verdes; o run substituído `38132535355` não criou job e soma 0 s.
 - **Prova física:** Play interna v29 validada no Galaxy SM-S938B em 11/10/2026, com três capturas em claro e três em escuro, sem registro de refeição.
+- **Merge:** `9537a9d0b22ea1bd1e6a5f3f40d56025f6735f03`, em 11/10/2026; tempo decorrido de 19 h 58 min 21 s desde o primeiro commit funcional.
 
 ## Objetivo
 
@@ -78,6 +79,7 @@ Todos os itens foram cumpridos. A decomposição interna por fronteira é compro
 - Nenhum timeout, resolução, qualidade, retry ou expectativa de comportamento foi alterado.
 - O gate local integral válido passou com preflight em 0 avisos, 1.533/1.533 unitários, smoke legado em 177 aprovados + 10 skips estruturais, smoke Vite em 187/187, CSP browser verde e cutover em 60/60.
 - O CI autenticado real do commit funcional `ea69fd5` também passou integralmente: run pesado `38065949566` em 54 min 34 s e preflight documental `38065949581` em 24 s, totalizando 54 min 58 s. O Playwright remoto repetiu 177 aprovados + 10 skips estruturais no legado e 187/187 no Vite; os skips continuam sendo exclusivamente os contratos estruturais previstos.
+- Os ciclos posteriores também ficaram verdes e foram contabilizados: `38070844011`/`38070844067` em 53 min 45 s/24 s, `38132535391` em 23 s e `38132701835`/`38132701832` em 44 min 01 s/22 s. O run `38132535355` foi substituído antes de criar job e adiciona 0 s. O total real do PR é 2 h 33 min 53 s.
 - A preparação inicial sem `worker/node_modules` não foi contada como gate funcional. A dependência foi instalada exatamente pelo lockfile; `package.json` e `package-lock.json` permaneceram intactos.
 - Uma queda isolada de sessão no NumericField Vite não se repetiu na autenticação/recorte exato nem no gate integral válido. Nenhum timeout, retry ou expectativa foi alterado por hipótese.
 
