@@ -52,6 +52,7 @@ test('rejects the checked-in incomplete manifest without printing field values',
   assert.throws(() => verifyStagingManifest(projectRoot), (error) => {
     assert.match(error.message, /firebase.webAppId: missing or placeholder/);
     assert.match(error.message, /worker.origin: missing or placeholder/);
+    assert.doesNotMatch(error.message, /production comparison unavailable/);
     assert.doesNotMatch(error.message, /AIza/);
     return true;
   });
