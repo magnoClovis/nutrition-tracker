@@ -7,6 +7,7 @@
     "nodejs_compat"
   ],
   "vars": {
+    "DEPLOY_TARGET": "production",
     // C14-C5: deploy only with the approved rollback version recorded and the
     // Play-distributed Android client ready for the immediate post-deploy gate.
     "APP_CHECK_MODE": "enforce",
@@ -40,6 +41,29 @@
     "traces": {
       "enabled": true,
       "head_sampling_rate": 0.1
+    }
+  },
+  "env": {
+    "staging": {
+      // This creates trofia-ai-proxy-staging. The empty app/origin fields keep
+      // it fail-closed until the staging apps and private host are provisioned.
+      "vars": {
+        "DEPLOY_TARGET": "staging",
+        "FIREBASE_PROJECT_ID": "trofia-staging",
+        "FIREBASE_PROJECT_NUMBER": "31822846339",
+        "FIREBASE_APP_CHECK_APP_IDS": "",
+        "ALLOWED_ORIGINS": "",
+        "APP_CHECK_MODE": "enforce",
+        "AI_TIER_MODE": "observe",
+        "AI_TIER_CONFIG": "{\"defaultTier\":\"testing\",\"tiers\":{\"testing\":{\"dailyRequests\":null}}}"
+      },
+      // No script_name: this binding belongs to the staging Worker, not the
+      // production Durable Object namespace.
+      "durable_objects": {
+        "bindings": [
+          { "name": "AI_RATE_LIMITER", "class_name": "AIRateLimiter" }
+        ]
+      }
     }
   }
 }

@@ -7,7 +7,7 @@
 - **Autoridade:** PNGs e documentos de fluxo são a especificação visual e comportamental recebida; os HTMLs/JSX são referência interativa, não código a copiar. Dados, datas, metas e refeições exibidos são mock data.
 - **Prioridade aprovada:** redesenhar as quatro abas principais — Diário, Alimentos/Despensa, Semana e Métricas — antes de aprofundar superfícies secundárias que não sejam pré-requisitos dessas abas.
 - **Cobertura comprovada:** a pasta contém especificação completa para as **quatro** abas principais: Diário, Alimentos/Despensa, Semana e Métricas. O pacote de Métricas foi auditado em 11/10/2026 e substitui o placeholder anterior da I10 por quatro fatias implementáveis.
-- **Implementações em curso preservadas:** I4-A continua em andamento na worktree própria; CAM-RED-9 e seus gates/prova física permanecem independentes deste fatiamento.
+- **Implementações em curso preservadas:** I4-A foi concluída e mesclada no PR #332; CAM-RED-9 e seus gates/prova física permanecem independentes deste fatiamento.
 
 ## Inventário e precedência das fontes
 
@@ -30,7 +30,7 @@ Os estados claro e escuro dos PNGs foram conferidos. A composição é consisten
 - foto, descrição, montagem manual e refeição salva;
 - foco, Android Back, alvos, movimento reduzido e encaminhamento aos fluxos existentes;
 - identidade instalada “T + folha” em Android e web dentro do mesmo gate.
-- implementação, gate local integral e CI do PR draft #332 concluídos; a fatia permanece em andamento até aprovação explícita e merge.
+- implementação, gate local integral e CI concluídos; o PR #332 foi mesclado em `b00f7e5aa5be1b74cfe7d3209a0129a3166e928f`.
 
 #### I4-B — orquestração do sheet Adicionar
 
