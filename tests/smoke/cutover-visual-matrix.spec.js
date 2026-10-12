@@ -159,9 +159,12 @@ async function authenticateAndCompleteProfile(page) {
 async function openScreen(page, screen) {
   if (screen.key === 'diario') return;
   if (screen.key === 'adicionar') {
-    await page.getByRole('button', {
-      name: /^\+\s*(Adicionar|Add|Agregar)$/i
-    }).first().evaluate(button => button.click());
+    const addButton = page.locator('[data-tutorial="open-log-sheet"]:visible').first();
+    await expect(addButton).toBeVisible();
+    await addButton.evaluate(button => button.click());
+    const createMenu = page.locator('[data-diary-create-menu]:visible');
+    await expect(createMenu).toBeVisible();
+    await createMenu.locator('[data-create-menu-option="manual"]').click();
   } else {
     await page.locator(`[data-tutorial="tab-${screen.key}"]`).click();
   }

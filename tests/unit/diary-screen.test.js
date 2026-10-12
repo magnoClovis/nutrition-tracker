@@ -218,6 +218,10 @@ function baseProps(overrides = {}) {
     saveEntryEdit: noOp,
     cancelEntryEdit: noOp,
     openAddForMeal: noOp,
+    createMenuOpen: false,
+    onOpenCreateMenu: noOp,
+    onCloseCreateMenu: noOp,
+    onSelectCreateMode: noOp,
     setEntryMenuId: noOp,
     detailFood: null,
     setDetailFood: noOp,
@@ -410,14 +414,14 @@ contractTest("orders visible meal categories by their oldest valid entry time", 
   }), ["Breakfast", "Lunch"]);
 });
 
-contractTest("shows one centered global Add button and no cards on an empty day", DiaryScreen => {
-  const openedMeals = [];
+contractTest("shows one global Add action and opens the approved creation menu", DiaryScreen => {
+  let opened = 0;
   const meals = ["Breakfast", "Lunch", "Dinner"];
   const view = DiaryScreen(baseProps({
     MEALS: meals,
     activeLog: { Breakfast: [], Lunch: [], Dinner: [] },
     allEntries: [],
-    openAddForMeal: meal => openedMeals.push(meal)
+    onOpenCreateMenu: () => { opened += 1; }
   }));
   const globalAdd = findNodes(
     view,
@@ -431,9 +435,69 @@ contractTest("shows one centered global Add button and no cards on an empty day"
   assert.equal(findNodes(view, node => node.props?.["data-diary-meal-card"] === "true").length, 0);
   assert.equal(globalAdd.props.style.justifyContent, "center");
   assert.equal(addButtons.length, 1);
-  assert.equal(textContent(addButtons[0]), "+ Add");
+  assert.equal(textContent(addButtons[0]), "+Add");
   addButtons[0].props.onClick();
-  assert.deepEqual(openedMeals, ["Breakfast"]);
+  assert.equal(opened, 1);
+});
+
+contractTest("renders all four creation paths and delegates the selected mode", DiaryScreen => {
+  const selected = [];
+  let closed = 0;
+  const view = DiaryScreen(baseProps({
+    createMenuOpen: true,
+    onCloseCreateMenu: () => { closed += 1; },
+    onSelectCreateMode: mode => selected.push(mode)
+  }));
+  const dialog = findNodes(view, node => node.props?.["data-diary-create-menu"] === "popover")[0];
+  const options = findNodes(view, node => node.props?.["data-create-menu-option"]);
+  const icons = findNodes(view, node => node.props?.["data-create-menu-icon"]);
+  const close = findNodes(view, node => node.props?.["data-create-menu-close"] === "true")[0];
+
+  assert.equal(dialog.props.role, "dialog");
+  assert.deepEqual(options.map(option => option.props["data-create-menu-option"]), [
+    "image", "describe", "manual", "saved"
+  ]);
+  assert.match(textContent(dialog), /Take a photo/);
+  assert.match(textContent(dialog), /Describe the meal/);
+  assert.match(textContent(dialog), /Build manually/);
+  assert.match(textContent(dialog), /Use saved meal/);
+  assert.deepEqual(
+    icons.filter(icon => ["image", "manual", "saved"].includes(icon.props["data-create-menu-icon"]))
+      .map(icon => icon.props.children.type),
+    ["svg", "svg", "svg"]
+  );
+  let firstFocused = 0;
+  let lastFocused = 0;
+  let prevented = 0;
+  const first = { focus: () => { firstFocused += 1; } };
+  const last = { focus: () => { lastFocused += 1; } };
+  const currentTarget = { querySelectorAll: () => [first, last] };
+  dialog.props.onKeyDown({
+    key: "Tab",
+    shiftKey: false,
+    target: last,
+    currentTarget,
+    preventDefault: () => { prevented += 1; }
+  });
+  dialog.props.onKeyDown({
+    key: "Tab",
+    shiftKey: true,
+    target: first,
+    currentTarget,
+    preventDefault: () => { prevented += 1; }
+  });
+  dialog.props.onKeyDown({
+    key: "Escape",
+    currentTarget,
+    preventDefault: () => { prevented += 1; }
+  });
+  options.forEach(option => option.props.onClick());
+  close.props.onClick();
+  assert.equal(firstFocused, 1);
+  assert.equal(lastFocused, 1);
+  assert.equal(prevented, 3);
+  assert.deepEqual(selected, ["image", "describe", "manual", "saved"]);
+  assert.equal(closed, 2);
 });
 
 contractTest("renders filled categories chronologically after the sole global Add button", DiaryScreen => {

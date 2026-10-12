@@ -76,6 +76,7 @@ test('nutrition resolver preserves the seven-level navigation hierarchy', async 
     [{ ...base, barcodeModalOpen: true, entryMenuId: 'entry' }, 'closeBarcodeModal', 2],
     [{ ...base, aiStatusModal: { status: 'success' }, reportModalOpen: true }, 'closeAIStatus', 2],
     [{ ...base, diaryMealEvaluationDetail: { evaluationId: 'review-1' }, detailFood: 'food' }, 'closeDiaryMealEvaluationDetail', 2],
+    [{ ...base, createMenuOpen: true, entryMenuId: 'entry' }, 'closeCreateMenu', 3],
     [{ ...base, entryMenuId: 'entry', newFoodOpen: true }, 'closeEntryMenu', 3],
     [{ ...base, imageMealCameraActive: true, tab: 'adicionar' }, 'cancelImageMealCamera', 4],
     [{ ...base, newFoodOpen: true, tab: 'adicionar' }, 'closeNewFood', 4],

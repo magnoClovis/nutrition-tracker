@@ -2822,12 +2822,263 @@ html[data-theme="dark"] [data-generic-dialog="true"] {
 }
 
 [data-tutorial="open-log-sheet"] {
-  min-height: 36px !important;
-  padding: 7px 13px !important;
-  background: var(--accent-action-fill) !important;
+  position: fixed !important;
+  right: max(22px, calc(var(--app-safe-right) + 16px));
+  bottom: max(28px, calc(var(--app-safe-bottom) + 18px));
+  z-index: 830;
+  min-height: 56px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 22px 0 14px !important;
+  background: #4f7d23 !important;
   color: #fff !important;
   border: 0 !important;
-  font-weight: 500 !important;
+  border-radius: 999px !important;
+  box-shadow: 0 13px 28px color-mix(in srgb, #27500a 32%, transparent);
+  font-weight: 800 !important;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+[data-tutorial="open-log-sheet"]:hover,
+[data-tutorial="open-log-sheet"]:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px color-mix(in srgb, #27500a 40%, transparent);
+}
+
+[data-tutorial="open-log-sheet"] > span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 18%);
+  font-size: 25px;
+  font-weight: 500;
+  line-height: 1;
+  transition: transform 220ms ease;
+}
+
+[data-tutorial="open-log-sheet"][aria-expanded="true"] > span {
+  transform: rotate(45deg);
+}
+
+[data-create-menu-backdrop="true"] {
+  position: fixed;
+  inset: 0;
+  z-index: 810;
+  background: rgb(12 17 14 / 28%);
+  animation: softIn 180ms ease-out both;
+}
+
+/* The app screen keeps the completed `softIn` transform through
+   `animation-fill-mode: both`. That transform would otherwise make the
+   viewport-fixed creation backdrop and sheet use the Diary panel as their
+   containing block, leaving the mobile sheet above the real viewport edge. */
+body:has([data-diary-create-menu]) [data-app-main="diario"] {
+  animation: none !important;
+  transform: none !important;
+}
+
+[data-diary-create-menu] {
+  position: fixed;
+  right: max(22px, calc(var(--app-safe-right) + 16px));
+  bottom: max(94px, calc(var(--app-safe-bottom) + 84px));
+  z-index: 820;
+  width: min(430px, calc(100vw - 34px));
+  padding: 20px;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--surface-block) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent);
+  border-radius: 25px;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 24%);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+  backdrop-filter: blur(24px) saturate(145%);
+  animation: createMenuIn 240ms cubic-bezier(.34, 1.35, .64, 1) both;
+}
+
+[data-diary-create-menu] > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 15px;
+}
+
+[data-create-menu-eyebrow="true"] {
+  color: var(--accent-action-text);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+[data-diary-create-menu] h2 {
+  margin: 3px 0 0;
+  color: var(--text-primary);
+  font-size: 21px;
+  letter-spacing: -.025em;
+}
+
+[data-create-menu-close="true"] {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  padding: 0;
+  color: var(--text-secondary);
+  background: var(--surface-block-alt);
+  border: 0;
+  border-radius: 50%;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+[data-create-menu-options="true"] {
+  display: grid;
+  gap: 8px;
+}
+
+[data-create-menu-option] {
+  width: 100%;
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+
+[data-create-menu-option="image"] {
+  background: color-mix(in srgb, var(--accent-action-bg) 62%, transparent);
+}
+
+[data-create-menu-option]:hover,
+[data-create-menu-option]:focus-visible {
+  transform: translateX(3px);
+  background: var(--surface-block-alt);
+  border-color: color-mix(in srgb, var(--text-primary) 8%, transparent);
+  outline: 0;
+}
+
+[data-create-menu-option] > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+[data-create-menu-option] strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+[data-create-menu-option] small {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+[data-create-menu-option] i {
+  color: var(--text-muted);
+  font-size: 22px;
+  font-style: normal;
+}
+
+[data-create-menu-icon] {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+[data-create-menu-icon] svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+[data-create-menu-icon="image"] { color: var(--accent-action-text); background: var(--accent-action-bg); }
+[data-create-menu-icon="describe"] { color: var(--accent-insight-text); background: var(--accent-insight-bg); }
+[data-create-menu-icon="manual"] { color: var(--accent-water-text); background: var(--accent-water-bg); }
+[data-create-menu-icon="saved"] { color: var(--accent-protein-text); background: var(--accent-protein-bg); }
+
+[data-create-menu-footnote="true"] {
+  margin: 14px 4px 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+[data-create-menu-handle="true"] { display: none; }
+
+@keyframes createMenuIn {
+  from { opacity: 0; transform: translateY(14px) scale(.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 720px) {
+  [data-tutorial="open-log-sheet"] {
+    right: max(18px, calc(var(--app-safe-right) + 12px));
+    bottom: max(82px, calc(var(--app-safe-bottom) + 72px));
+    min-height: 54px !important;
+  }
+
+  [data-tutorial="open-log-sheet"][aria-expanded="true"] {
+    visibility: hidden;
+  }
+
+  [data-diary-create-menu] {
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: min(86vh, 720px);
+    overflow-y: auto;
+    padding: 12px calc(16px + var(--app-safe-right)) calc(22px + var(--app-safe-bottom)) calc(16px + var(--app-safe-left));
+    border-width: 1px 0 0;
+    border-radius: 28px 28px 0 0;
+    animation-name: createMenuSheetIn;
+  }
+
+  [data-create-menu-handle="true"] {
+    width: 42px;
+    height: 4px;
+    display: block;
+    margin: 0 auto 15px;
+    background: var(--text-muted);
+    border-radius: 999px;
+    opacity: .55;
+  }
+
+  [data-create-menu-option] {
+    min-height: 64px;
+    padding: 8px;
+  }
+}
+
+@keyframes createMenuSheetIn {
+  from { opacity: .92; transform: translateY(100%); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-tutorial="open-log-sheet"],
+  [data-tutorial="open-log-sheet"] > span,
+  [data-diary-create-menu],
+  [data-create-menu-option],
+  [data-create-menu-backdrop="true"] {
+    animation-duration: .001ms !important;
+    transition-duration: .001ms !important;
+  }
 }
 
 /* Diary summary cards and live progress bars. */

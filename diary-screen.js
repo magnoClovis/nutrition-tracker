@@ -105,7 +105,7 @@
      * @returns {Object|null} React element tree for ticker, summary, or content.
      */
     function DiaryScreen(props) {
-      const { section, tab, lang, isMobileView, darkMode, text, uiText, tickerPhase, tickerDirection, safeTickerIndex, activeTickerSlide, tickerTimerReset, handleTickerPointerDown, handleTickerPointerMove, finishTickerPointer, tickerToneColor, tickerDragOffset, tickerSlides, setTickerTimerReset, moveTicker, greetingText, greetingLine, tot, goals, remainProtein, remainKcal, allEntries, dayProteinPct, dayKcalPct, openMealSuggestions, gaRunning, suggestLoading, showGA, setShowGA, gaTolerance, setGATolerance, gaTargetMeal, setGATargetMeal, MEALS, mealLabel, gaUseAll, setGAUseAll, runGASafely, gaProgress, gaResults, gaHasSearched, expandMicros, setExpandMicros, dailyMicros, hasMicros, getAutomaticMealSuggestionLimits, gaKcalMin, setGAKcalMin, gaProtMin, setGAProtMin, gaKcalMax, setGAKcalMax, gaProtMax, setGAProtMax, gaFoodSearch, setGAFoodSearch, pantry, gaSelIds, setGASelIds, gaAdvancedOpen, setGAAdvancedOpen, gaGlobalMax, setGAGlobalMax, gaUseProtTol, setGAUseProtTol, gaProtTolerance, setGAProtTolerance, activeLog, evaluateMealItems, mealScoreBrief, mealScoreEvaluationText, mealScoreLabel, addGAResultToDiary, TODAY, diaryStatus, dateLabel, viewDate, calendarOpen, setCalendarOpen, changeViewDate, setCalendarMonth, calendarMonth, calendarData, calendarLoading, isToday, viewWeight, isTraining, totalWater, waterExpanded, setWaterExpanded, editWaterGoal, setEditWaterGoal, waterGoalInput, setWaterGoalInput, setWaterGoal, addWater, waterCustomPreset, configureWaterCustomPreset, waterInput, setWaterInput, waterIntake, removeWater, suppLog, removeSuppLog, entryMenuId, editEntryId, editEntryQty, editEntryMeal, setEditEntryQty, setEditEntryMeal, saveEntryEdit, cancelEntryEdit, openAddForMeal, setEntryMenuId, detailFood, setDetailFood, diaryMealEvaluationDetail, setDiaryMealEvaluationDetail, startEditEntry, duplicateEntry, removeEntry, notesOpen, setNotesOpen, todayNote, historyNote, setTodayNote, setHistoryNote, suppPantry, showSuppAdd, setShowSuppAdd, suppAddId, setSuppAddId, suppAddDose, setSuppAddDose, logSupp, feedbackLoading, feedbackPeriod, generateFeedback, feedbackText, feedbackSaved, saveFeedbackAsNote, setTab, opaqueTrailingNode } = props;
+      const { section, tab, lang, isMobileView, darkMode, text, uiText, tickerPhase, tickerDirection, safeTickerIndex, activeTickerSlide, tickerTimerReset, handleTickerPointerDown, handleTickerPointerMove, finishTickerPointer, tickerToneColor, tickerDragOffset, tickerSlides, setTickerTimerReset, moveTicker, greetingText, greetingLine, tot, goals, remainProtein, remainKcal, allEntries, dayProteinPct, dayKcalPct, openMealSuggestions, gaRunning, suggestLoading, showGA, setShowGA, gaTolerance, setGATolerance, gaTargetMeal, setGATargetMeal, MEALS, mealLabel, gaUseAll, setGAUseAll, runGASafely, gaProgress, gaResults, gaHasSearched, expandMicros, setExpandMicros, dailyMicros, hasMicros, getAutomaticMealSuggestionLimits, gaKcalMin, setGAKcalMin, gaProtMin, setGAProtMin, gaKcalMax, setGAKcalMax, gaProtMax, setGAProtMax, gaFoodSearch, setGAFoodSearch, pantry, gaSelIds, setGASelIds, gaAdvancedOpen, setGAAdvancedOpen, gaGlobalMax, setGAGlobalMax, gaUseProtTol, setGAUseProtTol, gaProtTolerance, setGAProtTolerance, activeLog, evaluateMealItems, mealScoreBrief, mealScoreEvaluationText, mealScoreLabel, addGAResultToDiary, TODAY, diaryStatus, dateLabel, viewDate, calendarOpen, setCalendarOpen, changeViewDate, setCalendarMonth, calendarMonth, calendarData, calendarLoading, isToday, viewWeight, isTraining, totalWater, waterExpanded, setWaterExpanded, editWaterGoal, setEditWaterGoal, waterGoalInput, setWaterGoalInput, setWaterGoal, addWater, waterCustomPreset, configureWaterCustomPreset, waterInput, setWaterInput, waterIntake, removeWater, suppLog, removeSuppLog, entryMenuId, editEntryId, editEntryQty, editEntryMeal, setEditEntryQty, setEditEntryMeal, saveEntryEdit, cancelEntryEdit, openAddForMeal, createMenuOpen, onOpenCreateMenu, onCloseCreateMenu, onSelectCreateMode, setEntryMenuId, detailFood, setDetailFood, diaryMealEvaluationDetail, setDiaryMealEvaluationDetail, startEditEntry, duplicateEntry, removeEntry, notesOpen, setNotesOpen, todayNote, historyNote, setTodayNote, setHistoryNote, suppPantry, showSuppAdd, setShowSuppAdd, suppAddId, setSuppAddId, suppAddDose, setSuppAddDose, logSupp, feedbackLoading, feedbackPeriod, generateFeedback, feedbackText, feedbackSaved, saveFeedbackAsNote, setTab, opaqueTrailingNode } = props;
       const visibleMealCategories = getVisibleMealCategories(MEALS, activeLog);
       const scoreBand = score => score >= 4
         ? uiText("Bem alinhada", "Well aligned", "Bien alineada")
@@ -1763,7 +1763,9 @@
     }
   }, /*#__PURE__*/React.createElement("button", {
     "data-tutorial": "open-log-sheet",
-    onClick: () => openAddForMeal(MEALS[0]),
+    "aria-expanded": Boolean(createMenuOpen),
+    "aria-controls": "diary-create-menu",
+    onClick: onOpenCreateMenu,
     style: {
       background: "var(--btn-ok)",
       border: "1px solid var(--btn-ok-border)",
@@ -1776,7 +1778,80 @@
       whiteSpace: "nowrap",
       fontFamily: "inherit"
     }
-  }, "+ ", uiText("Adicionar", "Add", "Agregar"))), visibleMealCategories.map(meal => {
+  }, /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": "true"
+  }, "+"), /*#__PURE__*/React.createElement("strong", null, uiText("Adicionar", "Add", "Agregar")))), createMenuOpen && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    "data-create-menu-backdrop": "true",
+    "aria-hidden": "true",
+    onClick: onCloseCreateMenu
+  }), /*#__PURE__*/React.createElement("section", {
+    id: "diary-create-menu",
+    "data-diary-create-menu": isMobileView ? "sheet" : "popover",
+    role: "dialog",
+    "aria-modal": "true",
+    "aria-labelledby": "diary-create-menu-title",
+    onKeyDown: event => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseCreateMenu();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const controls = Array.from(event.currentTarget.querySelectorAll('button:not([disabled])'));
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (!first || !last) return;
+      if (event.shiftKey && event.target === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && event.target === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    "data-create-menu-handle": "true",
+    "aria-hidden": "true"
+  }), /*#__PURE__*/React.createElement("header", null, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    "data-create-menu-eyebrow": "true"
+  }, uiText("Adicionar ao Diário", "Add to Diary", "Añadir al Diario")), /*#__PURE__*/React.createElement("h2", {
+    id: "diary-create-menu-title"
+  }, uiText("O que você quer criar?", "What do you want to create?", "¿Qué quieres crear?"))), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "data-create-menu-close": "true",
+    "aria-label": uiText("Fechar", "Close", "Cerrar"),
+    onClick: onCloseCreateMenu
+  }, "×")), /*#__PURE__*/React.createElement("div", {
+    "data-create-menu-options": "true"
+  }, [["image", /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    focusable: "false"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M8.5 5.5 10 3.8h4l1.5 1.7H19a2 2 0 0 1 2 2v10.2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2h3.5ZM12 8a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"
+  })), uiText("Tirar uma foto", "Take a photo", "Tomar una foto"), uiText("Fotografe o prato e revise a estimativa.", "Photograph the dish and review the estimate.", "Fotografía el plato y revisa la estimación.")], ["describe", "✦", uiText("Descrever a refeição", "Describe the meal", "Describir la comida"), uiText("Conte o que comeu e deixe a IA organizar.", "Tell us what you ate and let AI organize it.", "Cuenta lo que comiste y deja que la IA lo organice.")], ["manual", /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    focusable: "false"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M5 4h14v3H5V4Zm0 6h14v3H5v-3Zm0 6h9v3H5v-3Zm12.5-.5V18H15v2h2.5v2H20v-2h2v-2h-2v-2.5h-2.5Z"
+  })), uiText("Montar manualmente", "Build manually", "Montar manualmente"), uiText("Busque alimentos e ajuste as porções.", "Search foods and adjust portions.", "Busca alimentos y ajusta las porciones.")], ["saved", /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    focusable: "false"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M6 3h12a2 2 0 0 1 2 2v16l-8-3.5L4 21V5a2 2 0 0 1 2-2Zm2 5h8V6H8v2Zm0 4h8v-2H8v2Z"
+  })), uiText("Usar refeição salva", "Use saved meal", "Usar comida guardada"), uiText("Reutilize uma combinação já cadastrada.", "Reuse a combination you already saved.", "Reutiliza una combinación que ya guardaste.")]].map(([mode, icon, title, description], index) => /*#__PURE__*/React.createElement("button", {
+    key: mode,
+    type: "button",
+    autoFocus: index === 0,
+    "data-create-menu-option": mode,
+    onClick: () => onSelectCreateMode(mode)
+  }, /*#__PURE__*/React.createElement("span", {
+    "data-create-menu-icon": mode,
+    "aria-hidden": "true"
+  }, icon), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, title), /*#__PURE__*/React.createElement("small", null, description)), /*#__PURE__*/React.createElement("i", {
+    "aria-hidden": "true"
+  }, "›")))), /*#__PURE__*/React.createElement("p", {
+    "data-create-menu-footnote": "true"
+  }, uiText("A categoria e o horário serão definidos na próxima etapa.", "Category and time are set in the next step.", "La categoría y la hora se definen en el siguiente paso.")))), visibleMealCategories.map(meal => {
     const entries = activeLog[meal] || [];
     const evaluationGroups = collectValidMealEvaluationGroups(entries);
     const mp = entries.reduce((s, e) => s + (e.protein ?? 0), 0);

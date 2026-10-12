@@ -64,11 +64,12 @@ test.describe('authenticated NumericField visual contract', () => {
   }
 
   async function openQuantityField(page) {
-    const addButton = page.locator(
-      '[data-diary-global-add]:visible [data-tutorial="open-log-sheet"]'
-    ).first();
+    const addButton = page.locator('[data-tutorial="open-log-sheet"]:visible').first();
     await expect(addButton).toBeVisible();
     await addButton.evaluate(button => button.click());
+    const createMenu = page.locator('[data-diary-create-menu]:visible');
+    await expect(createMenu).toBeVisible();
+    await createMenu.locator('[data-create-menu-option="manual"]').click();
     const addScreen = page.locator('[data-app-main="adicionar"]:visible');
     await expect(addScreen).toBeVisible();
     const foodSearch = addScreen.locator([

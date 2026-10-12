@@ -43,9 +43,26 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
 
-  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 158);
+  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 159);
   assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 42);
   assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 29);
+});
+
+contractTest("routes every I4 creation path through the existing Add contracts", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+  const start = source.indexOf("function selectCreateMode");
+  const end = source.indexOf("const [trainingByDate", start);
+  const block = source.slice(start, end);
+
+  assert.ok(start >= 0);
+  assert.match(block, /setCreateMenuOpen\(false\)/);
+  assert.match(block, /openAddForMeal\(MEALS\[0\]\)/);
+  assert.match(block, /selectAddMode\(mode\)/);
+  assert.match(block, /function closeCreateMenu\(\)/);
+  assert.match(block, /querySelector\('\[data-diary-global-add\] \[data-tutorial="open-log-sheet"\]'\)/);
+  assert.match(source, /onSelectCreateMode: selectCreateMode/);
+  assert.match(source, /onCloseCreateMenu: closeCreateMenu/);
 });
 
 contractTest("routes browser dialog decisions through the injected generic service", createNutritionTrackerController => {
