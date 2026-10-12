@@ -12,6 +12,12 @@ Antes de iniciar ou encerrar qualquer fatia, leia e cumpra [`documentation/PADRA
 
 O checklist documental é gate obrigatório, com o mesmo peso dos testes e da validação funcional.
 
+## Evidência de CI em PR técnico
+
+Quando o último SHA com código, configuração ou infraestrutura já passou todos os checks aplicáveis, registre os resultados comprovados no corpo do PR. Não acrescente ao mesmo PR um commit final que altere somente documentos para copiar esses resultados: o diff técnico do PR dispararia novamente o CI integral. Depois do merge, registre nos documentos, por PR exclusivamente documental, os resultados e as métricas exatas de tempo até o merge e de CI; copie os mesmos valores ao corpo do PR original. Até esse registro ser mesclado, a fatia permanece documentalmente aberta.
+
+Esta economia não dispensa nenhum gate: alteração técnica posterior, mudança de base que exija revalidação, check ausente/falho ou divergência de evidência requerem os testes e CI aplicáveis antes do merge. A regra também não altera o CI da `main` nem a autorização necessária para mesclar PRs técnicos.
+
 ## Autorização permanente para PRs exclusivamente documentais
 
 O usuário autorizou retirar do draft e mesclar qualquer PR que altere somente documentação, sem solicitar nova aprovação de merge. Antes de mesclar, confirme que o diff é exclusivamente documental, que os checks aplicáveis passaram, que o PR está mesclável e que o merge não interromperá CI ou testes autenticados de outra frente. Essa autorização não se estende a PRs de código, configuração ou infraestrutura, nem autoriza deploy, publicação ou alteração de IAM.
