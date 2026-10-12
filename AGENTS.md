@@ -12,6 +12,10 @@ Antes de iniciar ou encerrar qualquer fatia, leia e cumpra [`documentation/PADRA
 
 O checklist documental é gate obrigatório, com o mesmo peso dos testes e da validação funcional.
 
+## Autorização permanente para PRs exclusivamente documentais
+
+O usuário autorizou retirar do draft e mesclar qualquer PR que altere somente documentação, sem solicitar nova aprovação de merge. Antes de mesclar, confirme que o diff é exclusivamente documental, que os checks aplicáveis passaram, que o PR está mesclável e que o merge não interromperá CI ou testes autenticados de outra frente. Essa autorização não se estende a PRs de código, configuração ou infraestrutura, nem autoriza deploy, publicação ou alteração de IAM.
+
 ## Monitoramento passivo obrigatório
 
 Testes demorados, gates completos, builds, deploys, CI e etapas automáticas de testes físicos devem ser acompanhados sem polling contínuo. Depois de iniciar a operação, use a duração histórica para programar uma automação/heartbeat silenciosa para a primeira verificação. Se ainda estiver saudável e em execução, reprograme uma nova janela conservadora; só notifique em conclusão, falha, mudança material ou necessidade de intervenção. Remova a automação depois de processar o resultado terminal.

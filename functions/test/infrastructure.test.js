@@ -1,6 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const {spawnSync} = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
@@ -44,8 +45,80 @@ test("keeps production deployment and emulator identities explicit", () => {
     firebaseProjects.projects.emulator,
     runtimeConfig.EMULATOR_PROJECT_ID,
   );
+  assert.equal(
+    firebaseProjects.projects.staging,
+    runtimeConfig.STAGING_PROJECT_ID,
+  );
   assert.equal(firebaseProjects.projects.default, undefined);
   assert.match(runtimeConfig.EMULATOR_PROJECT_ID, /^demo-/);
+});
+
+test("selects project-local Functions identities and rejects cross-environment deployment", () => {
+  const production = runtimeConfig.resolveFunctionDeployment();
+  assert.equal(production.projectId, runtimeConfig.PRODUCTION_PROJECT_ID);
+  assert.equal(production.requestServiceAccount, runtimeConfig.REQUEST_SERVICE_ACCOUNT);
+  assert.equal(production.processorServiceAccount, runtimeConfig.PROCESSOR_SERVICE_ACCOUNT);
+  assert.equal(production.reconcilerServiceAccount, runtimeConfig.RECONCILER_SERVICE_ACCOUNT);
+
+  const emulator = runtimeConfig.resolveFunctionDeployment({
+    cloudProjectId: runtimeConfig.EMULATOR_PROJECT_ID,
+  });
+  assert.equal(emulator.projectId, runtimeConfig.EMULATOR_PROJECT_ID);
+
+  const staging = runtimeConfig.resolveFunctionDeployment({
+    deployTarget: "staging",
+    cloudProjectId: runtimeConfig.STAGING_PROJECT_ID,
+  });
+  assert.equal(staging.projectId, "trofia-staging");
+  for (const identity of [
+    staging.requestServiceAccount,
+    staging.processorServiceAccount,
+    staging.reconcilerServiceAccount,
+    staging.taskOptions.serviceAccount,
+  ]) {
+    assert.match(identity, /@trofia-staging\.iam\.gserviceaccount\.com$/);
+    assert.equal(identity.includes(runtimeConfig.PRODUCTION_PROJECT_ID), false);
+  }
+  assert.throws(() => runtimeConfig.resolveFunctionDeployment({
+    deployTarget: "staging",
+    cloudProjectId: runtimeConfig.PRODUCTION_PROJECT_ID,
+  }), /staging-functions-project-mismatch/);
+  assert.throws(() => runtimeConfig.resolveFunctionDeployment({
+    cloudProjectId: runtimeConfig.STAGING_PROJECT_ID,
+  }), /production-functions-project-mismatch/);
+  assert.throws(() => runtimeConfig.resolveFunctionDeployment({
+    deployTarget: "production",
+    cloudProjectId: runtimeConfig.STAGING_PROJECT_ID,
+  }), /production-functions-project-mismatch/);
+  assert.throws(() => runtimeConfig.resolveFunctionDeployment({
+    deployTarget: "unknown",
+    cloudProjectId: runtimeConfig.PRODUCTION_PROJECT_ID,
+  }), /unsupported-functions-deploy-target/);
+  assert.throws(() => runtimeConfig.resolveFunctionDeployment({
+    deployTarget: "",
+    cloudProjectId: runtimeConfig.PRODUCTION_PROJECT_ID,
+  }), /unsupported-functions-deploy-target/);
+});
+
+test("refuses to reuse a Firebase Admin app from the other project", () => {
+  const probe = spawnSync(process.execPath, ["-e", [
+    "process.env.TROFIA_DEPLOY_TARGET='staging'",
+    "process.env.GCLOUD_PROJECT='trofia-staging'",
+    "require('firebase-admin/app').initializeApp({projectId:'nutrition-tracker-780b3'})",
+    "try { require('./src/index.js'); process.exit(1) } catch (error) { process.exit(error.message === 'firebase-admin-project-mismatch' ? 0 : 2) }",
+  ].join(";")], {cwd: functionsRoot, encoding: "utf8"});
+  assert.equal(probe.status, 0);
+});
+
+test("wires all three exported staging handlers to staging runtime identities", () => {
+  const probe = spawnSync(process.execPath, ["-e", [
+    "process.env.TROFIA_DEPLOY_TARGET='staging'",
+    "process.env.GCLOUD_PROJECT='trofia-staging'",
+    "const handlers=require('./src/index.js')",
+    "const accounts=Object.values(handlers).map(handler=>handler.__endpoint?.serviceAccountEmail)",
+    "process.exit(accounts.length===3 && accounts.every(account=>account?.endsWith('@trofia-staging.iam.gserviceaccount.com')) ? 0 : 1)",
+  ].join(";")], {cwd: functionsRoot, encoding: "utf8"});
+  assert.equal(probe.status, 0);
 });
 
 test("configures isolated Auth, Firestore and Functions emulators", () => {
