@@ -1712,17 +1712,17 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 ### [I4-B] - Orquestração do sheet Adicionar
 
-- **Status:** não iniciado.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento.
+- **Data de início:** 12/10/2026.
+- **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
 - **Minutos de CI:** 0 min; não iniciado.
 - **Propósito:** organizar destino, horário, repetição e entradas secundárias separadamente da ação principal.
 - **O que se planeja fazer:** validar e implementar chips de refeição/horário, repetição recente com Undo, entrada manual e retorno ao contexto de origem.
 - **Recursos/arquivos principais envolvidos:** pacote `UI_visuals/trofia-diary-timeline-calendar-add-sheet`, `add-screen.js`, ChoiceField/TemporalField, sheets, i18n e Playwright.
-- **O que foi feito:** a proposta foi separada formalmente em 10/10/2026. Barcode permanece pendente e não substitui a exclusão já aprovada na I4-A.
-- **Alinhamento:** pendente até aprovação visual, implementação e merge.
-- **PRs/commits relacionados:** nenhum. — **Chat-Origin:** Trofia-UIUX.
+- **O que foi feito:** a proposta foi separada formalmente em 10/10/2026. A implementação começou em 12/10/2026 numa worktree própria, por priorização explícita do usuário após o fechamento da I4-A e em paralelo às I8-A/I10-A. Foram implementados cabeçalho com destino/horário, repetição recente com Undo persistido, entrada manual, retorno ao contexto, PT/EN/ES e geometria mobile/desktop; Barcode permanece pendente e não substitui a exclusão já aprovada na I4-A. A primeira prova Vite de repetição chegou ao `finally` e encontrou instabilidade de restauração/auth; uma reprodução posterior autenticou, mas as regras granulares rejeitaram a entrada sintética porque a fixture não continha o campo obrigatório `time`. Foi corrigido somente o fixture com `time: '08:00'`, sem alterar Auth, Firestore, rules, runtime, timeout, retry ou `force:true`; sintaxe, `git diff --check`, 155/155 unitários focados e o recorte Vite mobile 2/2 passaram. O gate local integral na mesma árvore terminou verde: preflight com 0 avisos, 1.563/1.563 unitários, legado com 187 aprovações e 10 skips estruturais, Vite 197/197, CSP verde e cutover 60/60; o build transformou 848 módulos e a allowlist confirmou 14 arquivos. O run da main `38271290975` foi preservado apenas como evidência externa de instabilidade compartilhada de bootstrap/reload e não prova regressão da I4-B nem da C14-H. A fatia continua em andamento até PR, CI e merge.
+- **Alinhamento:** pendente de merge; a implementação e o gate local cobrem integralmente o escopo aprovado sem incluir Barcode.
+- **PRs/commits relacionados:** pendentes. — **Chat-Origin:** Trofia-UIUX.
 
 ### [I4-C] - Pesquisa e bandeja de refeição
 

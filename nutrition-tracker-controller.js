@@ -31,6 +31,7 @@
     waterIntake: "waterIntake_",
     supplementLog: "suppLog_"
   });
+  const notificationTimers = new WeakMap();
 
   function millisecondsUntilNextLocalDay(now = new Date()) {
     if (!(now instanceof Date) || Number.isNaN(now.getTime())) {
@@ -1803,8 +1804,32 @@
         setRecentMeals(aggregateRecentMeals({dailyLogs, mealKeys: MEALS}));
       }
       function notify(msg, duration = 3000) {
+        const activeTimer = notificationTimers.get(setNotification);
+        if (activeTimer) clearTimeout(activeTimer);
         setNotification(msg);
-        setTimeout(() => setNotification(""), duration);
+        notificationTimers.set(setNotification, setTimeout(() => {
+          notificationTimers.delete(setNotification);
+          setNotification("");
+        }, duration));
+      }
+      function notifyWithAction(message, actionLabel, onAction, duration = 8000) {
+        const activeTimer = notificationTimers.get(setNotification);
+        if (activeTimer) clearTimeout(activeTimer);
+        const dismiss = () => {
+          const timer = notificationTimers.get(setNotification);
+          if (timer) clearTimeout(timer);
+          notificationTimers.delete(setNotification);
+          setNotification("");
+        };
+        setNotification({
+          text: message,
+          actionLabel,
+          onAction: async () => {
+            dismiss();
+            await onAction();
+          }
+        });
+        notificationTimers.set(setNotification, setTimeout(dismiss, duration));
       }
 
       const BACKUP_IMPORTABLE_PROFILE_KEYS = new Set([
@@ -3326,6 +3351,11 @@
         captureMealRegistrationOrigin();
         openTab("adicionar");
       }
+      function setMealRegistrationDestination(meal) {
+        setAddEntry(current => ({...current, meal}));
+        setStaged(current => ({...current, meal}));
+        setDescribeMeal(meal);
+      }
       async function addToLog() {
         if (!pantry.length) {
           notify(uiText(
@@ -3579,6 +3609,51 @@
           `"${recentMeal.meal}" from ${recentMeal.date} loaded. Adjust and log it.`,
           `"${recentMeal.meal}" de ${recentMeal.date} cargada. Ajusta y registra.`
         ));
+      }
+      async function repeatRecentMeal(recentMeal) {
+        if (!recentMeal || mealRegistrationSavingRef.current) return;
+        const meal = staged.meal || recentMeal.meal;
+        const items = applySelectedMealTime((recentMeal.entries || []).map(entry => ({
+          ...window.MealScore.stripMealEvaluationMetadata(entry),
+          id: window.DailyEntryModel.createIdempotentEntryId()
+        })));
+        if (!items.length) return;
+        const savedLog = await saveMealRegistration(meal, items);
+        if (!savedLog) return;
+        const registrationDate = viewDate;
+        resetMealTimeControl();
+        await closeMealRegistration();
+        notifyWithAction(
+          uiText("Refeição repetida no Diário.", "Meal logged again.", "Comida repetida en el Diario."),
+          uiText("Desfazer", "Undo", "Deshacer"),
+          async () => {
+            let nextLog = dailyLogSnapshotsRef.current.get(registrationDate) || savedLog;
+            items.forEach(item => {
+              nextLog = window.DailyEntryModel.applyMealLogMutation(
+                nextLog,
+                meal,
+                {type: "remove", entryId: item.id}
+              );
+            });
+            try {
+              if (dailyEntryPersistence.granular) {
+                await dailyEntryPersistence.persist("meal", registrationDate, nextLog);
+              } else {
+                await persistMealRegistration({storage, key: "log_v2_" + registrationDate, nextLog});
+              }
+              dailyLogSnapshotsRef.current.set(registrationDate, nextLog);
+              if (registrationDate === TODAY) setLog(nextLog);
+              else if (registrationDate === viewDate) setHistoryLog(nextLog);
+              notify(uiText("Repetição desfeita.", "Repeat undone.", "Repetición deshecha."));
+            } catch (_) {
+              notify(uiText(
+                "Não foi possível desfazer agora.",
+                "Could not undo right now.",
+                "No se pudo deshacer ahora."
+              ), 8000);
+            }
+          }
+        );
       }
       function saveEditStaged() {
         const qty = parseFloat(editStagedQty);
@@ -5236,6 +5311,7 @@
         MEALS,
         mealDisplay,
         loadRecentMealToStaged,
+        repeatRecentMeal,
         TODAY,
         showSaveTemplateModal,
         setShowSaveTemplateModal,
@@ -5253,6 +5329,7 @@
         mealTimeValue: mealTimeControl.value,
         openMealTimeControl,
         setSelectedMealTime,
+        setMealRegistrationDestination,
         mealRegistrationSaving,
         mealTemplates,
         addTemplateSearch,
@@ -5954,10 +6031,10 @@
           fontSize: 14,
           cursor: "pointer"
         }
-      }, "\xD7")))), tab === "adicionar" && /*#__PURE__*/React.createElement(AddScreen, {
+      }, "\xD7"))))) }), tab === "adicionar" && /*#__PURE__*/React.createElement(AddScreen, {
         ...addScreenProps,
         section: "recent"
-      })) }), tab === "adicionar" && /*#__PURE__*/React.createElement(AddScreen, {
+      }), tab === "adicionar" && /*#__PURE__*/React.createElement(AddScreen, {
         ...addScreenProps,
         section: "content",
         legacyTransferPanel: /*#__PURE__*/React.createElement("div", {

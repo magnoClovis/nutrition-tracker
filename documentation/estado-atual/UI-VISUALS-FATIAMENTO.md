@@ -2,12 +2,12 @@
 
 ## Estado desta análise
 
-- **Data da revisão:** 11/10/2026.
+- **Data da revisão:** 12/10/2026.
 - **Origem auditada:** `UI_visuals/`, com 132 PNGs, 21 HTMLs, 6 arquivos JavaScript, 6 JSXs e 6 documentos Markdown.
 - **Autoridade:** PNGs e documentos de fluxo são a especificação visual e comportamental recebida; os HTMLs/JSX são referência interativa, não código a copiar. Dados, datas, metas e refeições exibidos são mock data.
 - **Prioridade aprovada:** redesenhar as quatro abas principais — Diário, Alimentos/Despensa, Semana e Métricas — antes de aprofundar superfícies secundárias que não sejam pré-requisitos dessas abas.
 - **Cobertura comprovada:** a pasta contém especificação completa para as **quatro** abas principais: Diário, Alimentos/Despensa, Semana e Métricas. O pacote de Métricas foi auditado em 11/10/2026 e substitui o placeholder anterior da I10 por quatro fatias implementáveis.
-- **Implementações em curso preservadas:** I4-A foi concluída e mesclada no PR #332; CAM-RED-9 e seus gates/prova física permanecem independentes deste fatiamento.
+- **Implementações em curso preservadas:** I4-A foi concluída e mesclada no PR #332; em 12/10/2026 o usuário antecipou expressamente a I4-B para execução paralela a I8-A/I10-A. CAM-RED-9 e seus gates/prova física permanecem independentes deste fatiamento.
 
 ## Inventário e precedência das fontes
 
@@ -34,6 +34,8 @@ Os estados claro e escuro dos PNGs foram conferidos. A composição é consisten
 
 #### I4-B — orquestração do sheet Adicionar
 
+- **Em andamento desde 12/10/2026**, em worktree própria e sem compartilhar o coordenador autenticado com I8-A/I10-A;
+- implementação e gate local integral verdes: preflight 0, 1.563/1.563 unitários, legado 187 + 10 skips estruturais, Vite 197/197, CSP e cutover 60/60; PR, CI e merge permanecem pendentes;
 - destino da refeição e horário;
 - repetição recente com Undo;
 - entrada manual e retorno ao contexto que abriu o sheet;
@@ -198,7 +200,7 @@ I6 e I9 podem exibir esses dados, mas devem consumir uma classificação única.
 1. concluir I4-A já em andamento, porque a navegação/ação central é pré-requisito compartilhado;
 2. **passagem de núcleo visual:** I6-A/I6-B → I8-A → I9-A → I10-A;
 3. **passagem de conclusão funcional:** I6-C/I6-D/I6-F → I8-B/I8-C → I9-B/I9-C/I9-D → I10-B/I10-C/I10-D;
-4. I4-B/I4-C — completar o fluxo Adicionar depois de estabilizar as quatro abas;
+4. I4-C — completar pesquisa/bandeja do fluxo Adicionar depois de estabilizar as quatro abas; a I4-B foi antecipada por decisão explícita em 12/10/2026 e passou a avançar em paralelo;
 5. I6-E e I7 — somente após os contratos de persistência/domínio aplicáveis;
 6. I5-R — somente quando o novo pacote de Configurações for recebido e aprovado.
 
