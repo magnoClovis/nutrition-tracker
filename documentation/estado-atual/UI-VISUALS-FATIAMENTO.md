@@ -30,7 +30,7 @@ Os estados claro e escuro dos PNGs foram conferidos. A composição é consisten
 - foto, descrição, montagem manual e refeição salva;
 - foco, Android Back, alvos, movimento reduzido e encaminhamento aos fluxos existentes;
 - identidade instalada “T + folha” em Android e web dentro do mesmo gate.
-- implementação e gate local integral concluídos na base `74a988a4`; a fatia permanece em andamento até PR, CI e merge.
+- implementação, gate local integral e CI do PR draft #332 concluídos; a fatia permanece em andamento até aprovação explícita e merge.
 
 #### I4-B — orquestração do sheet Adicionar
 
