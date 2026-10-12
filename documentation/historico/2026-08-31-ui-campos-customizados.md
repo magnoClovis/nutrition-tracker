@@ -1698,17 +1698,17 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 - **PRs/commits relacionados:** [PR #323](https://github.com/magnoClovis/nutrition-tracker/pull/323), commit funcional `ea69fd5`, commits documentais `e0f4bbd`, `8b4a677` e `5f501ba`, merge `9537a9d`; runs pesados `38065949566`, `38070844011` e `38132701835`; runs leves `38065949581`, `38070844067`, `38132535391` e `38132701832`; run `38132535355` substituído sem job; AAB interno v29. — **Chat-Origin:** Trofia-UIUX.
 ### [I4-A] - Ação principal e menu de criação
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 22/09/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
+- **Data de conclusão:** 12/10/2026.
+- **Tempo decorrido:** 5 h 53 min 47 s.
 - **Minutos de CI:** 55 min 02 s — 22 s leves e 54 min 40 s pesados.
 - **Propósito:** tornar a entrada de criação encontrável e alinhar a identidade instalada à marca usada no carregamento.
 - **O que se planeja fazer:** implementar a ação central e o menu aprovado com foto, descrição, montagem manual e refeição salva, preservando acessibilidade, Android Back e reduced motion; no mesmo PR/gate, trocar launcher e equivalentes web pela marca “T + folha”, com variantes adaptativa, redonda, legada e monocromática e safe zones verificadas.
 - **Recursos/arquivos principais envolvidos:** protótipo `i4-create-menu-prototype`, navegação/Diário, fluxo Adicionar, `app-header-navigation.js`, `one-ui.css`, `mipmap-*`, manifest/adaptive/round/monochrome icon, favicon/PWA/Apple Touch Icon, verificadores e Playwright.
 - **O que foi feito:** o protótipo e a direção “T + folha” foram aprovados em 10/10/2026; foto apenas encaminha ao CAM-RED existente. Em decisão posterior, o ícone foi fundido à I4-A como alteração pequena e a I4-D deixou de existir. O Diário mantém estado explícito do menu de criação, apresenta os quatro caminhos aprovados em popover desktop/folha inferior mobile e encaminha cada escolha aos contratos preexistentes de foto, descrição, montagem manual e refeição salva. Botão, backdrop, Escape e Android Back fecham o menu respeitando a hierarquia contextual; Tab/Shift+Tab ficam contidos, o foco retorna à ação de origem e reduced motion neutraliza transições. Os ícones de foto, montagem manual e refeição salva foram reconstruídos como SVGs determinísticos do protótipo, evitando glifos/emoji dependentes da plataforma. A identidade instalada usa uma fonte SVG “T + folha” e um gerador determinístico para os 19 assets Web/Apple Touch/Android legados, redondos e foregrounds, enquanto os adaptive icons usam foreground vetorial e variante monocromática dentro da safe zone. Helpers consumidores e a matriz cutover agora abrem o novo menu e selecionam explicitamente a montagem manual; o coordenador autenticado usa token GitHub quando disponível, preservando o bloqueio fail-closed diante de CI concorrente. Na base final integrada `74a988a4`, passaram 125/125 testes focados, preflight com 0 avisos, 1.556/1.556 unitários, smoke legado com 181 aprovados e 10 skips estruturais, smoke Vite 191/191, CSP do build Vite e cutover 60/60; o build transformou 848 módulos, a allowlist confirmou 14 arquivos e `:app:processDebugResources` compilou os recursos Android. No PR draft #332, o run pesado `38183392385` concluiu em 54 min 40 s e o preflight documental `38183392424` em 22 s; todas as verificações ficaram verdes e o único skip do workflow foi o upload condicional de diagnósticos de falha, além dos 10 skips estruturais esperados da matriz legada. Nenhum timeout, retry, `force:true`, runtime, Auth, Firestore ou estado da Play foi alterado.
-- **Alinhamento:** implementação, gate local e CI integral concluídos; pendente apenas aprovação explícita e merge.
-- **PRs/commits relacionados:** [PR #332](https://github.com/magnoClovis/nutrition-tracker/pull/332), commit funcional `a07bcf6`, run pesado `38183392385` e run leve `38183392424`. — **Chat-Origin:** Trofia-UIUX.
+- **Alinhamento:** 100% — ação principal, menu aprovado, acessibilidade, integrações existentes e identidade instalada foram entregues sem ampliar o escopo funcional da câmera ou alterar serviços de dados.
+- **PRs/commits relacionados:** [PR #332](https://github.com/magnoClovis/nutrition-tracker/pull/332), commit funcional `a07bcf6`, commit documental `d405dd6`, merge `b00f7e5aa5be1b74cfe7d3209a0129a3166e928f`, run pesado `38183392385` e run leve `38183392424`. — **Chat-Origin:** Trofia-UIUX.
 
 ### [I4-B] - Orquestração do sheet Adicionar
 
