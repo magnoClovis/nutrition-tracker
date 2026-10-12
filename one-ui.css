@@ -3020,6 +3020,142 @@ body:has([data-diary-create-menu]) [data-app-main="diario"] {
 
 [data-create-menu-handle="true"] { display: none; }
 
+[data-app-main="adicionar"] {
+  background: var(--surface-block) !important;
+  border-radius: 28px 28px 0 0 !important;
+}
+
+[data-add-orchestration-header="true"] {
+  margin-right: -2px;
+  margin-left: -2px;
+}
+
+[data-add-destination-chip] [data-choice-field-label] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+[data-add-destination-chip] {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding-left: 14px;
+  background: var(--surface-block-alt);
+  border-radius: var(--radius-pill);
+}
+
+[data-add-destination-prefix] {
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+[data-add-destination-chip] [data-choice-field-trigger],
+[data-add-time-chip] {
+  min-height: 40px !important;
+  padding: 0 14px !important;
+  color: var(--text-primary) !important;
+  background: var(--surface-block-alt) !important;
+  border: 0 !important;
+  border-radius: var(--radius-pill) !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  cursor: pointer;
+}
+
+[data-add-destination-chip] [data-choice-field-trigger]::before {
+  content: none;
+}
+
+[data-add-destination-chip] [data-choice-field-trigger] {
+  padding-left: 5px !important;
+}
+
+[data-add-time-chip] span {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+[data-add-repeat-heading="true"] {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 2px 2px 9px;
+}
+
+[data-add-repeat-heading="true"] strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+[data-add-repeat-heading="true"] span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+[data-add-repeat-card] {
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+
+[data-add-repeat-card]:hover,
+[data-add-repeat-card]:focus-visible {
+  transform: translateY(-2px);
+  background: var(--surface-block-alt) !important;
+  outline: 2px solid color-mix(in srgb, var(--accent-action-text) 38%, transparent);
+  outline-offset: 1px;
+}
+
+[data-add-manual-entry="true"] {
+  width: 100%;
+  min-height: 58px !important;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px !important;
+  color: var(--text-primary) !important;
+  background: var(--surface-block-alt) !important;
+  border: 0 !important;
+  border-radius: 18px !important;
+  text-align: left;
+  cursor: pointer;
+}
+
+[data-add-manual-entry="true"] > span:first-child {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: var(--accent-action-text);
+  background: var(--accent-action-bg);
+  border-radius: 13px;
+  font-size: 22px;
+}
+
+[data-add-manual-entry="true"] > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+[data-add-manual-entry="true"] small {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+[data-add-manual-entry="true"] i {
+  color: var(--text-muted);
+  font-size: 22px;
+  font-style: normal;
+}
+
 @keyframes createMenuIn {
   from { opacity: 0; transform: translateY(14px) scale(.96); }
   to { opacity: 1; transform: none; }
@@ -3063,6 +3199,19 @@ body:has([data-diary-create-menu]) [data-app-main="diario"] {
     min-height: 64px;
     padding: 8px;
   }
+
+  [data-app-main="adicionar"] {
+    max-height: 92vh !important;
+    border-radius: 28px 28px 0 0 !important;
+  }
+
+  [data-add-repeat-list="true"] {
+    margin-right: -18px;
+    margin-left: -18px;
+    padding-right: 18px !important;
+    padding-left: 18px !important;
+    scrollbar-width: none;
+  }
 }
 
 @keyframes createMenuSheetIn {
@@ -3077,6 +3226,11 @@ body:has([data-diary-create-menu]) [data-app-main="diario"] {
   [data-create-menu-option],
   [data-create-menu-backdrop="true"] {
     animation-duration: .001ms !important;
+    transition-duration: .001ms !important;
+  }
+
+
+  [data-add-repeat-card] {
     transition-duration: .001ms !important;
   }
 }

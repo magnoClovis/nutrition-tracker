@@ -216,8 +216,16 @@
 
     function renderNotification(notification) {
       if (!notification) return null;
-      const isErr = notification.startsWith("Erro") || notification.startsWith("Error");
+      const content = typeof notification === "string"
+        ? { text: notification }
+        : notification;
+      const message = String(content?.text || "");
+      if (!message) return null;
+      const isErr = message.startsWith("Erro") || message.startsWith("Error");
       return h("div", {
+        role: "status",
+        "aria-live": "polite",
+        "data-app-notification": content.actionLabel ? "action" : "status",
         style: {
           margin: "8px 16px 0",
           background: isErr ? "var(--notif-err-bg)" : "var(--notif-ok-bg)",
@@ -227,9 +235,30 @@
           borderRadius: 6,
           fontSize: 14,
           textAlign: "center",
-          order: 8
+          order: 8,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 12
         }
-      }, notification);
+      }, h("span", null, message), content.actionLabel && typeof content.onAction === "function"
+        ? h("button", {
+          type: "button",
+          "data-notification-action": "true",
+          onClick: content.onAction,
+          style: {
+            minHeight: 36,
+            padding: "0 14px",
+            border: "none",
+            borderRadius: 999,
+            background: "var(--btn-ok)",
+            color: "var(--btn-ok-text)",
+            font: "inherit",
+            fontWeight: 700,
+            cursor: "pointer"
+          }
+        }, content.actionLabel)
+        : null);
     }
 
     /**

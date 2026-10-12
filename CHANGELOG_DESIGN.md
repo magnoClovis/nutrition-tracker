@@ -7,6 +7,15 @@ experiência do usuário. Bugs técnicos continuam catalogados separadamente em
 Cada rodada deve receber uma seção datada, um título curto e uma tabela com o
 escopo, os principais arquivos afetados e a referência de implementação.
 
+## 2026-10-12 — I4-B antecipada em paralelo
+
+Referência geral: depois do fechamento da I4-A, o usuário antecipou expressamente a orquestração do sheet Adicionar sem interromper I8-A e I10-A. A alteração não muda a prioridade geral das quatro abas nem inclui Barcode.
+
+| Item | Mudança aprovada | Arquivos principais | Referência |
+|---:|---|---|---|
+| 1 | A I4-B avança em worktree própria, em paralelo ao fechamento de I8-A/I10-A, com serialização obrigatória apenas dos gates autenticados; implementação e gate local integral estão verdes, restando PR, CI e merge. | `add-screen.js`, controller, navegação, `one-ui.css`, testes e documentação | I4-B — em andamento desde 12/10/2026 |
+| 2 | O sheet Adicionar reúne destino e horário no cabeçalho, repetição recente em um toque com Undo, entrada manual explícita e retorno ao contexto de origem. | `UI_visuals/trofia-diary-timeline-calendar-add-sheet`, fluxo Adicionar e persistência diária existente | Escopo funcional aprovado; Barcode permanece fora |
+
 ## 2026-10-11 — Métricas recebida e quatro abas no caminho crítico
 
 Referência geral: auditoria integral do pacote `UI_visuals/trofia-metrics-journey`, com FLOW aprovado, referência interativa e 46 PNGs claro/escuro. O planejamento passa a cobrir as quatro abas principais e adota duas passagens para priorizar sua entrega.

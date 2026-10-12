@@ -126,6 +126,7 @@
         MEALS,
         mealDisplay,
         loadRecentMealToStaged,
+        repeatRecentMeal,
         TODAY,
         showSaveTemplateModal,
         setShowSaveTemplateModal,
@@ -143,6 +144,7 @@
         mealTimeValue,
         openMealTimeControl,
         setSelectedMealTime,
+        setMealRegistrationDestination,
         mealRegistrationSaving,
         mealTemplates,
         addTemplateSearch,
@@ -225,96 +227,97 @@
       }
 
       function renderHeader() {
+        const destinationField = React.createElement(ChoiceField, {
+          id: "meal-registration-destination",
+          label: uiText("Destino", "Destination", "Destino"),
+          value: staged.meal,
+          options: MEALS.map(meal => ({value: meal, label: mealLabel(meal)})),
+          onChange: setMealRegistrationDestination,
+          helperText: uiText("Escolha uma refeição", "Choose a meal", "Elige una comida"),
+          closeLabel: uiText("Fechar seletor", "Close selector", "Cerrar selector")
+        });
+        const timeField = mealTimeOpen ? React.createElement("div", {
+          "data-meal-time-control": "open",
+          style: {flex: "1 0 100%", maxWidth: 320}
+        }, React.createElement(TemporalField, {
+          id: "meal-registration-time",
+          label: uiText("Horário da refeição", "Meal time", "Hora de la comida"),
+          value: mealTimeValue,
+          onChange: setSelectedMealTime,
+          title: uiText("Escolher horário", "Choose time", "Elegir hora"),
+          hourLabel: uiText("Hora", "Hour", "Hora"),
+          minuteLabel: uiText("Minutos", "Minutes", "Minutos"),
+          increaseHourLabel: uiText("Aumentar hora", "Increase hour", "Aumentar hora"),
+          decreaseHourLabel: uiText("Diminuir hora", "Decrease hour", "Disminuir hora"),
+          increaseMinuteLabel: uiText("Aumentar minutos", "Increase minutes", "Aumentar minutos"),
+          decreaseMinuteLabel: uiText("Diminuir minutos", "Decrease minutes", "Disminuir minutos"),
+          editHourLabel: uiText("Digitar hora", "Type hour", "Escribir hora"),
+          editMinuteLabel: uiText("Digitar minutos", "Type minute", "Escribir minuto"),
+          nowLabel: uiText("Agora", "Now", "Ahora"),
+          cancelLabel: uiText("Cancelar", "Cancel", "Cancelar"),
+          confirmLabel: uiText("Confirmar", "Confirm", "Confirmar"),
+          backspaceLabel: uiText("Apagar dígito", "Delete digit", "Borrar dígito"),
+          invalidHourLabel: uiText("Digite um valor de 0 a 23.", "Enter a value from 0 to 23.", "Escribe un valor de 0 a 23."),
+          invalidMinuteLabel: uiText("Digite um valor de 0 a 59.", "Enter a value from 0 to 59.", "Escribe un valor de 0 a 59.")
+        })) : null;
         return React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      gap: 12,
-      marginBottom: 16,
-      paddingBottom: 12,
-      borderBottom: "1px solid var(--border3)",
-      position: "sticky",
-      top: isMobileView ? -18 : -22,
-      background: "var(--surface)",
-      zIndex: 3
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: "1 1 auto",
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      color: "var(--muted)",
-      marginBottom: 3
-    }
-  }, uiText("Registrar refeição", "Log meal", "Registrar comida")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: "var(--text3)"
-    }
-  }, uiText("Escolha um método e salve no diário de hoje.", "Choose a method and save it to today's diary.", "Elige un método y guárdalo en el diario de hoy."))), /*#__PURE__*/React.createElement("div", {
-    "data-add-header-actions": "true",
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      flex: "0 0 auto"
-    }
-  }, helpNode, /*#__PURE__*/React.createElement("button", {
-    "data-add-close": "true",
-    "aria-label": uiText("Fechar registro de refeição", "Close meal logging", "Cerrar registro de comida"),
-    onClick: closeMealRegistration,
-    disabled: mealRegistrationSaving,
-    style: {
-      background: "var(--btn-inactive)",
-      border: "1px solid var(--btn-inactive-border)",
-      color: "var(--muted)",
-      borderRadius: 999,
-      width: 34,
-      height: 34,
-      cursor: mealRegistrationSaving ? "wait" : "pointer",
-      opacity: mealRegistrationSaving ? 0.65 : 1,
-      fontSize: 18,
-      lineHeight: "30px"
-    }
-  }, "\u00D7")));
+          "data-add-orchestration-header": "true",
+          style: {
+            display: "grid", gap: 12, marginBottom: 16, paddingBottom: 12,
+            borderBottom: "1px solid var(--border3)", position: "sticky",
+            top: isMobileView ? -18 : -22, background: "var(--surface)", zIndex: 3
+          }
+        }, React.createElement("div", {
+          style: {display: "flex", alignItems: "center", gap: 12}
+        }, React.createElement("div", {
+          style: {flex: "1 1 auto", minWidth: 0}
+        }, React.createElement("div", {
+          style: {fontSize: 20, fontWeight: 650, color: "var(--text)", marginBottom: 3}
+        }, uiText("Adicionar alimento", "Add food", "Añadir alimento")), React.createElement("div", {
+          style: {fontSize: 12.5, color: "var(--text3)"}
+        }, uiText("Defina o destino e o horário antes de registrar.", "Set the destination and time before logging.", "Define el destino y la hora antes de registrar."))), React.createElement("div", {
+          "data-add-header-actions": "true",
+          style: {display: "flex", alignItems: "center", gap: 8, flex: "0 0 auto"}
+        }, helpNode, React.createElement("button", {
+          "data-add-close": "true",
+          "aria-label": uiText("Fechar registro de refeição", "Close meal logging", "Cerrar registro de comida"),
+          onClick: closeMealRegistration,
+          disabled: mealRegistrationSaving,
+          style: {
+            background: "var(--btn-inactive)", border: "1px solid var(--btn-inactive-border)",
+            color: "var(--muted)", borderRadius: 999, width: 34, height: 34,
+            cursor: mealRegistrationSaving ? "wait" : "pointer",
+            opacity: mealRegistrationSaving ? 0.65 : 1, fontSize: 18, lineHeight: "30px"
+          }
+        }, "\u00D7"))), React.createElement("div", {
+          "data-add-orchestration-controls": "true",
+          style: {display: "flex", alignItems: "flex-start", gap: 8, flexWrap: "wrap"}
+        }, React.createElement("div", {"data-add-destination-chip": "true"},
+        React.createElement("span", {"data-add-destination-prefix": "true"}, uiText("Para", "To", "Para")),
+        destinationField), React.createElement("button", {
+          type: "button",
+          "data-add-time-chip": mealTimeOpen ? "selected" : "now",
+          onClick: openMealTimeControl,
+          disabled: mealRegistrationSaving
+        }, React.createElement("span", null, uiText("Às", "At", "A las")), " ",
+        mealTimeOpen && mealTimeValue ? mealTimeValue : uiText("Agora", "Now", "Ahora"), " ▾"), timeField));
       }
 
       function renderRecentMeals() {
         return React.createElement("div", {
+    "data-add-repeat-recent": "true",
     style: {
       marginBottom: 14
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowRecentMeals(s => !s),
+  }, /*#__PURE__*/React.createElement("div", {
+    "data-add-repeat-heading": "true"
+  }, /*#__PURE__*/React.createElement("strong", null, text('repeatRecent')), /*#__PURE__*/React.createElement("span", null, uiText("Um toque registra novamente", "One tap logs it again", "Un toque la registra de nuevo"))), /*#__PURE__*/React.createElement("div", {
+    "data-add-repeat-list": "true",
     style: {
-      width: "100%",
-      background: "var(--btn-inactive)",
-      border: "1px solid var(--btn-inactive-border)",
-      color: "var(--muted)",
-      padding: "8px 12px",
-      borderRadius: 6,
-      fontSize: 14,
-      letterSpacing: 1,
-      textTransform: "uppercase",
-      cursor: "pointer",
-      textAlign: "left",
       display: "flex",
-      justifyContent: "space-between"
-    }
-  }, /*#__PURE__*/React.createElement("span", null, text('repeatRecent')), /*#__PURE__*/React.createElement("span", null, showRecentMeals ? "\u25BE" : "\u25B8")), showRecentMeals && /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderTop: "none",
-      borderRadius: "0 0 6px 6px",
-      maxHeight: 280,
-      overflowY: "auto"
+      gap: 8,
+      overflowX: "auto",
+      padding: "2px 1px 8px"
     }
   }, recentMeals.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
@@ -324,63 +327,50 @@
       fontStyle: "italic",
       textAlign: "center"
     }
-  }, "Sem refei\xE7\xF5es recentes.") : MEALS.map(meal => {
-    const byMeal = recentMeals.filter(r => r.meal === meal);
-    if (!byMeal.length) return null;
-    return /*#__PURE__*/React.createElement("div", {
-      key: meal
-    }, /*#__PURE__*/React.createElement("div", {
+  }, uiText("Sem refeições recentes.", "No recent meals.", "No hay comidas recientes.")) : recentMeals.slice(0, 8).map((r, i) => /*#__PURE__*/React.createElement("button", {
+      key: `${r.date}-${r.meal}-${i}`,
+      type: "button",
+      "data-add-repeat-card": "true",
+      onClick: () => repeatRecentMeal(r),
+      disabled: mealRegistrationSaving,
       style: {
-        padding: "6px 12px",
-        fontSize: 14,
-        letterSpacing: 1,
-        color: "var(--muted)",
-        textTransform: "uppercase",
-        borderBottom: "1px solid var(--border3)",
-        background: "var(--surface3)"
-      }
-    }, mealDisplay(meal)), byMeal.map((r, i) => /*#__PURE__*/React.createElement("div", {
-      key: i,
-      onClick: () => loadRecentMealToStaged(r),
-      style: {
-        padding: "9px 12px",
-        borderBottom: "1px solid var(--border3)",
-        cursor: "pointer",
+        flex: "0 0 156px",
+        minHeight: 96,
+        padding: 12,
+        border: "1px solid var(--border3)",
+        borderRadius: 20,
+        background: "var(--surface3)",
+        color: "var(--text)",
+        cursor: mealRegistrationSaving ? "wait" : "pointer",
         display: "flex",
+        flexDirection: "column",
         justifyContent: "space-between",
-        alignItems: "center"
-      },
-      onMouseEnter: e => e.currentTarget.style.background = "var(--btn-inactive)",
-      onMouseLeave: e => e.currentTarget.style.background = "transparent"
-    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14,
-        color: "var(--text3)"
-      }
-    }, r.date === TODAY ? text('today') : r.date), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14,
-        color: "var(--muted)",
-        marginTop: 2
-      }
-    }, r.entries.length, " item", r.entries.length !== 1 ? "s" : "", ": ", r.entries.map(e => e.name).join(", ").slice(0, 50), r.entries.map(e => e.name).join(", ").length > 50 ? "..." : "")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        textAlign: "right",
-        flexShrink: 0,
-        marginLeft: 10
+        alignItems: "stretch",
+        textAlign: "left"
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 14,
-        color: "#c8a96e"
+        fontSize: 11.5,
+        color: "var(--muted)"
       }
-    }, r.protein, "g"), /*#__PURE__*/React.createElement("div", {
+    }, (r.date === TODAY ? text('today') : r.date), " · ", mealDisplay(r.meal)), /*#__PURE__*/React.createElement("strong", {
       style: {
         fontSize: 14,
-        color: "#8ec8c8"
+        lineHeight: 1.3,
+        marginTop: 5
       }
-    }, r.kcal, " kcal")))));
-  })));
+    }, r.entries.map(e => e.name).join(", ").slice(0, 46), r.entries.map(e => e.name).join(", ").length > 46 ? "…" : ""), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        color: "var(--calories)",
+        fontWeight: 700,
+        marginTop: 7
+      }
+    }, r.kcal, " kcal · ", r.protein, "g")))), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    "data-add-manual-entry": "true",
+    onClick: () => selectAddMode("batch")
+  }, /*#__PURE__*/React.createElement("span", {"aria-hidden": "true"}, "+"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("strong", null, uiText("Entrada manual", "Manual entry", "Entrada manual")), /*#__PURE__*/React.createElement("small", null, uiText("Busque um alimento e ajuste a porção", "Find a food and adjust the serving", "Busca un alimento y ajusta la porción"))), /*#__PURE__*/React.createElement("i", {"aria-hidden": "true"}, "›")));
       }
 
       function renderContent() {
@@ -461,47 +451,7 @@
         opacity: unavailable ? 0.55 : 1
       }
     }, m === "describe" ? "\u2726 " + l : m === "image" ? "\ud83d\udcf7 " + l : m === "saved" ? "\u2630 " + l : l);
-  })), /*#__PURE__*/React.createElement("div", {
-    "data-meal-time-control": mealTimeOpen ? "open" : "closed",
-    style: {
-      margin: "-4px 0 12px"
-    }
-  }, mealTimeOpen ? /*#__PURE__*/React.createElement(TemporalField, {
-    id: "meal-registration-time",
-    label: uiText("Horário da refeição (opcional)", "Meal time (optional)", "Hora de la comida (opcional)"),
-    value: mealTimeValue,
-    onChange: setSelectedMealTime,
-    title: uiText("Escolher horário", "Choose time", "Elegir hora"),
-    hourLabel: uiText("Hora", "Hour", "Hora"),
-    minuteLabel: uiText("Minutos", "Minutes", "Minutos"),
-    increaseHourLabel: uiText("Aumentar hora", "Increase hour", "Aumentar hora"),
-    decreaseHourLabel: uiText("Diminuir hora", "Decrease hour", "Disminuir hora"),
-    increaseMinuteLabel: uiText("Aumentar minutos", "Increase minutes", "Aumentar minutos"),
-    decreaseMinuteLabel: uiText("Diminuir minutos", "Decrease minutes", "Disminuir minutos"),
-    editHourLabel: uiText("Digitar hora", "Type hour", "Escribir hora"),
-    editMinuteLabel: uiText("Digitar minutos", "Type minutes", "Escribir minutos"),
-    nowLabel: uiText("Agora", "Now", "Ahora"),
-    cancelLabel: uiText("Cancelar", "Cancel", "Cancelar"),
-    confirmLabel: uiText("Confirmar", "Confirm", "Confirmar"),
-    backspaceLabel: uiText("Apagar dígito", "Delete digit", "Borrar dígito"),
-    invalidHourLabel: uiText("Digite um valor de 0 a 23.", "Enter a value from 0 to 23.", "Escribe un valor de 0 a 23."),
-    invalidMinuteLabel: uiText("Digite um valor de 0 a 59.", "Enter a value from 0 to 59.", "Escribe un valor de 0 a 59."),
-    style: {
-      maxWidth: 280
-    }
-  }) : /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    onClick: openMealTimeControl,
-    style: {
-      background: "none",
-      border: "none",
-      color: "var(--muted)",
-      padding: "2px 0",
-      fontSize: 12,
-      fontFamily: "inherit",
-      cursor: "pointer"
-    }
-  }, "+ ", uiText("Informar horário", "Set meal time", "Indicar hora"))), imageMealOpen && imageMealNode, addTemplatesOpen && /*#__PURE__*/React.createElement("div", {
+  })), imageMealOpen && imageMealNode, addTemplatesOpen && /*#__PURE__*/React.createElement("div", {
     "data-add-saved-meals": "true",
     style: {
       marginTop: -4,
