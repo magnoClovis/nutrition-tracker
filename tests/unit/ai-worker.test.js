@@ -162,6 +162,7 @@ async function createFixture({
   const env = geminiApiKey === null
     ? { APP_CHECK_MODE: appCheckMode }
     : { GEMINI_API_KEY: geminiApiKey, APP_CHECK_MODE: appCheckMode };
+  env.DEPLOY_TARGET = "production";
   env.RATE_LIMIT_PSEUDONYM_KEY = pseudonymKey;
   env.AI_TIER_MODE = tierMode;
   env.AI_TIER_CONFIG = tierConfig;
@@ -956,4 +957,65 @@ test("telemetry failure never changes the public response", async () => {
   const response = await worker.fetch(request(), fixture.env);
   assert.equal(response.status, 200);
   assert.deepEqual(await responseBody(response), { text: "ok" });
+});
+
+test("staging Worker configuration stays closed until app IDs and host exist", async () => {
+  const { resolveWorkerEnvironment } = await import("../../worker/src/ai-worker.js");
+  const manifest = JSON.parse(fs.readFileSync(
+    path.join(__dirname, "../../config/staging-environment.json"), "utf8"
+  ));
+  const staging = {
+    DEPLOY_TARGET: "staging",
+    FIREBASE_PROJECT_ID: manifest.firebase.projectId,
+    FIREBASE_PROJECT_NUMBER: manifest.firebase.projectNumber,
+    APP_CHECK_MODE: "enforce",
+    FIREBASE_APP_CHECK_APP_IDS: "",
+    ALLOWED_ORIGINS: ""
+  };
+  assert.equal(resolveWorkerEnvironment(staging), null);
+  assert.equal(resolveWorkerEnvironment({}), null);
+  assert.equal(resolveWorkerEnvironment({ ...staging, FIREBASE_APP_CHECK_APP_IDS: "1:128834310181:web:91e8d303e932c4a84bafcc" }), null);
+  assert.equal(resolveWorkerEnvironment({ ...staging, FIREBASE_APP_CHECK_APP_IDS: "1:31822846339:web:aabbcc", ALLOWED_ORIGINS: WEB_ORIGIN }), null);
+  assert.equal(resolveWorkerEnvironment({ ...staging, FIREBASE_APP_CHECK_APP_IDS: "1:31822846339:web:aabbcc", ALLOWED_ORIGINS: ANDROID_ORIGIN }), null);
+  assert.equal(resolveWorkerEnvironment({ ...staging, FIREBASE_APP_CHECK_APP_IDS: "1:31822846339:web:aabbcc", ALLOWED_ORIGINS: "https://staging.example.test/path" }), null);
+  assert.equal(resolveWorkerEnvironment({ DEPLOY_TARGET: "production", FIREBASE_PROJECT_ID: "trofia-staging" }), null);
+  const fixture = await createFixture();
+  const response = await fixture.worker.fetch(request(), { ...fixture.env, ...staging });
+  assert.equal(response.status, 503);
+  assert.deepEqual(await responseBody(response), { error: { code: "environment-not-configured" } });
+  assert.equal(fixture.verifiedTokens.length, 0);
+  assert.equal(fixture.providerRequests.length, 0);
+});
+
+test("configured staging Worker accepts only its exact origin", async () => {
+  const fixture = await createFixture();
+  Object.assign(fixture.env, {
+    DEPLOY_TARGET: "staging",
+    FIREBASE_PROJECT_ID: "trofia-staging",
+    FIREBASE_PROJECT_NUMBER: "31822846339",
+    FIREBASE_APP_CHECK_APP_IDS: "1:31822846339:web:aabbcc",
+    ALLOWED_ORIGINS: "https://staging.example.test"
+  });
+  const productionOrigin = await fixture.worker.fetch(request(), fixture.env);
+  assert.equal(productionOrigin.status, 403);
+  assert.equal(productionOrigin.headers.get("Access-Control-Allow-Origin"), null);
+  const stagingOrigin = await fixture.worker.fetch(request({ origin: "https://staging.example.test" }), fixture.env);
+  assert.equal(stagingOrigin.status, 200);
+  assert.equal(stagingOrigin.headers.get("Access-Control-Allow-Origin"), "https://staging.example.test");
+  assert.equal(fixture.providerRequests.length, 1);
+});
+
+test("staging Android may use the Capacitor origin only with a staging Android App Check ID", async () => {
+  const { resolveWorkerEnvironment } = await import("../../worker/src/ai-worker.js");
+  const config = resolveWorkerEnvironment({
+    DEPLOY_TARGET: "staging",
+    FIREBASE_PROJECT_ID: "trofia-staging",
+    FIREBASE_PROJECT_NUMBER: "31822846339",
+    FIREBASE_APP_CHECK_APP_IDS: "1:31822846339:web:aabbcc,1:31822846339:android:ddeeff",
+    ALLOWED_ORIGINS: "https://staging.example.test,https://localhost",
+    APP_CHECK_MODE: "enforce"
+  });
+  assert.ok(config);
+  assert.equal(config.allowedOrigins.has(ANDROID_ORIGIN), true);
+  assert.equal(config.allowedOrigins.has(WEB_ORIGIN), false);
 });
