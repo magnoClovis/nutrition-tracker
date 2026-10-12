@@ -1056,6 +1056,7 @@
       const [pantry, setPantry] = useState([]);
       const [log, setLog] = useState({});
       const [tab, setTab] = useState("diario");
+      const [createMenuOpen, setCreateMenuOpen] = useState(false);
       const tabHistoryRef = useRef([]);
       const mealRegistrationOriginRef = useRef(null);
       const pendingScrollRestoreRef = useRef(null);
@@ -1152,6 +1153,20 @@
           setDescribeMode(false);
           setBatchMode(true);
         }
+      }
+      function selectCreateMode(mode) {
+        setCreateMenuOpen(false);
+        openAddForMeal(MEALS[0]);
+        selectAddMode(mode);
+      }
+      function closeCreateMenu() {
+        setCreateMenuOpen(false);
+        if (typeof document === "undefined") return;
+        const restoreFocus = () => document
+          .querySelector('[data-diary-global-add] [data-tutorial="open-log-sheet"]')
+          ?.focus();
+        if (typeof requestAnimationFrame === "function") requestAnimationFrame(restoreFocus);
+        else setTimeout(restoreFocus, 0);
       }
       const [trainingByDate, setTrainingByDate] = useState({});
       const [form, setForm] = useState(emptyFood());
@@ -5059,6 +5074,7 @@
           showSuppForm,
           headerLanguageMenuOpen,
           menuOpen,
+          createMenuOpen,
           entryMenuId,
           editEntryId,
           editingId,
@@ -5111,6 +5127,7 @@
             setMenuOpen(false);
             setHeaderLanguageMenuOpen(false);
             break;
+          case "closeCreateMenu": closeCreateMenu(); break;
           case "closeEntryMenu": setEntryMenuId(null); break;
           case "cancelEntryEdit": cancelEntryEdit(); break;
           case "cancelFoodEdit":
@@ -5409,6 +5426,10 @@
         saveEntryEdit,
         cancelEntryEdit,
         openAddForMeal,
+        createMenuOpen,
+        onOpenCreateMenu: () => setCreateMenuOpen(true),
+        onCloseCreateMenu: closeCreateMenu,
+        onSelectCreateMode: selectCreateMode,
         setEntryMenuId,
         detailFood,
         setDetailFood,
