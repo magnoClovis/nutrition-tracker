@@ -21,19 +21,22 @@ const {createAccountDeletionRequestService} = require(
 const {
   ACCOUNT_DELETION_TASK_FUNCTION,
   CALLABLE_REGION,
-  DELETION_TASK_OPTIONS,
-  PRODUCTION_PROJECT_ID,
-  REQUEST_SERVICE_ACCOUNT,
-  RECONCILER_SERVICE_ACCOUNT,
   TASK_REGION,
+  resolveFunctionDeployment,
 } = require("./config.js");
 const {createFirestoreAccountDeletionOperations} = require(
   "./firestore-account-deletion.js",
 );
 
-const app = getApps()[0] || initializeApp({
-  projectId: process.env.GCLOUD_PROJECT || PRODUCTION_PROJECT_ID,
+const deployment = resolveFunctionDeployment({
+  deployTarget: process.env.TROFIA_DEPLOY_TARGET,
+  cloudProjectId: process.env.GCLOUD_PROJECT,
 });
+const existingApp = getApps()[0];
+if (existingApp && existingApp.options.projectId !== deployment.projectId) {
+  throw new Error("firebase-admin-project-mismatch");
+}
+const app = existingApp || initializeApp({projectId: deployment.projectId});
 const firestore = getFirestore(app);
 const auth = getAuth(app);
 const taskQueue = getFunctions(app).taskQueue(
@@ -67,7 +70,7 @@ const requestService = createAccountDeletionRequestService({
 const requestAccountDeletion = onCall(
   {
     region: CALLABLE_REGION,
-    serviceAccount: REQUEST_SERVICE_ACCOUNT,
+    serviceAccount: deployment.requestServiceAccount,
     enforceAppCheck: true,
     timeoutSeconds: 30,
     maxInstances: 10,
@@ -104,7 +107,7 @@ const requestAccountDeletion = onCall(
 );
 
 const processAccountDeletionTask = onTaskDispatched(
-  DELETION_TASK_OPTIONS,
+  deployment.taskOptions,
   async (request) => {
     await taskProcessor.process(request);
   },
@@ -116,7 +119,7 @@ const reconcileAccountDeletionJobs = onSchedule(
     // firebase-tools uses this as the desired Scheduler OIDC identity too.
     // Its update check can skip OIDC-only changes; deployment must verify
     // and, if needed, patch the job before declaring the migration complete.
-    serviceAccount: RECONCILER_SERVICE_ACCOUNT,
+    serviceAccount: deployment.reconcilerServiceAccount,
     schedule: "every 60 minutes",
     timeZone: "Etc/UTC",
     timeoutSeconds: 9 * 60,

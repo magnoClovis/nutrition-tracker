@@ -3,6 +3,7 @@
 const CALLABLE_REGION = "europe-southwest1";
 const TASK_REGION = "europe-west1";
 const PRODUCTION_PROJECT_ID = "nutrition-tracker-780b3";
+const STAGING_PROJECT_ID = "trofia-staging";
 const PROCESSOR_SERVICE_ACCOUNT =
   `trofia-del-process@${PRODUCTION_PROJECT_ID}.iam.gserviceaccount.com`;
 const REQUEST_SERVICE_ACCOUNT =
@@ -36,6 +37,37 @@ const DELETION_TASK_OPTIONS = Object.freeze({
   timeoutSeconds: 9 * 60,
 });
 
+function resolveFunctionDeployment({deployTarget, cloudProjectId} = {}) {
+  const target = deployTarget === undefined ? "production" : deployTarget;
+  if (target !== "production" && target !== "staging") {
+    throw new Error("unsupported-functions-deploy-target");
+  }
+  if (target === "staging" && cloudProjectId !== STAGING_PROJECT_ID) {
+    throw new Error("staging-functions-project-mismatch");
+  }
+  if (target === "production" && cloudProjectId &&
+      cloudProjectId !== PRODUCTION_PROJECT_ID &&
+      cloudProjectId !== EMULATOR_PROJECT_ID) {
+    throw new Error("production-functions-project-mismatch");
+  }
+
+  const projectId = target === "staging"
+    ? STAGING_PROJECT_ID : (cloudProjectId || PRODUCTION_PROJECT_ID);
+  const serviceAccount = (name) =>
+    `${name}@${target === "staging" ? STAGING_PROJECT_ID : PRODUCTION_PROJECT_ID}.iam.gserviceaccount.com`;
+  return Object.freeze({
+    target,
+    projectId,
+    processorServiceAccount: serviceAccount("trofia-del-process"),
+    requestServiceAccount: serviceAccount("trofia-del-request"),
+    reconcilerServiceAccount: serviceAccount("trofia-del-reconcile"),
+    taskOptions: Object.freeze({
+      ...DELETION_TASK_OPTIONS,
+      serviceAccount: serviceAccount("trofia-del-process"),
+    }),
+  });
+}
+
 module.exports = Object.freeze({
   ACCOUNT_DELETION_JOBS_COLLECTION,
   ACCOUNT_DELETION_TASK_FUNCTION,
@@ -44,6 +76,7 @@ module.exports = Object.freeze({
   DELETION_TASK_OPTIONS,
   TASK_REGION,
   PRODUCTION_PROJECT_ID,
+  STAGING_PROJECT_ID,
   PROCESSOR_SERVICE_ACCOUNT,
   REQUEST_SERVICE_ACCOUNT,
   RECONCILER_SERVICE_ACCOUNT,
@@ -53,4 +86,5 @@ module.exports = Object.freeze({
   RECONCILIATION_RETRY_MS,
   RECONCILIATION_STALE_MS,
   SEALED_LOCK_RETENTION_MS,
+  resolveFunctionDeployment,
 });
