@@ -52,6 +52,8 @@ const ALLOWED_ORIGINS = new Set([
   "https://magnoclovis.github.io",
   "https://localhost"
 ]);
+const STAGING_PROJECT_ID = "trofia-staging";
+const STAGING_PROJECT_NUMBER = "31822846339";
 const MAX_PROMPT_CHARACTERS = 40_000;
 const MAX_OUTPUT_TOKENS = 1_200;
 const MAX_REQUEST_BODY_BYTES = (MAX_PROMPT_CHARACTERS * 4) + 4_096;
@@ -69,19 +71,62 @@ function corsHeaders(origin) {
   };
 }
 
-function jsonResponse(status, body, origin) {
+function jsonResponseForOrigins(status, body, origin, allowedOrigins) {
   const headers = {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store"
   };
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
+  if (origin && allowedOrigins.has(origin)) {
     Object.assign(headers, corsHeaders(origin));
   }
   return new Response(JSON.stringify(body), { status, headers });
 }
 
-function errorResponse(status, code, origin) {
-  return jsonResponse(status, { error: { code } }, origin);
+function errorResponseForOrigins(status, code, origin, allowedOrigins) {
+  return jsonResponseForOrigins(status, { error: { code } }, origin, allowedOrigins);
+}
+
+export function resolveWorkerEnvironment(env) {
+  const target = env?.DEPLOY_TARGET;
+  if (target === "production") {
+    if (env?.FIREBASE_PROJECT_ID || env?.FIREBASE_PROJECT_NUMBER ||
+        env?.FIREBASE_APP_CHECK_APP_IDS || env?.ALLOWED_ORIGINS) return null;
+    return {
+      projectId: FIREBASE_PROJECT_ID,
+      projectNumber: FIREBASE_PROJECT_NUMBER,
+      appIds: FIREBASE_APP_CHECK_APP_IDS,
+      allowedOrigins: ALLOWED_ORIGINS
+    };
+  }
+  if (target !== "staging" || env?.APP_CHECK_MODE !== "enforce" ||
+      env?.FIREBASE_PROJECT_ID !== STAGING_PROJECT_ID ||
+      env?.FIREBASE_PROJECT_NUMBER !== STAGING_PROJECT_NUMBER) return null;
+
+  const appIds = String(env.FIREBASE_APP_CHECK_APP_IDS || "")
+    .split(",").map(value => value.trim()).filter(Boolean);
+  const origins = String(env.ALLOWED_ORIGINS || "")
+    .split(",").map(value => value.trim()).filter(Boolean);
+  const hasStagingAndroidApp = appIds.some(id => id.startsWith(`1:${STAGING_PROJECT_NUMBER}:android:`));
+  if (!appIds.length || !origins.length ||
+      appIds.some(id => !/^1:31822846339:(?:web|android):[a-f0-9]+$/.test(id)) ||
+      origins.some(origin => {
+        try {
+          const parsed = new URL(origin);
+          return parsed.protocol !== "https:" || parsed.origin !== origin ||
+            parsed.hostname === "magnoclovis.github.io" ||
+            (parsed.hostname === "localhost" &&
+              (origin !== "https://localhost" || !hasStagingAndroidApp));
+        } catch (_) {
+          return true;
+        }
+      })) return null;
+
+  return {
+    projectId: STAGING_PROJECT_ID,
+    projectNumber: STAGING_PROJECT_NUMBER,
+    appIds,
+    allowedOrigins: new Set(origins)
+  };
 }
 
 function rateLimitScope(limit) {
@@ -159,21 +204,16 @@ function geminiText(payload) {
 }
 
 export function createAIWorker({
-  verifyFirebaseIdToken = createFirebaseIdTokenVerifier({
-    projectId: FIREBASE_PROJECT_ID
-  }),
-  verifyFirebaseAppCheckToken = createFirebaseAppCheckTokenVerifier({
-    projectNumber: FIREBASE_PROJECT_NUMBER,
-    allowedAppIds: FIREBASE_APP_CHECK_APP_IDS
-  }),
+  verifyFirebaseIdToken,
+  verifyFirebaseAppCheckToken,
   fetchRequest = globalThis.fetch,
   now = () => Date.now(),
   createProviderAbortSignal = timeoutMs => AbortSignal.timeout(timeoutMs),
   recordMetric = writeSanitizedMetric,
   persistMetric = persistSanitizedMetric
 } = {}) {
-  if (typeof verifyFirebaseIdToken !== "function" ||
-      typeof verifyFirebaseAppCheckToken !== "function" ||
+  if ((verifyFirebaseIdToken !== undefined && typeof verifyFirebaseIdToken !== "function") ||
+      (verifyFirebaseAppCheckToken !== undefined && typeof verifyFirebaseAppCheckToken !== "function") ||
       typeof fetchRequest !== "function" ||
       typeof now !== "function" ||
       typeof createProviderAbortSignal !== "function" ||
@@ -181,8 +221,31 @@ export function createAIWorker({
       typeof persistMetric !== "function") {
     throw new TypeError("AI Worker requires Auth/App Check verification, fetch, clock, timeout, and metric functions");
   }
+  const verifiersByEnvironment = new Map();
+
+  function verifiersFor(config) {
+    const key = `${config.projectId}:${config.appIds.join(",")}`;
+    if (!verifiersByEnvironment.has(key)) {
+      verifiersByEnvironment.set(key, {
+        id: createFirebaseIdTokenVerifier({ projectId: config.projectId }),
+        appCheck: createFirebaseAppCheckTokenVerifier({
+          projectNumber: config.projectNumber,
+          allowedAppIds: config.appIds
+        })
+      });
+    }
+    return verifiersByEnvironment.get(key);
+  }
 
   async function handleRequest(request, env, metricContext) {
+      const config = resolveWorkerEnvironment(env);
+      if (!config) {
+        return errorResponseForOrigins(503, "environment-not-configured", null, ALLOWED_ORIGINS);
+      }
+      const jsonResponse = (status, body, origin) =>
+        jsonResponseForOrigins(status, body, origin, config.allowedOrigins);
+      const errorResponse = (status, code, origin) =>
+        errorResponseForOrigins(status, code, origin, config.allowedOrigins);
       const url = new URL(request.url);
       metricContext.endpoint = url.pathname;
       const isCompletion = url.pathname === COMPLETION_PATH;
@@ -196,7 +259,7 @@ export function createAIWorker({
       }
 
       const origin = request.headers.get("Origin");
-      if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+      if (!origin || !config.allowedOrigins.has(origin)) {
         return errorResponse(403, "origin-not-allowed");
       }
 
@@ -230,7 +293,7 @@ export function createAIWorker({
 
       let identity;
       try {
-        identity = await verifyFirebaseIdToken(token);
+        identity = await (verifyFirebaseIdToken || verifiersFor(config).id)(token);
       } catch (error) {
         if (error instanceof FirebaseIdTokenError &&
             error.code === "certificate-unavailable") {
@@ -247,7 +310,7 @@ export function createAIWorker({
       const appCheckToken = request.headers.get("X-Firebase-AppCheck") || "";
       let appCheckError = null;
       try {
-        await verifyFirebaseAppCheckToken(appCheckToken);
+        await (verifyFirebaseAppCheckToken || verifiersFor(config).appCheck)(appCheckToken);
       } catch (error) {
         appCheckError = error;
       }
