@@ -1,5 +1,19 @@
 # Histórico da frente principal — arquitetura de IA e dados
 
+### [TEST-CI-1] - Evitar repetição de CI por evidência documental em PR técnico
+
+- **Status:** em andamento.
+- **Data de início:** 12/10/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** manter a prova integral do código sem repetir o Playwright apenas para copiar métricas aos documentos.
+- **O que se planeja fazer:** publicar resultados do SHA técnico validado no corpo do PR, transferir a evidência final e métricas exatas ao PR documental pós-merge e exigir novo gate sempre que a mudança técnica ou a base o justificarem.
+- **Recursos/arquivos principais envolvidos:** `AGENTS.md`, `documentation/PADRAO-DOCUMENTACAO.md`, `RESUMO-STATUS.md`, descrições dos PRs e checks do GitHub Actions.
+- **O que foi feito:** a auditoria de 12/10 constatou que a etapa Playwright levou 48 min 27 s no CI inspecionado e que os PRs #334/#336 executaram um segundo CI autenticado após commit final somente documental. A regra operacional proposta preserva o gate técnico, os checks do PR e o CI da `main`, mas registra resultados no corpo do PR técnico e posterga a cópia versionada final para PR exclusivamente documental após o merge. Não houve exclusão de teste, alteração de workflow nem economia já medida.
+- **Alinhamento:** pendente de validação e merge.
+- **PRs/commits relacionados:** #334 e #336 são evidência da duplicação; PR deste recorte ainda não criado.
+
 ### [C14-F2-DEPLOY-DEPENDENCIAS] - Publicação controlada após o PR #308
 
 - **Status:** concluído.
