@@ -1,5 +1,11 @@
 # C14-H — Tarefa 0 de staging e validação final
 
+## Recorte CSP staging (iniciado em 12/10/2026)
+
+O código de Web, Worker e Functions já foi mesclado sem deploy staging. A próxima etapa independente deriva uma CSP para o HTML de staging a partir do manifesto validado, com destinos exatos de Worker, callable e Auth do projeto staging, sem permitir os homólogos de produção nem alterar a política publicada da produção. O contrato deve falhar com manifesto incompleto ou misturado, preservar hashes dos blocos inline e verificar o artefato após o build. Mesmo após esse recorte, o build staging permanece bloqueado até os demais vínculos de execução serem resolvidos. O CI da `main` após o merge Functions #336 falhou duas vezes somente em testes de UI autenticados; a causa de `#loading` não foi estabelecida, e a documentação pós-merge de #336 permanece local, sem publicação.
+
+Na branch isolada, o Vite seleciona a CSP staging somente depois de `verifyDeploymentTarget`; a transformação substitui exatamente as origens do Worker, callable e domínio Auth, rejeita destino vazio, produção, wildcard ou projeto Firebase divergente e reaplica a verificação de hashes e diretivas ao HTML de saída. A política de produção não foi alterada. Cinco testes focados passaram, assim como preflight sem avisos, 1.561 unitários, build de produção com allowlist de 14 arquivos e prova CSP Chromium. O build staging foi recusado antes da emissão do artefato porque o manifesto ainda não contém apps/recursos; isso é o resultado esperado, **não** prova de CSP staging publicada. A suíte integral e o CI do novo recorte ainda pendem; CI autenticado de I4-B ocupava a lane na última verificação.
+
 > Estado em 09/10/2026: auditoria somente em leitura mesclada no PR #315 (`1fb3c72`); projeto staging criado e billing vinculado após autorização posterior do usuário. C14-H funcional em andamento, sem apps ou rollout. Responsável: Trofia-Principal. Este documento continua sendo gate para identidades, dados, publicações e mudanças de produção; a criação do projeto não comprova o isolamento do aplicativo.
 
 ## Escopo e método

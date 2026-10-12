@@ -9,7 +9,7 @@ import cspVerifier from './scripts/verify-csp-policy.js';
 import stagingBoundaryVerifier from './scripts/verify-staging-boundaries.js';
 
 const { renderPrivacyPage } = privacyPageRenderer;
-const { verifyCspPolicy } = cspVerifier;
+const { renderStagingCspHtml, verifyCspPolicy, verifyStagingCspPolicy } = cspVerifier;
 const { verifyDeploymentTarget } = stagingBoundaryVerifier;
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
@@ -19,9 +19,10 @@ const deploymentTarget = process.env.TROFIA_DEPLOY_TARGET === undefined
   ? 'production'
   : process.env.TROFIA_DEPLOY_TARGET.trim();
 verifyDeploymentTarget(deploymentTarget, projectRoot);
-const stagingFirebase = deploymentTarget === 'staging'
-  ? JSON.parse(readFileSync(resolve(projectRoot, 'config/staging-environment.json'), 'utf8')).firebase
+const stagingManifest = deploymentTarget === 'staging'
+  ? JSON.parse(readFileSync(resolve(projectRoot, 'config/staging-environment.json'), 'utf8'))
   : null;
+const stagingFirebase = stagingManifest?.firebase ?? null;
 
 const baselineRuntimeFiles = [];
 
@@ -91,7 +92,18 @@ function verifyBuiltCsp() {
     apply: 'build',
     async closeBundle() {
       const html = await readFile(resolve(outputDirectory, 'index.html'), 'utf8');
-      verifyCspPolicy(html);
+      if (deploymentTarget === 'staging') verifyStagingCspPolicy(html, stagingManifest);
+      else verifyCspPolicy(html);
+    },
+  };
+}
+
+function stageCspPolicy() {
+  return {
+    name: 'stage-csp-policy',
+    enforce: 'pre',
+    transformIndexHtml(html) {
+      return deploymentTarget === 'staging' ? renderStagingCspHtml(html, stagingManifest) : html;
     },
   };
 }
@@ -106,6 +118,7 @@ export default defineConfig({
   // assets remain copied explicitly until ORG-2 migrates their publishing contract.
   publicDir: false,
   plugins: [
+    stageCspPolicy(),
     react({ jsxRuntime: 'classic' }),
     preserveLegacyCssCascadeOrder(),
     verifyBuiltCsp(),

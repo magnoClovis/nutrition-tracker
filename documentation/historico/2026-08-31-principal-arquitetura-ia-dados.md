@@ -1569,3 +1569,16 @@ Em 29/09/2026, o responsável aprovou registrar a sequência ORG-0 a ORG-7 antes
 | [#189](https://github.com/magnoClovis/nutrition-tracker/pull/189) | 1 d 16 h 20 min | 40 min (1 leve + 39 pesado) | Trofia-Principal |
 | [#191](https://github.com/magnoClovis/nutrition-tracker/pull/191) | 1 h 31 min | 45 min (1 leve + 44 pesado) | Trofia-Principal |
 | [#198](https://github.com/magnoClovis/nutrition-tracker/pull/198) | 2 min | 1 min (1 leve + 0 pesado) | Trofia-Principal |
+# C14-H-CSP — política CSP separada para staging
+
+- **Status:** em andamento.
+- **Data de início:** 12/10/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** impedir que o artefato staging autorize endpoints de produção na política de conteúdo.
+- **O que se planeja fazer:** derivar a CSP staging de manifesto validado, preservar hashes e diretivas restritivas, recusar valores ausentes/misturados e provar o HTML gerado; manter o build staging fail-closed até os demais consumidores estarem prontos.
+- **Recursos/arquivos principais envolvidos:** `index.html`, `vite.config.js`, `scripts/verify-csp-policy.js`, `scripts/verify-staging-boundaries.js`, manifesto staging e testes.
+- **O que foi feito:** branch isolada criada após o merge #336; o CI da `main` do #336 falhou duas vezes em testes de UI autenticados e segue diagnóstico do UI/UX, sem atribuição causal à Functions. O recorte prepara transformação CSP staging após validação do manifesto, troca exata de Worker/callable/Auth, rejeição de destinos vazios/misturados/wildcard e verificação do HTML emitido. Passaram 5/5 testes focados, preflight 0 avisos, 1.561/1.561 unitários, build de produção e CSP Chromium; build staging permaneceu bloqueado por manifesto incompleto. Suíte integral e CI deste recorte ainda pendem porque I4-B ocupa a lane autenticada.
+- **Alinhamento:** pendente de validação.
+- **PRs/commits relacionados:** #336, CI main `38271290975`; PR deste recorte ainda não criado.
