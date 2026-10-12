@@ -67,3 +67,29 @@ test('Web identity uses only the regenerated Trofia icons', () => {
     assert.equal(fs.existsSync(path.join(root, filename)), false);
   }
 });
+
+test('installed identity derives from the approved T and leaf master mark', () => {
+  const masterMark = read('assets/brand/trofia-mark.svg');
+  const foregroundMark = read('assets/brand/trofia-mark-foreground.svg');
+  const generator = read('scripts/generate-brand-icons.mjs');
+  const adaptiveIcon = read('android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml');
+  const roundAdaptiveIcon = read('android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml');
+  const vectorForeground = read('android/app/src/main/res/drawable/ic_launcher_foreground.xml');
+  const monochrome = read('android/app/src/main/res/drawable/ic_launcher_monochrome.xml');
+
+  assert.match(masterMark, /<title id="title">Trofia<\/title>/);
+  assert.match(masterMark, /<rect[^>]+rx="116"[^>]+fill="url\(#bg\)"/);
+  assert.match(masterMark, /M151 180h164v35h-63v148h-38V215h-63z/);
+  assert.match(foregroundMark, /Letra T branca com folha/);
+  assert.match(generator, /trofia-icon-192\.png/);
+  assert.match(generator, /trofia-icon-512\.png/);
+  assert.match(generator, /ic_launcher_round\.png/);
+  assert.match(generator, /ic_launcher_foreground\.png/);
+
+  for (const xml of [adaptiveIcon, roundAdaptiveIcon]) {
+    assert.match(xml, /@drawable\/ic_launcher_foreground/);
+    assert.match(xml, /@drawable\/ic_launcher_monochrome/);
+  }
+  assert.match(vectorForeground, /android:fillColor="#FFFFFFFF"/);
+  assert.match(monochrome, /android:fillColor="#FF000000"/);
+});

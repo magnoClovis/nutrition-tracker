@@ -7,6 +7,32 @@ experiência do usuário. Bugs técnicos continuam catalogados separadamente em
 Cada rodada deve receber uma seção datada, um título curto e uma tabela com o
 escopo, os principais arquivos afetados e a referência de implementação.
 
+## 2026-10-11 — Métricas recebida e quatro abas no caminho crítico
+
+Referência geral: auditoria integral do pacote `UI_visuals/trofia-metrics-journey`, com FLOW aprovado, referência interativa e 46 PNGs claro/escuro. O planejamento passa a cobrir as quatro abas principais e adota duas passagens para priorizar sua entrega.
+
+| Item | Mudança aprovada | Arquivos principais | Referência |
+|---:|---|---|---|
+| 1 | A I10 deixa de ser placeholder e é dividida em I10-A (shell/jornada), I10-B (gráficos/composição/previsão), I10-C (pesagens/histórico) e I10-D (metas/perfil/nutrientes). Modelos, callbacks e hooks tutoriais atuais devem ser preservados. | `UI_visuals/trofia-metrics-journey`, `metrics-screen.js`, `body-metrics-model.js`, `body-metrics-charts.js`, cálculos/metas, i18n e testes | I10-A–D — planejamento aprovado; código não iniciado |
+| 2 | A prioridade passa a ser uma primeira passagem pelos núcleos visuais de Diário, Alimentos/Despensa, Semana e Métricas, seguida da conclusão funcional das quatro abas. I4-B/C, I5-R, I6-E e I7 ficam fora do caminho crítico enquanto não forem pré-requisitos. | `UI-VISUALS-FATIAMENTO.md`, I6, I8, I9 e I10 | Ordem aprovada em 11/10/2026 |
+| 3 | Configurações poderá ser redesenhada futuramente quando chegar novo material; essa reabertura será registrada como I5-R e não apagará nem reclassificará entregas históricas anteriores. | Futuro pacote de Configurações, `settings-panel.js`, D7 | I5-R — aguardando desenho |
+
+## 2026-10-10 — I4 aprovada e pacotes `UI_visuals` distribuídos
+
+Referência geral: protótipo HTML externo da I4 aprovado, decisões textuais de escopo e auditoria dos dois pacotes locais `UI_visuals`. A I4-A entrou em implementação nesta worktree; os demais pacotes gerados continuam sendo referência sob revisão e não aprovação automática.
+
+| Item | Mudança aprovada | Arquivos principais | Referência |
+|---:|---|---|---|
+| 1 | A I4-A adota o FAB estendido “Adicionar” e um menu com quatro caminhos: tirar foto, descrever refeição, montar manualmente e usar refeição salva. Código de barras continua fora. No mesmo PR/gate, launcher e equivalentes web passam à marca “T + folha”, com safe zones e variantes Android/web; texto, aura, pulso e screenshot ficam fora do asset estático. O runtime, os assets determinísticos e a cobertura focada já foram implementados; os recortes autenticados e gates completos estão pendentes. | Protótipo `i4-create-menu-prototype`, navegação/Diário, fluxo Adicionar, `one-ui.css`, `mipmap-*`, adaptive/round/monochrome icon, favicon/PWA/Apple Touch Icon | I4-A — implementação em andamento |
+| 2 | A antiga I4-D foi absorvida pela I4-A por ser uma alteração pequena e compartilhar a mesma entrega; não haverá fatia, PR ou gate independente para o ícone. | Documentação I4-A e verificadores Android/Vite | Redistribuição aprovada em 10/10/2026 |
+| 3 | A I6-A inclui avatar por iniciais, data/cabeçalho, resumo e navegação. Upload de fotografia de perfil não entra nesta fatia. | `app-header-navigation.js`, perfil existente, Configurações, `diary-screen.js`, `one-ui.css` | I6-A — direção aprovada; composição final pendente |
+| 4 | A I6-B concentra timeline, água, Agora, próximo horário e estados vazio/parcial/preenchido, sem omitir refeições ou ações reais. | `diary-screen.js`, água/entradas, i18n e Playwright | I6-B — referência sob revisão |
+| 5 | A validação futura deve cobrir todas as refeições configuradas, listas e nomes longos, claro/escuro, PT/EN/ES, fonte a 200%, mobile e uma decisão separada para desktop, preservando o contrato já entregue por D2. | Protótipo futuro da I6, `one-ui.css`, testes unitários e visuais legado/Vite | I6 — requisito planejado; implementação não iniciada |
+| 6 | O primeiro pacote foi separado em I4-B (sheet/orquestração), I4-C (pesquisa/bandeja) e I6-C (histórico/calendário), além das integrações com I4-A/I6-A/I6-B. Barcode permanece pendente. | `UI_visuals/trofia-diary-timeline-calendar-add-sheet`, `UI-VISUALS-FATIAMENTO.md` | Subfatias formais; referências sob revisão |
+| 7 | O segundo pacote foi separado em I6-D (nutrientes/IA), I6-E (suplementos/notas) e I6-F (detalhe da refeição). I6-E exige auditoria de dados; nenhuma delas compartilha gate ou merge obrigatório. | `UI_visuals/trofia-diary-supplements-notes-meal-detail`, modelos diário/nutricional e persistência | Subfatias formais; visuais sob revisão |
+| 8 | Classificação diária, pontos semanais/mensais, totais de consistência e mensagens derivadas foram atribuídos à I7. O pacote não define todo o contador opcional nem substitui o protótipo da I7. | `daily-nutrition-model.js`, metas/médias, Configurações e i18n | I7 — escopo refinado; implementação não iniciada |
+| 9 | O diretório `handoff/` é consolidação, não terceira parte. Câmera e resultado continuam nas CAM-RED já existentes; I4 apenas encaminha a foto e reutiliza `MealResultSheet`. | CAM-RED-7/8/9, I4 e `MealResultSheet` | Limite entre frentes preservado |
+
 ## 2026-09-26 — I2: protótipo aprovado do registro progressivo
 
 Referência geral: protótipo HTML externo aprovado antes da implementação; nenhum arquivo de runtime foi alterado nesta etapa.

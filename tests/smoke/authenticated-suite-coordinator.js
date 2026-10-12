@@ -104,9 +104,14 @@ async function assertNoActiveGithubCi({
   if (typeof fetchRequest !== 'function') {
     throw new Error('authenticated-smoke-ci-check-unavailable');
   }
+  const githubToken = String(env.GITHUB_TOKEN || env.GH_TOKEN || '').trim();
+  const headers = {
+    'Accept': 'application/vnd.github+json',
+    ...(githubToken ? {'Authorization': `Bearer ${githubToken}`} : {}),
+  };
   const response = await fetchRequest(
     `https://api.github.com/repos/${repository}/actions/runs?per_page=100`,
-    {headers: {'Accept': 'application/vnd.github+json'}},
+    {headers},
   );
   if (!response?.ok) throw new Error('authenticated-smoke-ci-check-failed');
   const payload = await response.json();

@@ -178,13 +178,14 @@ test.describe('authenticated critical data flows', () => {
   async function openStagedMeal(page) {
     await dismissTutorialIfVisible(page);
     await expect(page.locator('[data-tutorial-overlay="true"]:visible')).toHaveCount(0);
-    const globalAddButton = page.locator(
-      '[data-diary-global-add]:visible [data-tutorial="open-log-sheet"]'
-    ).first();
-    await expect(globalAddButton).toBeVisible();
+    const addButton = page.locator('[data-tutorial="open-log-sheet"]:visible').first();
+    await expect(addButton).toBeVisible();
     // The sticky metrics summary can cover Playwright's auto-scrolled click
     // coordinate even though the real button is visible and enabled.
-    await globalAddButton.evaluate(button => button.click());
+    await addButton.evaluate(button => button.click());
+    const createMenu = page.locator('[data-diary-create-menu]:visible');
+    await expect(createMenu).toBeVisible();
+    await createMenu.locator('[data-create-menu-option="manual"]').click();
     await expect(page.locator('[data-app-main="adicionar"]:visible')).toBeVisible();
   }
 

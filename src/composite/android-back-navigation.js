@@ -60,6 +60,7 @@ const ACTIONS_BY_LEVEL = Object.freeze([
     ['showSuppForm', 'closeSupplementForm'],
   ],
   [
+    ['createMenuOpen', 'closeCreateMenu'],
     ['headerLanguageMenuOpen', 'closeHeaderLanguageMenu'],
     ['menuOpen', 'closeHeaderMenu'],
     ['entryMenuId', 'closeEntryMenu'],
