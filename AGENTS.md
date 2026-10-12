@@ -12,6 +12,17 @@ Antes de iniciar ou encerrar qualquer fatia, leia e cumpra [`documentation/PADRA
 
 O checklist documental é gate obrigatório, com o mesmo peso dos testes e da validação funcional.
 
+## Compatibilidade dos testes com contratos alterados
+
+Toda frente que alterar design, navegação, funcionalidade, processamento em background ou contratos de DOM, seletores, API, eventos ou dados deve verificar os **consumidores do contrato antigo** antes do commit final e do fechamento da fatia. Isso inclui testes unitários, smoke/Playwright, helpers, fixtures, mocks e scripts de validação, mesmo que o recorte novo da funcionalidade já esteja verde.
+
+- Identifique os consumidores afetados e registre no PR como foram encontrados, inclusive buscas pelo seletor, função, rota ou estado substituído.
+- Atualize os consumidores para o comportamento novo e remova expectativas obsoletas. Preserve as garantias funcionais; não afrouxe asserções, aumente timeouts ou adicione retries para ocultar uma regressão.
+- Execute os recortes afetados **e** os gates completos aplicáveis sobre o conjunto integrado. Teste novo verde não substitui teste antigo que ainda depende do contrato removido.
+- Se um gate falhar, preserve os artefatos, classifique se há defeito real no app ou consumidor desatualizado, corrija a causa e repita o gate. Não declare a fatia concluída, nem publique ou mescle o PR, enquanto restarem consumidores conhecidos do contrato anterior.
+
+Registre no PR e na documentação da fatia a evidência das buscas, dos consumidores atualizados e dos resultados dos gates. O checklist detalhado está em `documentation/PADRAO-DOCUMENTACAO.md`.
+
 ## Monitoramento passivo obrigatório
 
 Testes demorados, gates completos, builds, deploys, CI e etapas automáticas de testes físicos devem ser acompanhados sem polling contínuo. Depois de iniciar a operação, use a duração histórica para programar uma automação/heartbeat silenciosa para a primeira verificação. Se ainda estiver saudável e em execução, reprograme uma nova janela conservadora; só notifique em conclusão, falha, mudança material ou necessidade de intervenção. Remova a automação depois de processar o resultado terminal.

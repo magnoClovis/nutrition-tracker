@@ -90,8 +90,20 @@ Confirmar todos os itens:
 - [ ] descrição do PR atualizada pós-merge com as mesmas métricas;
 - [ ] `Chat-Origin` presente no commit e no PR;
 - [ ] nenhuma credencial, token, UID, dado pessoal, prompt, foto ou resposta sensível registrada.
+- [ ] para contratos alterados, consumidores de teste/helper/fixture/mock/script identificados, atualizados e validados conforme o gate de compatibilidade abaixo.
 
 Se qualquer item aplicável estiver ausente, a fatia permanece aberta documentalmente, mesmo com testes verdes e código mesclado.
+
+## Gate de compatibilidade dos consumidores
+
+Uma alteração de design, navegação, função, background ou contrato de DOM, seletor, API, evento ou dados afeta também quem usa esse contrato. Antes do commit final, do fechamento documental e do merge, a frente responsável deve:
+
+1. **Inventariar:** procurar referências ao contrato antigo e ao novo nos testes unitários, smoke/Playwright, helpers, fixtures, mocks, scripts de validação e documentação operacional. Registrar no PR o método de busca e os consumidores relevantes encontrados; declarar explicitamente quando nenhum for encontrado.
+2. **Migrar:** atualizar os consumidores afetados para a interface/comportamento atual. Remover seletores e expectativas obsoletos sem reduzir a cobertura ou transformar uma regressão real em teste verde artificial. Não aumentar timeout ou retry como substituto da correção.
+3. **Comprovar:** executar os recortes antigos afetados, os novos e os gates completos aplicáveis na base integrada. Guardar contagens, skips justificados, links de CI e artefatos de falha. Um recorte novo verde não libera a fatia se um helper compartilhado ou um teste antigo continuar quebrado.
+4. **Fechar:** descrever no histórico da fatia e no PR quais consumidores mudaram, quais não precisaram mudar e por quê. Falha remanescente exige diagnóstico e correção antes de declarar conclusão; se a descoberta ocorrer após um commit, fazer commit corretivo e repetir os gates antes do merge.
+
+Esta regra é transversal às frentes Principal, UI/UX, Bugs e futuras. Ela não autoriza editar o código de outra frente sem coordenação; o responsável pela alteração do contrato deve coordenar o consumidor afetado e manter a fatia aberta até a validação integrada.
 
 ## Monitoramento de validações demoradas
 
