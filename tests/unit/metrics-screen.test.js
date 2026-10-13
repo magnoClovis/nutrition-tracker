@@ -434,6 +434,73 @@ contractTest("preserves absent tracking data and complete history/chart presenta
   assert.equal(findNodes(complete, node => node.type === BodyFatTrendChart).length, 1);
 });
 
+contractTest("renders the approved I10-A journey shell and semantic section tabs", MetricsScreen => {
+  const sections = [];
+  const entries = [
+    { id: "start", date: "2026-04-12", weight: 82.4 },
+    { id: "latest", date: "2026-10-04", weight: 78 }
+  ];
+  const screen = MetricsScreen(baseProps({
+    setMetricsSection: section => sections.push(section),
+    nutritionPrefs: {
+      ...baseProps().nutritionPrefs,
+      goalType: "loss",
+      goalKg: "7.4",
+      goalWeeks: "36"
+    },
+    currentWeight: 78,
+    currentBmr: 1743,
+    bmi: "24.6",
+    bmiNum: 24.6,
+    normalizedWeightEntries: entries,
+    bodyMetrics: { hasWeightHistory: true },
+    bodyComposition: { ...baseProps().bodyComposition, weightTarget: 75 },
+    weightTrend: { hasEnough: true, weeklyRate: -0.21, weeksRemaining: 14, avg14: 79.1 }
+  }));
+  const rendered = textContent(screen);
+  const tabs = findNodes(screen, node => node.props?.role === "tab");
+  const progress = findNodes(screen, node => node.props?.role === "progressbar")[0];
+
+  assert.match(rendered, /Metrics/);
+  assert.match(rendered, /2 weigh-ins/);
+  assert.match(rendered, /Weight loss · 36-week plan/);
+  assert.match(rendered, /78\.0 kg/);
+  assert.match(rendered, /3\.0 kg to go · about 14 weeks/);
+  assert.deepEqual(tabs.map(textContent), ["Progress", "Goals"]);
+  assert.equal(tabs[0].props["aria-selected"], true);
+  tabs[1].props.onClick();
+  assert.deepEqual(sections, ["goals"]);
+  assert.equal(progress.props["aria-valuenow"], 59);
+  const journey = findNodes(screen, node => node.props?.["data-i10-journey"])[0];
+  assert.match(journey.props["aria-label"], /Weight 78\.0 kg\. 59% of the way from 82\.4 to 75\.0 kg\. 3\.0 kg to go\./);
+  assert.equal(findNodes(screen, node => node.props?.className === "metrics-journey-change is-positive").length, 1);
+  assert.equal(findNodes(screen, node => node.props?.["data-tutorial"] === "metrics-current").length, 1);
+  assert.equal(findNodes(screen, node => node.props?.["data-tutorial"] === "metrics-measures").length, 1);
+});
+
+contractTest("marks movement away from the selected goal without relying on color alone", MetricsScreen => {
+  const screen = MetricsScreen(baseProps({
+    nutritionPrefs: { ...baseProps().nutritionPrefs, goalType: "loss", goalKg: "5" },
+    currentWeight: 72,
+    normalizedWeightEntries: [
+      { id: "start", date: "2026-09-01", weight: 70 },
+      { id: "latest", date: "2026-10-01", weight: 72 }
+    ],
+    bodyMetrics: { hasWeightHistory: true }
+  }));
+  assert.equal(findNodes(screen, node => node.props?.className === "metrics-journey-change is-warning").length, 1);
+  assert.match(textContent(screen), /\+2\.0 kg since/);
+});
+
+contractTest("renders honest empty and missing-height I10-A states", MetricsScreen => {
+  const empty = MetricsScreen(baseProps({ currentHeight: null, profileData: { height: "" } }));
+  const rendered = textContent(empty);
+  assert.match(rendered, /Log your first weigh-in to start tracking/);
+  assert.match(rendered, /Add height/);
+  assert.match(rendered, /Log weigh-in/);
+  assert.equal(findNodes(empty, node => node.props?.role === "progressbar").length, 0);
+});
+
 contractTest("keeps the advanced-reports card disabled or callback-only without a modal", MetricsScreen => {
   let opened = 0;
   const disabled = MetricsScreen(baseProps({ reportsEnabled: false }));

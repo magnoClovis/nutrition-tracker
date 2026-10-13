@@ -4080,3 +4080,85 @@ body:has([data-meal-result-overlay="true"]) [data-app-main="adicionar"] {
     animation: none;
   }
 }
+
+/* I10-A — Metrics journey shell and current-state summary. */
+.metrics-journey-screen {
+  --metrics-weight-fill: #7c5fd1;
+  --metrics-weight-ink: #4b3191;
+  --metrics-bmr-ink: #0b6b80;
+  --metrics-positive-ink: #0f5a46;
+  --metrics-positive-tonal: #e6f4ee;
+  --metrics-warning-ink: #854f0b;
+  --metrics-warning-tonal: #faeeda;
+  width: min(100%, 1080px);
+  margin-inline: auto;
+  padding: 16px 14px calc(120px + var(--app-safe-bottom));
+  box-sizing: border-box;
+}
+html[data-theme="dark"] .metrics-journey-screen {
+  --metrics-weight-ink: #d6c8f7;
+  --metrics-bmr-ink: #9fdfee;
+  --metrics-positive-ink: #9fe1cb;
+  --metrics-positive-tonal: #0b2a23;
+  --metrics-warning-ink: #fac775;
+  --metrics-warning-tonal: #412402;
+}
+.metrics-journey-header h1 { margin: 0; color: var(--text); font-size: 1.875rem; line-height: 1.05; letter-spacing: -.01em; }
+.metrics-journey-header p { margin: 7px 0 14px; color: var(--muted); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.metrics-journey-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  height: 44px;
+  padding: 3px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: var(--input);
+  box-sizing: border-box;
+}
+.metrics-journey-tabs button { border: 0; border-radius: 999px; background: transparent; color: var(--muted); font: inherit; font-size: .84375rem; font-weight: 600; cursor: pointer; }
+.metrics-journey-tabs button.is-active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+.metrics-journey-card { display: grid; gap: 14px; padding: 18px; border-radius: 24px; background: var(--surface); box-shadow: 0 12px 34px rgba(0, 0, 0, .05); }
+.metrics-journey-plan { color: var(--muted); font-size: .8125rem; }
+.metrics-journey-current { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-variant-numeric: tabular-nums; }
+.metrics-journey-current > div strong { color: var(--text); font-size: 2.5rem; line-height: 1; }
+.metrics-journey-current > div span { color: var(--muted); font-size: 1rem; }
+.metrics-journey-change { padding: 5px 9px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+.metrics-journey-change.is-positive { background: var(--metrics-positive-tonal); color: var(--metrics-positive-ink); }
+.metrics-journey-change.is-warning { background: var(--metrics-warning-tonal); color: var(--metrics-warning-ink); }
+.metrics-journey-progress { position: relative; height: 10px; overflow: visible; border-radius: 999px; background: var(--input); }
+.metrics-journey-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--metrics-weight-fill); }
+.metrics-journey-progress > i { position: absolute; top: 50%; width: 18px; height: 18px; border: 3px solid var(--metrics-weight-fill); border-radius: 50%; background: var(--surface); transform: translate(-50%, -50%); box-sizing: border-box; }
+.metrics-journey-labels { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.metrics-journey-labels strong { padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--metrics-weight-fill) 14%, var(--surface)); color: var(--metrics-weight-ink); text-align: center; }
+.metrics-journey-labels > :last-child { text-align: right; }
+.metrics-journey-forecast,
+.metrics-journey-empty { padding: 12px; border-radius: 14px; background: var(--input); color: var(--text2); font-size: .8125rem; line-height: 1.45; }
+.metrics-journey-log { min-height: 50px; border: 1px solid var(--btn-ok-border); border-radius: 16px; background: var(--btn-ok); color: var(--btn-ok-text); font: inherit; font-weight: 750; cursor: pointer; }
+.metrics-current-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.metrics-current-tile { display: flex; min-width: 0; min-height: 82px; padding: 12px 14px; flex-direction: column; justify-content: space-between; border-radius: 20px; background: var(--surface); box-sizing: border-box; }
+.metrics-current-tile > span,
+.metrics-current-tile small { color: var(--muted); font-size: .6875rem; }
+.metrics-current-tile strong { overflow: hidden; color: var(--text); font-size: 1.25rem; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+.metrics-current-tile.is-weight strong { color: var(--metrics-weight-ink); }
+.metrics-current-tile.is-bmr strong { color: var(--metrics-bmr-ink); }
+.metrics-current-tile.is-bmi small {
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--metrics-positive-tonal);
+  color: var(--metrics-positive-ink);
+  font-weight: 700;
+}
+
+@media (min-width: 768px) {
+  .metrics-journey-screen { padding-inline: clamp(22px, 4vw, 44px); padding-bottom: 44px; }
+}
+@media (max-width: 380px) {
+  .metrics-current-tiles { grid-template-columns: 1fr; }
+  .metrics-journey-labels { grid-template-columns: 1fr; }
+  .metrics-journey-labels > :last-child { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .metrics-journey-progress > span,
+  .metrics-journey-progress > i { transition: none; }
+}

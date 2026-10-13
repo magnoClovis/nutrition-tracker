@@ -31,7 +31,7 @@ test.describe('authenticated Metrics ChoiceField visual contract', () => {
 
   async function openNutritionProfile(page, labels = { metrics: /M.tricas/i, goals: 'Metas' }) {
     await clickByTutorialKeyOrText(page, 'tab-metricas', labels.metrics);
-    await page.getByRole('button', { name: labels.goals, exact: true }).click();
+    await page.getByRole('tab', { name: labels.goals, exact: true }).click();
     await expect(page.locator('[data-tutorial="nutrition-profile"]')).toBeVisible();
   }
 

@@ -1714,7 +1714,7 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 - **Status:** não iniciado.
 - **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
 - **Minutos de CI:** 0 min; não iniciado.
 - **Propósito:** organizar destino, horário, repetição e entradas secundárias separadamente da ação principal.
@@ -1950,17 +1950,17 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 ### [I10-A] - Shell, jornada e estado atual de Métricas
 
-- **Status:** não iniciado.
-- **Data de início:** não iniciado.
+- **Status:** em andamento.
+- **Data de início:** 11/10/2026.
 - **Data de conclusão:** não iniciado.
 - **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; não iniciado.
+- **Minutos de CI:** pendente de execução do PR.
 - **Propósito:** estabelecer o núcleo visual da quarta aba principal preservando os contratos corporais já entregues.
 - **O que se planeja fazer:** implementar cabeçalho, segmentos Progresso/Metas, card Jornada, progresso do plano, previsão, CTA de pesagem, tiles Peso/IMC/TMB e estados de carregamento/primeiro uso, preservando hooks tutoriais e D4.
-- **Recursos/arquivos principais envolvidos:** `UI_visuals/trofia-metrics-journey`, `metrics-screen.js`, `body-metrics-model.js`, `goal-calculator.js`, `historical-goals-model.js`, navegação compartilhada, `one-ui.css`, i18n e testes.
-- **O que foi feito:** em 11/10/2026 foram auditados o FLOW, a referência interativa e 46 PNGs claro/escuro. A reserva genérica anterior foi substituída por I10-A–D; nenhum código foi iniciado.
-- **Alinhamento:** pendente até implementação, validação e merge.
-- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+- **Recursos/arquivos principais envolvidos:** `UI_visuals/trofia-metrics-journey`, `metrics-screen.js`, `body-metrics-model.js`, `goal-calculator.js`, `historical-goals-model.js`, `tutorial-overlay.js`, navegação compartilhada, `one-ui.css`, i18n e testes.
+- **O que foi feito:** em 11/10/2026 foram auditados o FLOW, a referência interativa e 46 PNGs claro/escuro, e a reserva genérica anterior foi substituída por I10-A–D antes do primeiro código. Na worktree `codex/i10a-metrics-shell` foram implementados frame, cabeçalho, segmentos semânticos, jornada, progresso/previsão, CTA e tiles atuais; como transição até a I10-C, o CTA revela e abre o formulário existente, preservando todas as medidas e o salvamento atual. Na base dos recortes `7f218c7`, passaram preflight com 0 avisos, 16/16 contratos focados, 1.565/1.565 unitários, build Vite de 848 módulos com allowlist de 14 arquivos e recortes autenticados da jornada legado 5/5 e Vite 5/5. O primeiro gate integral revelou somente helpers que ainda procuravam os rótulos/roles anteriores; eles foram atualizados para `Progresso`/`Progress`/`Progreso`, `role=tab` e o contêiner real de medidas, sem relaxar expectativas, e os recortes correspondentes passaram 18/18 em cada runtime. O gate seguinte passou 184 casos e registrou os 10 skips estruturais esperados no legado, mas parou antes do Vite por `auth-refresh-timeout` durante o bootstrap do GenericDialog mobile, fora da superfície I10-A. Screenshot, contexto e resultado JSON foram preservados; lock, lease e portas foram liberados, sem retry automático. A worktree foi então integrada à `main` até `63b7bbd`; a auditoria de consumidores encontrou e corrigiu a terminologia antiga ainda presente no tutorial, com novo contrato UMD/ESM. Na base integrada final passaram sintaxe, `git diff --check`, preflight com 0 avisos, 16/16 focados de Métricas, 11/11 do tutorial, 1.567/1.567 unitários, build Vite de 848 módulos com allowlist de 14 arquivos e o gate integral autenticado: smoke legado com 185 aprovações e 10 skips estruturais, smoke Vite 195/195, CSP verde e cutover 60/60. Lock, lease e portas foram liberados após a execução; a conclusão permanece condicionada ao CI real, aprovação e merge.
+- **Alinhamento:** pendente de entrega.
+- **PRs/commits relacionados:** pendente. — **Chat-Origin:** Trofia-UIUX.
 
 ### [I10-B] - Gráficos, composição corporal e previsão
 

@@ -241,6 +241,124 @@
       ];
       const choicePlaceholder = uiText("Selecionar", "Select", "Seleccionar");
       const choiceCloseLabel = uiText("Fechar", "Close", "Cerrar");
+      const entries = Array.isArray(normalizedWeightEntries) ? normalizedWeightEntries : [];
+      const firstEntry = entries[0] || null;
+      const latestEntry = entries[entries.length - 1] || null;
+      const effectiveWeight = Number(currentWeight || latestEntry?.weight || 0) || null;
+      const startWeight = Number(firstEntry?.weight || effectiveWeight || 0) || null;
+      const explicitTarget = Number(bodyComposition?.weightTarget || 0) || null;
+      const requestedChange = Number(nutritionPrefs.goalKg || 0) || 0;
+      const targetWeight = explicitTarget || (startWeight && requestedChange
+        ? nutritionPrefs.goalType === "gain" ? startWeight + requestedChange : startWeight - requestedChange
+        : null);
+      const goalDirection = nutritionPrefs.goalType === "gain" ? 1 : -1;
+      const totalPlanChange = startWeight && targetWeight ? (targetWeight - startWeight) * goalDirection : 0;
+      const completedPlanChange = startWeight && effectiveWeight ? (effectiveWeight - startWeight) * goalDirection : 0;
+      const journeyProgress = totalPlanChange > 0
+        ? Math.max(0, Math.min(100, completedPlanChange / totalPlanChange * 100))
+        : 0;
+      const weightChange = startWeight && effectiveWeight ? effectiveWeight - startWeight : 0;
+      const journeyChangeIsPositive = nutritionPrefs.goalType === "loss"
+        ? weightChange <= 0
+        : nutritionPrefs.goalType === "gain"
+          ? weightChange >= 0
+          : Math.abs(weightChange) <= 0.3;
+      const goalLabel = nutritionPrefs.goalType === "loss"
+        ? uiText("Perda de peso", "Weight loss", "Pérdida de peso")
+        : nutritionPrefs.goalType === "gain"
+          ? uiText("Ganho de peso", "Weight gain", "Ganancia de peso")
+          : uiText("Manutenção", "Maintenance", "Mantenimiento");
+      const entryCountLabel = uiText(
+        `${entries.length} ${entries.length === 1 ? "pesagem" : "pesagens"}`,
+        `${entries.length} ${entries.length === 1 ? "weigh-in" : "weigh-ins"}`,
+        `${entries.length} ${entries.length === 1 ? "pesaje" : "pesajes"}`
+      );
+      const lastEntryLabel = latestEntry?.date
+        ? uiText(`última ${formatDateDMY(latestEntry.date)}`, `last ${formatDateDMY(latestEntry.date)}`, `último ${formatDateDMY(latestEntry.date)}`)
+        : uiText("nenhuma ainda", "none yet", "ninguno aún");
+      const signedWeightChange = `${weightChange > 0 ? "+" : weightChange < 0 ? "−" : "±"}${Math.abs(weightChange).toFixed(1)} kg`;
+      const journeyAriaLabel = effectiveWeight
+        ? targetWeight && nutritionPrefs.goalType !== "maintenance"
+          ? uiText(
+            `Peso ${Number(effectiveWeight).toFixed(1)} kg. ${Math.round(journeyProgress)}% do caminho de ${Number(startWeight).toFixed(1)} a ${Number(targetWeight).toFixed(1)} kg. ${Math.abs(effectiveWeight - targetWeight).toFixed(1)} kg restantes.`,
+            `Weight ${Number(effectiveWeight).toFixed(1)} kg. ${Math.round(journeyProgress)}% of the way from ${Number(startWeight).toFixed(1)} to ${Number(targetWeight).toFixed(1)} kg. ${Math.abs(effectiveWeight - targetWeight).toFixed(1)} kg to go.`,
+            `Peso ${Number(effectiveWeight).toFixed(1)} kg. ${Math.round(journeyProgress)}% del camino de ${Number(startWeight).toFixed(1)} a ${Number(targetWeight).toFixed(1)} kg. Quedan ${Math.abs(effectiveWeight - targetWeight).toFixed(1)} kg.`
+          )
+          : uiText(
+            `Peso atual ${Number(effectiveWeight).toFixed(1)} kg.`,
+            `Current weight ${Number(effectiveWeight).toFixed(1)} kg.`,
+            `Peso actual ${Number(effectiveWeight).toFixed(1)} kg.`
+          )
+        : uiText(
+          "Nenhuma pesagem registrada.",
+          "No weigh-ins recorded.",
+          "No hay pesajes registrados."
+        );
+      function openExistingWeighInFlow() {
+        if (typeof document === "undefined") return;
+        const legacyForm = document.getElementById("metrics-weigh-in-legacy");
+        if (legacyForm) {
+          legacyForm.style.display = "block";
+          legacyForm.scrollIntoView({ block: "nearest" });
+        }
+        const trigger = document.getElementById("metrics-weight-trigger");
+        if (trigger) trigger.click();
+      }
+      function renderJourneyCard() {
+        return /*#__PURE__*/React.createElement("section", {
+          className: "metrics-journey-card",
+          "data-i10-journey": true,
+          "aria-label": journeyAriaLabel
+        }, effectiveWeight ? /*#__PURE__*/React.createElement(React.Fragment, null,
+          /*#__PURE__*/React.createElement("div", { className: "metrics-journey-plan" }, goalLabel, nutritionPrefs.goalWeeks ? ` · ${nutritionPrefs.goalWeeks}-${uiText("semanas", "week", "semanas")} ${uiText("de plano", "plan", "de plan")}` : ""),
+          /*#__PURE__*/React.createElement("div", { className: "metrics-journey-current" },
+            /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("strong", null, Number(effectiveWeight).toFixed(1)), /*#__PURE__*/React.createElement("span", null, " kg")),
+            firstEntry && /*#__PURE__*/React.createElement("span", { className: `metrics-journey-change ${journeyChangeIsPositive ? "is-positive" : "is-warning"}` }, signedWeightChange, " ", uiText("desde", "since", "desde"), " ", formatDateDMY(firstEntry.date))
+          ),
+          targetWeight && nutritionPrefs.goalType !== "maintenance" && /*#__PURE__*/React.createElement(React.Fragment, null,
+            /*#__PURE__*/React.createElement("div", {
+              className: "metrics-journey-progress",
+              role: "progressbar",
+              "aria-valuemin": 0,
+              "aria-valuemax": 100,
+              "aria-valuenow": Math.round(journeyProgress)
+            }, /*#__PURE__*/React.createElement("span", { style: { width: `${journeyProgress}%` } }), /*#__PURE__*/React.createElement("i", { style: { left: `${journeyProgress}%` } })),
+            /*#__PURE__*/React.createElement("div", { className: "metrics-journey-labels" },
+              /*#__PURE__*/React.createElement("span", null, uiText("Início", "Start", "Inicio"), " ", /*#__PURE__*/React.createElement("b", null, Number(startWeight).toFixed(1))),
+              /*#__PURE__*/React.createElement("strong", null, journeyProgress >= 100 ? uiText("Meta atingida", "Target reached", "Meta alcanzada") : `${Math.round(journeyProgress)}% ${uiText("do caminho", "of the way", "del camino")}`),
+              /*#__PURE__*/React.createElement("span", null, uiText("Meta", "Target", "Meta"), " ", /*#__PURE__*/React.createElement("b", null, Number(targetWeight).toFixed(1), " kg"))
+            )
+          ),
+          /*#__PURE__*/React.createElement("div", { className: "metrics-journey-forecast" }, targetWeight
+            ? weightTrend.weeksRemaining
+              ? uiText(`${Math.abs(effectiveWeight - targetWeight).toFixed(1)} kg restantes · cerca de ${Math.round(weightTrend.weeksRemaining)} semanas`, `${Math.abs(effectiveWeight - targetWeight).toFixed(1)} kg to go · about ${Math.round(weightTrend.weeksRemaining)} weeks`, `${Math.abs(effectiveWeight - targetWeight).toFixed(1)} kg restantes · cerca de ${Math.round(weightTrend.weeksRemaining)} semanas`)
+              : uiText("Ainda não há tendência suficiente para estimar uma data", "Not enough trend yet to estimate a date", "Aún no hay tendencia suficiente para estimar una fecha")
+            : uiText("Defina uma meta em Metas para acompanhar o plano", "Set a target in Goals to track the plan", "Define una meta en Metas para seguir el plan"))
+        ) : /*#__PURE__*/React.createElement("div", { className: "metrics-journey-empty" }, uiText("Registre sua primeira pesagem para começar o acompanhamento.", "Log your first weigh-in to start tracking.", "Registra tu primer pesaje para empezar el seguimiento.")),
+        /*#__PURE__*/React.createElement("button", {
+          type: "button",
+          className: "metrics-journey-log",
+          "data-tutorial": "metrics-measures",
+          onClick: openExistingWeighInFlow
+        }, uiText("Registrar pesagem", "Log weigh-in", "Registrar pesaje")));
+      }
+      function renderCurrentTiles() {
+        const bmiLabel = !currentHeight
+          ? uiText("Adicionar altura", "Add height", "Añadir altura")
+          : bmiNum < 18.5 ? text('bmiUnderweight') : bmiNum < 25 ? text('bmiNormal') : bmiNum < 30 ? text('bmiOverweight') : text('bmiObese');
+        return /*#__PURE__*/React.createElement("section", {
+          className: "metrics-current-tiles",
+          "data-tutorial": "metrics-current"
+        }, [
+          { key: "weight", label: text('weight'), value: effectiveWeight ? `${Number(effectiveWeight).toFixed(1)} kg` : "—", tone: "weight" },
+          { key: "bmi", label: uiText("IMC", "BMI", "IMC"), value: currentHeight && bmi ? bmi : "—", detail: bmiLabel, tone: "bmi" },
+          { key: "bmr", label: uiText("TMB", "BMR", "TMB"), value: currentBmr ? String(currentBmr) : "—", detail: currentBmr ? uiText("kcal / dia", "kcal / day", "kcal / día") : "", tone: "bmr" }
+        ].map(tile => /*#__PURE__*/React.createElement("div", { key: tile.key, className: `metrics-current-tile is-${tile.tone}` },
+          /*#__PURE__*/React.createElement("span", null, tile.label),
+          /*#__PURE__*/React.createElement("strong", null, tile.value),
+          tile.detail && /*#__PURE__*/React.createElement("small", null, tile.detail)
+        )));
+      }
   function renderReportsCard() {
     const reportsUnavailable = !reportsEnabled;
     return /*#__PURE__*/React.createElement("div", {
@@ -283,27 +401,22 @@
   }
       return /*#__PURE__*/React.createElement("div", {
     "data-screen": "metricas",
-    style: {
-      padding: isMobileView ? "0 0 calc(76px + var(--app-safe-bottom))" : "2px 16px 30px",
-      boxSizing: "border-box",
-      width: "100%"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 8,
-      margin: isMobileView ? "6px 0 12px" : "8px 0 16px"
-    }
-  }, [["tracking", pickLang(lang, "Acompanhamento", "Tracking", "Seguimiento")], ["goals", pickLang(lang, "Metas", "Goals", "Metas")]].map(([key, label]) => /*#__PURE__*/React.createElement("button", {
+    className: "metrics-journey-screen"
+  }, /*#__PURE__*/React.createElement("header", { className: "metrics-journey-header" },
+    /*#__PURE__*/React.createElement("h1", null, uiText("Métricas", "Metrics", "Métricas")),
+    /*#__PURE__*/React.createElement("p", null, metricsSection === "tracking" ? `${entryCountLabel} · ${lastEntryLabel}` : uiText("Metas e perfil", "Targets and profile", "Metas y perfil"))
+  ), /*#__PURE__*/React.createElement("div", {
+    className: "metrics-journey-tabs",
+    role: "tablist",
+    "aria-label": uiText("Seções de métricas", "Metrics sections", "Secciones de métricas")
+  }, [["tracking", pickLang(lang, "Progresso", "Progress", "Progreso")], ["goals", pickLang(lang, "Metas", "Goals", "Metas")]].map(([key, label]) => /*#__PURE__*/React.createElement("button", {
     key,
+    type: "button",
+    role: "tab",
+    "aria-selected": metricsSection === key,
+    className: metricsSection === key ? "is-active" : "",
     onClick: () => setMetricsSection(key),
-    style: {
-      ...sBtn(metricsSection === key ? "var(--btn-ok)" : "transparent", metricsSection === key ? "var(--btn-ok-border)" : "var(--border2)", metricsSection === key ? "var(--btn-ok-text)" : "var(--muted)"),
-      padding: "10px",
-      fontWeight: metricsSection === key ? 700 : 500
-    }
-  }, label))), metricsSection === "goals" && /*#__PURE__*/React.createElement("div", {
+  }, label))), metricsSection === "tracking" && /*#__PURE__*/React.createElement(React.Fragment, null, renderJourneyCard(), renderCurrentTiles()), metricsSection === "goals" && /*#__PURE__*/React.createElement("div", {
     "data-tutorial": "nutrition-profile",
     style: {
       margin: "4px 0 18px",
@@ -544,8 +657,9 @@
       fontSize: 12
     }
   }, calorieAdjustmentWarning)), /*#__PURE__*/React.createElement("div", {
+    id: "metrics-weigh-in-legacy",
     style: {
-      display: metricsSection === "tracking" ? "block" : "none",
+      display: "none",
       marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -557,7 +671,7 @@
       marginBottom: 10
     }
   }, text('logMeasurements')), /*#__PURE__*/React.createElement("div", {
-    "data-tutorial": "metrics-measures",
+    "data-i10-legacy-measures": true,
     style: {
       display: "flex",
       gap: 8,
@@ -668,9 +782,9 @@
     onClick: saveWeight,
     style: btn
   }, text('suppLogToday'))), currentWeight && /*#__PURE__*/React.createElement("div", {
-    "data-tutorial": "metrics-current",
+    "data-i10-legacy-current": true,
     style: {
-      display: metricsSection === "tracking" ? "block" : "none",
+      display: "none",
       background: "var(--surface)",
       border: "1px solid var(--border)",
       borderRadius: isMobileView ? 12 : 8,

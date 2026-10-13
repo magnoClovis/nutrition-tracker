@@ -103,8 +103,8 @@
           { title: 'Médias por refeição', text: 'Quando houver dados suficientes, esta área mostra quais refeições concentram mais calorias, proteína e carboidratos.', tab: 'semana', highlight: 'week-meal-averages' }
         ],
         metricas: [
-          { title: 'Acompanhamento e metas', text: 'A aba foi dividida em duas áreas: Acompanhamento para olhar a evolução e Metas para configurar objetivos.', tab: 'metricas', highlight: null },
-          { title: 'Registro rápido', text: 'Em Acompanhamento, registre peso e medidas opcionais como gordura corporal, cintura e massa muscular. A altura fica como dado de perfil.', tab: 'metricas', highlight: 'metrics-measures' },
+          { title: 'Progresso e metas', text: 'A aba foi dividida em duas áreas: Progresso para acompanhar a evolução e Metas para configurar objetivos.', tab: 'metricas', highlight: null },
+          { title: 'Registro rápido', text: 'Em Progresso, registre peso e medidas opcionais como gordura corporal, cintura e massa muscular. A altura fica como dado de perfil.', tab: 'metricas', highlight: 'metrics-measures' },
           { title: 'Atuais e gráficos', text: 'Veja peso, IMC e TMB atual em cartões organizados, além da composição corporal, evolução do peso e histórico.', tab: 'metricas', highlight: 'metrics-current' },
           { title: 'Evolução da TMB', text: 'A TMB é registrada junto às medidas corporais. Quando houver histórico suficiente, este gráfico mostra como ela mudou ao longo do tempo.', tab: 'metricas', highlight: 'bmr-chart' },
           { title: 'Composição corporal', text: 'Use gordura corporal, cintura e massa muscular como tendência. Esses dados são opcionais e podem variar conforme o método de medição.', tab: 'metricas', highlight: 'body-composition' },
@@ -158,8 +158,8 @@
           { title: 'Meal averages', text: 'When enough data exists, this area shows which meals concentrate more calories, protein, and carbs.', tab: 'semana', highlight: 'week-meal-averages' }
         ],
         metricas: [
-          { title: 'Tracking and goals', text: 'The tab is split into two areas: Tracking for progress and Goals for objective settings.', tab: 'metricas', highlight: null },
-          { title: 'Quick log', text: 'In Tracking, log weight and optional measurements like body fat, waist, and muscle mass. Height stays as profile data.', tab: 'metricas', highlight: 'metrics-measures' },
+          { title: 'Progress and goals', text: 'The tab is split into two areas: Progress for tracking change and Goals for objective settings.', tab: 'metricas', highlight: null },
+          { title: 'Quick log', text: 'In Progress, log weight and optional measurements like body fat, waist, and muscle mass. Height stays as profile data.', tab: 'metricas', highlight: 'metrics-measures' },
           { title: 'Current and charts', text: 'Review current weight, BMI, and BMR in organized cards, plus body composition, weight trend, and history.', tab: 'metricas', highlight: 'metrics-current' },
           { title: 'BMR trend', text: 'BMR is stored with body measurements. Once enough history exists, this chart shows how it changed over time.', tab: 'metricas', highlight: 'bmr-chart' },
           { title: 'Body composition', text: 'Use body fat, waist, and muscle mass as trends. These values are optional and can vary by measurement method.', tab: 'metricas', highlight: 'body-composition' },
@@ -214,8 +214,8 @@
           { title: 'Promedios por comida', text: 'Cuando haya datos suficientes, esta zona muestra qu\u00e9 comidas concentran m\u00e1s calor\u00edas, prote\u00edna y carbohidratos.', tab: 'semana', highlight: 'week-meal-averages' }
         ],
         metricas: [
-          { title: 'Seguimiento y metas', text: 'La pesta\u00f1a est\u00e1 dividida en dos \u00e1reas: Seguimiento para ver la evoluci\u00f3n y Metas para configurar objetivos.', tab: 'metricas', highlight: null },
-          { title: 'Registro r\u00e1pido', text: 'En Seguimiento registra peso y medidas opcionales como grasa corporal, cintura y masa muscular. La altura queda como dato de perfil.', tab: 'metricas', highlight: 'metrics-measures' },
+          { title: 'Progreso y metas', text: 'La pesta\u00f1a est\u00e1 dividida en dos \u00e1reas: Progreso para ver la evoluci\u00f3n y Metas para configurar objetivos.', tab: 'metricas', highlight: null },
+          { title: 'Registro r\u00e1pido', text: 'En Progreso registra peso y medidas opcionales como grasa corporal, cintura y masa muscular. La altura queda como dato de perfil.', tab: 'metricas', highlight: 'metrics-measures' },
           { title: 'Actuales y gr\u00e1ficos', text: 'Revisa peso, IMC y TMB actual en tarjetas organizadas, adem\u00e1s de composici\u00f3n corporal, evoluci\u00f3n del peso e historial.', tab: 'metricas', highlight: 'metrics-current' },
           { title: 'Evoluci\u00f3n de la TMB', text: 'La TMB se guarda con las medidas corporales. Cuando haya historial suficiente, este gr\u00e1fico muestra c\u00f3mo cambi\u00f3 con el tiempo.', tab: 'metricas', highlight: 'bmr-chart' },
           { title: 'Composici\u00f3n corporal', text: 'Usa grasa corporal, cintura y masa muscular como tendencia. Son datos opcionales y pueden variar seg\u00fan el m\u00e9todo de medici\u00f3n.', tab: 'metricas', highlight: 'body-composition' },

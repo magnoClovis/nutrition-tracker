@@ -178,9 +178,9 @@ test.describe('authenticated app smoke tests', () => {
   test.beforeEach(async ({ page }) => interceptOptionalExternalApis(page));
 
   for (const language of [
-    { name: 'Portuguese', code: 'pt', diary: /Di.rio/i, pantry: /Alimentos/i, week: /Semana/i, metrics: /M.tricas/i, metricText: /Acompanhamento/ },
-    { name: 'English', code: 'en', diary: /Diary/i, pantry: /Foods|Pantry/i, week: /Week/i, metrics: /Metrics/i, metricText: /Tracking/ },
-    { name: 'Spanish', code: 'es', diary: /Diario/i, pantry: /Alimentos/i, week: /Semana/i, metrics: /M.tricas/i, metricText: /Seguimiento/ }
+    { name: 'Portuguese', code: 'pt', diary: /Di.rio/i, pantry: /Alimentos/i, week: /Semana/i, metrics: /M.tricas/i, metricText: /Progresso/ },
+    { name: 'English', code: 'en', diary: /Diary/i, pantry: /Foods|Pantry/i, week: /Week/i, metrics: /Metrics/i, metricText: /Progress/ },
+    { name: 'Spanish', code: 'es', diary: /Diario/i, pantry: /Alimentos/i, week: /Semana/i, metrics: /M.tricas/i, metricText: /Progreso/ }
   ]) {
     for (const tab of [
       { key: 'diary', tutorial: 'tab-diario', label: language.diary, screen: '[data-screen="diario"]' },
@@ -206,7 +206,7 @@ test.describe('authenticated app smoke tests', () => {
     await setAppLanguage(page, 'pt');
     await clickByTutorialKeyOrText(page, 'tab-metricas', /M.tricas/i);
 
-    await expect(page.getByRole('button', { name: 'Acompanhamento' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Progresso', exact: true })).toBeVisible();
     await expect(page.locator('[data-tutorial="metrics-measures"]')).toBeVisible();
     await expect(page.locator('[data-tutorial="metrics-current"]')).toBeVisible();
     await expect(page.locator('[data-tutorial="weight-chart"]')).toBeVisible();
@@ -214,7 +214,7 @@ test.describe('authenticated app smoke tests', () => {
     await expect(page.locator('[data-tutorial="body-composition"]')).toBeVisible();
     await expect(page.locator('[data-tutorial="metrics-progress"]')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Metas', exact: true }).click();
+    await page.getByRole('tab', { name: 'Metas', exact: true }).click();
     await expect(page.locator('[data-tutorial="nutrition-profile"]')).toBeVisible();
     await expect(page.locator('[data-tutorial="metrics-target-summary"]')).toBeVisible();
     await expect(page.locator('[data-tutorial="metrics-measures"]')).toBeHidden();

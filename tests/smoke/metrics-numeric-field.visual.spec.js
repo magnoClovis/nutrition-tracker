@@ -32,9 +32,9 @@ test.describe('authenticated Metrics NumericField visual contract', () => {
 
   async function openTracking(page, metricsLabel = /M.tricas/i) {
     await clickByTutorialKeyOrText(page, 'tab-metricas', metricsLabel);
-    const measures = page.locator('[data-tutorial="metrics-measures"]');
-    await expect(measures).toBeVisible();
-    return measures.locator('..');
+    const logWeighIn = page.locator('[data-tutorial="metrics-measures"]');
+    await expect(logWeighIn).toBeVisible();
+    return { logWeighIn, measures: page.locator('#metrics-weigh-in-legacy') };
   }
 
   test('uses the approved keypad for frequent body measurements in every viewport and theme', async ({ page }) => {
@@ -53,7 +53,11 @@ test.describe('authenticated Metrics NumericField visual contract', () => {
     for (const [viewport, theme] of cases) {
       await page.setViewportSize(viewport);
       await setTheme(page, theme);
-      const measures = await openTracking(page);
+      const { logWeighIn, measures } = await openTracking(page);
+      await logWeighIn.click();
+      await expect(page.getByRole('heading', { name: 'Informar peso', exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
+      await expect(measures).toBeVisible();
       await expect(measures.locator('[data-numeric-field="true"]')).toHaveCount(4);
       await expect(measures.locator('input[type="number"]:visible')).toHaveCount(0);
 
@@ -70,7 +74,7 @@ test.describe('authenticated Metrics NumericField visual contract', () => {
       const styles = await page.evaluate(() => {
         const triggerNode = document.querySelector('#metrics-weight-trigger');
         const appMainNode = document.querySelector('[data-app-main="metricas"]');
-        const metricsCardNode = document.querySelector('[data-tutorial="metrics-measures"]');
+        const metricsCardNode = document.querySelector('#metrics-weigh-in-legacy');
         const sheetNode = document.querySelector('[data-numeric-field-sheet="true"]');
         const valueNode = document.querySelector('[data-numeric-keypad-value="true"]');
         const appMainStyle = getComputedStyle(appMainNode);
@@ -135,7 +139,9 @@ test.describe('authenticated Metrics NumericField visual contract', () => {
 
     for (const language of languages) {
       await setAppLanguage(page, language.code);
-      await openTracking(page, language.metrics);
+      const { logWeighIn } = await openTracking(page, language.metrics);
+      await logWeighIn.click();
+      await page.getByRole('button', { name: /Cancelar|Cancel/ }).click();
       await page.locator('#metrics-body-fat-trigger').click();
       await expect(page.getByRole('heading', { name: language.title, exact: true })).toBeVisible();
       await page.locator('[data-numeric-keypad-confirm="true"]').click();

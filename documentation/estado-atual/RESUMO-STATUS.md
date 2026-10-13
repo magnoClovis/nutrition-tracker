@@ -251,7 +251,7 @@
 
 - **Status:** não iniciado, condicionado a nova recorrência com diagnóstico causal — **Chat:** Trofia-Principal.
 - **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Data de conclusão:** não concluído.
 - **Propósito:** corrigir a causa exata comprovada pela prova Play sem retry automático, leitura dupla, fallback de cache ou relaxamento do perfil obrigatório.
 - **O que se planeja fazer:** implementar a menor correção causal, adicionar regressão determinística, executar teste focado, suíte completa e CI autenticado, repetir a validação Play e só então liberar a CAM-RED-4.
 - **Recursos/arquivos principais envolvidos:** módulo identificado na D2, testes unitários/autenticados, Firebase Auth/App Check/Firestore, AAB Play, documentação e comunicação de desbloqueio da UI/UX.
@@ -1565,13 +1565,13 @@
 
 ### [I10-A] - Shell, jornada e estado atual de Métricas
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 11/10/2026.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** estabelecer o núcleo visual da quarta aba principal preservando os contratos corporais já entregues.
 - **O que se planeja fazer:** implementar cabeçalho, segmentos Progresso/Metas, card Jornada, progresso do plano, previsão, CTA de pesagem, tiles Peso/IMC/TMB e estados de carregamento/primeiro uso, preservando hooks tutoriais e D4.
-- **Recursos/arquivos principais envolvidos:** `UI_visuals/trofia-metrics-journey`, `metrics-screen.js`, `body-metrics-model.js`, `goal-calculator.js`, `historical-goals-model.js`, navegação compartilhada, `one-ui.css`, i18n e testes.
-- **O que foi feito:** o pacote aprovado de Métricas, com 46 PNGs claro/escuro, FLOW e referência interativa, foi auditado em 11/10/2026; a antiga reserva genérica foi dividida em I10-A–D. Nenhum código foi iniciado.
+- **Recursos/arquivos principais envolvidos:** `UI_visuals/trofia-metrics-journey`, `metrics-screen.js`, `body-metrics-model.js`, `goal-calculator.js`, `historical-goals-model.js`, `tutorial-overlay.js`, navegação compartilhada, `one-ui.css`, i18n e testes.
+- **O que foi feito:** o pacote aprovado de Métricas, com 46 PNGs claro/escuro, FLOW e referência interativa, foi auditado em 11/10/2026 e dividido em I10-A–D. Em worktree isolada foram implementados cabeçalho, segmentos semânticos, jornada, progresso/previsão, CTA e tiles atuais, sem tocar na navegação ou no menu de criação da I4-A. O CTA mantém o formulário existente acessível como transição até a I10-C. Na base dos recortes `7f218c7`, passaram preflight com 0 avisos, 16/16 contratos focados, 1.565/1.565 unitários, build Vite de 848 módulos com allowlist de 14 arquivos, recortes da jornada legado 5/5 e Vite 5/5 e recortes dos helpers atualizados legado 18/18 e Vite 18/18. O gate integral preservou 184 aprovações e 10 skips estruturais no legado, mas parou antes do Vite por `auth-refresh-timeout` isolado no GenericDialog mobile; evidências foram preservadas, sem retry automático. Após incorporar a `main` até `63b7bbd`, o tutorial também foi alinhado aos nomes entregues Progresso/Progress/Progreso e protegido por contrato UMD/ESM. Na base integrada final passaram sintaxe, `git diff --check`, preflight com 0 avisos, 16/16 focados de Métricas, 11/11 do tutorial, 1.567/1.567 unitários, build Vite de 848 módulos com allowlist de 14 arquivos e o gate integral autenticado: smoke legado com 185 aprovações e 10 skips estruturais, smoke Vite 195/195, CSP verde e cutover 60/60. A fatia permanece em andamento até CI real, aprovação e merge.
 
 ### [I10-B] - Gráficos, composição corporal e previsão
 
