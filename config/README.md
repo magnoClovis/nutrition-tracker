@@ -4,6 +4,6 @@ Esta pasta guarda manifestos versionados que descrevem a identidade e os destino
 
 ## Arquivos
 
-- `staging-environment.json`: inventario declarativo do staging. O projeto e seu numero ja foram confirmados; os demais campos permanecem vazios ate que os recursos isolados sejam criados e verificados. Sua existencia nao autoriza publicar nem conectar o app a producao.
+- `staging-environment.json`: inventario declarativo do staging. Projeto, apps Web/Android, chave publica Web, host Firebase Hosting e site key publica do App Check Web foram confirmados. Auth por e-mail/senha foi habilitado no projeto isolado; Play Integrity Android ainda requer assinatura/distribuicao. Worker, callable e recursos de Functions seguem vazios. Campos vazios mantem o build staging bloqueado; este arquivo nao autoriza publicar nem conectar o app a producao.
 
 Ao adicionar arquivos nesta pasta, registre aqui a finalidade de cada um e preserve a separacao entre staging e producao.

@@ -4,15 +4,15 @@
   "firebase": {
     "projectId": "trofia-staging",
     "projectNumber": "31822846339",
-    "webAppId": "",
-    "webApiKey": "",
-    "authDomain": ""
+    "webAppId": "1:31822846339:web:5bbe4655510f1ac82c7eb6",
+    "webApiKey": "AIzaSyAsmZbFQLIpvIT8wUYcLCMQy0Yq4XMOaao",
+    "authDomain": "trofia-staging.firebaseapp.com"
   },
   "appCheck": {
-    "webSiteKey": ""
+    "webSiteKey": "6LdfwOwtAAAAAIALm6gTbvHYBVygzqD-UNlAoMnh"
   },
   "hosting": {
-    "origin": ""
+    "origin": "https://trofia-staging.web.app"
   },
   "worker": {
     "name": "",
@@ -22,8 +22,8 @@
     "url": ""
   },
   "android": {
-    "applicationId": "",
-    "firebaseAppId": ""
+    "applicationId": "com.hermegas.trofia.staging",
+    "firebaseAppId": "1:31822846339:android:02eff0cfd4b556aa2c7eb6"
   },
   "functions": {
     "requestServiceAccount": "",

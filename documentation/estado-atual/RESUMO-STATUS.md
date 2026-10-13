@@ -2118,6 +2118,16 @@
 - **O que foi feito:** o Vite substitui os três destinos CSP por origens exatas do manifesto validado e recusa valores vazios, misturados ou wildcard; o verificador examina o HTML transformado sem ignorar vínculos de produção fora da CSP. Passaram 12 testes focados de CSP/fronteira, os 12 cenários de cutover Adicionar, build de produção e `npm test` final com preflight 0, 1.564 unitários, smokes locais sem falha funcional (skips autenticados esperados) e cutover 60/60. A comparação visual transitória foi estabilizada aguardando o aviso natural; uma execução intermediária colidiu com porta alheia e não foi tratada como gate verde. O PR #341 foi mesclado em `364eb4d` após preflight `38344621291` e CI `38344621290` verdes (Worker 47+9, Functions 77, legado 181+10 skips, Vite 191, CSP Chromium, `SMOKE_OUTCOME: success`); preflight main `38357274453` e CI main `38357275685` passaram. Tempo desde `06d7121` ao merge: **11 h 31 min 42 s**; CI do PR: **53 min 36 s (24 s leve + 53 min 12 s pesado)**, idênticos ao corpo do #341. Staging segue bloqueado por manifesto incompleto, sem deploy ou alteração de IAM.
 - **Alinhamento:** 100% do recorte CSP aprovado; a C14-H geral segue em andamento e exige isolamento remoto antes de qualquer rollout.
 
+### [C14-H-APPS] - Apps Firebase e App Check de staging
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 13/10/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** estabelecer identidades de app Web e Android exclusivas do projeto staging antes de qualquer publicação.
+- **O que se planeja fazer:** inventariar o projeto `trofia-staging`, registrar ou confirmar apps Web/Android, Auth e provedores App Check próprios; preencher no manifesto apenas IDs e valores públicos comprovados, preservar campos de recursos ainda ausentes e validar que o build staging continue fail-closed.
+- **Recursos/arquivos principais envolvidos:** Firebase staging, Auth, App Check, `config/staging-environment.json`, `scripts/verify-staging-manifest.js` e documentação C14-H.
+- **O que foi feito:** projeto staging ACTIVE confirmado; apps Web/Android exclusivos registrados e Hosting padrão confirmado. IDs, chave pública Web, origem Hosting e site key reCAPTCHA Enterprise própria/restrita ao host staging foram registrados no manifesto; App Check Web está configurado sem enforcement. Auth staging foi inicializado com e-mail/senha obrigatório e domínios próprios autorizados. Verificação de identidades parciais reforçada. Android Play Integrity permanece sem fingerprint/artefato distribuído; Worker/callable/Functions ainda vazios. Gates locais: 7 focados, 1.565 unitários, preflight 0, build produção verde e staging bloqueado como esperado. Sem deploy, IAM ou produção.
+
 ### [C14-H-ANDROID] - Artefato Android staging separado
 
 - **Status:** não iniciado — **Chat:** Trofia-Principal.
