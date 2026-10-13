@@ -36,7 +36,7 @@ test.describe('authenticated TemporalField visual contract', () => {
     await expect(createMenu).toBeVisible();
     await createMenu.locator('[data-create-menu-option="manual"]').click();
     await expect(page.locator('[data-app-main="adicionar"]:visible')).toBeVisible();
-    await page.getByRole('button', { name: /Informar horário|Set meal time|Indicar hora/ }).click();
+    await page.locator('[data-add-time-chip]').click();
     const trigger = page.locator('#meal-registration-time-trigger');
     await expect(trigger).toBeVisible();
     await trigger.click();
