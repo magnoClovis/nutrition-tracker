@@ -2226,6 +2226,17 @@
 - **O que se planeja fazer:** revisar duplicatas, artefatos, refs/branches e worktrees, remover apenas itens comprovadamente dispensáveis e validar web/Android/documentação.
 - **Recursos/arquivos principais envolvidos:** Git worktrees/branches, arquivos ignorados/rastreados, `dist`, Pages, Android e documentação operacional.
 
+### [TEST-CI-1] - Evitar repetição de CI por evidência documental em PR técnico
+
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 12/10/2026.
+- **Data de conclusão:** 12/10/2026.
+- **Propósito:** reduzir execuções integrais repetidas sem retirar testes do código.
+- **O que se planeja fazer:** quando o SHA técnico de um PR já tiver todos os gates aplicáveis verdes, registrar o resultado no corpo do PR e levar métricas e evidências finais aos documentos em PR exclusivamente documental após o merge; repetir CI integral sempre que código, configuração, infraestrutura, base relevante ou resultado exigirem nova prova.
+- **Recursos/arquivos principais envolvidos:** `AGENTS.md`, `documentation/PADRAO-DOCUMENTACAO.md`, fluxo de PR, checks do GitHub Actions, resumo e histórico da frente.
+- **O que foi feito:** a auditoria somente de leitura identificou o Playwright como custo dominante e os PRs #334/#336 como exemplos de segundo CI pesado disparado por commit final apenas documental. O PR #338 mesclou a regra em `a040787` após preflight `38306747953` verde em 25 s; o preflight da `main` `38307094535` também passou. O tempo do primeiro commit até o merge foi 3 min 33 s, com 25 s de CI leve e 0 s pesado no PR, valores idênticos à descrição. Nenhum teste, workflow ou runtime foi alterado; a economia futura ainda não foi medida.
+- **Alinhamento:** 100% do fluxo documental aprovado; impacto de recursos ainda não mensurado.
+
 ## Observações não confirmadas sob acompanhamento
 
 ### [INV-RELOAD-SESSAO] - Sessão e loading após reload/troca de idioma

@@ -76,6 +76,15 @@ Minutos de CI: <total e divisão leve/pesado>
 - Toda mensagem de commit e descrição de PR termina com `Chat-Origin: <nome do chat>`.
 - Toda entrada do `RESUMO-STATUS.md` identifica `Chat: <nome da frente>`.
 
+### Evidência sem segunda execução integral no mesmo PR técnico
+
+1. O PR técnico já deve conter o plano, escopo, estado e documentação conhecidos antes da validação. Execute os gates aplicáveis no SHA técnico final e confira também os checks exigidos pelo PR.
+2. Quando todos estiverem verdes, acrescente ao **corpo do PR** os links/IDs, contagens, skips e resultado real do CI. Não crie no mesmo PR um commit exclusivamente documental para copiar essa evidência: como o diff do PR ainda contém código, o CI integral roda de novo. Se código, configuração, infraestrutura, base relevante ou contrato mudarem, revalide proporcionalmente e exija os checks aplicáveis no novo SHA.
+3. Depois do merge, calcule o tempo exato desde o primeiro commit e o total real de CI do PR (leve/pesado). Registre esses valores, o resultado do CI da `main` quando aplicável e as evidências finais no resumo, histórico e documento específico por PR **exclusivamente documental**. Copie os mesmos valores para a descrição do PR técnico original, mantendo `Chat-Origin` na última linha.
+4. Não declare a fatia concluída antes do merge documental e de seus checks aplicáveis. Se houver uma exigência de documentação versionada antes do merge técnico, inclua-a antes do gate final ou aceite repetir o CI; nunca contorne um check pendente/falho nem use esta regra para pular testes.
+
+Este procedimento reduz apenas a duplicação causada pela ordem dos commits; não remove testes, não altera a matriz autenticada nem suprime o CI da `main`.
+
 ## Gate antes de declarar conclusão
 
 Confirmar todos os itens:

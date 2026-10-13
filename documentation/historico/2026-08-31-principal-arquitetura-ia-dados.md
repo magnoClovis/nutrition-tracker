@@ -1,5 +1,19 @@
 # Histórico da frente principal — arquitetura de IA e dados
 
+### [TEST-CI-1] - Evitar repetição de CI por evidência documental em PR técnico
+
+- **Status:** concluído.
+- **Data de início:** 12/10/2026.
+- **Data de conclusão:** 12/10/2026.
+- **Tempo decorrido:** 3 min 33 s do primeiro commit `f528bb5` ao merge do PR #338.
+- **Minutos de CI:** 25 s (25 s leve + 0 s pesado), run `38306747953`.
+- **Propósito:** manter a prova integral do código sem repetir o Playwright apenas para copiar métricas aos documentos.
+- **O que se planeja fazer:** publicar resultados do SHA técnico validado no corpo do PR, transferir a evidência final e métricas exatas ao PR documental pós-merge e exigir novo gate sempre que a mudança técnica ou a base o justificarem.
+- **Recursos/arquivos principais envolvidos:** `AGENTS.md`, `documentation/PADRAO-DOCUMENTACAO.md`, `RESUMO-STATUS.md`, descrições dos PRs e checks do GitHub Actions.
+- **O que foi feito:** a auditoria de 12/10 constatou que a etapa Playwright levou 48 min 27 s no CI inspecionado e que os PRs #334/#336 executaram um segundo CI autenticado após commit final somente documental. A regra operacional mesclada preserva o gate técnico, os checks do PR e o CI da `main`, mas registra resultados no corpo do PR técnico e posterga a cópia versionada final para PR exclusivamente documental após o merge. O preflight do PR #338 terminou verde em 25 s e o preflight da `main` `38307094535` também passou; o corpo do PR recebeu os mesmos 3 min 33 s e 25 s de CI leve registrados aqui. Não houve exclusão de teste, alteração de workflow nem economia já medida.
+- **Alinhamento:** 100% do fluxo aprovado, com impacto de recursos positivo esperado, mas ainda não medido.
+- **PRs/commits relacionados:** #334 e #336 evidenciam a duplicação; #338 (primeiro commit `f528bb5`, merge `a040787`); preflights `38306747953` e `38307094535`.
+
 ### [C14-F2-DEPLOY-DEPENDENCIAS] - Publicação controlada após o PR #308
 
 - **Status:** concluído.
