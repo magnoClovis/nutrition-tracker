@@ -1,4 +1,8 @@
-const { test, expect } = require('./app-check-fixture');
+const {
+  test,
+  expect,
+  installCiAppCheckForContext,
+} = require('./app-check-fixture');
 const {
   AUTH_STATE_PATH,
   hasCredentials,
@@ -15,6 +19,19 @@ const {
 test.describe('I4-B Add sheet orchestration', () => {
   test.skip(!hasCredentials, missingCredentialsMessage);
   test.use({ storageState: AUTH_STATE_PATH });
+
+  async function openIsolatedApp(browser, baseURL) {
+    const context = await browser.newContext({
+      baseURL,
+      storageState: AUTH_STATE_PATH,
+    });
+    await installCiAppCheckForContext(context);
+    const page = await context.newPage();
+    await interceptOptionalExternalApis(page);
+    const errors = await openApp(page);
+    await dismissTutorialIfVisible(page);
+    return { context, errors, page };
+  }
 
   async function openManualAdd(page) {
     await dismissTutorialIfVisible(page);
@@ -48,6 +65,24 @@ test.describe('I4-B Add sheet orchestration', () => {
       }
       await window.storage.set(`log_v2_${civilDate}`, JSON.stringify(value));
     }, [date, log]);
+  }
+
+  async function replaceAndConfirmInNewContext(browser, baseURL, date, log) {
+    const writer = await openIsolatedApp(browser, baseURL);
+    try {
+      await replaceDailyLog(writer.page, date, log);
+      await expectNoCriticalErrors(writer.errors);
+    } finally {
+      await writer.context.close();
+    }
+
+    const verifier = await openIsolatedApp(browser, baseURL);
+    try {
+      expect(await readDailyLog(verifier.page, date)).toEqual(log);
+      await expectNoCriticalErrors(verifier.errors);
+    } finally {
+      await verifier.context.close();
+    }
   }
 
   test('keeps destination, time, repeat and manual entry in the approved sheet hierarchy', async ({ page }) => {
@@ -120,14 +155,14 @@ test.describe('I4-B Add sheet orchestration', () => {
     await expectNoCriticalErrors(errors);
   });
 
-  test('repeats a recent meal in one tap and undoes only the new entries', async ({ page }) => {
+  test('repeats a recent meal in one tap and undoes only the new entries', async ({ browser }, testInfo) => {
     test.setTimeout(90000);
-    await interceptOptionalExternalApis(page);
-    const errors = await openApp(page);
-    await setAppLanguage(page, 'pt');
-
-    const today = await page.evaluate(() => window.DateUtils.localToday());
-    const previousToday = await readDailyLog(page, today);
+    const baseURL = testInfo.project.use.baseURL;
+    const snapshotReader = await openIsolatedApp(browser, baseURL);
+    const today = await snapshotReader.page.evaluate(() => window.DateUtils.localToday());
+    const previousToday = await readDailyLog(snapshotReader.page, today);
+    await expectNoCriticalErrors(snapshotReader.errors);
+    await snapshotReader.context.close();
     const marker = `Repetição I4-B ${Date.now()}`;
     const entry = {
       id: `i4b-source-${Date.now()}`,
@@ -143,10 +178,20 @@ test.describe('I4-B Add sheet orchestration', () => {
       time: '08:00',
     };
 
+    let fixturePrepared = false;
+    let visualContext = null;
     try {
-      await replaceDailyLog(page, today, {'Café da manhã': [entry]});
-      await page.reload({waitUntil: 'domcontentloaded'});
-      await expect(page.locator('#loading')).toHaveCount(0, {timeout: 15000});
+      fixturePrepared = true;
+      await replaceAndConfirmInNewContext(
+        browser,
+        baseURL,
+        today,
+        {'Café da manhã': [entry]}
+      );
+
+      visualContext = await openIsolatedApp(browser, baseURL);
+      const {page, errors} = visualContext;
+      await setAppLanguage(page, 'pt');
 
       const sheet = await openManualAdd(page);
       const repeatCard = sheet.locator('[data-add-repeat-card]').filter({hasText: marker});
@@ -174,7 +219,10 @@ test.describe('I4-B Add sheet orchestration', () => {
       await expect(page.locator('[data-app-notification]')).toContainText('Repetição desfeita.');
       await expectNoCriticalErrors(errors);
     } finally {
-      await replaceDailyLog(page, today, previousToday);
+      await visualContext?.context.close();
+      if (fixturePrepared) {
+        await replaceAndConfirmInNewContext(browser, baseURL, today, previousToday);
+      }
     }
   });
 });
