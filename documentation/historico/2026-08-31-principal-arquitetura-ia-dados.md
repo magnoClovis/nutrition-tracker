@@ -1583,3 +1583,16 @@ Em 29/09/2026, o responsável aprovou registrar a sequência ORG-0 a ORG-7 antes
 | [#189](https://github.com/magnoClovis/nutrition-tracker/pull/189) | 1 d 16 h 20 min | 40 min (1 leve + 39 pesado) | Trofia-Principal |
 | [#191](https://github.com/magnoClovis/nutrition-tracker/pull/191) | 1 h 31 min | 45 min (1 leve + 44 pesado) | Trofia-Principal |
 | [#198](https://github.com/magnoClovis/nutrition-tracker/pull/198) | 2 min | 1 min (1 leve + 0 pesado) | Trofia-Principal |
+# C14-H-CSP — política CSP separada para staging
+
+- **Status:** em andamento.
+- **Data de início:** 12/10/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** impedir que o artefato staging autorize endpoints de produção na política de conteúdo.
+- **O que se planeja fazer:** derivar a CSP staging de manifesto validado, preservar hashes e diretivas restritivas, recusar valores ausentes/misturados e provar o HTML gerado; manter o build staging fail-closed até os demais consumidores estarem prontos.
+- **Recursos/arquivos principais envolvidos:** `index.html`, `vite.config.js`, `scripts/verify-csp-policy.js`, `scripts/verify-staging-boundaries.js`, manifesto staging e testes.
+- **O que foi feito:** branch isolada criada após o merge #336; o CI da `main` do #336 falhou duas vezes em testes de UI autenticados e segue diagnóstico do UI/UX, sem atribuição causal à Functions. O recorte prepara transformação CSP staging após validação do manifesto, troca exata de Worker/callable/Auth, rejeição de destinos vazios/misturados/wildcard e verificação do HTML emitido. O verificador de fronteira examina o HTML transformado apenas com manifesto validado, sem ignorar vínculos fora da CSP; 12/12 testes focados de CSP/fronteira passaram. O build de produção e CSP Chromium passaram; build staging permaneceu bloqueado por manifesto incompleto. O primeiro `npm test` falhou em um cenário de cutover que amostrou o aviso temporário de despensa vazia em momentos diferentes no legado e no Vite; o teste agora verifica o aviso em ambos e aguarda sua remoção natural. O recorte Adicionar passou 12/12 após a correção. Uma repetição integral parou antes do smoke por colisão da porta 8765 com outro teste local. Após a lane ficar livre, a suíte final terminou com código 0: preflight 0 avisos, 1.564/1.564 unitários, smoke legado/Vite e CSP Chromium sem falha funcional (skips autenticados locais esperados), cutover 60/60. CI remoto ainda pende; sem deploy.
+- **Alinhamento:** pendente de validação.
+- **PRs/commits relacionados:** #336, CI main `38271290975`; PR deste recorte ainda não criado.

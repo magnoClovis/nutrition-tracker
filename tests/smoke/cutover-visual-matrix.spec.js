@@ -165,6 +165,14 @@ async function openScreen(page, screen) {
     const createMenu = page.locator('[data-diary-create-menu]:visible');
     await expect(createMenu).toBeVisible();
     await createMenu.locator('[data-create-menu-option="manual"]').click();
+    // The empty-pantry warning is part of this interaction, but not of the
+    // durable Add screen. Compare it in both runtimes, then let its real timer
+    // settle before capturing the long-lived DOM and pixels.
+    const emptyPantryNotice = page.getByText(
+      /Cadastre alimentos na despensa primeiro|Add foods to the pantry first|Primero registra alimentos en la despensa/i,
+    );
+    await expect(emptyPantryNotice).toBeVisible();
+    await expect(emptyPantryNotice).toHaveCount(0);
   } else {
     await page.locator(`[data-tutorial="tab-${screen.key}"]`).click();
   }
