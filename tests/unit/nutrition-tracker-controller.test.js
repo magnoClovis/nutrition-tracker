@@ -43,7 +43,7 @@ contractTest("keeps the complete hook protocol inside NutritionTracker", createN
   const { NutritionTracker } = createController(createNutritionTrackerController);
   const source = NutritionTracker.toString();
 
-  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 159);
+  assert.equal((source.match(/\buseState\s*\(/g) || []).length, 162);
   assert.equal((source.match(/\buseEffect\s*\(/g) || []).length, 42);
   assert.equal((source.match(/\buseRef\s*\(/g) || []).length, 29);
 });
