@@ -39,8 +39,8 @@ A I8-A substitui a composição de acordeões da Despensa por uma biblioteca com
 
 ## Evidência local atual
 
-- `origin/main` incorporada por merge explícito em 13/10/2026;
-- preflight com 0 avisos e 1.566/1.566 testes unitários verdes na base integrada;
+- `origin/main` incorporada por merge explícito em 13/10/2026 e atualizada novamente até `364eb4d` pelo merge `3dda34e`;
+- preflight com 0 avisos, 1.571/1.571 testes unitários e build Vite de 848 módulos/allowlist de 14 arquivos verdes na base integrada mais recente;
 - 94/94 contratos focados do controlador, da tela de Alimentos e dos consumidores afetados;
 - recortes corrigidos verdes em 11/11 no legado e 11/11 no Vite;
 - smoke legado integral com 185 aprovados e 10 skips estruturais esperados;
@@ -49,7 +49,8 @@ A I8-A substitui a composição de acordeões da Despensa por uma biblioteca com
 - `git diff --check` e verificações sintáticas verdes;
 - PR draft #340 aberto no commit funcional `aeea32f`;
 - CI documental 38334194988 verde em 23 s e CI funcional 38334194827 verde em 51 min 14 s, totalizando 51 min 37 s de CI real;
-- a fatia permanece aberta até aprovação explícita, merge e fechamento documental.
+- run extra 38339743752, disparado pelo commit documental, cancelado no limite global de uma hora após 186 casos Vite aprovados; interrupção durante bootstrap, sem retry e sem inclusão nas métricas;
+- como a atualização para `364eb4d` trouxe mudanças de runtime/CSP, o gate autenticado final será repetido antes de aprovação, merge e fechamento documental.
 
 Os `npm ci` da raiz e do Worker instalaram exatamente os lockfiles na worktree isolada; nenhum manifesto ou lockfile foi alterado.
 
