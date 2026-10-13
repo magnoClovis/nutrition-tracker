@@ -47,7 +47,9 @@ A I8-A substitui a composição de acordeões da Despensa por uma biblioteca com
 - smoke Vite integral com 195/195, CSP verde e build de 848 módulos com allowlist de 14 arquivos;
 - cutover visual integral com 60/60;
 - `git diff --check` e verificações sintáticas verdes;
-- PR draft e CI real ainda pendentes; a fatia permanece aberta até merge e fechamento documental.
+- PR draft #340 aberto no commit funcional `aeea32f`;
+- CI documental 38334194988 verde em 23 s e CI funcional 38334194827 verde em 51 min 14 s, totalizando 51 min 37 s de CI real;
+- a fatia permanece aberta até aprovação explícita, merge e fechamento documental.
 
 Os `npm ci` da raiz e do Worker instalaram exatamente os lockfiles na worktree isolada; nenhum manifesto ou lockfile foi alterado.
 
