@@ -1852,17 +1852,17 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 ### [I8-A] - Shell, abas e categorias de Alimentos/Despensa
 
-- **Status:** não iniciado.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento.
+- **Data de início:** 11/10/2026.
+- **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
 - **Minutos de CI:** 0 min; não iniciado.
-- **Propósito:** redesenhar a segunda aba principal como biblioteca navegável e coerente com o novo Diário.
-- **O que se planeja fazer:** implementar cabeçalho/contagens, busca visível, segmentos Alimentos/Refeições/Suplementos/Categorias, filtros, grade/lista de categorias, estados vazios e barra inferior compartilhada, com composição própria mobile/desktop.
-- **Recursos/arquivos principais envolvidos:** `UI_visuals/trofia-foods-tabs-categories`, `pantry-screen.js`, modelos de alimentos/refeições/suplementos, `one-ui.css`, i18n e testes legado/Vite.
-- **O que foi feito:** em 11/10/2026 foram auditados o FLOW, a referência interativa e os 26 PNGs claro/escuro do pacote. O pacote foi dividido em shell/categorias, cartões/ações e busca/base para evitar que navegação, mutações e rede sejam alteradas no mesmo PR. Nenhum código foi iniciado.
+- **Propósito:** redesenhar a segunda aba principal como biblioteca navegável e coerente com a nova navegação compartilhada.
+- **O que se planeja fazer:** implementar cabeçalho e contagens reais, busca visível, segmentos Alimentos/Refeições/Suplementos/Categorias, filtros locais, grade/lista de categorias, estados vazios e composição responsiva, preservando os fluxos atuais de criação, scanner, edição e persistência.
+- **Recursos/arquivos principais envolvidos:** pacote `UI_visuals/trofia-foods-tabs-categories`, `pantry-screen.js`, `nutrition-tracker-controller.js`, modelos de alimentos/refeições/suplementos, `one-ui.css`, i18n, Node Test e Playwright legado/Vite.
+- **O que foi feito:** em 11/10/2026 foram auditados o FLOW, a referência interativa e os 26 PNGs claro/escuro. O shell foi implementado em worktree e branch próprias com contagens reais, busca, segmentos Alimentos/Refeições/Suplementos/Categorias, filtros locais, categorias derivadas dos registros e estados vazios. Uma primeira tentativa Vite parou no setup comum com `auth-sign-in-stalled`, sem erro HTTP, de console ou de página; a análise read-only não encontrou alteração de Auth, Firebase, bootstrap ou navegação no diff da I8-A. Os consumidores `generic-dialog.visual.spec.js`, `searchable-choice-field.visual.spec.js` e `pantry-choice-field.visual.spec.js` foram então reconciliados semanticamente com as abas e ações aprovadas, sem relaxar expectativas. Em 13/10/2026, os recortes corrigidos passaram 11/11 no legado e 11/11 no Vite. O gate integral autenticado passou com preflight em 0 avisos, 1.566/1.566 unitários, smoke legado em 185 aprovados mais 10 skips estruturais, smoke Vite em 195/195, CSP verde, cutover em 60/60 e build Vite de 848 módulos com allowlist de 14 arquivos. `origin/main` foi incorporada por merge explícito e os gates não autenticados pós-merge repetiram preflight em 0 avisos e 1.566/1.566 unitários. Nenhum minuto de CI foi contabilizado antes do PR.
 - **Alinhamento:** pendente até implementação, validação e merge.
-- **PRs/commits relacionados:** nenhum; planejamento documental anterior ao código. — **Chat-Origin:** Trofia-UIUX.
+- **PRs/commits relacionados:** implementação local validada; PR draft e CI ainda pendentes. — **Chat-Origin:** Trofia-UIUX.
 
 ### [I8-B] - Cartões, porções e ações da biblioteca
 

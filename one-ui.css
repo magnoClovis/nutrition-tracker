@@ -4080,3 +4080,232 @@ body:has([data-meal-result-overlay="true"]) [data-app-main="adicionar"] {
     animation: none;
   }
 }
+
+/* I8-A — Foods/Pantry shell, tabs, filters and categories. */
+.pantry-library-screen {
+  width: min(100%, 1080px);
+  margin-inline: auto;
+  padding: 6px 14px calc(116px + var(--app-safe-bottom));
+  box-sizing: border-box;
+}
+
+.pantry-library-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.pantry-library-title {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(1.875rem, 5vw, 2.25rem);
+  line-height: 1.05;
+  letter-spacing: -.02em;
+}
+
+.pantry-library-summary {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: .875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pantry-library-new-button {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--btn-ok) 22%, var(--surface));
+  color: var(--btn-ok-text);
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.pantry-library-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  min-height: 50px;
+  margin-bottom: 12px;
+  padding: 4px 5px 4px 14px;
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  background: var(--surface);
+  transition: border-color var(--dur-fast) var(--ease-standard);
+}
+
+.pantry-library-search.is-active { border-color: var(--btn-ok-border); }
+.pantry-library-search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+.pantry-library-search input::placeholder { color: var(--muted); }
+.pantry-library-search button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.pantry-library-search .pantry-library-barcode-button {
+  padding-inline: 11px;
+  background: color-mix(in srgb, var(--btn-ok) 18%, var(--surface));
+  color: var(--btn-ok-text);
+  font-size: .8125rem;
+  font-weight: 750;
+}
+
+.pantry-library-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--input);
+}
+[data-one-ui-root] .pantry-library-tabs button {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: .8125rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pantry-library-tabs button.is-active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
+}
+
+.pantry-library-filters {
+  display: flex;
+  gap: 7px;
+  margin: 12px -14px 0;
+  padding: 0 14px 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pantry-library-filters::-webkit-scrollbar { display: none; }
+.pantry-library-filters button {
+  min-height: 36px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--input);
+  color: var(--text2);
+  font: inherit;
+  font-size: .8125rem;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pantry-library-filters button.is-active {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.pantry-library-panel,
+.pantry-category-section {
+  margin-top: 14px !important;
+  border: 0 !important;
+  border-radius: 22px !important;
+  background: var(--surface) !important;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .06);
+}
+.pantry-category-section { padding: 16px; }
+
+.pantry-library-section-heading,
+.pantry-category-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.pantry-library-section-heading h2,
+.pantry-category-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+}
+.pantry-library-section-heading span,
+.pantry-category-heading span { color: var(--muted); font-size: .8125rem; }
+.pantry-category-heading button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--input);
+  color: var(--text);
+  font-size: 1.75rem;
+  cursor: pointer;
+}
+
+.pantry-category-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+.pantry-category-grid button {
+  display: flex;
+  min-height: 78px;
+  padding: 13px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--btn-ok) 13%, var(--input));
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pantry-category-grid button:nth-child(3n + 2) { background: color-mix(in srgb, var(--btn-info) 22%, var(--input)); }
+.pantry-category-grid button:nth-child(3n) { background: color-mix(in srgb, var(--btn-warn) 18%, var(--input)); }
+.pantry-category-grid span { color: var(--muted); font-size: .75rem; }
+.pantry-category-foods { display: grid; gap: 1px; overflow: hidden; border-radius: 16px; }
+.pantry-category-food-row {
+  display: flex;
+  min-height: 56px;
+  padding: 10px 13px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--input);
+}
+.pantry-category-food-row span { color: var(--muted); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.pantry-library-empty { padding: 24px; border: 1px dashed var(--border2); border-radius: 18px; color: var(--muted); text-align: center; }
+
+@media (min-width: 768px) {
+  .pantry-library-screen { padding-inline: clamp(22px, 4vw, 44px); padding-bottom: 44px; }
+  .pantry-library-search { max-width: 760px; }
+}
+
+@media (max-width: 430px) {
+  .pantry-library-tabs button { padding-inline: 5px; font-size: .75rem; }
+  .pantry-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pantry-library-search { transition: none; }
+}

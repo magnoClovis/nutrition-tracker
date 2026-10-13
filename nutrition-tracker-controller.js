@@ -1390,7 +1390,10 @@
       const [editingGoals, setEditingGoals] = useState(false);
       const [goalDraft, setGoalDraft] = useState({});
       const [pantrySearch, setPantrySearch] = useState("");
-      const [pantryItemsOpen, setPantryItemsOpen] = useState(false);
+      const [pantryView, setPantryView] = useState("foods");
+      const [pantryFilter, setPantryFilter] = useState("all");
+      const [pantryCategory, setPantryCategory] = useState("");
+      const [pantryItemsOpen, setPantryItemsOpen] = useState(true);
       const [mealTemplatesOpen, setMealTemplatesOpen] = useState(false);
       const [newFoodOpen, setNewFoodOpen] = useState(false);
       const [addTemplatesOpen, setAddTemplatesOpen] = useState(false);
@@ -6480,6 +6483,12 @@
         autoFillNutrition,
         pantrySearch,
         setPantrySearch,
+        pantryView,
+        setPantryView,
+        pantryFilter,
+        setPantryFilter,
+        pantryCategory,
+        setPantryCategory,
         pantryItemsOpen,
         setPantryItemsOpen,
         mealTemplatesOpen,
