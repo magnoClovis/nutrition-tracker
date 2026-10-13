@@ -2109,13 +2109,14 @@
 
 ### [C14-H-CSP] - Política CSP separada para staging
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído após o fechamento documental pós-merge — **Chat:** Trofia-Principal.
 - **Data de início:** 12/10/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 13/10/2026, condicionada ao merge deste registro pós-merge.
 - **Propósito:** impedir que o artefato staging permita conexões ao Worker, callable ou domínio Auth de produção.
 - **O que se planeja fazer:** derivar a CSP staging de destinos validados no manifesto, recusar valores ausentes ou misturados, preservar hashes e diretivas restritivas, verificar o HTML gerado e acrescentar testes negativos; manter o build staging bloqueado até todos os outros contratos de ambiente estarem completos.
 - **Recursos/arquivos principais envolvidos:** `index.html`, `vite.config.js`, `scripts/verify-csp-policy.js`, `scripts/verify-staging-boundaries.js`, manifesto staging e testes unitários/CSP browser.
-- **O que foi feito:** branch isolada prepara substituição dos três destinos CSP por origens exatas do manifesto, com validação do HTML gerado; o verificador de fronteira examina o HTML após essa transformação quando recebe manifesto validado e continua a recusar outros vínculos de produção. Doze testes focados de CSP/fronteira e os 12 cenários de cutover da tela Adicionar passaram; o build de produção passou e o de staging continua bloqueado pelo manifesto incompleto. A primeira suíte integral falhou em um snapshot que capturou o aviso transitório de despensa em momentos diferentes; o teste agora exige que ambos os runtimes mostrem e dispensem o aviso antes da comparação. Uma repetição foi interrompida antes do smoke por colisão de porta com outra frente; após liberação da lane, `npm test` integral terminou com código 0: preflight 0 avisos, 1.564/1.564 unitários, smokes locais legado/Vite e CSP browser sem falha funcional (skips autenticados esperados sem credenciais locais), cutover 60/60. CI remoto ainda pende; sem deploy.
+- **O que foi feito:** o Vite substitui os três destinos CSP por origens exatas do manifesto validado e recusa valores vazios, misturados ou wildcard; o verificador examina o HTML transformado sem ignorar vínculos de produção fora da CSP. Passaram 12 testes focados de CSP/fronteira, os 12 cenários de cutover Adicionar, build de produção e `npm test` final com preflight 0, 1.564 unitários, smokes locais sem falha funcional (skips autenticados esperados) e cutover 60/60. A comparação visual transitória foi estabilizada aguardando o aviso natural; uma execução intermediária colidiu com porta alheia e não foi tratada como gate verde. O PR #341 foi mesclado em `364eb4d` após preflight `38344621291` e CI `38344621290` verdes (Worker 47+9, Functions 77, legado 181+10 skips, Vite 191, CSP Chromium, `SMOKE_OUTCOME: success`); preflight main `38357274453` e CI main `38357275685` passaram. Tempo desde `06d7121` ao merge: **11 h 31 min 42 s**; CI do PR: **53 min 36 s (24 s leve + 53 min 12 s pesado)**, idênticos ao corpo do #341. Staging segue bloqueado por manifesto incompleto, sem deploy ou alteração de IAM.
+- **Alinhamento:** 100% do recorte CSP aprovado; a C14-H geral segue em andamento e exige isolamento remoto antes de qualquer rollout.
 
 ### [C14-H-ANDROID] - Artefato Android staging separado
 
