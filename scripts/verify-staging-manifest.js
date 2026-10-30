@@ -75,29 +75,45 @@ function inspectStagingManifest(manifest, options = {}) {
   for (const field of REQUIRED_FIELDS) {
     if (!isPopulated(getField(manifest, field))) findings.push(`${field}: missing or placeholder`);
   }
-  if (findings.some((finding) => finding.endsWith('missing or placeholder'))) return findings;
-
-  const projectId = manifest.firebase.projectId;
-  const projectNumber = manifest.firebase.projectNumber;
-  if (projectId !== STAGING_PROJECT_ID) findings.push('firebase.projectId: unexpected project');
-  if (projectNumber !== STAGING_PROJECT_NUMBER) findings.push('firebase.projectNumber: unexpected project');
-  if (!new RegExp(`^1:${STAGING_PROJECT_NUMBER}:web:[a-f0-9]+$`, 'i').test(manifest.firebase.webAppId)) {
+  // Check known identities even while later resources are intentionally missing.
+  const projectId = getField(manifest, 'firebase.projectId');
+  const projectNumber = getField(manifest, 'firebase.projectNumber');
+  const webAppId = getField(manifest, 'firebase.webAppId');
+  const androidAppId = getField(manifest, 'android.firebaseAppId');
+  const androidApplicationId = getField(manifest, 'android.applicationId');
+  const webApiKey = getField(manifest, 'firebase.webApiKey');
+  if (isPopulated(projectId) && projectId !== STAGING_PROJECT_ID) findings.push('firebase.projectId: unexpected project');
+  if (isPopulated(projectNumber) && projectNumber !== STAGING_PROJECT_NUMBER) findings.push('firebase.projectNumber: unexpected project');
+  if (isPopulated(webAppId) && !new RegExp(`^1:${STAGING_PROJECT_NUMBER}:web:[a-f0-9]+$`, 'i').test(webAppId)) {
     findings.push('firebase.webAppId: does not belong to staging project number');
   }
-  if (!new RegExp(`^1:${STAGING_PROJECT_NUMBER}:android:[a-f0-9]+$`, 'i').test(manifest.android.firebaseAppId)) {
+  if (isPopulated(androidAppId) && !new RegExp(`^1:${STAGING_PROJECT_NUMBER}:android:[a-f0-9]+$`, 'i').test(androidAppId)) {
     findings.push('android.firebaseAppId: does not belong to staging project number');
   }
-  if (manifest.firebase.authDomain !== `${STAGING_PROJECT_ID}.firebaseapp.com`) {
+  const authDomain = getField(manifest, 'firebase.authDomain');
+  if (isPopulated(authDomain) && authDomain !== `${STAGING_PROJECT_ID}.firebaseapp.com`) {
     findings.push('firebase.authDomain: unexpected auth domain');
   }
-  if (manifest.hosting.origin !== `https://${STAGING_PROJECT_ID}.web.app`) {
+  const hostingOrigin = getField(manifest, 'hosting.origin');
+  if (isPopulated(hostingOrigin) && hostingOrigin !== `https://${STAGING_PROJECT_ID}.web.app`) {
     findings.push('hosting.origin: unexpected staging host');
   }
-  if (!isHttpsOrigin(manifest.worker.origin)) findings.push('worker.origin: expected an HTTPS origin');
-  if (manifest.worker.name === 'trofia-ai-proxy') findings.push('worker.name: production Worker name');
-  if (!/^com\.hermegas\.trofia\.[a-z][a-z0-9.]*$/i.test(manifest.android.applicationId)) {
+  if (isPopulated(androidApplicationId) && !/^com\.hermegas\.trofia\.[a-z][a-z0-9.]*$/i.test(androidApplicationId)) {
     findings.push('android.applicationId: expected a distinct Trofia staging ID');
   }
+  if (isPopulated(webApiKey) && !/^AIza[A-Za-z0-9_-]{20,}$/.test(webApiKey)) {
+    findings.push('firebase.webApiKey: invalid public web API key format');
+  }
+  if (options.productionWebApiKey && options.productionWebApiKey === webApiKey) {
+    findings.push('firebase.webApiKey: production web API key');
+  }
+  if (/nutrition-tracker-780b3|trofia-ai-proxy\.cmagno-dev\.workers\.dev/i.test(JSON.stringify(manifest))) {
+    findings.push('manifest: production project or Worker binding');
+  }
+  if (findings.some((finding) => finding.endsWith('missing or placeholder'))) return findings;
+
+  if (!isHttpsOrigin(manifest.worker.origin)) findings.push('worker.origin: expected an HTTPS origin');
+  if (manifest.worker.name === 'trofia-ai-proxy') findings.push('worker.name: production Worker name');
   if (manifest.callable.url !== `https://europe-southwest1-${STAGING_PROJECT_ID}.cloudfunctions.net/requestAccountDeletion`) {
     findings.push('callable.url: unexpected project, region, or function');
   }
@@ -116,17 +132,8 @@ function inspectStagingManifest(manifest, options = {}) {
       findings.push(`${field}: invalid resource ID`);
     }
   }
-  if (!/^AIza[A-Za-z0-9_-]{20,}$/.test(manifest.firebase.webApiKey)) {
-    findings.push('firebase.webApiKey: invalid public web API key format');
-  }
-  if (options.productionWebApiKey === manifest.firebase.webApiKey) {
-    findings.push('firebase.webApiKey: production web API key');
-  }
   if (!/^[A-Za-z0-9_-]{10,}$/.test(manifest.appCheck.webSiteKey)) {
     findings.push('appCheck.webSiteKey: invalid public site key format');
-  }
-  if (/nutrition-tracker-780b3|trofia-ai-proxy\.cmagno-dev\.workers\.dev/i.test(JSON.stringify(manifest))) {
-    findings.push('manifest: production project or Worker binding');
   }
   return findings;
 }
