@@ -47,7 +47,7 @@ Preflight, unitários focados e completos, recortes Playwright legado/Vite, `npm
 - o CTA novo revela e abre o formulário de pesagem existente como transição até a I10-C, mantendo peso, gordura corporal, cintura, massa muscular e salvamento acessíveis sem alterar persistência.
 - `main` incorporada até `63b7bbd` sem conflito de runtime; o tutorial foi alinhado aos nomes entregues Progresso/Progress/Progreso e protegido por contrato UMD/ESM; nessa base passaram novamente sintaxe, `git diff --check`, preflight com 0 avisos, 16/16 focados de Métricas, 11/11 do tutorial, 1.567/1.567 unitários e build Vite com 848 módulos/allowlist de 14 arquivos;
 - gate integral autenticado verde com smoke legado em 185 aprovações e 10 skips estruturais esperados, smoke Vite 195/195, CSP verde e cutover 60/60.
-- Em 30/10/2026, a reconciliação `453d9a2` incorporou `origin/main` em `04a77bc` sem conflitos; os dois diffs de merge passaram em `git diff --check`. A validação não autenticada e o gate autenticado desta nova cabeça ainda estão pendentes.
+- Em 30/10/2026, a reconciliação `453d9a2` incorporou `origin/main` em `04a77bc` sem conflitos; os dois diffs de merge passaram em `git diff --check`. Nesta nova cabeça, preflight passou com 0 avisos, 1.573/1.573 unitários e o build Vite passou com allowlist de 14 arquivos. O gate autenticado permanece pendente.
 
 Uma tentativa anterior havia passado 184 casos e mantido 10 skips estruturais no legado antes de parar por `auth-refresh-timeout` no bootstrap isolado do GenericDialog mobile. Os artefatos foram preservados e nenhum retry automático foi feito; a execução final acima comprovou a fatia integralmente na base integrada.
 
