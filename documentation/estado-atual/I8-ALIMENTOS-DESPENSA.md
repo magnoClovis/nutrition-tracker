@@ -39,8 +39,8 @@ A I8-A substitui a composição de acordeões da Despensa por uma biblioteca com
 
 ## Evidência local atual
 
-- `origin/main` incorporada por merge explícito em 13/10/2026 e atualizada novamente até `364eb4d` pelo merge `3dda34e`;
-- preflight com 0 avisos, 1.571/1.571 testes unitários e build Vite de 848 módulos/allowlist de 14 arquivos verdes na base integrada mais recente;
+- `origin/main` incorporada por merge explícito em 13/10/2026, atualizada até `364eb4d` pelo merge `3dda34e` e reconciliada novamente até `04a77bc` pelo merge `a9aa0c5` em 30/10/2026, sem conflito;
+- preflight com 0 avisos, 1.571/1.571 testes unitários e build Vite de 848 módulos/allowlist de 14 arquivos verdes na base integrada `364eb4d`; a validação não autenticada do HEAD `a9aa0c5` ainda está pendente;
 - 94/94 contratos focados do controlador, da tela de Alimentos e dos consumidores afetados;
 - recortes corrigidos verdes em 11/11 no legado e 11/11 no Vite;
 - smoke legado integral com 185 aprovados e 10 skips estruturais esperados;
@@ -50,7 +50,7 @@ A I8-A substitui a composição de acordeões da Despensa por uma biblioteca com
 - PR draft #340 aberto no commit funcional `aeea32f`;
 - CI documental 38334194988 verde em 23 s e CI funcional 38334194827 verde em 51 min 14 s, totalizando 51 min 37 s de CI real;
 - run extra 38339743752, disparado pelo commit documental, cancelado no limite global de uma hora após 186 casos Vite aprovados; interrupção durante bootstrap, sem retry e sem inclusão nas métricas;
-- como a atualização para `364eb4d` trouxe mudanças de runtime/CSP, o gate autenticado final será repetido antes de aprovação, merge e fechamento documental.
+- como as atualizações para `364eb4d` e `04a77bc` trouxeram mudanças de runtime/CSP e manifesto staging, a validação não autenticada e o gate autenticado final do HEAD serão executados serialmente antes de aprovação, merge e fechamento documental.
 
 Os `npm ci` da raiz e do Worker instalaram exatamente os lockfiles na worktree isolada; nenhum manifesto ou lockfile foi alterado.
 
