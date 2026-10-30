@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { verifyStagingManifest } = require('./verify-staging-manifest.js');
+const { renderStagingCspHtml } = require('./verify-csp-policy.js');
 
 // Runtime inputs only: documentation and tests may legitimately name production.
 const RUNTIME_FILES = Object.freeze([
@@ -26,7 +27,7 @@ const PRODUCTION_BINDINGS = Object.freeze([
   { name: 'production Android application ID', pattern: /applicationId\s+["']com\.hermegas\.trofia["']/i },
 ]);
 
-function inspectStagingSources(sources) {
+function inspectStagingSources(sources, stagingManifest = null) {
   const findings = [];
   for (const relativePath of RUNTIME_FILES) {
     const source = sources[relativePath];
@@ -34,8 +35,17 @@ function inspectStagingSources(sources) {
       findings.push(`${relativePath}: required runtime source is missing`);
       continue;
     }
+    let effectiveSource = source;
+    if (relativePath === 'index.html' && stagingManifest) {
+      try {
+        effectiveSource = renderStagingCspHtml(source, stagingManifest);
+      } catch {
+        findings.push('index.html: staging CSP transformation failed');
+        continue;
+      }
+    }
     for (const binding of PRODUCTION_BINDINGS) {
-      if (binding.pattern.test(source)) {
+      if (binding.pattern.test(effectiveSource)) {
         findings.push(`${relativePath}: ${binding.name}`);
       }
     }
@@ -43,14 +53,14 @@ function inspectStagingSources(sources) {
   return findings;
 }
 
-function verifyStagingBoundaries(projectRoot) {
+function verifyStagingBoundaries(projectRoot, stagingManifest = null) {
   const sources = Object.fromEntries(RUNTIME_FILES.map((relativePath) => {
     const absolutePath = path.join(projectRoot, relativePath);
     return [relativePath, fs.existsSync(absolutePath)
       ? fs.readFileSync(absolutePath, 'utf8')
       : null];
   }));
-  const findings = inspectStagingSources(sources);
+  const findings = inspectStagingSources(sources, stagingManifest);
   if (findings.length) {
     throw new Error(`Staging boundary check failed:\n- ${findings.join('\n- ')}`);
   }
@@ -60,8 +70,8 @@ function verifyStagingBoundaries(projectRoot) {
 function verifyDeploymentTarget(target, projectRoot) {
   if (target === 'production') return;
   if (target === 'staging') {
-    verifyStagingManifest(projectRoot);
-    verifyStagingBoundaries(projectRoot);
+    const stagingManifest = verifyStagingManifest(projectRoot);
+    verifyStagingBoundaries(projectRoot, stagingManifest);
     return;
   }
   throw new Error(`Unknown Trofia deployment target: ${target || '(empty)'}`);

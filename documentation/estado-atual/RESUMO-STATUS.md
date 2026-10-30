@@ -2107,6 +2107,45 @@
 - **Recorte Worker em preparação (12/10):** `wrangler.jsonc` declara ambientes explícitos de produção e staging, com Worker e binding de Durable Object de staging separados; IDs de app e origem staging permanecem vazios por não terem sido provisionados. O runtime rejeita alvo ausente/desconhecido, configuração incompleta, origem web de produção e App ID de outro projeto antes de autenticação/IA. O `https://localhost` do Capacitor só será aceito com App Check Android do projeto staging. Passaram 32 testes focados, Worker 47 Node + 9 runtime, dry-runs dos dois ambientes e `npm test` final com preflight sem avisos, 1.552 unitários, smokes locais verdes com skips autenticados esperados e cutover 60/60. O CI remoto ainda pende. Não houve deploy.
 - **Gate remoto Worker:** após integração da `main` com I4-A (#332), `npm test` local repetiu código 0 e cutover 60/60. O PR #334 passou no SHA técnico `194367e` (preflight `38214046402`, CI `38214046415`, 1.559 unitários, Worker 47+9, Functions 74, legado 181+10 skips estruturais, Vite 191) e no SHA documental `f3b0e95` (preflight `38220060253`, CI `38220060401`), ambos com `SMOKE_OUTCOME: success`; os gates App Check/Pantry de produção também passaram. Merge `6499845` em 12/10/2026 às 08:53:26 UTC: tempo decorrido 3 h 12 min 53 s; CI 1 h 53 min 35 s (48 s leve + 1 h 52 min 47 s pesado), valores idênticos ao PR. CI da `main` `38226381055` passou. Staging segue bloqueado, sem deploy; a C14-H continua em andamento.
 
+### [C14-H-CSP] - Política CSP separada para staging
+
+- **Status:** concluído após o fechamento documental pós-merge — **Chat:** Trofia-Principal.
+- **Data de início:** 12/10/2026.
+- **Data de conclusão:** 13/10/2026, condicionada ao merge deste registro pós-merge.
+- **Propósito:** impedir que o artefato staging permita conexões ao Worker, callable ou domínio Auth de produção.
+- **O que se planeja fazer:** derivar a CSP staging de destinos validados no manifesto, recusar valores ausentes ou misturados, preservar hashes e diretivas restritivas, verificar o HTML gerado e acrescentar testes negativos; manter o build staging bloqueado até todos os outros contratos de ambiente estarem completos.
+- **Recursos/arquivos principais envolvidos:** `index.html`, `vite.config.js`, `scripts/verify-csp-policy.js`, `scripts/verify-staging-boundaries.js`, manifesto staging e testes unitários/CSP browser.
+- **O que foi feito:** o Vite substitui os três destinos CSP por origens exatas do manifesto validado e recusa valores vazios, misturados ou wildcard; o verificador examina o HTML transformado sem ignorar vínculos de produção fora da CSP. Passaram 12 testes focados de CSP/fronteira, os 12 cenários de cutover Adicionar, build de produção e `npm test` final com preflight 0, 1.564 unitários, smokes locais sem falha funcional (skips autenticados esperados) e cutover 60/60. A comparação visual transitória foi estabilizada aguardando o aviso natural; uma execução intermediária colidiu com porta alheia e não foi tratada como gate verde. O PR #341 foi mesclado em `364eb4d` após preflight `38344621291` e CI `38344621290` verdes (Worker 47+9, Functions 77, legado 181+10 skips, Vite 191, CSP Chromium, `SMOKE_OUTCOME: success`); preflight main `38357274453` e CI main `38357275685` passaram. Tempo desde `06d7121` ao merge: **11 h 31 min 42 s**; CI do PR: **53 min 36 s (24 s leve + 53 min 12 s pesado)**, idênticos ao corpo do #341. Staging segue bloqueado por manifesto incompleto, sem deploy ou alteração de IAM.
+- **Alinhamento:** 100% do recorte CSP aprovado; a C14-H geral segue em andamento e exige isolamento remoto antes de qualquer rollout.
+
+### [C14-H-APPS] - Apps Firebase e App Check de staging
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 13/10/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** estabelecer identidades de app Web e Android exclusivas do projeto staging antes de qualquer publicação.
+- **O que se planeja fazer:** inventariar o projeto `trofia-staging`, registrar ou confirmar apps Web/Android, Auth e provedores App Check próprios; preencher no manifesto apenas IDs e valores públicos comprovados, preservar campos de recursos ainda ausentes e validar que o build staging continue fail-closed.
+- **Recursos/arquivos principais envolvidos:** Firebase staging, Auth, App Check, `config/staging-environment.json`, `scripts/verify-staging-manifest.js` e documentação C14-H.
+- **O que foi feito:** projeto staging ACTIVE confirmado; apps Web/Android exclusivos registrados e Hosting padrão confirmado. IDs, chave pública Web, origem Hosting e site key reCAPTCHA Enterprise própria/restrita ao host staging foram registrados no manifesto; App Check Web está configurado sem enforcement. Auth staging foi inicializado com e-mail/senha obrigatório e domínios próprios autorizados. Verificação de identidades parciais reforçada. Android Play Integrity permanece sem fingerprint/artefato distribuído; Worker/callable/Functions ainda vazios. Gates locais: 7 focados, 1.565 unitários, preflight 0, build produção verde e staging bloqueado como esperado. Sem deploy, IAM ou produção.
+
+### [C14-H-ANDROID] - Artefato Android staging separado
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** produzir artefato distinguível sem enfraquecer a validação release da produção.
+- **O que se planeja fazer:** vincular app Android staging ao projeto isolado, validar application ID/App Check e testar rejeição de mistura; prova física/Play Integrity permanece gate separado.
+- **Recursos/arquivos principais envolvidos:** `android/app/build.gradle`, manifesto staging, `google-services.json` de staging quando provisionado, testes e Galaxy.
+
+### [C14-H-ISOLAMENTO] - Recursos, CI e matriz staging
+
+- **Status:** não iniciado — **Chat:** Trofia-Principal.
+- **Data de início:** não iniciado.
+- **Data de conclusão:** não iniciado.
+- **Propósito:** comprovar isolamento remoto antes de qualquer rollout público.
+- **O que se planeja fazer:** provisionar apps/host, Worker/DO, Functions/Tasks/Scheduler/IAM mínimos e lane de CI isolados; executar matriz cross-account, App Check, payloads, rate limit, cache, backup, exclusão e rollback, sem reutilizar dados/credenciais de produção.
+- **Recursos/arquivos principais envolvidos:** projeto `trofia-staging`, Firebase Hosting/Auth/App Check, Cloudflare, Functions, CI, runbooks e Android.
+
 ### [DOC-C14-H-315] - Métricas e preparação de staging pós-auditoria
 
 - **Status:** concluído — **Chat:** Trofia-Principal.

@@ -50,12 +50,26 @@ test('accepts a complete, internally consistent staging manifest', () => {
 test('rejects the checked-in incomplete manifest without printing field values', () => {
   const projectRoot = path.resolve(__dirname, '../..');
   assert.throws(() => verifyStagingManifest(projectRoot), (error) => {
-    assert.match(error.message, /firebase.webAppId: missing or placeholder/);
+    assert.match(error.message, /worker.name: missing or placeholder/);
     assert.match(error.message, /worker.origin: missing or placeholder/);
     assert.doesNotMatch(error.message, /production comparison unavailable/);
     assert.doesNotMatch(error.message, /AIza/);
     return true;
   });
+});
+
+test('checks populated staging identities even while the manifest is incomplete', () => {
+  const manifest = completeManifest();
+  manifest.appCheck.webSiteKey = '';
+  manifest.firebase.webAppId = '1:123456789:web:abcdef012345';
+  manifest.firebase.webApiKey = 'AIzaProductionExample012345678901234';
+  const findings = inspectStagingManifest(manifest, {
+    productionWebApiKey: manifest.firebase.webApiKey,
+  });
+  assert.ok(findings.includes('appCheck.webSiteKey: missing or placeholder'));
+  assert.ok(findings.includes('firebase.webAppId: does not belong to staging project number'));
+  assert.ok(findings.includes('firebase.webApiKey: production web API key'));
+  assert.doesNotMatch(findings.join('\n'), /AIza/);
 });
 
 test('rejects production project, Worker, and Android identities even when other fields are valid', () => {
