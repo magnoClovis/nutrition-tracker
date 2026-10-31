@@ -54,4 +54,7 @@ jobs:
 
       - name: Run controlled production validation
         if: steps.runtime.outputs.changed == 'true'
+        env:
+          FIREBASE_APPCHECK_DEBUG_TOKEN: ${{ secrets.FIREBASE_APPCHECK_DEBUG_TOKEN }}
+          VITE_FIREBASE_WEB_APP_ID: ${{ vars.VITE_FIREBASE_WEB_APP_ID }}
         run: node scripts/validate-c08-production.mjs

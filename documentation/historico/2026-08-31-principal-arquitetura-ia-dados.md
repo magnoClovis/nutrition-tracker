@@ -27,6 +27,19 @@
 - **O que foi feito:** a observação do usuário separou uma descrição curta aprovada de uma longa repetida que exibiu `service-unavailable`. A auditoria local constatou que o endpoint de prato aceita até 4.000 caracteres, mas validava a resposta por `validateImageMealEstimate`, cujo limite é 12 itens; o cliente reduz erros 5xx a `service-unavailable`. A reprodução sintética de uma resposta válida com 13 itens passou no endpoint após a correção: pratos agora têm limite próprio de 24 itens, a foto mantém 12 e o prompt pede consolidação de componentes duplicados. Os 37 testes focados passaram. A prova confirma a fronteira contratual e sua conversão em erro genérico, mas não atribui sem evidência a resposta real do provedor à ocorrência observada.
 - **Alinhamento:** correção mínima em validação, com fail-closed preservado; pendente de gates completos e revisão.
 
+### [C08-PRODUCTION-APPCHECK-GATE] - Validação C08 compatível com App Check enforce
+
+- **Status:** em andamento.
+- **Data de início:** 31/10/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** pendente de nova execução.
+- **Propósito:** fazer com que a prova controlada dos quatro contratos Gemini atravesse o enforcement real de App Check, preservando a barreira do Worker.
+- **O que se planeja fazer:** reutilizar o helper existente que troca debug token registrado por token curto, injetar somente os nomes de segredo/variável no workflow, enviar o header App Check em cada chamada e adicionar regressão estática; não tocar no Worker implantado, Firebase, IAM ou deploy.
+- **Recursos/arquivos principais envolvidos:** `scripts/validate-c08-production.mjs`, `tests/smoke/app-check-ci.js`, `.github/workflows/c08-production-validation.yml` e `tests/unit/c08-production-validation.test.js`.
+- **O que foi feito:** a falha do PR #345 no run `41207278187` teve `signupStatus=200` e `food-ptStatus=401`; o Worker já estava em `APP_CHECK_MODE=enforce`, enquanto o validador enviava apenas Firebase Auth. A leitura mostrou que o repositório já possui `exchangeDebugToken`, que os smokes usam esse fluxo e que o segredo exigido existe, sem imprimir conteúdo. A correção foi iniciada para fechar somente essa lacuna do gate.
+- **Alinhamento:** diagnóstico 100%; implementação e nova CI pendentes.
+
 ### [C14-F2-DEPLOY-DEPENDENCIAS] - Publicação controlada após o PR #308
 
 - **Status:** concluído.
