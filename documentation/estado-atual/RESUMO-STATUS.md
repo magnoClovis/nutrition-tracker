@@ -1495,13 +1495,13 @@
 
 ### [I8-A] - Shell, abas e categorias de Alimentos/Despensa
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
-- **Propósito:** redesenhar a segunda aba principal como biblioteca navegável e coerente com o novo Diário.
-- **O que se planeja fazer:** implementar cabeçalho/contagens, busca visível, segmentos Alimentos/Refeições/Suplementos/Categorias, filtros, grade/lista de categorias, estados vazios e barra inferior compartilhada, com composição própria mobile/desktop.
-- **Recursos/arquivos principais envolvidos:** `UI_visuals/trofia-foods-tabs-categories`, `pantry-screen.js`, modelos de alimentos/refeições/suplementos, `one-ui.css`, i18n e testes legado/Vite.
-- **O que foi feito:** o pacote completo, seus 26 PNGs claro/escuro, FLOW e referências interativas foram auditados em 11/10/2026; nenhum código foi iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 11/10/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** redesenhar a segunda aba principal como biblioteca navegável e coerente com a nova navegação compartilhada.
+- **O que se planeja fazer:** implementar cabeçalho e contagens reais, busca visível, segmentos Alimentos/Refeições/Suplementos/Categorias, filtros locais, grade/lista de categorias, estados vazios e composição responsiva, preservando os fluxos existentes de criação, scanner, edição e persistência.
+- **Recursos/arquivos principais envolvidos:** pacote `UI_visuals/trofia-foods-tabs-categories`, `pantry-screen.js`, `nutrition-tracker-controller.js`, modelos atuais de alimentos/refeições/suplementos, `one-ui.css`, i18n e testes legado/Vite.
+- **O que foi feito:** o pacote aprovado, com FLOW, referência interativa e 26 PNGs claro/escuro, foi auditado; o shell com contagens reais, busca, quatro segmentos, filtros locais e categorias derivadas dos dados reais foi implementado sem alterar schema ou persistência. Os três consumidores Playwright afetados foram reconciliados semanticamente com a nova navegação. Em 13/10/2026, passaram preflight com 0 avisos, 1.566/1.566 unitários, recortes corrigidos com 11/11 no legado e 11/11 no Vite, smoke legado com 185 aprovados e 10 skips estruturais, smoke Vite com 195/195, CSP, cutover com 60/60 e build Vite de 848 módulos com allowlist de 14 arquivos. O PR draft #340 repetiu preflight, unitários, Worker, Functions e Playwright no CI funcional real; os checks funcional e documental ficaram verdes. O run extra `38339743752`, disparado apenas pelo commit documental, atingiu o limite global de uma hora depois de 186 casos Vite aprovados e foi interrompido durante o bootstrap do caso seguinte, sem falha funcional da I8-A e sem entrar nas métricas. A `main` foi incorporada até `364eb4d` e, na retomada controlada de 30/10/2026, novamente até `04a77bc` no merge `a9aa0c5`; esse último trouxe o ajuste C14-H de manifesto/validador staging e documentação correlata, sem conflito. `git diff --check` passou no merge. Após duas interrupções externas — timeout no cutover e respostas Firestore `429` —, a nova execução serial autenticada de 31/10/2026 passou integralmente no mesmo HEAD: preflight com 0 avisos, 1.572/1.572 unitários, smoke legado com 185 aprovações e 10 skips estruturais, smoke Vite 195/195, CSP verde, cutover 60/60 e build Vite de 848 módulos com allowlist de 14 arquivos. A fatia permanece aberta até o CI do PR e merge.
 
 ### [I8-B] - Cartões, porções e ações da biblioteca
 
