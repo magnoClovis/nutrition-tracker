@@ -14,6 +14,19 @@
 - **Alinhamento:** 100% do fluxo aprovado, com impacto de recursos positivo esperado, mas ainda não medido.
 - **PRs/commits relacionados:** #334 e #336 evidenciam a duplicação; #338 (primeiro commit `f528bb5`, merge `a040787`); preflights `38306747953` e `38307094535`.
 
+### [BUG-DISH-DESCRIPTION-BOUNDARY] - Descrição longa de prato não deve virar indisponibilidade genérica
+
+- **Status:** em andamento.
+- **Data de início:** 31/10/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** investigar a falha recuperável observada no cliente ao estimar uma descrição longa e repetida de prato, sem registrar a descrição, credenciais ou dados da conta.
+- **O que se planeja fazer:** criar uma reprodução inteiramente sintética da fronteira de itens, confirmar o status e código devolvidos pelo Worker e alterar somente a restrição que a evidência demonstrar responsável; a correção deve manter a rejeição fail-closed de respostas malformadas.
+- **Recursos/arquivos principais envolvidos:** `worker/src/structured-estimates.js`, `worker/src/image-meal.js`, `worker/src/ai-worker.js`, `ai-client.js`, `nutrition-tracker-controller.js`, testes unitários e `bug-inventory.txt`/cópia controlada.
+- **O que foi feito:** a observação do usuário separou uma descrição curta aprovada de uma longa repetida que exibiu `service-unavailable`. A auditoria local constatou que o endpoint de prato aceita até 4.000 caracteres, mas validava a resposta por `validateImageMealEstimate`, cujo limite é 12 itens; o cliente reduz erros 5xx a `service-unavailable`. A reprodução sintética de uma resposta válida com 13 itens passou no endpoint após a correção: pratos agora têm limite próprio de 24 itens, a foto mantém 12 e o prompt pede consolidação de componentes duplicados. Os 37 testes focados passaram. A prova confirma a fronteira contratual e sua conversão em erro genérico, mas não atribui sem evidência a resposta real do provedor à ocorrência observada.
+- **Alinhamento:** correção mínima em validação, com fail-closed preservado; pendente de gates completos e revisão.
+
 ### [C14-F2-DEPLOY-DEPENDENCIAS] - Publicação controlada após o PR #308
 
 - **Status:** concluído.
