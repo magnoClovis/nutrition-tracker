@@ -1395,13 +1395,13 @@
 
 ### [I4-B] - Orquestração do sheet Adicionar
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 12/10/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** organizar destino, horário, repetição e entradas secundárias sem sobrecarregar o menu principal.
 - **O que se planeja fazer:** validar e implementar chips de refeição/horário, repetição recente com Undo, entrada manual e retorno ao contexto de origem. Barcode permanece pendente por conflitar com o protótipo I4-A aprovado.
 - **Recursos/arquivos principais envolvidos:** pacote `UI_visuals/trofia-diary-timeline-calendar-add-sheet`, `add-screen.js`, componentes de sheet/ChoiceField/TemporalField, i18n e Playwright.
-- **O que foi feito:** proposta distribuída documentalmente em 10/10/2026; visual e Barcode ainda não aprovados.
+- **O que foi feito:** proposta distribuída documentalmente em 10/10/2026. A implementação começou em 12/10/2026 numa worktree própria, priorizada explicitamente após o fechamento da I4-A e em paralelo às I8-A/I10-A. Cabeçalho com destino/horário, repetição recente com Undo persistido, entrada manual, retorno ao contexto, PT/EN/ES e geometria mobile/desktop foram implementados; Barcode continua fora. A rejeição inicial da fixture Vite foi diagnosticada no próprio teste: a entrada sintética não fornecia o `time` obrigatório dos documentos granulares. A correção acrescentou somente `time: '08:00'` à fixture, sem alterar Auth, Firestore, rules, runtime, timeout ou retry; 155/155 unitários focados e o recorte Vite mobile 2/2 passaram. O primeiro gate local integral ficou verde, mas o CI remoto do PR draft #337 encontrou duas falhas externas ao diff; depois da incorporação da `main` no merge local `e04d497`, os dois casos exatos passaram 2/2. O run documental posterior revelou dados antigos na fixture de repetição; o teste foi corrigido para gravar, conferir e visualizar em contextos de navegador isolados, sem tocar nos serviços remotos. Sintaxe, `git diff --check`, 68/68 contratos de composição/Firestore e o recorte Vite mobile 2/2 passaram. O gate integral seguinte confirmou preflight sem avisos, 1.563/1.563 unitários, smoke legado com 187 aprovações e 10 skips estruturais, smoke Vite 197/197, CSP verde e cutover 60/60; o build Vite transformou 848 módulos e a allowlist confirmou 14 arquivos. A fatia permanece em andamento até novo CI e merge.
 
 ### [I4-C] - Pesquisa e bandeja de refeição
 

@@ -104,6 +104,7 @@ function baseProps(overrides = {}) {
     MEALS: ["Café da manhã", "Almoço"],
     mealDisplay: value => value,
     loadRecentMealToStaged: noOp,
+    repeatRecentMeal: noOp,
     TODAY: "2026-07-23",
     showSaveTemplateModal: false,
     setShowSaveTemplateModal: noOp,
@@ -134,6 +135,7 @@ function baseProps(overrides = {}) {
     mealTimeValue: "",
     openMealTimeControl: noOp,
     setSelectedMealTime: noOp,
+    setMealRegistrationDestination: noOp,
     mealRegistrationSaving: false,
     mealTemplates: [],
     addTemplateSearch: "",
@@ -405,26 +407,24 @@ contractTest("keeps active GA absent and places the legacy transfer panel as an 
   assert.doesNotMatch(textContent(view), /active-ga-result|Should not render/);
 });
 
-contractTest("keeps meal time collapsed until requested and uses TemporalField without a native time input", AddScreen => {
+contractTest("keeps meal time in the orchestration header and uses TemporalField without a native time input", AddScreen => {
   let opened = 0;
   let selected = null;
   const collapsed = AddScreen(baseProps({
+    section: "header",
     openMealTimeControl: () => { opened += 1; }
   }));
-  const collapsedControl = findNodes(
-    collapsed,
-    node => node.props?.["data-meal-time-control"] === "closed"
-  )[0];
   const openButton = findNodes(
-    collapsedControl,
-    node => node.type === "button" && textContent(node) === "+ Set meal time"
+    collapsed,
+    node => node.type === "button" && node.props?.["data-add-time-chip"] === "now"
   )[0];
 
-  assert.equal(findNodes(collapsedControl, node => node.type === "input").length, 0);
+  assert.equal(findNodes(collapsed, node => node.props?.["data-meal-time-control"]).length, 0);
   openButton.props.onClick();
   assert.equal(opened, 1);
 
   const expanded = AddScreen(baseProps({
+    section: "header",
     mealTimeOpen: true,
     mealTimeValue: "09:07",
     setSelectedMealTime: value => { selected = value; }
@@ -440,7 +440,7 @@ contractTest("keeps meal time collapsed until requested and uses TemporalField w
 
   assert.ok(temporalField);
   assert.equal(temporalField.props.value, "09:07");
-  assert.equal(temporalField.props.label, "Meal time (optional)");
+  assert.equal(temporalField.props.label, "Meal time");
   assert.equal(findNodes(expandedControl, node => node.type === "input").length, 0);
   temporalField.props.onChange("18:45");
   assert.equal(selected, "18:45");
@@ -528,10 +528,11 @@ contractTest("opens the shared result sheet from a saved-food search result", Ad
 });
 
 contractTest("recent meals and header remain controlled sections", AddScreen => {
-  let toggled = 0;
-  let loaded = null;
+  let repeated = null;
+  let manualModes = [];
   let closed = 0;
   let helped = 0;
+  let destination = null;
   const recentMeal = {
     meal: "Café da manhã",
     date: "2026-07-23",
@@ -543,15 +544,15 @@ contractTest("recent meals and header remain controlled sections", AddScreen => 
     section: "recent",
     showRecentMeals: true,
     recentMeals: [recentMeal],
-    setShowRecentMeals: () => { toggled += 1; },
-    loadRecentMealToStaged: value => { loaded = value; }
+    repeatRecentMeal: value => { repeated = value; },
+    selectAddMode: mode => { manualModes.push(mode); }
   }));
-  findNodes(recent, node => node.type === "button")[0].props.onClick();
   const recentRow = findNodes(recent, node => typeof node.props?.onClick === "function")
     .find(node => /Oats/.test(textContent(node)));
   recentRow.props.onClick();
-  assert.equal(toggled, 1);
-  assert.equal(loaded, recentMeal);
+  assert.equal(repeated, recentMeal);
+  findNodes(recent, node => node.props?.["data-add-manual-entry"] === "true")[0].props.onClick();
+  assert.deepEqual(manualModes, ["batch"]);
 
   const header = AddScreen(baseProps({
     section: "header",
@@ -559,15 +560,22 @@ contractTest("recent meals and header remain controlled sections", AddScreen => 
       "data-contextual-help": "adicionar",
       onClick: () => { helped += 1; }
     }, "i"),
-    closeMealRegistration: () => { closed += 1; }
+    closeMealRegistration: () => { closed += 1; },
+    setMealRegistrationDestination: value => { destination = value; }
   }));
   const actions = findNodes(header, node => node.props?.["data-add-header-actions"] === "true")[0];
   const helpButton = findNodes(header, node => node.props?.["data-contextual-help"] === "adicionar")[0];
   const closeButton = findNodes(header, node => node.props?.["data-add-close"] === "true")[0];
   const actionButtons = findNodes(actions, node => node.type === "button");
+  const destinationField = findNodes(
+    header,
+    node => typeof node.type === "function" && node.props?.id === "meal-registration-destination"
+  )[0];
 
   assert.equal(actions.props.style.display, "flex");
   assert.equal(actions.props.style.gap, 8);
+  destinationField.props.onChange("Almoço");
+  assert.equal(destination, "Almoço");
   assert.deepEqual(actionButtons, [helpButton, closeButton]);
   helpButton.props.onClick();
   closeButton.props.onClick();
