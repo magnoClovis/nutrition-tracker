@@ -80,6 +80,10 @@ function isIgnorableConsoleError(text, locationUrl = '') {
     || (
       /Failed to load resource: the server responded with a status of 403 \(\)/i.test(text)
       && /firestore\.googleapis\.com\/v1\/projects\/[^/]+\/databases\/\(default\)\/documents\/nutrition\?pageSize=1000$/i.test(locationUrl)
+    )
+    || (
+      /Failed to load resource: the server responded with a status of 503 \(\)/i.test(text)
+      && /^https:\/\/world\.openfoodfacts\.org\//i.test(locationUrl)
     );
 }
 
