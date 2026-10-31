@@ -92,52 +92,62 @@ export const IMAGE_MEAL_RESPONSE_SCHEMA = Object.freeze({
   }
 });
 
-export const GEMINI_IMAGE_MEAL_PROVIDER_SCHEMA = Object.freeze({
-  type: "object",
-  required: ["status", "dishName", "overallConfidence", "assumptions", "items"],
-  properties: {
-    status: { type: "string", enum: [...IMAGE_MEAL_STATUSES] },
-    dishName: { type: "string" },
-    overallConfidence: { type: "string", enum: [...CONFIDENCE_LEVELS] },
-    assumptions: { type: "array", items: { type: "string" } },
-    items: {
-      type: "array",
+export function geminiMealEstimateProviderSchema({
+  maximumItems = MAX_IMAGE_ITEMS,
+  maximumAssumptions = MAX_IMAGE_ASSUMPTIONS
+} = {}) {
+  return {
+    type: "object",
+    required: ["status", "dishName", "overallConfidence", "assumptions", "items"],
+    properties: {
+      status: { type: "string", enum: [...IMAGE_MEAL_STATUSES] },
+      dishName: { type: "string" },
+      overallConfidence: { type: "string", enum: [...CONFIDENCE_LEVELS] },
+      assumptions: { type: "array", maxItems: maximumAssumptions, items: { type: "string" } },
       items: {
-        type: "object",
-        required: [
-          "name",
-          "quantity",
-          "unit",
-          "estimatedGrams",
-          "protein",
-          "kcal",
-          "carbs",
-          "fat",
-          "fiber",
-          "salt",
-          "sugars",
-          "satfat",
-          "confidence"
-        ],
-        properties: {
-          name: { type: "string" },
-          quantity: { type: "number" },
-          unit: { type: "string" },
-          estimatedGrams: { type: ["number", "null"] },
-          protein: { type: "number" },
-          kcal: { type: "number" },
-          carbs: { type: ["number", "null"] },
-          fat: { type: ["number", "null"] },
-          fiber: { type: ["number", "null"] },
-          salt: { type: ["number", "null"] },
-          sugars: { type: ["number", "null"] },
-          satfat: { type: ["number", "null"] },
-          confidence: { type: "string", enum: [...CONFIDENCE_LEVELS] }
+        type: "array",
+        maxItems: maximumItems,
+        items: {
+          type: "object",
+          required: [
+            "name",
+            "quantity",
+            "unit",
+            "estimatedGrams",
+            "protein",
+            "kcal",
+            "carbs",
+            "fat",
+            "fiber",
+            "salt",
+            "sugars",
+            "satfat",
+            "confidence"
+          ],
+          properties: {
+            name: { type: "string" },
+            quantity: { type: "number" },
+            unit: { type: "string" },
+            estimatedGrams: { type: ["number", "null"] },
+            protein: { type: "number" },
+            kcal: { type: "number" },
+            carbs: { type: ["number", "null"] },
+            fat: { type: ["number", "null"] },
+            fiber: { type: ["number", "null"] },
+            salt: { type: ["number", "null"] },
+            sugars: { type: ["number", "null"] },
+            satfat: { type: ["number", "null"] },
+            confidence: { type: "string", enum: [...CONFIDENCE_LEVELS] }
+          }
         }
       }
     }
-  }
-});
+  };
+}
+
+export const GEMINI_IMAGE_MEAL_PROVIDER_SCHEMA = Object.freeze(
+  geminiMealEstimateProviderSchema()
+);
 
 const languageNames = Object.freeze({
   pt: "Brazilian Portuguese",
@@ -273,7 +283,10 @@ function validItem(item) {
     CONFIDENCE_LEVELS.has(item.confidence);
 }
 
-export function validateImageMealEstimate(value) {
+export function validateMealEstimate(value, {
+  maximumItems = MAX_IMAGE_ITEMS,
+  maximumAssumptions = MAX_IMAGE_ASSUMPTIONS
+} = {}) {
   if (!exactKeys(value, [
     "status",
     "dishName",
@@ -283,9 +296,9 @@ export function validateImageMealEstimate(value) {
   ]) || !IMAGE_MEAL_STATUSES.has(value.status) ||
       !validText(value.dishName, MAX_NAME_CHARACTERS, { allowEmpty: true }) ||
       !CONFIDENCE_LEVELS.has(value.overallConfidence) ||
-      !Array.isArray(value.assumptions) || value.assumptions.length > MAX_IMAGE_ASSUMPTIONS ||
+      !Array.isArray(value.assumptions) || value.assumptions.length > maximumAssumptions ||
       !value.assumptions.every(item => validText(item, MAX_ASSUMPTION_CHARACTERS)) ||
-      !Array.isArray(value.items) || value.items.length > MAX_IMAGE_ITEMS ||
+      !Array.isArray(value.items) || value.items.length > maximumItems ||
       !value.items.every(validItem)) {
     return false;
   }
@@ -293,6 +306,10 @@ export function validateImageMealEstimate(value) {
   const actionable = value.status === "identified" || value.status === "uncertain";
   if (actionable) return value.dishName.trim().length > 0 && value.items.length > 0;
   return value.items.length === 0;
+}
+
+export function validateImageMealEstimate(value) {
+  return validateMealEstimate(value);
 }
 
 export const IMAGE_MEAL_LIMITS = Object.freeze({
