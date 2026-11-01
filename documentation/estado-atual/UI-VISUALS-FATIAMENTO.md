@@ -34,8 +34,8 @@ Os estados claro e escuro dos PNGs foram conferidos. A composição é consisten
 
 #### I4-B — orquestração do sheet Adicionar
 
-- **Em andamento desde 12/10/2026**, em worktree própria e sem compartilhar o coordenador autenticado com I8-A/I10-A;
-- após corrigir o isolamento dos contextos da fixture de repetição, gate local integral verde: preflight 0, 1.563/1.563 unitários, legado 187 + 10 skips estruturais, Vite 197/197, CSP e cutover 60/60; o rebase `2385382` revelou disputa de restauração no diário de hoje, então a fixture passou a usar fonte D−11 e destino D−12; o CI `41307806293` confirmou que o destino recebe uma cópia e o Undo a remove sem alterar a fonte, ajustando a expectativa que ainda contava duas cópias no destino; o PR draft #337 aguarda novo CI e merge;
+- **Concluída em 01/11/2026** no PR #337, mesclado em `3657dde9243facbbea6982b739d4de631d543275`;
+- a fixture autenticada de repetição foi isolada em fonte D−11 e destino D−12: o SHA final `833aea4` exige uma cópia no destino após repetir, zero após Undo e preservação da fonte, sem alterar runtime, Auth, Firestore, rules, timeout ou retry. O preflight `41311971579` passou em 30 s, o CI `41311971507` em 51 min 21 s e o CI da main `41323656471` em 52 min 48 s, com preflight da main `41323656496` em 28 s; todos verdes;
 - destino da refeição e horário;
 - repetição recente com Undo;
 - entrada manual e retorno ao contexto que abriu o sheet;
