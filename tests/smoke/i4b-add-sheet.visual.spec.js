@@ -231,7 +231,7 @@ test.describe('I4-B Add sheet orchestration', () => {
         return Object.values(current).flat().filter(item => item.name === marker).length;
       }, {
         timeout: 30000,
-      }).toBe(2);
+      }).toBe(1);
 
       const notification = page.locator('[data-app-notification="action"]');
       await expect(notification).toContainText('Refeição repetida no Diário.');
@@ -243,7 +243,10 @@ test.describe('I4-B Add sheet orchestration', () => {
           .map(item => item.id);
       }, {
         timeout: 30000,
-      }).toEqual([entry.id]);
+      }).toEqual([]);
+      expect(Object.values(await readDailyLog(page, sourceDate)).flat()
+        .filter(item => item.name === marker)
+        .map(item => item.id)).toEqual([entry.id]);
       await expect(page.locator('[data-app-notification]')).toContainText('Repetição desfeita.');
       await expectNoCriticalErrors(errors);
     } finally {

@@ -35,7 +35,7 @@ Os estados claro e escuro dos PNGs foram conferidos. A composição é consisten
 #### I4-B — orquestração do sheet Adicionar
 
 - **Em andamento desde 12/10/2026**, em worktree própria e sem compartilhar o coordenador autenticado com I8-A/I10-A;
-- após corrigir o isolamento dos contextos da fixture de repetição, gate local integral verde: preflight 0, 1.563/1.563 unitários, legado 187 + 10 skips estruturais, Vite 197/197, CSP e cutover 60/60; o rebase `2385382` revelou disputa de restauração no diário de hoje, então a fixture passou a usar fonte D−11 e destino D−12; o PR draft #337 aguarda novo CI e merge;
+- após corrigir o isolamento dos contextos da fixture de repetição, gate local integral verde: preflight 0, 1.563/1.563 unitários, legado 187 + 10 skips estruturais, Vite 197/197, CSP e cutover 60/60; o rebase `2385382` revelou disputa de restauração no diário de hoje, então a fixture passou a usar fonte D−11 e destino D−12; o CI `41307806293` confirmou que o destino recebe uma cópia e o Undo a remove sem alterar a fonte, ajustando a expectativa que ainda contava duas cópias no destino; o PR draft #337 aguarda novo CI e merge;
 - destino da refeição e horário;
 - repetição recente com Undo;
 - entrada manual e retorno ao contexto que abriu o sheet;
