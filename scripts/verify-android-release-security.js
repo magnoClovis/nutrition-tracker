@@ -3,9 +3,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
-const EXPECTED_PACKAGE = 'com.hermegas.trofia';
-const EXPECTED_PROJECT_ID = 'nutrition-tracker-780b3';
-const EXPECTED_PROJECT_NUMBER = '128834310181';
+const PRODUCTION_IDENTITY = Object.freeze({
+  packageName: 'com.hermegas.trofia',
+  projectId: 'nutrition-tracker-780b3',
+  projectNumber: '128834310181',
+  label: 'Trofia production',
+});
+const EXPECTED_PACKAGE = PRODUCTION_IDENTITY.packageName;
+const EXPECTED_PROJECT_ID = PRODUCTION_IDENTITY.projectId;
+const EXPECTED_PROJECT_NUMBER = PRODUCTION_IDENTITY.projectNumber;
 const EXTRACTION_DOMAINS = [
   'root',
   'file',
@@ -33,7 +39,7 @@ function readAttribute(tag, name) {
   return tag.match(new RegExp(`\\b${name}="([^"]*)"`))?.[1];
 }
 
-function verifyManifestText(xml, { requireVersion = false } = {}) {
+function verifyManifestText(xml, { requireVersion = false, expectedPackage = EXPECTED_PACKAGE } = {}) {
   const application = xml.match(/<application\b[^>]*>/)?.[0];
   invariant(application, 'Android application element is missing');
   invariant(readAttribute(application, 'android:allowBackup') === 'false', 'Android Auto Backup must be disabled');
@@ -55,7 +61,7 @@ function verifyManifestText(xml, { requireVersion = false } = {}) {
   invariant(readAttribute(providerTag, 'android:exported') === 'false', 'FileProvider must not be exported');
   invariant(readAttribute(providerTag, 'android:grantUriPermissions') === 'true', 'FileProvider URI grants must be explicit');
   invariant(
-    ['${applicationId}.fileprovider', `${EXPECTED_PACKAGE}.fileprovider`]
+    ['${applicationId}.fileprovider', `${expectedPackage}.fileprovider`]
       .includes(readAttribute(providerTag, 'android:authorities')),
     'FileProvider authority must be scoped to the application ID',
   );
@@ -96,13 +102,15 @@ function verifyDataExtractionRulesText(xml) {
   }
 }
 
-function verifyGoogleServicesConfig(config) {
-  invariant(config?.project_info?.project_id === EXPECTED_PROJECT_ID, 'Firebase project_id does not match Trofia production');
-  invariant(String(config?.project_info?.project_number || '') === EXPECTED_PROJECT_NUMBER, 'Firebase project_number does not match Trofia production');
+function verifyGoogleServicesConfig(config, identity = PRODUCTION_IDENTITY) {
+  invariant(identity?.packageName && identity?.projectId && identity?.projectNumber, 'Expected Firebase identity is incomplete');
+  const label = identity.label || identity.projectId;
+  invariant(config?.project_info?.project_id === identity.projectId, `Firebase project_id does not match ${label}`);
+  invariant(String(config?.project_info?.project_number || '') === String(identity.projectNumber), `Firebase project_number does not match ${label}`);
   const client = (config?.client || []).find(candidate => (
-    candidate?.client_info?.android_client_info?.package_name === EXPECTED_PACKAGE
+    candidate?.client_info?.android_client_info?.package_name === identity.packageName
   ));
-  invariant(client, 'Firebase Android client for com.hermegas.trofia is missing');
+  invariant(client, `Firebase Android client for ${identity.packageName} is missing`);
   invariant(client?.client_info?.mobilesdk_app_id, 'Firebase Android mobilesdk_app_id is missing');
   invariant(
     Array.isArray(client?.api_key) && client.api_key.some(entry => entry?.current_key),
@@ -168,14 +176,19 @@ function run(argv = process.argv.slice(2)) {
     } catch (error) {
       throw new Error(`google-services.json is invalid JSON: ${error.message}`);
     }
-    verifyGoogleServicesConfig(config);
+    verifyGoogleServicesConfig(config, {
+      packageName: options['expected-package'] || EXPECTED_PACKAGE,
+      projectId: options['expected-project-id'] || EXPECTED_PROJECT_ID,
+      projectNumber: options['expected-project-number'] || EXPECTED_PROJECT_NUMBER,
+      label: options['expected-label'] || PRODUCTION_IDENTITY.label,
+    });
   }
 
   let mergedVersion;
   if (options['merged-manifest']) {
     mergedVersion = verifyManifestText(
       readRequired(options['merged-manifest'], 'merged release manifest'),
-      { requireVersion: true },
+      { requireVersion: true, expectedPackage: options['expected-package'] || EXPECTED_PACKAGE },
     );
     if (options['expected-version-code']) {
       invariant(mergedVersion.versionCode === options['expected-version-code'], 'Merged manifest versionCode differs from the requested release');
@@ -207,6 +220,7 @@ module.exports = {
   verifyFilePathsText,
   verifyDataExtractionRulesText,
   verifyGoogleServicesConfig,
+  PRODUCTION_IDENTITY,
   verifyAabSignature,
   run,
 };

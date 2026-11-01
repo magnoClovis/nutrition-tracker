@@ -58,6 +58,17 @@ test('release bundles fail closed when a worktree lacks google-services.json', (
   );
 });
 
+test('staging Android configuration is local, isolated, and ignored by Git', () => {
+  const gradle = read('android/app/build.gradle');
+  const gitignore = read('.gitignore');
+
+  assert.match(gradle, /expectedStagingFirebaseProjectId = "trofia-staging"/);
+  assert.match(gradle, /expectedStagingFirebaseProjectNumber = "31822846339"/);
+  assert.match(gradle, /expectedStagingAndroidPackage = "com\.hermegas\.trofia\.staging"/);
+  assert.match(gradle, /android\/app\/src\/staging\/google-services\.json/);
+  assert.match(gitignore, /^android\/app\/src\/\*\/google-services\.json$/m);
+});
+
 test('local signing files are ignored and the committed example is placeholder-only', () => {
   const androidGitignore = read('android/.gitignore');
   const example = read('android/keystore.properties.example');
