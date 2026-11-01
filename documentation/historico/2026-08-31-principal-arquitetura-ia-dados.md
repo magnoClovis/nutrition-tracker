@@ -14,6 +14,32 @@
 - **Alinhamento:** 100% do fluxo aprovado, com impacto de recursos positivo esperado, mas ainda não medido.
 - **PRs/commits relacionados:** #334 e #336 evidenciam a duplicação; #338 (primeiro commit `f528bb5`, merge `a040787`); preflights `38306747953` e `38307094535`.
 
+### [BUG-DISH-DESCRIPTION-BOUNDARY] - Descrição longa de prato não deve virar indisponibilidade genérica
+
+- **Status:** em andamento.
+- **Data de início:** 31/10/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** 0 min; não iniciado.
+- **Propósito:** investigar a falha recuperável observada no cliente ao estimar uma descrição longa e repetida de prato, sem registrar a descrição, credenciais ou dados da conta.
+- **O que se planeja fazer:** criar uma reprodução inteiramente sintética da fronteira de itens, confirmar o status e código devolvidos pelo Worker e alterar somente a restrição que a evidência demonstrar responsável; a correção deve manter a rejeição fail-closed de respostas malformadas.
+- **Recursos/arquivos principais envolvidos:** `worker/src/structured-estimates.js`, `worker/src/image-meal.js`, `worker/src/ai-worker.js`, `ai-client.js`, `nutrition-tracker-controller.js`, testes unitários e `bug-inventory.txt`/cópia controlada.
+- **O que foi feito:** a observação do usuário separou uma descrição curta aprovada de uma longa repetida que exibiu `service-unavailable`. A auditoria local constatou que o endpoint de prato aceita até 4.000 caracteres, mas validava a resposta por `validateImageMealEstimate`, cujo limite é 12 itens; o cliente reduz erros 5xx a `service-unavailable`. A reprodução sintética de uma resposta válida com 13 itens passou no endpoint após a correção: pratos agora têm limite próprio de 24 itens, a foto mantém 12 e o prompt pede consolidação de componentes duplicados. Os 37 testes focados passaram. A prova confirma a fronteira contratual e sua conversão em erro genérico, mas não atribui sem evidência a resposta real do provedor à ocorrência observada.
+- **Alinhamento:** correção mínima em validação, com fail-closed preservado; pendente de gates completos e revisão.
+
+### [C08-PRODUCTION-APPCHECK-GATE] - Validação C08 compatível com App Check enforce
+
+- **Status:** em andamento.
+- **Data de início:** 31/10/2026.
+- **Data de conclusão:** não concluído.
+- **Tempo decorrido:** pendente de merge.
+- **Minutos de CI:** pendente de nova execução.
+- **Propósito:** fazer com que a prova controlada dos quatro contratos Gemini atravesse o enforcement real de App Check, preservando a barreira do Worker.
+- **O que se planeja fazer:** reutilizar o helper existente que troca debug token registrado por token curto, injetar somente os nomes de segredo/variável no workflow, enviar o header App Check em cada chamada e adicionar regressão estática; não tocar no Worker implantado, Firebase, IAM ou deploy.
+- **Recursos/arquivos principais envolvidos:** `scripts/validate-c08-production.mjs`, `tests/smoke/app-check-ci.js`, `.github/workflows/c08-production-validation.yml` e `tests/unit/c08-production-validation.test.js`.
+- **O que foi feito:** a falha do PR #345 no run `41207278187` teve `signupStatus=200` e `food-ptStatus=401`; o Worker já estava em `APP_CHECK_MODE=enforce`, enquanto o validador enviava apenas Firebase Auth. A leitura mostrou que o repositório já possui `exchangeDebugToken`, que os smokes usam esse fluxo e que o segredo exigido existe, sem imprimir conteúdo. A correção foi iniciada para fechar somente essa lacuna do gate.
+- **Alinhamento:** diagnóstico 100%; implementação e nova CI pendentes.
+
 ### [C14-F2-DEPLOY-DEPENDENCIAS] - Publicação controlada após o PR #308
 
 - **Status:** concluído.
@@ -862,8 +888,8 @@ O merge local `194367e` integrou a `main` após I4-A (#332); `npm test` foi repe
 - **Status:** não iniciado.
 - **Data de início:** não iniciado.
 - **Data de conclusão:** não iniciado.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; não iniciado.
+- **Tempo decorrido:** 4 dias 12 h 52 min 9 s, do primeiro commit `b92d32f` ao merge do PR #343.
+- **Minutos de CI:** 49 min 53 s (34 s leve + 49 min 19 s pesado), runs `38379212507` e `38379212622`.
 - **Propósito:** tornar o feedback interno de conquista visível e confortável em aparelhos com notch/barra de status, sem degradar web ou acessibilidade.
 - **O que se planeja fazer:** corrigir posição e animação com safe area, rever o som dentro do volume do dispositivo e usar `@capacitor/haptics` no Android, preservando a fila existente e fallback silencioso.
 - **Recursos/arquivos principais envolvidos:** componente e estilos do toast de conquista, CSS de safe area, ativo de áudio, `@capacitor/haptics`, projeto Android, i18n e testes desktop/mobile.
@@ -1607,6 +1633,6 @@ Em 29/09/2026, o responsável aprovou registrar a sequência ORG-0 a ORG-7 antes
 - **Propósito:** criar uma fronteira de apps staging verificável antes de qualquer rollout.
 - **O que se planeja fazer:** inventariar `trofia-staging`, registrar ou confirmar apps Web/Android, Auth e provedores App Check exclusivos; registrar no manifesto apenas valores públicos comprovados e provar que os demais campos ausentes ainda bloqueiam staging.
 - **Recursos/arquivos principais envolvidos:** Firebase staging, Auth, App Check, `config/staging-environment.json`, verificador de manifesto e runbook C14-H.
-- **O que foi feito:** projeto staging e Hosting padrão confirmados; apps Firebase Web e Android exclusivos registrados e ACTIVE. Manifesto recebeu IDs, chave pública Web, domínio Auth, host e site key pública do App Check Web, todos do staging. O verificador passou a inspecionar identidades preenchidas mesmo com lacunas. Auth foi inicializado e e-mail/senha obrigatório habilitado; reCAPTCHA Enterprise API ativada, chave score-based restrita ao host staging criada e provedor App Check Web configurado sem enforcement. Android Play Integrity ainda aguarda fingerprint e artefato assinado/distribuído. Gates locais: 7/7 focados, 1.565/1.565 unitários, preflight 0, build produção verde e staging bloqueado como esperado. Sem deploy/IAM/produção.
-- **Alinhamento:** parcial; apps registrados, mas Auth/App Check e demais bindings ainda bloqueiam rollout.
-- **PRs/commits relacionados:** #341 e #342 são os recortes anteriores, sem PR deste recorte ainda.
+- **O que foi feito:** projeto staging e Hosting padrão confirmados; apps Firebase Web e Android exclusivos registrados e ACTIVE. Manifesto recebeu IDs, chave pública Web, domínio Auth, host e site key pública do App Check Web, todos do staging. O verificador passou a inspecionar identidades preenchidas mesmo com lacunas. Auth foi inicializado e e-mail/senha obrigatório habilitado; reCAPTCHA Enterprise API ativada, chave score-based restrita ao host staging criada e provedor App Check Web configurado sem enforcement. O PR #343 foi mesclado em `04a77bc` após preflight `38379212507` (34 s) e CI `38379212622` (49 min 19 s) verdes: 1.565 unitários, Worker 47, Functions 77, legado 181 + 10 skips, Vite 191, CSP browser e `SMOKE_OUTCOME: success`. O preflight main `39069843038` e o CI main `39069842944` passaram. Android Play Integrity ainda aguarda fingerprint e artefato assinado/distribuído; Worker, callable e Functions continuam sem vínculos de staging. Sem deploy, IAM, enforcement App Check ou produção.
+- **Alinhamento:** parcial; o recorte de identidades/apps está comprovado, mas Android Play Integrity e os bindings Worker/callable/Functions ainda bloqueiam rollout e mantêm staging fail-closed.
+- **PRs/commits relacionados:** #341 e #342 são recortes anteriores; #343, commit `b92d32f`, foi mesclado em `04a77bc`, com preflight main `39069843038` e CI main `39069842944` verdes.

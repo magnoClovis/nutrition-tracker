@@ -11,6 +11,8 @@ const pantryWorkflow = fs.readFileSync(path.join(root, ".github/workflows/pantry
 test("C08 production validation is bounded, sanitized, and deletes its disposable account", () => {
   assert.match(script, /EXPECTED_CALLS\s*=\s*4/);
   assert.match(script, /evaluations\.length !== EXPECTED_CALLS/);
+  assert.match(script, /exchangeDebugToken\(readCiAppCheckConfig\(\)\)/);
+  assert.match(script, /"X-Firebase-AppCheck": appCheckToken/);
   assert.match(script, /food-pt/);
   assert.match(script, /dish-en/);
   assert.match(script, /pantry-es/);
@@ -26,6 +28,8 @@ test("C08 production validation runs only when the latest commit changes its run
   assert.match(workflow, /if: steps\.runtime\.outputs\.changed == 'true'/);
   assert.match(workflow, /node scripts\/validate-c08-production\.mjs/);
   assert.match(workflow, /timeout-minutes:\s*8/);
+  assert.match(workflow, /FIREBASE_APPCHECK_DEBUG_TOKEN:\s*\$\{\{ secrets\.FIREBASE_APPCHECK_DEBUG_TOKEN \}\}/);
+  assert.match(workflow, /VITE_FIREBASE_WEB_APP_ID:\s*\$\{\{ vars\.VITE_FIREBASE_WEB_APP_ID \}\}/);
 });
 
 test("the pantry production smoke also avoids repeating a real call after documentation-only commits", () => {

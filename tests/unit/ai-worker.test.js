@@ -520,6 +520,29 @@ test("rejects invalid structured requests and provider estimates fail-closed", a
   assert.deepEqual(await responseBody(invalidPantryResponse), { error: { code: "invalid-provider-response" } });
 });
 
+test("accepts a bounded multi-component described meal instead of applying the photo item limit", async () => {
+  const baseItem = imageEstimate().items[0];
+  const providerResult = imageEstimate({
+    items: Array.from({ length: 13 }, (_, index) => ({ ...baseItem, name: `Ingrediente ${index + 1}` }))
+  });
+  const fixture = await createFixture({
+    providerResponse: new Response(JSON.stringify({
+      status: "completed",
+      steps: [{ type: "model_output", content: [{ type: "text", text: JSON.stringify(providerResult) }] }]
+    }), { status: 200 })
+  });
+  const response = await fixture.worker.fetch(request({
+    pathName: "/v1/ai/dish-estimate",
+    body: JSON.stringify({ description: "Prato com vários componentes", language: "pt" })
+  }), fixture.env);
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await responseBody(response), { estimate: providerResult });
+  const providerBody = JSON.parse(fixture.providerRequests[0][1].body);
+  assert.equal(providerBody.response_format.schema.properties.items.maxItems, 24);
+  assert.match(providerBody.input[0].text, /combine duplicate food mentions/i);
+});
+
 test("enforces the image JSON, MIME, language, JPEG, and decoded-size contracts", async () => {
   const fixture = await createFixture();
   const oversizedBytes = Buffer.alloc(1_500_001);
