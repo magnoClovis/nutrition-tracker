@@ -67,10 +67,12 @@ test.describe('I4-B Add sheet orchestration', () => {
     }, [date, log]);
   }
 
-  async function replaceAndConfirmInNewContext(browser, baseURL, date, log) {
+  async function replaceAndConfirmInNewContext(browser, baseURL, replacements) {
     const writer = await openIsolatedApp(browser, baseURL);
     try {
-      await replaceDailyLog(writer.page, date, log);
+      for (const replacement of replacements) {
+        await replaceDailyLog(writer.page, replacement.date, replacement.log);
+      }
       await expectNoCriticalErrors(writer.errors);
     } finally {
       await writer.context.close();
@@ -78,10 +80,23 @@ test.describe('I4-B Add sheet orchestration', () => {
 
     const verifier = await openIsolatedApp(browser, baseURL);
     try {
-      expect(await readDailyLog(verifier.page, date)).toEqual(log);
+      for (const replacement of replacements) {
+        expect(await readDailyLog(verifier.page, replacement.date)).toEqual(replacement.log);
+      }
       await expectNoCriticalErrors(verifier.errors);
     } finally {
       await verifier.context.close();
+    }
+  }
+
+  async function navigateBackDays(page, days) {
+    const dateControls = page.locator('[data-diary-date-primary="true"]');
+    const previousDay = dateControls.getByRole('button').first();
+    for (let day = 0; day < days; day += 1) {
+      await expect(previousDay).toBeVisible();
+      const previousLabel = await dateControls.textContent();
+      await previousDay.click();
+      await expect(dateControls).not.toHaveText(previousLabel || '', {timeout: 15000});
     }
   }
 
@@ -159,8 +174,17 @@ test.describe('I4-B Add sheet orchestration', () => {
     test.setTimeout(90000);
     const baseURL = testInfo.project.use.baseURL;
     const snapshotReader = await openIsolatedApp(browser, baseURL);
-    const today = await snapshotReader.page.evaluate(() => window.DateUtils.localToday());
-    const previousToday = await readDailyLog(snapshotReader.page, today);
+    const [sourceDate, targetDate] = await snapshotReader.page.evaluate(() => {
+      const today = window.DateUtils.localToday();
+      return [
+        window.DateUtils.addCivilDays(today, -11),
+        window.DateUtils.addCivilDays(today, -12),
+      ];
+    });
+    const [previousSource, previousTarget] = await Promise.all([
+      readDailyLog(snapshotReader.page, sourceDate),
+      readDailyLog(snapshotReader.page, targetDate),
+    ]);
     await expectNoCriticalErrors(snapshotReader.errors);
     await snapshotReader.context.close();
     const marker = `Repetição I4-B ${Date.now()}`;
@@ -185,13 +209,17 @@ test.describe('I4-B Add sheet orchestration', () => {
       await replaceAndConfirmInNewContext(
         browser,
         baseURL,
-        today,
-        {'Café da manhã': [entry]}
+        [
+          {date: sourceDate, log: {'Café da manhã': [entry]}},
+          {date: targetDate, log: {}},
+        ]
       );
 
       visualContext = await openIsolatedApp(browser, baseURL);
       const {page, errors} = visualContext;
       await setAppLanguage(page, 'pt');
+
+      await navigateBackDays(page, 12);
 
       const sheet = await openManualAdd(page);
       const repeatCard = sheet.locator('[data-add-repeat-card]').filter({hasText: marker});
@@ -199,7 +227,7 @@ test.describe('I4-B Add sheet orchestration', () => {
       await repeatCard.click();
       await expect(sheet).toBeHidden();
       await expect.poll(async () => {
-        const current = await readDailyLog(page, today);
+        const current = await readDailyLog(page, targetDate);
         return Object.values(current).flat().filter(item => item.name === marker).length;
       }, {
         timeout: 30000,
@@ -209,7 +237,7 @@ test.describe('I4-B Add sheet orchestration', () => {
       await expect(notification).toContainText('Refeição repetida no Diário.');
       await notification.locator('[data-notification-action]').click();
       await expect.poll(async () => {
-        const current = await readDailyLog(page, today);
+        const current = await readDailyLog(page, targetDate);
         return Object.values(current).flat()
           .filter(item => item.name === marker)
           .map(item => item.id);
@@ -221,7 +249,10 @@ test.describe('I4-B Add sheet orchestration', () => {
     } finally {
       await visualContext?.context.close();
       if (fixturePrepared) {
-        await replaceAndConfirmInNewContext(browser, baseURL, today, previousToday);
+        await replaceAndConfirmInNewContext(browser, baseURL, [
+          {date: sourceDate, log: previousSource},
+          {date: targetDate, log: previousTarget},
+        ]);
       }
     }
   });
