@@ -38,6 +38,7 @@ Preflight, unitários focados e completos, recortes Playwright legado/Vite, `npm
 
 ## Evidência local atual da I10-A
 
+- Em 01/11/2026, o gate autenticado encontrou apenas arredondamento subpixel do Chromium na altura da aba (`43.999969px` para o contrato de 44px); a asserção passou a arredondar a medição de CSS para pixel inteiro, sem reduzir o limite visual. A revalidação proporcional e o gate integral seguem pendentes.
 - preflight com 0 avisos;
 - 16/16 contratos focados da tela de Métricas;
 - 1.565/1.565 testes unitários completos na base dos recortes autenticados `7f218c7`;

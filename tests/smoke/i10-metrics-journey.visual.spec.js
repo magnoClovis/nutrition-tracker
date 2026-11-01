@@ -66,7 +66,9 @@ test.describe('I10-A Metrics journey visual contract', () => {
           scrollWidth: document.documentElement.scrollWidth,
         };
       });
-      expect(geometry.tabsHeight).toBeGreaterThanOrEqual(44);
+      // Chromium can expose a 44px computed height as 43.999969px after
+      // device-scale rounding. Assert the rendered CSS pixel contract.
+      expect(Math.round(geometry.tabsHeight)).toBeGreaterThanOrEqual(44);
       expect(geometry.cardRadius).toBe('24px');
       expect(geometry.tileColumns).toBe(3);
       expect(geometry.scrollWidth).toBe(geometry.viewportWidth);
