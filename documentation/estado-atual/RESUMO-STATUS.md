@@ -24,9 +24,9 @@
 
 ### [SEC-IAM-EDITOR-RESIDUAL] - Avaliação separada da role Editor na conta Compute padrão
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído, condicionado ao merge deste registro pós-merge — **Chat:** Trofia-Principal.
 - **Data de início:** 09/10/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 01/11/2026, condicionada ao merge deste registro pós-merge.
 - **Propósito:** decidir com segurança se e quando remover `roles/editor` da conta Compute padrão, sem manter indefinidamente aberta a C14-F2 já implantada.
 - **O que se planeja fazer:** reconfirmar os consumidores e a cobertura de auditoria após as migrações, classificar as três perdas históricas e o recurso sem suporte do replay, simular um corte atualizado com permissões mínimas e rollback verificável; propor a revogação somente mediante evidência suficiente e autorização específica, sem mutação IAM nesta tarefa preparatória.
 - **Recursos/arquivos principais envolvidos:** política IAM do projeto, conta Compute padrão, Cloud Asset Inventory, Policy Simulator, Cloud Audit Logs, Functions/Cloud Run/Scheduler/Tasks e inventário C14-F2.
@@ -2284,19 +2284,19 @@
 - **Propósito:** classificar e corrigir, se comprovado, o erro recuperável `service-unavailable` observado ao estimar uma descrição longa e repetida de refeição.
 - **O que se planeja fazer:** reproduzir a fronteira somente com entradas sintéticas, distinguir indisponibilidade do provedor de resposta estruturalmente rejeitada e ajustar contrato, prompt ou mensagem somente com evidência; preservar App Check, autenticação, privacidade e o comportamento das descrições curtas aprovadas.
 - **Recursos/arquivos principais envolvidos:** `worker/src/structured-estimates.js`, `worker/src/image-meal.js`, `worker/src/ai-worker.js`, `ai-client.js`, `nutrition-tracker-controller.js`, testes unitários do Worker/cliente e inventário de bugs.
-- **O que foi feito:** a triagem confirmou que descrições curtas funcionam e que a entrada problemática estava repetida. A reprodução sintética passou uma resposta estruturalmente válida com 13 componentes pelo endpoint de prato: o contrato anterior a rejeitaria pelo limite de 12 itens herdado da foto e a converteria em `invalid-provider-response`/5xx, que a interface mostra como `service-unavailable`. A correção separa o limite do prato (24), preserva o limite de foto (12) e orienta o provedor a consolidar duplicatas; os 37 testes focados passaram. Como a resposta real do provedor não foi capturada, isso confirma um mecanismo de falha, não a causa exclusiva da ocorrência observada.
-- **Alinhamento:** correção mínima e fail-closed preservado; pendente de gates completos e revisão.
+- **O que foi feito:** a triagem confirmou que descrições curtas funcionam e que a entrada problemática estava repetida. A reprodução sintética passou uma resposta estruturalmente válida com 13 componentes pelo endpoint de prato: o contrato anterior a rejeitaria pelo limite de 12 itens herdado da foto e a converteria em `invalid-provider-response`/5xx, que a interface mostra como `service-unavailable`. A correção separa o limite do prato (24), preserva o limite de foto (12) e orienta o provedor a consolidar duplicatas. O PR #345 foi mesclado em `f025e47` após preflight local sem avisos, 1.567/1.567 unitários, Worker 48 + 9 runtime, smokes legado/Vite verdes com skips autenticados locais esperados e cutover 60/60; o CI da `main` `41259920526` e o preflight `41259920449` também passaram. Como a resposta real do provedor não foi capturada, isso confirma um mecanismo de falha corrigido, não a causa exclusiva da ocorrência observada.
+- **Alinhamento:** 100% da correção mínima, com fail-closed preservado; impacto positivo.
 
 ### [C08-PRODUCTION-APPCHECK-GATE] - Validação C08 compatível com App Check enforce
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído, condicionado ao merge deste registro pós-merge — **Chat:** Trofia-Principal.
 - **Data de início:** 31/10/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 01/11/2026, condicionada ao merge deste registro pós-merge.
 - **Propósito:** restaurar a validação controlada dos contratos Gemini em produção sem enfraquecer o App Check enforce.
 - **O que se planeja fazer:** trocar o debug token registrado por token curto de App Check, enviá-lo somente no header da execução efêmera, cobrir a configuração do workflow e validar por CI; não alterar Worker, Firebase, IAM, regras ou deploy.
 - **Recursos/arquivos principais envolvidos:** `scripts/validate-c08-production.mjs`, `tests/smoke/app-check-ci.js`, workflow `c08-production-validation.yml`, teste unitário e documentação da frente principal.
-- **O que foi feito:** o run `41207278187` criou a conta descartável e falhou com `401` no primeiro endpoint porque o workflow não injetava App Check após o enforcement. O segredo e o helper de troca já existem e foram confirmados por leitura sem expor valores.
-- **Alinhamento:** correção em validação; pendente de gates locais e CI.
+- **O que foi feito:** o run `41207278187` criou a conta descartável e falhou com `401` no primeiro endpoint porque o workflow não injetava App Check após o enforcement. O segredo e o helper de troca já existem e foram confirmados por leitura sem expor valores. A correção passou a trocar o debug token por token curto e enviá-lo no header efêmero de cada chamada; o run C08 `41233601327` passou em 22 s, e o CI da `main` `41259920526` passou após o merge #345, sem alterar Worker, Firebase, IAM, regras ou deploy.
+- **Alinhamento:** 100% da correção de validação; impacto positivo, com enforcement preservado.
 
 ## Observações não confirmadas sob acompanhamento
 

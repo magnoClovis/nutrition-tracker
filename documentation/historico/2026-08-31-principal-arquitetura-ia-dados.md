@@ -16,29 +16,31 @@
 
 ### [BUG-DISH-DESCRIPTION-BOUNDARY] - Descrição longa de prato não deve virar indisponibilidade genérica
 
-- **Status:** em andamento.
+- **Status:** concluído, condicionado ao merge deste registro pós-merge.
 - **Data de início:** 31/10/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; não iniciado.
+- **Data de conclusão:** 01/11/2026, condicionada ao merge deste registro pós-merge.
+- **Tempo decorrido:** 11 h 21 min 21 s, do primeiro commit `bda1db8` ao merge do PR #345.
+- **Minutos de CI:** 1 h 53 min 1 s no total (1 min 38 s leve + 1 h 51 min 23 s pesado; inclui a falha inicial C08 de 15 s que revelou a lacuna de App Check).
 - **Propósito:** investigar a falha recuperável observada no cliente ao estimar uma descrição longa e repetida de prato, sem registrar a descrição, credenciais ou dados da conta.
 - **O que se planeja fazer:** criar uma reprodução inteiramente sintética da fronteira de itens, confirmar o status e código devolvidos pelo Worker e alterar somente a restrição que a evidência demonstrar responsável; a correção deve manter a rejeição fail-closed de respostas malformadas.
 - **Recursos/arquivos principais envolvidos:** `worker/src/structured-estimates.js`, `worker/src/image-meal.js`, `worker/src/ai-worker.js`, `ai-client.js`, `nutrition-tracker-controller.js`, testes unitários e `bug-inventory.txt`/cópia controlada.
-- **O que foi feito:** a observação do usuário separou uma descrição curta aprovada de uma longa repetida que exibiu `service-unavailable`. A auditoria local constatou que o endpoint de prato aceita até 4.000 caracteres, mas validava a resposta por `validateImageMealEstimate`, cujo limite é 12 itens; o cliente reduz erros 5xx a `service-unavailable`. A reprodução sintética de uma resposta válida com 13 itens passou no endpoint após a correção: pratos agora têm limite próprio de 24 itens, a foto mantém 12 e o prompt pede consolidação de componentes duplicados. Os 37 testes focados passaram. A prova confirma a fronteira contratual e sua conversão em erro genérico, mas não atribui sem evidência a resposta real do provedor à ocorrência observada.
-- **Alinhamento:** correção mínima em validação, com fail-closed preservado; pendente de gates completos e revisão.
+- **O que foi feito:** a observação do usuário separou uma descrição curta aprovada de uma longa repetida que exibiu `service-unavailable`. A auditoria local constatou que o endpoint de prato aceita até 4.000 caracteres, mas validava a resposta por `validateImageMealEstimate`, cujo limite é 12 itens; o cliente reduz erros 5xx a `service-unavailable`. A reprodução sintética de uma resposta válida com 13 itens passou no endpoint após a correção: pratos agora têm limite próprio de 24 itens, a foto mantém 12 e o prompt pede consolidação de componentes duplicados. Os 37 testes focados, preflight sem avisos, 1.567/1.567 unitários, Worker 48 + 9 runtime, smokes legado/Vite verdes com skips autenticados locais esperados e cutover 60/60 passaram. O CI final do PR `41233601377` passou em 56 min 33 s; após o merge `f025e47`, o preflight da `main` `41259920449` passou em 30 s e o CI `41259920526` em 46 min 28 s. A prova confirma a fronteira contratual e sua conversão em erro genérico, mas não atribui sem evidência a resposta real do provedor à ocorrência observada.
+- **Alinhamento:** 100%; correção mínima em validação, com fail-closed preservado e impacto positivo.
+- **PRs/commits relacionados:** PR #345; commits `bda1db8` e `5478ec9`; merge `f025e47`; preflights `41207278116` (29 s) e `41233601381` (32 s); C08 `41207278187` (falhou em 15 s) e `41233601327` (22 s); CIs `41207278190` (54 min 50 s) e `41233601377` (56 min 33 s); main `41259920449` e `41259920526`. — **Chat:** Trofia-Principal.
 
 ### [C08-PRODUCTION-APPCHECK-GATE] - Validação C08 compatível com App Check enforce
 
-- **Status:** em andamento.
+- **Status:** concluído, condicionado ao merge deste registro pós-merge.
 - **Data de início:** 31/10/2026.
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** pendente de nova execução.
+- **Data de conclusão:** 01/11/2026, condicionada ao merge deste registro pós-merge.
+- **Tempo decorrido:** 11 h 21 min 21 s, do primeiro commit `bda1db8` ao merge do PR #345.
+- **Minutos de CI:** 1 h 53 min 1 s no total (1 min 38 s leve + 1 h 51 min 23 s pesado; inclui a falha inicial C08 de 15 s que revelou a lacuna de App Check).
 - **Propósito:** fazer com que a prova controlada dos quatro contratos Gemini atravesse o enforcement real de App Check, preservando a barreira do Worker.
 - **O que se planeja fazer:** reutilizar o helper existente que troca debug token registrado por token curto, injetar somente os nomes de segredo/variável no workflow, enviar o header App Check em cada chamada e adicionar regressão estática; não tocar no Worker implantado, Firebase, IAM ou deploy.
 - **Recursos/arquivos principais envolvidos:** `scripts/validate-c08-production.mjs`, `tests/smoke/app-check-ci.js`, `.github/workflows/c08-production-validation.yml` e `tests/unit/c08-production-validation.test.js`.
-- **O que foi feito:** a falha do PR #345 no run `41207278187` teve `signupStatus=200` e `food-ptStatus=401`; o Worker já estava em `APP_CHECK_MODE=enforce`, enquanto o validador enviava apenas Firebase Auth. A leitura mostrou que o repositório já possui `exchangeDebugToken`, que os smokes usam esse fluxo e que o segredo exigido existe, sem imprimir conteúdo. A correção foi iniciada para fechar somente essa lacuna do gate.
-- **Alinhamento:** diagnóstico 100%; implementação e nova CI pendentes.
+- **O que foi feito:** a falha do PR #345 no run `41207278187` teve `signupStatus=200` e `food-ptStatus=401`; o Worker já estava em `APP_CHECK_MODE=enforce`, enquanto o validador enviava apenas Firebase Auth. A leitura mostrou que o repositório já possui `exchangeDebugToken`, que os smokes usam esse fluxo e que o segredo exigido existe, sem imprimir conteúdo. A correção reutilizou o helper para obter token curto, enviou `X-Firebase-AppCheck` em todas as chamadas e cobriu a presença do helper, header e variáveis no workflow. O C08 `41233601327` passou em 22 s, o CI final `41233601377` passou em 56 min 33 s e, após o merge `f025e47`, o CI da `main` `41259920526` passou em 46 min 28 s. Worker, Firebase, IAM, regras e deploy permaneceram inalterados.
+- **Alinhamento:** 100%; o gate voltou a provar a barreira em enforce sem enfraquecê-la, com impacto positivo.
+- **PRs/commits relacionados:** PR #345; commits `bda1db8` e `5478ec9`; merge `f025e47`; C08 `41207278187` (falhou em 15 s) e `41233601327` (22 s); CIs `41207278190` (54 min 50 s) e `41233601377` (56 min 33 s); main `41259920449` e `41259920526`. — **Chat:** Trofia-Principal.
 
 ### [C14-F2-DEPLOY-DEPENDENCIAS] - Publicação controlada após o PR #308
 
