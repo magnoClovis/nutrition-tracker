@@ -2276,6 +2276,28 @@
 - **O que foi feito:** a auditoria somente de leitura identificou o Playwright como custo dominante e os PRs #334/#336 como exemplos de segundo CI pesado disparado por commit final apenas documental. O PR #338 mesclou a regra em `a040787` após preflight `38306747953` verde em 25 s; o preflight da `main` `38307094535` também passou. O tempo do primeiro commit até o merge foi 3 min 33 s, com 25 s de CI leve e 0 s pesado no PR, valores idênticos à descrição. Nenhum teste, workflow ou runtime foi alterado; a economia futura ainda não foi medida.
 - **Alinhamento:** 100% do fluxo documental aprovado; impacto de recursos ainda não mensurado.
 
+### [BUG-DISH-DESCRIPTION-BOUNDARY] - Descrição longa de prato não deve virar indisponibilidade genérica
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 31/10/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** classificar e corrigir, se comprovado, o erro recuperável `service-unavailable` observado ao estimar uma descrição longa e repetida de refeição.
+- **O que se planeja fazer:** reproduzir a fronteira somente com entradas sintéticas, distinguir indisponibilidade do provedor de resposta estruturalmente rejeitada e ajustar contrato, prompt ou mensagem somente com evidência; preservar App Check, autenticação, privacidade e o comportamento das descrições curtas aprovadas.
+- **Recursos/arquivos principais envolvidos:** `worker/src/structured-estimates.js`, `worker/src/image-meal.js`, `worker/src/ai-worker.js`, `ai-client.js`, `nutrition-tracker-controller.js`, testes unitários do Worker/cliente e inventário de bugs.
+- **O que foi feito:** a triagem confirmou que descrições curtas funcionam e que a entrada problemática estava repetida. A reprodução sintética passou uma resposta estruturalmente válida com 13 componentes pelo endpoint de prato: o contrato anterior a rejeitaria pelo limite de 12 itens herdado da foto e a converteria em `invalid-provider-response`/5xx, que a interface mostra como `service-unavailable`. A correção separa o limite do prato (24), preserva o limite de foto (12) e orienta o provedor a consolidar duplicatas; os 37 testes focados passaram. Como a resposta real do provedor não foi capturada, isso confirma um mecanismo de falha, não a causa exclusiva da ocorrência observada.
+- **Alinhamento:** correção mínima e fail-closed preservado; pendente de gates completos e revisão.
+
+### [C08-PRODUCTION-APPCHECK-GATE] - Validação C08 compatível com App Check enforce
+
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 31/10/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** restaurar a validação controlada dos contratos Gemini em produção sem enfraquecer o App Check enforce.
+- **O que se planeja fazer:** trocar o debug token registrado por token curto de App Check, enviá-lo somente no header da execução efêmera, cobrir a configuração do workflow e validar por CI; não alterar Worker, Firebase, IAM, regras ou deploy.
+- **Recursos/arquivos principais envolvidos:** `scripts/validate-c08-production.mjs`, `tests/smoke/app-check-ci.js`, workflow `c08-production-validation.yml`, teste unitário e documentação da frente principal.
+- **O que foi feito:** o run `41207278187` criou a conta descartável e falhou com `401` no primeiro endpoint porque o workflow não injetava App Check após o enforcement. O segredo e o helper de troca já existem e foram confirmados por leitura sem expor valores.
+- **Alinhamento:** correção em validação; pendente de gates locais e CI.
+
 ## Observações não confirmadas sob acompanhamento
 
 ### [INV-RELOAD-SESSAO] - Sessão e loading após reload/troca de idioma

@@ -1,5 +1,14 @@
 > **Cópia documental — inventário histórico e ativo.** Fonte: `/bug-inventory.txt`, capturada da `main` no commit `5c51fa5` em 31/08/2026 e convertida para Markdown sem mover o original. O corpo preserva o estado registrado em cada entrada; a seção final de resolvidos prevalece para itens já corrigidos. Entradas sem marca de resolução continuam riscos ou limitações catalogados, não prova automática de reprodução na versão atual.
 
+## Atualização ativa — 31/10/2026
+
+### [BUG-DISH-DESCRIPTION-BOUNDARY] Descrição longa/repetida de prato pode terminar como indisponibilidade genérica
+
+- **Localização em investigação:** `worker/src/structured-estimates.js`, `worker/src/image-meal.js`, `worker/src/ai-worker.js`, `ai-client.js` e `nutrition-tracker-controller.js`.
+- **Descrição/impacto:** uma descrição curta foi aprovada, enquanto uma entrada longa e repetida mostrou `service-unavailable`. O endpoint aceita textos de até 4.000 caracteres, mas a estimativa de prato reutilizava a validação de resposta de foto, que aceita no máximo 12 itens; o cliente converte erros 5xx em indisponibilidade genérica. A reprodução sintética confirmou esse mecanismo com 13 itens válidos; não há causalidade exclusiva comprovada nem se registra a entrada real.
+- **Severidade:** MÉDIO — impede uma estimativa recuperável, sem escrita de diário ou perda de dados observada.
+- **Correção candidata:** limite independente de 24 itens para prato, prompt para consolidar duplicatas e regressão de 13 itens; pendentes gates completos e revisão.
+
 DIÁRIO NUTRICIONAL — INVENTÁRIO CONSOLIDADO DE BUGS, RISCOS E LIMITAÇÕES
 Versão examinada: 0.8.1-beta
 Data do inventário: 2026-07-26

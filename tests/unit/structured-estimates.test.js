@@ -59,5 +59,18 @@ test("delimits untrusted inputs and shares the C24 provider schema for described
     kind: "dish", body: { description: "Dish", language: "pt" }, model: "model"
   });
   assert.equal(request.store, false);
-  assert.deepEqual(request.response_format.schema, image.GEMINI_IMAGE_MEAL_PROVIDER_SCHEMA);
+  assert.deepEqual(request.response_format.schema, image.geminiMealEstimateProviderSchema({
+    maximumItems: 24,
+    maximumAssumptions: 24
+  }));
+});
+
+test("gives described meals an explicit larger item boundary and asks the provider to consolidate duplicates", async () => {
+  const module = await import("../../worker/src/structured-estimates.js");
+  const request = module.geminiStructuredInteractionRequest({
+    kind: "dish", body: { description: "Repeated meal description", language: "pt" }, model: "model"
+  });
+  assert.equal(module.STRUCTURED_ESTIMATE_LIMITS.maximumDishItems, 24);
+  assert.equal(request.response_format.schema.properties.items.maxItems, 24);
+  assert.match(request.input[0].text, /combine duplicate food mentions/i);
 });

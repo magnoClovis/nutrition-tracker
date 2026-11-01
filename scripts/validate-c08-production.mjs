@@ -1,10 +1,12 @@
 import { randomBytes } from "node:crypto";
 import FirebaseConfigInternal from "../firebase-config-internal.js";
+import AppCheckCI from "../tests/smoke/app-check-ci.js";
 import { validateImageMealEstimate } from "../worker/src/image-meal.js";
 import { validatePantrySuggestionsResponse } from "../worker/src/pantry-suggestions.js";
 import { validateFoodEstimate } from "../worker/src/structured-estimates.js";
 
 const { FB_KEY } = FirebaseConfigInternal.createFirebaseConfig();
+const { exchangeDebugToken, readCiAppCheckConfig } = AppCheckCI;
 const AUTH_BASE = "https://identitytoolkit.googleapis.com/v1/accounts";
 const WORKER_BASE = "https://trofia-ai-proxy.cmagno-dev.workers.dev/v1/ai";
 const EXPECTED_CALLS = 4;
@@ -79,6 +81,7 @@ let idToken = "";
 let failed = false;
 
 try {
+  const appCheckToken = await exchangeDebugToken(readCiAppCheckConfig());
   const suffix = `${Date.now()}-${randomBytes(4).toString("hex")}`;
   const signup = await fetch(`${AUTH_BASE}:signUp?key=${FB_KEY}`, {
     method: "POST",
@@ -100,7 +103,8 @@ try {
       headers: {
         "Authorization": `Bearer ${idToken}`,
         "Content-Type": "application/json",
-        "Origin": "https://magnoclovis.github.io"
+        "Origin": "https://magnoclovis.github.io",
+        "X-Firebase-AppCheck": appCheckToken
       },
       body: JSON.stringify(evaluation.body)
     });
