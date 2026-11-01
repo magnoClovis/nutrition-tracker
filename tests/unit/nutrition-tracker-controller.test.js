@@ -63,6 +63,7 @@ contractTest("routes every I4 creation path through the existing Add contracts",
   assert.match(block, /querySelector\('\[data-diary-global-add\] \[data-tutorial="open-log-sheet"\]'\)/);
   assert.match(source, /onSelectCreateMode: selectCreateMode/);
   assert.match(source, /onCloseCreateMenu: closeCreateMenu/);
+  assert.equal((source.match(/section: "recent"/g) || []).length, 1);
 });
 
 contractTest("routes browser dialog decisions through the injected generic service", createNutritionTrackerController => {
@@ -624,6 +625,27 @@ contractTest("assigns stable daily-entry IDs and routes list changes through ide
   assert.match(source, /setSuppLog\(previous => window\.DailyEntryModel\.applyEntryListMutation/);
   assert.match(source, /const nextLog = window\.DailyEntryModel\.applyMealLogMutation/);
   assert.match(source, /setActiveLog\(previous => window\.DailyEntryModel\.applyMealLogMutation/);
+});
+
+contractTest("repeats recent meals through persistence and exposes a persisted Undo action", createNutritionTrackerController => {
+  const { NutritionTracker } = createController(createNutritionTrackerController);
+  const source = NutritionTracker.toString();
+  const start = source.indexOf("async function repeatRecentMeal");
+  const end = source.indexOf("function saveEditStaged", start);
+  const block = source.slice(start, end);
+
+  assert.ok(start >= 0);
+  assert.match(block, /stripMealEvaluationMetadata/);
+  assert.match(block, /createIdempotentEntryId/);
+  assert.match(block, /applySelectedMealTime/);
+  assert.match(block, /await saveMealRegistration\(meal, items\)/);
+  assert.match(block, /await closeMealRegistration\(\)/);
+  assert.match(block, /notifyWithAction/);
+  assert.match(block, /type: "remove", entryId: item\.id/);
+  assert.match(block, /await dailyEntryPersistence\.persist\("meal", registrationDate, nextLog\)/);
+  assert.match(block, /await persistMealRegistration/);
+  assert.ok(block.indexOf("await saveMealRegistration") < block.indexOf("await closeMealRegistration"));
+  assert.ok(block.indexOf("await closeMealRegistration") < block.indexOf("notifyWithAction"));
 });
 
 contractTest("invalidates accepted score snapshots conservatively when diary entries change", createNutritionTrackerController => {

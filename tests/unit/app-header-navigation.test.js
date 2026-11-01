@@ -188,6 +188,25 @@ contractTest("renders non-diary progress, notifications, and the alternate navig
   assert.equal(findNodes(view, node => node.type === "button" && node.props.title === "Open metrics").length, 0);
 });
 
+contractTest("renders an optional accessible notification action without changing string notifications", AppHeaderNavigation => {
+  let actions = 0;
+  const view = AppHeaderNavigation(baseProps({
+    notification: {
+      text: "Meal logged again",
+      actionLabel: "Undo",
+      onAction: () => { actions += 1; }
+    }
+  }));
+
+  const notification = findNodes(view, node => node.props?.["data-app-notification"] === "action")[0];
+  const action = findNodes(notification, node => node.props?.["data-notification-action"] === "true")[0];
+  assert.equal(notification.props.role, "status");
+  assert.equal(notification.props["aria-live"], "polite");
+  assert.match(textContent(notification), /Meal logged againUndo/);
+  action.props.onClick();
+  assert.equal(actions, 1);
+});
+
 contractTest("keeps Add as a pseudo-tab absent from the primary navigation", AppHeaderNavigation => {
   const view = AppHeaderNavigation(baseProps({ activeTab: "adicionar" }));
   const tabButtons = findNodes(view, node => node.props && String(node.props["data-tutorial"] || "").startsWith("tab-"));
