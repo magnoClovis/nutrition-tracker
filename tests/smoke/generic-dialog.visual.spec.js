@@ -128,6 +128,11 @@ test.describe('authenticated GenericDialog visual and accessibility contract', (
     await pantryTab.scrollIntoViewIfNeeded();
     await expect(pantryTab).toBeInViewport();
     await pantryTab.click();
+    const mealsTab = page.locator('[data-screen="despensa"]')
+      .getByRole('tab', { name: /Refei[cç][oõ]es|Meals|Comidas/i });
+    await expect(mealsTab).toBeVisible();
+    await mealsTab.click();
+    await expect(mealsTab).toHaveAttribute('aria-selected', 'true');
     const section = page.locator('[data-tutorial="pantry-meal-templates"]');
     await expect(section).toBeVisible();
     await section.getByRole('button').first().click();

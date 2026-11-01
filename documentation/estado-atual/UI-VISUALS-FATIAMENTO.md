@@ -101,6 +101,8 @@ I4-C não é a busca permanente da aba Alimentos: ela monta uma refeição no co
 
 O pacote usa o rótulo inglês `Foods`; PT-BR deve preservar o termo aprovado pelo produto — atualmente Alimentos/Despensa — e não será renomeado por tradução literal silenciosa.
 
+Na base reconciliada `a9aa0c5`, o gate serial autenticado de 31/10/2026 passou com preflight sem avisos, 1.572/1.572 unitários, smoke legado com 185 aprovações e 10 skips estruturais, Vite 195/195, CSP verde, cutover 60/60 e build de 848 módulos/allowlist 14. Após um CI posterior registrar como erro de console apenas o 503 proposital do mock da API opcional Open Food Facts, o helper passou a ignorar somente essa combinação de origem e status; o recorte Vite de 5 cenários, preflight, 1.572/1.572 unitários e build de 848 módulos/allowlist 14 passaram. O PR #340 continua draft; gate autenticado integral e CI do novo SHA são pendentes.
+
 #### I8-B — cartões, porções e ações da biblioteca
 
 - linhas recolhidas/expandidas com uma expansão por vez e `aria-expanded`;

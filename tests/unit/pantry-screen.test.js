@@ -1,5 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const React = require("../../vendor/react.production.min.js");
 const { createI18n } = require("../../i18n.js");
 const { createDateUtils } = require("../../date-utils.js");
@@ -10,6 +12,7 @@ const implementations = [
 
 const { pickLang, normalizeLanguage, localeForLang } = createI18n();
 const { portionLabel } = createDateUtils({ normalizeLanguage, pickLang, localeForLang });
+const oneUiCss = fs.readFileSync(path.join(__dirname, "..", "..", "one-ui.css"), "utf8");
 
 const labels = {
   pantrySearch: "Search pantry",
@@ -118,6 +121,12 @@ function baseProps(overrides = {}) {
     autoFillNutrition: noOp,
     pantrySearch: "",
     setPantrySearch: noOp,
+    pantryView: "foods",
+    setPantryView: noOp,
+    pantryFilter: "all",
+    setPantryFilter: noOp,
+    pantryCategory: "",
+    setPantryCategory: noOp,
     pantryItemsOpen: true,
     setPantryItemsOpen: noOp,
     mealTemplatesOpen: false,
@@ -189,6 +198,12 @@ function contractTest(name, callback, dependencyOverrides = {}) {
   });
 }
 
+test("keeps the approved 40px pantry tabs above the compact desktop button rule", () => {
+  const rule = oneUiCss.match(/\[data-one-ui-root\]\s+\.pantry-library-tabs button\s*\{([\s\S]*?)\}/);
+  assert.ok(rule, "the pantry tab rule must include the app root to win the desktop cascade");
+  assert.match(rule[1], /min-height:\s*40px/);
+});
+
 contractTest("renders empty and populated pantry states", PantryScreen => {
   const empty = PantryScreen(baseProps());
   assert.match(textContent(empty), /Pantry empty/);
@@ -210,9 +225,61 @@ contractTest("renders empty and populated pantry states", PantryScreen => {
   assert.match(textContent(populated), /13g protein/);
 });
 
+contractTest("renders the approved Foods shell with real counts and four views", PantryScreen => {
+  const calls = [];
+  const view = PantryScreen(baseProps({
+    pantry: [{ id: "food-1", name: "Oats", unit: "g", protein100: 13, kcal100: 389 }],
+    mealTemplates: [{ id: "meal-1", name: "Breakfast", items: [] }],
+    suppPantry: [{ id: "supp-1", name: "Creatine", dose: 5, unit: "g" }],
+    setPantryView(value) {
+      calls.push(value);
+    }
+  }));
+
+  assert.match(textContent(view), /1 food · 1 meal · 1 supplement/);
+  const tabs = findNodes(view, node => node.props?.role === "tab");
+  assert.deepEqual(tabs.map(textContent), ["Foods", "Meals", "Supps", "Categories"]);
+  assert.equal(tabs[0].props["aria-selected"], true);
+  tabs[3].props.onClick();
+  assert.deepEqual(calls, ["categories"]);
+});
+
+contractTest("groups real categories without inferring missing metadata", PantryScreen => {
+  const calls = [];
+  const categorized = { id: "food-1", name: "Oats", category: "Grains", unit: "g", protein100: 13, kcal100: 389 };
+  const uncategorized = { id: "food-2", name: "Yogurt", unit: "g", protein100: 8, kcal100: 90 };
+  const view = PantryScreen(baseProps({
+    pantryView: "categories",
+    pantry: [categorized, uncategorized],
+    filteredPantry: [categorized, uncategorized],
+    sortedPantry: [categorized, uncategorized],
+    sortedAllPantry: [categorized, uncategorized],
+    setPantryCategory(value) {
+      calls.push(value);
+    }
+  }));
+
+  assert.match(textContent(view), /2 categories/);
+  assert.match(textContent(view), /Grains/);
+  assert.match(textContent(view), /Uncategorized/);
+  const tiles = findNodes(view, node => node.props?.["data-pantry-category-tile"]);
+  assert.equal(tiles.length, 2);
+  tiles[0].props.onClick();
+  assert.equal(calls.length, 1);
+});
+
+contractTest("exposes food filters only in the Foods view", PantryScreen => {
+  const foodView = PantryScreen(baseProps());
+  assert.equal(findNodes(foodView, node => node.props?.["data-pantry-filter"]).length, 4);
+
+  const mealView = PantryScreen(baseProps({ pantryView: "meals" }));
+  assert.equal(findNodes(mealView, node => node.props?.["data-pantry-filter"]).length, 0);
+});
+
 contractTest("preserves search result and no-result presentation", PantryScreen => {
   const withoutFoodDbResults = PantryScreen(baseProps({
     pantrySearch: "missing",
+    pantryView: "categories",
     foodDbResults: []
   }));
   const withFoodDbResults = PantryScreen(baseProps({
@@ -220,6 +287,10 @@ contractTest("preserves search result and no-result presentation", PantryScreen 
     foodDbResults: [{ code: "unused-result" }]
   }));
   assert.match(textContent(withoutFoodDbResults), /No results/);
+  assert.match(textContent(withoutFoodDbResults), /In your library/);
+  assert.equal(findNodes(withoutFoodDbResults, node => node.props?.role === "tab").length, 0);
+  assert.equal(withoutFoodDbResults.props["data-pantry-search-mode"], "true");
+  assert.equal(withoutFoodDbResults.props["data-pantry-view"], "foods");
   assert.equal(textContent(withFoodDbResults), textContent(withoutFoodDbResults));
   assert.doesNotMatch(textContent(withFoodDbResults), /unused-result/);
 });
@@ -229,6 +300,7 @@ contractTest("passes template edit state and callbacks to SavedMealCard", Pantry
   const template = { id: "template-1", name: "Lunch", items: [] };
   const saveTemplateEdit = () => {};
   const view = PantryScreen(baseProps({
+    pantryView: "meals",
     mealTemplatesOpen: true,
     mealTemplates: [template],
     editingTemplateId: "template-1",
@@ -329,6 +401,7 @@ contractTest("portals active native controls directly to the injected viewport s
 
 contractTest("preserves the hidden required supplement dose and orphan body-composition block", PantryScreen => {
   const view = PantryScreen(baseProps({
+    pantryView: "supplements",
     suppPantryOpen: true,
     showSuppForm: true
   }));
@@ -390,6 +463,7 @@ contractTest("uses a six-option localized supplement-unit ChoiceField", PantrySc
   const updates = [];
   const view = PantryScreen(baseProps({
     lang: "es",
+    pantryView: "supplements",
     suppPantryOpen: true,
     showSuppForm: true,
     setSuppForm(update) {

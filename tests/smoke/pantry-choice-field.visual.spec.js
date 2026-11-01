@@ -34,12 +34,23 @@ test.describe('authenticated Pantry ChoiceField visual contract', () => {
     await expect(page.locator('[data-screen="despensa"]')).toBeVisible();
   }
 
-  async function openFoodRegistration(page, label = /Novo alimento|New food|Nuevo alimento/i) {
-    await page.getByRole('button', { name: label }).click();
+  async function selectPantryView(page, name) {
+    const tab = page.locator('[data-screen="despensa"]').getByRole('tab', { name });
+    await expect(tab).toBeVisible();
+    await tab.click();
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
+  }
+
+  async function openFoodRegistration(page) {
+    await selectPantryView(page, /^(Alimentos|Foods)$/i);
+    await page.locator('[data-screen="despensa"]')
+      .getByRole('button', { name: /^\+\s*(Novo|New|Nuevo)$/i })
+      .click();
     await expect(page.locator('#pantry-food-unit-trigger')).toBeVisible();
   }
 
   async function openSupplementRegistration(page, title = /Adicionar suplemento|Add supplement|A.adir suplemento/i) {
+    await selectPantryView(page, /^(Suplementos|Supps|Supl\.)$/i);
     await page.locator('[data-tutorial="pantry-supplements"]')
       .getByTitle(title)
       .click();
@@ -97,7 +108,9 @@ test.describe('authenticated Pantry ChoiceField visual contract', () => {
       await expect(inlineOptions).toHaveCount(0);
       await expect(foodTrigger).toContainText('ml');
 
-      await page.getByRole('button', { name: /Fechar cadastro|Close form|Cerrar registro/i }).click();
+      await page.locator('[data-screen="despensa"]')
+        .getByRole('button', { name: /^(Fechar|Close|Cerrar)$/i })
+        .click();
       await openSupplementRegistration(page);
       const supplementField = page.locator('[data-choice-field][data-choice-field-mode="sheet"]').filter({
         has: page.locator('#pantry-supplement-unit-trigger'),
@@ -158,7 +171,9 @@ test.describe('authenticated Pantry ChoiceField visual contract', () => {
       await expect(page.getByRole('option', { name: language.single, exact: true })).toBeVisible();
       await page.getByRole('option', { name: language.single, exact: true }).click();
       await expect(foodTrigger).toContainText(language.single);
-      await page.getByRole('button', { name: /Fechar cadastro|Close form|Cerrar registro/i }).click();
+      await page.locator('[data-screen="despensa"]')
+        .getByRole('button', { name: /^(Fechar|Close|Cerrar)$/i })
+        .click();
 
       await openSupplementRegistration(page);
       await page.locator('#pantry-supplement-unit-trigger').click();
