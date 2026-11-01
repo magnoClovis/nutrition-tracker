@@ -18,8 +18,12 @@ genérica. A reprodução sintética confirmou esse mecanismo com 13 itens váli
 não há causalidade exclusiva comprovada nem se registra a entrada real.
 Severidade: MÉDIO — impede uma estimativa recuperável, sem escrita de diário ou
 perda de dados observada.
-Correção candidata: limite independente de 24 itens para prato, prompt para
-consolidar duplicatas e regressão de 13 itens; pendentes gates completos e revisão.
+Resolução: PR #345 mesclado em `f025e47` em 01/11/2026. Prato agora usa limite
+independente de 24 itens, foto preserva 12, o prompt pede consolidação de
+duplicatas e há regressão de 13 itens. Preflight local sem avisos, 1.567/1.567
+unitários, Worker 48 + 9 runtime, smokes e cutover 60/60 passaram; CI final do
+PR e CI da main passaram. Não há causalidade exclusiva atribuída à resposta real
+do provedor nem dado sensível registrado.
 
 ESCOPO E MÉTODO
 ================
