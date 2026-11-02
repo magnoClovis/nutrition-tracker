@@ -1,85 +1,175 @@
-# Trofia
+# Documento 4 — O que mudou no Trofia desde 1º de setembro de 2026
 
-## Documento 4 Mudanças desde 1º de setembro de 2026 para leitores não técnicos
+**Comparação para leitores sem conhecimento técnico**
 
-**Data da comparação:** 01/11/2026
-**Base anterior:** snapshot imutável de 01/09/2026
-**Referência atual comprovável:** `origin/main` no commit `4e727679d8b556e89a590b2861acc1b7b53b8b72`
-**Status do produto:** `0.11.0-beta`; sem evidência de lançamento público.
+**Base anterior:** snapshot imutável de 01/09/2026.
+**Retrato atual:** código da `main` no commit `4e727679d8b556e89a590b2861acc1b7b53b8b72`, integrado em 01/11/2026.
+**Versão nomeada:** 0.11.0-beta.
+**Limite principal:** este documento compara experiências e garantias; não afirma lançamento público.
 
-## 1. Conclusão principal
+## 1. Como ler “antes” e “agora”
 
-Entre os dois retratos, o Trofia ficou mais fácil de iniciar, registrar refeições, corrigir lançamentos e usar a câmera. Também recebeu reforços de segurança, testes e preparação de um ambiente separado. A mudança não transforma o aplicativo em produto aberto ao público: a distribuição Android comprovada continua interna, o staging está incompleto e etapas de segurança, lembretes, cobrança, documentação final e liberação pública continuam pendentes.
+“Antes” significa o que o snapshot de setembro conseguia comprovar. “Agora” significa o que já está no código da linha principal em 1º de novembro. Entre esses pontos houve testes automáticos, builds instalados pela faixa interna da Google Play e provas controladas de serviços reais. Esses estados são diferentes de disponibilidade para qualquer pessoa: o Trofia continua beta, o iPhone não foi entregue e não há evidência de lançamento público.
 
-## 2. Primeiro acesso
+## 2. Entrada, conta e sessão
 
 ### Antes
 
-A pessoa entrava ou criava a conta por formulários tradicionais e completava o perfil obrigatório.
+A abertura e os formulários já permitiam entrar, confirmar e-mail e completar o perfil, mas cadastro e perfil concentravam muitas decisões. A política de permanência da sessão não era apresentada como uma escolha clara para quem usa a web. Senhas novas ainda seguiam o mínimo histórico menor, e incidentes de perfil incompleto/reload estavam sendo diagnosticados.
 
 ### Agora
 
-- a abertura mostra a marca Trofia e uma espera mínima deliberada, com alternativa para movimento reduzido;
-- o cadastro apresenta credenciais e sete decisões em etapas, com revisão antes de criar a conta;
-- novas senhas exigem pelo menos 12 caracteres;
-- na web, “Manter logado” decide se a sessão persiste; no Android, a sessão continua entre aberturas;
-- perfis incompletos usam um fluxo progressivo de recuperação.
+A abertura mostra a marca Trofia e mantém a tela de espera por pelo menos 900 milissegundos, com alternativa estática para quem reduz animações. Se a preparação falhar, aparece erro; a tela não finge que terminou. O cadastro divide credenciais e sete decisões — nome, nascimento, opção usada no cálculo, medidas, atividade, objetivo e revisão. A conta só é criada depois da revisão final. Se uma conta autenticada ficou com perfil incompleto, o fluxo consegue retomar a etapa necessária.
 
-**Limite:** incidentes de reload e perfil ainda aparecem em investigação ou monitoramento; não há base para afirmar que toda causa intermitente foi eliminada.
+Na web, “Manter logado” decide se a sessão continua depois de fechar o navegador; sem a marcação, a sessão é limitada. No Android, a sessão continua entre aberturas. Novas senhas exigem ao menos 12 caracteres. Contas antigas continuam compatíveis, portanto a mudança não significa que todas as senhas anteriores tenham sido alteradas.
+
+### Por que melhora e o que limita
+
+A pessoa vê menos decisões simultâneas, entende quando a conta será criada e controla a permanência da sessão. Ainda assim, há incidentes históricos de reload, sessão e perfil em investigação ou monitoramento. Testes verdes mostram que os fluxos aprovados passaram; não provam que toda causa intermitente futura foi eliminada.
 
 ## 3. Tema e aparência
 
 ### Antes
 
-O aplicativo oferecia claro e escuro, mas a política histórica favorecia escuro em instalações antigas.
+Claro e escuro existiam, mas instalações antigas podiam herdar uma preferência escura histórica e o comportamento não distinguia com suficiente clareza o padrão do aplicativo da escolha posterior da pessoa.
 
 ### Agora
 
-Claro é o ponto de partida. Uma instalação antiga migra uma única vez e, depois disso, respeita a escolha Claro, Escuro ou Sistema. A preferência é local ao aparelho ou navegador; não viaja automaticamente com a conta.
+Claro é o ponto de partida. Uma instalação antiga migra uma única vez para claro. Depois disso, a pessoa pode escolher Claro, Escuro ou Sistema; “Sistema” acompanha a preferência do aparelho. A decisão fica no navegador ou instalação, não na conta, e é aplicada antes da primeira pintura para evitar um clarão do tema errado.
 
-## 4. Diário
+### Por que melhora e o que limita
+
+O primeiro contato fica previsível e a escolha posterior não é sobrescrita. Como a preferência é local, trocar de aparelho ou navegador não transporta automaticamente o tema. A publicação de um AAB interno com essa mudança prova teste distribuído, não lançamento público.
+
+## 4. Diário: consultar, corrigir e mover registros
 
 ### Antes
 
-O Diário mostrava refeições e permitia as ações básicas de registro.
+O Diário mostrava refeições e permitia ações básicas, mas consultar detalhes, corrigir uma quantidade ou mover um item para outra refeição ainda não formavam um fluxo completo e uniforme.
 
 ### Agora
 
-- cada item pode abrir detalhes somente para leitura;
-- quantidade e tipo de refeição podem ser editados sem criar uma identidade nova;
-- um item pode ser movido para outra refeição, inclusive em data histórica;
-- uma avaliação antiga é invalidada quando a composição muda;
-- em telas largas há quatro cartões de resumo e uma área lateral para informações complementares.
+Cada item pode abrir detalhes somente para leitura. Quantidade e tipo de refeição podem ser alterados preservando a identidade do registro. Um item pode ser movido para outra refeição e até para uma data histórica. Foto e descrição usam o mesmo cálculo proporcional: se a quantidade muda, calorias e nutrientes mudam na mesma proporção, sem pedir que a inteligência artificial invente uma nova refeição.
 
-## 5. Adicionar refeições
+Quando uma refeição já avaliada muda de composição, a avaliação antiga é invalidada. Isso evita mostrar a nota de uma composição anterior como se ainda descrevesse a refeição atual. Em telas largas, o Diário ganhou quatro cartões de resumo e um trilho lateral; no celular, conserva a organização compacta.
+
+### Por que melhora e o que limita
+
+Erros cotidianos podem ser corrigidos sem apagar e cadastrar tudo de novo. O redesign completo de timeline, calendário, água e detalhes expansíveis I6 ainda não foi implementado; a experiência atual é uma evolução do Diário existente, não a conclusão desse redesign futuro.
+
+## 5. Adicionar uma refeição
 
 ### Antes
 
-As quatro formas de registro existiam, mas o acesso e a sequência eram mais fragmentados.
+Foto, descrição, montagem manual e refeição salva já existiam, mas apareciam em pontos mais fragmentados e o destino/horário não eram coordenados por uma folha comum.
 
 ### Agora
 
-O botão Adicionar explica os quatro caminhos: foto, descrição, montagem manual e refeição salva. A folha seguinte reúne refeição de destino e horário. Uma refeição recente pode ser repetida e desfeita; desfazer remove somente a cópia. Código de barras não foi incluído nesse menu.
+O botão central Adicionar primeiro apresenta quatro caminhos com nomes claros: tirar foto, descrever, montar manualmente ou usar refeição salva. No celular ele abre uma folha inferior; em tela larga, um painel próximo ao botão. X, fundo, Escape e botão Voltar fecham e devolvem o foco à origem.
+
+Depois da escolha, a folha Adicionar reúne o tipo de refeição e o horário. Uma refeição recente pode ser repetida em um toque. O Desfazer remove apenas a cópia, mantendo a fonte. O teste final provou que a origem e o destino são registros separados. Código de barras continua em seu fluxo próprio e não foi colocado nesse menu.
+
+### Por que melhora e o que limita
+
+A pessoa entende a escolha antes de entrar em um formulário e consegue corrigir imediatamente uma repetição. A pesquisa cumulativa com bandeja I4-C ainda não foi implementada; não deve ser confundida com a folha já entregue.
 
 ## 6. Câmera e revisão do resultado
 
 ### Antes
 
-O app já reconhecia uma refeição por fotografia e permitia revisar a estimativa.
+O Trofia já reconhecia refeições por fotografia, mas preview, fotografia, análise e resultado tinham apresentações separadas. Erros diferentes podiam parecer iguais, e tentar novamente podia exigir nova captura.
 
 ### Agora
 
-- a câmera ocupa um palco centralizado;
-- o flash controla a iluminação real quando o aparelho oferece o recurso;
-- a fotografia congelada permanece visível durante a análise;
-- timeout, sessão expirada, indisponibilidade, resposta inválida e cota recebem mensagens diferentes;
-- uma tentativa recuperável pode reutilizar a mesma fotografia;
-- a revisão abre em uma folha expansível e recalcula nutrientes proporcionalmente;
-- a busca manual usa a mesma apresentação do resultado.
+A câmera ocupa um palco centralizado. Quando o aparelho oferece flash, o controle muda a iluminação real e volta a desligado ao sair. Após o disparo, a fotografia aparece antes da câmera ser encerrada e permanece visível durante a análise. A imagem bruta serve à primeira pintura enquanto a versão reduzida para análise é preparada em paralelo.
 
-**Limite:** a fotografia continua temporária; a análise depende de rede e não é uma avaliação clínica.
+Timeout, sessão expirada, indisponibilidade, resposta inválida, transporte e quota recebem mensagens distintas. Em falha recuperável, a mesma fotografia pode ser usada novamente; respostas tardias da tentativa anterior são descartadas. O resultado abre em uma folha expansível compartilhada com a busca manual. Porção, peso e nutrientes podem ser revisados e recalculados proporcionalmente.
 
-## 7. Alimentos e Despensa
+As provas físicas internas cobriram claro/escuro, flash, cancelamento, retorno do background e várias capturas. Uma medição conservadora registrou feedback visual ainda presente em 1,256 segundo e a análise já com a fotografia em 2,099 segundos; esses números delimitam a transição, não prometem tempo fixo em todo aparelho.
+
+### Por que melhora e o que limita
+
+A pessoa não perde a foto entre etapas e entende se vale a pena tentar novamente. A imagem permanece temporária e não entra no Diário. Reconhecimento continua sendo estimativa editável e dependente de rede. A validação conjunta CAM-RED-10 pela Play ainda não foi iniciada, apesar das provas de cada fatia.
+
+## 7. Avaliação da refeição e inteligência do aplicativo
+
+### Antes
+
+A avaliação 0–5 e explicações assistidas já existiam, mas o fechamento de agosto ainda estava sendo consolidado e os critérios das sete superfícies de inteligência não estavam reunidos em uma política única executável.
+
+### Agora
+
+A nota é calculada localmente por regras versionadas; a inteligência artificial pode explicar, mas não recalcular. Dados desconhecidos permanecem desconhecidos em vez de virar zero. O app informa cobertura e confiança e guarda, quando a pessoa aceita, o snapshot exato mostrado. Alterar a refeição invalida esse snapshot; duplicar uma refeição não copia silenciosamente a avaliação.
+
+Preenchimento por nome, descrição e foto usam contratos estruturados. Feedback e padrões recebem apenas o contexto necessário. Sugestões da Despensa só podem devolver identificadores de alimentos realmente enviados; o cliente recalcula totais. Chamadas exigem sessão e prova de origem do aplicativo antes de transmitir conteúdo ao serviço intermediário.
+
+### Por que melhora e o que limita
+
+Números determinísticos deixam de depender de texto variável, e ausência de dados é visível. Isso não torna a nota diagnóstico clínico nem garante disponibilidade offline das explicações. O modelo generativo pode ficar indisponível sem impedir registro manual ou score local.
+
+## 8. Backup, restauração e histórico
+
+### Antes
+
+Backup e restauração já tinham corrigido a sobrescrita por autosave, mas novas falhas mostraram que leitura incompleta ou preview repetitivo ainda poderiam produzir uma impressão enganosa de sucesso.
+
+### Agora
+
+Leituras e exportações falham de modo explícito quando a completude não pode ser comprovada. A prévia de importação coalesce leituras por data, reduzindo a medição documentada de 1.793 para 623 solicitações naquele cenário. Chaves históricas de refeições em português, inglês e espanhol são normalizadas apenas durante a análise, sem regravar silenciosamente os dados persistidos.
+
+Online, exportação espera escritas pendentes. Offline, o arquivo reflete o snapshot local e informa que existem operações enfileiradas. Restauração suspende autosaves e reidrata com segurança. Exclusão de conta coordena o encerramento do cache e do SDK.
+
+### Por que melhora e o que limita
+
+O app prefere mostrar falha a produzir um arquivo parcial apresentado como completo. A redução de solicitações é uma medição de um cenário, não garantia universal de latência. Serviços remotos e exclusão administrativa continuam dependentes de rede.
+
+## 9. Dados locais, funcionamento offline e troca de conta
+
+### Antes
+
+O snapshot de setembro já documentava a arquitetura offline-first recém-entregue, mas as consequências práticas ainda eram pouco visíveis para um leitor leigo.
+
+### Agora
+
+Depois de carregados, dados podem abrir a partir da cópia local. Registros feitos durante interrupção ficam pendentes e sincronizam quando a rede retorna. O aplicativo distingue pendente, sincronizado e falha. Cada item diário tem identidade estável, reduzindo duplicação em repetição de envio.
+
+Ao trocar de conta, todas as abas bloqueiam novas escritas, encerram conexões, apagam a base local e somente então atribuem o cache à próxima conta. Se a limpeza falhar, o bloqueio permanece. Essa escolha pode exigir nova tentativa, mas evita expor dados da conta anterior.
+
+### Por que melhora e o que limita
+
+Conexão instável deixa de significar perda imediata. “Offline-first” não quer dizer “tudo funciona sem internet”: foto, descrição assistida, busca externa e exclusão administrativa exigem serviços remotos.
+
+## 10. Segurança percebida pela pessoa
+
+### Antes
+
+O app já tinha autenticação, rules, Worker e exclusão administrativa. A revisão C14 ainda precisava provar atestação, proteger o Android, explicitar sessão, limitar telemetria e revisar permissões.
+
+### Agora
+
+Chamadas de inteligência exigem login e App Check; sem a atestação, o Worker retorna rejeição. O Android não permite backup automático dos dados do app, bloqueia tráfego sem criptografia e compartilha arquivos somente pelo cache privado. O navegador aplica uma política que restringe os destinos de rede. Métricas do Worker usam identificador pseudônimo, não guardam prompts/respostas e têm retenção documentada de até 30 dias. Tiers comerciais são apenas observados; não existe cobrança ativa.
+
+As Functions de exclusão passaram a identidades dedicadas para build, runtime e agendamento. Retries e chamadas legítimas foram provados com contas descartáveis. Uma permissão histórica `roles/editor` permanece registrada como decisão separada; ela não foi removida por suposição.
+
+### Por que melhora e o que limita
+
+Há barreiras independentes no cliente, transporte, Worker e armazenamento. Mesmo assim, C14 não está integralmente concluída porque staging e a matriz final continuam abertos. Auditoria interna e testes não equivalem a certificação externa de ausência de vulnerabilidades.
+
+## 11. Android e distribuição
+
+### Antes
+
+Havia AABs internos e provas físicas, mas a cadeia de release ainda permitia lacunas de verificação e a identidade instalada não estava alinhada ao novo carregamento.
+
+### Agora
+
+O build release verifica configuração Firebase, manifesto, assinatura, versão e hash de forma fail-closed. Auto Backup, transferência de dados e cleartext foram desativados. A marca “T + folha” ganhou variantes web, legada, redonda, adaptativa e monocromática, geradas de fonte versionada. Builds internos 28 e 29 comprovaram tema e câmera em aparelhos reais.
+
+### Por que melhora e o que limita
+
+O artefato interno é mais verificável e coerente. O `versionCode` efetivamente distribuído em toda a história não pode ser reconstruído apenas pelo Gradle atual. Não há iOS entregue nem prova de faixa pública.
+
+## 12. Alimentos e Despensa
 
 ### Antes
 
@@ -87,43 +177,32 @@ Alimentos, refeições salvas e suplementos apareciam em blocos expansíveis.
 
 ### Agora
 
-A PR #340, mesclada em 01/11, introduziu contagens, busca permanente, segmentos Alimentos/Refeições/Suplementos/Categorias e categorias calculadas a partir dos dados reais. Itens sem categoria continuam visíveis.
+O código da PR #340 introduz cabeçalho com contagens reais, busca permanente, segmentos para Alimentos, Refeições, Suplementos e Categorias, filtros locais, categorias derivadas e estados vazios. Nenhum schema foi alterado; criação, scanner, edição e persistência existentes foram preservados.
 
-**Lacuna documental:** os arquivos vivos ainda chamam essa fatia de “em andamento”. Portanto, o código está na linha principal, mas o fechamento documental não foi reconciliado no commit de referência.
+### Contradição que permanece
 
-## 8. Backup e histórico
+O código está mesclado no commit-base, mas `RESUMO-STATUS.md` e `I8-ALIMENTOS-DESPENSA.md` ainda chamam I8-A de “em andamento” e o PR de draft. Este snapshot registra as duas evidências sem escolher silenciosamente uma terceira versão: integração no Git está comprovada; encerramento documental não foi reconciliado. I8-B e I8-C — cartões/ações e busca unificada externa — continuam não iniciadas.
 
-Exportação e pré-visualização passaram a recusar estados incoerentes em vez de completar parcialmente. A prévia de importação reduziu leituras repetidas por data em uma medição documentada. Análises históricas reconhecem chaves antigas em português, inglês e espanhol sem reescrever os dados guardados.
+## 13. Staging, produção controlada e lançamento
 
-## 9. Segurança percebida pela pessoa
+| Estado | O que está comprovado | O que não significa |
+|---|---|---|
+| Código na `main` | As mudanças descritas estão no commit-base, com a ressalva documental da I8-A. | Ausência de bugs futuros. |
+| CI verde | Gates de cada fatia passaram nos commits documentados. | Que toda execução histórica ou futura passará. |
+| Produção controlada | Worker, Functions e Pages tiveram rollouts e provas específicas. | Produto aberto ao público. |
+| Android interno | AABs foram instalados pela faixa interna da Play e testados fisicamente. | Publicação em faixa pública. |
+| Staging parcial | Projeto, apps, Auth, App Check web, manifesto e CSP parciais existem. | Worker, Functions, Tasks, Scheduler, IAM, Android e matriz completos. |
+| Lançamento público | Não comprovado. | — |
 
-- chamadas de inteligência artificial exigem tanto sessão válida quanto prova de que vieram do aplicativo reconhecido;
-- o Android não permite backup automático dos dados do app, bloqueia tráfego sem proteção e limita arquivos compartilhados ao cache privado;
-- o navegador aplica uma política mais restrita para destinos de rede;
-- exclusão de conta e dados continuam com fluxo administrativo próprio.
+## 14. O que ainda bloqueia a versão pública
 
-Essas medidas foram implementadas e algumas receberam provas controladas em serviços reais. Elas não garantem ausência absoluta de falhas nem equivalem a auditoria externa concluída.
+- concluir C14-H com recursos remotos, CI, Android staging e matriz cross-account;
+- implementar C26-A e C26-B: toast seguro e lembretes locais consentidos;
+- decidir e implementar C30 se o lançamento for monetizado;
+- fechar documentação operacional C16 e o gate público C25;
+- reconciliar a documentação viva da I8-A;
+- manter incidentes de sessão/reload sob investigação quando reaparecerem.
 
-## 10. Staging, produção e lançamento
+## 15. Resumo final da comparação
 
-| Termo | O que existe em 01/11/2026 |
-|---|---|
-| Código mesclado | Funcionalidades descritas acima estão em `main`, ressalvada a divergência documental da I8-A. |
-| Validação local e CI | Há matrizes unitárias, navegador legado/Vite, Worker, Functions e cutover; os gates citados nos históricos ficaram verdes em entregas específicas. |
-| Produção controlada | Worker, Functions e Pages têm rollouts e provas controladas documentadas. |
-| Staging | Projeto e identidades parciais existem, mas recursos, Android, CI e matriz completa não. |
-| Android | Há builds de teste interno e provas em aparelho; não há prova de lançamento público. |
-| Público geral | Não lançado conforme a evidência disponível. |
-
-## 11. O que continua pendente
-
-- concluir staging e a revisão de segurança C14;
-- implementar toast seguro e lembretes locais;
-- implementar planos, cobrança e direitos de acesso;
-- concluir documentação operacional e o gate público;
-- terminar frentes visuais de Diário, Semana, Métricas e Despensa;
-- manter sob investigação incidentes de sessão/reload quando reaparecerem.
-
-## 12. Resumo em linguagem direta
-
-O Trofia de novembro é uma beta mais completa, coerente e protegida do que a de setembro. A experiência de cadastro, tema, Diário, Adicionar, câmera e Despensa mudou de forma visível. O projeto também separou melhor testes, segurança e staging. Ainda assim, beta, teste interno, staging parcial e produção controlada são estados diferentes de lançamento público; nenhum deles deve ser apresentado como disponibilidade geral.
+Desde setembro, o Trofia ficou mais claro para entrar, mais seguro para manter sessão e dados locais, mais direto para adicionar/corrigir refeições e muito mais contínuo ao usar a câmera. Backup e serviços remotos passaram a falhar de maneira mais explícita; a segurança ganhou atestação, limites, telemetria minimizada e identidades mais restritas. Ao mesmo tempo, o projeto ainda distingue honestamente código mesclado, teste automatizado, produção controlada, staging parcial, teste interno e lançamento público. A última condição não está comprovada.

@@ -327,95 +327,439 @@ Pelo mesmo motivo, a auditoria, o documento Word e a planilha executiva produzid
 
 ### 2.12 18–29/08/2026 — C22, C23, C28 e 0.10.0-beta
 
-#### [C22 — roadmap] Exclusão completa e idempotente da conta
+#### [C22-F1] — Infraestrutura administrativa separada para exclusão
 
-**Data de início:** 18/08/2026
-**Data de conclusão:** 21/08/2026
-**Propósito:** garantir exclusão administrativa completa, repetível e verificável.
-**Recursos/arquivos principais envolvidos:** Cloud Functions, Cloud Tasks, App Check, lock, recursive delete e reconciliação.
-**O que foi feito:** #99 criou infraestrutura; #100 engine idempotente; #103 lock/recursive delete; #104 fila/reconciliação; #105 UX; #106 rollout e validação destrutiva. A release 0.9.0-beta ocorreu no #102.
-**Decisões relevantes tomadas:** não excluir Auth antes de confirmar limpeza; retries idempotentes; bloqueio de novas escritas durante saga.
-**PRs/commits relacionados:** PRs #99–#100, #103–#106; merges `0e033ea`, `c3b7f52`, `f233fb4`, `836cead`, `4583eac`, `b15a47d`.
-**Fonte(s):** `2026-08-31-principal-arquitetura-ia-dados.md`; `2026-08-31-claude-coordenacao-roadmap.md`.
+- **Data de início:** 18/08/2026
+- **Data de conclusão:** 18/08/2026
+- **Propósito:** retirar a exclusão integral da conta do cliente e criar uma fronteira administrativa testável
+- **Recursos/arquivos/serviços principais:** `functions/`, Firebase Functions 2nd gen em `europe-southwest1`, Admin SDK, emuladores, `firebase.json`, `.firebaserc` e workflow
+- **O que foi feito:** a base de Functions e os emuladores foram criados com contratos próprios; o cliente continuou sem privilégio administrativo e a exclusão ainda não foi exposta até o motor existir
+- **Decisão ou trade-off:** separar a operação destrutiva do Worker de IA evitou misturar segredos, quotas e responsabilidades; infraestrutura primeiro, efeito destrutivo depois
+- **Validação, estado operacional e limites:** emuladores e testes de infraestrutura passaram; esta fatia não provava exclusão real nem autorizava dados de produção
+- **PRs/commits relacionados:** PR #99; merge `0e033ea`
+- **Fonte(s):** `RESUMO-STATUS.md` [C22-F1], `C22_ROLLOUT.md`, `git log --first-parent`
+#### [C22-F2] — Motor idempotente e retomável
 
-#### [C23 — roadmap] Corte do armazenamento legado
+- **Data de início:** 18/08/2026
+- **Data de conclusão:** 18/08/2026
+- **Propósito:** impedir que repetição, queda intermediária ou entrega duplicada deixassem a conta parcialmente apagada
+- **Recursos/arquivos/serviços principais:** `functions/src/account-deletion-engine.js`, estados/checkpoints, fixtures e testes puros
+- **O que foi feito:** foi criada uma saga que persiste checkpoint por etapa e retorna o estado já existente quando o mesmo pedido é repetido; falhas passam a ser retomáveis em vez de reiniciar a exclusão
+- **Decisão ou trade-off:** idempotência foi tratada como requisito de integridade, não como otimização; nenhuma etapa posterior pode ser presumida só porque a anterior foi solicitada
+- **Validação, estado operacional e limites:** testes puros cobriram repetição e falha; ainda não havia lock Firestore, fila nem prova destrutiva
+- **PRs/commits relacionados:** PR #100; merge `c3b7f52`
+- **Fonte(s):** `RESUMO-STATUS.md` [C22-F2], `C22_ROLLOUT.md`
+#### [C22-F3] — Lock de escrita e remoção recursiva
 
-**Data de início:** 22/08/2026
-**Data de conclusão:** 28/08/2026
-**Propósito:** migrar administrativamente todo documento legado e fechar as rules antigas.
-**Recursos/arquivos principais envolvidos:** inventário paginado, migração, export gerenciado, rules e importação de backups históricos.
-**O que foi feito:** #107 inventariou fail-closed; #108 copiou/mesclou e verificou **54 documentos**; #109 tornou legado read-only; #110 cortou o cliente; #111, após **7 dias** de observação, confirmou export, excluiu transacionalmente os 54 e verificou zero restantes; #112 documentou. Export: `gs://trofia-firestore-exports-128834310181/c23-before-legacy-delete-20260827T163200Z`, bucket Madrid e lifecycle **90 dias**.
-**Decisões relevantes tomadas:** novos backups só exportam `root`/`data`; importação aceita formatos antigos; C22 ainda procura órfãos legados defensivamente.
-**PRs/commits relacionados:** PRs #107–#112; commits/merges `4cd7805`, `36bf24b`, `4338629`, `5c6b337`, `b8935be`, `b7e0785`.
-**Fonte(s):** `ROADMAP.md`; `BUG-INVENTORY.md`; `2026-08-31-principal-arquitetura-ia-dados.md`.
+- **Data de início:** 21/08/2026
+- **Data de conclusão:** 21/08/2026
+- **Propósito:** evitar novas gravações enquanto a árvore canônica e suas subcoleções são removidas
+- **Recursos/arquivos/serviços principais:** `firestore.rules`, `functions/src/firestore-account-deletion.js`, Admin SDK, testes de concorrência e rules
+- **O que foi feito:** um documento de lock passou a negar escrita do cliente; a Function administrativa percorre e remove a árvore `nutrition/{uid}` e resíduos previstos, verificando o estado antes de avançar
+- **Decisão ou trade-off:** o Auth não é apagado primeiro: manter a identidade até provar a limpeza preserva possibilidade de retry e auditoria
+- **Validação, estado operacional e limites:** emuladores comprovaram owner/outro usuário, lock e recursão; a prova em produção ficou reservada às fatias F6/F7
+- **PRs/commits relacionados:** PR #103; merge `f233fb4`
+- **Fonte(s):** `RESUMO-STATUS.md` [C22-F3], `firestore.rules`
+#### [C22-F4] — Cloud Tasks, retries e reconciliador
 
-#### [C28 — roadmap] Arquitetura offline-first
+- **Data de início:** 21/08/2026
+- **Data de conclusão:** 21/08/2026
+- **Propósito:** tornar a exclusão assíncrona durável e recuperável diante de indisponibilidade transitória
+- **Recursos/arquivos/serviços principais:** `account-deletion-jobs.js`, `account-deletion-task.js`, Cloud Tasks em `europe-west1`, Scheduler/reconciliador, TTL e índices
+- **O que foi feito:** o callable cria job e lock em transação; Cloud Tasks processa etapas com backoff; um reconciliador procura trabalhos sem progresso e reencaminha sem duplicar o efeito
+- **Decisão ou trade-off:** aceite do pedido e conclusão foram separados para não manter a interface aberta durante uma operação longa; jobs falhos são retidos para diagnóstico sanitizado
+- **Validação, estado operacional e limites:** testes cobriram entrega duplicada e retries; a configuração real de invocadores e Scheduler seria endurecida posteriormente em C14-F2
+- **PRs/commits relacionados:** PR #104; merge `836cead`
+- **Fonte(s):** `RESUMO-STATUS.md` [C22-F4], `C22_ROLLOUT.md`
+#### [C22-F5] — Cliente protegido, suspensão de autosave e limpeza local
 
-**Data de início:** 28/08/2026
-**Data de conclusão:** 29/08/2026
-**Propósito:** substituir REST/agregados ativos por SDK modular, cache persistente e escrita granular.
-**Recursos/arquivos principais envolvidos:** Firebase Auth/App Check/Firestore modular, persistence, loaders e sync state.
-**O que foi feito:** #113 reduziu leituras/serializou CI; #114 compartilhou Auth/App Check; #115 adapter Firestore; #116 cache persistente; #117 cache-first/subscriptions; #118 mutações idempotentes/conflitos; #119 schema granular; #120 compatibilidade; #121 status/retry; #122 autosaves granulares; #123 backup/lifecycle; #124 rollout. A09 foi resolvido pelas fatias 6A–6E. #125 preparou `0.10.0-beta`; #127 autenticou CI com App Check.
-**Decisões relevantes tomadas:** um batch atômico para operações multi-item; estado pendente/sincronizado/erro; leitura retrocompatível durante migração.
-**PRs/commits relacionados:** PRs #113–#125 e #127; merges `c9c5662` a `dc0852c`, mais `e95686b`.
-**Fonte(s):** `ROADMAP.md`; `BUG-INVENTORY.md`; `2026-08-31-principal-arquitetura-ia-dados.md`.
+- **Data de início:** 21/08/2026
+- **Data de conclusão:** 21/08/2026
+- **Propósito:** iniciar a saga com prova recente de identidade e impedir que o aparelho recriasse dados após o aceite
+- **Recursos/arquivos/serviços principais:** `account-deletion-client.js`, `privacy-panel.js`, `app-check-client.js`, entrypoints web/Android, cache IndexedDB e testes
+- **O que foi feito:** a pessoa confirma senha e texto, o cliente reautentica, aguarda escritas pendentes, envia Auth e App Check, suspende autosaves, sela o lifecycle e limpa cache/sessão após o aceite do job
+- **Decisão ou trade-off:** idioma e tema são preservados por serem preferências locais não pertencentes à conta; dados nutricionais e sessão não são preservados
+- **Validação, estado operacional e limites:** fluxo de interface e contratos passaram; esta fatia não significava que o backend já fora publicado ou que a exclusão real tivesse sido observada
+- **PRs/commits relacionados:** PR #105; merge `4583eac`
+- **Fonte(s):** `RESUMO-STATUS.md` [C22-F5], `C22_ROLLOUT.md`
+#### [C22-F6] — Deploy e teste destrutivo com conta descartável
+
+- **Data de início:** 21/08/2026
+- **Data de conclusão:** 21/08/2026
+- **Propósito:** provar a saga completa em serviços reais sem tocar em conta de usuário
+- **Recursos/arquivos/serviços principais:** Functions, Cloud Tasks, App Check web/Android, scripts de teste, Auth e Firestore de produção controlada
+- **O que foi feito:** Functions e fila foram publicadas; uma conta criada para o ensaio percorreu aceite, lock, remoção de Firestore/Auth, repetição idempotente e limpeza
+- **Decisão ou trade-off:** usar conta descartável delimitou o risco; nenhum dado pessoal foi reutilizado como fixture
+- **Validação, estado operacional e limites:** rollout controlado comprovado em produção; isso não é lançamento público nem prova de todos os estados futuros de carga
+- **PRs/commits relacionados:** PR #105 e rollout associado; merge `4583eac`
+- **Fonte(s):** `RESUMO-STATUS.md` [C22-F6], `C22_ROLLOUT.md`
+#### [C22-F7] — Fechamento operacional, compliance e Play Integrity
+
+- **Data de início:** 21/08/2026
+- **Data de conclusão:** 21/08/2026
+- **Propósito:** encerrar C22 com política, Data Safety, TTL/índices e prova no artefato Android distribuído
+- **Recursos/arquivos/serviços principais:** `C22_ROLLOUT.md`, políticas PT/EN/ES, Data Safety, AAB interno, Play Integrity, índices e TTL
+- **O que foi feito:** a matriz final repetiu a exclusão, confirmou atestação Android e alinhou as declarações públicas ao fluxo administrativo
+- **Decisão ou trade-off:** a entrega foi considerada concluída apenas depois do artefato da faixa interna; build local isolado não era evidência suficiente
+- **Validação, estado operacional e limites:** C22 ficou operacional em produção controlada; não autoriza inferir lançamento geral do Trofia
+- **PRs/commits relacionados:** PR #106; merge `b15a47d`
+- **Fonte(s):** `RESUMO-STATUS.md` [C22-F7], `C22_ROLLOUT.md`
+
+#### Sequência C23 — corte do armazenamento legado
+
+#### [C23-F1] — Inventário paginado e fail-closed
+
+- **Data de início:** 22/08/2026
+- **Data de conclusão:** 22/08/2026
+- **Propósito:** conhecer todos os documentos antigos e conflitos antes de escrever ou excluir
+- **Recursos/arquivos/serviços principais:** `functions/scripts/c23-legacy-dry-run.js`, `legacy-migration-inventory.js`, Admin SDK, `firebase.json` e testes
+- **O que foi feito:** o dry-run classificou origem, destino e conflito de modo paginado e somente leitura; entradas inesperadas interrompem o plano
+- **Decisão ou trade-off:** nenhuma migração seria executada com inventário parcial ou ambíguo
+- **Validação, estado operacional e limites:** ferramenta e testes concluídos; ainda não havia cópia real
+- **PRs/commits relacionados:** PR #107; commit/merge `4cd7805`
+- **Fonte(s):** `RESUMO-STATUS.md` [C23-F1], `ROADMAP.md` seção C23
+#### [C23-F2] — Cópia, merge e verificação de 54 documentos
+
+- **Data de início:** 23/08/2026
+- **Data de conclusão:** 23/08/2026
+- **Propósito:** migrar dados reais sem apagar a fonte e detectar divergência por destino
+- **Recursos/arquivos/serviços principais:** `c23-legacy-copy.js`, `legacy-migration-copy.js`, inventário e testes
+- **O que foi feito:** 54 documentos legados foram copiados ou mesclados; cada destino canônico foi relido e comparado; a origem permaneceu intacta
+- **Decisão ou trade-off:** cópia e exclusão foram deliberadamente separadas para permitir observação e rollback
+- **Validação, estado operacional e limites:** 54 destinos verificados, zero conflito reportado; a leitura legada permaneceu ativa
+- **PRs/commits relacionados:** PR #108; commit/merge `36bf24b`
+- **Fonte(s):** `RESUMO-STATUS.md` [C23-F2], `ROADMAP.md` seção C23
+#### [C23-F3] — Rules transitórias somente leitura
+
+- **Data de início:** 23/08/2026
+- **Data de conclusão:** 23/08/2026
+- **Propósito:** retirar do cliente a capacidade de apagar legados antes do corte de leitura
+- **Recursos/arquivos/serviços principais:** `firestore.rules`, emuladores Auth/Firestore e testes owner/outro usuário/lock
+- **O que foi feito:** delete legado foi negado, leitura temporária preservada e caminhos canônicos mantidos; o Admin SDK continuou responsável pelas operações administrativas
+- **Decisão ou trade-off:** fechar exclusão antes da leitura reduziu o risco de perda enquanto versões antigas ainda consultavam os dados
+- **Validação, estado operacional e limites:** rules publicadas e testadas; não era ainda o fechamento definitivo
+- **PRs/commits relacionados:** PR #109; commit/merge `4338629`
+- **Fonte(s):** `RESUMO-STATUS.md` [C23-F3], `firestore.rules`
+#### [C23-F4] — Cutover do cliente para armazenamento canônico
+
+- **Data de início:** 27/08/2026
+- **Data de conclusão:** 27/08/2026
+- **Propósito:** parar normalização e exclusão automáticas do legado sem quebrar importação de backups antigos
+- **Recursos/arquivos/serviços principais:** `firebase-firestore-internal.js`, `firebase-account-data-internal.js`, módulos de backup/migração e três entrypoints
+- **O que foi feito:** os caminhos runtime legados foram retirados; helpers de leitura/importação retrocompatível foram isolados da persistência ativa
+- **Decisão ou trade-off:** compatibilidade de recuperação foi mantida, mas compatibilidade operacional de leitura/escrita legada foi encerrada
+- **Validação, estado operacional e limites:** testes de entrada e backup passaram; usuários foram observados antes da exclusão física
+- **PRs/commits relacionados:** PR #110; commit/merge `5c6b337`
+- **Fonte(s):** `RESUMO-STATUS.md` [C23-F4], `ROADMAP.md` seção C23
+#### [C23-F5] — Janela observacional de sete dias
+
+- **Data de início:** 27/08/2026
+- **Data de conclusão:** data exata não determinada; a fonte registra sete dias completos
+- **Propósito:** detectar ausência, duplicação ou regressão tardia antes de uma exclusão irreversível
+- **Recursos/arquivos/serviços principais:** AAB intermediário, Play Console, aba Semana, dados canônicos e relatos dos testers
+- **O que foi feito:** o build intermediário foi distribuído e os fluxos de dados foram observados sem nova escrita legada
+- **Decisão ou trade-off:** tempo de observação foi usado como gate explícito, não como espera informal
+- **Validação, estado operacional e limites:** a fonte registra ausência de erro, duplicação ou dado faltante; data final exata não foi preservada
+- **PRs/commits relacionados:** sem PR funcional próprio determinado
+- **Fonte(s):** `RESUMO-STATUS.md` [C23-F5], `ROADMAP.md` seção C23
+#### [C23-F6] — Export, exclusão transacional e fechamento das rules
+
+- **Data de início:** 27/08/2026
+- **Data de conclusão:** 27/08/2026
+- **Propósito:** eliminar apenas origens já verificadas e manter recuperação externa temporária
+- **Recursos/arquivos/serviços principais:** `c23-legacy-delete.js`, `legacy-migration-delete.js`, `firestore.rules`, export gerenciado e bucket Madrid
+- **O que foi feito:** o export `gs://trofia-firestore-exports-128834310181/c23-before-legacy-delete-20260827T163200Z` foi confirmado; os 54 legados foram excluídos e a contagem final ficou em zero; rules negaram leitura e escrita antigas
+- **Decisão ou trade-off:** a exclusão só avançou depois de reconfirmar destinos e export; paths ativos não foram reabertos
+- **Validação, estado operacional e limites:** zero documentos legados após a execução; lifecycle do export foi tratado em F7
+- **PRs/commits relacionados:** PR #111; commit/merge `b8935be`
+- **Fonte(s):** `RESUMO-STATUS.md` [C23-F6], `ROADMAP.md` seção C23
+#### [C23-F7] — Documentação, compatibilidade de importação e retenção
+
+- **Data de início:** 27/08/2026
+- **Data de conclusão:** 28/08/2026
+- **Propósito:** registrar o corte e limitar no tempo a cópia externa
+- **Recursos/arquivos/serviços principais:** `ROADMAP.md`, inventário de bugs, importador de backup e lifecycle do bucket
+- **O que foi feito:** novos backups passaram a exportar apenas `root` e `data`; importações antigas continuam promovendo `legacy`; C22 mantém busca defensiva por órfãos; o export recebeu retenção automática de 90 dias
+- **Decisão ou trade-off:** compatibilidade foi mantida apenas na entrada de backup e na defesa administrativa, sem reabrir runtime legado
+- **Validação, estado operacional e limites:** A01/A02/A03 foram encerrados; o bucket e sua política ficaram documentados
+- **PRs/commits relacionados:** PR #112; merge `b7e0785`
+- **Fonte(s):** `RESUMO-STATUS.md` [C23-F7], `ROADMAP.md` seção C23
+
+#### Sequência C28 — SDK modular, cache e escrita offline
+
+#### [C28-F1] — Coalescência imediata e CI uma vez por SHA
+
+- **Data de início:** 28/08/2026
+- **Data de conclusão:** 28/08/2026
+- **Propósito:** reduzir leituras redundantes e evitar duplicar a suíte autenticada
+- **Recursos/arquivos/serviços principais:** `.github/workflows/ci.yml`, `pages.yml`, `firebase-firestore-internal.js`
+- **O que foi feito:** leituras óbvias foram coalescidas e os workflows passaram a compartilhar o resultado autenticado por SHA
+- **Decisão ou trade-off:** quick wins foram separados do cutover para gerar baseline mensurável
+- **Validação, estado operacional e limites:** gates unitários/emuladores/CI e, no fechamento, medição/validação física; os limites descritos permanecem
+- **PRs/commits relacionados:** PR #113; merge `c9c5662`
+- **Fonte(s):** `RESUMO-STATUS.md` C28, `ROADMAP.md`, Documento 2 deste snapshot
+#### [C28-F2] — Firebase App, Auth modular e ponte App Check
+
+- **Data de início:** 28/08/2026
+- **Data de conclusão:** 28/08/2026
+- **Propósito:** criar instância modular compartilhada antes de trocar persistência
+- **Recursos/arquivos/serviços principais:** `firebase-app-client.js`, `firebase-auth-sdk.js`, `app-check-client.js`, ESM
+- **O que foi feito:** Auth modular, reCAPTCHA web e ponte Play Integrity foram preparados sem ativar ainda todo o cutover
+- **Decisão ou trade-off:** fundação sem mudança prematura do contrato público
+- **Validação, estado operacional e limites:** gates unitários/emuladores/CI e, no fechamento, medição/validação física; os limites descritos permanecem
+- **PRs/commits relacionados:** PR #114; merge `cffec94`
+- **Fonte(s):** `RESUMO-STATUS.md` C28, `ROADMAP.md`, Documento 2 deste snapshot
+#### [C28-F3] — Adaptador Firestore SDK mantendo a fachada
+
+- **Data de início:** 28/08/2026
+- **Data de conclusão:** 28/08/2026
+- **Propósito:** substituir REST pelo SDK oficial sem exigir reescrita simultânea das telas
+- **Recursos/arquivos/serviços principais:** `firebase-firestore-sdk.js`, cópia ESM e testes
+- **O que foi feito:** get/set/delete/list foram implementados sobre o schema C23 atrás da API pública existente
+- **Decisão ou trade-off:** fachada estável reduziu o risco do cutover
+- **Validação, estado operacional e limites:** gates unitários/emuladores/CI e, no fechamento, medição/validação física; os limites descritos permanecem
+- **PRs/commits relacionados:** PR #115; merge `ef19822`
+- **Fonte(s):** `RESUMO-STATUS.md` C28, `ROADMAP.md`, Documento 2 deste snapshot
+#### [C28-F4] — IndexedDB e lifecycle de conta
+
+- **Data de início:** 28/08/2026
+- **Data de conclusão:** 28/08/2026
+- **Propósito:** oferecer cache persistente sem replay entre contas
+- **Recursos/arquivos/serviços principais:** `firebase-firestore-lifecycle.js`, IndexedDB multi-tab, limite 100 MB
+- **O que foi feito:** Android e navegador confiável usam persistência; navegador não confiável usa memória; logout/troca/exclusão bloqueiam escrita, coordenam abas e limpam cache
+- **Decisão ou trade-off:** fail-closed na limpeza foi preferido a expor dados da conta anterior
+- **Validação, estado operacional e limites:** gates unitários/emuladores/CI e, no fechamento, medição/validação física; os limites descritos permanecem
+- **PRs/commits relacionados:** PR #116; merge `04e8137`
+- **Fonte(s):** `RESUMO-STATUS.md` C28, `ROADMAP.md`, Documento 2 deste snapshot
+#### [C28-F5] — Loaders cache-first e subscriptions deduplicadas
+
+- **Data de início:** 29/08/2026
+- **Data de conclusão:** 29/08/2026
+- **Propósito:** não refazer Semana, calendário e recentes já carregados
+- **Recursos/arquivos/serviços principais:** `history-loaders.js`, SDK e controlador
+- **O que foi feito:** promessas por chave, TTL e subscriptions compartilhadas passaram a servir telas sobrepostas
+- **Decisão ou trade-off:** cache é otimização observável; atualização do servidor continua chegando
+- **Validação, estado operacional e limites:** gates unitários/emuladores/CI e, no fechamento, medição/validação física; os limites descritos permanecem
+- **PRs/commits relacionados:** PR #117; merge `c8c2ac6`
+- **Fonte(s):** `RESUMO-STATUS.md` C28, `ROADMAP.md`, Documento 2 deste snapshot
+#### [C28-F6A] — Identidade estável para mutações offline
+
+- **Data de início:** 29/08/2026
+- **Data de conclusão:** 29/08/2026
+- **Propósito:** impedir duplicação ao repetir uma escrita
+- **Recursos/arquivos/serviços principais:** `daily-entry-model.js`, controlador, `src/App.jsx`
+- **O que foi feito:** entradas receberam IDs idempotentes e transformação pura por data/tipo
+- **Decisão ou trade-off:** identidade foi criada antes da granularização
+- **Validação, estado operacional e limites:** gates unitários/emuladores/CI e, no fechamento, medição/validação física; os limites descritos permanecem
+- **PRs/commits relacionados:** PR #118; merge `3677181`
+- **Fonte(s):** `RESUMO-STATUS.md` C28, `ROADMAP.md`, Documento 2 deste snapshot
+#### [C28-F6B] — Documentos granulares e rules
+
+- **Data de início:** 29/08/2026
+- **Data de conclusão:** 29/08/2026
+- **Propósito:** evitar sobrescrita de um dia inteiro por autosaves concorrentes
+- **Recursos/arquivos/serviços principais:** `firebase-firestore-sdk.js`, `firestore.rules`, subcoleções `meals/water/supplements`
+- **O que foi feito:** cada entrada passou a documento com `schemaVersion`, `id`, `date`, `entry`, `updatedAt` e, para refeições, `mealKey`; lote atômico aplica diffs
+- **Decisão ou trade-off:** granularidade aumenta documentos, mas reduz colisão e perda
+- **Validação, estado operacional e limites:** gates unitários/emuladores/CI e, no fechamento, medição/validação física; os limites descritos permanecem
+- **PRs/commits relacionados:** PR #119; merge `3178f3d`
+- **Fonte(s):** `RESUMO-STATUS.md` C28, `ROADMAP.md`, Documento 2 deste snapshot
+#### [C28-F6C] — Leitura híbrida durante migração
+
+- **Data de início:** 29/08/2026
+- **Data de conclusão:** 29/08/2026
+- **Propósito:** manter dados agregados antigos visíveis até a primeira mutação granular
+- **Recursos/arquivos/serviços principais:** SDK, rules e `mergeCompatibleDailyEntries()`
+- **O que foi feito:** leitor combina legado e granular por ID, preferindo o documento granular; marcador de migração impede ressurreição
+- **Decisão ou trade-off:** retrocompatibilidade de leitura foi temporária e determinística
+- **Validação, estado operacional e limites:** gates unitários/emuladores/CI e, no fechamento, medição/validação física; os limites descritos permanecem
+- **PRs/commits relacionados:** PR #120; merge `8983ee4`
+- **Fonte(s):** `RESUMO-STATUS.md` C28, `ROADMAP.md`, Documento 2 deste snapshot
+#### [C28-F6D] — Estados de sincronização e retry
+
+- **Data de início:** 29/08/2026
+- **Data de conclusão:** 29/08/2026
+- **Propósito:** mostrar pendente/sincronizado/erro e permitir recuperação segura
+- **Recursos/arquivos/serviços principais:** `firebase-sync-state.js`, lifecycle, SDK
+- **O que foi feito:** operações são indexadas por `kind:date:entryId`; retries limitados preservam atomicidade e ignoram conclusão antiga quando nova escrita começou
+- **Decisão ou trade-off:** não fingir sucesso durante desconexão
+- **Validação, estado operacional e limites:** gates unitários/emuladores/CI e, no fechamento, medição/validação física; os limites descritos permanecem
+- **PRs/commits relacionados:** PR #121; merge `b472acf`
+- **Fonte(s):** `RESUMO-STATUS.md` C28, `ROADMAP.md`, Documento 2 deste snapshot
+#### [C28-F6E/F7/F8] — Cutover, backup e rollout offline-first
+
+- **Data de início:** 29/08/2026
+- **Data de conclusão:** 29/08/2026
+- **Propósito:** retirar autosave agregado, integrar operações globais e provar o conjunto
+- **Recursos/arquivos/serviços principais:** `daily-entry-persistence.js`, `meal-ga.js`, backup, lifecycle, emuladores e Android
+- **O que foi feito:** consumidores migraram para diffs granulares; export online espera pending writes, offline declara fila; backup/restauração/exclusão coordenam o SDK; matriz cobriu meia-noite, multi-aba, reconexão, troca e aparelho
+- **Decisão ou trade-off:** offline-first não significa que IA, busca externa ou exclusão funcionem sem rede
+- **Validação, estado operacional e limites:** gates unitários/emuladores/CI e, no fechamento, medição/validação física; os limites descritos permanecem
+- **PRs/commits relacionados:** PRs #122–#124; merges `0378cb9`, `52033be`, `9e19575`
+- **Fonte(s):** `RESUMO-STATUS.md` C28, `ROADMAP.md`, Documento 2 deste snapshot
 
 ### 2.13 29–31/08/2026 — Controles S1–S8, C20, C19 e C08
 
-#### [S1–S8] Componentes próprios de formulário
+#### [S1–S8] — Controles próprios de formulário
 
-**Data de início:** auditoria em 29/08/2026
-**Data de conclusão:** S8 em 31/08/2026; S9 permanece futura
-**Propósito:** retirar aparência/idioma impostos pelo navegador/Android e padronizar acessibilidade.
-**Recursos/arquivos principais envolvidos:** `ChoiceField`, `SearchableChoiceField`, `TemporalField`, `NumericField`, checkbox/range, Playwright e App Check.
-**O que foi feito:** #126 criou `ChoiceField`; #130 ampliou refeições; #133 perfil; #136 Métricas; #138 Despensa; #141 listas dinâmicas; #144 horário; #146 nascimento; #148 quantidade; #150/commits associados trabalharam Métricas; #164? não, PRs de documentação não são código; S8 foi implementada por `9a7194b` e corrigida por `597457b`, preservando o alvo nativo interativo. A matriz verificou desktop/mobile, claro/escuro, legado/Vite, PT/EN/ES, roles, foco, Escape, live regions e pointer events.
-**Decisões relevantes tomadas:** não substituir o IME Android global; keypad apenas dentro de campos específicos; protótipo antes de cada família.
-**PRs/commits relacionados:** PRs #126, #130, #133, #136, #138, #141, #144, #146, #148 e draft #150; commits `9a7194b`, `597457b`, `0c9ee63`, `3602275`, `b5c6237`, `4ea5a18`, `73f24c7`.
-**Fonte(s):** `2026-08-31-ui-campos-customizados.md`; `2026-08-31-claude-coordenacao-roadmap.md`; `git log --all`.
+- **Data de início:** 29/08/2026
+- **Data de conclusão:** 31/08/2026 para S8; S9 ainda não fazia parte
+- **Propósito:** retirar aparência e idioma impostos por navegador/Android sem substituir o IME global
+- **Recursos/arquivos/serviços principais:** `ChoiceField`, `SearchableChoiceField`, `TemporalField`, `DateField`, `NumericField`, `CheckboxField`, `SliderField`, testes Playwright
+- **O que foi feito:** a sequência criou famílias reutilizáveis para seleção, busca, data, hora, quantidade, checkbox e range; cada migração preservou semântica HTML, foco, teclado, Escape, live regions e PT/EN/ES
+- **Decisão ou trade-off:** keypad controlado ficou restrito aos campos específicos; o sistema não tentou trocar o teclado Android do aparelho
+- **Validação, estado operacional e limites:** matriz desktop/mobile, claro/escuro e legado/Vite passou; commits `9a7194b`, `597457b` e PRs #126/#130/#133/#136/#138/#141/#144/#146/#148
+- **PRs/commits relacionados:** PRs e commits citados; data/merge individual conforme `git log`
+- **Fonte(s):** `2026-08-31-ui-campos-customizados.md`, `RESUMO-STATUS.md`
+#### [C20-A–E] — Motor determinístico `meal-score-v2`
 
-#### [C20 — roadmap] `meal-score-v2`
+- **Data de início:** 30/08/2026
+- **Data de conclusão:** 30/08/2026
+- **Propósito:** calibrar uma nota 0–5 reproduzível, versionada e separada de texto generativo
+- **Recursos/arquivos/serviços principais:** `meal-score.js`, `NUTRITION_SCORE.md`, snapshots, UI trilíngue e smoke autenticado
+- **O que foi feito:** PR #129 definiu contrato e pesos; #131 calibrou curvas e parcela temporal; #132 integrou ao fluxo; #134 explicou cobertura/provisoriedade; #135 executou a matriz final. kcal e proteína pesam 25% cada, fibra 16%, sal 12%, carboidrato 12% e gordura 10%, com renormalização apenas entre componentes disponíveis
+- **Decisão ou trade-off:** a IA pode explicar um snapshot, mas não recalcular a nota; uma revisão nutricional futura exige nova versão incompatível em vez de reinterpretar histórico
+- **Validação, estado operacional e limites:** matriz PT/EN/ES, desktop/mobile e runtime duplo verde; merges `68d5e62`, `2af6cb4`, `e34a6f6`, `aaf4b16`, `24432cf`
+- **PRs/commits relacionados:** PRs #129, #131, #132, #134 e #135
+- **Fonte(s):** `NUTRITION_SCORE.md`, `RESUMO-STATUS.md` C20, histórico Principal
 
-**Data de início:** 30/08/2026
-**Data de conclusão:** 30/08/2026
-**Propósito:** calibrar, versionar e integrar a nota 0–5.
-**Recursos/arquivos principais envolvidos:** contrato nutricional, score v2, snapshots e UI trilíngue.
-**O que foi feito:** #129 definiu contrato; #131 calibrou v2; #132 integrou; #134 esclareceu apresentação/ajuda; #135 validou. O score explicita cobertura e provisoriedade, evitando reinterpretar silenciosamente snapshots.
-**Decisões relevantes tomadas:** contrato versionado `meal-score-v2`; revisão nutricional externa posterior exige nova versão incompatível.
-**PRs/commits relacionados:** PRs #129, #131, #132, #134, #135; merges `68d5e62`, `2af6cb4`, `e34a6f6`, `aaf4b16`, `24432cf`.
-**Fonte(s):** `ROADMAP.md`; `2026-08-31-principal-arquitetura-ia-dados.md`; `NUTRITION_SCORE.md`.
+#### Sequência C19 — avaliação opcional e snapshot aceito
 
-#### [C19 — roadmap] Avaliação opcional e aceite UX
+#### [C19-A] — Integridade e invalidação conservadora
 
-**Data de início:** 30/08/2026
-**Data de conclusão:** 30/08/2026
-**Propósito:** permitir explicação opcional sem comprometer integridade do score aceito.
-**Recursos/arquivos principais envolvidos:** snapshots, retry, foto/manual, Diário e matriz PT/EN/ES.
-**O que foi feito:** #137 protegeu snapshots; #139 estabilizou retry opcional; #140 integrou fotos; #142 exibiu badge/agrupamento; #145 validou desktop/mobile e legado/Vite.
-**Decisões relevantes tomadas:** falha da IA não impede score/registro local; snapshot aceito é conservador e versionado.
-**PRs/commits relacionados:** PRs #137, #139, #140, #142, #145; merges `16233c8`, `34d3a1f`, `7d15f1d`, `2d6be5b`, `623f63f`.
-**Fonte(s):** `ROADMAP.md`; `2026-08-31-claude-coordenacao-roadmap.md`.
+- **Data de início:** 30/08/2026
+- **Data de conclusão:** 30/08/2026
+- **Propósito:** tornar a avaliação consultável sem comprometer a integridade do registro ou obrigar o uso de IA
+- **Recursos/arquivos/serviços principais:** `meal-score.js`, `meal-review-ai.js`, modal, controlador, foto, Diário e testes
+- **O que foi feito:** contrato agrupou itens por `mealEvaluationId`, exige snapshot comparável, esconde malformado, invalida o grupo ao editar/remover e duplica sem metadados de avaliação
+- **Decisão ou trade-off:** preservar uma nota antiga para composição nova seria enganoso; a ausência do snapshot válido fecha a exibição
+- **Validação, estado operacional e limites:** gates descritos na fatia passaram; o resultado permanece orientação contextual, não diagnóstico
+- **PRs/commits relacionados:** PR #137; merge `16233c8`
+- **Fonte(s):** `RESUMO-STATUS.md` C19, `NUTRITION_SCORE.md`, histórico Principal
+#### [C19-B] — Avaliação opcional e retry contextual
 
-#### [C08 — roadmap] Critérios nutricionais e contratos de IA
+- **Data de início:** 30/08/2026
+- **Data de conclusão:** 30/08/2026
+- **Propósito:** tornar a avaliação consultável sem comprometer a integridade do registro ou obrigar o uso de IA
+- **Recursos/arquivos/serviços principais:** `meal-score.js`, `meal-review-ai.js`, modal, controlador, foto, Diário e testes
+- **O que foi feito:** Registrar refeição continuou disponível; retry aparece apenas se a explicação da IA falhar, sem transformar a avaliação em gate
+- **Decisão ou trade-off:** falha narrativa não invalida score local nem impede o registro
+- **Validação, estado operacional e limites:** gates descritos na fatia passaram; o resultado permanece orientação contextual, não diagnóstico
+- **PRs/commits relacionados:** PR #139; merge `34d3a1f`
+- **Fonte(s):** `RESUMO-STATUS.md` C19, `NUTRITION_SCORE.md`, histórico Principal
+#### [C19-C] — Integração no fluxo de fotografia
 
-**Data de início:** 30/08/2026
-**Data de conclusão:** não determinada; validação final estava fora de `origin/main` na captura
-**Propósito:** alinhar prompts a C19/C20 e impedir inferências falsas a partir de dados ausentes.
-**Recursos/arquivos principais envolvidos:** `AI_NUTRITION_POLICY.md`, context builders, estimativas estruturadas, feedback/padrões, despensa e verificação de produção.
-**O que foi feito:** #147 versionou política; #149 preservou ausente em vez de zero; #151 estruturou estimativas; #152 alinhou feedback/padrões; #165 endureceu sugestões da despensa e explicações. `2e99ee3` verificou endpoint implantado; `92b48cf` registrou validação. A branch `codex/c08-final-validation` continha `2490f91`, mas não estava mesclada em `origin/main`; portanto, fechamento final não é afirmado.
-**Decisões relevantes tomadas:** P07 adiou troca/comparação de modelo; P08 exige revisão externa posterior sem reinterpretar `meal-score-v2`.
-**PRs/commits relacionados:** PRs #147, #149, #151, #152, #165; merges `67514dd`, `dd27571`, `d0914b1`, `5c51fa5`, `e12b464`; commits `2e99ee3`, `92b48cf`, `2490f91` não mesclado.
-**Fonte(s):** `2026-08-31-principal-arquitetura-ia-dados.md`; `2026-08-31-claude-coordenacao-roadmap.md`; `git log --all`.
+- **Data de início:** 30/08/2026
+- **Data de conclusão:** 30/08/2026
+- **Propósito:** tornar a avaliação consultável sem comprometer a integridade do registro ou obrigar o uso de IA
+- **Recursos/arquivos/serviços principais:** `meal-score.js`, `meal-review-ai.js`, modal, controlador, foto, Diário e testes
+- **O que foi feito:** a ação opcional foi adicionada à revisão C24, preservando Confirmar refeição como caminho direto
+- **Decisão ou trade-off:** foto reconhecida e montagem manual compartilham score, mas a origem e o editor permanecem explícitos
+- **Validação, estado operacional e limites:** gates descritos na fatia passaram; o resultado permanece orientação contextual, não diagnóstico
+- **PRs/commits relacionados:** PR #140; merge `7d15f1d`
+- **Fonte(s):** `RESUMO-STATUS.md` C19, `NUTRITION_SCORE.md`, histórico Principal
+#### [C19-D] — Badge e detalhe somente leitura no Diário
 
-#### [F06] Bloqueio de conectividade em `workers.dev`
+- **Data de início:** 30/08/2026
+- **Data de conclusão:** 30/08/2026
+- **Propósito:** tornar a avaliação consultável sem comprometer a integridade do registro ou obrigar o uso de IA
+- **Recursos/arquivos/serviços principais:** `meal-score.js`, `meal-review-ai.js`, modal, controlador, foto, Diário e testes
+- **O que foi feito:** itens com o mesmo identificador são agrupados, recebem badge e abrem o snapshot aceito sem edição acidental
+- **Decisão ou trade-off:** persistência serve como registro do que foi mostrado no aceite; não há recálculo silencioso posterior
+- **Validação, estado operacional e limites:** gates descritos na fatia passaram; o resultado permanece orientação contextual, não diagnóstico
+- **PRs/commits relacionados:** PR #142; merge `2d6be5b`
+- **Fonte(s):** `RESUMO-STATUS.md` C19, `NUTRITION_SCORE.md`, histórico Principal
+#### [C19-E] — Matriz final
 
-**Data de início:** não determinado, durante C19-D
-**Data de conclusão:** não resolvido na captura
-**Propósito:** separar falha de rede/ISP de regressão do C19/C08.
-**Recursos/arquivos principais envolvidos:** domínio compartilhado `workers.dev`, diagnóstico web e draft #143.
-**O que foi feito:** a falha foi documentada como incidente separado; migração para domínio próprio permaneceu ligada a P02.
-**Decisões relevantes tomadas:** não mascarar o incidente como bug nutricional; causa específica do usuário/ISP não determinada.
-**PRs/commits relacionados:** PR #143 draft, não mesclado na captura.
-**Fonte(s):** `2026-08-31-principal-arquitetura-ia-dados.md`; `2026-08-31-claude-coordenacao-roadmap.md`.
+- **Data de início:** 30/08/2026
+- **Data de conclusão:** 30/08/2026
+- **Propósito:** tornar a avaliação consultável sem comprometer a integridade do registro ou obrigar o uso de IA
+- **Recursos/arquivos/serviços principais:** `meal-score.js`, `meal-review-ai.js`, modal, controlador, foto, Diário e testes
+- **O que foi feito:** a integração foi repetida em PT/EN/ES, desktop/mobile e legado/Vite com CI autenticado
+- **Decisão ou trade-off:** conclusão funcional não equivale a validação clínica externa do modelo
+- **Validação, estado operacional e limites:** gates descritos na fatia passaram; o resultado permanece orientação contextual, não diagnóstico
+- **PRs/commits relacionados:** PR #145; merge `623f63f`
+- **Fonte(s):** `RESUMO-STATUS.md` C19, `NUTRITION_SCORE.md`, histórico Principal
+
+#### Sequência C08 — política única para sete superfícies de IA
+
+#### [C08-A] — Política versionada e matriz executável
+
+- **Data de início:** 30/08/2026
+- **Data de conclusão:** 30/08/2026
+- **Propósito:** impedir que saídas generativas substituíssem regras nutricionais determinísticas ou inventassem dados ausentes
+- **Recursos/arquivos/serviços principais:** `AI_NUTRITION_POLICY.md`, módulos `*-ai.js`, `ai-client.js`, Worker, schemas, fixtures e testes
+- **O que foi feito:** PR #147 criou `c08-ai-nutrition-policy-v1`, definiu autoridade local, nutrientes, cobertura, idiomas e fronteiras dos sete usos
+- **Decisão ou trade-off:** contratos estruturados são usados quando a saída alimenta dados; narrativos recebem contexto calculado e limites, sem autoridade sobre score/metas
+- **Validação, estado operacional e limites:** gates unitários e autenticados passaram; a prova real foi controlada e não implica aconselhamento clínico nem disponibilidade offline
+- **PRs/commits relacionados:** PR #147; merge `67514dd`
+- **Fonte(s):** `AI_NUTRITION_POLICY.md`, `RESUMO-STATUS.md` C08, histórico Principal
+#### [C08-B] — Ausente não é zero
+
+- **Data de início:** 31/08/2026
+- **Data de conclusão:** 31/08/2026
+- **Propósito:** impedir que saídas generativas substituíssem regras nutricionais determinísticas ou inventassem dados ausentes
+- **Recursos/arquivos/serviços principais:** `AI_NUTRITION_POLICY.md`, módulos `*-ai.js`, `ai-client.js`, Worker, schemas, fixtures e testes
+- **O que foi feito:** PR #149 preservou `null`/desconhecido, separou zero declarado e passou a relatar cobertura exata em PT/EN/ES
+- **Decisão ou trade-off:** contratos estruturados são usados quando a saída alimenta dados; narrativos recebem contexto calculado e limites, sem autoridade sobre score/metas
+- **Validação, estado operacional e limites:** gates unitários e autenticados passaram; a prova real foi controlada e não implica aconselhamento clínico nem disponibilidade offline
+- **PRs/commits relacionados:** PR #149; merge `dd27571`
+- **Fonte(s):** `AI_NUTRITION_POLICY.md`, `RESUMO-STATUS.md` C08, histórico Principal
+#### [C08-C] — Contratos estruturados de estimativa
+
+- **Data de início:** 31/08/2026
+- **Data de conclusão:** 31/08/2026
+- **Propósito:** impedir que saídas generativas substituíssem regras nutricionais determinísticas ou inventassem dados ausentes
+- **Recursos/arquivos/serviços principais:** `AI_NUTRITION_POLICY.md`, módulos `*-ai.js`, `ai-client.js`, Worker, schemas, fixtures e testes
+- **O que foi feito:** PR #151 alinhou preenchimento por nome, descrição textual e foto ao `MealEstimate`, com schemas no Worker e hidratação/validação no cliente
+- **Decisão ou trade-off:** contratos estruturados são usados quando a saída alimenta dados; narrativos recebem contexto calculado e limites, sem autoridade sobre score/metas
+- **Validação, estado operacional e limites:** gates unitários e autenticados passaram; a prova real foi controlada e não implica aconselhamento clínico nem disponibilidade offline
+- **PRs/commits relacionados:** PR #151; merge `d0914b1`
+- **Fonte(s):** `AI_NUTRITION_POLICY.md`, `RESUMO-STATUS.md` C08, histórico Principal
+#### [C08-D] — Feedback e padrões com minimização
+
+- **Data de início:** 31/08/2026
+- **Data de conclusão:** 31/08/2026
+- **Propósito:** impedir que saídas generativas substituíssem regras nutricionais determinísticas ou inventassem dados ausentes
+- **Recursos/arquivos/serviços principais:** `AI_NUTRITION_POLICY.md`, módulos `*-ai.js`, `ai-client.js`, Worker, schemas, fixtures e testes
+- **O que foi feito:** PR #152 enviou metas/totais/cobertura necessários, retirando nome, idade, sexo e antropometria dos prompts narrativos quando não precisos
+- **Decisão ou trade-off:** contratos estruturados são usados quando a saída alimenta dados; narrativos recebem contexto calculado e limites, sem autoridade sobre score/metas
+- **Validação, estado operacional e limites:** gates unitários e autenticados passaram; a prova real foi controlada e não implica aconselhamento clínico nem disponibilidade offline
+- **PRs/commits relacionados:** PR #152; merge `5c51fa5`
+- **Fonte(s):** `AI_NUTRITION_POLICY.md`, `RESUMO-STATUS.md` C08, histórico Principal
+#### [C08-E] — Despensa validada por IDs e explicação C19
+
+- **Data de início:** 31/08/2026
+- **Data de conclusão:** 31/08/2026
+- **Propósito:** impedir que saídas generativas substituíssem regras nutricionais determinísticas ou inventassem dados ausentes
+- **Recursos/arquivos/serviços principais:** `AI_NUTRITION_POLICY.md`, módulos `*-ai.js`, `ai-client.js`, Worker, schemas, fixtures e testes
+- **O que foi feito:** PR #165 extraiu prompts, criou `/v1/ai/pantry-suggestions`, recusou IDs não existentes e alinhou a explicação ao snapshot definitivo
+- **Decisão ou trade-off:** contratos estruturados são usados quando a saída alimenta dados; narrativos recebem contexto calculado e limites, sem autoridade sobre score/metas
+- **Validação, estado operacional e limites:** gates unitários e autenticados passaram; a prova real foi controlada e não implica aconselhamento clínico nem disponibilidade offline
+- **PRs/commits relacionados:** PR #165; merge `e12b464`
+- **Fonte(s):** `AI_NUTRITION_POLICY.md`, `RESUMO-STATUS.md` C08, histórico Principal
+#### [C08-F] — Prova adversarial e Gemini real
+
+- **Data de início:** 31/08/2026
+- **Data de conclusão:** 31/08/2026
+- **Propósito:** impedir que saídas generativas substituíssem regras nutricionais determinísticas ou inventassem dados ausentes
+- **Recursos/arquivos/serviços principais:** `AI_NUTRITION_POLICY.md`, módulos `*-ai.js`, `ai-client.js`, Worker, schemas, fixtures e testes
+- **O que foi feito:** PR #167 cobriu idiomas, ausentes, respostas malformadas, injeção de prompt e quatro chamadas reais controladas; o Worker guarda apenas status/validade sanitizados
+- **Decisão ou trade-off:** contratos estruturados são usados quando a saída alimenta dados; narrativos recebem contexto calculado e limites, sem autoridade sobre score/metas
+- **Validação, estado operacional e limites:** gates unitários e autenticados passaram; a prova real foi controlada e não implica aconselhamento clínico nem disponibilidade offline
+- **PRs/commits relacionados:** PR #167; merge `2547a19`
+- **Fonte(s):** `AI_NUTRITION_POLICY.md`, `RESUMO-STATUS.md` C08, histórico Principal
+#### [F06] — Incidente de conectividade em domínio compartilhado
+
+- **Data de início:** não determinado, durante C19-D
+- **Data de conclusão:** não resolvido na captura original
+- **Propósito:** separar indisponibilidade de rede/ISP de regressão no score ou nos contratos C08
+- **Recursos/arquivos/serviços principais:** domínio `workers.dev`, diagnóstico web e PR #143 draft
+- **O que foi feito:** o incidente foi preservado separadamente e a migração para domínio próprio permaneceu proposta P02
+- **Decisão ou trade-off:** não mascarar falha de transporte como defeito nutricional
+- **Validação, estado operacional e limites:** causa específica do usuário/ISP não determinada; PR #143 não estava mesclado no recorte original
+- **PRs/commits relacionados:** PR #143 draft na captura; sem merge associado
+- **Fonte(s):** histórico Principal e `RESUMO-STATUS.md`
 
 ### 2.14 31/08/2026 — Organização documental
 
@@ -432,50 +776,243 @@ Pelo mesmo motivo, a auditoria, o documento Word e a planilha executiva produzid
 
 ### 2.15 01–10/09/2026 — 0.11.0-beta, diálogos e edição do Diário
 
-#### [C14-A/B/B2] Leituras fail-closed e schemas Firestore
+#### [C14-A] — Leituras e backup fail-closed
 
-- **Data de início:** 01/09/2026.
-- **Data de conclusão:** 07/09/2026.
-- **Propósito:** impedir que leituras incompletas e documentos com campos inesperados fossem aceitos como estado válido.
-- **O que foi feito:** PRs #174, #175, #177, #178 e #180 endureceram leituras, regras e orçamento de expressões; a recuperação de produção da C14-B2 foi registrada separadamente.
-- **Estado operacional:** mesclado e documentado; não é sinônimo de C14 integral concluída.
-- **Evidência:** merges `141da41`, `8d2ddae`, `9d16e60`, `80bc2ca` e `92e6722`.
+- **Data de início:** 01/09/2026
+- **Data de conclusão:** 01/09/2026
+- **Propósito:** impedir que erro de fetch/listagem aparecesse como coleção vazia e que export parcial fosse anunciado como sucesso
+- **Recursos/arquivos/serviços principais:** `firebase-firestore-sdk.js`, `firebase-backup-internal.js`, testes UMD/ESM e histórico da build 12
+- **O que foi feito:** erros passaram a ser propagados; exportação exige completude comprovada e mantém estado recuperável quando uma leitura falha
+- **Decisão ou trade-off:** conteúdo incompleto é tratado como falha explícita, mesmo quando seria possível produzir um arquivo parcial
+- **Validação, estado operacional e limites:** testes de runtime duplo passaram; PR #174 não encerrou toda C14
+- **PRs/commits relacionados:** PR #174; implementação `bd62a32`, merge `141da41`
+- **Fonte(s):** `RESUMO-STATUS.md` C14-A, `git log --first-parent`
+#### [C14-B1] — Primeira barreira de rules
 
-#### [S9, DIARY-MENU e PHOTO-03] Interação e edição
+- **Data de início:** 01/09/2026
+- **Data de conclusão:** 01/09/2026
+- **Propósito:** negar delete da raiz pelo cliente e limitar envelopes canônicos sem fechar um schema ainda não inventariado
+- **Recursos/arquivos/serviços principais:** `firestore.rules`, emuladores e CI
+- **O que foi feito:** delete client-side foi removido; raiz/data receberam limite de 128 campos e o envelope `{value: string}` ficou limitado a 900.000 caracteres
+- **Decisão ou trade-off:** endurecimento incremental foi escolhido para não bloquear dados legítimos antes do inventário Admin
+- **Validação, estado operacional e limites:** rules e emuladores passaram; C22 continuou como único caminho administrativo de exclusão
+- **PRs/commits relacionados:** PR #175; merge `8d2ddae`
+- **Fonte(s):** `RESUMO-STATUS.md` C14-B1, `firestore.rules`
+#### [C14-B2] — Schema completo com orçamento de expressões
 
-- **Data de início:** 01/09/2026.
-- **Data de conclusão:** 10/09/2026.
-- **Propósito:** substituir diálogos nativos, permitir detalhes/edição/movimentação e tornar estimativas proporcionalmente editáveis.
-- **O que foi feito:** S9 substituiu cinco usos ativos de diálogo nativo; PRs #182/#184 adicionaram detalhes, edição e movimento; PRs #186/#188 integraram recálculo proporcional a foto e descrição.
-- **Evidência:** PRs #172, #182, #184, #186 e #188; merges `f612de2`, `842b7de`, `cadad17`, `3cf0e38` e `7069d4d`.
+- **Data de início:** 01/09/2026
+- **Data de conclusão:** 07/09/2026
+- **Propósito:** aplicar allowlists, tipos e tamanhos baseados nos dados reais
+- **Recursos/arquivos/serviços principais:** `firestore.rules`, `C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`, Admin SDK, testes de emulador e leitor C19/C20
+- **O que foi feito:** o primeiro deploy precisou rollback; a versão final valida somente chaves alteradas com `diff().affectedKeys()`, remove nutrientes duplicados de `foodSnapshot` e faz o leitor rejeitar componente malformado
+- **Decisão ou trade-off:** a validação profunda dos seis componentes saiu das rules porque excedia o teto de 1.000 expressões; a fronteira foi dividida entre orçamento estrutural nas rules e validação fail-closed no leitor
+- **Validação, estado operacional e limites:** run pós-deploy `33575611133` verde; segurança aumentou sem afirmar que todo documento histórico foi reescrito
+- **PRs/commits relacionados:** PR #178; merge `80bc2ca`
+- **Fonte(s):** `RESUMO-STATUS.md` C14-B2, `C14_B2_FIRESTORE_SCHEMA_INVENTORY.md`
+#### [S9] — Diálogo genérico acessível
+
+- **Data de início:** 01/09/2026
+- **Data de conclusão:** 01/09/2026
+- **Propósito:** substituir cinco usos ativos de `alert`, `confirm` e `prompt`
+- **Recursos/arquivos/serviços principais:** `GenericDialog`, portal, foco, Escape, Enter, Android Back e testes visuais
+- **O que foi feito:** os cinco diálogos passaram a componente próprio com foco contido, estados bloqueados e comportamento responsivo
+- **Decisão ou trade-off:** o componente unifica interação sem alterar contratos de dados
+- **Validação, estado operacional e limites:** claro/escuro, responsividade e navegação passaram
+- **PRs/commits relacionados:** PR #172; merge `f612de2`
+- **Fonte(s):** `RESUMO-STATUS.md` S9, histórico UIUX
+#### [DIARY-MENU-A/B/C + PHOTO-03] — Detalhes, edição, movimentação e recálculo proporcional
+
+- **Data de início:** 09/09/2026
+- **Data de conclusão:** 10/09/2026
+- **Propósito:** permitir corrigir um item preservando sua identidade e sem manter avaliação incompatível
+- **Recursos/arquivos/serviços principais:** `diary-screen.js`, menus de item, `meal-estimate-editor.js`, domínio proporcional e testes
+- **O que foi feito:** PRs #182/#184 adicionaram detalhe somente leitura, edição e mudança de tipo/data; #186/#188 centralizaram recálculo de foto e descrição no mesmo domínio proporcional
+- **Decisão ou trade-off:** edição invalida snapshot C19 quando a composição muda; quantidade altera nutrientes proporcionalmente, sem pedir nova estimativa generativa
+- **Validação, estado operacional e limites:** gates funcionais passaram; o trabalho não inclui timeline I6 nem redesign integral do Diário
+- **PRs/commits relacionados:** PRs #182, #184, #186, #188; merges `842b7de`, `cadad17`, `3cfe038`, `7069d4d`
+- **Fonte(s):** `RESUMO-STATUS.md`, `git log --first-parent`
 
 ### 2.16 10–27/09/2026 — câmera contínua, resultado compartilhado e desktop
 
-#### [CAM-RED-1 a CAM-RED-8] Redesenho da captura ao resultado
+#### [CAM-RED-1] — Proposta A e protótipo sem runtime
 
-- **Data de início:** não determinado para a prototipação; código desde 15/09/2026.
-- **Data de conclusão:** 27/09/2026 para CAM-RED-8.
-- **Propósito:** eliminar quebras visuais e estados sem saída entre preview, foto, análise, erro e revisão.
-- **O que foi feito:** handoff nativo para fotografia congelada, palco centralizado, flash real, análise em tela cheia, timeout/retry, reautenticação com descarte da foto, folha de resultado expansível e reutilização do resultado na busca manual.
-- **Evidência:** PRs #203, #207, #227, #244, #246, #247, #256 e #277; merges `caeb515`, `449ab9a`, `95a08bd`, `087647f`, `3b8bac0`, `d613d91`, `fc8d4d0` e `89f3c3b`.
-- **Limite:** busca textual em base aberta e código de barras dentro da câmera ficaram fora.
+- **Data de início:** não determinado
+- **Data de conclusão:** 15/09/2026
+- **Propósito:** decidir continuidade visual antes de alterar o fluxo físico
+- **Recursos/arquivos/serviços principais:** protótipo externo HTML/CSS/JS, exports claro/escuro e referências One UI 8
+- **O que foi feito:** foi aprovada a continuidade preview → foto congelada → análise → sheet, com reaproveitamento do resultado na busca manual
+- **Decisão ou trade-off:** separar protótipo do hotfix evitou confundir aprovação visual com prova técnica
+- **Validação, estado operacional e limites:** nenhum arquivo de runtime mudou; código de barras e base aberta ficaram fora
+- **PRs/commits relacionados:** PR documental #202; merge `daa2140`
+- **Fonte(s):** `RESUMO-STATUS.md` CAM-RED-1, histórico UIUX
+#### [CAM-RED-2] — Foto congelada antes de parar a câmera
 
-#### [D1/D2] Shell e Diário em telas largas
+- **Data de início:** 15/09/2026
+- **Data de conclusão:** 15/09/2026
+- **Propósito:** comprovar no Android que a primeira pintura ocorre antes de `stop()`
+- **Recursos/arquivos/serviços principais:** `image-meal-flow.js`, `embedded-camera-preview.js`, Camera Preview 8.0.1, Galaxy e AAB Play v16
+- **O que foi feito:** foto congelada, modos `off/auto/on/torch`, cancelamento, background e orientação passaram; dois crashes deixaram de ocorrer em três repetições por cenário
+- **Decisão ou trade-off:** serialização anticrash foi preservada mesmo com foco em continuidade
+- **Validação, estado operacional e limites:** prova física na instalação Play; não era ainda o palco final
+- **PRs/commits relacionados:** PR #203; merge `caeb515`
+- **Fonte(s):** `RESUMO-STATUS.md` CAM-RED, `CAM-RED-9-AUDITORIA.md`, histórico UIUX
+#### [CAM-RED-3] — Palco centralizado
 
-- **Data de início:** 10/09/2026.
-- **Data de conclusão:** 27/09/2026.
-- **O que foi feito:** D1 removeu sobreposição do cabeçalho/navegação; D2 criou quatro cartões e trilho contextual para 1280/1440/1920 px sem alterar o mobile.
-- **Evidência:** PRs #187, #270 e #272; merges `3ccb852`, `9d3eb03` e `dc41ad1`.
+- **Data de início:** 15/09/2026
+- **Data de conclusão:** 16/09/2026
+- **Propósito:** substituir card embutido pela composição aprovada
+- **Recursos/arquivos/serviços principais:** componente de captura UMD/ESM, `image-meal-screen.js`, fluxo, controlador, CSS e i18n
+- **O que foi feito:** backdrop aplica-se ao app, scroll é bloqueado, X da câmera e do reconhecimento são distintos e reduced-motion é respeitado
+- **Decisão ou trade-off:** código de barras permaneceu fora; transparência e foco foram tratados sem reabrir C24
+- **Validação, estado operacional e limites:** AAB Play v19 passou 6/6; bloqueio intermitente da v18 ficou sem causa confirmada
+- **PRs/commits relacionados:** PR #207; merge `449ab9a`
+- **Fonte(s):** `RESUMO-STATUS.md` CAM-RED, `CAM-RED-9-AUDITORIA.md`, histórico UIUX
+#### [CAM-RED-4] — Flash real, estado e reset
+
+- **Data de início:** 16/09/2026
+- **Data de conclusão:** 21/09/2026
+- **Propósito:** evitar um botão de flash apenas decorativo
+- **Recursos/arquivos/serviços principais:** plugin Camera Preview, `getSupportedFlashModes()`, `setFlashMode()`, fluxo, CSS, testes e Galaxy
+- **O que foi feito:** o cliente detecta modos, anuncia estado e restaura `off` em captura, cancelamento, Back, background, timeout e desmontagem
+- **Decisão ou trade-off:** acabamento residual fora das curvas foi explicitamente transferido à CAM-RED-5; função não foi adiada por estética
+- **Validação, estado operacional e limites:** AAB Play v24 validou flash, reset e fechamento em claro/escuro
+- **PRs/commits relacionados:** PR #227; merge `95a08bd`
+- **Fonte(s):** `RESUMO-STATUS.md` CAM-RED, `CAM-RED-9-AUDITORIA.md`, histórico UIUX
+#### [CAM-RED-5] — Análise sobre a fotografia em tela cheia
+
+- **Data de início:** 21/09/2026
+- **Data de conclusão:** 22/09/2026
+- **Propósito:** eliminar processamento inline e texto de fases não observadas
+- **Recursos/arquivos/serviços principais:** componente de análise UMD/ESM, foto, overlay, safe areas, máscaras do preview e testes
+- **O que foi feito:** máscaras ficaram opacas; análise inicia somente após primeira pintura e `stop()`; progresso é indeterminado e Cancelar permanece fixo
+- **Decisão ou trade-off:** o Worker não informa fases, portanto a UI não inventa percentuais ou etapas
+- **Validação, estado operacional e limites:** 1.440 unitários, matrizes, cutover 60/60, CI e AAB Play v25 passaram
+- **PRs/commits relacionados:** PR #244; merge `087647f`
+- **Fonte(s):** `RESUMO-STATUS.md` CAM-RED, `CAM-RED-9-AUDITORIA.md`, histórico UIUX
+#### [CAM-RED-6] — Timeout, erros acionáveis e retry
+
+- **Data de início:** 22/09/2026
+- **Data de conclusão:** 25/09/2026
+- **Propósito:** encerrar carregamento infinito e permitir repetir sem nova captura
+- **Recursos/arquivos/serviços principais:** `image-meal-client.js`, fluxo, AbortController/timers, i18n e testes
+- **O que foi feito:** transport, timeout, indisponibilidade, resposta inválida, sessão e quota recebem categorias diferentes; retry reutiliza a foto e respostas tardias são ignoradas
+- **Decisão ou trade-off:** nenhuma alteração de Worker/Auth/Firestore foi feita; a reautenticação usa contrato público
+- **Validação, estado operacional e limites:** gates locais e dois HEADs de CI passaram
+- **PRs/commits relacionados:** PR #246; merge `3b8bac0`
+- **Fonte(s):** `RESUMO-STATUS.md` CAM-RED, `CAM-RED-9-AUDITORIA.md`, histórico UIUX
+#### [CAM-RED-7] — `MealResultSheet` e edição proporcional
+
+- **Data de início:** 25/09/2026
+- **Data de conclusão:** 27/09/2026
+- **Propósito:** criar resultado reutilizável, acessível e editável
+- **Recursos/arquivos/serviços principais:** `meal-result-sheet.js`, controlador de gesto, safe areas, editor/estimate, NumericField, ChoiceField
+- **O que foi feito:** sheet abre em cerca de 68% e pode expandir; gesto e rolagem são coordenados; porção/ingredientes recalculam kcal e nutrientes imediatamente
+- **Decisão ou trade-off:** o AAB v26 revelou contenção e recorte; a correção foi exigida no v27 antes do merge
+- **Validação, estado operacional e limites:** CI e repetição física v27 claro/escuro passaram
+- **PRs/commits relacionados:** PR #256; merge `fc8d4d0`
+- **Fonte(s):** `RESUMO-STATUS.md` CAM-RED, `CAM-RED-9-AUDITORIA.md`, histórico UIUX
+#### [CAM-RED-8] — Busca manual no mesmo resultado
+
+- **Data de início:** 27/09/2026
+- **Data de conclusão:** 27/09/2026
+- **Propósito:** eliminar duas UIs de revisão para foto e alimento salvo
+- **Recursos/arquivos/serviços principais:** `add-screen.js`, adaptador manual, `meal-result-sheet.js`, controlador, i18n e testes
+- **O que foi feito:** alimento salvo abre o mesmo sheet, preserva procedência, porção proporcional, avaliação, registro direto e montagem em lote
+- **Decisão ou trade-off:** busca aberta e código de barras não foram incorporados por semelhança visual
+- **Validação, estado operacional e limites:** preflight, 1.505 unitários, legado 129+10 skips, Vite 139 e cutover 60/60; CI autenticado passou
+- **PRs/commits relacionados:** PR #277; merge `89f3c3b`
+- **Fonte(s):** `RESUMO-STATUS.md` CAM-RED, `CAM-RED-9-AUDITORIA.md`, histórico UIUX
+#### [D1/D2] — Shell e Diário em telas largas
+
+- **Data de início:** 09/09/2026
+- **Data de conclusão:** 27/09/2026
+- **Propósito:** usar espaço de desktop sem alterar a composição móvel
+- **Recursos/arquivos/serviços principais:** shell, navegação, `diary-screen.js`, `one-ui.css`, breakpoints e Playwright
+- **O que foi feito:** D1 retirou sobreposição do cabeçalho/navegação; D2 criou quatro cartões e trilho contextual em 1280/1440/1920 px
+- **Decisão ou trade-off:** desktop recebeu composição própria, mas reutiliza domínio e dados do mobile
+- **Validação, estado operacional e limites:** gates responsivos passaram; não equivale ao redesign I6
+- **PRs/commits relacionados:** PRs #187, #270 e #272; merges `3ccb852`, `9d3eb03`, `dc41ad1`
+- **Fonte(s):** `RESUMO-STATUS.md`, histórico UIUX, `git log`
 
 ### 2.17 12–26/09/2026 — hardening de Auth, App Check, Android e Worker
 
-#### [C14-C a C14-F1] Segurança progressiva com prova controlada
+#### [C14-C1] — App Check em observação no Worker
 
-- **Data de início:** 10/09/2026.
-- **Data de conclusão:** 26/09/2026 para F1; C14 geral continua aberta.
-- **O que foi feito:** App Check foi preparado, observado e tornado obrigatório no Worker; Android desativou backup/cleartext e restringiu arquivos; Auth adotou sessão web explícita e senha nova mínima de 12 caracteres; o Worker ganhou pseudonimização, tiers observados, timeout e métricas sanitizadas.
-- **Produção comprovada:** Worker em enforcement e rollout F1 foram validados com chamadas controladas; Functions/Pages têm registros próprios posteriores.
-- **Evidência:** PRs #189, #191, #210, #213, #215, #257 e #262; merges `323610e`, `e118872`, `f799a93`, `fbb8486`, `b307d29`, `6293899` e `859f6fb`.
+- **Data de início:** 10/09/2026
+- **Data de conclusão:** 10/09/2026
+- **Propósito:** validar tokens e medir clientes antes de bloquear
+- **Recursos/arquivos/serviços principais:** `firebase-app-check-token.js`, Worker, Wrangler e métricas sanitizadas
+- **O que foi feito:** modo `observe` verificou assinatura/app permitido e registrou apenas resultado sanitizado
+- **Decisão ou trade-off:** observar antes de exigir reduziu risco de bloquear clientes legítimos
+- **Validação, estado operacional e limites:** smoke externo passou; sem enforcement
+- **PRs/commits relacionados:** rollout C14-C; commit exato não determinado nesta fonte
+- **Fonte(s):** `RESUMO-STATUS.md` C14, documentos C14 específicos, `git log --first-parent`
+#### [C14-C2/C3] — Tokens nos sete clientes e provider de debug no CI
+
+- **Data de início:** 10/09/2026
+- **Data de conclusão:** 12/09/2026
+- **Propósito:** anexar atestação sem transmitir conteúdo quando ela falha e preservar CI autenticado
+- **Recursos/arquivos/serviços principais:** `app-check-client.js`, `ai-client.js`, imagem, sete superfícies, workflows e secret de debug
+- **O que foi feito:** clientes passaram a enviar `X-Firebase-AppCheck`; o CI usa provider debug serializado e não token de produção
+- **Decisão ou trade-off:** falha de atestação fecha antes da transmissão; debug existe apenas no lane autenticado
+- **Validação, estado operacional e limites:** run `34478874949` verde
+- **PRs/commits relacionados:** PR #189; merge `323610e`
+- **Fonte(s):** `RESUMO-STATUS.md` C14, documentos C14 específicos, `git log --first-parent`
+#### [C14-C4] — Prova Pages e AAB Play antes do bloqueio
+
+- **Data de início:** 12/09/2026
+- **Data de conclusão:** 15/09/2026
+- **Propósito:** confirmar clientes reais sob modo observe
+- **Recursos/arquivos/serviços principais:** Pages, AAB versionCode 16, Galaxy SM-S938B, ADB/logcat e App Check
+- **O que foi feito:** login, descrição, foto e avaliação foram repetidos no web e no app instalado por `com.android.vending`, sem persistir refeição
+- **Decisão ou trade-off:** o mesmo AAB já distribuído foi reutilizado para reduzir uploads; prova criptográfica de rejeição ficou para C5
+- **Validação, estado operacional e limites:** Pages e aparelho passaram; sem inferir lançamento público
+- **PRs/commits relacionados:** PR #191; merge `e118872`
+- **Fonte(s):** `RESUMO-STATUS.md` C14, documentos C14 específicos, `git log --first-parent`
+#### [C14-C5] — Enforcement obrigatório
+
+- **Data de início:** 15/09/2026
+- **Data de conclusão:** 15/09/2026
+- **Propósito:** rejeitar IA sem atestação somente depois dos gates
+- **Recursos/arquivos/serviços principais:** `worker/wrangler.jsonc`, verificador, workflow, Worker e AAB v16
+- **O que foi feito:** `APP_CHECK_MODE=enforce` foi publicado; ausência retorna `401 app-check-required`; três fluxos legítimos passaram via ADB
+- **Decisão ou trade-off:** rollback imediato estava preparado; rotação automática do aparelho não foi restaurada e gerou correção de checklist
+- **Validação, estado operacional e limites:** run `35024249874`, Worker `cf6f8d82-...`; objetivo atingido com limite operacional documentado
+- **PRs/commits relacionados:** PR #210; merge `f799a93`
+- **Fonte(s):** `RESUMO-STATUS.md` C14, documentos C14 específicos, `git log --first-parent`
+#### [C14-D] — Android release fail-closed
+
+- **Data de início:** 16/09/2026
+- **Data de conclusão:** 16/09/2026
+- **Propósito:** proteger dados locais e tornar o AAB auditável
+- **Recursos/arquivos/serviços principais:** AndroidManifest, `file_paths.xml`, Gradle, google-services, assinatura/hash e testes
+- **O que foi feito:** Auto Backup, transferência de conta e cleartext foram negados; FileProvider ficou no cache privado; configuração, versão, assinatura e hash são verificados
+- **Decisão ou trade-off:** não houve incremento de versionCode nem geração de AAB sem autorização
+- **Validação, estado operacional e limites:** CI autenticado `35109617209` verde
+- **PRs/commits relacionados:** PR #213; merge `fbb8486`
+- **Fonte(s):** `RESUMO-STATUS.md` C14, documentos C14 específicos, `git log --first-parent`
+#### [C14-E] — Sessão explícita e onboarding recuperável
+
+- **Data de início:** 16/09/2026
+- **Data de conclusão:** 16/09/2026
+- **Propósito:** evitar conta parcial e persistência de sessão implícita
+- **Recursos/arquivos/serviços principais:** `login-screen.js`, `profile-validation.js`, Firebase Auth modular, i18n e console
+- **O que foi feito:** web usa `SESSION` por padrão e `LOCAL` apenas com Manter logado; Android preserva sessão; novas senhas exigem 12 caracteres; perfil incompleto retoma o fluxo
+- **Decisão ou trade-off:** contas antigas permanecem compatíveis; Firebase ficou em modo Notificar, com enforcement futuro P11
+- **Validação, estado operacional e limites:** CI final verde
+- **PRs/commits relacionados:** PR #215; merge `b307d29`
+- **Fonte(s):** `RESUMO-STATUS.md` C14, documentos C14 específicos, `git log --first-parent`
+#### [C14-F1] — Tiers observados e telemetria sem conteúdo
+
+- **Data de início:** 25/09/2026
+- **Data de conclusão:** 26/09/2026
+- **Propósito:** preparar limites comerciais e diagnóstico antes de cobrar ou abrir ao público
+- **Recursos/arquivos/serviços principais:** Worker, Durable Object SQLite, HMAC, Analytics Engine, timeouts e Wrangler
+- **O que foi feito:** UID recebeu pseudônimo HMAC; tiers foram observados, não cobrados; Gemini tem 40 s e 128 KB; métricas sanitizadas têm retenção documentada de até 30 dias
+- **Decisão ou trade-off:** instrumentação não registra prompt/resposta; enforcement comercial ficou desligado até C30
+- **Validação, estado operacional e limites:** versão `179df5a8` chegou a 100%, texto/imagem/despensa passaram com conta descartável e App Check
+- **PRs/commits relacionados:** PR #257; merge `6293899`; rollout #262 `859f6fb`
+- **Fonte(s):** `RESUMO-STATUS.md` C14, documentos C14 específicos, `git log --first-parent`
 
 ### 2.18 17–27/09/2026 — incidentes, backups e análises históricas
 
@@ -492,96 +1029,315 @@ Pelo mesmo motivo, a auditoria, o documento Word e a planilha executiva produzid
 
 ### 2.19 28/09–09/10/2026 — carregamento, cadastro progressivo e C14-F2
 
-#### [I1] Carregamento com identidade Trofia
+#### [I1] — Carregamento com identidade e prontidão explícita
 
-- **Data de conclusão:** 28/09/2026.
-- **O que foi feito:** marca, aura, duração mínima de 900 ms, PT/EN/ES, temas e movimento reduzido, com bootstrap fail-closed.
-- **Evidência:** PRs #280/#281; merges `b0e20f4` e `1dc3f84`.
+- **Data de início:** 22/09/2026
+- **Data de conclusão:** 28/09/2026
+- **Propósito:** tornar bootstrap visível sem esconder falha
+- **Recursos/arquivos/serviços principais:** `index.html`, loading, CSS, i18n, Playwright e reduced-motion
+- **O que foi feito:** marca, aura e progresso indeterminado aparecem por no mínimo 900 ms; erro inicial continua fail-closed. Uma falha Vite móvel foi atribuída ao harness que não aguardava `#loading`
+- **Decisão ou trade-off:** corrigir o teste, não reduzir a duração aprovada nem esconder o estado
+- **Validação, estado operacional e limites:** 1.513 unitários, legado 135+10 skips, Vite 145 e cutover 60/60; PR #280
+- **PRs/commits relacionados:** PR #280; merge `b0e20f4`
+- **Fonte(s):** `RESUMO-STATUS.md` I1
+#### [I2] — Registro progressivo e recuperação de perfil
 
-#### [I2] Registro progressivo
+- **Data de início:** 22/09/2026
+- **Data de conclusão:** 09/10/2026
+- **Propósito:** apresentar uma decisão por etapa e criar conta só após revisão
+- **Recursos/arquivos/serviços principais:** `login-screen.js`, `required-profile-modal.js`, ChoiceField/TemporalField, i18n e Playwright
+- **O que foi feito:** credenciais e sete decisões — nome, nascimento, opção de cálculo, medidas, atividade, objetivo e revisão — foram separadas; checkpoint recupera perfil autenticado incompleto
+- **Decisão ou trade-off:** nenhuma pergunta nova de restrição/preferência foi adicionada por suposição; backend não mudou
+- **Validação, estado operacional e limites:** cinco recortes 63/63 em legado e Vite; CI real verde, sem alegar causa definitiva para incidentes antigos de loading
+- **PRs/commits relacionados:** PR #293; merge `f09ac0b`
+- **Fonte(s):** `RESUMO-STATUS.md` I2, `I2-REGISTRO-PROGRESSIVO.md`
+#### [C14-F2] — IAM, identidades dedicadas e dependências
 
-- **Data de conclusão:** 09/10/2026.
-- **O que foi feito:** credenciais e sete decisões progressivas, revisão antes da criação e recuperação do perfil incompleto.
-- **Evidência:** PRs #293/#316; merges `f09ac0b` e `d008164`.
+- **Data de início:** 26/09/2026
+- **Data de conclusão:** 09/10/2026
+- **Propósito:** reduzir privilégios com baseline, rollout por consumidor e rollback
+- **Recursos/arquivos/serviços principais:** Cloud IAM/Run/Scheduler/Tasks/Artifact Registry, três Functions, `functions/src/config.js`, lockfiles e inventário
+- **O que foi feito:** inventário encontrou Editor compartilhado e sete moderadas nas Functions; PRs #292/#298 isolaram processador/callable; reconciliador usa `trofia-del-reconcile`, Scheduler `trofia-scheduler-oidc`; as três builds migraram para `trofia-functions-build`; retry induzido, callable e execução natural do Scheduler foram comprovados; invocador Compute residual foi retirado
+- **Decisão ou trade-off:** `roles/editor` não foi revogado sem decisão separada; deploy que alterou invocadores foi revertido à baseline antes de continuar
+- **Validação, estado operacional e limites:** HTTP 200 sem 401/403, retry/limpeza com contas descartáveis e CI autenticado; residual Editor virou `SEC-IAM-EDITOR-RESIDUAL`
+- **PRs/commits relacionados:** PRs #258, #265, #288, #292, #298–#300 e #311; merges até `75c5c0e`
+- **Fonte(s):** `RESUMO-STATUS.md` C14-F2, `C14_F2_PRE_INVENTARIO_IAM_DEPENDENCIAS.md`
+#### [C14-G] — CSP e remoção de debug global
 
-#### [C14-F2/G] IAM, dependências e CSP
-
-- **Data de conclusão:** 09/10/2026 para F2; 04/10/2026 para G.
-- **O que foi feito:** identidades dedicadas, invocadores mínimos, Scheduler OIDC, retry controlado, dependências de produção sem alertas locais após atualização e CSP publicada/provada. A role Editor residual foi auditada separadamente e não foi silenciosamente declarada removida.
-- **Evidência:** PRs #265, #288, #292, #298–#314 e #294; merges registrados entre `e8b369d` e `a2b0c32`.
+- **Data de início:** 29/09/2026
+- **Data de conclusão:** 04/10/2026
+- **Propósito:** reduzir impacto de XSS sem quebrar Firebase, reCAPTCHA ou transporte do Worker
+- **Recursos/arquivos/serviços principais:** `index.html`, storage, Vite, `verify-csp-policy.js`, Pages e testes browser
+- **O que foi feito:** CSP meta restringiu destinos; helpers de debug foram condicionados; prova publicada confirmou login, Firestore, App Check e WebChannel sem violação
+- **Decisão ou trade-off:** cabeçalho HTTP não era a fonte da meta CSP; o transporte WebChannel codifica cabeçalhos iniciais no POST, evitando falso negativo
+- **Validação, estado operacional e limites:** CI autenticado e desktop/mobile no domínio real passaram
+- **PRs/commits relacionados:** PR #294; merge `5dfff2a`
+- **Fonte(s):** `RESUMO-STATUS.md` C14-G, `C14_G_CSP_DEBUG_ROLLOUT.md`
 
 ### 2.20 10–12/10/2026 — tema, criação e robustez final da câmera
 
-#### [I3] Política de tema
+#### [I3] — Política local de tema versão 2
 
-- **Data de conclusão:** 10/10/2026.
-- **O que foi feito:** migração local única para claro; escolhas posteriores claro/escuro/sistema preservadas; sem persistência remota.
-- **Evidência:** PRs #321/#322; merges `76b71eb` e `4da8452`.
+- **Data de início:** 22/09/2026
+- **Data de conclusão:** 10/10/2026
+- **Propósito:** tornar claro o padrão sem retirar escolhas posteriores
+- **Recursos/arquivos/serviços principais:** `theme-policy.js`, entrypoints, Configurações, localStorage, `prefers-color-scheme` e testes
+- **O que foi feito:** a política aplica claro antes da primeira pintura, migra uma única vez instalações antigas e depois respeita `light`, `dark` ou `system`; Firebase não recebe a preferência
+- **Decisão ou trade-off:** migração automática é única e versionada; o antigo `appDarkMode` deixou de ser autoridade
+- **Validação, estado operacional e limites:** 68 focados, 1.529 completos, legado 177+10 skips, Vite 187, CSP e cutover 60/60; AAB interno 28 publicado
+- **PRs/commits relacionados:** PR #321; merge `76b71eb`
+- **Fonte(s):** `RESUMO-STATUS.md` I3, `I3-POLITICA-MIGRACAO-TEMA.md`
+#### [CAM-RED-9] — Primeira pintura paralela e auditoria extrema
 
-#### [CAM-RED-9] Latência percebida e prova interna
+- **Data de início:** 10/10/2026
+- **Data de conclusão:** 11/10/2026
+- **Propósito:** reduzir latência percebida sem enfraquecer serialização anticrash
+- **Recursos/arquivos/serviços principais:** captura, `meal-image-capture.js`, preview, trace monotônico, Playwright, Galaxy e AAB v29
+- **O que foi feito:** a foto bruta passou a alimentar a primeira pintura enquanto JPEG 80%, 1280 px e limite 1,5 MB são processados em paralelo para IA; lifecycle, dois frames e `stop()` permaneceram
+- **Decisão ou trade-off:** otimizar apenas o pré-processamento evitável; o trace não guarda conteúdo do usuário
+- **Validação, estado operacional e limites:** 1.533 unitários, legado/Vite/cutover verdes e seis capturas físicas por tema; feedback visível em 1,256 s e análise com foto em 2,099 s delimitam, não decompõem, a percepção
+- **PRs/commits relacionados:** PR #323; merge `9537a9d`
+- **Fonte(s):** `RESUMO-STATUS.md` CAM-RED-9, `CAM-RED-9-AUDITORIA.md`
+#### [I4-A] — Ação global, quatro caminhos e identidade instalada
 
-- **Data de conclusão:** 11/10/2026.
-- **O que foi feito:** primeira pintura passou a usar captura bruta enquanto a normalização ocorre em paralelo; lifecycle e serialização foram preservados. A prova física ocorreu na faixa interna, não em lançamento público.
-- **Evidência:** PRs #323/#326; merges `9537a9d` e `f2c7929`.
-
-#### [I4-A] Ação principal e identidade instalada
-
-- **Data de conclusão:** 12/10/2026.
-- **O que foi feito:** menu foto/descrição/manual/salva, acessibilidade, retorno de foco e ativos determinísticos “T + folha”. Nenhum estado da Play foi alterado por essa fatia.
-- **Evidência:** PRs #332/#333; merges `b00f7e5` e `7f218c7`.
+- **Data de início:** 22/09/2026
+- **Data de conclusão:** 12/10/2026
+- **Propósito:** tornar criação encontrável e explicar a escolha antes de abrir o fluxo
+- **Recursos/arquivos/serviços principais:** menu mobile/desktop, navegação, SVG `T + folha`, 19 PNGs Android/web, manifest, i18n e Playwright
+- **O que foi feito:** foto, descrição, montagem manual e refeição salva abrem contratos existentes; fechamento cobre X, fundo, Escape e Back; foco retorna à origem. O mesmo PR gerou ícones legados, redondos, adaptativos e monocromáticos
+- **Decisão ou trade-off:** código de barras não foi adicionado ao menu; identidade visual estática não recebeu texto/aura/animação
+- **Validação, estado operacional e limites:** 125 focados, 1.556 unitários, legado 181+10, Vite 191, CSP, cutover 60/60 e recursos Android compilados
+- **PRs/commits relacionados:** PR #332; merge `b00f7e5`
+- **Fonte(s):** `RESUMO-STATUS.md` I4-A, `UI-VISUALS-FATIAMENTO.md`
 
 ### 2.21 09–30/10/2026 — staging parcial e fail-closed
 
-#### [C14-H] Preparação do ambiente separado
+#### [C14-H/T0] — Inventário e criação do projeto isolado
 
-- **Status em 01/11/2026:** em andamento.
-- **O que foi feito:** auditoria, projeto separado, manifesto, verificadores de fronteira, configurações Web/Worker/Functions, CSP derivada e apps/identidades Firebase de staging.
-- **O que não foi feito:** deploy completo, IAM final, Worker/DO operacional, Functions/Tasks/Scheduler completos, artefato Android separado, lane CI e matriz cross-account.
-- **Evidência:** PRs #315–#344, especialmente #319, #320, #327, #330, #334, #336, #341 e #343; merges `41f09b5`, `240d4d4`, `5190239`, `74a988a`, `6499845`, `ea2da27`, `364eb4d` e `04a77bc`.
+- **Data de início:** 09/10/2026
+- **Data de conclusão:** não concluído em 01/11/2026
+- **Propósito:** construir um ambiente separado sem permitir que configuração incompleta alcance produção
+- **Recursos/arquivos/serviços principais:** `trofia-staging` número `31822846339`, auditoria, manifesto, verificadores, billing e Firebase/Cloud
+- **O que foi feito:** a auditoria encontrou somente produção; foi criado projeto sem Analytics/Gemini opcionais, ligado à mesma conta pagadora, com alerta mensal de €1 em 50/90/100%. O build recusa staging enquanto origem, chave ou projeto ainda apontarem à produção
+- **Decisão ou trade-off:** alerta não é teto de gasto; criar projeto não equivale a provisionar ambiente
+- **Validação, estado operacional e limites:** preflight/CI e cutover passaram nas entregas; nenhum deploy de staging na T0
+- **PRs/commits relacionados:** PRs #315, #317–#320; merge funcional #320 `240d4d4`
+- **Fonte(s):** `C14_H_STAGING_AUDITORIA.md`, `RESUMO-STATUS.md` C14-H
+#### [C14-H-WEB/FUNCTIONS/WORKER] — Fronteiras parametrizadas sem deploy
+
+- **Data de início:** 11/10/2026
+- **Data de conclusão:** 12/10/2026 para os recortes; C14-H aberta
+- **Propósito:** impedir mistura de projeto em build, callable e Worker antes de criar recursos
+- **Recursos/arquivos/serviços principais:** resolver Firebase/Vite, `.firebaserc`, Functions, `wrangler.jsonc`, scripts de fronteira e testes
+- **O que foi feito:** Web recusa alvo e divergência build/runtime; Functions exige alvo e `GCLOUD_PROJECT` coerentes e conta local ao projeto; Worker declara ambientes/DO separados e rejeita origem/app ID de produção. Campos remotos ausentes continuam vazios
+- **Decisão ou trade-off:** código de isolamento foi mesclado antes de recursos; fail-closed é o resultado esperado até completar o manifesto
+- **Validação, estado operacional e limites:** PR #330 e #334 passaram CI; PR #336 comprovou Functions no CI. Nenhum Worker, DO, Function, Task, Scheduler ou IAM staging foi publicado
+- **PRs/commits relacionados:** PRs #330, #334 e #336; merges `74a988a`, `6499845`; #336 estado/merge conforme fontes, sem deploy
+- **Fonte(s):** `RESUMO-STATUS.md` C14-H, `C14_H_STAGING_AUDITORIA.md`
+#### [C14-H-CSP] — CSP derivada do manifesto de staging
+
+- **Data de início:** 12/10/2026
+- **Data de conclusão:** 13/10/2026
+- **Propósito:** garantir que o HTML staging não permita Worker, callable ou Auth de produção
+- **Recursos/arquivos/serviços principais:** `index.html`, Vite, `verify-csp-policy.js`, `verify-staging-boundaries.js` e manifesto
+- **O que foi feito:** Vite substitui destinos por origens exatas e rejeita vazio, wildcard ou mistura; verificador examina HTML transformado e vínculos fora da CSP
+- **Decisão ou trade-off:** CSP concluída não desbloqueia build com manifesto incompleto
+- **Validação, estado operacional e limites:** 12 focados, build, `npm test`, CSP Chromium, CI PR/main verdes; staging permaneceu sem deploy
+- **PRs/commits relacionados:** PR #341; merge `364eb4d`
+- **Fonte(s):** `RESUMO-STATUS.md` C14-H-CSP, `C14_G_CSP_DEBUG_ROLLOUT.md`
+#### [C14-H-APPS] — Apps Web/Android, Auth e App Check próprios
+
+- **Data de início:** 13/10/2026
+- **Data de conclusão:** em andamento em 01/11/2026
+- **Propósito:** criar identidades públicas exclusivas antes de qualquer publicação
+- **Recursos/arquivos/serviços principais:** Firebase staging, apps, Hosting, Auth, reCAPTCHA Enterprise, App Check e manifesto
+- **O que foi feito:** apps Web/Android e Hosting padrão foram registrados; chave pública, IDs, origem e site key restrita entraram no manifesto; Auth e-mail/senha foi inicializado; App Check web ficou sem enforcement
+- **Decisão ou trade-off:** segredos/recursos ausentes continuam ausentes; Play Integrity Android não tem fingerprint/artefato distribuído
+- **Validação, estado operacional e limites:** PR #343 e CI/main verdes; nenhum Worker/callable/Functions/IAM/enforcement/deploy
+- **PRs/commits relacionados:** PR #343; merge `04a77bc`
+- **Fonte(s):** `RESUMO-STATUS.md` C14-H-APPS
+#### [C14-H-ANDROID/ISOLAMENTO] — Artefato e matriz remota ainda não iniciados
+
+- **Data de início:** não iniciado
+- **Data de conclusão:** não concluído
+- **Propósito:** provar separação física e cross-account antes de rollout
+- **Recursos/arquivos/serviços principais:** Gradle, google-services staging, Play Integrity, Worker/DO, Functions/Tasks/Scheduler/IAM, lane CI e runbooks
+- **O que foi feito:** nenhum código/artefato final foi executado para estas subfatias no recorte
+- **Decisão ou trade-off:** não reutilizar credenciais, dados ou recursos de produção; a matriz inclui App Check, payload, quota, cache, backup, exclusão e rollback
+- **Validação, estado operacional e limites:** status planejado; ausência de prova é registrada como bloqueio, não como sucesso
+- **PRs/commits relacionados:** sem PR funcional concluído
+- **Fonte(s):** `RESUMO-STATUS.md` C14-H-ANDROID/ISOLAMENTO, `C14_H_STAGING_AUDITORIA.md`
 
 ### 2.22 01/11/2026 — correção de limite, folha Adicionar e Despensa
 
-#### [BUG-DISH-DESCRIPTION-BOUNDARY] Limite separado por superfície
+#### [BUG-DISH-DESCRIPTION-BOUNDARY] — Limites independentes para foto e descrição
 
-- **Data de conclusão do código:** 01/11/2026.
-- **O que foi feito:** descrição de prato deixou de herdar o limite menor da fotografia; contratos e validação foram separados.
-- **Evidência:** PRs #345/#346; merges `f025e47` e `6f796b1`.
+- **Data de início:** não determinado
+- **Data de conclusão:** 01/11/2026
+- **Propósito:** impedir que descrição textual herdasse limite de itens da fotografia
+- **Recursos/arquivos/serviços principais:** contratos de `dish-estimate`, validação Worker/cliente e testes
+- **O que foi feito:** o máximo de itens passou a ser definido por superfície; descrição longa e foto deixaram de compartilhar restrição menor
+- **Decisão ou trade-off:** separar limites preserva os schemas comuns sem assumir que as duas entradas têm a mesma ambiguidade
+- **Validação, estado operacional e limites:** gates e documentação pós-merge passaram
+- **PRs/commits relacionados:** PRs #345/#346; merges `f025e47`, `6f796b1`
+- **Fonte(s):** `git log --first-parent`, Documento 2, histórico Principal
+#### [I4-B] — Folha Adicionar, repetição recente e Undo
 
-#### [I4-B] Orquestração da folha Adicionar
+- **Data de início:** 12/10/2026
+- **Data de conclusão:** 01/11/2026
+- **Propósito:** coordenar destino, hora e atalhos depois da escolha do menu I4-A
+- **Recursos/arquivos/serviços principais:** `add-screen.js`, sheet, ChoiceField, TemporalField, i18n, persistência e Playwright autenticado
+- **O que foi feito:** cabeçalho recebe refeição/horário; repetição cria cópia com identidade própria e Undo remove somente a cópia; entrada manual e retorno ao contexto foram preservados. Fixture passou a exigir `time` e a provar fonte D−11/destino D−12
+- **Decisão ou trade-off:** barcode continuou fora; o teste isola escritor, verificador e UI para não confundir cache com efeito
+- **Validação, estado operacional e limites:** PR #337 passou preflight e CI com 1.571 unitários, legado 187+10 e Vite 197; CI da main também verde
+- **PRs/commits relacionados:** PR #337 merge `3657dde`; closeout #347 merge `9ba057d`
+- **Fonte(s):** `RESUMO-STATUS.md` I4-B, histórico Principal
+#### [I8-A] — Shell navegável de Alimentos/Despensa
 
-- **Data de conclusão:** 01/11/2026.
-- **O que foi feito:** destino, horário, repetição recente, Undo, entrada manual e retorno ao contexto; código de barras permaneceu fora.
-- **Evidência:** PRs #337/#347; merges `3657dde` e `9ba057d`.
+- **Data de início:** 11/10/2026
+- **Data de conclusão:** 01/11/2026 no Git; documentação viva ainda contraditória
+- **Propósito:** substituir acordeões por biblioteca com busca, segmentos e categorias sem alterar schema
+- **Recursos/arquivos/serviços principais:** `pantry-screen.js`, controlador, modelos atuais, CSS, i18n, 26 PNGs, Playwright e Open Food Facts opcional
+- **O que foi feito:** foram implementados cabeçalho/contagens reais, busca permanente, segmentos Alimentos/Refeições/Suplementos/Categorias, filtros locais, categorias derivadas e estados vazios; três consumidores de teste foram atualizados semanticamente. Um 503 deliberado do mock Open Food Facts foi filtrado somente para origem/status exatos
+- **Decisão ou trade-off:** nenhuma persistência, editor ou fonte aberta nova foi criada; I8-B/C continuam separadas
+- **Validação, estado operacional e limites:** preflight, 1.572 unitários, legado 185+10, Vite 195, CSP, cutover 60/60 e build 848 módulos passaram; PR #340 está mesclada, mas `RESUMO-STATUS.md`/`I8-ALIMENTOS-DESPENSA.md` ainda dizem em andamento
+- **PRs/commits relacionados:** PR #340; merge/base `4e72767`
+- **Fonte(s):** `RESUMO-STATUS.md` I8-A, `I8-ALIMENTOS-DESPENSA.md`, `git log --first-parent`
 
-#### [I8-A] Shell de Alimentos/Despensa
+## 3. IMPLEMENTAÇÕES FUTURAS (PLANEJADAS OU AINDA NÃO CONCLUÍDAS EM 01/11/2026)
 
-- **Estado comprovado pelo Git:** PR #340 mesclada em `4e72767` em 01/11/2026.
-- **O que foi feito:** contagens, busca, quatro segmentos, filtros locais, categorias derivadas e estados vazios, sem mudança de schema.
-- **Contradição documental:** `RESUMO-STATUS.md` e `I8-ALIMENTOS-DESPENSA.md` no mesmo commit ainda dizem “em andamento” e “PR draft”. O código está mesclado; o encerramento documental não está reconciliado.
+Esta seção separa rigorosamente código já mesclado de trabalho ainda aberto. Um item parcial descreve somente o restante comprovado; itens pós-lançamento não são apresentados como parte da versão atual.
 
-## 3. IMPLEMENTAÇÕES FUTURAS OU AINDA ABERTAS EM 01/11/2026
+### [C14-H] — Isolamento completo de staging e gate de segurança
 
-### Segurança e lançamento
+- **Status:** planejado ou ainda aberto em 01/11/2026.
+- **Propósito:** terminar a revisão geral de segurança em ambiente separado antes do candidato público
+- **Recursos/arquivos/serviços previstos:** Firebase staging, Worker/DO, Functions/Tasks/Scheduler/IAM, lane CI, Android staging, App Check, runbooks
+- **Requisitos conhecidos:** provisionar recursos próprios; impedir mistura com produção; executar matriz cross-account, payload, quota, cache, backup, exclusão, IAM e rollback; produzir AAB distinguível e prova Play Integrity
+- **Decisões e trade-offs já registrados:** o estado deve permanecer fail-closed enquanto qualquer campo remoto estiver ausente; apps/CSP parciais não contam como ambiente completo
+- **Dependências, gates e limites:** C14-H-APPS, ANDROID e ISOLAMENTO; nenhum deploy público; C14 precisa fechar antes de C30/C16/C25
+- **PRs/commits relacionados:** PRs #315–#343 cobrem preparação parcial; nenhum PR de fechamento
+- **Fonte(s):** `C14_H_STAGING_AUDITORIA.md`, `RESUMO-STATUS.md`, `ROADMAP.md`
+### [C26-A] — Toast interno seguro
 
-- **C14-H:** completar isolamento remoto, Android staging, CI e matriz funcional.
-- **C26-A/B:** toast seguro não iniciado; lembretes locais apenas auditados, sem código.
-- **C30-A–E:** planos, cobrança e entitlements não iniciados.
-- **C16/C25:** documentação final e gate público permanecem parciais e dependentes das etapas anteriores.
-- **Status público:** beta; não há evidência de lançamento geral.
+- **Status:** planejado ou ainda aberto em 01/11/2026.
+- **Propósito:** corrigir posição, animação e feedback sensorial sem servidor
+- **Recursos/arquivos/serviços previstos:** toast de conquista, safe areas, áudio, `@capacitor/haptics`, fila atual e web
+- **Requisitos conhecidos:** respeitar notch/barra, elevar áudio dentro de limite seguro, vibração nativa com fallback silencioso e preservar fila
+- **Decisões e trade-offs já registrados:** não transformar feedback local em notificação remota nem ignorar volume/acessibilidade do aparelho
+- **Dependências, gates e limites:** pré-lançamento; depende de auditoria do toast existente, não de backend
+- **PRs/commits relacionados:** sem PR funcional
+- **Fonte(s):** `ROADMAP.md` C26-A
+### [C26-B] — Lembretes locais
 
-### Experiência e produto
+- **Status:** planejado ou ainda aberto em 01/11/2026.
+- **Propósito:** oferecer água e check-ins no próprio aparelho com consentimento e reagendamento coerente
+- **Recursos/arquivos/serviços previstos:** `@capacitor/local-notifications`, preferências, metas, água, idioma, fuso e deep links
+- **Requisitos conhecidos:** consentimento por tipo; janela ativa/silenciosa; distribuir água pelo déficit/tempo; mensagens início/meio/fim do dia; cancelar/reagendar em toda mudança; preferir alarme inexato
+- **Decisões e trade-offs já registrados:** push/FCM e tokens por dispositivo ficam fora; auditoria já concluiu que não existe implementação funcional atual
+- **Dependências, gates e limites:** depende de C26-A e de contrato de reagendamento; gate pré-lançamento
+- **PRs/commits relacionados:** sem PR funcional
+- **Fonte(s):** `ROADMAP.md` C26-B, `C26_B_LEMBRETES_LOCAIS_AUDITORIA.md`
+### [C30-A–E] — Planos, cobrança e entitlements
 
-- **I4-C:** pesquisa/bandeja de refeição não iniciada.
-- **I6-A:** em andamento; I6-B–F não iniciadas.
-- **I7:** gamificação não iniciada.
-- **I8-B/C:** cartões/ações e busca aberta não iniciados; I8-A necessita reconciliação documental.
-- **I9-A–D e I10-A–D:** Semana e Métricas redesenhadas não iniciadas.
-- **CAM-RED-10:** validação final do redesenho pela Play não iniciada.
+- **Status:** planejado ou ainda aberto em 01/11/2026.
+- **Propósito:** formalizar monetização sem confiar no cliente ou no aparelho como fonte de verdade
+- **Recursos/arquivos/serviços previstos:** Google Play Billing, backend de verificação, conta Trofia, notificações de ciclo de vida, reconciliação, política/Data Safety e testes
+- **Requisitos conhecidos:** definir planos/preços/testers; verificar compra no servidor; estados idempotentes de pendência, grace, hold, expiração, revogação/reembolso; restaurar por conta; tratar duplicação/reordenação; validar faixa interna e rollback
+- **Decisões e trade-offs já registrados:** benefício nunca é concedido por alegação do cliente; token de compra não entra no storage geral; tiers observados de C14-F1 não são cobrança ativa
+- **Dependências, gates e limites:** só começa após C14 e Tarefa 0 comercial; bloqueia C16/C25 se monetização fizer parte do lançamento
+- **PRs/commits relacionados:** sem PR funcional
+- **Fonte(s):** `ROADMAP.md` C30-A–E
+### [C16/C25] — Documentação final e gate público
 
-### Arquitetura e expansões
+- **Status:** planejado ou ainda aberto em 01/11/2026.
+- **Propósito:** consolidar contratos operacionais e decidir a abertura pública somente com dependências fechadas
+- **Recursos/arquivos/serviços previstos:** runbooks, segurança, suporte, CI, políticas, Android/Play, rollback e evidência de C14/C26/C30
+- **Requisitos conhecidos:** C16 deve registrar arquitetura, manutenção, incidentes e operação; C25 verifica gates funcionais, compliance, candidato distribuído e rollback
+- **Decisões e trade-offs já registrados:** documentação não substitui prova; release interna ou produção controlada de serviço não é lançamento público
+- **Dependências, gates e limites:** dependem de C14, C26-A/B, C30 e documentos reconciliados; status parcial
+- **PRs/commits relacionados:** sem PR de fechamento
+- **Fonte(s):** `ROADMAP.md` posições 17–18
+### [I4-C] — Pesquisa e bandeja de composição
 
-- **ORG-0–7/C15:** reorganização e limpeza ampla permanecem abertas.
-- **C29, C26-C, N01, C21, N03, N09, C17, C13, C10, N07, N02, N05, C27, N04, N06, C12, C18 e N08:** continuam planejados ou parciais conforme roadmap; não são recursos atuais.
+- **Status:** planejado ou ainda aberto em 01/11/2026.
+- **Propósito:** montar refeição cumulativa sem duplicar o resultado nutricional
+- **Recursos/arquivos/serviços previstos:** busca/filtros locais, bandeja, totais, `MealResultSheet`, i18n e testes
+- **Requisitos conhecidos:** selecionar itens, revisar totais e abrir o sheet CAM-RED-8; barcode continua fora
+- **Decisões e trade-offs já registrados:** reutilizar domínio de resultado em vez de criar um quinto editor
+- **Dependências, gates e limites:** não iniciado; coordenação UIUX/Principal
+- **PRs/commits relacionados:** sem PR funcional
+- **Fonte(s):** `RESUMO-STATUS.md` I4-C, `UI-VISUALS-FATIAMENTO.md`
+### [I6-A–F] — Redesign completo do Diário
+
+- **Status:** planejado ou ainda aberto em 01/11/2026.
+- **Propósito:** transformar a aba em cabeçalho, timeline, histórico e leitura detalhada sem misturar regras de domínio com aparência
+- **Recursos/arquivos/serviços previstos:** Diário, calendário, loaders, água, suplementos, notas, macros/micros, sheets, sync e i18n
+- **Requisitos conhecidos:** A: cabeçalho/resumo; B: timeline/água/Undo; C: semana/mês; D: nutrientes/atalhos IA; E: doses/notas temporizadas após auditoria de schema; F: detalhe expansível reutilizando edição/score
+- **Decisões e trade-offs já registrados:** qualquer schema/rules necessário é pré-requisito da frente Principal; uma expansão por vez e contratos existentes devem ser reutilizados
+- **Dependências, gates e limites:** I6-A constava em andamento documental, mas sem código iniciado; demais não iniciadas
+- **PRs/commits relacionados:** sem PR funcional
+- **Fonte(s):** `RESUMO-STATUS.md` I6, `UI-VISUALS-FATIAMENTO.md`
+### [I7] — Gamificação opcional
+
+- **Status:** planejado ou ainda aberto em 01/11/2026.
+- **Propósito:** tornar consistência visível sem impor julgamento ou coleta nova
+- **Recursos/arquivos/serviços previstos:** classificação diária, agregados semanais/mensais, Configurações, metas e i18n
+- **Requisitos conhecidos:** contador ativo por padrão com opção de desligar; estados meta/parcial/sem registros; mensagens derivadas das metas existentes
+- **Decisões e trade-offs já registrados:** regras de domínio não podem ser implementadas como detalhe visual do calendário
+- **Dependências, gates e limites:** protótipo e aprovação ainda pendentes
+- **PRs/commits relacionados:** sem PR funcional
+- **Fonte(s):** `RESUMO-STATUS.md` I7
+### [I8-B/C] — Ações da biblioteca e busca unificada
+
+- **Status:** planejado ou ainda aberto em 01/11/2026.
+- **Propósito:** completar a Despensa além do shell já mesclado
+- **Recursos/arquivos/serviços previstos:** `pantry-screen.js`, cards, stepper, recálculo, favoritos, Undo, base aberta e persistência
+- **Requisitos conhecidos:** I8-B: expansão, porções, editar/excluir/Undo e ações; I8-C: local imediato + base aberta debounced, salvar externo e estados de erro
+- **Decisões e trade-offs já registrados:** barcode e redesign de `+ Novo` permanecem fora; fonte aberta é opcional e não deve esconder itens locais
+- **Dependências, gates e limites:** I8-A precisa ter documentação reconciliada; B/C não iniciadas
+- **PRs/commits relacionados:** sem PR funcional
+- **Fonte(s):** `RESUMO-STATUS.md` I8, `I8-ALIMENTOS-DESPENSA.md`
+### [I9/I10] — Redesign de Semana e Métricas
+
+- **Status:** planejado ou ainda aberto em 01/11/2026.
+- **Propósito:** reorganizar análise semanal e corporal sem alterar fórmulas silenciosamente
+- **Recursos/arquivos/serviços previstos:** agregadores, metas históricas, gráficos, medidas, previsões, i18n e pacotes UI
+- **Requisitos conhecidos:** I9 preserva sete dias concluídos e banco por meta de cada data; I10 separa acompanhamento, metas e relatórios
+- **Decisões e trade-offs já registrados:** hoje não deve contaminar médias fechadas; relatório em manutenção não pode ser apresentado como disponível
+- **Dependências, gates e limites:** não iniciadas no recorte
+- **PRs/commits relacionados:** sem PR funcional
+- **Fonte(s):** `RESUMO-STATUS.md`, `UI-VISUALS-FATIAMENTO.md`
+### [CAM-RED-10] — Validação final pela Play
+
+- **Status:** planejado ou ainda aberto em 01/11/2026.
+- **Propósito:** encerrar o redesenho somente no mesmo artefato entregue aos testers
+- **Recursos/arquivos/serviços previstos:** Gradle/Capacitor, AAB assinado, faixa interna, Galaxy, CI e lifecycle
+- **Requisitos conhecidos:** repetir câmera, flash, captura, análise, retry, resultado, registro, temas e background após gates completos
+- **Decisões e trade-offs já registrados:** as provas das fatias anteriores não substituem o gate final conjunto
+- **Dependências, gates e limites:** não iniciado; depende do estado final das superfícies integradas
+- **PRs/commits relacionados:** sem PR funcional
+- **Fonte(s):** `RESUMO-STATUS.md` CAM-RED-10
+### [C15] — Refatoração e remoção das pontes UMD/ESM
+
+- **Status:** planejado ou ainda aberto em 01/11/2026.
+- **Propósito:** concluir a limpeza que a modularização de julho deixou incompleta
+- **Recursos/arquivos/serviços previstos:** composition root, controlador, módulos UMD/ESM, suíte legado/Vite e importação de backups
+- **Requisitos conhecidos:** vários PRs pequenos; aposentar loader/matriz legado somente no cutover final; manter import antigo por duas versões públicas e remover com anúncio/teste
+- **Decisões e trade-offs já registrados:** o trabalho de 16–28/07 é precursor, não execução de C15; não iniciar por inferência
+- **Dependências, gates e limites:** pós-lançamento e estimativa histórica 6–10 semanas/8–12 PRs; depende de Tarefa 0
+- **PRs/commits relacionados:** sem PR funcional de C15
+- **Fonte(s):** `ROADMAP.md` C15, históricos de julho
+### [PÓS-LANÇAMENTO 19–39] — Recursos e plataformas do grupo B
+
+- **Status:** planejado ou ainda aberto em 01/11/2026.
+- **Propósito:** preservar a sequência futura sem confundir planejamento com funcionalidade atual
+- **Recursos/arquivos/serviços previstos:** N01 voz; C21 porções GA; C29 reclassificação; N03 rótulo; N09 jejum; C17 e-mail; C13 feedback; C10/N07 relatórios/compartilhamento; N02 base; N05 recalibração; C27 widget; N04/N06 receitas/planejamento; C12 iOS; C18 saúde; N08 exercícios
+- **Requisitos conhecidos:** cada item exige Tarefa 0, fonte/licença/privacidade quando aplicável e dependências descritas na sequência 19–39
+- **Decisões e trade-offs já registrados:** não transportar automaticamente contratos Android/web para voz, iOS, saúde ou billing; não criar persistência nova sem schema/rules/exclusão
+- **Dependências, gates e limites:** todos permanecem pós-lançamento, não iniciados ou parciais conforme `ROADMAP.md`; não pertencem à versão retratada
+- **PRs/commits relacionados:** PRs futuros não determinados
+- **Fonte(s):** `ROADMAP.md` sequência única, posições 19–39
 
 ## 4. Contradições e limites não resolvidos
 
