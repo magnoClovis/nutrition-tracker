@@ -138,6 +138,12 @@
         autoFillNutrition,
         pantrySearch,
         setPantrySearch,
+        pantryView = "foods",
+        setPantryView,
+        pantryFilter = "all",
+        setPantryFilter,
+        pantryCategory = "",
+        setPantryCategory,
         pantryItemsOpen,
         setPantryItemsOpen,
         mealTemplatesOpen,
@@ -191,6 +197,38 @@
         saveTemplateEdit
       } = props;
       const uiText = (pt, en, es) => pickLang(lang, pt, en, es);
+      const activeView = ["foods", "meals", "supplements", "categories"].includes(pantryView)
+        ? pantryView
+        : "foods";
+      const displayView = pantrySearch.trim() ? "foods" : activeView;
+      const foodMatchesFilter = food => {
+        if (pantryFilter === "favorites") return !!(food.favorite || food.isFavorite);
+        if (pantryFilter === "custom") return food.source === "custom" || food.isCustom === true;
+        if (pantryFilter === "scanned") return food.source === "scanned" || !!food.barcode;
+        return true;
+      };
+      const visiblePantry = sortedPantry.filter(foodMatchesFilter);
+      const uncategorizedLabel = uiText("Sem categoria", "Uncategorized", "Sin categoría");
+      const categoryGroups = sortedAllPantry.reduce((groups, food) => {
+        const rawCategory = typeof food.category === "string" ? food.category.trim() : "";
+        const category = rawCategory || uncategorizedLabel;
+        const current = groups.get(category) || [];
+        current.push(food);
+        groups.set(category, current);
+        return groups;
+      }, new Map());
+      const categoryEntries = Array.from(categoryGroups.entries()).sort(([left], [right]) => (
+        left.localeCompare(right, lang === "pt" ? "pt-BR" : lang === "es" ? "es" : "en", { sensitivity: "base" })
+      ));
+      const selectedCategoryFoods = categoryGroups.get(pantryCategory) || [];
+      const switchView = nextView => {
+        if (typeof setPantryView === "function") setPantryView(nextView);
+        if (typeof setPantryCategory === "function") setPantryCategory("");
+        setExpandedPantryIds({});
+        if (nextView === "foods") setPantryItemsOpen(true);
+        if (nextView === "meals") setMealTemplatesOpen(true);
+        if (nextView === "supplements") setSuppPantryOpen(true);
+      };
       const foodUnitOptions = [
         { value: "g", label: "g" },
         { value: "ml", label: "ml" },
@@ -244,36 +282,76 @@
 
       return /*#__PURE__*/React.createElement("div", {
     "data-screen": "despensa",
-    style: {
-      padding: "2px 16px 28px",
-      boxSizing: "border-box",
-      width: "100%"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: isMobileView ? "1fr" : "1fr auto",
-      gap: 10,
-      alignItems: "center",
-      marginBottom: 14
-    }
+    className: "pantry-library-screen",
+    "data-pantry-view": displayView,
+    "data-pantry-search-mode": pantrySearch.trim() ? "true" : "false"
+  }, /*#__PURE__*/React.createElement("header", {
+    className: "pantry-library-header"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    className: "pantry-library-title"
+  }, uiText("Alimentos", "Foods", "Alimentos")), /*#__PURE__*/React.createElement("p", {
+    className: "pantry-library-summary"
+  }, uiText(
+    `${pantry.length} ${pantry.length === 1 ? "alimento" : "alimentos"} · ${mealTemplates.length} ${mealTemplates.length === 1 ? "refeição" : "refeições"} · ${suppPantry.length} ${suppPantry.length === 1 ? "suplemento" : "suplementos"}`,
+    `${pantry.length} ${pantry.length === 1 ? "food" : "foods"} · ${mealTemplates.length} ${mealTemplates.length === 1 ? "meal" : "meals"} · ${suppPantry.length} ${suppPantry.length === 1 ? "supplement" : "supplements"}`,
+    `${pantry.length} ${pantry.length === 1 ? "alimento" : "alimentos"} · ${mealTemplates.length} ${mealTemplates.length === 1 ? "comida" : "comidas"} · ${suppPantry.length} ${suppPantry.length === 1 ? "suplemento" : "suplementos"}`
+  ))), /*#__PURE__*/React.createElement("button", {
+    className: "pantry-library-new-button",
+    onClick: () => setNewFoodOpen(v => !v),
+    "aria-expanded": !!newFoodOpen
+  }, newFoodOpen ? uiText("Fechar", "Close", "Cerrar") : uiText("+ Novo", "+ New", "+ Nuevo"))), /*#__PURE__*/React.createElement("div", {
+    className: `pantry-library-search${pantrySearch ? " is-active" : ""}`
   }, /*#__PURE__*/React.createElement("input", {
     value: pantrySearch,
     onChange: e => setPantrySearch(e.target.value),
-    placeholder: text('pantrySearch'),
-    style: {
-      ...inp,
-      marginTop: 0,
-      marginBottom: 0
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setNewFoodOpen(v => !v),
-    style: {
-      ...btn,
-      marginTop: 0,
-      minWidth: isMobileView ? "100%" : 180
-    }
-  }, newFoodOpen ? uiText("Fechar cadastro", "Close form", "Cerrar registro") : uiText("+ Novo alimento", "+ New food", "+ Nuevo alimento"))), newFoodOpen && /*#__PURE__*/React.createElement("div", {
+    placeholder: uiText("Buscar seus alimentos e a base", "Search your foods and the database", "Buscar tus alimentos y la base"),
+    "aria-label": uiText("Buscar seus alimentos e a base", "Search your foods and the database", "Buscar tus alimentos y la base")
+  }), pantrySearch && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "pantry-library-search-clear",
+    onClick: () => setPantrySearch(""),
+    "aria-label": uiText("Limpar busca", "Clear search", "Borrar búsqueda")
+  }, "×"), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "pantry-library-barcode-button",
+    onClick: () => {
+      setNewFoodOpen(true);
+      setBarcodeModalOpen(true);
+      setBarcodeMessage("");
+    },
+    "aria-label": uiText("Ler código de barras", "Scan barcode", "Escanear código de barras")
+  }, "▥")), !pantrySearch.trim() && /*#__PURE__*/React.createElement("div", {
+    className: "pantry-library-tabs",
+    role: "tablist",
+    "aria-label": uiText("Seções de alimentos", "Food sections", "Secciones de alimentos")
+  }, [
+    ["foods", uiText("Alimentos", "Foods", "Alimentos")],
+    ["meals", uiText("Refeições", "Meals", "Comidas")],
+    ["supplements", uiText("Suplementos", "Supps", "Supl.")],
+    ["categories", uiText("Categorias", "Categories", "Categorías")]
+  ].map(([viewId, label]) => /*#__PURE__*/React.createElement("button", {
+    key: viewId,
+    type: "button",
+    role: "tab",
+    "aria-selected": activeView === viewId,
+    className: activeView === viewId ? "is-active" : "",
+    onClick: () => switchView(viewId)
+  }, label))), !pantrySearch.trim() && activeView === "foods" && /*#__PURE__*/React.createElement("div", {
+    className: "pantry-library-filters",
+    "aria-label": uiText("Filtros de alimentos", "Food filters", "Filtros de alimentos")
+  }, [
+    ["all", uiText("Todos", "All", "Todos")],
+    ["favorites", uiText("★ Favoritos", "★ Favorites", "★ Favoritos")],
+    ["custom", uiText("Personalizados", "Custom", "Personalizados")],
+    ["scanned", uiText("Escaneados", "Scanned", "Escaneados")]
+  ].map(([filterId, label]) => /*#__PURE__*/React.createElement("button", {
+    key: filterId,
+    type: "button",
+    "data-pantry-filter": filterId,
+    "aria-pressed": pantryFilter === filterId,
+    className: pantryFilter === filterId ? "is-active" : "",
+    onClick: () => typeof setPantryFilter === "function" && setPantryFilter(filterId)
+  }, label))), newFoodOpen && /*#__PURE__*/React.createElement("div", {
     onClick: () => setNewFoodOpen(false),
     style: {
       display: "none"
@@ -647,8 +725,46 @@
     "data-tutorial": "pantry-save-button",
     onClick: addFood,
     style: btn
-  }, text('savePantry'))), /*#__PURE__*/React.createElement("div", {
+  }, text('savePantry'))), displayView === "categories" && /*#__PURE__*/React.createElement("section", {
+    className: "pantry-category-section",
+    "data-pantry-categories": true
+  }, pantryCategory ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "pantry-category-heading"
+  }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => typeof setPantryCategory === "function" && setPantryCategory(""),
+    "aria-label": uiText("Voltar", "Back", "Volver")
+  }, "‹"), /*#__PURE__*/React.createElement("h2", null, pantryCategory), /*#__PURE__*/React.createElement("span", null, uiText(
+    `${selectedCategoryFoods.length} ${selectedCategoryFoods.length === 1 ? "alimento" : "alimentos"}`,
+    `${selectedCategoryFoods.length} ${selectedCategoryFoods.length === 1 ? "food" : "foods"}`,
+    `${selectedCategoryFoods.length} ${selectedCategoryFoods.length === 1 ? "alimento" : "alimentos"}`
+  ))), /*#__PURE__*/React.createElement("div", {
+    className: "pantry-category-foods"
+  }, selectedCategoryFoods.map(food => /*#__PURE__*/React.createElement("div", {
+    key: food.id,
+    className: "pantry-category-food-row"
+  }, /*#__PURE__*/React.createElement("strong", null, food.name), /*#__PURE__*/React.createElement("span", null, `${food.kcal100 || 0} kcal · P ${food.protein100 || 0} g`))))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "pantry-library-section-heading"
+  }, /*#__PURE__*/React.createElement("h2", null, uiText(
+    `${categoryEntries.length} ${categoryEntries.length === 1 ? "categoria" : "categorias"}`,
+    `${categoryEntries.length} ${categoryEntries.length === 1 ? "category" : "categories"}`,
+    `${categoryEntries.length} ${categoryEntries.length === 1 ? "categoría" : "categorías"}`
+  )), /*#__PURE__*/React.createElement("span", null, uiText("Toque para ver os alimentos", "Tap to see its foods", "Toca para ver sus alimentos"))), categoryEntries.length ? /*#__PURE__*/React.createElement("div", {
+    className: "pantry-category-grid"
+  }, categoryEntries.map(([category, foods]) => /*#__PURE__*/React.createElement("button", {
+    key: category,
+    type: "button",
+    "data-pantry-category-tile": category,
+    onClick: () => typeof setPantryCategory === "function" && setPantryCategory(category)
+  }, /*#__PURE__*/React.createElement("strong", null, category), /*#__PURE__*/React.createElement("span", null, uiText(
+    `${foods.length} ${foods.length === 1 ? "alimento" : "alimentos"}`,
+    `${foods.length} ${foods.length === 1 ? "food" : "foods"}`,
+    `${foods.length} ${foods.length === 1 ? "alimento" : "alimentos"}`
+  ))))) : /*#__PURE__*/React.createElement("div", {
+    className: "pantry-library-empty"
+  }, uiText("Nenhuma categoria ainda.", "No categories yet.", "Aún no hay categorías.")))), displayView === "foods" && /*#__PURE__*/React.createElement("div", {
     "data-tutorial": "pantry-saved-foods",
+    className: "pantry-library-panel",
     style: {
       marginTop: 24,
       background: "var(--surface)",
@@ -657,32 +773,14 @@
       padding: "12px 14px"
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      gap: 10,
-      marginBottom: pantryItemsOpen ? 10 : 0
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setPantryItemsOpen(v => !v),
-    style: {
-      flex: 1,
-      background: "none",
-      border: "none",
-      padding: 0,
-      textAlign: "left",
-      cursor: "pointer",
-      fontFamily: "inherit"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      letterSpacing: 1,
-      color: "var(--dim)",
-      textTransform: "uppercase"
-    }
-  }, pantryItemsOpen ? "▼ " : "▶ ", text('pantryTitle'), " (", pantry.length, ")"))), pantryItemsOpen && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
+    className: "pantry-library-section-heading"
+  }, /*#__PURE__*/React.createElement("h2", null, uiText(
+    `${visiblePantry.length} ${visiblePantry.length === 1 ? "alimento" : "alimentos"}`,
+    `${visiblePantry.length} ${visiblePantry.length === 1 ? "food" : "foods"}`,
+    `${visiblePantry.length} ${visiblePantry.length === 1 ? "alimento" : "alimentos"}`
+  )), /*#__PURE__*/React.createElement("span", null, pantrySearch.trim()
+    ? uiText("Na sua biblioteca", "In your library", "En tu biblioteca")
+    : uiText("Mais usados primeiro · por porção", "Most used first · per portion", "Más usados primero · por porción"))), /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
     value: pantrySearch,
     onChange: e => setPantrySearch(e.target.value),
     placeholder: text('pantrySearch'),
@@ -691,15 +789,13 @@
       marginBottom: 10,
       display: "none"
     }
-  }), filteredPantry.length === 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: "var(--faint)",
-      fontSize: 14,
-      fontStyle: "italic",
-      textAlign: "center",
-      marginTop: 12
-    }
-  }, pantrySearch ? text('noResults') : text('pantryEmpty')), sortedPantry.map(f => /*#__PURE__*/React.createElement("div", {
+  }), visiblePantry.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "pantry-library-empty"
+  }, pantrySearch
+    ? text('noResults')
+    : pantryFilter === "all"
+      ? text('pantryEmpty')
+      : uiText("Nada aqui ainda.", "Nothing here yet.", "Aún no hay nada aquí.")), visiblePantry.map(f => /*#__PURE__*/React.createElement("div", {
     key: f.id,
     style: {
       borderBottom: "1px solid var(--border3)",
@@ -919,8 +1015,9 @@
       fontSize: 14,
       cursor: "pointer"
     }
-  }, "\xD7"))))))), /*#__PURE__*/React.createElement("div", {
+  }, "\xD7"))))))), displayView === "meals" && /*#__PURE__*/React.createElement("div", {
     "data-tutorial": "pantry-meal-templates",
+    className: "pantry-library-panel",
     style: {
       marginTop: 12,
       background: "var(--surface)",
@@ -928,25 +1025,13 @@
       borderRadius: 8,
       padding: "12px 14px"
     }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setMealTemplatesOpen(v => !v),
-    style: {
-      width: "100%",
-      background: "none",
-      border: "none",
-      padding: 0,
-      textAlign: "left",
-      cursor: "pointer",
-      fontFamily: "inherit"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      letterSpacing: 1,
-      color: "var(--dim)",
-      textTransform: "uppercase"
-    }
-  }, mealTemplatesOpen ? "▼ " : "▶ ", uiText("Refeições salvas", "Saved meals", "Comidas guardadas"), " (", mealTemplates.length, ")")), mealTemplatesOpen && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pantry-library-section-heading"
+  }, /*#__PURE__*/React.createElement("h2", null, uiText(
+    `${mealTemplates.length} ${mealTemplates.length === 1 ? "refeição salva" : "refeições salvas"}`,
+    `${mealTemplates.length} ${mealTemplates.length === 1 ? "saved meal" : "saved meals"}`,
+    `${mealTemplates.length} ${mealTemplates.length === 1 ? "comida guardada" : "comidas guardadas"}`
+  )), /*#__PURE__*/React.createElement("span", null, uiText("por refeição", "per meal", "por comida"))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10,
       display: "flex",
@@ -961,8 +1046,9 @@
       textAlign: "center",
       padding: "10px 0"
     }
-  }, uiText("Nenhuma refeição salva.", "No saved meals.", "No hay comidas guardadas.")) : mealTemplates.map(tmpl => renderSavedMealCard(tmpl, "pantry")))), /*#__PURE__*/React.createElement("div", {
+  }, uiText("Nenhuma refeição salva.", "No saved meals.", "No hay comidas guardadas.")) : mealTemplates.map(tmpl => renderSavedMealCard(tmpl, "pantry")))), displayView === "supplements" && /*#__PURE__*/React.createElement("div", {
     "data-tutorial": "pantry-supplements",
+    className: "pantry-library-panel",
     style: {
       marginTop: 12,
       background: "var(--surface)",

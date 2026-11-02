@@ -91,6 +91,11 @@ test.describe('authenticated SearchableChoiceField visual contract', () => {
 
   async function openSavedMealIngredient(page, pantryLabel = /Alimentos|Foods/i) {
     await clickByTutorialKeyOrText(page, 'tab-despensa', pantryLabel);
+    const mealsTab = page.locator('[data-screen="despensa"]')
+      .getByRole('tab', { name: /Refei[cç][oõ]es|Meals|Comidas/i });
+    await expect(mealsTab).toBeVisible();
+    await mealsTab.click();
+    await expect(mealsTab).toHaveAttribute('aria-selected', 'true');
     const section = page.locator('[data-tutorial="pantry-meal-templates"]');
     await expect(section).toBeVisible();
     if (!await page.locator('#saved-meal-ingredient-visual-template-trigger').isVisible().catch(() => false)) {

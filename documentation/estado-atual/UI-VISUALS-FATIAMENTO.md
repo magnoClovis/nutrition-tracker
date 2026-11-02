@@ -2,12 +2,12 @@
 
 ## Estado desta análise
 
-- **Data da revisão:** 11/10/2026.
+- **Data da revisão:** 12/10/2026.
 - **Origem auditada:** `UI_visuals/`, com 132 PNGs, 21 HTMLs, 6 arquivos JavaScript, 6 JSXs e 6 documentos Markdown.
 - **Autoridade:** PNGs e documentos de fluxo são a especificação visual e comportamental recebida; os HTMLs/JSX são referência interativa, não código a copiar. Dados, datas, metas e refeições exibidos são mock data.
 - **Prioridade aprovada:** redesenhar as quatro abas principais — Diário, Alimentos/Despensa, Semana e Métricas — antes de aprofundar superfícies secundárias que não sejam pré-requisitos dessas abas.
 - **Cobertura comprovada:** a pasta contém especificação completa para as **quatro** abas principais: Diário, Alimentos/Despensa, Semana e Métricas. O pacote de Métricas foi auditado em 11/10/2026 e substitui o placeholder anterior da I10 por quatro fatias implementáveis.
-- **Implementações em curso preservadas:** I4-A foi concluída e mesclada no PR #332; CAM-RED-9 e seus gates/prova física permanecem independentes deste fatiamento.
+- **Implementações em curso preservadas:** I4-A foi concluída e mesclada no PR #332; em 12/10/2026 o usuário antecipou expressamente a I4-B para execução paralela a I8-A/I10-A. CAM-RED-9 e seus gates/prova física permanecem independentes deste fatiamento.
 
 ## Inventário e precedência das fontes
 
@@ -34,6 +34,8 @@ Os estados claro e escuro dos PNGs foram conferidos. A composição é consisten
 
 #### I4-B — orquestração do sheet Adicionar
 
+- **Concluída em 01/11/2026** no PR #337, mesclado em `3657dde9243facbbea6982b739d4de631d543275`;
+- a fixture autenticada de repetição foi isolada em fonte D−11 e destino D−12: o SHA final `833aea4` exige uma cópia no destino após repetir, zero após Undo e preservação da fonte, sem alterar runtime, Auth, Firestore, rules, timeout ou retry. O preflight `41311971579` passou em 30 s, o CI `41311971507` em 51 min 21 s e o CI da main `41323656471` em 52 min 48 s, com preflight da main `41323656496` em 28 s; todos verdes;
 - destino da refeição e horário;
 - repetição recente com Undo;
 - entrada manual e retorno ao contexto que abriu o sheet;
@@ -98,6 +100,8 @@ I4-C não é a busca permanente da aba Alimentos: ela monta uma refeição no co
 - loading, listas longas, claro/escuro, mobile e composição desktop própria.
 
 O pacote usa o rótulo inglês `Foods`; PT-BR deve preservar o termo aprovado pelo produto — atualmente Alimentos/Despensa — e não será renomeado por tradução literal silenciosa.
+
+Na base reconciliada `a9aa0c5`, o gate serial autenticado de 31/10/2026 passou com preflight sem avisos, 1.572/1.572 unitários, smoke legado com 185 aprovações e 10 skips estruturais, Vite 195/195, CSP verde, cutover 60/60 e build de 848 módulos/allowlist 14. Após um CI posterior registrar como erro de console apenas o 503 proposital do mock da API opcional Open Food Facts, o helper passou a ignorar somente essa combinação de origem e status; o recorte Vite de 5 cenários, preflight, 1.572/1.572 unitários e build de 848 módulos/allowlist 14 passaram. O PR #340 continua draft; gate autenticado integral e CI do novo SHA são pendentes.
 
 #### I8-B — cartões, porções e ações da biblioteca
 
@@ -198,7 +202,7 @@ I6 e I9 podem exibir esses dados, mas devem consumir uma classificação única.
 1. concluir I4-A já em andamento, porque a navegação/ação central é pré-requisito compartilhado;
 2. **passagem de núcleo visual:** I6-A/I6-B → I8-A → I9-A → I10-A;
 3. **passagem de conclusão funcional:** I6-C/I6-D/I6-F → I8-B/I8-C → I9-B/I9-C/I9-D → I10-B/I10-C/I10-D;
-4. I4-B/I4-C — completar o fluxo Adicionar depois de estabilizar as quatro abas;
+4. I4-C — completar pesquisa/bandeja do fluxo Adicionar depois de estabilizar as quatro abas; a I4-B foi antecipada por decisão explícita em 12/10/2026 e passou a avançar em paralelo;
 5. I6-E e I7 — somente após os contratos de persistência/domínio aplicáveis;
 6. I5-R — somente quando o novo pacote de Configurações for recebido e aprovado.
 

@@ -42,6 +42,13 @@ test('ignores only the expected headless reCAPTCHA and App Check exchange errors
     'https://content-firebaseappcheck.googleapis.com/v1/projects/example/apps/1:123:web:abc:otherOperation?key=public-api-key'
   ), false);
   assert.equal(isIgnorableConsoleError(appCheck403, 'https://example.com/api'), false);
+
+  const optionalFoodApi503 = 'Failed to load resource: the server responded with a status of 503 ()';
+  assert.equal(isIgnorableConsoleError(
+    optionalFoodApi503,
+    'https://world.openfoodfacts.org/api/v3/product/123.json'
+  ), true);
+  assert.equal(isIgnorableConsoleError(optionalFoodApi503, 'https://example.com/api'), false);
 });
 
 test('redacts variable URL segments, query, credentials and unknown hosts', () => {

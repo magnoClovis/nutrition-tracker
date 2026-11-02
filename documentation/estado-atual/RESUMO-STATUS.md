@@ -24,9 +24,9 @@
 
 ### [SEC-IAM-EDITOR-RESIDUAL] - Avaliação separada da role Editor na conta Compute padrão
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído, condicionado ao merge deste registro pós-merge — **Chat:** Trofia-Principal.
 - **Data de início:** 09/10/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 01/11/2026, condicionada ao merge deste registro pós-merge.
 - **Propósito:** decidir com segurança se e quando remover `roles/editor` da conta Compute padrão, sem manter indefinidamente aberta a C14-F2 já implantada.
 - **O que se planeja fazer:** reconfirmar os consumidores e a cobertura de auditoria após as migrações, classificar as três perdas históricas e o recurso sem suporte do replay, simular um corte atualizado com permissões mínimas e rollback verificável; propor a revogação somente mediante evidência suficiente e autorização específica, sem mutação IAM nesta tarefa preparatória.
 - **Recursos/arquivos principais envolvidos:** política IAM do projeto, conta Compute padrão, Cloud Asset Inventory, Policy Simulator, Cloud Audit Logs, Functions/Cloud Run/Scheduler/Tasks e inventário C14-F2.
@@ -1395,13 +1395,14 @@
 
 ### [I4-B] - Orquestração do sheet Adicionar
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** concluído — **Chat:** Trofia-Principal.
+- **Data de início:** 12/10/2026.
+- **Data de conclusão:** 01/11/2026.
 - **Propósito:** organizar destino, horário, repetição e entradas secundárias sem sobrecarregar o menu principal.
 - **O que se planeja fazer:** validar e implementar chips de refeição/horário, repetição recente com Undo, entrada manual e retorno ao contexto de origem. Barcode permanece pendente por conflitar com o protótipo I4-A aprovado.
 - **Recursos/arquivos principais envolvidos:** pacote `UI_visuals/trofia-diary-timeline-calendar-add-sheet`, `add-screen.js`, componentes de sheet/ChoiceField/TemporalField, i18n e Playwright.
-- **O que foi feito:** proposta distribuída documentalmente em 10/10/2026; visual e Barcode ainda não aprovados.
+- **O que foi feito:** proposta distribuída documentalmente em 10/10/2026. A implementação começou em 12/10/2026 numa worktree própria, priorizada explicitamente após o fechamento da I4-A e em paralelo às I8-A/I10-A. Cabeçalho com destino/horário, repetição recente com Undo persistido, entrada manual, retorno ao contexto, PT/EN/ES e geometria mobile/desktop foram implementados; Barcode continua fora. A fixture autenticada recebeu o campo obrigatório `time`, isolou escritor/verificador/UI e, no SHA final `833aea4`, passou a usar fonte D−11 e destino D−12. O cenário final exige uma cópia no destino após repetir, zero após Undo e a fonte preservada, sem alterar runtime, Auth, Firestore, rules, timeout ou retry. O PR #337 foi mesclado em `3657dde` após o preflight `41311971579` (30 s) e CI autenticado `41311971507` (51 min 21 s; preflight 0, 1.571/1.571 unitários, Worker, Functions, legado 187 + 10 skips estruturais, Vite 197/197 e `SMOKE_OUTCOME` success). O CI da main também passou: preflight `41323656496` em 28 s e pesado `41323656471` em 52 min 48 s. Nenhum deploy, IAM, Firebase, AAB ou Play foi alterado.
+- **Alinhamento:** 100% — destino, horário, repetição/Undo, entrada manual e retorno ao contexto foram entregues no escopo aprovado; Barcode continua explicitamente fora.
 
 ### [I4-C] - Pesquisa e bandeja de refeição
 
@@ -1495,13 +1496,13 @@
 
 ### [I8-A] - Shell, abas e categorias de Alimentos/Despensa
 
-- **Status:** não iniciado — **Chat:** Trofia-UIUX.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
-- **Propósito:** redesenhar a segunda aba principal como biblioteca navegável e coerente com o novo Diário.
-- **O que se planeja fazer:** implementar cabeçalho/contagens, busca visível, segmentos Alimentos/Refeições/Suplementos/Categorias, filtros, grade/lista de categorias, estados vazios e barra inferior compartilhada, com composição própria mobile/desktop.
-- **Recursos/arquivos principais envolvidos:** `UI_visuals/trofia-foods-tabs-categories`, `pantry-screen.js`, modelos de alimentos/refeições/suplementos, `one-ui.css`, i18n e testes legado/Vite.
-- **O que foi feito:** o pacote completo, seus 26 PNGs claro/escuro, FLOW e referências interativas foram auditados em 11/10/2026; nenhum código foi iniciado.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Data de início:** 11/10/2026.
+- **Data de conclusão:** não concluído.
+- **Propósito:** redesenhar a segunda aba principal como biblioteca navegável e coerente com a nova navegação compartilhada.
+- **O que se planeja fazer:** implementar cabeçalho e contagens reais, busca visível, segmentos Alimentos/Refeições/Suplementos/Categorias, filtros locais, grade/lista de categorias, estados vazios e composição responsiva, preservando os fluxos existentes de criação, scanner, edição e persistência.
+- **Recursos/arquivos principais envolvidos:** pacote `UI_visuals/trofia-foods-tabs-categories`, `pantry-screen.js`, `nutrition-tracker-controller.js`, modelos atuais de alimentos/refeições/suplementos, `one-ui.css`, i18n e testes legado/Vite.
+- **O que foi feito:** o pacote aprovado, com FLOW, referência interativa e 26 PNGs claro/escuro, foi auditado; o shell com contagens reais, busca, quatro segmentos, filtros locais e categorias derivadas dos dados reais foi implementado sem alterar schema ou persistência. Os três consumidores Playwright afetados foram reconciliados semanticamente com a nova navegação. Em 13/10/2026, passaram preflight com 0 avisos, 1.566/1.566 unitários, recortes corrigidos com 11/11 no legado e 11/11 no Vite, smoke legado com 185 aprovados e 10 skips estruturais, smoke Vite com 195/195, CSP, cutover com 60/60 e build Vite de 848 módulos com allowlist de 14 arquivos. O PR draft #340 repetiu preflight, unitários, Worker, Functions e Playwright no CI funcional real; os checks funcional e documental ficaram verdes. O run extra `38339743752`, disparado apenas pelo commit documental, atingiu o limite global de uma hora depois de 186 casos Vite aprovados e foi interrompido durante o bootstrap do caso seguinte, sem falha funcional da I8-A e sem entrar nas métricas. A `main` foi incorporada até `364eb4d` e, na retomada controlada de 30/10/2026, novamente até `04a77bc` no merge `a9aa0c5`; esse último trouxe o ajuste C14-H de manifesto/validador staging e documentação correlata, sem conflito. `git diff --check` passou no merge. Após duas interrupções externas — timeout no cutover e respostas Firestore `429` —, a nova execução serial autenticada de 31/10/2026 passou integralmente no mesmo HEAD: preflight com 0 avisos, 1.572/1.572 unitários, smoke legado com 185 aprovações e 10 skips estruturais, smoke Vite 195/195, CSP verde, cutover 60/60 e build Vite de 848 módulos com allowlist de 14 arquivos. A repetição de CI posterior expôs somente um 503 deliberadamente devolvido pelo mock da API opcional Open Food Facts como erro de console; o filtro agora ignora exclusivamente essa origem/status, com caso negativo para hosts distintos. O recorte Vite de 5 cenários, preflight, 1.572/1.572 unitários e build de 848 módulos/allowlist 14 passaram no novo SHA; o gate autenticado integral e o CI ainda são pendentes. A fatia permanece aberta até o CI do PR e merge.
 
 ### [I8-B] - Cartões, porções e ações da biblioteca
 
@@ -2285,19 +2286,19 @@
 - **Propósito:** classificar e corrigir, se comprovado, o erro recuperável `service-unavailable` observado ao estimar uma descrição longa e repetida de refeição.
 - **O que se planeja fazer:** reproduzir a fronteira somente com entradas sintéticas, distinguir indisponibilidade do provedor de resposta estruturalmente rejeitada e ajustar contrato, prompt ou mensagem somente com evidência; preservar App Check, autenticação, privacidade e o comportamento das descrições curtas aprovadas.
 - **Recursos/arquivos principais envolvidos:** `worker/src/structured-estimates.js`, `worker/src/image-meal.js`, `worker/src/ai-worker.js`, `ai-client.js`, `nutrition-tracker-controller.js`, testes unitários do Worker/cliente e inventário de bugs.
-- **O que foi feito:** a triagem confirmou que descrições curtas funcionam e que a entrada problemática estava repetida. A reprodução sintética passou uma resposta estruturalmente válida com 13 componentes pelo endpoint de prato: o contrato anterior a rejeitaria pelo limite de 12 itens herdado da foto e a converteria em `invalid-provider-response`/5xx, que a interface mostra como `service-unavailable`. A correção separa o limite do prato (24), preserva o limite de foto (12) e orienta o provedor a consolidar duplicatas; os 37 testes focados passaram. Como a resposta real do provedor não foi capturada, isso confirma um mecanismo de falha, não a causa exclusiva da ocorrência observada.
-- **Alinhamento:** correção mínima e fail-closed preservado; pendente de gates completos e revisão.
+- **O que foi feito:** a triagem confirmou que descrições curtas funcionam e que a entrada problemática estava repetida. A reprodução sintética passou uma resposta estruturalmente válida com 13 componentes pelo endpoint de prato: o contrato anterior a rejeitaria pelo limite de 12 itens herdado da foto e a converteria em `invalid-provider-response`/5xx, que a interface mostra como `service-unavailable`. A correção separa o limite do prato (24), preserva o limite de foto (12) e orienta o provedor a consolidar duplicatas. O PR #345 foi mesclado em `f025e47` após preflight local sem avisos, 1.567/1.567 unitários, Worker 48 + 9 runtime, smokes legado/Vite verdes com skips autenticados locais esperados e cutover 60/60; o CI da `main` `41259920526` e o preflight `41259920449` também passaram. Como a resposta real do provedor não foi capturada, isso confirma um mecanismo de falha corrigido, não a causa exclusiva da ocorrência observada.
+- **Alinhamento:** 100% da correção mínima, com fail-closed preservado; impacto positivo.
 
 ### [C08-PRODUCTION-APPCHECK-GATE] - Validação C08 compatível com App Check enforce
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** concluído, condicionado ao merge deste registro pós-merge — **Chat:** Trofia-Principal.
 - **Data de início:** 31/10/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 01/11/2026, condicionada ao merge deste registro pós-merge.
 - **Propósito:** restaurar a validação controlada dos contratos Gemini em produção sem enfraquecer o App Check enforce.
 - **O que se planeja fazer:** trocar o debug token registrado por token curto de App Check, enviá-lo somente no header da execução efêmera, cobrir a configuração do workflow e validar por CI; não alterar Worker, Firebase, IAM, regras ou deploy.
 - **Recursos/arquivos principais envolvidos:** `scripts/validate-c08-production.mjs`, `tests/smoke/app-check-ci.js`, workflow `c08-production-validation.yml`, teste unitário e documentação da frente principal.
-- **O que foi feito:** o run `41207278187` criou a conta descartável e falhou com `401` no primeiro endpoint porque o workflow não injetava App Check após o enforcement. O segredo e o helper de troca já existem e foram confirmados por leitura sem expor valores.
-- **Alinhamento:** correção em validação; pendente de gates locais e CI.
+- **O que foi feito:** o run `41207278187` criou a conta descartável e falhou com `401` no primeiro endpoint porque o workflow não injetava App Check após o enforcement. O segredo e o helper de troca já existem e foram confirmados por leitura sem expor valores. A correção passou a trocar o debug token por token curto e enviá-lo no header efêmero de cada chamada; o run C08 `41233601327` passou em 22 s, e o CI da `main` `41259920526` passou após o merge #345, sem alterar Worker, Firebase, IAM, regras ou deploy.
+- **Alinhamento:** 100% da correção de validação; impacto positivo, com enforcement preservado.
 
 ## Observações não confirmadas sob acompanhamento
 
