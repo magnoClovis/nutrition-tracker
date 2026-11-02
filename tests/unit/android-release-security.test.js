@@ -85,6 +85,30 @@ test('Firebase verifier accepts only the production project and Android package'
   assert.throws(() => verifyGoogleServicesConfig(wrongPackage), /Android client/);
 });
 
+test('Firebase verifier accepts the separate staging identity and rejects a production mix', () => {
+  const staging = {
+    project_info: {
+      project_id: 'trofia-staging',
+      project_number: '31822846339',
+    },
+    client: [{
+      client_info: {
+        mobilesdk_app_id: '1:31822846339:android:test',
+        android_client_info: { package_name: 'com.hermegas.trofia.staging' },
+      },
+      api_key: [{ current_key: 'test-only-value' }],
+    }],
+  };
+  const identity = {
+    packageName: 'com.hermegas.trofia.staging',
+    projectId: 'trofia-staging',
+    projectNumber: '31822846339',
+    label: 'Trofia staging',
+  };
+  assert.doesNotThrow(() => verifyGoogleServicesConfig(staging, identity));
+  assert.throws(() => verifyGoogleServicesConfig(staging), /project_id does not match/);
+});
+
 test('Gradle release graph verifies semantic Firebase config, merged manifest, and signed AAB', () => {
   const gradle = read('android/app/build.gradle');
   assert.match(gradle, /new JsonSlurper\(\)\.parse\(googleServicesFile\)/);
@@ -101,4 +125,18 @@ test('Gradle release graph verifies semantic Firebase config, merged manifest, a
   const verifier = read('scripts/verify-android-release-security.js');
   assert.match(verifier, /jar verified\\\./i);
   assert.match(verifier, /jar is unsigned/i);
+});
+
+test('Gradle staging graph requires a distinct package, Firebase config, and explicit target', () => {
+  const gradle = read('android/app/build.gradle');
+  assert.match(gradle, /staging\s*\{[\s\S]*?applicationIdSuffix\s+"\.staging"/);
+  assert.match(gradle, /versionNameSuffix\s+"-staging"/);
+  assert.match(gradle, /matchingFallbacks\s*=\s*\["release"\]/);
+  assert.match(gradle, /signingConfig signingConfigs\.debug/);
+  assert.match(gradle, /expectedStagingFirebaseProjectId = "trofia-staging"/);
+  assert.match(gradle, /expectedStagingAndroidPackage = "com\.hermegas\.trofia\.staging"/);
+  assert.match(gradle, /tasks\.register\("verifyStagingSecurityConfig", Exec\)/);
+  assert.match(gradle, /TROFIA_DEPLOY_TARGET=staging/);
+  assert.match(gradle, /src\/staging\/google-services\.json/);
+  assert.match(gradle, /--expected-project-id/);
 });

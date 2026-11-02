@@ -53,17 +53,40 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+        staging {
+            initWith release
+            applicationIdSuffix ".staging"
+            versionNameSuffix "-staging"
+            // Capacitor plugins publish debug/release only. Resolve their
+            // production-equivalent code without inheriting production app
+            // identity, Firebase configuration, or signing material.
+            matchingFallbacks = ["release"]
+            // Staging is a locally testable, non-Play variant. It must never
+            // borrow the production release signing configuration.
+            signingConfig signingConfigs.debug
+        }
     }
 }
 
 def expectedFirebaseProjectId = "nutrition-tracker-780b3"
 def expectedFirebaseProjectNumber = "128834310181"
 def expectedAndroidPackage = "com.hermegas.trofia"
+def expectedStagingFirebaseProjectId = "trofia-staging"
+def expectedStagingFirebaseProjectNumber = "31822846339"
+def expectedStagingAndroidPackage = "com.hermegas.trofia.staging"
 
 def findMergedReleaseManifest = {
     def candidates = fileTree(layout.buildDirectory.get().asFile) {
         include "intermediates/merged_manifest/release/**/AndroidManifest.xml"
         include "intermediates/merged_manifests/release/**/AndroidManifest.xml"
+    }.files.sort { left, right -> left.lastModified() <=> right.lastModified() }
+    candidates ? candidates.last() : null
+}
+
+def findMergedStagingManifest = {
+    def candidates = fileTree(layout.buildDirectory.get().asFile) {
+        include "intermediates/merged_manifest/staging/**/AndroidManifest.xml"
+        include "intermediates/merged_manifests/staging/**/AndroidManifest.xml"
     }.files.sort { left, right -> left.lastModified() <=> right.lastModified() }
     candidates ? candidates.last() : null
 }
@@ -111,9 +134,48 @@ def verifyReleaseBundleSecurity = tasks.register("verifyReleaseBundleSecurity", 
     }
 }
 
+def verifyStagingSecurityConfig = tasks.register("verifyStagingSecurityConfig", Exec) {
+    group = "verification"
+    description = "Verifies that Android staging uses only its isolated Firebase identity."
+    dependsOn "processStagingMainManifest"
+    doFirst {
+        if (System.getenv("TROFIA_DEPLOY_TARGET") != "staging") {
+            throw new GradleException(
+                "Trofia staging artifact requires TROFIA_DEPLOY_TARGET=staging before packaging."
+            )
+        }
+        def mergedManifest = findMergedStagingManifest()
+        def stagingGoogleServicesFile = file("src/staging/google-services.json")
+        if (mergedManifest == null || !stagingGoogleServicesFile.isFile() || !stagingGoogleServicesFile.text?.trim()) {
+            throw new GradleException(
+                "Trofia staging Firebase Android configuration is missing: " +
+                "android/app/src/staging/google-services.json. Staging artifacts without it are forbidden."
+            )
+        }
+        commandLine(
+            "node",
+            androidReleaseSecurityVerifier.absolutePath,
+            "--google-services", stagingGoogleServicesFile.absolutePath,
+            "--merged-manifest", mergedManifest.absolutePath,
+            "--expected-version-code", android.defaultConfig.versionCode.toString(),
+            "--expected-version-name", "${android.defaultConfig.versionName}-staging",
+            "--expected-package", expectedStagingAndroidPackage,
+            "--expected-project-id", expectedStagingFirebaseProjectId,
+            "--expected-project-number", expectedStagingFirebaseProjectNumber,
+            "--expected-label", "Trofia staging"
+        )
+    }
+}
+
 tasks.matching { it.name == "bundleRelease" }.configureEach {
     dependsOn verifyReleaseSecurityConfig
     finalizedBy verifyReleaseBundleSecurity
+}
+
+tasks.matching { task ->
+    task.name in ["assembleStaging", "bundleStaging", "packageStaging"]
+}.configureEach {
+    dependsOn verifyStagingSecurityConfig
 }
 
 gradle.taskGraph.whenReady { taskGraph ->
@@ -213,10 +275,12 @@ dependencies {
 apply from: 'capacitor.build.gradle'
 
 try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
+    def productionServicesJSON = file('google-services.json')
+    def stagingServicesJSON = file('src/staging/google-services.json')
+    if ((productionServicesJSON.isFile() && productionServicesJSON.text?.trim()) ||
+        (stagingServicesJSON.isFile() && stagingServicesJSON.text?.trim())) {
         apply plugin: 'com.google.gms.google-services'
     }
 } catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+    logger.info("Firebase Android configuration not found, google-services plugin not applied. Push Notifications won't work")
 }

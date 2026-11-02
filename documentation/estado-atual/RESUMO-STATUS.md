@@ -2131,12 +2131,13 @@
 
 ### [C14-H-ANDROID] - Artefato Android staging separado
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 01/11/2026.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** produzir artefato distinguível sem enfraquecer a validação release da produção.
-- **O que se planeja fazer:** vincular app Android staging ao projeto isolado, validar application ID/App Check e testar rejeição de mistura; prova física/Play Integrity permanece gate separado.
+- **O que se planeja fazer:** introduzir variante Android de staging com `applicationId` exclusivo, configuração Firebase local segregada e validações de mistura; registrar o provedor Play Integrity somente depois de obter a impressão SHA-256 do certificado de staging e aceitar explicitamente seus termos; prova física/Play Integrity e qualquer distribuição ou envio à Play permanecem gates separados.
 - **Recursos/arquivos principais envolvidos:** `android/app/build.gradle`, manifesto staging, `google-services.json` de staging quando provisionado, testes e Galaxy.
+- **O que foi feito:** em 01/11/2026, a leitura do Firebase confirmou que o App Check Web está registrado; após autorização explícita, o Android `com.hermegas.trofia.staging` foi registrado com Play Integrity e TTL de token de uma hora, sem enforcement. A implementação local introduz build type `staging`, `applicationIdSuffix`, `versionNameSuffix`, fallback explícito dos plugins Capacitor para `release`, arquivo Firebase local ignorado e verificador que exige alvo explícito, projeto, número e pacote `trofia-staging`; os testes focados passaram 14/14, o preflight passou e 1.581/1.581 unitários passaram. Após `capacitor sync`, o Gradle chegou ao gate e recusou corretamente o artefato por não haver `android/app/src/staging/google-services.json`; o arquivo foi baixado do Console mas ainda não está acessível nesta worktree. Nenhum deploy, IAM, distribuição ou envio de AAB ocorreu.
 
 ### [C14-H-ISOLAMENTO] - Recursos, CI e matriz staging
 
