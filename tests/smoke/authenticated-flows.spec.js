@@ -216,6 +216,13 @@ test.describe('authenticated critical data flows', () => {
     await interceptOptionalExternalApis(page);
     const errors = await openApp(page);
     setCriticalErrorPhase(errors, 'backup-round-trip');
+    // The shell can render before the restored Firebase session owns storage.
+    // Await the existing initialization boundary so a fixture write cannot be
+    // intentionally ignored during that narrow auth-restore window in CI.
+    await page.evaluate(async () => {
+      await window.initializeFirebase();
+      if (!window.fbIsLoggedIn()) throw new Error('authenticated-storage-not-ready');
+    });
     await setAppLanguage(page, 'pt');
 
     // Keep the backup fixture away from the actively hydrated civil day.
