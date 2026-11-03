@@ -495,7 +495,18 @@ const {
 } = window.NutritionTrackerController.createNutritionTrackerController({
   React,
   services: {
-    storage
+    storage,
+    goalToastFeedback: {
+      notify(tone) {
+        const haptics = window.Capacitor?.Plugins?.Haptics;
+        if (!window.Capacitor?.isNativePlatform?.() ||
+          window.Capacitor?.getPlatform?.() !== "android" ||
+          typeof haptics?.notification !== "function") return Promise.resolve(false);
+        return Promise.resolve(haptics.notification({
+          type: tone === "warning" ? "WARNING" : "SUCCESS"
+        })).then(() => true, () => false);
+      }
+    }
   },
   domain: {
     LANGUAGE_OPTIONS,

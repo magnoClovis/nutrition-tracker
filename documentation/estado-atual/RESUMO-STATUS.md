@@ -431,12 +431,13 @@
 
 ### [C26-A] - Toast interno seguro
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 03/11/2026 (auditoria e implementação).
 - **Data de conclusão:** não iniciado.
 - **Propósito:** tornar a conquista interna perceptível sem colidir com notch/barra de status e com feedback nativo adequado.
 - **O que se planeja fazer:** ajustar safe area e animação, revisar o som e adicionar vibração Android com fallback silencioso, preservando a fila e a web.
 - **Recursos/arquivos principais envolvidos:** toast de conquista, CSS de safe area, áudio, `@capacitor/haptics`, Android e testes PT/EN/ES.
+- **O que foi feito:** o toast recebeu marcador de safe area, transição mais curta e card com dimensão controlada; o áudio passou de ~0,18 s/ganho 0,08 para ~0,36 s/ganho 0,14; Haptics nativo Android foi integrado com fallback web silencioso; fila, textos e regras de metas foram preservados. Preflight sem avisos, testes focados 13/13, controlador 71/71, build Vite e APK debug passaram localmente. Ainda faltam smoke visual, CI autenticado e prova física. Detalhes em [`C26_A_TOAST_INTERNO_AUDITORIA.md`](C26_A_TOAST_INTERNO_AUDITORIA.md).
 
 ### [C26-B] - Lembretes locais
 
@@ -1496,13 +1497,15 @@
 
 ### [I8-A] - Shell, abas e categorias de Alimentos/Despensa
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 11/10/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 03/11/2026.
 - **Propósito:** redesenhar a segunda aba principal como biblioteca navegável e coerente com a nova navegação compartilhada.
 - **O que se planeja fazer:** implementar cabeçalho e contagens reais, busca visível, segmentos Alimentos/Refeições/Suplementos/Categorias, filtros locais, grade/lista de categorias, estados vazios e composição responsiva, preservando os fluxos existentes de criação, scanner, edição e persistência.
 - **Recursos/arquivos principais envolvidos:** pacote `UI_visuals/trofia-foods-tabs-categories`, `pantry-screen.js`, `nutrition-tracker-controller.js`, modelos atuais de alimentos/refeições/suplementos, `one-ui.css`, i18n e testes legado/Vite.
-- **O que foi feito:** o pacote aprovado, com FLOW, referência interativa e 26 PNGs claro/escuro, foi auditado; o shell com contagens reais, busca, quatro segmentos, filtros locais e categorias derivadas dos dados reais foi implementado sem alterar schema ou persistência. Os três consumidores Playwright afetados foram reconciliados semanticamente com a nova navegação. Em 13/10/2026, passaram preflight com 0 avisos, 1.566/1.566 unitários, recortes corrigidos com 11/11 no legado e 11/11 no Vite, smoke legado com 185 aprovados e 10 skips estruturais, smoke Vite com 195/195, CSP, cutover com 60/60 e build Vite de 848 módulos com allowlist de 14 arquivos. O PR draft #340 repetiu preflight, unitários, Worker, Functions e Playwright no CI funcional real; os checks funcional e documental ficaram verdes. O run extra `38339743752`, disparado apenas pelo commit documental, atingiu o limite global de uma hora depois de 186 casos Vite aprovados e foi interrompido durante o bootstrap do caso seguinte, sem falha funcional da I8-A e sem entrar nas métricas. A `main` foi incorporada até `364eb4d` e, na retomada controlada de 30/10/2026, novamente até `04a77bc` no merge `a9aa0c5`; esse último trouxe o ajuste C14-H de manifesto/validador staging e documentação correlata, sem conflito. `git diff --check` passou no merge. Após duas interrupções externas — timeout no cutover e respostas Firestore `429` —, a nova execução serial autenticada de 31/10/2026 passou integralmente no mesmo HEAD: preflight com 0 avisos, 1.572/1.572 unitários, smoke legado com 185 aprovações e 10 skips estruturais, smoke Vite 195/195, CSP verde, cutover 60/60 e build Vite de 848 módulos com allowlist de 14 arquivos. A repetição de CI posterior expôs somente um 503 deliberadamente devolvido pelo mock da API opcional Open Food Facts como erro de console; o filtro agora ignora exclusivamente essa origem/status, com caso negativo para hosts distintos. O recorte Vite de 5 cenários, preflight, 1.572/1.572 unitários e build de 848 módulos/allowlist 14 passaram no novo SHA; o gate autenticado integral e o CI ainda são pendentes. A fatia permanece aberta até o CI do PR e merge.
+- **O que foi feito:** o pacote aprovado, com FLOW, referência interativa e 26 PNGs claro/escuro, foi auditado; o shell com contagens reais, busca, quatro segmentos, filtros locais e categorias derivadas dos dados reais foi implementado sem alterar schema ou persistência. Os três consumidores Playwright afetados foram reconciliados semanticamente com a nova navegação. Em 13/10/2026, passaram preflight com 0 avisos, 1.566/1.566 unitários, recortes corrigidos com 11/11 no legado e 11/11 no Vite, smoke legado com 185 aprovados e 10 skips estruturais, smoke Vite com 195/195, CSP, cutover com 60/60 e build Vite de 848 módulos com allowlist de 14 arquivos. O PR #340 repetiu preflight, unitários, Worker, Functions e Playwright no CI funcional real; os checks funcional e documental do SHA técnico final `83d7b2f` ficaram verdes. O run extra `38339743752`, disparado apenas pelo commit documental, atingiu o limite global de uma hora depois de 186 casos Vite aprovados e foi interrompido durante o bootstrap do caso seguinte, sem falha funcional da I8-A e sem entrar nas métricas. A `main` foi incorporada até `364eb4d` e, na retomada controlada de 30/10/2026, novamente até `04a77bc` no merge `a9aa0c5`; esse último trouxe o ajuste C14-H de manifesto/validador staging e documentação correlata, sem conflito. `git diff --check` passou no merge. Após duas interrupções externas — timeout no cutover e respostas Firestore `429` —, a nova execução serial autenticada de 31/10/2026 passou integralmente no mesmo HEAD: preflight com 0 avisos, 1.572/1.572 unitários, smoke legado com 185 aprovações e 10 skips estruturais, smoke Vite 195/195, CSP verde, cutover 60/60 e build Vite de 848 módulos com allowlist de 14 arquivos. A repetição de CI posterior expôs somente um 503 deliberadamente devolvido pelo mock da API opcional Open Food Facts como erro de console; o filtro agora ignora exclusivamente essa origem/status, com caso negativo para hosts distintos. O recorte Vite de 5 cenários, preflight, 1.572/1.572 unitários e build de 848 módulos/allowlist 14 passaram no novo SHA. O código foi mesclado na `main` pelo commit `4e72767` em 01/11/2026; esta fatia fica aberta somente para a CI pós-merge da `main`, consolidação das métricas reais e merge deste registro documental exclusivamente documental.
+
+- **Correção pós-merge concluída:** a CI da `main` `41338160654` expôs a corrida do backup antes de a fachada Vite e a sessão autenticada estarem prontas; o teste passou a esperar a sessão exposta antes da escrita. A correção `#353` separou legado e Vite em jobs autenticados sequenciais, ampliou apenas a guarda do job para 90 minutos e alinhou seu contrato unitário, sem alterar Auth, Firestore, regras, runtime, deadlines, retry ou `force:true`. Os checks finais do PR e da `main` `41637759086` ficaram verdes: preflight sem avisos, 1.578/1.578 unitários, Worker, Functions, smoke legado 191 aprovados + 10 skips estruturais, Vite/CSP 201/201 e build Vite de 848 módulos/allowlist 14. O fechamento documental fica no PR exclusivamente documental #349.
 
 ### [I8-B] - Cartões, porções e ações da biblioteca
 
@@ -2132,12 +2135,13 @@
 
 ### [C14-H-ANDROID] - Artefato Android staging separado
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 01/11/2026.
+- **Data de conclusão:** não concluído; a prova física/Play Integrity permanece pendente.
 - **Propósito:** produzir artefato distinguível sem enfraquecer a validação release da produção.
-- **O que se planeja fazer:** vincular app Android staging ao projeto isolado, validar application ID/App Check e testar rejeição de mistura; prova física/Play Integrity permanece gate separado.
+- **O que se planeja fazer:** introduzir variante Android de staging com `applicationId` exclusivo, configuração Firebase local segregada e validações de mistura; registrar o provedor Play Integrity somente depois de obter a impressão SHA-256 do certificado de staging e aceitar explicitamente seus termos; prova física/Play Integrity e qualquer distribuição ou envio à Play permanecem gates separados.
 - **Recursos/arquivos principais envolvidos:** `android/app/build.gradle`, manifesto staging, `google-services.json` de staging quando provisionado, testes e Galaxy.
+- **O que foi feito:** em 01/11/2026, a leitura do Firebase confirmou o App Check Web; após autorização explícita, o Android `com.hermegas.trofia.staging` foi registrado com Play Integrity e TTL de token de uma hora, sem enforcement. O PR técnico #350 introduziu build type `staging`, `applicationIdSuffix`, `versionNameSuffix`, fallback explícito dos plugins Capacitor para `release`, arquivo Firebase local ignorado e verificador que exige alvo explícito, projeto `trofia-staging` (número `31822846339`) e pacote esperado. Após o `google-services.json` local ser fornecido fora do Git, `verifyStagingSecurityConfig` e `assembleStaging` passaram; o último gerou somente APK local de validação, assinado pela chave debug. O PR foi mesclado em `7b8d202`; preflight técnico `41341490162` passou em 23 s, CI técnico `41341490172` em 55 min 13 s, totalizando **55 min 36 s** e **13 h 9 min 52 s** do primeiro commit ao merge, valores idênticos ao corpo do #350. Na main, o preflight `41413864353` passou em 27 s. A primeira CI `41413864374` foi cancelada externamente; a segunda falhou somente em três smokes compartilhados com abortos Firestore durante bootstrap/troca de idioma; a terceira tentativa do mesmo run passou integralmente em 55 min 43 s, com preflight, 1.581 unitários, Worker, Functions e Playwright verdes. Nenhum deploy, IAM, enforcement, distribuição, AAB ou envio à Play ocorreu.
 
 ### [C14-H-ISOLAMENTO] - Recursos, CI e matriz staging
 

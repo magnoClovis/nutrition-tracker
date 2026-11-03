@@ -265,6 +265,7 @@
       storage,
       exportFile: injectedExportFile,
       imageMealFeature,
+      goalToastFeedback,
       resolveNutritionBackAction,
       resolveTabHistoryAfterNavigation
     } = services;
@@ -1971,15 +1972,15 @@
           const now = ctx.currentTime;
           osc.type = "sine";
           osc.frequency.setValueAtTime(tone === "warning" ? 520 : 660, now);
-          osc.frequency.exponentialRampToValueAtTime(tone === "warning" ? 390 : 880, now + 0.12);
+          osc.frequency.exponentialRampToValueAtTime(tone === "warning" ? 390 : 880, now + 0.28);
           gain.gain.setValueAtTime(0.0001, now);
-          gain.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+          gain.gain.exponentialRampToValueAtTime(0.14, now + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
           osc.connect(gain);
           gain.connect(ctx.destination);
           osc.start(now);
-          osc.stop(now + 0.18);
-          setTimeout(() => ctx.close && ctx.close(), 260);
+          osc.stop(now + 0.36);
+          setTimeout(() => ctx.close && ctx.close(), 460);
         } catch (_) {}
       }
 
@@ -1988,10 +1989,25 @@
        * Desktop browsers and unsupported mobile browsers simply ignore it.
        */
       function vibrateGoalToast(tone = "success") {
-        if (!isMobileView || typeof navigator === "undefined" || !navigator.vibrate) return;
-        try {
-          navigator.vibrate(tone === "warning" ? [35, 35, 35] : 45);
-        } catch (_) {}
+        if (!isMobileView) return;
+        const fallback = () => {
+          if (typeof navigator === "undefined" || !navigator.vibrate) return;
+          try {
+            navigator.vibrate(tone === "warning" ? [35, 35, 35] : 45);
+          } catch (_) {}
+        };
+        if (goalToastFeedback && typeof goalToastFeedback.notify === "function") {
+          try {
+            Promise.resolve(goalToastFeedback.notify(tone)).then(handled => {
+              if (!handled) fallback();
+            }, fallback);
+            return;
+          } catch (_) {
+            fallback();
+            return;
+          }
+        }
+        fallback();
       }
 
       /**
