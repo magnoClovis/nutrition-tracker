@@ -30,10 +30,10 @@ jobs:
   test:
     name: Preflight, unit and legacy Playwright
     runs-on: windows-2022
-    # Run 36507325162 hit the previous 45-minute job cap during the final
-    # authenticated Vite cases. This bounds the whole job only; per-test
-    # deadlines and assertions remain unchanged.
-    timeout-minutes: 60
+    # The previous 60-minute job cap repeatedly cut off the authenticated
+    # suite near its final cases. This bounds the whole job only; per-test
+    # deadlines, retries, and assertions remain unchanged.
+    timeout-minutes: 90
     env:
       VITE_FIREBASE_WEB_APP_ID: ${{ vars.VITE_FIREBASE_WEB_APP_ID }}
       VITE_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY }}
@@ -151,9 +151,9 @@ jobs:
     needs: test
     runs-on: windows-2022
     # The authenticated Vite suite is deliberately serialized after the legacy
-    # suite. Keeping it in its own job preserves the 60-minute safety bound
+    # suite. Keeping it in its own job preserves the 90-minute safety bound
     # without changing test deadlines, retries, or account ownership.
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       VITE_FIREBASE_WEB_APP_ID: ${{ vars.VITE_FIREBASE_WEB_APP_ID }}
       VITE_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY }}
