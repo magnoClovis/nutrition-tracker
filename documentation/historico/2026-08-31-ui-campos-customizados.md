@@ -1755,9 +1755,9 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 ### [I6-A] - Cabeçalho, resumo e navegação do Diário
 
-- **Status:** concluído.
+- **Status:** em andamento.
 - **Data de início:** 25/09/2026.
-- **Data de conclusão:** 03/11/2026.
+- **Data de conclusão:** não concluído.
 - **Tempo decorrido:** pendente de merge.
 - **Minutos de CI:** 0 min; implementação não iniciada.
 - **Propósito:** estabelecer a hierarquia principal do Diário sem misturar eventos, histórico ou edição.
@@ -1853,9 +1853,9 @@ Durante essa prova foi percebida uma demora entre o toque no obturador e a fotog
 
 ### [I8-A] - Shell, abas e categorias de Alimentos/Despensa
 
-- **Status:** em andamento.
+- **Status:** concluído.
 - **Data de início:** 11/10/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 03/11/2026.
 - **Tempo decorrido:** 21 dias, 10 h, 48 min e 46 s, do primeiro commit funcional `aeea32f` ao merge corretivo `2780b9a`.
 - **Minutos de CI:** 5 h 49 min 55 s — 3 min leves e 5 h 46 min 55 s pesados. Inclui os 51 min 37 s já comprovados do PR #340, os quatro runs do PR corretivo #353 (um cancelado no teto anterior, um com contrato unitário desatualizado e dois verdes) e a CI verde da `main` `41637759086`; o run extra cancelado `38339743752` do commit apenas documental não entra na soma, como registrado anteriormente.
 - **Propósito:** redesenhar a segunda aba principal como biblioteca navegável e coerente com a nova navegação compartilhada.

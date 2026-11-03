@@ -1426,9 +1426,9 @@
 
 ### [I6-A] - Cabeçalho, resumo e navegação do Diário
 
-- **Status:** concluído — **Chat:** Trofia-UIUX.
+- **Status:** em andamento — **Chat:** Trofia-UIUX.
 - **Data de início:** 25/09/2026.
-- **Data de conclusão:** 03/11/2026.
+- **Data de conclusão:** não concluído.
 - **Propósito:** estabelecer a hierarquia principal do Diário sem misturar eventos, histórico ou edição.
 - **O que se planeja fazer:** implementar título/data, Hoje contextual, avatar por iniciais abrindo Configurações, treino/descanso, resumo nutricional e encaixe da navegação/I4-A; desktop terá composição própria que preserva D2.
 - **Recursos/arquivos principais envolvidos:** `app-header-navigation.js`, perfil/Configurações, `diary-screen.js`, `one-ui.css`, i18n e Playwright.
@@ -1496,9 +1496,9 @@
 
 ### [I8-A] - Shell, abas e categorias de Alimentos/Despensa
 
-- **Status:** em andamento — **Chat:** Trofia-UIUX.
+- **Status:** concluído — **Chat:** Trofia-UIUX.
 - **Data de início:** 11/10/2026.
-- **Data de conclusão:** não concluído.
+- **Data de conclusão:** 03/11/2026.
 - **Propósito:** redesenhar a segunda aba principal como biblioteca navegável e coerente com a nova navegação compartilhada.
 - **O que se planeja fazer:** implementar cabeçalho e contagens reais, busca visível, segmentos Alimentos/Refeições/Suplementos/Categorias, filtros locais, grade/lista de categorias, estados vazios e composição responsiva, preservando os fluxos existentes de criação, scanner, edição e persistência.
 - **Recursos/arquivos principais envolvidos:** pacote `UI_visuals/trofia-foods-tabs-categories`, `pantry-screen.js`, `nutrition-tracker-controller.js`, modelos atuais de alimentos/refeições/suplementos, `one-ui.css`, i18n e testes legado/Vite.
