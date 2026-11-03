@@ -28,12 +28,12 @@ concurrency:
 
 jobs:
   test:
-    name: Preflight, unit and Playwright
+    name: Preflight, unit and legacy Playwright
     runs-on: windows-2022
-    # Run 36507325162 hit the previous 45-minute job cap during the final
-    # authenticated Vite cases. This bounds the whole job only; per-test
-    # deadlines and assertions remain unchanged.
-    timeout-minutes: 60
+    # The previous 60-minute job cap repeatedly cut off the authenticated
+    # suite near its final cases. This bounds the whole job only; per-test
+    # deadlines, retries, and assertions remain unchanged.
+    timeout-minutes: 90
     env:
       VITE_FIREBASE_WEB_APP_ID: ${{ vars.VITE_FIREBASE_WEB_APP_ID }}
       VITE_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY }}
@@ -98,7 +98,7 @@ jobs:
         continue-on-error: true
         run: npm --prefix functions run test:emulators
 
-      - name: Run Playwright smoke tests
+      - name: Run legacy Playwright smoke tests
         id: smoke
         continue-on-error: true
         env:
@@ -106,7 +106,7 @@ jobs:
           NUTRITION_TEST_PASSWORD: ${{ secrets.NUTRITION_TEST_PASSWORD }}
           FIREBASE_APPCHECK_DEBUG_TOKEN: ${{ secrets.FIREBASE_APPCHECK_DEBUG_TOKEN }}
           SMOKE_SERVER_IDLE_MS: 1800000
-        run: npm run test:smoke
+        run: npm run test:smoke:legacy
 
       - name: Write test summary
         if: always()
@@ -145,3 +145,51 @@ jobs:
           if ($failed) {
             throw 'Uma ou mais verificações falharam. Consulte o resumo e os artifacts desta execução.'
           }
+
+  vite-smoke:
+    name: Vite Playwright and CSP
+    needs: test
+    runs-on: windows-2022
+    # The authenticated Vite suite is deliberately serialized after the legacy
+    # suite. Keeping it in its own job preserves the 90-minute safety bound
+    # without changing test deadlines, retries, or account ownership.
+    timeout-minutes: 90
+    env:
+      VITE_FIREBASE_WEB_APP_ID: ${{ vars.VITE_FIREBASE_WEB_APP_ID }}
+      VITE_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+
+      - name: Run Vite Playwright smoke tests and CSP
+        env:
+          NUTRITION_TEST_EMAIL: ${{ secrets.NUTRITION_TEST_EMAIL }}
+          NUTRITION_TEST_PASSWORD: ${{ secrets.NUTRITION_TEST_PASSWORD }}
+          FIREBASE_APPCHECK_DEBUG_TOKEN: ${{ secrets.FIREBASE_APPCHECK_DEBUG_TOKEN }}
+          SMOKE_SERVER_IDLE_MS: 1800000
+        run: npm run test:smoke:vite
+
+      - name: Upload Vite failure diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-vite-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -216,6 +216,13 @@ test.describe('authenticated critical data flows', () => {
     await interceptOptionalExternalApis(page);
     const errors = await openApp(page);
     setCriticalErrorPhase(errors, 'backup-round-trip');
+    // The shell can render before the Vite facade and restored Firebase session
+    // own storage. Await the exposed authenticated session so a fixture write
+    // cannot be intentionally ignored during that narrow auth-restore window.
+    await page.waitForFunction(() => (
+      typeof window.fbIsLoggedIn === 'function'
+      && window.fbIsLoggedIn()
+    ));
     await setAppLanguage(page, 'pt');
 
     // Keep the backup fixture away from the actively hydrated civil day.
