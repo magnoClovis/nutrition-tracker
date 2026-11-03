@@ -251,7 +251,7 @@
 
 - **Status:** não iniciado, condicionado a nova recorrência com diagnóstico causal — **Chat:** Trofia-Principal.
 - **Data de início:** não iniciado.
-- **Data de conclusão:** não iniciado.
+- **Data de conclusão:** não concluído.
 - **Propósito:** corrigir a causa exata comprovada pela prova Play sem retry automático, leitura dupla, fallback de cache ou relaxamento do perfil obrigatório.
 - **O que se planeja fazer:** implementar a menor correção causal, adicionar regressão determinística, executar teste focado, suíte completa e CI autenticado, repetir a validação Play e só então liberar a CAM-RED-4.
 - **Recursos/arquivos principais envolvidos:** módulo identificado na D2, testes unitários/autenticados, Firebase Auth/App Check/Firestore, AAB Play, documentação e comunicação de desbloqueio da UI/UX.
@@ -431,12 +431,13 @@
 
 ### [C26-A] - Toast interno seguro
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 03/11/2026 (auditoria e implementação).
 - **Data de conclusão:** não iniciado.
 - **Propósito:** tornar a conquista interna perceptível sem colidir com notch/barra de status e com feedback nativo adequado.
 - **O que se planeja fazer:** ajustar safe area e animação, revisar o som e adicionar vibração Android com fallback silencioso, preservando a fila e a web.
 - **Recursos/arquivos principais envolvidos:** toast de conquista, CSS de safe area, áudio, `@capacitor/haptics`, Android e testes PT/EN/ES.
+- **O que foi feito:** o toast recebeu marcador de safe area, transição mais curta e card com dimensão controlada; o áudio passou de ~0,18 s/ganho 0,08 para ~0,36 s/ganho 0,14; Haptics nativo Android foi integrado com fallback web silencioso; fila, textos e regras de metas foram preservados. Preflight sem avisos, testes focados 13/13, controlador 71/71, build Vite e APK debug passaram localmente. Ainda faltam smoke visual, CI autenticado e prova física. Detalhes em [`C26_A_TOAST_INTERNO_AUDITORIA.md`](C26_A_TOAST_INTERNO_AUDITORIA.md).
 
 ### [C26-B] - Lembretes locais
 

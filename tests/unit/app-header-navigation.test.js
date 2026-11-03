@@ -185,6 +185,10 @@ contractTest("renders non-diary progress, notifications, and the alternate navig
   assert.match(textContent(view), /Protein50 \/ 100g/);
   assert.match(textContent(view), /Goal reached/);
   assert.match(textContent(view), /Error loading data/);
+  const goalToast = findNodes(view, node => node.props?.["data-goal-toast"] === "true")[0];
+  assert.equal(goalToast.props["data-safe-area-toast"], "true");
+  assert.equal(goalToast.props.role, "status");
+  assert.equal(goalToast.props["aria-live"], "polite");
   assert.equal(findNodes(view, node => node.type === "button" && node.props.title === "Open metrics").length, 0);
 });
 

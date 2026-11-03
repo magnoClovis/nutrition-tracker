@@ -63,6 +63,7 @@ import * as MealEstimate from './composite/meal-estimate.js';
 import * as MealReviewAI from './composite/meal-review-ai.js';
 import * as MealImageCaptureRuntime from './composite/meal-image-capture-runtime.js';
 import { embeddedMealCameraPreview } from './composite/embedded-camera-preview-runtime.js';
+import { goalToastFeedbackRuntime } from './composite/goal-toast-feedback-runtime.js';
 import * as NutritionFeedbackAI from './composite/nutrition-feedback-ai.js';
 import * as PantrySuggestionsAI from './composite/pantry-suggestions-ai.js';
 import * as ProfileValidation from './composite/profile-validation.js';
@@ -749,6 +750,7 @@ const {
     storage,
     exportFile,
     imageMealFeature,
+    goalToastFeedback: goalToastFeedbackRuntime,
     resolveNutritionBackAction,
     resolveTabHistoryAfterNavigation,
   },
