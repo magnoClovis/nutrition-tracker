@@ -431,13 +431,13 @@
 
 ### [C26-A] - Toast interno seguro
 
-- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Status:** em andamento — código e CI concluídos; prova física pendente no próximo AAB conjunto — **Chat:** Trofia-Principal.
 - **Data de início:** 03/11/2026 (auditoria e implementação).
-- **Data de conclusão:** não iniciado.
+- **Data de conclusão:** não concluído; merge técnico em 03/11/2026 e validação física pendente.
 - **Propósito:** tornar a conquista interna perceptível sem colidir com notch/barra de status e com feedback nativo adequado.
 - **O que se planeja fazer:** ajustar safe area e animação, revisar o som e adicionar vibração Android com fallback silencioso, preservando a fila e a web.
 - **Recursos/arquivos principais envolvidos:** toast de conquista, CSS de safe area, áudio, `@capacitor/haptics`, Android e testes PT/EN/ES.
-- **O que foi feito:** o toast recebeu marcador de safe area, transição mais curta e card com dimensão controlada; o áudio passou de ~0,18 s/ganho 0,08 para ~0,36 s/ganho 0,14; Haptics nativo Android foi integrado com fallback web silencioso; fila, textos e regras de metas foram preservados. Preflight sem avisos, testes focados 13/13, controlador 71/71, build Vite e APK debug passaram localmente. Ainda faltam smoke visual, CI autenticado e prova física. Detalhes em [`C26_A_TOAST_INTERNO_AUDITORIA.md`](C26_A_TOAST_INTERNO_AUDITORIA.md).
+- **O que foi feito:** o PR #354 (`4cfa5f4`, merge `a2e52c9`) entregou marcador de safe area, transição mais curta e card com dimensão controlada; áudio de ~0,36 s/ganho 0,14; e Haptics Android com fallback web silencioso, preservando fila, textos e regras de metas. Preflight do PR passou em 35 s e CI em 1 h 44 min 21 s; a main confirmou preflight em 28 s e CI verde na segunda tentativa, após uma falha transitória no backup mobile sem relação demonstrada com a fatia. Falta somente a prova física no próximo AAB conjunto. Detalhes em [`C26_A_TOAST_INTERNO_AUDITORIA.md`](C26_A_TOAST_INTERNO_AUDITORIA.md).
 
 ### [C26-B] - Lembretes locais
 

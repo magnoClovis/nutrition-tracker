@@ -1,6 +1,6 @@
 # C26-A — Toast interno seguro
 
-**Estado em 03/11/2026:** implementação em andamento. Esta fatia melhora o feedback já existente para metas nutricionais atingidas; não cria notificações externas, não solicita permissão e não envia dados a serviços remotos.
+**Estado em 03/11/2026:** implementação mesclada na `main` pelo PR #354 (`4cfa5f4`, merge `a2e52c9`). Esta fatia melhora o feedback já existente para metas nutricionais atingidas; não cria notificações externas, não solicita permissão e não envia dados a serviços remotos. A única pendência é a prova física no próximo AAB conjunto.
 
 ## Contrato aprovado
 
@@ -27,5 +27,6 @@
 ## Gates previstos
 
 1. **Concluído localmente:** preflight sem avisos; testes focados de runtime/semântica (13/13); controlador (71/71); build Vite; `capacitor sync android`; `:app:assembleDebug` com o plugin Haptics.
-2. **Pendente:** smoke visual proporcional desktop/mobile e CI autenticado do PR.
-3. **Pendente após eventual merge autorizado:** validação física no Android dentro do próximo AAB conjunto, sem publicação automática.
+2. **Concluído no PR #354:** Documentation preflight `41639904052` em 35 s; CI `41639904064` em 1 h 44 min 21 s, com 1.584 unitários, Worker 48, Functions 77, Playwright legado 191/191, Vite 201/201, CSP e `SMOKE_OUTCOME: success`.
+3. **Concluído na main:** Documentation preflight `41667348649` em 28 s. A CI `41667348548` passou na segunda tentativa; a primeira passou preflight, unitários, Worker, Functions, Playwright legado e 200/201 Vite, mas falhou no backup round-trip mobile por browser-error sanitizado de GET local 200 e abortos Firestore em reload. A repetição do job Vite passou integralmente, sem evidência de ligação com a C26-A.
+4. **Pendente de release:** validação física no Android dentro do próximo AAB conjunto, cobrindo safe area, cue sonoro, Haptics e fallback; sem publicação automática.

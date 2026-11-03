@@ -887,17 +887,17 @@ O merge local `194367e` integrou a `main` após I4-A (#332); `npm test` foi repe
 
 ### [C26-A] - Toast interno seguro
 
-- **Status:** em andamento.
+- **Status:** em andamento — implementação e CI concluídos; prova física de release pendente.
 - **Data de início:** 03/11/2026 (auditoria e implementação).
-- **Data de conclusão:** não concluído.
-- **Tempo decorrido:** pendente de merge.
-- **Minutos de CI:** 0 min; CI autenticado ainda não iniciado.
+- **Data de conclusão:** não concluído; merge técnico em 03/11/2026 e prova física pendente no próximo AAB conjunto.
+- **Tempo decorrido:** 2 h 50 min 40 s (primeiro commit `4cfa5f4`, 03/11/2026 12:55:45 UTC, até merge `a2e52c9`, 03/11/2026 15:46:25 UTC).
+- **Minutos de CI:** 1 h 44 min 56 s (35 s leve + 1 h 44 min 21 s pesado) no PR #354.
 - **Propósito:** tornar o feedback interno de conquista visível e confortável em aparelhos com notch/barra de status, sem degradar web ou acessibilidade.
 - **O que se planeja fazer:** corrigir posição e animação com safe area, rever o som dentro do volume do dispositivo e usar `@capacitor/haptics` no Android, preservando a fila existente e fallback silencioso.
 - **Recursos/arquivos principais envolvidos:** componente e estilos do toast de conquista, CSS de safe area, ativo de áudio, `@capacitor/haptics`, projeto Android, i18n e testes desktop/mobile.
-- **O que foi feito:** a auditoria confirmou uma fila de conquistas de 5 s, mas toast mobile diretamente a 10 px, sem o atributo que aciona o CSS de safe area; cue Web Audio de ~0,18 s com ganho máximo 0,08; e vibração limitada a `navigator.vibrate`. A implementação adicionou `data-safe-area-toast`, `role="status"` e `aria-live="polite"`; aplica os insets unificados do Android, reduz a transição para 280/220 ms e mantém o card em largura/altura controladas. O cue agora tem ~0,36 s e ganho 0,14 sem ignorar volume/permissão do aparelho. O runtime Vite usa `@capacitor/haptics` só em Android nativo; falhas, web e plataformas não suportadas retornam ao fallback silencioso do navegador. A fila, os textos, a detecção de metas e os dados persistidos não foram alterados. Gates locais comprovados: preflight sem avisos; testes focados de semântica/runtime 13/13; controlador 71/71; build Vite; `capacitor sync android`; e `:app:assembleDebug` verde com Haptics. Smoke visual, CI autenticado e prova física continuam pendentes. O registro anterior continha por engano tempo e CI da C14-H; foram removidos por não haver evidência de execução da C26-A.
-- **Alinhamento:** em andamento; escopo técnico confirmado, entrega e gates pendentes.
-- **PRs/commits relacionados:** planejamento aprovado em 25/09/2026; implementação iniciada em branch própria em 03/11/2026. — **Chat:** Trofia-Principal.
+- **O que foi feito:** a auditoria confirmou uma fila de conquistas de 5 s, mas toast mobile diretamente a 10 px, sem o atributo que aciona o CSS de safe area; cue Web Audio de ~0,18 s com ganho máximo 0,08; e vibração limitada a `navigator.vibrate`. O PR #354 adicionou `data-safe-area-toast`, `role="status"` e `aria-live="polite"`; aplica os insets unificados do Android, reduz a transição para 280/220 ms e mantém o card em largura/altura controladas. O cue agora tem ~0,36 s e ganho 0,14 sem ignorar volume/permissão do aparelho. O runtime Vite usa `@capacitor/haptics` só em Android nativo; falhas, web e plataformas não suportadas retornam ao fallback silencioso do navegador. A fila, os textos, a detecção de metas e os dados persistidos não foram alterados. Gates locais comprovados: preflight sem avisos; testes focados de semântica/runtime 13/13; controlador 71/71; build Vite; `capacitor sync android`; e `:app:assembleDebug` verde com Haptics. A CI do SHA `4cfa5f4` passou com preflight, 1.584 unitários, Worker 48, Functions 77, Playwright legado 191/191, Vite 201/201 e CSP. Na main, o preflight `41667348649` passou em 28 s; o CI `41667348548` passou na segunda tentativa. A primeira chegou a 200/201 Vite e falhou somente no backup round-trip móvel com browser-error sanitizado de GET local 200 e abortos Firestore em reload; a tentativa Vite seguinte passou, portanto o incidente foi preservado como transitório e não atribuído à C26-A. A prova física de safe area, áudio, Haptics e fallback em Android permanece obrigatória no próximo AAB conjunto, sem geração ou publicação de AAB nesta fatia.
+- **Alinhamento:** implementação e validação automatizada entregam integralmente o escopo técnico aprovado; a conclusão da fatia permanece pendente exclusivamente da prova física de release, impacto neutro.
+- **PRs/commits relacionados:** planejamento aprovado em 25/09/2026; PR #354, commit `4cfa5f4`, merge `a2e52c9`; preflight `41639904052` (35 s), CI `41639904064` (1 h 44 min 21 s), preflight main `41667348649` (28 s) e CI main `41667348548` (tentativa 2 verde). — **Chat:** Trofia-Principal.
 
 ### [C26-B] - Lembretes locais
 
