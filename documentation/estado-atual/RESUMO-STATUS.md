@@ -2145,12 +2145,13 @@
 
 ### [C14-H-ISOLAMENTO] - Recursos, CI e matriz staging
 
-- **Status:** não iniciado — **Chat:** Trofia-Principal.
-- **Data de início:** não iniciado.
+- **Status:** em andamento — **Chat:** Trofia-Principal.
+- **Data de início:** 04/11/2026.
 - **Data de conclusão:** não iniciado.
 - **Propósito:** comprovar isolamento remoto antes de qualquer rollout público.
 - **O que se planeja fazer:** provisionar apps/host, Worker/DO, Functions/Tasks/Scheduler/IAM mínimos e lane de CI isolados; executar matriz cross-account, App Check, payloads, rate limit, cache, backup, exclusão e rollback, sem reutilizar dados/credenciais de produção.
 - **Recursos/arquivos principais envolvidos:** projeto `trofia-staging`, Firebase Hosting/Auth/App Check, Cloudflare, Functions, CI, runbooks e Android.
+- **O que foi feito:** a preparação somente em leitura confirmou projeto, apps e Hosting exclusivos já ativos; confirmou que o Worker staging ainda não existe e que os bindings remotos obrigatórios continuam vazios no manifesto. Foram registrados o mapa de lacunas, ordem de provisionamento, critérios de aceite, rollback e autorizações externas no runbook C14-H. Não houve criação de recurso, deploy, alteração de IAM, enforcement App Check, AAB ou Play.
 
 ### [DOC-C14-H-315] - Métricas e preparação de staging pós-auditoria
 
