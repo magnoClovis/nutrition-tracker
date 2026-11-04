@@ -49,6 +49,12 @@ async function createAccountUntilRequiredProfile(page) {
   await fillProgressiveRegistration(page, {email:'new-date-profile@example.test'});
   await page.getByRole('button', {name: /Criar conta|Create account/i}).last().click();
   await expect(page.getByRole('heading', {name: /Verifique seu email|Verify your email/i})).toBeVisible();
+  // Firebase initializes its browser facade during registration. Install the
+  // verified-account seam only after that real verification screen is visible,
+  // then let the screen's normal poll advance the new-account profile gate.
+  await page.evaluate(() => {
+    window.fbCheckEmailVerified = async () => true;
+  });
   await expect(page.locator('[data-required-profile-modal="true"]')).toBeVisible({timeout: 10000});
 }
 

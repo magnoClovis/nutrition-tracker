@@ -123,6 +123,13 @@ function walkElements(node, visit) {
   React.Children.toArray(node.props && node.props.children).forEach(child => walkElements(child, visit));
 }
 
+function textContent(node) {
+  if (node === null || node === undefined || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textContent).join("");
+  return textContent(node.props && node.props.children);
+}
+
 function findButton(tree, label) {
   let match;
   walkElements(tree, node => {
@@ -176,6 +183,27 @@ contractTest("opens, calls onDone, and restores the previous body scroll value o
     assert.equal(env.body.style.overflow, "auto");
   } finally {
     env.restore();
+  }
+});
+
+contractTest("uses the delivered Progress tab name throughout the Metrics tutorial", TutorialOverlay => {
+  const cases = [
+    { lang: "pt", expected: /Progresso e metas.*Progresso para acompanhar a evolução/, obsolete: /Acompanhamento/ },
+    { lang: "en", expected: /Progress and goals.*Progress for tracking change/, obsolete: /Tracking/ },
+    { lang: "es", expected: /Progreso y metas.*Progreso para ver la evolución/, obsolete: /Seguimiento/ }
+  ];
+
+  for (const current of cases) {
+    const env = createDomEnvironment();
+    const harness = createHookHarness(TutorialOverlay, { lang: current.lang, type: "metricas", onDone: () => {} });
+    try {
+      const rendered = textContent(harness.render());
+      assert.match(rendered, current.expected);
+      assert.doesNotMatch(rendered, current.obsolete);
+    } finally {
+      harness.unmount();
+      env.restore();
+    }
   }
 });
 
