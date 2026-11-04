@@ -1,5 +1,45 @@
 # C14-H — Tarefa 0 de staging e validação final
 
+## Atualização de preparação de isolamento remoto — 04/11/2026
+
+### Limite desta etapa
+
+Esta atualização é uma auditoria operacional **somente em leitura**. Ela não provisiona recursos, não executa deploy, não lê secrets, não altera IAM, App Check, Firestore, regras, Android, AAB, Play ou dados de teste. Seu resultado é um plano verificável para a próxima autorização; não é prova de que o isolamento remoto já existe.
+
+### Inventário confirmado agora
+
+| Domínio | Evidência observada | Estado e consequência |
+|---|---|---|
+| Projeto, apps e host Firebase | Firebase CLI autenticado listou `trofia-staging` ACTIVE, um app Web ACTIVE, um Android ACTIVE com pacote exclusivo e o site padrão `trofia-staging.web.app`. | A fronteira de projeto/apps/host existe; isto não autoriza tráfego de app sem os demais destinos. |
+| Contrato versionado | `.firebaserc` separa os aliases `production`, `staging` e `emulator`. `config/staging-environment.json` contém apenas identidades públicas de Firebase/Hosting/Android; Worker, callable, contas Functions, fila e job seguem vazios. | O manifest permanece corretamente fail-closed: qualquer build/uso que exija essas dependências deve ser recusado. |
+| Worker e Durable Object | `worker/wrangler.jsonc` declara `env.staging` e DO por ambiente, porém a consulta de deployments do Worker staging retornou recurso inexistente. | Não há Worker staging publicado nem DO persistente a reutilizar; criação e secrets próprios permanecem pendentes. |
+| CI | A API do GitHub listou apenas o environment `github-pages`; os workflows atuais incluem CI e lease autenticado, mas não um environment protegido/segredo/lane registrado para staging. | A futura prova remota precisa de environment e credenciais de teste próprios, sem reutilizar a conta/lease compartilhada. |
+| Serviços Google remotos | O host desta auditoria não tem `gcloud`; por isso Functions, Tasks, Scheduler, Service Accounts, grants, banco Firestore e APIs não foram deduzidos a partir do repositório. | Tratar todos como **não confirmados**, não como ausentes; a primeira execução autorizada deve inventariar e registrar cada recurso antes de escrever. |
+
+### Sequência autorizável, dependências e pontos de parada
+
+1. **Pré-checagem sem escrita:** confirmar região, APIs ativas, Firestore, Functions, Tasks, Scheduler, contas existentes e política IAM do projeto staging; registrar somente nomes/papéis necessários e nunca valores de secrets.
+2. **Infraestrutura mínima isolada:** criar Worker/DO staging, Functions e invocadores, contas de serviço de menor privilégio, fila e job próprios. Parar se qualquer identidade, região, audience OIDC ou projeto não for `trofia-staging`.
+3. **Contrato e publicação controlada:** preencher apenas as referências públicas aprovadas no manifesto, configurar Hosting/Auth/App Check/CSP/CORS de staging e publicar exclusivamente no host staging. Manter enforcement App Check desligado até a prova de token autorizada.
+4. **CI e fixtures:** criar environment/lane/contas descartáveis do staging, com restauração em `finally`; não compartilhar lease, UID, coleção ou token de produção.
+5. **Matriz de aceite:** executar resultados positivos e negativos para conta cruzada, token App Check, payload/IA, limite/DO, cache/offline, backup/restauração, exclusão/Tasks, Scheduler/OIDC, mistura de manifestos e rollback Web/Android.
+6. **Prova física separada:** somente no AAB conjunto posterior da UIUX, instalar no dispositivo, provar Play Integrity no projeto staging e registrar resultado. Esta etapa não autoriza envio à Play.
+
+### Critérios de aceite e rollback
+
+| Controle | Aceite mínimo antes de avançar | Rollback/containment se falhar |
+|---|---|---|
+| Fronteira de projeto | todos os IDs/origens/audiences pertencem a staging; mistura com produção falha antes de chamada | revogar a referência staging publicada, restaurar o manifesto fail-closed e não reutilizar dados |
+| Worker/DO e IA | Worker/DO de staging existe com namespace próprio; token/host de produção é recusado | despublicar somente o Worker staging ou retirar rota/configuração staging; não tocar no Worker de produção |
+| Functions/Tasks/Scheduler | contas, queue, job e OIDC do próprio projeto com papel mínimo comprovado | pausar job e fila staging, revogar grants adicionados e preservar evidência sanitizada |
+| App Check e apps | token de staging aceito apenas no destino staging; token/ID cruzado recusado | manter enforcement desligado ou revertê-lo no staging; não modificar produção |
+| CI e dados | fixtures descartáveis, lease isolado e limpeza comprovada | cancelar lane staging, apagar somente fixtures identificadas e bloquear nova execução |
+| Web/Android | CSP/CORS/host/pacote de staging corretos e prova física separada | retirar publicação/artefato staging, sem AAB/Play nem mudança de release de produção |
+
+### Autorizações externas ainda necessárias
+
+Antes de qualquer passo de escrita, obter autorização explícita para: criação/publicação do Worker e DO staging; deploy Hosting/Functions; criação/uso de contas de serviço, IAM mínimo, Cloud Tasks e Scheduler; criação de environment/secrets de CI staging; configuração de domínios/Auth/App Check/CSP/CORS; e, mais adiante, AAB/instalação/distribuição para a prova física. O orçamento existente é alerta, não teto de gasto; ele não substitui essas decisões nem um plano de rollback.
+
 ## Recorte apps de staging (iniciado em 13/10/2026)
 
 Em 01/11/2026, a retomada com a conta administradora do projeto confirmou no Console que o App Check Web permanece registrado. Após autorização explícita, o Android `com.hermegas.trofia.staging` foi registrado com Play Integrity, fingerprint local de staging e TTL de token de uma hora, sem enforcement. A subfatia local introduziu build type `staging` com pacote e versão distinguidos, fallback explícito de plugins Capacitor para `release`, configuração Firebase somente em caminho ignorado e verificador que recusa alvo, projeto, número ou pacote misturados. Depois de restaurar dependências e executar `capacitor sync`, o Gradle inicialmente recusou corretamente o artefato sem `android/app/src/staging/google-services.json`. Com o arquivo local fornecido fora do Git, `verifyStagingSecurityConfig` confirmou a identidade staging e `assembleStaging` produziu somente APK local de validação assinado pela chave debug; não houve AAB. O PR técnico #350 foi mesclado em `7b8d202`: preflight `41341490162` em 23 s e CI `41341490172` em 55 min 13 s; intervalo ao merge de 13 h 9 min 52 s e CI total de 55 min 36 s, valores já copiados ao corpo do PR. O preflight main `41413864353` passou em 27 s; a primeira tentativa do CI main `41413864374` foi cancelada externamente, a segunda revelou apenas três falhas compartilhadas de smoke com abortos Firestore na troca de idioma/bootstrap e a terceira passou integralmente em 55 min 43 s. Nenhum deploy, IAM, enforcement, distribuição nem envio de AAB à Play ocorreu. A prova física no APK staging e a emissão real de token Play Integrity continuam gates separados.
