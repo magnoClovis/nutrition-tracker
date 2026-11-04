@@ -55,7 +55,7 @@ async function createAccountUntilRequiredProfile(page) {
   await page.evaluate(() => {
     window.fbCheckEmailVerified = async () => true;
   });
-  await expect(page.locator('[data-required-profile-modal="true"]')).toBeVisible({timeout: 15000});
+  await expect(page.locator('[data-required-profile-modal="true"]')).toBeVisible({timeout: 10000});
 }
 
 async function openRequiredProfile(page) {
