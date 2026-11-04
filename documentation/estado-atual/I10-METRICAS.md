@@ -8,7 +8,7 @@ O contrato visual e comportamental vem de `UI_visuals/trofia-metrics-journey/FLO
 
 ### I10-A — Jornada e estado atual
 
-- **Status:** implementação técnica mesclada; encerramento documental em preparação.
+- **Status:** encerramento documental em revisão no PR #356.
 - **Escopo:** frame da tela, cabeçalho, Progresso/Metas, jornada, plano/previsão, CTA de pesagem, tiles de Peso/IMC/TMB e estados skeleton/sem pesagens/uma pesagem/altura ausente.
 - **Preservar:** `bodyMetrics`, `bodyComposition`, `normalizedWeightEntries`, `weeklyProgress`, `weightTrend`, persistência e hooks `data-tutorial` equivalentes.
 - **Fora desta subfatia:** gráficos detalhados, composição corporal, sheets, histórico editável e listas completas de metas.
@@ -49,7 +49,7 @@ Preflight, unitários focados e completos, recortes Playwright legado/Vite, `npm
 - `main` incorporada até `63b7bbd` sem conflito de runtime; o tutorial foi alinhado aos nomes entregues Progresso/Progress/Progreso e protegido por contrato UMD/ESM; nessa base passaram novamente sintaxe, `git diff --check`, preflight com 0 avisos, 16/16 focados de Métricas, 11/11 do tutorial, 1.567/1.567 unitários e build Vite com 848 módulos/allowlist de 14 arquivos;
 - gate integral autenticado verde com smoke legado em 185 aprovações e 10 skips estruturais esperados, smoke Vite 195/195, CSP verde e cutover 60/60.
 - Em 30/10/2026, a reconciliação `453d9a2` incorporou `origin/main` em `04a77bc` sem conflitos; os dois diffs de merge passaram em `git diff --check`. Em 01/11/2026, a reconciliação `3c1784c` incorporou `origin/main` em `f025e47`, incluindo validações C08 e documentação correlata sem conflito; `git diff --check` passou. O gate autenticado permanece pendente.
-- Em 04/11/2026, o PR técnico #348 foi mesclado em `b23b4c4` depois de CI verde: preflight sem avisos, 1.592 unitários, Worker 48/48, Functions 77/77, smoke legado 195 aprovados + 10 skips estruturais e smoke Vite 205/205 com CSP verde. A CI da `main` e as métricas finais do registro pós-merge ainda aguardam conclusão.
+- Em 04/11/2026, o PR técnico #348 foi mesclado em `b23b4c4` depois de CI verde: preflight sem avisos, 1.592 unitários, Worker 48/48, Functions 77/77, smoke legado 195 aprovados + 10 skips estruturais e smoke Vite 205/205 com CSP verde. Do primeiro commit ao merge transcorreram 22 dias 4 h 31 min 26 s. O SHA técnico final consumiu 2 h 10 min 52 s de CI (30 s leve + 2 h 10 min 22 s pesada) nos runs `41793919985`/`41793919976`; a `main` confirmou o merge nos runs `41818531209`/`41818531281` em 31 s leve e 1 h 59 min 3 s pesada. O PR exclusivamente documental #356 aguarda seu merge para fechar a fatia.
 
 Uma tentativa anterior havia passado 184 casos e mantido 10 skips estruturais no legado antes de parar por `auth-refresh-timeout` no bootstrap isolado do GenericDialog mobile. Os artefatos foram preservados e nenhum retry automático foi feito; a execução final acima comprovou a fatia integralmente na base integrada.
 
