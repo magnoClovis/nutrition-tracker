@@ -24,6 +24,7 @@ const fbRefreshToken = (...args) => getRuntime().auth.fbRefreshToken(...args);
 const fbToken = (...args) => getRuntime().auth.fbToken(...args);
 const fbSignOut = (...args) => getRuntime().auth.fbSignOut(...args);
 const fbIsLoggedIn = () => runtime?.auth.fbIsLoggedIn() === true;
+const fbGetUid = () => runtime?.auth.getUid() || null;
 const fbReauthenticate = (...args) => getRuntime().auth.fbReauthenticate(...args);
 const fbUpdatePassword = (...args) => getRuntime().auth.fbUpdatePassword(...args);
 const fbPrepareAccountDeletion = () => getRuntime().auth.flushBeforeAccountDeletion();
@@ -84,7 +85,7 @@ function debugFirestoreReadMetrics({reset = false} = {}) {
 const facade = {
   _saveSession, initializeFirebase, fbSignIn, fbSignUp, fbUpdateProfile,
   fbSendVerificationEmail, fbSendPasswordResetEmail, fbCheckEmailVerified,
-  fbRefreshToken, fbToken, fbSignOut, fbIsLoggedIn, fbReauthenticate,
+  fbRefreshToken, fbToken, fbSignOut, fbIsLoggedIn, fbGetUid, fbReauthenticate,
   fbUpdatePassword, fbPrepareAccountDeletion, fbFinalizeAccountDeletion,
   fbHeaders, fbGet, fbSet, fbDel, fbList, fbGet3, fbSet3, fbDel3, fbList3,
   exportFullAccountBackup, validateFullAccountBackup,
@@ -103,7 +104,7 @@ export {
   TOKEN_BASE, _saveSession, debugNutritionStorage, debugFirestoreReadMetrics,
   exportFullAccountBackup,
   fbCheckEmailVerified, fbDel, fbDel3, fbFinalizeAccountDeletion, fbGet, fbGet3,
-  fbHeaders, fbIsLoggedIn, fbList, fbList3, fbPrepareAccountDeletion,
+  fbGetUid, fbHeaders, fbIsLoggedIn, fbList, fbList3, fbPrepareAccountDeletion,
   fbReauthenticate, fbRefreshToken, fbSendPasswordResetEmail,
   fbSendVerificationEmail, fbSet, fbSet3, fbSignIn, fbSignOut, fbSignUp,
   fbToken, fbUpdatePassword, fbUpdateProfile, importFullAccountBackup,
